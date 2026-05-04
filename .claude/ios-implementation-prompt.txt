@@ -1,0 +1,281 @@
+You are building the iOS app for Solo Compass (独行罗盘) — a "living map for solo travelers."
+
+WORKING DIRECTORY: apps/ios/SoloCompass/
+
+## CRITICAL INSTRUCTIONS
+1. Create ALL Swift files in the correct subdirectories
+2. Follow the spec EXACTLY — the design principles are non-negotiable
+3. Use SwiftUI + MapKit, target iOS 17.0+
+4. Use MVVM with @Observable (iOS 17+)
+5. NO force unwraps — use guard let / throws
+6. Every View must have a #Preview
+7. Use NSLocalizedString for user-facing strings
+8. ZERO third-party dependencies — Swift native only
+
+## FILE LIST (create ALL of these):
+
+### 1. Models/Experience.swift
+Swift model mirroring the TS Experience type:
+```swift
+- ExperienceCategory enum: culture, nature, food, coffee, work, wellness, nightlife, hidden
+- TimeWindow struct: startHour, endHour, dayOfWeek?, season?, note?
+- ExperienceLocation struct: coordinates (CLLocationCoordinate2D), cityCode, addressHint?, placeNameLocal?, placeNameRomanized?
+- HowToStep struct: order, text
+- RealInconvenience struct: category (scam/crowds/logistics/weather/etiquette/safety/other), text
+- SoloScore struct: overall (0-10), breakdown (seatingFriendly, soloPatronRatio, staffPressure, soloPortioning, ambianceFit, safety, all 0-10), hint?, basedOnCount
+- HealthStatus enum: healthy, fading, questioned, mayBeGone (with SF Symbol + color)
+- Confidence struct: level (0-5), lastVerifiedAt (Date), reason, signals (aiScrapeAgeDays, passiveGpsHits30d, activeReports30d, trustedVerifications)
+- InformationSource struct: type (wikivoyage/wikipedia/reddit/blog/youtube/user/fieldVisit), url?, attribution?, verifiedAt (Date)
+- Experience struct: id (String), title, oneLiner, whyItMatters, category, location, bestTimes ([TimeWindow]), durationMinutes (ClosedRange<Int>), howTo ([HowToStep]), realInconveniences ([RealInconvenience]), soloScore, sources ([InformationSource]), confidence, nearbyExperienceIds ([String]), stats (completionCount, averageRating, lastCompletedAt?), status (candidate/active/stale/retired), createdAt (Date), updatedAt (Date)
+- ExperienceMarkerState enum: default, bestNow, completed, favorited, upcoming(minutes: Int), footprinted
+```
+
+### 2. Models/UserPreferences.swift
+```swift
+- UserPreferences struct (Codable, UserDefaults-backed):
+  - preferredCategories: [ExperienceCategory] (empty = all)
+  - dislikedCategories: [ExperienceCategory]
+  - soloTravelStyle: explorer / worker / foodie / cultureSeeker
+  - maxDistanceKm: Double (default 5.0)
+  - visitHistory: [String: Date]  // experienceId: lastVisited
+  - completedExperiences: Set<String>
+  - favoritedExperiences: Set<String>
+```
+
+### 3. Services/LocationService.swift
+```swift
+- @Observable class LocationService:
+  - Uses CLLocationManager
+  - Published: currentLocation: CLLocation?, authorizationStatus
+  - requestPermission(), startUpdating()
+  - distance(to: CLLocationCoordinate2D) -> CLLocationDistance
+  - static let shared
+```
+
+### 4. Services/ExperienceService.swift
+```swift
+- @Observable class ExperienceService:
+  - Loads experiences from bundled JSON (seed data)
+  - Published: allExperiences: [Experience], filteredExperiences: [Experience]
+  - filter(by category: ExperienceCategory?, near location: CLLocationCoordinate2D?, maxDistance: Double)
+  - getExperiences(near: CLLocationCoordinate2D, radiusKm: Double) -> [Experience]
+  - getExperience(id: String) -> Experience?
+  - getBestNowExperiences(at: Date, near: CLLocationCoordinate2D) -> [Experience]
+  - markCompleted(_ id: String), toggleFavorite(_ id: String)
+  - Include 3-5 SEED Chiang Mai experiences directly in code (hardcoded for MVP)
+```
+
+### 5. Services/AIService.swift
+```swift
+- @Observable class AIService:
+  - Uses URLSession to call Claude API (ANTHROPIC_API_KEY from Secrets.plist or env)
+  - recommendExperiences(from candidates: [Experience], context: user context) async throws -> [String]  // returns ranked IDs
+  - explainRecommendation(for experienceId: String) async throws -> String
+  - processVoiceIntent(transcript: String, near: CLLocationCoordinate2D) async throws -> AIResponse
+  - AIResponse struct: recommendedIds, explanation, filterSuggestion
+```
+
+### 6. Services/VoiceService.swift
+```swift
+- @Observable class VoiceService:
+  - Uses SFSpeechRecognizer + AVAudioEngine (native iOS speech)
+  - requestPermission() async -> Bool
+  - startListening() async throws -> AsyncThrowingStream<String, Error>
+  - stopListening()
+  - isListening: Bool
+```
+
+### 7. ViewModels/MapViewModel.swift
+```swift
+- @Observable class MapViewModel:
+  - Dependencies: LocationService, ExperienceService, AIService, UserPreferences
+  - cameraPosition: MapCameraPosition (centered on Chiang Mai default: 18.7877, 98.9938)
+  - selectedCategory: ExperienceCategory?
+  - visibleExperiences: [Experience]
+  - selectedExperience: Experience?
+  - isShowingDetail: Bool
+  - bottomInfoText: String (dynamic based on time/weather/user)
+  - nearbySoloCount: Int
+  - loadNearbyExperiences()
+  - selectCategory(_: ExperienceCategory?)
+  - selectExperience(_: Experience)
+  - refreshForLocation(_: CLLocationCoordinate2D)
+  - updateBottomInfo()
+```
+
+### 8. ViewModels/ExperienceDetailViewModel.swift
+```swift
+- @Observable class ExperienceDetailViewModel:
+  - experience: Experience
+  - isCompleted: Bool
+  - isFavorited: Bool
+  - aiExplanation: String?
+  - nearbyExperiences: [Experience]
+  - visitCount: Int
+  - toggleComplete(), toggleFavorite()
+  - loadAIExplanation()
+  - loadNearby()
+```
+
+### 9. Views/Map/CompassMapView.swift
+THE MAIN VIEW — always on screen, no tabs.
+```swift
+- Full-screen Map (MapKit) with custom markers
+- MKCoordinateRegion centered on current location or default (Chiang Mai)
+- ForEach over visibleExperiences → Annotation with custom Marker view
+- Overlay: FilterBarView (top), BottomInfoBar (bottom), VoiceButton (bottom-right)
+- Sheet: ExperienceCardView when selected
+- On appear: request location, load nearby experiences
+- Camera position updates on drag → refresh experiences
+```
+
+### 10. Views/Map/MarkerIconView.swift
+```swift
+- Custom marker icon based on ExperienceMarkerState:
+  - default: Category color circle (culture=orange, nature=green, food=red, coffee=brown, work=blue, wellness=purple, nightlife=indigo, hidden=gray)
+  - bestNow: Gold circle with glow effect (shadow + .scaleEffect pulse)
+  - completed: Semi-transparent with checkmark overlay
+  - favorited: Red heart badge
+  - upcoming: Number countdown (minutes remaining)
+  - footprinted: Tiny SF Symbol "figure.walk" icon
+- Size: 44x44 tap target, icon ~32pt
+```
+
+### 11. Views/Filter/FilterBarView.swift
+```swift
+- Horizontal scroll of pill buttons, pinned to top of map
+- Buttons: "Now" · "All" · 🛕 · ☕ · 🍜 · 🌅 · 📚 (use SF Symbols: building.columns, cup.and.saucer, fork.knife, sun.horizon, book)
+- Selected pill: filled color, unselected: outline
+- Smooth animation on selection
+- Semi-transparent background (.ultraThinMaterial)
+```
+
+### 12. Views/Experience/ExperienceCardView.swift
+```swift
+- Floating card at bottom of screen when marker tapped
+- Shows: title, category icon, oneLiner, soloScore badge, confidence dot color
+- Tap → expands to full detail
+- Swipe down → dismiss
+- Swipe up → full detail sheet
+- Haptic feedback on open
+```
+
+### 13. Views/Experience/ExperienceDetailView.swift
+```swift
+- Full scrollable detail:
+  - Hero section: title, category badge, confidence dot, health status
+  - "Why It Matters" section (rich text)
+  - "How To" steps (numbered, checkable)
+  - "Real Inconveniences" section (warning-style, each with icon by category)
+  - Solo Score breakdown (gauges for each sub-score)
+  - Best times visualization
+  - Sources list with dates
+  - Nearby experiences carousel
+  - Action buttons: Favorite (heart), Mark Done (checkmark), Share Voice
+- Navigation: back button or swipe down
+```
+
+### 14. Views/Shared/BottomInfoBar.swift
+```swift
+- Semi-transparent bar at bottom (above home indicator)
+- Dynamic text that changes with time/context:
+  - Morning (6-12): "Good morning. 3 coffee spots nearby are at their best right now."
+  - Afternoon (12-17): "The light at Wat Suan Dok peaks in 2 hours. 4 experiences nearby."
+  - Evening (17-22): "Sunset in 47 minutes. 2 perfect viewing spots within walking distance."
+  - Night (22-6): "The night market is winding down. 1 late-night food spot still open."
+- Shows nearby solo traveler count: "· 12 solo travelers passed nearby today"
+- Animated transitions between states
+- Background: .ultraThinMaterial
+```
+
+### 15. Views/Shared/VoiceButton.swift
+```swift
+- Circular button, bottom-right, above safe area
+- Long press → start recording (pulsing animation)
+- Release → stop, send to AI
+- While recording: waveform animation
+- Permission not granted: shows alert
+- Result: map re-lights with AI-filtered experiences, bottom bar updates with explanation
+```
+
+### 16. Views/Shared/ConfidenceBadge.swift
+```swift
+- Small dot + level indicator
+- 🟢 healthy: green dot
+- 🟡 fading: yellow dot
+- 🔴 questioned: red dot
+- ⚫ mayBeGone: black dot
+- Shows "L3 · 12 signals" on tap
+```
+
+### 17. Views/Shared/SoloScoreBadge.swift
+```swift
+- Rounded pill: "Solo 8.5" with color gradient (red→yellow→green based on score)
+- Compact version: just the number
+- Expanded version: shows breakdown bars
+```
+
+### 18. App/SoloCompassApp.swift
+```swift
+@main
+struct SoloCompassApp: App {
+    @State private var locationService = LocationService.shared
+    @State private var experienceService = ExperienceService()
+    @State private var aiService = AIService()
+    @State private var preferences = UserPreferences()
+
+    var body: some Scene {
+        WindowGroup {
+            CompassMapView()
+                .environment(locationService)
+                .environment(experienceService)
+                .environment(aiService)
+                .environment(preferences)
+                .onAppear {
+                    locationService.requestPermission()
+                }
+        }
+    }
+}
+```
+
+### 19. Resources/JSON/seed_experiences.json
+Create a JSON file with 5 seed Chiang Mai experiences following the Experience model:
+1. "Watch the sunset paint the white stupas at Wat Suan Dok" (culture, 17:30)
+2. "Find the hidden coffee roaster in a Nimman back alley" (coffee, morning)
+3. "Eat khao soi at the family stall open since 1974" (food, 11:00-14:00)
+4. "Meditate with monks at Doi Suthep before the tourists arrive" (wellness, 06:00)
+5. "Work from the second floor of a bookstore nobody knows about" (work, afternoon)
+
+### 20. Info.plist entries needed:
+- NSLocationWhenInUseUsageDescription
+- NSLocationAlwaysAndWhenInUseUsageDescription
+- NSSpeechRecognitionUsageDescription
+- NSMicrophoneUsageDescription
+- UIBackgroundModes: location
+
+### 21. Tests/SoloCompassTests.swift
+```swift
+- Test Experience decoding from JSON
+- Test distance calculation
+- Test filtering logic
+- Test HealthStatus computation
+- Test SoloScore range validation
+```
+
+## COLOR PALETTE (use Asset Catalog or programmatic)
+- Map Background: warm beige (#F5F0E8)
+- Primary Gold (best now): #D4A843
+- Culture: #E87722
+- Nature: #2D8C4A
+- Food: #C41E3A
+- Coffee: #6F4E37
+- Work: #2563EB
+- Wellness: #7C3AED
+- Nightlife: #4F46E5
+- Hidden: #6B7280
+- Text primary: #1A1A1A
+- Text secondary: #6B7280
+
+Do NOT create Xcode project files (.xcodeproj, .pbxproj) — those will be generated separately.
+Create ALL Swift source files listed above. Make them production-quality with proper error handling, SwiftUI previews, and documentation comments.

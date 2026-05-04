@@ -1,0 +1,129 @@
+name: iOS CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using Xcode: $XCODE_PATH"
+          sudo xcode-select -s "$XCODE_PATH"
+          xcodebuild -version
+
+      - name: Build iOS App
+        run: |
+          cd apps/ios
+          xcodebuild build \
+            -project SoloCompass.xcodeproj \
+            -scheme SoloCompass \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
+          
+          # Check for errors
+          if grep -q "BUILD FAILED" build.log; then
+            echo "❌ BUILD FAILED"
+            grep "error:" build.log | head -20
+            exit 1
+          fi
+          echo "✅ BUILD SUCCEEDED"
+
+      - name: Run Unit Tests
+        run: |
+          cd apps/ios
+          xcodebuild test \
+            -project SoloCompass.xcodeproj \
+            -scheme SoloCompass \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee test.log
+          
+          if grep -q "TEST FAILED" test.log; then
+            echo "❌ TESTS FAILED"
+            grep "failed" test.log | head -20
+            exit 1
+          fi
+          echo "✅ TESTS PASSED"
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: apps/ios/build.log
+
+      - name: Upload Test Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: apps/ios/test.log
+
+  lint:
+    name: SwiftLint
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Run SwiftLint
+        run: |
+          cd apps/ios
+          swiftlint --strict 2>&1 | tee swiftlint.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "⚠️ SwiftLint found issues (non-blocking for MVP)"
+          fi
+
+      - name: Upload Lint Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-report
+          path: apps/ios/swiftlint.log
+
+  ralph:
+    name: Ralph Continuous Dev
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/ios-mvp'
+    runs-on: macos-latest
+    needs: [build-and-test]
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run Ralph
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cd scripts/ralph
+          ./ralph.sh --tool claude 3
+
+      - name: Push Changes
+        run: |
+          git push origin feat/ios-mvp || echo "No changes to push"

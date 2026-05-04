@@ -1,0 +1,33 @@
+disabled_rules:
+  - trailing_comma
+  - opening_brace
+  - line_length
+  - file_length
+  - type_body_length
+  - function_body_length
+  - cyclomatic_complexity
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - force_unwrapping
+
+excluded:
+  - .build
+  - Pods
+  - Carthage
+
+identifier_name:
+  min_length: 2
+  max_length: 60
+
+type_name:
+  min_length: 3
+  max_length: 60
+
+force_unwrapping:
+  severity: error
+
+analyzer_rules:
+  - unused_import
+  - unused_declaration

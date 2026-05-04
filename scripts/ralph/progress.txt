@@ -1,0 +1,5 @@
+# Solo Compass — Ralph Progress Log
+Started: 2026-05-04
+Tool: claude
+Branch: feat/ios-mvp
+---

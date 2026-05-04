@@ -1,0 +1,75 @@
+/* Categories */
+"category.culture" = "Culture";
+"category.nature" = "Nature";
+"category.food" = "Food";
+"category.coffee" = "Coffee";
+"category.work" = "Work";
+"category.wellness" = "Wellness";
+"category.nightlife" = "Nightlife";
+"category.hidden" = "Hidden";
+
+/* Filters */
+"filter.now" = "Now";
+"filter.all" = "All";
+
+/* Health */
+"health.healthy" = "Fresh — multiply verified";
+"health.fading" = "Fading — fewer recent signals";
+"health.questioned" = "Questioned — treat with skepticism";
+"health.mayBeGone" = "May be gone — no recent signals";
+
+/* Confidence */
+"confidence.signals" = "signals";
+"confidence.aiScrape" = "AI scrape age";
+"confidence.gps" = "GPS hits (30d)";
+"confidence.reports" = "User reports (30d)";
+"confidence.trusted" = "Trusted verifications";
+
+/* Solo Score */
+"solo.label" = "Solo";
+"solo.scoreTitle" = "Solo Score";
+"solo.seating" = "Seating friendly";
+"solo.patrons" = "Solo patrons";
+"solo.staff" = "Staff leaves you alone";
+"solo.portioning" = "Portion for one";
+"solo.ambiance" = "Ambiance fits solo";
+"solo.safety" = "Safety alone";
+"solo.basedOn" = "Based on %d solo travelers";
+
+/* Sections */
+"section.whyItMatters" = "Why it matters";
+"section.bestTimes" = "Best times";
+"section.howTo" = "How to";
+"section.inconveniences" = "Real inconveniences";
+"section.soloScore" = "Solo Score";
+"section.sources" = "Sources";
+"section.nearby" = "Nearby experiences";
+"section.duration" = "Typical: %d–%d minutes";
+
+/* Actions */
+"action.markDone" = "Mark done";
+"action.completed" = "Completed";
+
+/* Experience */
+"experience.bestNow" = "Best now";
+"experience.viewDetails" = "View details →";
+
+/* Bottom info */
+"info.morning" = "Good morning. %d coffee spots nearby are at their best right now.";
+"info.afternoon" = "The light shifts in the next hour. %d experiences nearby.";
+"info.evening" = "Sunset soon. %d perfect viewing spots within walking distance.";
+"info.night" = "The night is winding down. %d places still open.";
+
+/* Voice */
+"voice.button" = "Voice input";
+"voice.permission.title" = "Microphone access needed";
+"voice.permission.message" = "Solo Compass needs microphone and speech permission to take voice input.";
+
+/* AI */
+"ai.error.missingKey" = "AI features are not configured.";
+"ai.error.request" = "AI request failed (status %d).";
+"ai.fallback.explanation" = "Recommended for solo travelers based on quiet seating, low staff pressure, and a strong local signal.";
+"ai.fallback.voice" = "Showing solo-friendly experiences nearby.";
+
+/* Common */
+"common.ok" = "OK";
