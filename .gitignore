@@ -67,3 +67,6 @@ coverage/
 .eslintcache
 .prettiercache
 *.tgz
+
+# Claude Code internal prompts (auto-generated)
+.claude/*-prompt.txt
