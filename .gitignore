@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.turbo/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# iOS
+apps/ios/Pods/
+apps/ios/build/
+apps/ios/DerivedData/
+apps/ios/.build/
+apps/ios/*.xcworkspace/xcuserdata/
+apps/ios/**/xcuserdata/
+*.xcuserstate
+
+# Data caches (large, regenerable)
+.cache/
+seeds/raw/
+data/cache/
+*.pbf
+*.osm
+
+# Test
+coverage/
+.nyc_output/
+
+# Misc
+.eslintcache
+.prettiercache
+*.tgz
