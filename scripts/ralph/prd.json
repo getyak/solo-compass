@@ -1,0 +1,103 @@
+{
+  "branchName": "feat/ios-mvp",
+  "project": "Solo Compass iOS MVP",
+  "created": "2026-05-04",
+  "stories": [
+    {
+      "id": "1",
+      "name": "Map-First Full-Screen Map",
+      "priority": 1,
+      "description": "Open app → full-screen MapKit map with warm beige style, centered on Chiang Mai (18.7877, 98.9938). Experience markers visible. No tabs, no drawer, no forced onboarding.",
+      "acceptance": "App launches to full-screen map. Map scrolls/zooms. Location permission requested on first launch.",
+      "passes": false
+    },
+    {
+      "id": "2",
+      "name": "Experience Markers with Distinct Visual States",
+      "priority": 2,
+      "description": "Markers use category-colored circles. States: default (category color), bestNow (gold+glow), completed (semi-transparent+check), favorited (heart badge), upcoming (countdown), footprinted (figure.walk icon).",
+      "acceptance": "At least 5 seed experiences shown on map. Each has correct category color. Marker tap selects it.",
+      "passes": false
+    },
+    {
+      "id": "3",
+      "name": "Top Filter Bar",
+      "priority": 3,
+      "description": "Horizontal scroll of pill buttons: 'Now' / 'All' / 🛕 / ☕ / 🍜 / 🌅 / 📚. Tap filters map markers in-place. Selected pill filled, others outline. Semi-transparent background.",
+      "acceptance": "Tap '☕' → only coffee experiences shown. Tap 'All' → all return. Tap 'Now' → time-filtered best-now experiences.",
+      "passes": false
+    },
+    {
+      "id": "4",
+      "name": "Experience Card (Floating Bottom Card)",
+      "priority": 4,
+      "description": "Tap marker → card slides up from bottom: title, category icon, oneLiner, soloScore badge, confidence dot. Swipe down to dismiss. Swipe up → full detail. Haptic on open.",
+      "acceptance": "Card shows correct data for tapped marker. Dismisses on swipe down. Opens detail on swipe up or tap.",
+      "passes": false
+    },
+    {
+      "id": "5",
+      "name": "Experience Detail View",
+      "priority": 5,
+      "description": "Full scrollable detail: hero section, 'Why It Matters', 'How To' steps (checkable), 'Real Inconveniences' (warning-style), Solo Score breakdown, best times visualization, sources with dates, nearby carousel, action buttons (favorite, mark done).",
+      "acceptance": "All sections render with correct data. Favorite toggles state. Mark done updates marker on map.",
+      "passes": false
+    },
+    {
+      "id": "6",
+      "name": "Bottom Info Bar",
+      "priority": 6,
+      "description": "Semi-transparent bar above home indicator. Dynamic text: morning/afternoon/evening/night variants. Shows nearby solo traveler count. Animated transitions. Background: .ultraThinMaterial.",
+      "acceptance": "Text changes based on time of day. Shows '12 solo travelers passed nearby today'. Smooth animation on time transition.",
+      "passes": false
+    },
+    {
+      "id": "7",
+      "name": "Voice Button (Long-Press to Speak)",
+      "priority": 7,
+      "description": "Circular button bottom-right. Long press → record with waveform animation. Release → speech-to-text → AI intent extraction → map re-lights with filtered results. Permission handling.",
+      "acceptance": "Long press starts recording with animation. Release processes speech. Results filter map markers. Bottom bar updates with AI explanation.",
+      "passes": false
+    },
+    {
+      "id": "8",
+      "name": "GPS Auto-Completion + 30s Voice Feedback",
+      "priority": 8,
+      "description": "Background GPS detects user arrival at experience location. On departure (5+ min after arrival), presents lightweight feedback: 'How was it?' → 30s voice memo → AI structures as feedback.",
+      "acceptance": "Arrival detected via geofence. Feedback prompt shown on departure. Voice memo captured and processed.",
+      "passes": false
+    },
+    {
+      "id": "9",
+      "name": "User Share New Experience (Long-Press Map)",
+      "priority": 9,
+      "description": "Long press empty area on map → 'Add an experience here?' prompt → 30s voice → AI structures as candidate experience → shown with distinct 'candidate' icon.",
+      "acceptance": "Long press shows prompt. Voice recording works. New candidate marker appears on map.",
+      "passes": false
+    },
+    {
+      "id": "10",
+      "name": "AI Integration Layer",
+      "priority": 10,
+      "description": "Claude API integration for: (1) location-based experience filtering, (2) voice intent understanding, (3) behavior-based candidate generation, (4) recommendation explanations with source transparency.",
+      "acceptance": "API call succeeds with valid API key. Recommendations return ranked IDs. Voice intent extracts category/location/time filters. Explanations cite sources.",
+      "passes": false
+    },
+    {
+      "id": "11",
+      "name": "Confidence & Health Display",
+      "priority": 11,
+      "description": "Every experience shows confidence level (L0-L5) with colored dot. Health status: 🟢 healthy / 🟡 fading / 🔴 questioned / ⚫ mayBeGone. Tap for signal counts.",
+      "acceptance": "Confidence dot visible on markers and cards. Color matches health. Tap reveals signal breakdown.",
+      "passes": false
+    },
+    {
+      "id": "12",
+      "name": "CI/CD with GitHub Actions",
+      "priority": 12,
+      "description": "GitHub Actions workflow: build on push/PR, run unit tests, SwiftLint, archive on main push. Ralph continuous dev loop enabled.",
+      "acceptance": "CI runs on push. Tests pass. SwiftLint passes. Build succeeds.",
+      "passes": false
+    }
+  ]
+}

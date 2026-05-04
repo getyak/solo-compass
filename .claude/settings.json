@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(mkdir *)",
+      "Bash(find *)",
+      "Bash(swift *)",
+      "Bash(xcodebuild *)",
+      "Bash(xcrun *)",
+      "Bash(which *)",
+      "Bash(curl *)",
+      "Bash(python3 *)",
+      "Bash(npm *)",
+      "Bash(pnpm *)",
+      "Read",
+      "Write",
+      "Edit",
+      "WebSearch",
+      "WebFetch"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(> /dev/*)"
+    ]
+  }
+}

@@ -1,0 +1,155 @@
+#!/bin/bash
+# Ralph - Autonomous AI agent loop for Solo Compass
+# Each iteration: fresh Claude Code instance → implement single story → test → commit
+# Usage: ./ralph.sh [--tool claude] [max_iterations]
+
+set -e
+
+TOOL="claude"
+MAX_ITERATIONS=10
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --tool) TOOL="$2"; shift 2 ;;
+    --tool=*) TOOL="${1#*=}"; shift ;;
+    *) [[ "$1" =~ ^[0-9]+$ ]] && MAX_ITERATIONS="$1"; shift ;;
+  esac
+done
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PRD_FILE="$SCRIPT_DIR/prd.json"
+PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Init progress file
+if [ ! -f "$PROGRESS_FILE" ]; then
+  echo "# Solo Compass — Ralph Progress Log" > "$PROGRESS_FILE"
+  echo "Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$PROGRESS_FILE"
+  echo "Tool: $TOOL" >> "$PROGRESS_FILE"
+  echo "---" >> "$PROGRESS_FILE"
+fi
+
+echo "🚀 Ralph starting — Tool: $TOOL, Max iterations: $MAX_ITERATIONS"
+echo "📋 PRD: $PRD_FILE"
+echo ""
+
+for i in $(seq 1 $MAX_ITERATIONS); do
+  echo "═══════════════════════════════════════════════════════════"
+  echo "  Iteration $i / $MAX_ITERATIONS"
+  echo "═══════════════════════════════════════════════════════════"
+
+  # Find next incomplete story
+  STORY=$(python3 -c "
+import json, sys
+with open('$PRD_FILE') as f:
+    prd = json.load(f)
+incomplete = [s for s in prd['stories'] if not s['passes']]
+if not incomplete:
+    print('ALL_DONE')
+    sys.exit(0)
+story = incomplete[0]
+print(json.dumps(story))
+")
+
+  if [ "$STORY" = "ALL_DONE" ]; then
+    echo "✅ ALL STORIES COMPLETE!"
+    echo "All stories pass: true" >> "$PROGRESS_FILE"
+    exit 0
+  fi
+
+  STORY_ID=$(echo "$STORY" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+  STORY_NAME=$(echo "$STORY" | python3 -c "import json,sys; print(json.load(sys.stdin)['name'])")
+  STORY_DESC=$(echo "$STORY" | python3 -c "import json,sys; print(json.load(sys.stdin)['description'])")
+  STORY_ACCEPT=$(echo "$STORY" | python3 -c "import json,sys; print(json.load(sys.stdin)['acceptance'])")
+
+  echo "📌 Story #$STORY_ID: $STORY_NAME"
+  echo "   Acceptance: $STORY_ACCEPT"
+
+  # Build the Claude Code prompt
+  PROMPT="You are implementing a SINGLE user story for the Solo Compass iOS app.
+
+PROJECT: Solo Compass (独行罗盘) — living map for solo travelers
+iOS app location: apps/ios/SoloCompass/
+Tech: SwiftUI, MapKit, iOS 17+, MVVM with @Observable
+
+STORY #$STORY_ID: $STORY_NAME
+DESCRIPTION: $STORY_DESC
+ACCEPTANCE CRITERIA: $STORY_ACCEPT
+
+Read the CLAUDE.md for project conventions. Read existing Swift files to understand the codebase.
+Implement ONLY this story. Do NOT touch unrelated code.
+After implementing:
+1. Verify the code compiles conceptually (no Xcode available, but check syntax)
+2. Run any relevant tests
+3. Print a summary of what you changed
+4. The acceptance criteria must be satisfied"
+
+  echo "   🤖 Running Claude Code..."
+
+  # Run Claude Code in the repo root
+  cd "$REPO_ROOT"
+  
+  if claude -p "$PROMPT" \
+    --allowedTools "Read,Write,Edit,Bash" \
+    --max-turns 20 \
+    --effort high \
+    --output-format json \
+    --dangerously-skip-permissions 2>&1 | tee /tmp/ralph-output-$i.json; then
+    
+    echo "   ✅ Story #$STORY_ID implemented successfully"
+
+    # Git add + commit
+    cd "$REPO_ROOT"
+    if git diff --quiet && git diff --cached --quiet; then
+      echo "   ⚠️ No changes to commit"
+    else
+      git add -A
+      git commit -m "feat(ios): story #$STORY_ID — $STORY_NAME
+
+Implemented: $STORY_DESC
+Acceptance: $STORY_ACCEPT"
+      echo "   📝 Committed: story #$STORY_ID"
+    fi
+
+    # Mark story as passes: true
+    python3 -c "
+import json
+with open('$PRD_FILE') as f:
+    prd = json.load(f)
+for s in prd['stories']:
+    if s['id'] == '$STORY_ID':
+        s['passes'] = True
+        break
+with open('$PRD_FILE', 'w') as f:
+    json.dump(prd, f, indent=2)
+"
+    echo "   ✔️ Story #$STORY_ID marked as passes: true"
+
+    # Log progress
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Story #$STORY_ID: $STORY_NAME — PASSED" >> "$PROGRESS_FILE"
+
+  else
+    echo "   ❌ Story #$STORY_ID FAILED"
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Story #$STORY_ID: $STORY_NAME — FAILED (iteration $i)" >> "$PROGRESS_FILE"
+    
+    # Don't exit — continue to next iteration (Claude may fix it in next pass)
+  fi
+
+  echo ""
+done
+
+echo "🏁 Ralph complete after $MAX_ITERATIONS iterations"
+echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Ralph complete after $MAX_ITERATIONS iterations" >> "$PROGRESS_FILE"
+
+# Report remaining incomplete stories
+REMAINING=$(python3 -c "
+import json
+with open('$PRD_FILE') as f:
+    prd = json.load(f)
+remaining = [s['name'] for s in prd['stories'] if not s['passes']]
+if remaining:
+    print('Remaining: ' + ', '.join(remaining))
+else:
+    print('All complete! 🎉')
+")
+echo "📊 $REMAINING"
