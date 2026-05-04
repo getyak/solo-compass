@@ -131,8 +131,10 @@ public final class AIService {
         guard let key = Self.resolveAPIKey() else { throw AIError.missingAPIKey }
         guard let apiURL else { throw AIError.requestFailed(status: 0, body: "bad URL") }
 
-        isProcessing = true
-        defer { isProcessing = false }
+        await MainActor.run { self.isProcessing = true }
+        defer {
+            Task { @MainActor [weak self] in self?.isProcessing = false }
+        }
 
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
@@ -211,10 +213,11 @@ public final class AIService {
     private static func parseIDList(_ raw: String, validIDs: Set<String>) -> [String] {
         raw.split(whereSeparator: { $0.isNewline })
             .map { $0.trimmingCharacters(in: .whitespaces) }
-            .map { line -> String in
+            .compactMap { line -> String? in
                 // Strip leading bullet/number/dash.
                 let trimmed = line.drop(while: { !$0.isLetter })
-                return String(trimmed)
+                let candidate = String(trimmed)
+                return candidate.isEmpty ? nil : candidate
             }
             .filter { validIDs.contains($0) }
     }
@@ -223,7 +226,8 @@ public final class AIService {
         // Find first {...} block.
         guard
             let start = raw.firstIndex(of: "{"),
-            let end = raw.lastIndex(of: "}")
+            let end = raw.lastIndex(of: "}"),
+            start <= end
         else { throw AIError.decodingFailed("no JSON in response") }
         let jsonText = String(raw[start...end])
         guard let data = jsonText.data(using: .utf8) else {

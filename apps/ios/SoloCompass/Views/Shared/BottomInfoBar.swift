@@ -31,7 +31,10 @@ public struct BottomInfoBar: View {
                         .font(.caption.monospacedDigit())
                 }
                 .foregroundStyle(.secondary)
-                .accessibilityLabel(Text("\(nearbySoloCount) solo travelers passed nearby today"))
+                .accessibilityLabel(Text(String(
+                    format: NSLocalizedString("info.nearbySolo.a11y", comment: "%d solo travelers passed nearby today"),
+                    nearbySoloCount
+                )))
             }
         }
         .padding(.horizontal, 16)

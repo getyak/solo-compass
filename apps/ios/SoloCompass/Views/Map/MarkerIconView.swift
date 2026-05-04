@@ -113,12 +113,19 @@ public struct MarkerIconView: View {
     private var accessibilityLabel: String {
         let categoryName = category.localizedTitle
         switch state {
-        case .bestNow: return "\(categoryName), best right now"
-        case .completed: return "\(categoryName), completed"
-        case .favorited: return "\(categoryName), favorited"
-        case .upcoming(let m): return "\(categoryName), starts in \(m) minutes"
-        case .footprinted: return "\(categoryName), recently visited by solo travelers"
-        case .default: return categoryName
+        case .bestNow:
+            return "\(categoryName), \(NSLocalizedString("marker.a11y.bestNow", comment: ""))"
+        case .completed:
+            return "\(categoryName), \(NSLocalizedString("marker.a11y.completed", comment: ""))"
+        case .favorited:
+            return "\(categoryName), \(NSLocalizedString("marker.a11y.favorited", comment: ""))"
+        case .upcoming(let m):
+            let fmt = NSLocalizedString("marker.a11y.upcoming", comment: "starts in %d minutes")
+            return "\(categoryName), \(String(format: fmt, m))"
+        case .footprinted:
+            return "\(categoryName), \(NSLocalizedString("marker.a11y.footprinted", comment: ""))"
+        case .default:
+            return categoryName
         }
     }
 }

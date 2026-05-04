@@ -56,18 +56,25 @@ public final class LocationService: NSObject {
 
 extension LocationService: CLLocationManagerDelegate {
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        authorizationStatus = manager.authorizationStatus
-        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
-            startUpdating()
+        let status = manager.authorizationStatus
+        Task { @MainActor in
+            self.authorizationStatus = status
+            if status == .authorizedWhenInUse || status == .authorizedAlways {
+                self.startUpdating()
+            }
         }
     }
 
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let last = locations.last else { return }
-        currentLocation = last
+        Task { @MainActor in
+            self.currentLocation = last
+        }
     }
 
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        lastError = error
+        Task { @MainActor in
+            self.lastError = error
+        }
     }
 }

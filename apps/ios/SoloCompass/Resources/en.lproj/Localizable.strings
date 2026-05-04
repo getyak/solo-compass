@@ -73,3 +73,25 @@
 
 /* Common */
 "common.ok" = "OK";
+
+/* Marker accessibility */
+"marker.a11y.bestNow" = "best right now";
+"marker.a11y.completed" = "completed";
+"marker.a11y.favorited" = "favorited";
+"marker.a11y.upcoming" = "starts in %d minutes";
+"marker.a11y.footprinted" = "recently visited by solo travelers";
+
+/* Bottom info accessibility */
+"info.nearbySolo.a11y" = "%d solo travelers passed nearby today";
+
+/* Solo score accessibility */
+"solo.a11y" = "Solo Score %@ of 10";
+
+/* Map empty / loading */
+"map.empty.title" = "No experiences nearby";
+"map.empty.hint" = "Try clearing filters or moving the map.";
+"map.loading" = "Loading map";
+
+/* Action bar */
+"action.favorite" = "Add to favorites";
+"action.unfavorite" = "Remove from favorites";

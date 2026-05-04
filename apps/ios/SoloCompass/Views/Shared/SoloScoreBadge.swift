@@ -33,7 +33,10 @@ public struct SoloScoreBadge: View {
         .background(
             Capsule().fill(score.scoreColor.opacity(0.95))
         )
-        .accessibilityLabel(Text("Solo Score \(formatted(score.overall)) of 10"))
+        .accessibilityLabel(Text(String(
+            format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"),
+            formatted(score.overall)
+        )))
     }
 
     private var fullView: some View {

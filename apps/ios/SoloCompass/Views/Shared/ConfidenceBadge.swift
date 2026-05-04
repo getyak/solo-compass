@@ -24,6 +24,8 @@ public struct ConfidenceBadge: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .contentShape(Rectangle())
+            .frame(minWidth: 44, minHeight: 32, alignment: .leading)
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showSignals) {

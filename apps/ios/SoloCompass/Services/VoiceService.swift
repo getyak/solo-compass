@@ -99,17 +99,17 @@ public final class VoiceService {
                     continuation.yield(result.bestTranscription.formattedString)
                     if result.isFinal {
                         continuation.finish()
-                        self?.cleanup()
+                        Task { @MainActor [weak self] in self?.cleanup() }
                     }
                 }
                 if let error {
                     continuation.finish(throwing: VoiceError.recognitionFailed(error))
-                    self?.cleanup()
+                    Task { @MainActor [weak self] in self?.cleanup() }
                 }
             }
 
             continuation.onTermination = { [weak self] _ in
-                self?.stopListening()
+                Task { @MainActor [weak self] in self?.stopListening() }
             }
         }
     }
@@ -127,6 +127,9 @@ public final class VoiceService {
         recognitionTask?.cancel()
         recognitionRequest = nil
         recognitionTask = nil
+        // Best-effort audio session deactivation — ignore if it fails (e.g.
+        // another task is using the session).
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         isListening = false
     }
 }

@@ -57,9 +57,28 @@ public struct CompassMapView: View {
                         )
                         .padding(.bottom, 80)
                     }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                if viewModel.visibleExperiences.isEmpty {
+                    VStack(spacing: 6) {
+                        Image(systemName: "mappin.slash")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        Text(NSLocalizedString("map.empty.title", comment: "No experiences nearby"))
+                            .font(.subheadline.weight(.medium))
+                        Text(NSLocalizedString("map.empty.hint", comment: "Try adjusting filters or zooming out"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(16)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                    .padding(.horizontal, 32)
+                    .accessibilityElement(children: .combine)
                 }
             } else {
                 ProgressView()
+                    .accessibilityLabel(Text(NSLocalizedString("map.loading", comment: "Loading map")))
             }
         }
         .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))

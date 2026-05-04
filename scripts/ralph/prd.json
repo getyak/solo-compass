@@ -1,102 +1,102 @@
 {
-  "branchName": "feat/ios-mvp",
-  "project": "Solo Compass iOS MVP",
+  "branchName": "feat/ralph-qa",
+  "project": "Solo Compass iOS MVP — Quality Pass",
   "created": "2026-05-04",
   "stories": [
     {
       "id": "1",
       "name": "Map-First Full-Screen Map",
       "priority": 1,
-      "description": "Open app → full-screen MapKit map with warm beige style, centered on Chiang Mai (18.7877, 98.9938). Experience markers visible. No tabs, no drawer, no forced onboarding.",
-      "acceptance": "App launches to full-screen map. Map scrolls/zooms. Location permission requested on first launch.",
+      "description": "Verify and harden: map rendering, warm beige style, location permission flow, scroll/zoom, no tabs/drawer.",
+      "acceptance": "map fills screen, location permission flow works, warm beige base visible, no UI chrome beyond filter+info bar",
       "passes": false
     },
     {
       "id": "2",
-      "name": "Experience Markers with Distinct Visual States",
+      "name": "Experience Markers — 6 visual states + edge cases",
       "priority": 2,
-      "description": "Markers use category-colored circles. States: default (category color), bestNow (gold+glow), completed (semi-transparent+check), favorited (heart badge), upcoming (countdown), footprinted (figure.walk icon).",
-      "acceptance": "At least 5 seed experiences shown on map. Each has correct category color. Marker tap selects it.",
+      "description": "Verify all 6 states render correctly. Edge cases: 0 experiences, 50+ experiences, cluster behavior, overlapping markers, rapid state transitions.",
+      "acceptance": "All 6 marker states distinct and correct. Map handles 0 and 50+ gracefully. No crash on rapid tap.",
       "passes": false
     },
     {
       "id": "3",
-      "name": "Top Filter Bar",
+      "name": "Filter Bar — polish + edge cases",
       "priority": 3,
-      "description": "Horizontal scroll of pill buttons: 'Now' / 'All' / 🛕 / ☕ / 🍜 / 🌅 / 📚. Tap filters map markers in-place. Selected pill filled, others outline. Semi-transparent background.",
-      "acceptance": "Tap '☕' → only coffee experiences shown. Tap 'All' → all return. Tap 'Now' → time-filtered best-now experiences.",
+      "description": "Verify: Now/All toggle, category filtering, empty state after filter, filter+scroll combination, rapid filter switching, accessibility labels.",
+      "acceptance": "All filters work. Empty state handled. Rapid switching doesn't crash. VoiceOver labels correct.",
       "passes": false
     },
     {
       "id": "4",
-      "name": "Experience Card (Floating Bottom Card)",
+      "name": "Experience Card — animation + haptics",
       "priority": 4,
-      "description": "Tap marker → card slides up from bottom: title, category icon, oneLiner, soloScore badge, confidence dot. Swipe down to dismiss. Swipe up → full detail. Haptic on open.",
-      "acceptance": "Card shows correct data for tapped marker. Dismisses on swipe down. Opens detail on swipe up or tap.",
+      "description": "Polish card animation, haptic feedback, swipe gesture responsiveness, card content overflow handling (long titles, many inconveniences), dark mode.",
+      "acceptance": "Card slides smoothly. Haptic on open. Swipe works from any position. Long content scrolls. Dark mode looks correct.",
       "passes": false
     },
     {
       "id": "5",
-      "name": "Experience Detail View",
+      "name": "Experience Detail — completeness check",
       "priority": 5,
-      "description": "Full scrollable detail: hero section, 'Why It Matters', 'How To' steps (checkable), 'Real Inconveniences' (warning-style), Solo Score breakdown, best times visualization, sources with dates, nearby carousel, action buttons (favorite, mark done).",
-      "acceptance": "All sections render with correct data. Favorite toggles state. Mark done updates marker on map.",
+      "description": "Verify all sections render: hero, whyItMatters, howTo (checkable), inconveniences, soloScore, bestTimes, sources, nearby, action buttons. Handle missing optional fields.",
+      "acceptance": "Every section renders. Optional fields gracefully hidden. Favorite/MarkDone toggle and persist. Nearby carousel scrolls.",
       "passes": false
     },
     {
       "id": "6",
-      "name": "Bottom Info Bar",
+      "name": "Bottom Info Bar — real time simulation",
       "priority": 6,
-      "description": "Semi-transparent bar above home indicator. Dynamic text: morning/afternoon/evening/night variants. Shows nearby solo traveler count. Animated transitions. Background: .ultraThinMaterial.",
-      "acceptance": "Text changes based on time of day. Shows '12 solo travelers passed nearby today'. Smooth animation on time transition.",
+      "description": "Verify dynamic text for all 4 time periods (morning/afternoon/evening/night). Smooth transitions. Solo count display. Weather-aware text if implemented.",
+      "acceptance": "All 4 time periods show correct text. Text transitions animate. Solo count updates. Graceful when location unavailable.",
       "passes": false
     },
     {
       "id": "7",
-      "name": "Voice Button (Long-Press to Speak)",
+      "name": "Voice Button — full flow test",
       "priority": 7,
-      "description": "Circular button bottom-right. Long press → record with waveform animation. Release → speech-to-text → AI intent extraction → map re-lights with filtered results. Permission handling.",
-      "acceptance": "Long press starts recording with animation. Release processes speech. Results filter map markers. Bottom bar updates with AI explanation.",
+      "description": "Verify: permission denied flow, recording animation, transcript capture, AI intent parsing, map refresh after voice. Error states: no internet, no permission, silent recording.",
+      "acceptance": "Permission flow works. Recording animation pulses. Transcript captured. Map refreshes post-voice. All error states handled.",
       "passes": false
     },
     {
       "id": "8",
-      "name": "GPS Auto-Completion + 30s Voice Feedback",
+      "name": "GPS Check-in — geofence + feedback loop",
       "priority": 8,
-      "description": "Background GPS detects user arrival at experience location. On departure (5+ min after arrival), presents lightweight feedback: 'How was it?' → 30s voice memo → AI structures as feedback.",
-      "acceptance": "Arrival detected via geofence. Feedback prompt shown on departure. Voice memo captured and processed.",
+      "description": "Verify: geofence triggers on arrival, timer starts, departure detection, feedback prompt, 30s voice capture, background mode.",
+      "acceptance": "Arrival detected. Feedback prompt on departure. Voice captured. Location permission denied handled gracefully.",
       "passes": false
     },
     {
       "id": "9",
-      "name": "User Share New Experience (Long-Press Map)",
+      "name": "User Share — long-press map flow",
       "priority": 9,
-      "description": "Long press empty area on map → 'Add an experience here?' prompt → 30s voice → AI structures as candidate experience → shown with distinct 'candidate' icon.",
-      "acceptance": "Long press shows prompt. Voice recording works. New candidate marker appears on map.",
+      "description": "Verify: long press triggers prompt, coordinate capture, voice recording, AI structuring, candidate marker appears, distinct icon.",
+      "acceptance": "Long press shows prompt. Voice recording works. Candidate marker appears with distinct icon. Error handling for failed AI structuring.",
       "passes": false
     },
     {
       "id": "10",
-      "name": "AI Integration Layer",
+      "name": "AI Layer — error handling + retry + caching",
       "priority": 10,
-      "description": "Claude API integration for: (1) location-based experience filtering, (2) voice intent understanding, (3) behavior-based candidate generation, (4) recommendation explanations with source transparency.",
-      "acceptance": "API call succeeds with valid API key. Recommendations return ranked IDs. Voice intent extracts category/location/time filters. Explanations cite sources.",
+      "description": "Add: retry logic with exponential backoff, response caching (5min TTL), error states in UI (no network, rate limited, invalid key), loading skeletons.",
+      "acceptance": "Retry on transient failure. Cache prevents redundant calls. Error states shown in UI (not crashes). Loading states present.",
       "passes": false
     },
     {
       "id": "11",
-      "name": "Confidence & Health Display",
+      "name": "Confidence Display — tap detail + signal breakdown",
       "priority": 11,
-      "description": "Every experience shows confidence level (L0-L5) with colored dot. Health status: 🟢 healthy / 🟡 fading / 🔴 questioned / ⚫ mayBeGone. Tap for signal counts.",
-      "acceptance": "Confidence dot visible on markers and cards. Color matches health. Tap reveals signal breakdown.",
+      "description": "Verify confidence dot renders on all views. Tap gesture shows signal breakdown. Health status color mapping correct. Age-based fading works.",
+      "acceptance": "Confidence dot visible on markers and cards. Tap shows signal count. Colors match health status. 'mayBeGone' after 60d.",
       "passes": false
     },
     {
       "id": "12",
-      "name": "CI/CD with GitHub Actions",
+      "name": "CI/CD hardening + Xcode project gen",
       "priority": 12,
-      "description": "GitHub Actions workflow: build on push/PR, run unit tests, SwiftLint, archive on main push. Ralph continuous dev loop enabled.",
-      "acceptance": "CI runs on push. Tests pass. SwiftLint passes. Build succeeds.",
+      "description": "Fix CI to handle missing Xcode project (generate placeholder). Add project.yml for XcodeGen. Ensure TS CI only runs on packages/* changes. Add cache for pnpm.",
+      "acceptance": "CI green when billing unlocked. XcodeGen config creates valid project. TS CI skips for iOS-only changes. pnpm cache speeds up runs.",
       "passes": false
     }
   ]

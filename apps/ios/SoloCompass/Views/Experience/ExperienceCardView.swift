@@ -88,14 +88,17 @@ public struct ExperienceCardView: View {
 }
 
 #Preview {
-    let exp = ExperienceService.hardcodedSeed.first!
-    return VStack {
-        Spacer()
-        ExperienceCardView(
-            experience: exp,
-            onExpand: {},
-            onDismiss: {}
-        )
+    if let exp = ExperienceService.hardcodedSeed.first {
+        VStack {
+            Spacer()
+            ExperienceCardView(
+                experience: exp,
+                onExpand: {},
+                onDismiss: {}
+            )
+        }
+        .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+    } else {
+        Text("No seed data")
     }
-    .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
 }

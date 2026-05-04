@@ -17,11 +17,19 @@ public struct ExperienceDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 heroSection
                 whyItMattersSection
-                bestTimesSection
-                howToSection
-                inconveniencesSection
+                if !viewModel.experience.bestTimes.isEmpty {
+                    bestTimesSection
+                }
+                if !viewModel.experience.howTo.isEmpty {
+                    howToSection
+                }
+                if !viewModel.experience.realInconveniences.isEmpty {
+                    inconveniencesSection
+                }
                 soloScoreSection
-                sourcesSection
+                if !viewModel.experience.sources.isEmpty {
+                    sourcesSection
+                }
                 if !viewModel.nearbyExperiences.isEmpty {
                     nearbySection
                 }
@@ -29,6 +37,7 @@ public struct ExperienceDetailView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
+            .padding(.bottom, 80) // room for floating action bar
         }
         .overlay(alignment: .bottom) { actionBar }
         .navigationTitle("")
@@ -68,8 +77,9 @@ public struct ExperienceDetailView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            if let local = viewModel.experience.location.placeNameLocal {
-                Text("\(local) · \(viewModel.experience.location.placeNameRomanized ?? "")")
+            if let local = viewModel.experience.location.placeNameLocal, !local.isEmpty {
+                let romanized = viewModel.experience.location.placeNameRomanized
+                Text(romanized?.isEmpty == false ? "\(local) · \(romanized ?? "")" : local)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -224,6 +234,10 @@ public struct ExperienceDetailView: View {
                     .frame(width: 50, height: 50)
                     .background(Circle().fill(.regularMaterial))
             }
+            .accessibilityLabel(Text(viewModel.isFavorited
+                ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
+                : NSLocalizedString("action.favorite", comment: "Add favorite")))
+
             Button {
                 viewModel.toggleComplete()
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -243,17 +257,17 @@ public struct ExperienceDetailView: View {
                 )
                 .foregroundStyle(.white)
             }
-            Button {
-                // Voice share placeholder — would record a 30s memo.
-            } label: {
-                Image(systemName: "mic.fill")
-                    .font(.title3)
-                    .frame(width: 50, height: 50)
-                    .background(Circle().fill(.regularMaterial))
-            }
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
+        .background(
+            // Faint material strip behind the floating action bar so content
+            // scrolling underneath stays readable.
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
+                .opacity(0.6)
+        )
     }
 
     // MARK: - Helpers
@@ -272,14 +286,17 @@ public struct ExperienceDetailView: View {
 }
 
 #Preview {
-    let exp = ExperienceService.hardcodedSeed.first!
-    let vm = ExperienceDetailViewModel(
-        experience: exp,
-        experienceService: ExperienceService(),
-        aiService: AIService(),
-        preferences: UserPreferences()
-    )
-    return NavigationStack {
-        ExperienceDetailView(viewModel: vm) {}
+    if let exp = ExperienceService.hardcodedSeed.first {
+        let vm = ExperienceDetailViewModel(
+            experience: exp,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+        NavigationStack {
+            ExperienceDetailView(viewModel: vm) {}
+        }
+    } else {
+        Text("No seed data")
     }
 }

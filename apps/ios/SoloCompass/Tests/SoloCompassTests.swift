@@ -18,7 +18,7 @@ final class SoloCompassTests: XCTestCase {
     }
 
     func testExperienceJSONRoundTrip() throws {
-        let original = ExperienceService.hardcodedSeed.first!
+        let original = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
         let data = try JSONEncoder.iso8601Encoder.encode(original)
         let decoded = try JSONDecoder.iso8601Decoder.decode(Experience.self, from: data)
         XCTAssertEqual(decoded.id, original.id)
@@ -122,8 +122,8 @@ final class SoloCompassTests: XCTestCase {
 
     // MARK: - Preferences
 
-    func testUserPreferencesPersistsRoundTrip() {
-        let defaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+    func testUserPreferencesPersistsRoundTrip() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
         let prefs = UserPreferences(defaults: defaults)
         prefs.maxDistanceKm = 7.5
         prefs.markCompleted("exp_test_1")

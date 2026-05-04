@@ -60,7 +60,10 @@ public struct FilterBarView: View {
     }
 
     private func pill(label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            UISelectionFeedbackGenerator().selectionChanged()
+            action()
+        } label: {
             Text(label)
                 .font(.subheadline.weight(.medium))
                 .padding(.horizontal, 14)
@@ -78,7 +81,10 @@ public struct FilterBarView: View {
     }
 
     private func iconPill(category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            UISelectionFeedbackGenerator().selectionChanged()
+            action()
+        } label: {
             Image(systemName: category.symbol)
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 36, height: 36)

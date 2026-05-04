@@ -28,6 +28,7 @@ public final class MapViewModel {
     public var bottomInfoText: String = ""
     public var nearbySoloCount: Int = 0
     public var aiExplanation: String?
+    public var lastAIError: String?
 
     // True when a "Now" filter is active (best-now experiences only).
     public var isNowFilter: Bool = false
@@ -101,11 +102,22 @@ public final class MapViewModel {
         isShowingDetail = false
     }
 
-    public func refreshForLocation(_ coordinate: CLLocationCoordinate2D) {
+    /// Recenter the camera and refresh experiences for the given coordinate.
+    /// Use this for explicit recentering (e.g. "locate me" button), NOT for
+    /// reacting to user pan/zoom — that would create a feedback loop where
+    /// every gesture resets the zoom level.
+    public func recenter(on coordinate: CLLocationCoordinate2D) {
         cameraPosition = .region(MKCoordinateRegion(
             center: coordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
         ))
+        loadNearbyExperiences()
+        updateBottomInfo()
+    }
+
+    /// Refresh visible experiences when the user pans/zooms the map. Does NOT
+    /// touch `cameraPosition`, to avoid fighting the user's gesture.
+    public func refreshForLocation(_ coordinate: CLLocationCoordinate2D) {
         loadNearbyExperiences()
         updateBottomInfo()
     }
@@ -184,8 +196,10 @@ public final class MapViewModel {
             visibleExperiences = candidates.sorted { lhs, rhs in
                 (rank[lhs.id] ?? Int.max) < (rank[rhs.id] ?? Int.max)
             }
+            lastAIError = nil
         } catch {
-            // Silent — the unranked list is still useful.
+            // Unranked list is still useful — keep it visible, just record the error.
+            lastAIError = error.localizedDescription
         }
     }
 
@@ -202,8 +216,10 @@ public final class MapViewModel {
                 visibleExperiences = experienceService.allExperiences.filter { ids.contains($0.id) }
             }
             bottomInfoText = response.explanation
+            lastAIError = nil
         } catch {
-            // Keep current state on error.
+            // Keep current state on error; record for UI to optionally surface.
+            lastAIError = error.localizedDescription
         }
     }
 
