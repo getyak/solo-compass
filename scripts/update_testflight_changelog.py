@@ -18,6 +18,30 @@
 #   MAX_WAIT_SECONDS                   — total seconds to wait for build to reach processingState=VALID (default 1800)
 #   POLL_INTERVAL_SECONDS              — seconds between polls (default 30)
 #
+# Strategy:
+#   1. Poll for the EXACT build (by build_number + marketing_version) for
+#      up to 1800s (30 min). This catches the fast path where Apple processes
+#      the build within minutes.
+#   2. If the exact build never appears, FALL BACK to the most recent build
+#      visible in ASC. This handles slow/incomplete Apple processing — we
+#      still set the changelog on whatever the newest build is, which is
+#      virtually always the one we just uploaded.
+#
+# Exits 0 on success, non-zero with diagnostic on failure.
+#
+# Required env:
+#   APP_STORE_CONNECT_API_KEY_ID       — ASC API key id (10-char string)
+#   APP_STORE_CONNECT_ISSUER_ID        — ASC API issuer id (UUID)
+#   APP_STORE_CONNECT_API_KEY_CONTENT  — ES256 PEM-encoded private key (multi-line)
+#   ASC_APP_ID                         — App Store Connect app id (numeric, e.g. 6762390618)
+#   BUILD_NUMBER                       — CURRENT_PROJECT_VERSION used in the build (e.g. "446")
+#   MARKETING_VERSION                  — CFBundleShortVersionString (e.g. "0.1.66")
+#   CHANGELOG_FILE                     — path to plaintext changelog
+# Optional:
+#   LOCALE                             — beta-build-localization locale (default "en-US")
+#   MAX_WAIT_SECONDS                   — total seconds to wait for build to reach processingState=VALID (default 1800)
+#   POLL_INTERVAL_SECONDS              — seconds between polls (default 30)
+#
 # Exits 0 on success, non-zero with diagnostic on failure.
 
 from __future__ import annotations
@@ -131,11 +155,45 @@ def find_build(token: str, app_id: str, build_number: str,
     return items[0]
 
 
+def find_most_recent_build(token: str, app_id: str) -> dict | None:
+    """Find the most recent build visible in ASC, regardless of version.
+
+    Used as fallback when the exact build_number + marketing_version
+    combo never appears (e.g. Apple takes >2h to process). The most recent
+    build is virtually always the one we just uploaded.
+    """
+    status, payload = asc_request(
+        "GET",
+        "/v1/builds",
+        token,
+        query={
+            "filter[app]": app_id,
+            "sort": "-uploadedDate",
+            "limit": 5,
+            "include": "preReleaseVersion",
+        },
+    )
+    if status != 200:
+        print(f"GET /v1/builds (fallback) failed: HTTP {status}", file=sys.stderr)
+        return None
+    items = payload.get("data") or []
+    if not items:
+        return None
+    # Return newest build that is VALID (or first one if none VALID yet)
+    for item in items:
+        if item.get("attributes", {}).get("processingState") == "VALID":
+            return item
+    return items[0]
+
+
 def wait_for_processed_build(token_factory, app_id: str, build_number: str,
                              marketing_version: str, max_wait: int,
                              poll_interval: int) -> dict:
     deadline = time.time() + max_wait
     last_state: str | None = None
+    fell_back = False
+    fallback_deadline = None  # set when fallback activates
+
     while True:
         token = token_factory()
         build = find_build(token, app_id, build_number, marketing_version)
@@ -153,6 +211,45 @@ def wait_for_processed_build(token_factory, app_id: str, build_number: str,
             state_msg = f"processingState={state}"
         remaining = int(deadline - time.time())
         if remaining <= 0:
+            if not fell_back:
+                print(f"  Exact build {marketing_version}({build_number}) not found after "
+                      f"{max_wait}s. Falling back to most-recent-build strategy...")
+                fell_back = True
+                fallback_deadline = time.time() + max_wait  # give fallback same window
+
+            if fell_back:
+                # Fallback loop: try to find the most recent build
+                token2 = token_factory()
+                fallback = find_most_recent_build(token2, app_id)
+                if fallback is not None:
+                    fb_state = fallback.get("attributes", {}).get("processingState", "?")
+                    if fb_state == "VALID":
+                        print(f"  Fallback succeeded: build processingState=VALID")
+                        return fallback
+                    fb_remaining = int(fallback_deadline - time.time())
+                    if fb_remaining > 0:
+                        print(f"  Fallback build processingState={fb_state}; "
+                              f"sleeping {poll_interval}s ({fb_remaining}s left)")
+                    else:
+                        raise TimeoutError(
+                            f"Fallback timed out after {max_wait * 2}s total. "
+                            f"Build {marketing_version}({build_number}) never appeared. "
+                            f"This is usually transient — Apple processing > {max_wait * 2}s. "
+                            f"Next deploy will retry."
+                        )
+                else:
+                    fb_remaining = int(fallback_deadline - time.time())
+                    if fb_remaining > 0:
+                        print(f"  Fallback build not yet visible; "
+                              f"sleeping {poll_interval}s ({fb_remaining}s left)")
+                    else:
+                        raise TimeoutError(
+                            f"No builds visible in ASC after {max_wait * 2}s. "
+                            f"Possible ASC API key permission issue."
+                        )
+                time.sleep(poll_interval)
+                continue
+
             raise TimeoutError(
                 f"Timed out after {max_wait}s waiting for build "
                 f"{marketing_version}({build_number}) to reach VALID "
