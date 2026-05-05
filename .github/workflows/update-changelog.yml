@@ -37,7 +37,7 @@ jobs:
     name: Update TestFlight changelog
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    timeout-minutes: 125
+    timeout-minutes: 70
 
     steps:
       - name: Resolve source ref and run id
@@ -128,7 +128,7 @@ jobs:
           MARKETING_VERSION:     ${{ steps.ids.outputs.marketing_version }}
           CHANGELOG_FILE:        changelog/changelog.txt
           LOCALE:                en-US
-          MAX_WAIT_SECONDS:      "7200"
+          MAX_WAIT_SECONDS:      "1800"
           POLL_INTERVAL_SECONDS: "30"
         run: |
           python3 scripts/update_testflight_changelog.py
