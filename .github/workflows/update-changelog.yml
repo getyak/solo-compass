@@ -73,9 +73,15 @@ jobs:
         id: ids
         env:
           MANUAL_TAG: ${{ steps.resolve.outputs.manual_tag }}
+          # Run number of the DEPLOY job — needed to reconstruct the same build
+          # number fastlane used: base(git count) + last-4 digits of run number.
+          DEPLOY_RUN_NUMBER: ${{ github.event.workflow_run.run_number || github.event.inputs.run_id }}
         run: |
           set -euo pipefail
-          BUILD_NUMBER=$(git rev-list --count HEAD)
+          BASE=$(git rev-list --count HEAD)
+          RUN_NUM="${DEPLOY_RUN_NUMBER:-0}"
+          RUN_SUFFIX=$(printf '%04d' "$((RUN_NUM % 10000))")
+          BUILD_NUMBER="${BASE}${RUN_SUFFIX}"
 
           if [ -n "$MANUAL_TAG" ]; then
             TAG="$MANUAL_TAG"

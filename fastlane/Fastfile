@@ -183,9 +183,14 @@ platform :ios do
       end
     end
 
-    build_number = sh("git rev-list --count HEAD").strip
+    # Build number must be unique per (marketing_version, build_number) pair in ASC.
+    # git rev-list --count HEAD alone collides when the same SHA is rerun (CI retries).
+    # Append the last 4 digits of GitHub run number to guarantee uniqueness.
+    base = sh("git rev-list --count HEAD").strip
+    run_suffix = (ENV["GITHUB_RUN_NUMBER"] || "0").to_s.rjust(4, "0")[-4..]
+    build_number = "#{base}#{run_suffix}"
     set_pbxproj_version("CURRENT_PROJECT_VERSION", build_number)
-    UI.message "Build number set to #{build_number}"
+    UI.message "Build number set to #{build_number} (base=#{base} run=#{ENV['GITHUB_RUN_NUMBER']})"
   end
 
   error do |lane, exception|
