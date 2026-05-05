@@ -1,0 +1,270 @@
+name: Deploy to TestFlight
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "docs/**"
+      - "scripts/ralph/**"
+      - "**.md"
+      - ".gitignore"
+
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: "Fastlane lane to run"
+        required: true
+        default: "beta"
+        type: choice
+        options:
+          - beta
+          - release
+      version_override:
+        description: "Override version (e.g. 0.1.0). Leave empty to auto-bump patch."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  deploy:
+    name: Build & Upload to TestFlight
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      # ── 2. Compute next version ──────────────────────────────────────────
+      - name: Compute next version
+        id: version
+        run: |
+          set -euo pipefail
+          git fetch --tags --force origin
+
+          tag_exists() {
+            local t="$1"
+            if git rev-parse -q --verify "refs/tags/$t" >/dev/null 2>&1; then return 0; fi
+            if git ls-remote --tags origin "refs/tags/$t" | grep -q "refs/tags/$t$"; then return 0; fi
+            return 1
+          }
+
+          OVERRIDE="${{ github.event.inputs.version_override }}"
+          if [ -n "$OVERRIDE" ]; then
+            NEXT="$OVERRIDE"
+            TAG="v$NEXT"
+            if tag_exists "$TAG"; then
+              echo "::error::Tag $TAG already exists. Pick a different version_override."
+              exit 1
+            fi
+          else
+            LAST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1 || true)
+            if [ -n "$LAST_TAG" ]; then
+              BASE="${LAST_TAG#v}"
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
+              for i in $(seq 1 50); do
+                CANDIDATE_PATCH=$((PATCH + i))
+                CANDIDATE="${MAJOR}.${MINOR}.${CANDIDATE_PATCH}"
+                if ! tag_exists "v$CANDIDATE"; then
+                  NEXT="$CANDIDATE"
+                  TAG="v$NEXT"
+                  echo "Bumping from $LAST_TAG → $TAG (tried $i candidate(s))"
+                  break
+                fi
+              done
+              if [ -z "${NEXT:-}" ]; then
+                echo "::error::Could not find an unused patch within 50 attempts."
+                exit 1
+              fi
+            else
+              CURRENT=$(grep -A1 'CFBundleShortVersionString' apps/ios/SoloCompass/Resources/Info.plist \
+                | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>/\1/' | tr -d ' ')
+              if [[ "$CURRENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                NEXT="$CURRENT"
+              else
+                NEXT="0.1.0"
+              fi
+              TAG="v$NEXT"
+              if tag_exists "$TAG"; then
+                echo "::error::Fallback $TAG already exists. Set version_override."
+                exit 1
+              fi
+            fi
+          fi
+
+          echo "release_version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$TAG"      >> "$GITHUB_OUTPUT"
+
+      # ── 3. Build changelog from merged PR ────────────────────────────────
+      - name: Build release changelog
+        id: changelog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          PR_NUM=$(printf '%s' "$COMMIT_MSG" | grep -oE '#[0-9]+' | head -n1 | tr -d '#' || true)
+          CHANGELOG_FILE="$RUNNER_TEMP/changelog.txt"
+
+          if [ -n "${PR_NUM:-}" ]; then
+            gh pr view "$PR_NUM" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json title,body \
+              --jq '.title + "\n\n" + (.body // "")' \
+              > "$CHANGELOG_FILE" || printf '%s' "$COMMIT_MSG" > "$CHANGELOG_FILE"
+          else
+            printf '%s' "$COMMIT_MSG" > "$CHANGELOG_FILE"
+          fi
+
+          sed -i '' -e 's/\r$//' "$CHANGELOG_FILE" || true
+          sed -i '' -e 's/✅/[x]/g' -e 's/❌/[ ]/g' "$CHANGELOG_FILE" || true
+          head -c 3800 "$CHANGELOG_FILE" > "$CHANGELOG_FILE.trimmed"
+          mv "$CHANGELOG_FILE.trimmed" "$CHANGELOG_FILE"
+
+          echo "changelog_path=$CHANGELOG_FILE" >> "$GITHUB_OUTPUT"
+
+      # ── 4. Setup Ruby (for Fastlane) ─────────────────────────────────────
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.1"
+          bundler-cache: true
+
+      # ── 5. Generate .xcodeproj from project.yml ──────────────────────────
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate .xcodeproj
+        run: |
+          cd apps/ios
+          xcodegen generate --spec project.yml
+
+      # ── 6. Cache DerivedData ─────────────────────────────────────────────
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: deriveddata-${{ hashFiles('apps/ios/SoloCompass.xcodeproj/project.pbxproj') }}
+          restore-keys: |
+            deriveddata-
+
+      # ── 7. Write .env from GitHub Secret ─────────────────────────────────
+      - name: Write .env file
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE }}
+        run: |
+          echo "$ENV_FILE_CONTENT" > .env
+          echo ".env written ($(wc -l < .env) lines)"
+
+      # ── 7. Setup match SSH key ────────────────────────────────────────────
+      - name: Setup match SSH key
+        env:
+          MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$MATCH_DEPLOY_KEY" > ~/.ssh/solo_compass_match
+          chmod 600 ~/.ssh/solo_compass_match
+          printf 'Host github-solo-compass-certs\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/solo_compass_match\n  IdentitiesOnly yes\n  StrictHostKeyChecking no\n' >> ~/.ssh/config
+
+      # ── 8. Write App Store Connect API Key ───────────────────────────────
+      - name: Write App Store Connect API key
+        env:
+          ASC_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          echo "$ASC_API_KEY_CONTENT" > /tmp/asc_key.p8
+
+      # ── 9. Run Fastlane ──────────────────────────────────────────────────
+      - name: Run Fastlane
+        env:
+          DEVELOPMENT_TEAM:                     ${{ secrets.DEVELOPMENT_TEAM }}
+          APP_STORE_CONNECT_API_KEY_ID:         ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID:          ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT:    ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          MATCH_PASSWORD:                       ${{ secrets.MATCH_PASSWORD }}
+          MATCH_KEYCHAIN_PASSWORD:              ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+          MATCH_GIT_URL:                        ${{ secrets.MATCH_GIT_URL }}
+          MATCH_GIT_BRANCH:                     ${{ secrets.MATCH_GIT_BRANCH }}
+          FASTLANE_USER:                        ${{ secrets.FASTLANE_USER }}
+          GH_TOKEN:                             ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REF_NAME:                      ${{ steps.version.outputs.release_tag }}
+          GITHUB_REF_TYPE:                      tag
+          RELEASE_VERSION:                      ${{ steps.version.outputs.release_version }}
+          RELEASE_CHANGELOG_FILE:               ${{ steps.changelog.outputs.changelog_path }}
+          FASTLANE_XCODE_LIST_TIMEOUT:          "120"
+          FASTLANE_SKIP_UPDATE_CHECK:           "1"
+        run: |
+          LANE="${{ github.event.inputs.lane || 'beta' }}"
+          echo "Running lane=$LANE for version=$RELEASE_VERSION"
+          bundle exec fastlane $LANE
+
+      # ── 10. Tag the release ──────────────────────────────────────────────
+      - name: Tag release and push
+        if: success()
+        env:
+          TAG: ${{ steps.version.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --tags --force origin
+
+          FINAL_TAG="$TAG"
+          if git rev-parse -q --verify "refs/tags/$FINAL_TAG" >/dev/null 2>&1 || \
+             git ls-remote --tags origin "refs/tags/$FINAL_TAG" | grep -q "refs/tags/$FINAL_TAG$"; then
+            BASE="${FINAL_TAG#v}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE"
+            for i in $(seq 1 50); do
+              CANDIDATE="v${MAJOR}.${MINOR}.$((PATCH + i))"
+              if ! git rev-parse -q --verify "refs/tags/$CANDIDATE" >/dev/null 2>&1 && \
+                 ! git ls-remote --tags origin "refs/tags/$CANDIDATE" | grep -q "refs/tags/$CANDIDATE$"; then
+                FINAL_TAG="$CANDIDATE"
+                break
+              fi
+            done
+          fi
+
+          git tag -a "$FINAL_TAG" -m "Release $FINAL_TAG"
+          git push origin "$FINAL_TAG"
+          echo "Pushed tag $FINAL_TAG"
+
+      # ── 11. Create GitHub Release ────────────────────────────────────────
+      - name: Create GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.release_tag }}
+          name: SoloCompass ${{ steps.version.outputs.release_tag }}
+          body_path: ${{ steps.changelog.outputs.changelog_path }}
+          files: build/SoloCompass.ipa
+          prerelease: true
+          fail_on_unmatched_files: true
+
+      # ── 12. Upload IPA artifact ───────────────────────────────────────────
+      - name: Upload IPA artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoloCompass-${{ steps.version.outputs.release_tag }}
+          path: build/SoloCompass.ipa
+          retention-days: 14
+
+      - name: Upload Fastlane logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastlane-logs-${{ github.sha }}
+          path: fastlane/logs/
+          retention-days: 7
+
+      # ── 13. Cleanup ───────────────────────────────────────────────────────
+      - name: Cleanup match SSH key
+        if: always()
+        run: rm -f ~/.ssh/solo_compass_match || true

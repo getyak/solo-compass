@@ -1,0 +1,189 @@
+env_file = File.expand_path("../.env", __dir__)
+if File.exist?(env_file)
+  File.foreach(env_file) do |line|
+    line.strip!
+    next if line.empty? || line.start_with?("#")
+    key, value = line.split("=", 2)
+    ENV[key] = value if key && value
+  end
+end
+
+default_platform(:ios)
+
+def api_key
+  return nil unless ENV["APP_STORE_CONNECT_API_KEY_ID"]
+
+  key_path = "/tmp/asc_key.p8"
+  if File.exist?(key_path)
+    app_store_connect_api_key(
+      key_id:       ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id:    ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: key_path,
+      in_house:     false
+    )
+  else
+    app_store_connect_api_key(
+      key_id:      ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id:   ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+      in_house:    false
+    )
+  end
+end
+
+platform :ios do
+  desc "Build the app (no upload) — for PR validation"
+  lane :build_only do
+    sh(
+      "xcodebuild",
+      "-scheme",        "SoloCompass",
+      "-project",       "apps/ios/SoloCompass.xcodeproj",
+      "-configuration", "Release",
+      "-destination",   "generic/platform=iOS",
+      "-sdk",           "iphoneos",
+      "CODE_SIGN_IDENTITY=",
+      "CODE_SIGNING_REQUIRED=NO",
+      "CODE_SIGNING_ALLOWED=NO",
+      "clean", "build"
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    increment_build
+
+    create_keychain(
+      name:               "ci_keychain",
+      password:           ENV["MATCH_KEYCHAIN_PASSWORD"] || "ci_temp_password",
+      default_keychain:   true,
+      unlock:             true,
+      timeout:            3600,
+      add_to_search_list: true
+    )
+
+    match(
+      type:              "appstore",
+      readonly:          true,
+      git_url:           ENV["MATCH_GIT_URL"] || "git@github-solo-compass-certs:getyak/solo-compass-certs.git",
+      app_identifier:    "com.solocompass.app",
+      keychain_name:     "ci_keychain",
+      keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || "ci_temp_password"
+    )
+
+    profile_name = ENV["sigh_com.solocompass.app_appstore_profile-name"] || "match AppStore com.solocompass.app"
+    build_app(
+      scheme:           "SoloCompass",
+      project:          "apps/ios/SoloCompass.xcodeproj",
+      configuration:    "Release",
+      export_method:    "app-store",
+      clean:            false,
+      output_directory: "build",
+      output_name:      "SoloCompass.ipa",
+      xcargs:           "PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'",
+      export_options:   {
+        method:               "app-store",
+        signingStyle:         "manual",
+        teamID:               ENV["DEVELOPMENT_TEAM"],
+        provisioningProfiles: { "com.solocompass.app" => profile_name }
+      }
+    )
+
+    # skip_waiting_for_build_processing avoids the 30+ min ASC polling timeout
+    upload_to_testflight(
+      api_key:                           api_key,
+      skip_waiting_for_build_processing: true
+    )
+
+    UI.success "TestFlight beta uploaded"
+  end
+
+  desc "Build and submit to App Store for review"
+  lane :release do
+    increment_build
+
+    create_keychain(
+      name:               "ci_keychain",
+      password:           ENV["MATCH_KEYCHAIN_PASSWORD"] || "ci_temp_password",
+      default_keychain:   true,
+      unlock:             true,
+      timeout:            3600,
+      add_to_search_list: true
+    )
+
+    match(
+      type:              "appstore",
+      readonly:          true,
+      git_url:           ENV["MATCH_GIT_URL"] || "git@github-solo-compass-certs:getyak/solo-compass-certs.git",
+      app_identifier:    "com.solocompass.app",
+      keychain_name:     "ci_keychain",
+      keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || "ci_temp_password"
+    )
+
+    profile_name = ENV["sigh_com.solocompass.app_appstore_profile-name"] || "match AppStore com.solocompass.app"
+    build_app(
+      scheme:           "SoloCompass",
+      project:          "apps/ios/SoloCompass.xcodeproj",
+      configuration:    "Release",
+      export_method:    "app-store",
+      clean:            false,
+      output_directory: "build",
+      output_name:      "SoloCompass.ipa",
+      xcargs:           "PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'",
+      export_options:   {
+        method:               "app-store",
+        signingStyle:         "manual",
+        teamID:               ENV["DEVELOPMENT_TEAM"],
+        provisioningProfiles: { "com.solocompass.app" => profile_name }
+      }
+    )
+
+    upload_to_app_store(
+      api_key:              api_key,
+      submit_for_review:    true,
+      automatic_release:    false,
+      force:                true,
+      skip_screenshots:     true,
+      skip_metadata:        false,
+      precheck_include_in_app_purchases: false
+    )
+
+    UI.success "App Store submission complete"
+  end
+
+  # Directly sed pbxproj to avoid agvtool's bug with GENERATE_INFOPLIST_FILE = YES
+  # (agvtool treats "YES" as a file path and silently fails to write the version).
+  def set_pbxproj_version(key, value)
+    path = File.expand_path("../apps/ios/SoloCompass.xcodeproj/project.pbxproj", __dir__)
+    content = File.read(path)
+    pattern = /#{Regexp.escape(key)} = [^;]+;/
+    replaced = content.gsub(pattern, "#{key} = #{value};")
+    File.write(path, replaced)
+    count = content.scan(pattern).size
+    UI.message "pbxproj: set #{key} = #{value} (#{count} occurrence#{count == 1 ? '' : 's'})"
+  end
+
+  private_lane :increment_build do
+    injected = ENV["RELEASE_VERSION"].to_s.strip
+    if injected =~ /\A\d+\.\d+\.\d+\z/
+      set_pbxproj_version("MARKETING_VERSION", injected)
+      UI.message "Marketing version set to #{injected} (from RELEASE_VERSION env)"
+    else
+      raw_tag = sh("git describe --tags --abbrev=0 2>/dev/null || echo ''").strip
+      if raw_tag =~ /\Av?(\d+\.\d+(\.\d+)?)\z/
+        marketing_version = $1
+        set_pbxproj_version("MARKETING_VERSION", marketing_version)
+        UI.message "Marketing version set to #{marketing_version} (from tag #{raw_tag})"
+      else
+        UI.message "No RELEASE_VERSION or semver tag found, keeping existing MARKETING_VERSION"
+      end
+    end
+
+    build_number = sh("git rev-list --count HEAD").strip
+    set_pbxproj_version("CURRENT_PROJECT_VERSION", build_number)
+    UI.message "Build number set to #{build_number}"
+  end
+
+  error do |lane, exception|
+    UI.error "Lane #{lane} failed: #{exception.message}"
+  end
+end
