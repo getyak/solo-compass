@@ -80,7 +80,7 @@ platform :ios do
       clean:            false,
       output_directory: "build",
       output_name:      "SoloCompass.ipa",
-      xcargs:           "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=#{team_id} PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'",
+      xcargs:           "CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM=#{team_id} PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' OTHER_CODE_SIGN_FLAGS='--keychain /Users/runner/Library/Keychains/ci_keychain-db'",
       export_options:   {
         method:               "app-store",
         signingStyle:         "manual",
@@ -130,7 +130,7 @@ platform :ios do
       clean:            false,
       output_directory: "build",
       output_name:      "SoloCompass.ipa",
-      xcargs:           "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=#{team_id} PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'",
+      xcargs:           "CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM=#{team_id} PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' OTHER_CODE_SIGN_FLAGS='--keychain /Users/runner/Library/Keychains/ci_keychain-db'",
       export_options:   {
         method:               "app-store",
         signingStyle:         "manual",
