@@ -183,15 +183,21 @@ platform :ios do
       end
     end
 
-    # Use GITHUB_RUN_NUMBER as build number: plain integer, unique per repo,
-    # always increasing — exactly what ASC expects for CFBundleVersion.
-    # The previous composite "base+suffix" (e.g. 660026) was silently rejected
-    # by ASC, causing the build to never appear in the build list.
-    # Falls back to git commit count for local builds without the env var.
-    build_number = ENV["GITHUB_RUN_NUMBER"].to_s.strip
-    build_number = sh("git rev-list --count HEAD").strip if build_number.empty?
+    # Build number = GITHUB_RUN_NUMBER + 1000000 offset.
+    # Offset ensures the value is always greater than the legacy composite
+    # build numbers (e.g. 660026) uploaded before this scheme was adopted.
+    # ASC requires CFBundleVersion to be a strictly increasing plain integer.
+    # Falls back to git commit count + offset for local builds.
+    BASE_OFFSET = 1_000_000
+    run_number = ENV["GITHUB_RUN_NUMBER"].to_s.strip
+    if run_number.empty?
+      git_count = sh("git rev-list --count HEAD").strip.to_i
+      build_number = (git_count + BASE_OFFSET).to_s
+    else
+      build_number = (run_number.to_i + BASE_OFFSET).to_s
+    end
     set_pbxproj_version("CURRENT_PROJECT_VERSION", build_number)
-    UI.message "Build number set to #{build_number}"
+    UI.message "Build number set to #{build_number} (GITHUB_RUN_NUMBER=#{run_number.empty? ? 'N/A' : run_number} + offset=#{BASE_OFFSET})"
   end
 
   error do |lane, exception|

@@ -73,12 +73,13 @@ jobs:
         id: ids
         env:
           MANUAL_TAG: ${{ steps.resolve.outputs.manual_tag }}
-          # Build number = GITHUB_RUN_NUMBER of the deploy run, mirroring
-          # fastlane/Fastfile increment_build which uses GITHUB_RUN_NUMBER directly.
+          # Build number = GITHUB_RUN_NUMBER + 1000000 offset, mirroring
+          # fastlane/Fastfile increment_build (same offset applied there).
           DEPLOY_RUN_NUMBER: ${{ github.event.workflow_run.run_number || github.event.inputs.run_id }}
         run: |
           set -euo pipefail
-          BUILD_NUMBER="${DEPLOY_RUN_NUMBER:-0}"
+          BASE_OFFSET=1000000
+          BUILD_NUMBER=$(( ${DEPLOY_RUN_NUMBER:-0} + BASE_OFFSET ))
 
           if [ -n "$MANUAL_TAG" ]; then
             TAG="$MANUAL_TAG"
