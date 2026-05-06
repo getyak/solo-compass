@@ -12,11 +12,19 @@
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
+    "@sentry/nextjs": "^8.45.0",
+    "@solo-compass/ai": "workspace:*",
     "@solo-compass/core": "workspace:*",
+    "@solo-compass/data": "workspace:*",
+    "@supabase/supabase-js": "^2.45.0",
+    "@tanstack/react-query": "^5.59.0",
     "mapbox-gl": "^3.8.0",
     "next": "^15.0.3",
+    "posthog-js": "^1.181.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "vaul": "^1.1.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/mapbox-gl": "^3.4.1",

@@ -6,6 +6,8 @@ import type { Experience } from "@solo-compass/core";
 
 import { DEMO_EXPERIENCES } from "./demo-experiences.js";
 import { getSession, resetSession } from "./session.js";
+import { track, optOut, isOptedOut } from "./lib/analytics.js";
+import { initSentry, captureException } from "./lib/sentry.js";
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 
@@ -31,6 +33,7 @@ const VOICE_MAX_SECONDS = 30;
 
 // ─── Clients ───────────────────────────────────────────────────────────────────
 
+initSentry();
 const bot = new Telegraf(TELEGRAM_BOT_TOKEN);
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
@@ -46,6 +49,13 @@ function escapeMarkdown(text: string): string {
   return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, "\\$1");
 }
 
+function firstSourceLink(exp: Experience): string | undefined {
+  for (const s of exp.sources) {
+    if (s.url) return s.url;
+  }
+  return undefined;
+}
+
 function formatRanking(ranked: RankedExperience[]): string {
   if (ranked.length === 0) {
     return "No good matches right now. Try a different intent or move closer to the old city.";
@@ -54,7 +64,10 @@ function formatRanking(ranked: RankedExperience[]): string {
     .map((r, i) => {
       const title = escapeMarkdown(r.experience.title);
       const reason = escapeMarkdown(r.reason);
-      return `*${i + 1}\\. ${title}* — ${r.walkingMinutes} min walk\n   ${reason}`;
+      const solo = `${r.experience.soloScore.overall}/10`;
+      const url = firstSourceLink(r.experience);
+      const sourceLine = url ? `\n   source: ${escapeMarkdown(url)}` : "";
+      return `*${i + 1}\\. ${title}* — ${r.walkingMinutes} min walk · solo ${escapeMarkdown(solo)}\n   ${reason}${sourceLine}`;
     })
     .join("\n\n");
 }
@@ -117,12 +130,20 @@ async function transcribeVoice(fileUrl: string, durationSec: number): Promise<st
     throw new Error(`Telegram file fetch failed: ${res.status}`);
   }
   const arrayBuf = await res.arrayBuffer();
-  const file = await toFile(Buffer.from(arrayBuf), "voice.ogg", { type: "audio/ogg" });
-  const result = await openai.audio.transcriptions.create({
-    file,
-    model: "whisper-1",
-  });
-  return result.text.trim();
+  // Audio bytes live only in this Buffer for the duration of the upload; once
+  // toFile() resolves and we await Whisper, we drop our reference. We never
+  // persist the .ogg to disk and never log the URL.
+  let buf: Buffer | null = Buffer.from(arrayBuf);
+  try {
+    const file = await toFile(buf, "voice.ogg", { type: "audio/ogg" });
+    const result = await openai.audio.transcriptions.create({
+      file,
+      model: "whisper-1",
+    });
+    return result.text.trim();
+  } finally {
+    buf = null;
+  }
 }
 
 // ─── Handlers ──────────────────────────────────────────────────────────────────
@@ -131,6 +152,7 @@ bot.start(async (ctx) => {
   resetSession(ctx.from.id);
   const session = getSession(ctx.from.id);
   session.stage = "awaiting_location";
+  await track(ctx.from.id, "session_start");
   await ctx.reply(
     [
       "Solo Compass.",
@@ -138,6 +160,8 @@ bot.start(async (ctx) => {
       "Drop a pin (📎 → Location) or type a place name to start.",
       "Then send a 5–30 second voice note saying what you feel like doing — or type it.",
       "I'll come back with three things worth doing nearby.",
+      "",
+      "Commands: /nearby /privacy /reset",
     ].join("\n"),
   );
 });
@@ -147,6 +171,47 @@ bot.command("reset", async (ctx) => {
   await ctx.reply("Reset. Send /start to begin again.");
 });
 
+bot.command("privacy", async (ctx) => {
+  await ctx.reply(
+    [
+      "Privacy",
+      "",
+      "• I never store your Telegram username or display name.",
+      "• Your user_id is hashed with a server-side salt before any analytics.",
+      "• Voice notes are transcribed by Whisper and the audio is dropped — never written to disk, never sent to Sentry.",
+      "• Transcripts are not retained after ranking.",
+      "• Errors reported to Sentry have transcripts and message bodies stripped.",
+      "",
+      "Type /optout to stop all analytics from this device. /start to resume.",
+      "Full doc: https://github.com/getyak/solo-compass/blob/main/docs/PRIVACY.md",
+    ].join("\n"),
+  );
+});
+
+bot.command("optout", async (ctx) => {
+  await track(ctx.from.id, "opted_out");
+  optOut(ctx.from.id);
+  resetSession(ctx.from.id);
+  await ctx.reply("Opted out. No further events from this chat. /start to resume.");
+});
+
+bot.command("nearby", async (ctx) => {
+  const session = getSession(ctx.from.id);
+  if (!session.location) {
+    await ctx.reply(
+      "I need a location first.",
+      Markup.keyboard([[Markup.button.locationRequest("📍 Share location")]])
+        .oneTime()
+        .resize(),
+    );
+    session.stage = "awaiting_location";
+    return;
+  }
+  // Already have location — ask for intent.
+  session.stage = "awaiting_intent";
+  await ctx.reply("What do you feel like doing? Voice (5–30s) or text.");
+});
+
 bot.on("location", async (ctx) => {
   const session = getSession(ctx.from.id);
   const { latitude, longitude } = ctx.message.location;
@@ -154,6 +219,7 @@ bot.on("location", async (ctx) => {
   session.stage = "awaiting_intent";
   await ctx.reply(
     "Location locked.\n\nWhat do you feel like doing? Send a voice note (5–30s) or type.",
+    Markup.removeKeyboard(),
   );
 });
 
@@ -167,13 +233,13 @@ bot.on("voice", async (ctx) => {
   const voice = ctx.message.voice;
   if (voice.duration < VOICE_MIN_SECONDS) {
     await ctx.reply(
-      `Voice was too short. Aim for ${VOICE_MIN_SECONDS}–${VOICE_MAX_SECONDS} seconds.`,
+      `Voice was too short. Aim for ${VOICE_MIN_SECONDS}–${VOICE_MAX_SECONDS} seconds, or type instead.`,
     );
     return;
   }
   if (voice.duration > VOICE_MAX_SECONDS) {
     await ctx.reply(
-      `Voice was too long. Keep it under ${VOICE_MAX_SECONDS} seconds — one or two sentences is enough.`,
+      `Voice was too long. Keep it under ${VOICE_MAX_SECONDS} seconds — one or two sentences is enough. Or type instead.`,
     );
     return;
   }
@@ -184,13 +250,18 @@ bot.on("voice", async (ctx) => {
     const link = await ctx.telegram.getFileLink(voice.file_id);
     transcript = await transcribeVoice(link.toString(), voice.duration);
   } catch (err) {
-    console.error("voice transcribe failed", err);
-    await ctx.reply("Couldn't transcribe that voice note. Try again, or type instead.");
+    console.error("voice transcribe failed");
+    captureException(err, { stage: "transcribe" });
+    await ctx.reply(
+      "Couldn't transcribe that voice note. The bot didn't understand the audio. Try recording again in a quieter spot — or just type what you feel like doing.",
+    );
     return;
   }
 
   if (!transcript) {
-    await ctx.reply("Couldn't make sense of that voice note. Try again, or type instead.");
+    await ctx.reply(
+      "Couldn't make sense of that voice note. Try recording again — or just type what you feel like doing.",
+    );
     return;
   }
 
@@ -199,6 +270,7 @@ bot.on("voice", async (ctx) => {
 
 bot.on("text", async (ctx) => {
   const session = getSession(ctx.from.id);
+  const text = ctx.message.text;
 
   if (session.stage === "awaiting_location" || !session.location) {
     await ctx.reply(
@@ -208,34 +280,76 @@ bot.on("text", async (ctx) => {
   }
 
   if (session.stage === "awaiting_intent") {
-    await handleIntent(ctx, ctx.message.text);
+    await handleIntent(ctx, text);
     return;
   }
 
   // Allow follow-up intents after a previous ranking — treat any text as a new intent.
-  await handleIntent(ctx, ctx.message.text);
+  await handleIntent(ctx, text);
 });
 
 bot.on("callback_query", async (ctx) => {
   const data = "data" in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
-  if (!data || !data.startsWith("detail:")) {
+  if (!data) {
     await ctx.answerCbQuery();
     return;
   }
-  const expId = data.slice("detail:".length);
-  const exp = DEMO_EXPERIENCES.find((e) => (e.id as string) === expId);
-  if (!exp) {
-    await ctx.answerCbQuery("That option is no longer in this list.");
+
+  const userId = ctx.from?.id;
+  if (data.startsWith("detail:")) {
+    const expId = data.slice("detail:".length);
+    const exp = DEMO_EXPERIENCES.find((e) => (e.id as string) === expId);
+    if (!exp) {
+      await ctx.answerCbQuery("That option is no longer in this list.");
+      return;
+    }
+    await ctx.answerCbQuery();
+    if (userId) {
+      await track(userId, "experience_opened", { experience_id: expId });
+    }
+    await ctx.reply(formatDetail(exp), {
+      parse_mode: "MarkdownV2",
+      ...Markup.inlineKeyboard(
+        [
+          Markup.button.callback("✅ Did it", `did:${expId}`),
+          Markup.button.callback("⏭ Skip", `skip:${expId}`),
+          Markup.button.callback("🚩 Report broken", `report:${expId}`),
+        ],
+        { columns: 3 },
+      ),
+    });
     return;
   }
+
+  if (data.startsWith("did:") || data.startsWith("skip:") || data.startsWith("report:")) {
+    const [action, expId] = data.split(":");
+    if (userId && expId) {
+      const eventName =
+        action === "did"
+          ? "experience_completed"
+          : action === "skip"
+            ? "experience_skipped"
+            : "experience_reported";
+      await track(userId, eventName, { experience_id: expId });
+    }
+    const ack =
+      action === "did"
+        ? "Logged. Glad it worked."
+        : action === "skip"
+          ? "Skipped."
+          : "Flagged. We'll look at it.";
+    await ctx.answerCbQuery(ack);
+    return;
+  }
+
   await ctx.answerCbQuery();
-  await ctx.reply(formatDetail(exp), { parse_mode: "MarkdownV2" });
 });
 
 // ─── Core flow ─────────────────────────────────────────────────────────────────
 
 async function handleIntent(ctx: Context, intent: string): Promise<void> {
-  const session = getSession(ctx.from!.id);
+  const userId = ctx.from!.id;
+  const session = getSession(userId);
   if (!session.location) {
     await ctx.reply("Send a location pin first (📎 → Location).");
     return;
@@ -243,6 +357,7 @@ async function handleIntent(ctx: Context, intent: string): Promise<void> {
 
   session.lastIntent = intent;
   await ctx.sendChatAction("typing");
+  await track(userId, "intent_submitted");
 
   let result;
   try {
@@ -253,7 +368,8 @@ async function handleIntent(ctx: Context, intent: string): Promise<void> {
       currentHour: localHour(),
     });
   } catch (err) {
-    console.error("rankExperiences failed", err);
+    console.error("rankExperiences failed");
+    captureException(err, { stage: "rank" });
     await ctx.reply("Ranking failed. Try again in a moment.");
     return;
   }
@@ -266,6 +382,8 @@ async function handleIntent(ctx: Context, intent: string): Promise<void> {
 
   session.lastRankedIds = result.ranked.map((r) => r.experience.id as string);
   session.stage = "idle";
+
+  await track(userId, "recommendations_shown", { count: result.ranked.length });
 
   const buttons = result.ranked.map((r, i) =>
     Markup.button.callback(
@@ -306,5 +424,6 @@ process.once("SIGTERM", () => bot.stop("SIGTERM"));
 
 main().catch((err) => {
   console.error("fatal", err);
+  captureException(err, { stage: "boot" });
   process.exit(1);
 });

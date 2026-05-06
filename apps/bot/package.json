@@ -13,6 +13,7 @@
   "dependencies": {
     "@solo-compass/core": "workspace:*",
     "@solo-compass/ai": "workspace:*",
+    "@sentry/node": "^8.45.0",
     "telegraf": "^4.16.3",
     "openai": "^4.73.0"
   },

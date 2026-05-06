@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["sin1"],
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_MAPBOX_TOKEN": "@solo_compass_mapbox_token",
+      "NEXT_PUBLIC_POSTHOG_KEY": "@solo_compass_posthog_key",
+      "NEXT_PUBLIC_POSTHOG_HOST": "@solo_compass_posthog_host"
+    }
+  },
+  "functions": {
+    "src/app/api/experiences/nearby/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/experiences/[id]/checkin/route.ts": {
+      "maxDuration": 10
+    }
+  }
+}

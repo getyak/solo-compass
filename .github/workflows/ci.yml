@@ -32,3 +32,10 @@ jobs:
 
       - name: format check
         run: pnpm format:check
+
+      - name: anti-pattern lint
+        if: github.event_name == 'pull_request'
+        run: pnpm tsx scripts/anti-pattern-lint.ts
+
+      - name: schema dryrun
+        run: pnpm tsx scripts/schema-dryrun.ts
