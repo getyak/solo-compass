@@ -16,9 +16,13 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // suppressHydrationWarning silences mismatches caused by browser extensions
+  // (e.g. Immersive Translate) that inject attributes onto <html>/<body>
+  // before React hydrates. Scoped to these two elements only — descendant
+  // hydration checks remain strict.
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <QueryProvider>
           <AnalyticsBoot />
           {children}

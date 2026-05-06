@@ -101,6 +101,13 @@ export async function GET(
     const repo = getExperiencesRepo();
     candidates = await repo.findNearby({ center, radiusMeters: radius, limit: 30 });
   } catch (err) {
+    // Degrade gracefully when SUPABASE_* env is missing (local dev without
+    // backend). UI keeps working with an empty result set + `degraded` flag.
+    const missingEnv =
+      err instanceof Error && err.message.includes("Invalid server environment configuration");
+    if (missingEnv) {
+      return NextResponse.json({ results: [], degraded: true });
+    }
     // eslint-disable-next-line no-console
     console.error("findNearby failed", err);
     return NextResponse.json({ error: "experience lookup failed" }, { status: 502 });

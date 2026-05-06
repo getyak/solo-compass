@@ -2,6 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Solo Compass — Design Tokens
+   Warm-white surface for B (mobile) + D (SEO).
+   "Soft black" surface for A (desktop research).
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap");
+
+:root {
+  /* ---------- Light surface (B / D) ---------- */
+  --bg-warm: #faf8f6;
+  --surface-white: #ffffff;
+  --surface-sunken: #f3f0eb;
+
+  --fg-primary: #2b2822;
+  --fg-muted: #6b6560;
+  --fg-subtle: #a39f99;
+
+  --accent: #5d3000;
+  --accent-hover: #7a3f00;
+  --accent-soft: #f5ede3;
+  --accent-border: #e8dcca;
+  --accent-amber: #c98628;
+
+  --border-subtle: #ede8df;
+  --border-default: #d6cec0;
+
+  /* ---------- Dark surface (A) ---------- */
+  --dark-bg: #0f0d0b;
+  --dark-surface: #15110d;
+  --dark-surface-hover: #181410;
+  --dark-surface-focused: #1b1611;
+  --dark-border: #2a2218;
+  --dark-border-soft: #1f1a14;
+  --dark-border-strong: #3d3025;
+
+  --dark-fg: #f0e5cc;
+  --dark-fg-secondary: #d9c49c;
+  --dark-fg-tertiary: #c9b996;
+  --dark-fg-muted: #a89377;
+  --dark-fg-subtle: #8a7860;
+  --dark-fg-faint: #5c4f3e;
+
+  /* ---------- Type ---------- */
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-cn:
+    "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", system-ui, sans-serif;
+
+  /* ---------- Radius ---------- */
+  --radius-card: 12px;
+  --radius-small: 8px;
+  --radius-pill: 999px;
+}
+
 html,
 body,
 #__next {
@@ -11,13 +68,108 @@ body,
 
 body {
   margin: 0;
-  background-color: #f5f1e8;
-  color: #2c2a26;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-warm);
+  color: var(--fg-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
 
 .mapboxgl-ctrl-attrib {
   background-color: rgba(245, 241, 232, 0.85) !important;
+}
+
+/* ============================================================
+   Semantic type classes
+   ============================================================ */
+
+.ds-display-lg {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 56px;
+  line-height: 1.02;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.ds-h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.2px;
+}
+
+.ds-h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.ds-section-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.ds-mono-10 {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.ds-mono-11 {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   Linear-style thin warm scrollbar
+   ============================================================ */
+.lc-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.lc-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.lc-scroll::-webkit-scrollbar-thumb {
+  background: rgba(229, 205, 160, 0.12);
+  border-radius: 4px;
+}
+.lc-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(229, 205, 160, 0.22);
+}
+
+/* ============================================================
+   Halo pulse for map pins (dark surface)
+   ============================================================ */
+@keyframes sc-halo-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scale(1.42);
+    opacity: 0.08;
+  }
+}
+.sc-halo {
+  animation: sc-halo-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
 }
