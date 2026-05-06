@@ -19,9 +19,7 @@ function HomeInner() {
         onSelectExperience={setSelected}
         selectedId={selected?.id ?? null}
       />
-      {selected && (
-        <ExperienceCard experience={selected} onClose={() => setSelected(null)} />
-      )}
+      {selected && <ExperienceCard experience={selected} onClose={() => setSelected(null)} />}
       <InfoBar cityName="Chiang Mai" count={experiences.length} />
     </main>
   );

@@ -3,8 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Solo Compass",
-  description:
-    "A map-first, experience-as-unit, AI-curated companion for solo travelers.",
+  description: "A map-first, experience-as-unit, AI-curated companion for solo travelers.",
 };
 
 export const viewport: Viewport = {

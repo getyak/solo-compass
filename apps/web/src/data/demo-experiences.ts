@@ -20,9 +20,7 @@ export const demoExperiences: readonly Experience[] = [
       placeNameLocal: "วัดสวนดอก",
       placeNameRomanized: "Wat Suan Dok",
     },
-    bestTimes: [
-      { startHour: 17, endHour: 18, note: "30 min before sunset" },
-    ],
+    bestTimes: [{ startHour: 17, endHour: 18, note: "30 min before sunset" }],
     durationMinutes: { min: 30, max: 60 },
     howTo: [
       { order: 1, text: "Arrive by 17:15. The light shifts fast." },
@@ -54,14 +52,23 @@ export const demoExperiences: readonly Experience[] = [
       basedOnCount: 14,
     },
     sources: [
-      { type: "wikivoyage", url: "https://en.wikivoyage.org/wiki/Chiang_Mai", verifiedAt: VERIFIED },
+      {
+        type: "wikivoyage",
+        url: "https://en.wikivoyage.org/wiki/Chiang_Mai",
+        verifiedAt: VERIFIED,
+      },
       { type: "field_visit", attribution: "team field-week 1", verifiedAt: VERIFIED },
     ],
     confidence: {
       level: 4,
       lastVerifiedAt: VERIFIED,
       reason: "Field-verified, multiple solo traveler reports",
-      signals: { aiScrapeAgeDays: 22, passiveGpsHits30d: 84, activeReports30d: 6, trustedVerifications: 2 },
+      signals: {
+        aiScrapeAgeDays: 22,
+        passiveGpsHits30d: 84,
+        activeReports30d: 6,
+        trustedVerifications: 2,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 47, averageRating: 4.6, lastCompletedAt: "2026-05-04T11:30:00Z" },
@@ -93,24 +100,43 @@ export const demoExperiences: readonly Experience[] = [
       { order: 5, text: "Leave by 8:30 before the buses." },
     ],
     realInconveniences: [
-      { category: "logistics", text: "Songthaew haggling can be tedious solo. Have 200 THB ready." },
+      {
+        category: "logistics",
+        text: "Songthaew haggling can be tedious solo. Have 200 THB ready.",
+      },
       { category: "weather", text: "Cool at the top in winter. Bring a layer." },
     ],
     soloScore: {
       overall: 8,
-      breakdown: { seatingFriendly: 7, soloPatronRatio: 7, staffPressure: 9, soloPortioning: 10, ambianceFit: 8, safety: 9 },
+      breakdown: {
+        seatingFriendly: 7,
+        soloPatronRatio: 7,
+        staffPressure: 9,
+        soloPortioning: 10,
+        ambianceFit: 8,
+        safety: 9,
+      },
       hint: "Share the songthaew up — easier solo than waving one down later.",
       basedOnCount: 22,
     },
     sources: [
-      { type: "wikivoyage", url: "https://en.wikivoyage.org/wiki/Chiang_Mai", verifiedAt: VERIFIED },
+      {
+        type: "wikivoyage",
+        url: "https://en.wikivoyage.org/wiki/Chiang_Mai",
+        verifiedAt: VERIFIED,
+      },
       { type: "reddit", url: "https://reddit.com/r/chiangmai", verifiedAt: VERIFIED },
     ],
     confidence: {
       level: 4,
       lastVerifiedAt: VERIFIED,
       reason: "High passive GPS traffic, recent solo traveler reports",
-      signals: { aiScrapeAgeDays: 12, passiveGpsHits30d: 320, activeReports30d: 14, trustedVerifications: 3 },
+      signals: {
+        aiScrapeAgeDays: 12,
+        passiveGpsHits30d: 320,
+        activeReports30d: 14,
+        trustedVerifications: 3,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 88, averageRating: 4.4, lastCompletedAt: "2026-05-05T07:15:00Z" },
@@ -131,9 +157,7 @@ export const demoExperiences: readonly Experience[] = [
       addressHint: "Huay Kaew Rd, base of Doi Suthep",
       placeNameRomanized: "Huay Kaew Waterfall",
     },
-    bestTimes: [
-      { startHour: 8, endHour: 11, dayOfWeek: [1, 2, 3, 4, 5] },
-    ],
+    bestTimes: [{ startHour: 8, endHour: 11, dayOfWeek: [1, 2, 3, 4, 5] }],
     durationMinutes: { min: 45, max: 75 },
     howTo: [
       { order: 1, text: "Park (or get dropped) at the trailhead near CMU back gate." },
@@ -147,7 +171,14 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 8,
-      breakdown: { seatingFriendly: 9, soloPatronRatio: 8, staffPressure: 10, soloPortioning: 10, ambianceFit: 9, safety: 7 },
+      breakdown: {
+        seatingFriendly: 9,
+        soloPatronRatio: 8,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 9,
+        safety: 7,
+      },
       hint: "Weekday mornings only. Weekends bring crowds and family picnics.",
       basedOnCount: 9,
     },
@@ -159,7 +190,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "Recent user reports, AI re-fetch confirmed access",
-      signals: { aiScrapeAgeDays: 8, passiveGpsHits30d: 42, activeReports30d: 3, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 8,
+        passiveGpsHits30d: 42,
+        activeReports30d: 3,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 18, averageRating: 4.3 },
@@ -185,7 +221,10 @@ export const demoExperiences: readonly Experience[] = [
     howTo: [
       { order: 1, text: "Grab bag, GrabBike, or a rented scooter — about 35 min." },
       { order: 2, text: "Pay the entrance fee (~50 THB). Get the wristband." },
-      { order: 3, text: "Walk past the obvious deck. The local jump is to the right behind palms." },
+      {
+        order: 3,
+        text: "Walk past the obvious deck. The local jump is to the right behind palms.",
+      },
       { order: 4, text: "Eat at the canyon-edge stall — papaya salad and a Chang are 80 THB." },
       { order: 5, text: "Leave by 4 PM if you're on a scooter — late traffic is rough." },
     ],
@@ -195,7 +234,14 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 7,
-      breakdown: { seatingFriendly: 8, soloPatronRatio: 7, staffPressure: 9, soloPortioning: 8, ambianceFit: 6, safety: 7 },
+      breakdown: {
+        seatingFriendly: 8,
+        soloPatronRatio: 7,
+        staffPressure: 9,
+        soloPortioning: 8,
+        ambianceFit: 6,
+        safety: 7,
+      },
       hint: "It skews young/social. Go early to claim a chair before it crowds.",
       basedOnCount: 11,
     },
@@ -204,7 +250,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "Multiple recent passive GPS hits",
-      signals: { aiScrapeAgeDays: 18, passiveGpsHits30d: 156, activeReports30d: 7, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 18,
+        passiveGpsHits30d: 156,
+        activeReports30d: 7,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 33, averageRating: 4.1 },
@@ -215,7 +266,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_khao_soi_khun_yai"),
     title: "Eat khao soi at the place locals queue for",
-    oneLiner: "A ten-table shop that sells out by 1 PM. Coconut curry, crispy noodles, fall-off-bone chicken.",
+    oneLiner:
+      "A ten-table shop that sells out by 1 PM. Coconut curry, crispy noodles, fall-off-bone chicken.",
     whyItMatters:
       "There are flashier khao soi places. This isn't one. The broth is heavier, oranger, less sweet — closer to what northern grandmothers make. The auntie at the till has been there twenty years. She pretends not to speak English but always gets your order right.",
     category: "food",
@@ -230,7 +282,10 @@ export const demoExperiences: readonly Experience[] = [
     durationMinutes: { min: 25, max: 40 },
     howTo: [
       { order: 1, text: "Arrive before 12:30. They run out by 13:00 most days." },
-      { order: 2, text: "Order: khao soi gai (chicken). Say 'mai phet' if you want it less spicy." },
+      {
+        order: 2,
+        text: "Order: khao soi gai (chicken). Say 'mai phet' if you want it less spicy.",
+      },
       { order: 3, text: "Pickled mustard greens and shallots are on the table — add them." },
       { order: 4, text: "Squeeze the lime. The dish only fully assembles when you do." },
     ],
@@ -240,7 +295,14 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 9,
-      breakdown: { seatingFriendly: 9, soloPatronRatio: 7, staffPressure: 10, soloPortioning: 10, ambianceFit: 9, safety: 10 },
+      breakdown: {
+        seatingFriendly: 9,
+        soloPatronRatio: 7,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 9,
+        safety: 10,
+      },
       hint: "Single tables exist. Auntie won't push you to share.",
       basedOnCount: 31,
     },
@@ -252,7 +314,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 4,
       lastVerifiedAt: VERIFIED,
       reason: "Field-verified, consistent reports across sources",
-      signals: { aiScrapeAgeDays: 6, passiveGpsHits30d: 412, activeReports30d: 22, trustedVerifications: 3 },
+      signals: {
+        aiScrapeAgeDays: 6,
+        passiveGpsHits30d: 412,
+        activeReports30d: 22,
+        trustedVerifications: 3,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 124, averageRating: 4.7 },
@@ -276,18 +343,34 @@ export const demoExperiences: readonly Experience[] = [
     bestTimes: [{ startHour: 10, endHour: 16 }],
     durationMinutes: { min: 20, max: 45 },
     howTo: [
-      { order: 1, text: "Enter Warorot from the river-side. The sausage stalls cluster on the right." },
+      {
+        order: 1,
+        text: "Enter Warorot from the river-side. The sausage stalls cluster on the right.",
+      },
       { order: 2, text: "Look for the one with the most queue and most smoke." },
       { order: 3, text: "Order 100g of sai oua + a bag of sticky rice (~80 THB total)." },
       { order: 4, text: "Walk along the river to eat. There's a bench by the flower vendors." },
     ],
     realInconveniences: [
-      { category: "scam", text: "Some stalls inflate prices for tourists. Look for posted price tags." },
-      { category: "etiquette", text: "Don't haggle hard at food stalls — it's not the textile section." },
+      {
+        category: "scam",
+        text: "Some stalls inflate prices for tourists. Look for posted price tags.",
+      },
+      {
+        category: "etiquette",
+        text: "Don't haggle hard at food stalls — it's not the textile section.",
+      },
     ],
     soloScore: {
       overall: 8,
-      breakdown: { seatingFriendly: 6, soloPatronRatio: 8, staffPressure: 9, soloPortioning: 10, ambianceFit: 9, safety: 9 },
+      breakdown: {
+        seatingFriendly: 6,
+        soloPatronRatio: 8,
+        staffPressure: 9,
+        soloPortioning: 10,
+        ambianceFit: 9,
+        safety: 9,
+      },
       hint: "Eat standing or walking — there's no formal seating, and that's fine.",
       basedOnCount: 12,
     },
@@ -296,7 +379,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "Established market, recent passive GPS confirms operation",
-      signals: { aiScrapeAgeDays: 14, passiveGpsHits30d: 580, activeReports30d: 9, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 14,
+        passiveGpsHits30d: 580,
+        activeReports30d: 9,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 41, averageRating: 4.4 },
@@ -307,7 +395,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_ristr8to_pour"),
     title: "Watch a champion-grade pour-over at the bar",
-    oneLiner: "A pour-over coffee at one of Asia's best specialty roasters. Sit at the bar and watch.",
+    oneLiner:
+      "A pour-over coffee at one of Asia's best specialty roasters. Sit at the bar and watch.",
     whyItMatters:
       "The barista has competed internationally. They'll talk you through the bean if you ask, or leave you alone if you don't. The pour itself is theatre — slow, deliberate, silent. The cup arrives with a tasting note card that's actually accurate.",
     category: "coffee",
@@ -326,12 +415,22 @@ export const demoExperiences: readonly Experience[] = [
       { order: 4, text: "If you like it, the beans are sold by the bag at the till." },
     ],
     realInconveniences: [
-      { category: "crowds", text: "Saturdays are loud. Weekdays only for the contemplative version." },
+      {
+        category: "crowds",
+        text: "Saturdays are loud. Weekdays only for the contemplative version.",
+      },
       { category: "logistics", text: "Pour-over takes 8–12 minutes. Don't be in a hurry." },
     ],
     soloScore: {
       overall: 10,
-      breakdown: { seatingFriendly: 10, soloPatronRatio: 9, staffPressure: 9, soloPortioning: 10, ambianceFit: 10, safety: 10 },
+      breakdown: {
+        seatingFriendly: 10,
+        soloPatronRatio: 9,
+        staffPressure: 9,
+        soloPortioning: 10,
+        ambianceFit: 10,
+        safety: 10,
+      },
       hint: "Bar seating designed for one. Bring a book; nobody will rush you.",
       basedOnCount: 38,
     },
@@ -343,7 +442,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 4,
       lastVerifiedAt: VERIFIED,
       reason: "Established cafe, frequent verified reports",
-      signals: { aiScrapeAgeDays: 4, passiveGpsHits30d: 290, activeReports30d: 18, trustedVerifications: 2 },
+      signals: {
+        aiScrapeAgeDays: 4,
+        passiveGpsHits30d: 290,
+        activeReports30d: 18,
+        trustedVerifications: 2,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 96, averageRating: 4.8 },
@@ -359,7 +463,7 @@ export const demoExperiences: readonly Experience[] = [
       "Most Nimman cafes are loud and Instagram-built. This one isn't — it hides on a side soi behind a wooden gate. The courtyard catches a breeze, the fig tree casts dappled light onto your laptop, and the staff disappear once you have your drink. You can sit for three hours and nobody will check on you.",
     category: "coffee",
     location: {
-      coordinates: [98.9690, 18.7919],
+      coordinates: [98.969, 18.7919],
       cityCode: "cmi",
       addressHint: "Nimman Soi 5, behind wooden gate",
       placeNameRomanized: "Graph Garden",
@@ -376,7 +480,14 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 9,
-      breakdown: { seatingFriendly: 10, soloPatronRatio: 9, staffPressure: 10, soloPortioning: 10, ambianceFit: 9, safety: 10 },
+      breakdown: {
+        seatingFriendly: 10,
+        soloPatronRatio: 9,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 9,
+        safety: 10,
+      },
       basedOnCount: 17,
     },
     sources: [{ type: "user", attribution: "@nomadlist_cmi", verifiedAt: VERIFIED }],
@@ -384,7 +495,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "Active reports, GPS-confirmed location",
-      signals: { aiScrapeAgeDays: 9, passiveGpsHits30d: 88, activeReports30d: 6, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 9,
+        passiveGpsHits30d: 88,
+        activeReports30d: 6,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 29, averageRating: 4.5 },
@@ -415,11 +531,21 @@ export const demoExperiences: readonly Experience[] = [
       { order: 5, text: "Free coffee + filtered water. Refill, don't bring outside drinks." },
     ],
     realInconveniences: [
-      { category: "logistics", text: "Closes at 18:00 sharp. Not a place to grind through midnight." },
+      {
+        category: "logistics",
+        text: "Closes at 18:00 sharp. Not a place to grind through midnight.",
+      },
     ],
     soloScore: {
       overall: 10,
-      breakdown: { seatingFriendly: 10, soloPatronRatio: 10, staffPressure: 10, soloPortioning: 10, ambianceFit: 10, safety: 10 },
+      breakdown: {
+        seatingFriendly: 10,
+        soloPatronRatio: 10,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 10,
+        safety: 10,
+      },
       hint: "This is the focus place. If you want chatty, go elsewhere.",
       basedOnCount: 52,
     },
@@ -431,7 +557,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 4,
       lastVerifiedAt: VERIFIED,
       reason: "Long-running, verified by multiple regulars",
-      signals: { aiScrapeAgeDays: 3, passiveGpsHits30d: 1100, activeReports30d: 28, trustedVerifications: 4 },
+      signals: {
+        aiScrapeAgeDays: 3,
+        passiveGpsHits30d: 1100,
+        activeReports30d: 28,
+        trustedVerifications: 4,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 210, averageRating: 4.6 },
@@ -442,7 +573,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_mana_writing"),
     title: "Write for two hours at the upstairs window seat",
-    oneLiner: "A vegan cafe with a window-bar overlooking a quiet soi. Nobody comes here to be loud.",
+    oneLiner:
+      "A vegan cafe with a window-bar overlooking a quiet soi. Nobody comes here to be loud.",
     whyItMatters:
       "Wood floors, slow ceiling fans, and the clatter of someone making fresh pasta downstairs. The upstairs window-bar seats one or two, looking down at a soi where motorbikes pass too rarely to break your thought. It's the closest thing in Nimman to a library that serves coffee.",
     category: "work",
@@ -464,7 +596,14 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 9,
-      breakdown: { seatingFriendly: 10, soloPatronRatio: 9, staffPressure: 10, soloPortioning: 10, ambianceFit: 9, safety: 10 },
+      breakdown: {
+        seatingFriendly: 10,
+        soloPatronRatio: 9,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 9,
+        safety: 10,
+      },
       basedOnCount: 23,
     },
     sources: [{ type: "user", attribution: "@writeranywhere", verifiedAt: VERIFIED }],
@@ -472,7 +611,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "User reports, recent GPS hits",
-      signals: { aiScrapeAgeDays: 7, passiveGpsHits30d: 145, activeReports30d: 8, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 7,
+        passiveGpsHits30d: 145,
+        activeReports30d: 8,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 38, averageRating: 4.5 },
@@ -498,23 +642,44 @@ export const demoExperiences: readonly Experience[] = [
     howTo: [
       { order: 1, text: "Walk in or book by phone same-day. They have multiple branches." },
       { order: 2, text: "Order: 1-hour Thai or 1-hour foot. Both are under 300 THB." },
-      { order: 3, text: "Tell the therapist your pressure preference up front (light/medium/strong)." },
-      { order: 4, text: "Tip 50–100 THB if it was good. Drop it in the shared jar — that's how it works." },
+      {
+        order: 3,
+        text: "Tell the therapist your pressure preference up front (light/medium/strong).",
+      },
+      {
+        order: 4,
+        text: "Tip 50–100 THB if it was good. Drop it in the shared jar — that's how it works.",
+      },
     ],
     realInconveniences: [
       { category: "etiquette", text: "Wear loose clothing. They'll give you pajamas if needed." },
     ],
     soloScore: {
       overall: 10,
-      breakdown: { seatingFriendly: 10, soloPatronRatio: 10, staffPressure: 10, soloPortioning: 10, ambianceFit: 10, safety: 10 },
+      breakdown: {
+        seatingFriendly: 10,
+        soloPatronRatio: 10,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 10,
+        safety: 10,
+      },
       basedOnCount: 47,
     },
-    sources: [{ type: "wikivoyage", verifiedAt: VERIFIED }, { type: "blog", attribution: "bbc travel", verifiedAt: VERIFIED }],
+    sources: [
+      { type: "wikivoyage", verifiedAt: VERIFIED },
+      { type: "blog", attribution: "bbc travel", verifiedAt: VERIFIED },
+    ],
     confidence: {
       level: 4,
       lastVerifiedAt: VERIFIED,
       reason: "Long-established, multiple branches verified",
-      signals: { aiScrapeAgeDays: 5, passiveGpsHits30d: 380, activeReports30d: 16, trustedVerifications: 2 },
+      signals: {
+        aiScrapeAgeDays: 5,
+        passiveGpsHits30d: 380,
+        activeReports30d: 16,
+        trustedVerifications: 2,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 156, averageRating: 4.7 },
@@ -525,7 +690,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_meditation_doi"),
     title: "Sit a half-day silent retreat at the forest monastery",
-    oneLiner: "Half-day intro at a Theravada forest monastery. Free. English-led. Don't expect comfort.",
+    oneLiner:
+      "Half-day intro at a Theravada forest monastery. Free. English-led. Don't expect comfort.",
     whyItMatters:
       "Not a wellness experience. A serious one. A monk teaches walking and sitting meditation in English, you eat one meal in silence with the community, and you leave at 4 PM having done nothing — which is the point. There is no fee, no donation pressure, no booking system that fails. You just show up.",
     category: "wellness",
@@ -551,16 +717,31 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 10,
-      breakdown: { seatingFriendly: 10, soloPatronRatio: 10, staffPressure: 10, soloPortioning: 10, ambianceFit: 10, safety: 10 },
+      breakdown: {
+        seatingFriendly: 10,
+        soloPatronRatio: 10,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 10,
+        safety: 10,
+      },
       hint: "Coming alone is normal here — 80% of attendees do.",
       basedOnCount: 18,
     },
-    sources: [{ type: "wikivoyage", verifiedAt: VERIFIED }, { type: "user", attribution: "@quietmind", verifiedAt: VERIFIED }],
+    sources: [
+      { type: "wikivoyage", verifiedAt: VERIFIED },
+      { type: "user", attribution: "@quietmind", verifiedAt: VERIFIED },
+    ],
     confidence: {
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "Confirmed by recent attendees",
-      signals: { aiScrapeAgeDays: 11, passiveGpsHits30d: 64, activeReports30d: 4, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 11,
+        passiveGpsHits30d: 64,
+        activeReports30d: 4,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 22, averageRating: 4.6 },
@@ -571,7 +752,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_north_gate_jazz"),
     title: "Stand in a doorway and listen to live jazz spill onto the street",
-    oneLiner: "Tuesday-night open jazz at North Gate. The bar inside is full; the sidewalk is the venue.",
+    oneLiner:
+      "Tuesday-night open jazz at North Gate. The bar inside is full; the sidewalk is the venue.",
     whyItMatters:
       "The best seat isn't a seat — it's the sidewalk. The bar packs out, locals and travelers spill onto the street with bottles, and the music carries over the moat. You can stay an hour for the price of one beer. Tuesdays are the open jam night when the unexpected happens — a tabla player, a saxophonist passing through, the regulars who only show up for jam.",
     category: "nightlife",
@@ -590,21 +772,42 @@ export const demoExperiences: readonly Experience[] = [
       { order: 4, text: "Last set ends ~midnight. Walk-friendly back to old city." },
     ],
     realInconveniences: [
-      { category: "crowds", text: "Tuesdays are packed. Wednesdays/Thursdays are quieter and still good." },
-      { category: "etiquette", text: "Don't film the band continuously. A 10-second clip is fine." },
+      {
+        category: "crowds",
+        text: "Tuesdays are packed. Wednesdays/Thursdays are quieter and still good.",
+      },
+      {
+        category: "etiquette",
+        text: "Don't film the band continuously. A 10-second clip is fine.",
+      },
     ],
     soloScore: {
       overall: 9,
-      breakdown: { seatingFriendly: 7, soloPatronRatio: 9, staffPressure: 10, soloPortioning: 10, ambianceFit: 9, safety: 9 },
+      breakdown: {
+        seatingFriendly: 7,
+        soloPatronRatio: 9,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 9,
+        safety: 9,
+      },
       hint: "Solo is the norm. People nod and listen.",
       basedOnCount: 34,
     },
-    sources: [{ type: "blog", attribution: "chiangmai-citylife", verifiedAt: VERIFIED }, { type: "reddit", verifiedAt: VERIFIED }],
+    sources: [
+      { type: "blog", attribution: "chiangmai-citylife", verifiedAt: VERIFIED },
+      { type: "reddit", verifiedAt: VERIFIED },
+    ],
     confidence: {
       level: 4,
       lastVerifiedAt: VERIFIED,
       reason: "Iconic, weekly recurring, frequently reported",
-      signals: { aiScrapeAgeDays: 4, passiveGpsHits30d: 220, activeReports30d: 12, trustedVerifications: 2 },
+      signals: {
+        aiScrapeAgeDays: 4,
+        passiveGpsHits30d: 220,
+        activeReports30d: 12,
+        trustedVerifications: 2,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 78, averageRating: 4.6 },
@@ -615,7 +818,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_zoe_yard"),
     title: "Walk through a backpacker yard at midnight just to see it",
-    oneLiner: "Loud, sticky, unsubtle. Worth seeing once if you've never been on a backpacker trail.",
+    oneLiner:
+      "Loud, sticky, unsubtle. Worth seeing once if you've never been on a backpacker trail.",
     whyItMatters:
       "This is honest about itself: it is not for everyone. The yard is loud, the drinks are sweet, the music is loud-loud. But on a Saturday at 23:00 it is its own theatre — Erasmus students, reformed corporate refugees, fire dancers, the same five Bob Marley songs. Stand by the bar, drink one Chang, leave. You will know what 'backpacker Chiang Mai' means.",
     category: "nightlife",
@@ -635,11 +839,21 @@ export const demoExperiences: readonly Experience[] = [
     ],
     realInconveniences: [
       { category: "scam", text: "Watch your phone. Pickpockets work the dance floor periphery." },
-      { category: "safety", text: "Solo women: stay near the bar, leave by walking the main road." },
+      {
+        category: "safety",
+        text: "Solo women: stay near the bar, leave by walking the main road.",
+      },
     ],
     soloScore: {
       overall: 6,
-      breakdown: { seatingFriendly: 5, soloPatronRatio: 6, staffPressure: 8, soloPortioning: 7, ambianceFit: 5, safety: 6 },
+      breakdown: {
+        seatingFriendly: 5,
+        soloPatronRatio: 6,
+        staffPressure: 8,
+        soloPortioning: 7,
+        ambianceFit: 5,
+        safety: 6,
+      },
       hint: "Anthropology, not romance. Treat it that way.",
       basedOnCount: 19,
     },
@@ -648,7 +862,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "Long-running, reliably reported",
-      signals: { aiScrapeAgeDays: 9, passiveGpsHits30d: 410, activeReports30d: 7, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 9,
+        passiveGpsHits30d: 410,
+        activeReports30d: 7,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 53, averageRating: 3.6 },
@@ -659,7 +878,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_chedi_luang_dusk"),
     title: "Sit on the broken pagoda at dusk",
-    oneLiner: "A 600-year-old half-collapsed chedi, lit gold from below as the bats start to circle.",
+    oneLiner:
+      "A 600-year-old half-collapsed chedi, lit gold from below as the bats start to circle.",
     whyItMatters:
       "An earthquake in 1545 took half of it. They left it as it fell. At dusk, floodlights come up and the laterite glows orange while bats wheel out of the cracks for their nightly hunt. There are benches around the perimeter, mostly empty after 18:30. Bring nothing. Sit. Watch.",
     category: "culture",
@@ -683,15 +903,30 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 9,
-      breakdown: { seatingFriendly: 9, soloPatronRatio: 9, staffPressure: 10, soloPortioning: 10, ambianceFit: 10, safety: 9 },
+      breakdown: {
+        seatingFriendly: 9,
+        soloPatronRatio: 9,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 10,
+        safety: 9,
+      },
       basedOnCount: 27,
     },
-    sources: [{ type: "wikivoyage", verifiedAt: VERIFIED }, { type: "field_visit", attribution: "team field-week 1", verifiedAt: VERIFIED }],
+    sources: [
+      { type: "wikivoyage", verifiedAt: VERIFIED },
+      { type: "field_visit", attribution: "team field-week 1", verifiedAt: VERIFIED },
+    ],
     confidence: {
       level: 4,
       lastVerifiedAt: VERIFIED,
       reason: "Field-verified, central landmark",
-      signals: { aiScrapeAgeDays: 4, passiveGpsHits30d: 920, activeReports30d: 24, trustedVerifications: 3 },
+      signals: {
+        aiScrapeAgeDays: 4,
+        passiveGpsHits30d: 920,
+        activeReports30d: 24,
+        trustedVerifications: 3,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 134, averageRating: 4.6 },
@@ -721,11 +956,21 @@ export const demoExperiences: readonly Experience[] = [
       { order: 4, text: "Browse. Sit on the windowsill if you want to read first." },
     ],
     realInconveniences: [
-      { category: "logistics", text: "Cash only. No price tags — owner names a price when you bring a book." },
+      {
+        category: "logistics",
+        text: "Cash only. No price tags — owner names a price when you bring a book.",
+      },
     ],
     soloScore: {
       overall: 10,
-      breakdown: { seatingFriendly: 9, soloPatronRatio: 10, staffPressure: 10, soloPortioning: 10, ambianceFit: 10, safety: 10 },
+      breakdown: {
+        seatingFriendly: 9,
+        soloPatronRatio: 10,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 10,
+        safety: 10,
+      },
       basedOnCount: 8,
     },
     sources: [{ type: "user", attribution: "@bookmarkme", verifiedAt: VERIFIED }],
@@ -733,7 +978,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "User-verified, low traffic = harder to confirm freshness",
-      signals: { aiScrapeAgeDays: 19, passiveGpsHits30d: 24, activeReports30d: 2, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 19,
+        passiveGpsHits30d: 24,
+        activeReports30d: 2,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 11, averageRating: 4.8 },
@@ -744,7 +994,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_river_loop_run"),
     title: "Run the river loop at 6 AM with the locals",
-    oneLiner: "A 5km loop along the Ping River. Cool air, monks on alms walk, and the city waking up.",
+    oneLiner:
+      "A 5km loop along the Ping River. Cool air, monks on alms walk, and the city waking up.",
     whyItMatters:
       "By 7 AM the heat is already too much. At 6, the air is still cool, the river flat, and the path shared with Thai retirees doing slow laps and orange-robed monks walking in single file collecting alms. You'll nod at the same people every morning by day three. Nobody talks. It's better that way.",
     category: "nature",
@@ -768,7 +1019,14 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 9,
-      breakdown: { seatingFriendly: 10, soloPatronRatio: 10, staffPressure: 10, soloPortioning: 10, ambianceFit: 10, safety: 8 },
+      breakdown: {
+        seatingFriendly: 10,
+        soloPatronRatio: 10,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 10,
+        safety: 8,
+      },
       basedOnCount: 14,
     },
     sources: [{ type: "user", attribution: "@cmrunclub", verifiedAt: VERIFIED }],
@@ -776,7 +1034,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "Recurring user reports, GPS-verified path",
-      signals: { aiScrapeAgeDays: 13, passiveGpsHits30d: 195, activeReports30d: 5, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 13,
+        passiveGpsHits30d: 195,
+        activeReports30d: 5,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 26, averageRating: 4.4 },
@@ -806,21 +1069,39 @@ export const demoExperiences: readonly Experience[] = [
       { order: 4, text: "Take the chef's photo of the menu before leaving — for memory." },
     ],
     realInconveniences: [
-      { category: "logistics", text: "Reservations are sometimes lost. Confirm by phone the morning of." },
+      {
+        category: "logistics",
+        text: "Reservations are sometimes lost. Confirm by phone the morning of.",
+      },
       { category: "logistics", text: "Cash only. ATM is 400m walk on Wualai." },
     ],
     soloScore: {
       overall: 8,
-      breakdown: { seatingFriendly: 8, soloPatronRatio: 7, staffPressure: 8, soloPortioning: 9, ambianceFit: 8, safety: 10 },
+      breakdown: {
+        seatingFriendly: 8,
+        soloPatronRatio: 7,
+        staffPressure: 8,
+        soloPortioning: 9,
+        ambianceFit: 8,
+        safety: 10,
+      },
       hint: "Tell the chef it's solo when reserving — they'll seat you on the balcony.",
       basedOnCount: 9,
     },
-    sources: [{ type: "blog", attribution: "michelin guide", verifiedAt: VERIFIED }, { type: "user", attribution: "@taste_chiangmai", verifiedAt: VERIFIED }],
+    sources: [
+      { type: "blog", attribution: "michelin guide", verifiedAt: VERIFIED },
+      { type: "user", attribution: "@taste_chiangmai", verifiedAt: VERIFIED },
+    ],
     confidence: {
       level: 3,
       lastVerifiedAt: VERIFIED,
       reason: "Recently verified, established kitchen",
-      signals: { aiScrapeAgeDays: 6, passiveGpsHits30d: 72, activeReports30d: 3, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 6,
+        passiveGpsHits30d: 72,
+        activeReports30d: 3,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 14, averageRating: 4.9 },
@@ -843,7 +1124,10 @@ export const demoExperiences: readonly Experience[] = [
     bestTimes: [{ startHour: 17, endHour: 19 }],
     durationMinutes: { min: 45, max: 90 },
     howTo: [
-      { order: 1, text: "Find the noodle stall #34 on Ratchadamnoen. Look up — the building is above it." },
+      {
+        order: 1,
+        text: "Find the noodle stall #34 on Ratchadamnoen. Look up — the building is above it.",
+      },
       { order: 2, text: "Door beside the stall is unmarked but unlocked 17–22h." },
       { order: 3, text: "Walk up 5 flights. There's no lift." },
       { order: 4, text: "Pay 100 THB into the jar by the fridge. Take a beer. Sit." },
@@ -854,7 +1138,14 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 9,
-      breakdown: { seatingFriendly: 10, soloPatronRatio: 10, staffPressure: 10, soloPortioning: 10, ambianceFit: 9, safety: 8 },
+      breakdown: {
+        seatingFriendly: 10,
+        soloPatronRatio: 10,
+        staffPressure: 10,
+        soloPortioning: 10,
+        ambianceFit: 9,
+        safety: 8,
+      },
       basedOnCount: 4,
     },
     sources: [{ type: "user", attribution: "@cmi_anon", verifiedAt: VERIFIED }],
@@ -862,7 +1153,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 2,
       lastVerifiedAt: VERIFIED,
       reason: "Single trusted source. Verify before publishing widely.",
-      signals: { aiScrapeAgeDays: 25, passiveGpsHits30d: 8, activeReports30d: 1, trustedVerifications: 1 },
+      signals: {
+        aiScrapeAgeDays: 25,
+        passiveGpsHits30d: 8,
+        activeReports30d: 1,
+        trustedVerifications: 1,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 4, averageRating: 4.7 },
@@ -873,7 +1169,8 @@ export const demoExperiences: readonly Experience[] = [
   {
     id: id("exp_cmi_warorot_morning_market"),
     title: "Eat khao tom with the auntie who's been there since 1986",
-    oneLiner: "Pre-dawn rice porridge at a stall older than most travelers. Fish, ginger, fried garlic.",
+    oneLiner:
+      "Pre-dawn rice porridge at a stall older than most travelers. Fish, ginger, fried garlic.",
     whyItMatters:
       "The market wakes up at 4 AM for vendor traffic. By 6 AM, fishmongers and flower sellers are eating breakfast in the alleys behind. One stall has done khao tom — Thai rice porridge — since 1986. The auntie remembers regulars. The pork-and-ginger version is 35 baht and will recalibrate your idea of what a $1 breakfast can be.",
     category: "hidden",
@@ -888,7 +1185,10 @@ export const demoExperiences: readonly Experience[] = [
       { order: 1, text: "Get there before 7. They wind down by 8." },
       { order: 2, text: "Look for the only stall with red plastic stools and an old wok." },
       { order: 3, text: "Order khao tom moo (pork). Add the chili-vinegar from the table." },
-      { order: 4, text: "Cash only. 35 THB. No menu, no English — point at what someone else has." },
+      {
+        order: 4,
+        text: "Cash only. 35 THB. No menu, no English — point at what someone else has.",
+      },
     ],
     realInconveniences: [
       { category: "logistics", text: "Closes when out. No phone, no socials, nothing to check." },
@@ -896,7 +1196,14 @@ export const demoExperiences: readonly Experience[] = [
     ],
     soloScore: {
       overall: 8,
-      breakdown: { seatingFriendly: 8, soloPatronRatio: 8, staffPressure: 9, soloPortioning: 10, ambianceFit: 8, safety: 9 },
+      breakdown: {
+        seatingFriendly: 8,
+        soloPatronRatio: 8,
+        staffPressure: 9,
+        soloPortioning: 10,
+        ambianceFit: 8,
+        safety: 9,
+      },
       basedOnCount: 5,
     },
     sources: [{ type: "user", attribution: "@cmi_streetfoodmap", verifiedAt: VERIFIED }],
@@ -904,7 +1211,12 @@ export const demoExperiences: readonly Experience[] = [
       level: 2,
       lastVerifiedAt: VERIFIED,
       reason: "Single recent user report. Hard to verify a 4 AM stall remotely.",
-      signals: { aiScrapeAgeDays: 30, passiveGpsHits30d: 18, activeReports30d: 1, trustedVerifications: 0 },
+      signals: {
+        aiScrapeAgeDays: 30,
+        passiveGpsHits30d: 18,
+        activeReports30d: 1,
+        trustedVerifications: 0,
+      },
     },
     nearbyExperienceIds: [],
     stats: { completionCount: 5, averageRating: 4.6 },
