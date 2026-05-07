@@ -22,6 +22,13 @@
       "when": 1746662400000,
       "tag": "0002_sources_dropped_candidates",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1746748800000,
+      "tag": "0003_compilation_jobs_editor_queue",
+      "breakpoints": true
     }
   ]
 }
