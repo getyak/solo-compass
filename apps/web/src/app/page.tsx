@@ -1,23 +1,36 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState, useEffect } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MapView } from "@/components/MapView";
 import { ExperienceSheet } from "@/components/ExperienceSheet";
 import { InfoBar } from "@/components/InfoBar";
 import { VoiceIntent } from "@/components/VoiceIntent";
 import { DesktopLayout } from "@/components/DesktopLayout";
+import { MobileLayout } from "@/components/MobileLayout";
 import { useNearby } from "@/lib/use-nearby";
 import { track } from "@/lib/analytics";
 import type { FilterValue } from "@/components/FilterBar";
 
 const CHIANG_MAI: [number, number] = [98.9853, 18.7883];
 
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
 function HomeInner() {
+  const isMobile = useIsMobile();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Restore state from URL on mount
   const initialFilter = (searchParams.get("filter") ?? "all") as FilterValue;
   const initialSel = searchParams.get("sel");
 
@@ -25,16 +38,6 @@ function HomeInner() {
   const [intent, setIntent] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialSel);
   const [filter, setFilter] = useState<FilterValue>(initialFilter);
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  // Detect desktop breakpoint (>1024px)
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    setIsDesktop(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   const { data, isLoading } = useNearby({ center, intent: intent ?? undefined });
   const results = data?.results ?? [];
@@ -44,7 +47,6 @@ function HomeInner() {
     [results, selectedId],
   );
 
-  // Sync state → URL (replaceState so browser history captures each distinct change)
   const pushUrl = useCallback(
     (nextFilter: FilterValue, nextSel: string | null) => {
       const params = new URLSearchParams();
@@ -107,51 +109,28 @@ function HomeInner() {
     if (initialSel && results.length > 0 && selectedId === initialSel) return;
   }, [results, initialSel, selectedId]);
 
-  if (isDesktop) {
-    return (
-      <>
-        <DesktopLayout
-          results={results}
-          isLoading={isLoading}
-          selectedId={selectedId}
-          filter={filter}
-          onSelect={handleSelect}
-          onCenterChange={setCenter}
-          onFilterChange={handleFilterChange}
-        />
-        {/* ExperienceSheet for desktop — shown as a floating panel via the sheet's own positioning */}
-        <ExperienceSheet
-          key={selectedId ?? "none"}
-          result={selectedResult}
-          onOpenChange={(open) => !open && handleSelect(null)}
-          onCheckin={handleCheckin}
-        />
-      </>
-    );
+  if (isMobile) {
+    return <MobileLayout />;
   }
 
-  // Mobile layout (unchanged)
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-paper-cream">
-      <MapView
+    <>
+      <DesktopLayout
         results={results}
-        onSelect={handleSelect}
+        isLoading={isLoading}
         selectedId={selectedId}
+        filter={filter}
+        onSelect={handleSelect}
         onCenterChange={setCenter}
+        onFilterChange={handleFilterChange}
       />
-      <VoiceIntent intent={intent} onIntentChange={handleIntentChange} />
       <ExperienceSheet
         key={selectedId ?? "none"}
         result={selectedResult}
         onOpenChange={(open) => !open && handleSelect(null)}
         onCheckin={handleCheckin}
       />
-      <InfoBar
-        cityName={data?.degraded ? "Paused (AI)" : center ? "Here" : "Loading…"}
-        count={results.length}
-        loading={isLoading && results.length === 0}
-      />
-    </main>
+    </>
   );
 }
 
