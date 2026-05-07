@@ -12,6 +12,7 @@
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
+    "@vercel/og": "^0.6.8",
     "@sentry/nextjs": "^8.45.0",
     "@solo-compass/ai": "workspace:*",
     "@solo-compass/core": "workspace:*",

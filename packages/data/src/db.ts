@@ -38,6 +38,7 @@ export interface UserRow {
   id: string;
   handle: string;
   created_at: string;
+  public_profile: boolean;
 }
 
 export interface CompletionRow {

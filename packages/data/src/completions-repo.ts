@@ -7,7 +7,22 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./db";
+import type { Database, CompletionRow, UserRow } from "./db";
+
+export interface UserProfile {
+  readonly id: string;
+  readonly handle: string;
+  readonly publicProfile: boolean;
+  readonly createdAt: string;
+}
+
+export interface CompletionWithExperienceId {
+  readonly id: string;
+  readonly experienceId: string;
+  readonly completedAt: string;
+  readonly rating: number | null;
+  readonly note: string | null;
+}
 
 export interface RecordCheckinParams {
   /** Opaque cookie ID — never a real identity. */
@@ -59,5 +74,54 @@ export class CompletionsRepo {
     if (insErr) throw new Error(`completion upsert failed: ${insErr.message}`);
 
     return { created: (count ?? 0) > 0 };
+  }
+
+  /** Look up a user by their display handle. Returns null if not found. */
+  async getProfile(handle: string): Promise<UserProfile | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.client as any)
+      .from("users")
+      .select("id, handle, public_profile, created_at")
+      .eq("handle", handle)
+      .maybeSingle();
+    if (error) throw new Error(`getProfile failed: ${error.message}`);
+    if (!data) return null;
+    const row = data as UserRow;
+    return {
+      id: row.id,
+      handle: row.handle,
+      publicProfile: row.public_profile,
+      createdAt: row.created_at,
+    };
+  }
+
+  /** Fetch all completions for a user, optionally filtered to a city (by experience id prefix). */
+  async findByHandle(handle: string, cityCode?: string): Promise<CompletionWithExperienceId[]> {
+    const profile = await this.getProfile(handle);
+    if (!profile) return [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query = (this.client as any)
+      .from("completions")
+      .select("id, experience_id, completed_at, rating, note")
+      .eq("user_id", profile.id)
+      .order("completed_at", { ascending: true });
+
+    if (cityCode) {
+      // Experience IDs follow the pattern exp_<cityCode>_<slug>
+      query = query.like("experience_id", `exp_${cityCode}_%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`findByHandle failed: ${error.message}`);
+    if (!data) return [];
+
+    return (data as CompletionRow[]).map((row) => ({
+      id: row.id,
+      experienceId: row.experience_id,
+      completedAt: row.completed_at,
+      rating: row.rating,
+      note: row.note,
+    }));
   }
 }
