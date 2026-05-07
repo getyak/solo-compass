@@ -14,3 +14,4 @@ Stories: 45
 [2026-05-07T10:23:03Z] Story #US-006: Define user_signals and audit_log tables — PASSED
 [2026-05-07T10:26:50Z] Story #US-007: Extend pnpm parity:check to validate DB schema vs core types — PASSED
 [2026-05-07T10:28:12Z] Story #US-008: Define SourceAdapter contract in packages/sources/core — PASSED
+[2026-05-07T10:32:02Z] Story #US-009: Implement Wikivoyage source adapter — PASSED

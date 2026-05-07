@@ -1,0 +1,22 @@
+{
+  "name": "@solo-compass/sources-osm",
+  "version": "0.0.1",
+  "private": true,
+  "description": "OpenStreetMap/Overpass source adapter — fetches POI metadata by bounding box",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@solo-compass/sources-core": "workspace:*",
+    "node-cache": "^5.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.2",
+    "vitest": "^2.0.0"
+  }
+}

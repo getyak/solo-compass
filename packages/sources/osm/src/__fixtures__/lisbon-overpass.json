@@ -1,0 +1,147 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62",
+  "elements": [
+    {
+      "type": "node",
+      "id": 271027440,
+      "lat": 38.7108,
+      "lon": -9.1369,
+      "tags": {
+        "amenity": "cafe",
+        "name": "A Brasileira",
+        "description": "Historic Art Nouveau café opened in 1905, famous for its Fernando Pessoa statue.",
+        "opening_hours": "Mo-Su 08:00-24:00",
+        "website": "https://www.abrasileiradobairrochado.pt",
+        "addr:street": "Rua Garrett",
+        "addr:housenumber": "120",
+        "addr:city": "Lisboa"
+      }
+    },
+    {
+      "type": "node",
+      "id": 304728591,
+      "lat": 38.6972,
+      "lon": -9.2067,
+      "tags": {
+        "tourism": "attraction",
+        "name": "Jerónimos Monastery",
+        "description": "UNESCO World Heritage Manueline monastery built in the 16th century.",
+        "opening_hours": "Tu-Su 10:00-18:30",
+        "website": "https://www.patrimoniocultural.gov.pt/jeronimos"
+      }
+    },
+    {
+      "type": "node",
+      "id": 502834712,
+      "lat": 38.7139,
+      "lon": -9.1334,
+      "tags": {
+        "tourism": "attraction",
+        "name": "São Jorge Castle",
+        "description": "Moorish castle with panoramic views over Lisbon.",
+        "opening_hours": "Mo-Su 09:00-21:00"
+      }
+    },
+    {
+      "type": "way",
+      "id": 123456789,
+      "center": {
+        "lat": 38.7057,
+        "lon": -9.1359
+      },
+      "tags": {
+        "tourism": "museum",
+        "name": "National Museum of Ancient Art",
+        "description": "Portugal's main art museum housing works from the 12th to 19th centuries.",
+        "opening_hours": "Tu-Su 10:00-18:00",
+        "website": "https://www.museudearteantiga.pt"
+      }
+    },
+    {
+      "type": "node",
+      "id": 609234871,
+      "lat": 38.7223,
+      "lon": -9.1393,
+      "tags": {
+        "amenity": "library",
+        "name": "Biblioteca Nacional de Portugal",
+        "opening_hours": "Mo-Fr 09:30-19:00",
+        "website": "https://www.bnportugal.gov.pt"
+      }
+    },
+    {
+      "type": "node",
+      "id": 720384561,
+      "lat": 38.7165,
+      "lon": -9.1425,
+      "tags": {
+        "amenity": "place_of_worship",
+        "name": "Sé de Lisboa",
+        "description": "Lisbon Cathedral, the oldest church in the city, founded in 1147.",
+        "religion": "christian",
+        "denomination": "catholic"
+      }
+    },
+    {
+      "type": "node",
+      "id": 831024576,
+      "lat": 38.6970,
+      "lon": -9.2091,
+      "tags": {
+        "tourism": "viewpoint",
+        "name": "Padrão dos Descobrimentos Viewpoint",
+        "description": "Monument to the Age of Discovery with viewpoint over the Tagus river."
+      }
+    },
+    {
+      "type": "node",
+      "id": 912837465,
+      "lat": 38.7080,
+      "lon": -9.1350,
+      "tags": {
+        "amenity": "bar",
+        "name": "Park Bar",
+        "description": "Rooftop bar with views over Bairro Alto and the river.",
+        "opening_hours": "Tu-Su 13:00-02:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1023847561,
+      "lat": 38.7095,
+      "lon": -9.1382,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Taberna da Rua das Flores",
+        "description": "Traditional Portuguese petiscos and wines in a cosy setting.",
+        "opening_hours": "Mo-Sa 12:00-23:00",
+        "addr:street": "Rua das Flores",
+        "addr:housenumber": "103",
+        "addr:city": "Lisboa"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1134957621,
+      "lat": 38.6975,
+      "lon": -9.2085,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Pastéis de Belém",
+        "description": "Home of the original pastel de nata since 1837.",
+        "opening_hours": "Mo-Su 08:00-23:00",
+        "website": "https://pasteisdebelem.pt"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9999999999,
+      "lat": 38.7100,
+      "lon": -9.1400,
+      "tags": {
+        "amenity": "cafe"
+      }
+    }
+  ]
+}
