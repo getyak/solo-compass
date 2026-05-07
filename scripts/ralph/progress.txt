@@ -7,3 +7,4 @@ Stories: 45
 ---
 [2026-05-07T10:17:28Z] Story #US-001: Bootstrap packages/db with Drizzle + Postgres — PASSED
 [2026-05-07T10:18:49Z] Story #US-002: Define experiences table schema with PostGIS — PASSED
+[2026-05-07T10:19:42Z] Story #US-003: Define experience_revisions table for audit history — PASSED
