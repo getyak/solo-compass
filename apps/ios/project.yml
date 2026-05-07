@@ -39,6 +39,7 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         CFBundleIconName: AppIcon
+        ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: "Solo Compass uses your location to show experiences near you on the map."
         NSSpeechRecognitionUsageDescription: "Solo Compass uses speech recognition so you can describe what you're looking for by voice."
         NSMicrophoneUsageDescription: "Solo Compass uses the microphone for voice search."
