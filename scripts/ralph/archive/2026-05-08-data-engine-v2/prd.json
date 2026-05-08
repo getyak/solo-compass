@@ -1,0 +1,784 @@
+{
+  "project": "Solo Compass Data Engine v2",
+  "branchName": "ralph/data-engine-v2",
+  "description": "Three-leg data engine: AI compilation pipeline (Wikivoyage/OSM/Google Places) + editorial admin app + user signal aggregation. Replaces single-city seed with global geo-aware backend. See tasks/prd-data-engine-v2.md.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Bootstrap packages/db with Drizzle + Postgres",
+      "description": "As a developer, I need a new packages/db workspace with Drizzle ORM and a local Postgres dev setup.",
+      "acceptanceCriteria": [
+        "New package packages/db with package.json, tsconfig.json extending root",
+        "Drizzle ORM, drizzle-kit, postgres dependencies added",
+        "docker-compose.yml at repo root brings up postgres:16 + postgis/postgis:16-3.4",
+        "README.md in packages/db documents 'pnpm db:up' and 'pnpm db:migrate'",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Define experiences table schema with PostGIS",
+      "description": "As a developer, I need the core experiences table with a PostGIS geography column.",
+      "acceptanceCriteria": [
+        "Drizzle schema in packages/db/src/schema/experiences.ts",
+        "Columns: id (uuid pk), title, oneLiner, whyItMatters, category, location (geography POINT 4326), confidenceLevel int, status enum, createdAt, updatedAt, lastCompiledAt",
+        "Migration enables postgis extension and creates GIST index on location",
+        "pnpm db:migrate runs successfully against local docker postgres",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Define experience_revisions table for audit history",
+      "description": "As a developer, I need a revisions table so every Experience mutation creates an immutable history entry.",
+      "acceptanceCriteria": [
+        "Drizzle schema in packages/db/src/schema/revisions.ts",
+        "Columns: id, experienceId (fk), revisionNumber int, fullPayload jsonb, createdBy text, createdAt",
+        "Index on (experienceId, revisionNumber)",
+        "Migration runs cleanly",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Define sources and dropped_candidates tables",
+      "description": "As a developer, I need tables to store source attribution and rejected candidates.",
+      "acceptanceCriteria": [
+        "sources table: id, experienceId fk, sourceType enum (wikivoyage|osm|google_places), sourceUrl, weight int, evidence jsonb, verifiedAt",
+        "dropped_candidates table: id, evidence jsonb, reason text, droppedAt",
+        "Migration runs cleanly",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Define compilation_jobs and editor_queue tables",
+      "description": "As a developer, I need tables to coordinate async compilation jobs and editor review.",
+      "acceptanceCriteria": [
+        "compilation_jobs table: id, query jsonb, status enum (queued|running|completed|failed), startedAt, completedAt, error",
+        "editor_queue table: id, experienceId fk, priority int, claimedBy text nullable, claimedAt timestamp nullable",
+        "Migration runs cleanly",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Define user_signals and audit_log tables",
+      "description": "As a developer, I need tables for anonymous user signals and global audit log.",
+      "acceptanceCriteria": [
+        "user_signals table: id, experienceId fk, anonymousDeviceId text, signalType enum (gps_dwell|micro_survey|user_report), payload jsonb, createdAt",
+        "audit_log table: id, actor text, action text, targetType text, targetId text, payload jsonb, at timestamp",
+        "Index on user_signals(experienceId, signalType)",
+        "Migration runs cleanly",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Extend pnpm parity:check to validate DB schema vs core types",
+      "description": "As CI, I need to fail when Drizzle schema drifts from packages/core/src/experience.ts.",
+      "acceptanceCriteria": [
+        "scripts/check-swift-parity.ts extended with checkDbParity() function",
+        "Compares Drizzle inferred types against Experience type from packages/core",
+        "Exits non-zero on mismatch with diff output",
+        "pnpm parity:check still works for existing TS<->Swift check",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Define SourceAdapter contract in packages/sources/core",
+      "description": "As the data engine, I need a uniform interface for all source adapters.",
+      "acceptanceCriteria": [
+        "New package packages/sources/core",
+        "Exports SourceAdapter interface: name string, weight number, fetch(query: SourceQuery): Promise<Candidate[]>, healthCheck(): Promise<boolean>",
+        "Exports Candidate, SourceQuery, BBox types",
+        "Registry function getActiveAdapters(config): SourceAdapter[]",
+        "Unit test for registry with mock adapters",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Implement Wikivoyage source adapter",
+      "description": "As the data engine, I need to extract POIs from Wikivoyage articles.",
+      "acceptanceCriteria": [
+        "New package packages/sources/wikivoyage",
+        "fetchCity(cityName: string): Promise<Candidate[]> parses See/Do/Eat/Drink sections",
+        "Stores attribution: source_url, license: 'CC-BY-SA-3.0'",
+        "Rate limit: max 10 req/min via internal queue",
+        "Cache responses 7 days using node-cache or similar",
+        "Unit test with fixture HTML for Lisbon",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Implement OpenStreetMap + Overpass source adapter",
+      "description": "As the data engine, I need POI metadata from OSM via Overpass API.",
+      "acceptanceCriteria": [
+        "New package packages/sources/osm",
+        "fetchPOIs(bbox, types): Promise<Candidate[]> queries Overpass with QL",
+        "Default types: amenity={cafe,restaurant,bar,place_of_worship,library,bookshop}, tourism={attraction,viewpoint,museum}",
+        "Rate limit: max 1 req/sec",
+        "Cache responses 24h",
+        "Unit test with recorded Overpass JSON fixture",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Implement Google Places API source adapter",
+      "description": "As the data engine, I need authoritative hours and ratings from Google Places.",
+      "acceptanceCriteria": [
+        "New package packages/sources/google-places",
+        "fetchNearby(lat, lon, radiusM): Promise<Candidate[]>",
+        "API key from GOOGLE_PLACES_API_KEY env var, redacted in logs",
+        "Per-request cost logged to console (Nearby $0.017, Details $0.017+)",
+        "Daily budget cap from env var GOOGLE_PLACES_DAILY_CAP_USD (default 50); refuse calls when exceeded",
+        "Cache nearby 6h, details 24h",
+        "Stores only place_id + derived signals, NOT raw Google fields (ToS compliance)",
+        "Unit test with mocked fetch",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Implement candidate deduplication",
+      "description": "As the data engine, I need to merge candidates from different sources that reference the same physical location.",
+      "acceptanceCriteria": [
+        "New module packages/ai/compilation/dedup.ts",
+        "dedup(candidates: Candidate[]): MergedCandidate[]",
+        "Match on (name fuzzy similarity >= 0.85 via fast-levenshtein) AND (coords within 50m)",
+        "Merged candidate combines evidence array, preserves all source URLs",
+        "Returns merge stats { input, output, mergedCount }",
+        "Unit test: same place from 3 sources merges to 1",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Implement evidence weight scoring",
+      "description": "As the data engine, I need to compute total evidence weight per merged candidate.",
+      "acceptanceCriteria": [
+        "New module packages/ai/compilation/scoring.ts",
+        "Configurable per-source weights (wikivoyage:3, osm:2, google_places:1) loaded from packages/db/sources_config",
+        "scoreCandidate(c: MergedCandidate): { totalWeight, sourcesCount, qualifies: boolean }",
+        "Threshold: totalWeight >= 5 AND sourcesCount >= 2",
+        "Below-threshold candidates passed to dropCandidate(c, reason) which inserts into dropped_candidates table",
+        "Unit test for scoring logic",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Author AI compilation prompt v1",
+      "description": "As the data engine, I need a versioned prompt template for compiling evidence into Experience JSON.",
+      "acceptanceCriteria": [
+        "New file packages/ai/prompts/compile-experience.v1.md",
+        "Defines: Solo Compass voice, output JSON schema, constraints (oneLiner <=100 chars, whyItMatters 80-150 words, realInconveniences >=2)",
+        "Prompt is exported as a constant from packages/ai/prompts/index.ts",
+        "Includes sample input + sample output",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Implement AI compilation service with Anthropic SDK",
+      "description": "As the data engine, I need to call Claude Opus 4.7 to compile evidence into a structured Experience.",
+      "acceptanceCriteria": [
+        "New module packages/ai/compilation/compile.ts",
+        "compile(candidate: MergedCandidate): Promise<Experience | RejectReason>",
+        "Uses @anthropic-ai/sdk with model claude-opus-4-7",
+        "API key from ANTHROPIC_API_KEY env",
+        "Prompt loaded from US-014 template",
+        "Output validated against Experience Zod schema from packages/core",
+        "Per-call cost logged",
+        "1 retry on JSON parse fail",
+        "Unit test with mocked Anthropic client",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Add voice and depth quality gates",
+      "description": "As the data engine, I need to reject AI outputs that violate Solo Compass voice or depth standards.",
+      "acceptanceCriteria": [
+        "New module packages/ai/compilation/gates.ts",
+        "voiceGate(experience): rejects if oneLiner matches /(amazing|best|must-see|incredible|breathtaking)/i",
+        "depthGate(experience): rejects if whyItMatters word count < 80",
+        "fieldsGate(experience): rejects if realInconveniences.length < 2 or required schema fields missing",
+        "Each gate returns { passed: boolean, reason?: string }",
+        "Unit tests for each gate with passing and failing inputs",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Implement compilation orchestrator (end-to-end pipeline)",
+      "description": "As the data engine, I need an orchestrator that chains: sources -> dedup -> scoring -> compile -> gates -> persist.",
+      "acceptanceCriteria": [
+        "New module packages/ai/compilation/orchestrator.ts",
+        "runCompilationJob(query: { lat, lon, radiusKm }): Promise<{ published: number, dropped: number, jobId: string }>",
+        "Inserts compilation_jobs row with status 'running' at start, 'completed' or 'failed' at end",
+        "On success: inserts experiences (status='awaiting_review', confidenceLevel=2), sources, editor_queue rows",
+        "On gate failure: inserts dropped_candidates row",
+        "Unit test with all sources mocked end-to-end",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Bootstrap apps/api with Hono",
+      "description": "As the backend, I need an API server scaffold connected to the database.",
+      "acceptanceCriteria": [
+        "New app apps/api using Hono framework",
+        "Health endpoint GET /health returns 200 with version + uptime",
+        "Connected to packages/db via Drizzle",
+        "OpenAPI spec scaffold at packages/api/openapi.yaml (just /health for now)",
+        "README with local dev instructions",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Implement GET /v1/experiences geo query endpoint",
+      "description": "As iOS, I need a geo-aware endpoint that returns nearby experiences and triggers backfill when coverage is thin.",
+      "acceptanceCriteria": [
+        "GET /v1/experiences?lat=&lon=&radiusKm=&minTier=2 returns experiences sorted by (confidenceLevel desc, distance asc)",
+        "Uses PostGIS ST_DWithin for geo filter",
+        "When result count < 5 OR oldest > 90d, async-call orchestrator.runCompilationJob (don't await)",
+        "Response shape: { data: Experience[], meta: { compilationStatus: 'idle'|'queued'|'running' } }",
+        "Cache header: public, max-age=60 when idle, 5 when queued/running",
+        "Updated openapi.yaml with this endpoint",
+        "Integration test with seeded DB",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Implement GET /v1/experiences bbox query and GET /v1/experiences/{id}",
+      "description": "As iOS, I need bbox queries for map pan and a single-experience endpoint with full evidence.",
+      "acceptanceCriteria": [
+        "GET /v1/experiences?bbox=minLon,minLat,maxLon,maxLat&minTier=2&limit=50 uses PostGIS ST_Intersects",
+        "GET /v1/experiences/{id} returns Experience with sources array embedded",
+        "Returns 404 with error body on unknown id",
+        "OpenAPI spec updated",
+        "Integration tests cover both endpoints",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Implement POST /v1/experiences/{id}/signals endpoint",
+      "description": "As the system, I need to accept user signals (gps_dwell, micro_survey, user_report) keyed by anonymous device id.",
+      "acceptanceCriteria": [
+        "POST /v1/experiences/{id}/signals accepts body { signalType, payload }",
+        "Requires X-Device-ID header (UUID format)",
+        "Inserts row into user_signals table",
+        "Sets experiences.pendingSignalAggregation = true",
+        "Per-device rate limit: 10 micro_survey/day, 5 user_report/day",
+        "Returns 201 on success, 429 when rate limited",
+        "OpenAPI spec updated",
+        "Integration test",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Bootstrap apps/admin Next.js scaffold with Supabase Auth",
+      "description": "As an editor, I need a web admin app with magic-link auth restricted to an allowlist.",
+      "acceptanceCriteria": [
+        "New app apps/admin using Next.js App Router",
+        "Supabase Auth with magic-link email login",
+        "Allowlist read from EDITOR_EMAILS env var (comma-separated)",
+        "Middleware redirects non-allowlisted users to /unauthorized",
+        "Empty pages: /queue, /queue/[id], /published, /dropped, /sources, /metrics",
+        "Tailwind dark mode default",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Implement /queue list view in admin app",
+      "description": "As an editor, I need to see all candidates awaiting review, prioritized.",
+      "acceptanceCriteria": [
+        "/queue shows experiences where status='awaiting_review'",
+        "Sorted by priority: population proximity DESC, evidence weight DESC, age DESC",
+        "Each row: title, city, source count, weight, age",
+        "Filter controls: city dropdown, source-type checkboxes, weight range",
+        "Each row links to /queue/[id]",
+        "Pagination 50 per page",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Implement claim mechanism on queue items",
+      "description": "As an editor, I want to claim a candidate so two editors don't review the same one.",
+      "acceptanceCriteria": [
+        "POST action on /queue/[id] sets editor_queue.claimedBy = currentUser.email and claimedAt = now",
+        "Claim auto-expires after 30 min",
+        "Queue list shows 'Claimed by X' badge for items claimed by others; their rows are dimmed",
+        "Server action 'releaseClaim' clears the claim",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Implement /queue/[id] three-pane review UI",
+      "description": "As an editor, I want to compare raw evidence vs AI output and edit before approving.",
+      "acceptanceCriteria": [
+        "Three columns: left = raw evidence (collapsible per source), center = AI-generated Experience read-only, right = editable form",
+        "Form covers all Experience fields with same Zod validation as backend",
+        "Voice violations highlighted: regex /(amazing|best|must-see|incredible|breathtaking)/i shown in red inline",
+        "Auto-save edit draft to localStorage every 5s",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Add map preview to /queue/[id] review",
+      "description": "As an editor, I want to see the candidate location on a map alongside nearby published experiences.",
+      "acceptanceCriteria": [
+        "Map embedded in /queue/[id] using maplibre-gl",
+        "Marker for candidate location (red)",
+        "Markers for published experiences within 1km (green)",
+        "Click marker shows mini info popup",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Implement approve / approve-with-edits / reject actions",
+      "description": "As an editor, I want to act on a candidate and advance to the next one.",
+      "acceptanceCriteria": [
+        "Approve as-is: sets status='published', confidenceLevel=3, deletes editor_queue row, inserts experience_revisions row",
+        "Approve with edits: same as above but stores diff in revision payload",
+        "Reject: requires reason text, sets status='rejected', inserts audit_log entry",
+        "After action, redirect to next claimed candidate or back to /queue",
+        "Keyboard shortcuts: A approve, E focus edit form, R focus reject reason",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Implement /metrics admin dashboard",
+      "description": "As an operator, I want to see editor throughput and pipeline health.",
+      "acceptanceCriteria": [
+        "/metrics shows: queue depth, throughput per editor (today/week), approval rate, edit rate, top reject reasons",
+        "Per-source health: success rate, latency p50/p95, error counts (last 24h)",
+        "Compilation success rate (passed all gates)",
+        "Auto-refresh every 30s",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Implement /published and /dropped audit views",
+      "description": "As an operator, I want to review past decisions and re-queue false rejects.",
+      "acceptanceCriteria": [
+        "/published lists recently approved with editor attribution, sortable by date/editor",
+        "/dropped lists rejected with reason, bulk-select + 'Re-queue' action",
+        "Audit log searchable: filter by editor, action type, date range",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Implement passive GPS dwell signal in iOS",
+      "description": "As iOS LocationService, I need to send a gps_dwell signal when a user spends >=15min in a region.",
+      "acceptanceCriteria": [
+        "Modify apps/ios/SoloCompass/Services/LocationService.swift: track entry timestamp per region",
+        "On didExitRegion, compute duration; if >= 900s, POST /v1/experiences/{id}/signals",
+        "Includes X-Device-ID header (UUID from Keychain)",
+        "Privacy: never sends coordinates, only experienceId + duration",
+        "Unit test for dwell duration logic",
+        "xcodebuild builds clean",
+        "XCTest passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Implement micro-survey UI on Mark-as-done in iOS",
+      "description": "As a user, after marking an experience done I'm asked 3 questions and the answers are sent to the backend.",
+      "acceptanceCriteria": [
+        "New view: apps/ios/SoloCompass/Views/Experience/MicroSurveySheet.swift",
+        "3 questions: comfort 1-5, staff_pressure 1-5 inverted, recommend yes/no/depends",
+        "Skip button allowed; if user skips 3 in a row, don't show for 30 days",
+        "Submit POSTs to /v1/experiences/{id}/signals with payload",
+        "Localized via NSLocalizedString",
+        "Hooked into existing ExperienceDetailViewModel.markAsDone flow",
+        "Snapshot test for each question state",
+        "xcodebuild builds clean",
+        "XCTest passes"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Implement aggregation worker for soloScore recompute",
+      "description": "As the system, I need a periodic worker that recomputes soloScore from user signals.",
+      "acceptanceCriteria": [
+        "New module packages/ai/aggregation/worker.ts with runAggregation(): Promise<{ updated: number }>",
+        "Selects experiences where pendingSignalAggregation = true",
+        "Pulls all user_signals where signal_type='micro_survey'",
+        "Computes new soloScore.breakdown from question medians",
+        "Computes new confidence.level: tier 4 if >=1 user signal, tier 5 if >=5 user signals",
+        "Inserts new experience_revisions row created_by='system'",
+        "Old AI-derived score preserved in revision history",
+        "Schedule via pg_cron hourly",
+        "Unit test with mocked DB",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Implement staleness detection cron job",
+      "description": "As the system, I need a nightly job that re-compiles experiences older than 90 days.",
+      "acceptanceCriteria": [
+        "New script packages/ai/aggregation/staleness.ts with detectStale(): Promise<{ recompiled: number }>",
+        "Selects experiences where lastCompiledAt < now() - interval '90 days'",
+        "For each: re-runs orchestrator with original lat/lon",
+        "Compares old vs new payload; if material changes (hours, status, name), pushes to editor_queue with REFRESH label (priority high)",
+        "Updates lastCompiledAt regardless",
+        "Scheduled via pg_cron nightly at 03:00 UTC",
+        "Unit test with mocked orchestrator",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Implement user-report flow in iOS detail view",
+      "description": "As a user, I want a 'Report issue' button on ExperienceDetailView with reason picker.",
+      "acceptanceCriteria": [
+        "Report button in ExperienceDetailView.swift overflow menu",
+        "Sheet with reasons (single-select): closed_permanently, moved, hours_wrong, vibe_different, factually_wrong, other",
+        "Optional free-text field max 200 chars",
+        "POSTs to /v1/experiences/{id}/signals with signal_type=user_report",
+        "Backend: when user_report count >= 3 within 30d, push experience to editor_queue with REPORT label",
+        "Localized",
+        "Snapshot test for sheet",
+        "xcodebuild builds clean",
+        "XCTest passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Implement abuse detection for user signals",
+      "description": "As the system, I need to quarantine suspicious signals.",
+      "acceptanceCriteria": [
+        "Module apps/api/middleware/abuse.ts",
+        "Checks per-device rate limits: 10 micro_survey/day, 5 user_report/day",
+        "Detects coordinated patterns: N devices submitting identical payloads within 5 min",
+        "Suspicious signals inserted with payload.quarantined = true; aggregation worker filters them out",
+        "Trust officer can review/reverse via /metrics admin page",
+        "Unit test with simulated abuse patterns",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Implement per-source cost tracking and caps",
+      "description": "As an operator, I need real-time spend visibility and hard caps per source.",
+      "acceptanceCriteria": [
+        "New table source_costs: id, sourceType, dateBucket date, totalCostUsd, requestCount",
+        "Each adapter increments source_costs after every paid call",
+        "Daily cap enforced before each call: refuse if today's totalCostUsd >= cap",
+        "/metrics page shows daily/monthly spend per source with chart",
+        "Slack webhook env SLACK_ALERT_WEBHOOK_URL alerted at 80% of cap",
+        "Unit test for cap enforcement logic",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Implement pipeline health dashboard data layer",
+      "description": "As an operator, I need /metrics to show pipeline status at a glance.",
+      "acceptanceCriteria": [
+        "Server actions in apps/admin/app/metrics/queries.ts return: jobs queued/running/completed/failed (24h), per-adapter latency p50/p95, compilation gate pass rate, queue depth, oldest queue item age",
+        "/metrics page renders these via charts (recharts)",
+        "Auto-refresh every 30s",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Add anonymous device ID generation and storage in iOS",
+      "description": "As iOS, I need a stable UUID stored in Keychain for signal attribution.",
+      "acceptanceCriteria": [
+        "New service apps/ios/SoloCompass/Services/DeviceIdentityService.swift",
+        "On first call: generate UUIDv4, store in Keychain under com.solocompass.deviceId",
+        "Subsequent calls return cached value",
+        "Survives app reinstall (Keychain default behavior)",
+        "Settings has 'Reset device ID' button that wipes Keychain entry",
+        "All API requests automatically attach X-Device-ID header via URLSessionConfiguration extension",
+        "Unit test with mock Keychain",
+        "xcodebuild builds clean",
+        "XCTest passes"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Implement RemoteExperienceService in iOS with offline fallback",
+      "description": "As iOS, I want to fetch from the new backend with bundled-seed fallback on network failure.",
+      "acceptanceCriteria": [
+        "New file apps/ios/SoloCompass/Services/RemoteExperienceService.swift",
+        "Async methods: fetchNearby(lat, lon, radiusKm), fetchByBbox(bbox), fetchById(id), submitSignal(experienceId, type, payload)",
+        "URLSession with 10s timeout",
+        "API base URL from Secrets.plist key API_BASE_URL or env override",
+        "Caches GET responses in URLCache",
+        "On network failure (no connectivity, timeout, 5xx): return bundled seed_experiences.json",
+        "Surfaces error to UI via lastError @Observable property",
+        "Unit test with mocked URLSession (success, 404, timeout, fallback)",
+        "xcodebuild builds clean",
+        "XCTest passes"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Wire MapViewModel to RemoteExperienceService instead of local seed",
+      "description": "As iOS, I want the map to load experiences from the backend by default.",
+      "acceptanceCriteria": [
+        "MapViewModel.loadNearbyExperiences() now calls RemoteExperienceService.fetchNearby(...)",
+        "Existing ExperienceService kept as fallback only (offline mode)",
+        "When meta.compilationStatus = 'queued' or 'running', show 'Finding more nearby...' indicator above BottomInfoBar",
+        "Polls every 30s while compilationStatus != 'idle' (max 5 polls)",
+        "Unit test for MapViewModel with mocked RemoteExperienceService",
+        "xcodebuild builds clean",
+        "XCTest passes"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Implement confidence-tier visual badges on iOS markers",
+      "description": "As a user, I want to see at a glance which experiences are AI-compiled vs editor-verified vs user-verified.",
+      "acceptanceCriteria": [
+        "MarkerIconView.swift extended: ring color per confidence tier (5=green solid, 4=green, 3=green, 2=yellow, 1=red, 0=gray dashed)",
+        "Existing marker state (bestNow, favorited, etc) composes WITH confidence ring (e.g. yellow ring + bestNow inner)",
+        "Default filter: only tier >= 2 returned by RemoteExperienceService (minTier query param)",
+        "Snapshot tests for each (tier, state) combination",
+        "xcodebuild builds clean",
+        "XCTest passes",
+        "Verify in iPhone 16 Pro simulator"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Implement confidence-tier explanation in ExperienceDetailView",
+      "description": "As a user, I want to understand what each tier means.",
+      "acceptanceCriteria": [
+        "ExperienceDetailView header includes tier badge with one-line explanation per tier",
+        "Tap badge opens help sheet explaining the 6-tier system in <100 words",
+        "Source attribution panel: 'Compiled from Wikivoyage + OSM' or 'Verified by 3 solo travelers'",
+        "Localized strings",
+        "Snapshot tests for each tier",
+        "xcodebuild builds clean",
+        "XCTest passes",
+        "Verify in iPhone 16 Pro simulator"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-043",
+      "title": "Implement 'Show speculative experiences' toggle in iOS Settings",
+      "description": "As a user opting in, I want to see tier-1 (AI single-source) experiences too.",
+      "acceptanceCriteria": [
+        "UserPreferences.Snapshot adds showSpeculativeExperiences: Bool (default false)",
+        "Settings page has toggle in Discovery section with explanatory subtext",
+        "When enabled, RemoteExperienceService passes minTier=1",
+        "When toggled, MapViewModel reloads",
+        "Migration safe (decodeIfPresent default false)",
+        "Snapshot test",
+        "xcodebuild builds clean",
+        "XCTest passes"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-044",
+      "title": "Bootstrap pipeline run for 5 launch cities",
+      "description": "As the team, we need an initial dataset before going live.",
+      "acceptanceCriteria": [
+        "New script packages/ai/scripts/bootstrap.ts that runs orchestrator against 5 cities (Chiang Mai, Lisbon, Tokyo, Mexico City, Bali)",
+        "Runs against staging Supabase project (env var SUPABASE_URL_STAGING)",
+        "Logs per-city: candidates fetched, compiled, dropped, awaiting review",
+        "Total runtime <30 min for 5 cities (parallelized)",
+        "Output written to docs/BOOTSTRAP_REPORT.md",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 44,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-045",
+      "title": "Update CLAUDE.md and docs/PHASES.md with v2 architecture",
+      "description": "As a future contributor, I need the architecture docs to reflect the new data engine.",
+      "acceptanceCriteria": [
+        "CLAUDE.md adds 'Data Engine' section pointing to tasks/prd-data-engine-v2.md",
+        "Adds new packages: packages/db, packages/sources/{core,wikivoyage,osm,google-places}, packages/ai/compilation, apps/api",
+        "Adds new app: apps/admin",
+        "docs/PHASES.md updated to reflect 'Phase 2.5: Data Engine' (between current Phase 2 web and Phase 3 iOS)",
+        "Schema parity table updated to show 3 sources of truth (TS / Swift / DB)",
+        "Typecheck passes"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

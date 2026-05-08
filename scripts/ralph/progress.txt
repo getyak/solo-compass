@@ -1,19 +1,7 @@
 # Solo Compass — Ralph Progress Log
-Started: 2026-05-07
+Started: 2026-05-08
 Tool: claude
-Branch: ralph/data-engine-v2
-PRD: tasks/prd-data-engine-v2.md
-Stories: 45
+Branch: ralph/deepseek-migration
+PRD: tasks/prd-deepseek-migration.md
+Stories: 10
 ---
-[2026-05-07T10:17:28Z] Story #US-001: Bootstrap packages/db with Drizzle + Postgres — PASSED
-[2026-05-07T10:18:49Z] Story #US-002: Define experiences table schema with PostGIS — PASSED
-[2026-05-07T10:19:42Z] Story #US-003: Define experience_revisions table for audit history — PASSED
-[2026-05-07T10:20:47Z] Story #US-004: Define sources and dropped_candidates tables — PASSED
-[2026-05-07T10:21:59Z] Story #US-005: Define compilation_jobs and editor_queue tables — PASSED
-[2026-05-07T10:23:00Z] Story #US-006: Define user_signals and audit_log tables — PASSED
-[2026-05-07T10:23:03Z] Story #US-006: Define user_signals and audit_log tables — PASSED
-[2026-05-07T10:26:50Z] Story #US-007: Extend pnpm parity:check to validate DB schema vs core types — PASSED
-[2026-05-07T10:28:12Z] Story #US-008: Define SourceAdapter contract in packages/sources/core — PASSED
-[2026-05-07T10:32:02Z] Story #US-009: Implement Wikivoyage source adapter — PASSED
-[2026-05-07T10:35:59Z] Story #US-010: Implement OpenStreetMap + Overpass source adapter — PASSED
-[2026-05-07T10:41:07Z] Story #US-011: Implement Google Places API source adapter — PASSED
