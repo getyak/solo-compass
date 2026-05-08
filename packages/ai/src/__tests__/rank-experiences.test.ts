@@ -186,7 +186,8 @@ describe("rankExperiences — anti-hallucination", () => {
 
   it("handles fence-wrapped JSON response gracefully", async () => {
     const exp = makeExperience("exp_cmi_fence", "Fence Test");
-    const content = '```json\n{"ranked":[{"experienceId":"exp_cmi_fence","score":75,"reason":"Good match."}]}\n```';
+    const content =
+      '```json\n{"ranked":[{"experienceId":"exp_cmi_fence","score":75,"reason":"Good match."}]}\n```';
     const mockClient = {
       chat: {
         completions: {

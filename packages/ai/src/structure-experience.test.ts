@@ -32,15 +32,24 @@ const EMIT_SUTHEP = {
   howTo: [
     { order: 1, text: "Board a songthaew at Chang Puak bus terminal and depart by 05:30." },
     { order: 2, text: "Climb the 1,685-step Naga staircase (free) or take the cable car." },
-    { order: 3, text: "Pay the 50 THB entrance fee and remove shoes before stepping onto the terrace." },
+    {
+      order: 3,
+      text: "Pay the 50 THB entrance fee and remove shoes before stepping onto the terrace.",
+    },
     { order: 4, text: "Circumambulate the golden chedi clockwise three times." },
     { order: 5, text: "Stand at the eastern viewpoint and watch the mist clear from the valley." },
     { order: 6, text: "Leave before 09:00 to beat the tour-bus wave." },
   ],
   realInconveniences: [
     { category: "crowds", text: "On weekends expect 200+ people queuing to photograph the chedi." },
-    { category: "scam", text: "Songthaew drivers routinely overcharge — agree the fare before boarding." },
-    { category: "etiquette", text: "Shoulders and knees must be covered; sarongs are at the gate." },
+    {
+      category: "scam",
+      text: "Songthaew drivers routinely overcharge — agree the fare before boarding.",
+    },
+    {
+      category: "etiquette",
+      text: "Shoulders and knees must be covered; sarongs are at the gate.",
+    },
   ],
   sources: [
     {
@@ -141,7 +150,16 @@ describe("structureExperience — emit success (cultural experience)", () => {
     expect(typeof experience.oneLiner).toBe("string");
     expect(typeof experience.whyItMatters).toBe("string");
 
-    const validCategories = ["culture", "nature", "food", "coffee", "work", "wellness", "nightlife", "hidden"];
+    const validCategories = [
+      "culture",
+      "nature",
+      "food",
+      "coffee",
+      "work",
+      "wellness",
+      "nightlife",
+      "hidden",
+    ];
     expect(validCategories).toContain(experience.category);
 
     expect(Array.isArray(experience.location.coordinates)).toBe(true);
@@ -163,7 +181,15 @@ describe("structureExperience — emit success (cultural experience)", () => {
     expect(experience.howTo.length).toBeLessThanOrEqual(7);
 
     expect(experience.realInconveniences.length).toBeGreaterThanOrEqual(1);
-    const validIncCategories = ["scam", "crowds", "logistics", "weather", "etiquette", "safety", "other"];
+    const validIncCategories = [
+      "scam",
+      "crowds",
+      "logistics",
+      "weather",
+      "etiquette",
+      "safety",
+      "other",
+    ];
     for (const inc of experience.realInconveniences) {
       expect(validIncCategories).toContain(inc.category);
       expect(inc.text.length).toBeGreaterThan(0);
@@ -379,6 +405,8 @@ describe("structureExperience — malformed JSON", () => {
       },
     } as unknown as OpenAI;
 
-    await expect(structureExperience(BASE_INPUT, mockClient)).rejects.toThrow("Rate limit exceeded");
+    await expect(structureExperience(BASE_INPUT, mockClient)).rejects.toThrow(
+      "Rate limit exceeded",
+    );
   });
 });

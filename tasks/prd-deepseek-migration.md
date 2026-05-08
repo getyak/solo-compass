@@ -12,11 +12,11 @@
 
 Solo Compass currently uses **Anthropic Claude (`claude-opus-4-7`)** as its sole AI provider across three integration points:
 
-| Integration | File | Purpose |
-|---|---|---|
-| iOS recommendations | `apps/ios/SoloCompass/Services/AIService.swift` | Voice intent → ranked experience IDs; one-sentence "why this matters" explanations |
-| TS ranking | `packages/ai/src/prompts/rank-experiences.ts` | Bot + Web → top-3 experiences for a user intent |
-| TS structuring | `packages/ai/src/prompts/structure-experience.ts` | Source-text (Wikivoyage / Reddit / blog) → structured `Experience` record |
+| Integration         | File                                              | Purpose                                                                            |
+| ------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| iOS recommendations | `apps/ios/SoloCompass/Services/AIService.swift`   | Voice intent → ranked experience IDs; one-sentence "why this matters" explanations |
+| TS ranking          | `packages/ai/src/prompts/rank-experiences.ts`     | Bot + Web → top-3 experiences for a user intent                                    |
+| TS structuring      | `packages/ai/src/prompts/structure-experience.ts` | Source-text (Wikivoyage / Reddit / blog) → structured `Experience` record          |
 
 The decision to migrate was driven by two converging forces:
 
@@ -92,9 +92,10 @@ bot and web read `process.env.DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` / `DEEPSEE
 - `generate_secrets.sh` runs successfully against an empty key → `GeneratedSecrets.deepSeekApiKey = ""` → `AIService` raises `missingAPIKey` at first AI call → callers fall back to local Solo-Score ranking. Build, type-check, and unit tests all pass.
 - **No real keys in CI.** The author's real DeepSeek key never enters GitHub Actions. (Q3 = A.)
 
-### 2.6 Multi-Provider Abstraction — *Explicitly Rejected*
+### 2.6 Multi-Provider Abstraction — _Explicitly Rejected_
 
 We do **not** introduce an `AIProvider` interface or pluggable backend layer. Reasons:
+
 1. YAGNI — there is no current second consumer of an abstraction
 2. The migration to DeepSeek is intended as a permanent replacement, not a feature flag
 3. An abstraction layer would lock in the lowest common denominator of Anthropic + OpenAI-compatible APIs, costing capability without buying anything Solo Compass needs today
@@ -106,16 +107,16 @@ Anthropic-specific code (`@anthropic-ai/sdk` import, `claude-opus-4-7` model str
 
 ## 3. Trade-offs & Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| DeepSeek output quality drops vs. Claude on edge prompts | Medium | Medium | Anti-hallucination unit tests still enforce ID validity, score clamping, refusal handling. Live golden replay test (post-migration) catches regressions on real fixtures. |
-| `deepseek-v4-pro` model name is unrecognized at API call time | Low-Medium | Low | `.env` is the single source — swap to `deepseek-chat` and rebuild. No code change required. |
-| DeepSeek wraps JSON in markdown fences despite `response_format` | Medium | Low | Defensive fence-stripping in `parseRankedJSON` / `parseStructureJSON` before `JSON.parse`. Pattern proven in `daypage`. |
-| Sibling-project `.env` was leaked in this conversation thread | **High (already happened)** | **High** | **Author must rotate** the four leaked keys post-merge. **Solo Compass repo never receives those keys** — only placeholders in `.env.example`. |
-| First-run users on iOS without API key see no AI features | High | Low | Existing Solo-Score local-fallback ranking already handles `missingAPIKey`. Onboarding will be updated (Phase 2 of follow-up work) to invite users to supply their own DeepSeek key in Settings. |
-| Breaking change for any external consumers of `@solo-compass/ai` | Low | Low | The published exports (`rankExperiences`, `structureExperience`, `parseIntent`) keep their input/output signatures. Only the optional `client?` parameter changes type from `Anthropic` to `OpenAI`. No external consumer exists outside this monorepo (`grep` confirms). |
-| Existing `__golden__` test suite fails between deletion and regeneration | Certain | Low | Acknowledged. The structure-experience test file is rewritten to mock OpenAI's response shape; mock-based tests still pass. Live-replay tests are explicitly opt-in via `LIVE_API=true`. |
-| `cost-tracker.ts` warning threshold ($5/call) is no longer meaningful | Certain | Negligible | At DeepSeek prices, $5 implies ~18M input or ~4.5M output tokens — astronomical for a single ranking call. Threshold left at $5 as a sanity guard against runaway loops. |
+| Risk                                                                     | Likelihood                  | Impact     | Mitigation                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------ | --------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DeepSeek output quality drops vs. Claude on edge prompts                 | Medium                      | Medium     | Anti-hallucination unit tests still enforce ID validity, score clamping, refusal handling. Live golden replay test (post-migration) catches regressions on real fixtures.                                                                                                 |
+| `deepseek-v4-pro` model name is unrecognized at API call time            | Low-Medium                  | Low        | `.env` is the single source — swap to `deepseek-chat` and rebuild. No code change required.                                                                                                                                                                               |
+| DeepSeek wraps JSON in markdown fences despite `response_format`         | Medium                      | Low        | Defensive fence-stripping in `parseRankedJSON` / `parseStructureJSON` before `JSON.parse`. Pattern proven in `daypage`.                                                                                                                                                   |
+| Sibling-project `.env` was leaked in this conversation thread            | **High (already happened)** | **High**   | **Author must rotate** the four leaked keys post-merge. **Solo Compass repo never receives those keys** — only placeholders in `.env.example`.                                                                                                                            |
+| First-run users on iOS without API key see no AI features                | High                        | Low        | Existing Solo-Score local-fallback ranking already handles `missingAPIKey`. Onboarding will be updated (Phase 2 of follow-up work) to invite users to supply their own DeepSeek key in Settings.                                                                          |
+| Breaking change for any external consumers of `@solo-compass/ai`         | Low                         | Low        | The published exports (`rankExperiences`, `structureExperience`, `parseIntent`) keep their input/output signatures. Only the optional `client?` parameter changes type from `Anthropic` to `OpenAI`. No external consumer exists outside this monorepo (`grep` confirms). |
+| Existing `__golden__` test suite fails between deletion and regeneration | Certain                     | Low        | Acknowledged. The structure-experience test file is rewritten to mock OpenAI's response shape; mock-based tests still pass. Live-replay tests are explicitly opt-in via `LIVE_API=true`.                                                                                  |
+| `cost-tracker.ts` warning threshold ($5/call) is no longer meaningful    | Certain                     | Negligible | At DeepSeek prices, $5 implies ~18M input or ~4.5M output tokens — astronomical for a single ranking call. Threshold left at $5 as a sanity guard against runaway loops.                                                                                                  |
 
 ---
 
@@ -125,49 +126,49 @@ Five sequential commits on `feat/ios-settings-survey-checkin` (or a new `feat/de
 
 ### Commit 1 — `chore: env template + gitignore generated secrets`
 
-| Action | File |
-|---|---|
-| Rewrite | `.env.example` — replace Anthropic block with DeepSeek; keep Mapbox/Supabase/Telegram intact |
-| Append | `.gitignore` — add `apps/ios/SoloCompass/Config/GeneratedSecrets.swift` and `apps/ios/SoloCompass/Resources/Secrets.plist` |
+| Action  | File                                                                                                                       |
+| ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Rewrite | `.env.example` — replace Anthropic block with DeepSeek; keep Mapbox/Supabase/Telegram intact                               |
+| Append  | `.gitignore` — add `apps/ios/SoloCompass/Config/GeneratedSecrets.swift` and `apps/ios/SoloCompass/Resources/Secrets.plist` |
 
 ### Commit 2 — `feat(ai): switch packages/ai from Anthropic to DeepSeek (JSON mode)`
 
-| Action | File |
-|---|---|
-| Edit | `packages/ai/package.json` — remove `@anthropic-ai/sdk`, add `openai ^4.73.0` |
-| Create | `packages/ai/src/client.ts` — DeepSeek client factory (`createDeepseekClient`, `deepseekModel`, `deepseekBaseURL`) |
-| Rewrite | `packages/ai/src/cost-tracker.ts` — DeepSeek pricing, `OpenAI.CompletionUsage` types, drop cache token fields |
-| Rewrite | `packages/ai/src/prompts/rank-experiences.ts` — JSON-mode prompt, defensive parser, `client?: OpenAI` |
+| Action  | File                                                                                                                       |
+| ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Edit    | `packages/ai/package.json` — remove `@anthropic-ai/sdk`, add `openai ^4.73.0`                                              |
+| Create  | `packages/ai/src/client.ts` — DeepSeek client factory (`createDeepseekClient`, `deepseekModel`, `deepseekBaseURL`)         |
+| Rewrite | `packages/ai/src/cost-tracker.ts` — DeepSeek pricing, `OpenAI.CompletionUsage` types, drop cache token fields              |
+| Rewrite | `packages/ai/src/prompts/rank-experiences.ts` — JSON-mode prompt, defensive parser, `client?: OpenAI`                      |
 | Rewrite | `packages/ai/src/prompts/structure-experience.ts` — JSON-mode prompt, defensive parser, refuse-via-JSON, `client?: OpenAI` |
-| Edit | `packages/ai/src/index.ts` — export `createDeepseekClient`, `deepseekModel` |
-| Rewrite | `packages/ai/src/__tests__/rank-experiences.test.ts` — mock OpenAI client shape |
-| Rewrite | `packages/ai/src/structure-experience.test.ts` — mock OpenAI client shape |
-| Delete | `packages/ai/src/__golden__/*.json` (3 files) |
-| Add | `packages/ai/src/__golden__/.gitkeep` + comment file noting regeneration via `LIVE_API=true` |
+| Edit    | `packages/ai/src/index.ts` — export `createDeepseekClient`, `deepseekModel`                                                |
+| Rewrite | `packages/ai/src/__tests__/rank-experiences.test.ts` — mock OpenAI client shape                                            |
+| Rewrite | `packages/ai/src/structure-experience.test.ts` — mock OpenAI client shape                                                  |
+| Delete  | `packages/ai/src/__golden__/*.json` (3 files)                                                                              |
+| Add     | `packages/ai/src/__golden__/.gitkeep` + comment file noting regeneration via `LIVE_API=true`                               |
 
 ### Commit 3 — `feat(ios): wire DeepSeek via .env-generated Secrets.swift`
 
-| Action | File |
-|---|---|
-| Create | `scripts/generate_secrets.sh` — adapted from `daypage`, reads `DEEPSEEK_*` + `DEVELOPMENT_TEAM` |
-| Create | `apps/ios/SoloCompass/Config/GeneratedSecrets.swift` (committed initially with empty values to bootstrap; gitignored thereafter — same pattern as `daypage`'s first-time bootstrap) |
-| Create | `apps/ios/SoloCompass/Config/SecretsRuntime.swift` — `resolvedDeepSeekApiKey` UserDefaults override |
-| Edit | `apps/ios/SoloCompass/project.yml` — add Pre-build Run Script Phase invoking `${SRCROOT}/../../scripts/generate_secrets.sh` |
+| Action  | File                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create  | `scripts/generate_secrets.sh` — adapted from `daypage`, reads `DEEPSEEK_*` + `DEVELOPMENT_TEAM`                                                                                                                                                                                                                                                                                              |
+| Create  | `apps/ios/SoloCompass/Config/GeneratedSecrets.swift` (committed initially with empty values to bootstrap; gitignored thereafter — same pattern as `daypage`'s first-time bootstrap)                                                                                                                                                                                                          |
+| Create  | `apps/ios/SoloCompass/Config/SecretsRuntime.swift` — `resolvedDeepSeekApiKey` UserDefaults override                                                                                                                                                                                                                                                                                          |
+| Edit    | `apps/ios/SoloCompass/project.yml` — add Pre-build Run Script Phase invoking `${SRCROOT}/../../scripts/generate_secrets.sh`                                                                                                                                                                                                                                                                  |
 | Rewrite | `apps/ios/SoloCompass/Services/AIService.swift` — switch to `URLSession` POST against `Secrets.deepSeekBaseURL + "/chat/completions"`, `Authorization: Bearer …`, response shape `choices[0].message.content`. Remove all `Secrets.plist` reading code. Keep three public methods (`recommendExperiences`, `explainRecommendation`, `processVoiceIntent`) and their fallback paths verbatim. |
-| Edit | `apps/ios/SoloCompass/Resources/en.lproj/Localizable.strings` — add `ai.error.missingDeepseekKey` if needed (existing `ai.error.missingKey` may suffice) |
-| Add | New Settings section — "AI Provider" with DeepSeek API key text field (write to UserDefaults under `runtimeDeepSeekKey`) |
+| Edit    | `apps/ios/SoloCompass/Resources/en.lproj/Localizable.strings` — add `ai.error.missingDeepseekKey` if needed (existing `ai.error.missingKey` may suffice)                                                                                                                                                                                                                                     |
+| Add     | New Settings section — "AI Provider" with DeepSeek API key text field (write to UserDefaults under `runtimeDeepSeekKey`)                                                                                                                                                                                                                                                                     |
 
 ### Commit 4 — `chore(ci): inject placeholder .env for iOS build`
 
-| Action | File |
-|---|---|
-| Edit | `.github/workflows/ios-ci.yml` — add step that writes a placeholder `.env` before `xcodegen` |
-| Edit | `.github/workflows/testflight.yml` — same, but uses `${{ secrets.DEEPSEEK_API_KEY }}` for real builds |
+| Action | File                                                                                                  |
+| ------ | ----------------------------------------------------------------------------------------------------- |
+| Edit   | `.github/workflows/ios-ci.yml` — add step that writes a placeholder `.env` before `xcodegen`          |
+| Edit   | `.github/workflows/testflight.yml` — same, but uses `${{ secrets.DEEPSEEK_API_KEY }}` for real builds |
 
 ### Commit 5 — `chore: regenerate pnpm-lock.yaml`
 
-| Action | File |
-|---|---|
+| Action     | File                                          |
+| ---------- | --------------------------------------------- |
 | Regenerate | `pnpm-lock.yaml` after running `pnpm install` |
 
 ---
@@ -233,6 +234,7 @@ The following are **explicitly not** part of this migration:
 ### 8.2 DeepSeek Quirks to Watch
 
 Documented in the `daypage` codebase and to be ported to Solo Compass:
+
 - `response_format: { type: "json_object" }` is **necessary but not sufficient** — system prompt must also forbid fences explicitly
 - DeepSeek may return `"finish_reason": "length"` if `max_tokens` is too low for a JSON schema with many fields. `structure-experience` keeps the existing `max_tokens: 2048`; `rank-experiences` keeps `1024`. Increase if real-world testing shows truncation.
 - DeepSeek's `usage.prompt_tokens` is reliable; `completion_tokens` matches OpenAI semantics; no `cache_*` fields exist (unlike Anthropic prompt caching, which `cost-tracker.ts` was tracking).
@@ -247,12 +249,12 @@ All coordinate handling stays `[longitude, latitude]` per `CLAUDE.md` and `packa
 
 ### 8.5 Error Surface
 
-| iOS error | Source | User-visible |
-|---|---|---|
-| `AIError.missingAPIKey` | `Secrets.resolvedDeepSeekApiKey.isEmpty` | Localized `ai.error.missingKey` shown, recommendation falls back to Solo-Score |
-| `AIError.requestFailed(401, …)` | DeepSeek auth rejected | Localized `ai.error.request %d` |
-| `AIError.requestFailed(429, …)` | DeepSeek rate limit | Same as above; future retry/backoff is a non-goal |
-| `AIError.decodingFailed(…)` | JSON parse failed even after fence-stripping | Logged; recommendation falls back to Solo-Score |
+| iOS error                       | Source                                       | User-visible                                                                   |
+| ------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------ |
+| `AIError.missingAPIKey`         | `Secrets.resolvedDeepSeekApiKey.isEmpty`     | Localized `ai.error.missingKey` shown, recommendation falls back to Solo-Score |
+| `AIError.requestFailed(401, …)` | DeepSeek auth rejected                       | Localized `ai.error.request %d`                                                |
+| `AIError.requestFailed(429, …)` | DeepSeek rate limit                          | Same as above; future retry/backoff is a non-goal                              |
+| `AIError.decodingFailed(…)`     | JSON parse failed even after fence-stripping | Logged; recommendation falls back to Solo-Score                                |
 
 ---
 
@@ -260,15 +262,15 @@ All coordinate handling stays `[longitude, latitude]` per `CLAUDE.md` and `packa
 
 Quantifiable post-migration targets to validate over the **first 30 days** after merge:
 
-| Metric | Target | Measurement |
-|---|---|---|
-| Per-call cost (rank-experiences, p50) | **≥ 50× cheaper** than Claude baseline | `cost-tracker.ts` stdout logs aggregated by route |
-| `rankExperiences` latency p50 (TS, server-side) | ≤ 1.5× the Claude baseline | Same logs, `duration_ms` field |
-| `structureExperience` accept rate (model returns valid JSON) | ≥ 95% over a 100-source sample | Live-API test run after PR |
-| iOS `AIService.processVoiceIntent` success rate | ≥ 90% (returns non-empty `recommendedIds` for relevant intent) | Manual TestFlight smoke testing across 20 voice intents |
-| Build time impact (iOS) | ≤ +2 seconds for `generate_secrets.sh` step | `xcodebuild` log timestamps |
-| `pnpm install` time impact | ≤ +5 seconds (openai SDK is already in bot's deps) | `time pnpm install` before/after |
-| Zero hardcoded secrets in repo | 100% | `gitleaks detect` clean |
+| Metric                                                       | Target                                                         | Measurement                                             |
+| ------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------- |
+| Per-call cost (rank-experiences, p50)                        | **≥ 50× cheaper** than Claude baseline                         | `cost-tracker.ts` stdout logs aggregated by route       |
+| `rankExperiences` latency p50 (TS, server-side)              | ≤ 1.5× the Claude baseline                                     | Same logs, `duration_ms` field                          |
+| `structureExperience` accept rate (model returns valid JSON) | ≥ 95% over a 100-source sample                                 | Live-API test run after PR                              |
+| iOS `AIService.processVoiceIntent` success rate              | ≥ 90% (returns non-empty `recommendedIds` for relevant intent) | Manual TestFlight smoke testing across 20 voice intents |
+| Build time impact (iOS)                                      | ≤ +2 seconds for `generate_secrets.sh` step                    | `xcodebuild` log timestamps                             |
+| `pnpm install` time impact                                   | ≤ +5 seconds (openai SDK is already in bot's deps)             | `time pnpm install` before/after                        |
+| Zero hardcoded secrets in repo                               | 100%                                                           | `gitleaks detect` clean                                 |
 
 If any of the first three metrics misses target, treat as a quality regression and investigate prompt tuning before declaring the migration successful.
 

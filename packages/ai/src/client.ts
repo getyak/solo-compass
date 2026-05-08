@@ -28,9 +28,7 @@ export function deepseekBaseURL(): string {
 export function createDeepseekClient(apiKey?: string): OpenAI {
   const key = apiKey ?? process.env["DEEPSEEK_API_KEY"];
   if (!key) {
-    throw new Error(
-      "DEEPSEEK_API_KEY is not set. Copy .env.example to .env and fill it in.",
-    );
+    throw new Error("DEEPSEEK_API_KEY is not set. Copy .env.example to .env and fill it in.");
   }
   return new OpenAI({ apiKey: key, baseURL: deepseekBaseURL() });
 }

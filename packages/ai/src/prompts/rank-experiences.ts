@@ -83,7 +83,10 @@ function summarizeExperience(exp: Experience, walkMin: number): string {
 
 /** Strip ```json ... ``` or ``` ... ``` fences that some models emit despite instructions. */
 function stripFences(raw: string): string {
-  return raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  return raw
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/, "")
+    .trim();
 }
 
 export async function rankExperiences(

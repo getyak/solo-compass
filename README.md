@@ -139,11 +139,11 @@ gitleaks detect --source . --no-git
 
 **What the `.gitleaks.toml` allowlist exempts — and why:**
 
-| Pattern | File | Reason |
-|---|---|---|
-| `pk.eyJ…` | `.env.example` | Mapbox public-token placeholder; not a real secret, intentionally shown as a format hint |
-| `xxxxx.supabase.co` | `.env.example` | Supabase placeholder URL; `xxxxx` is obviously not a real project ID |
-| `sk-replace-me` | `.env.example` | Literal placeholder string; not a key that could authenticate against any API |
+| Pattern             | File           | Reason                                                                                   |
+| ------------------- | -------------- | ---------------------------------------------------------------------------------------- |
+| `pk.eyJ…`           | `.env.example` | Mapbox public-token placeholder; not a real secret, intentionally shown as a format hint |
+| `xxxxx.supabase.co` | `.env.example` | Supabase placeholder URL; `xxxxx` is obviously not a real project ID                     |
+| `sk-replace-me`     | `.env.example` | Literal placeholder string; not a key that could authenticate against any API            |
 
 Real values must never be committed. Copy `.env.example` to `.env` (gitignored) and fill in actual keys there.
 

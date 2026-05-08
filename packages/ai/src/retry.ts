@@ -19,10 +19,7 @@ export interface RetryOptions {
   signal?: AbortSignal;
 }
 
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  opts?: RetryOptions,
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, opts?: RetryOptions): Promise<T> {
   const maxAttempts = opts?.maxAttempts ?? 3;
   const backoffSecs = opts?.backoffSecs ?? [0, 2, 6];
 

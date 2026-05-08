@@ -24,10 +24,7 @@ describe("withRetry", () => {
   });
 
   it("retries on 429 and succeeds on second attempt", async () => {
-    const fn = vi
-      .fn()
-      .mockRejectedValueOnce(apiError(429))
-      .mockResolvedValue("ok");
+    const fn = vi.fn().mockRejectedValueOnce(apiError(429)).mockResolvedValue("ok");
 
     const promise = withRetry(fn, { backoffSecs: [0, 0, 0] });
     await vi.runAllTimersAsync();
@@ -94,10 +91,7 @@ describe("withRetry", () => {
 
   it("retries on 502, 503, 504", async () => {
     for (const status of [502, 503, 504]) {
-      const fn = vi
-        .fn()
-        .mockRejectedValueOnce(apiError(status))
-        .mockResolvedValue("ok");
+      const fn = vi.fn().mockRejectedValueOnce(apiError(status)).mockResolvedValue("ok");
       const promise = withRetry(fn, { backoffSecs: [0, 0, 0] });
       await vi.runAllTimersAsync();
       await expect(promise).resolves.toBe("ok");

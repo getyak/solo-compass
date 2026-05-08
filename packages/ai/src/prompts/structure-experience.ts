@@ -102,7 +102,10 @@ For emission:
 // ─── JSON fence stripper ───────────────────────────────────────────────────────
 
 function stripFences(raw: string): string {
-  return raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  return raw
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/, "")
+    .trim();
 }
 
 // ─── Main function ─────────────────────────────────────────────────────────────
@@ -156,7 +159,8 @@ Extract one concrete experience from the text above, or refuse if the material i
   if (parsed["action"] === "refuse") {
     return {
       experience: null,
-      refusalReason: typeof parsed["reason"] === "string" ? parsed["reason"] : "Model refused without reason",
+      refusalReason:
+        typeof parsed["reason"] === "string" ? parsed["reason"] : "Model refused without reason",
       modelConfidence: 0,
     };
   }
@@ -205,7 +209,11 @@ Extract one concrete experience from the text above, or refuse if the material i
         placeNameRomanized: raw.placeNameRomanized ?? undefined,
       },
       bestTimes: raw.bestTimes.map(
-        (t): TimeWindow => ({ startHour: t.startHour, endHour: t.endHour, note: t.note ?? undefined }),
+        (t): TimeWindow => ({
+          startHour: t.startHour,
+          endHour: t.endHour,
+          note: t.note ?? undefined,
+        }),
       ),
       durationMinutes: { min: raw.durationMin, max: raw.durationMax },
       howTo: raw.howTo.map((s): HowToStep => ({ order: s.order, text: s.text })),

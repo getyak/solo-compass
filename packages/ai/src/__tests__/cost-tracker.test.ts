@@ -109,10 +109,7 @@ describe("trackCost", () => {
     const { trackCost } = await import("../cost-tracker");
 
     expect(() => trackCost(baseSnapshot)).not.toThrow();
-    expect(warnSpy).toHaveBeenCalledWith(
-      "[ai_cost] PostHog capture failed:",
-      expect.any(Error),
-    );
+    expect(warnSpy).toHaveBeenCalledWith("[ai_cost] PostHog capture failed:", expect.any(Error));
     warnSpy.mockRestore();
   });
 });
