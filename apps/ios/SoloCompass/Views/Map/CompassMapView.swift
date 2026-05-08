@@ -115,7 +115,11 @@ public struct CompassMapView: View {
                 }
 
                 if viewModel.visibleExperiences.isEmpty {
-                    emptyStateOverlay(viewModel: viewModel)
+                    EmptyStateOverlay(
+                        viewModel: viewModel,
+                        preferences: preferences,
+                        locationService: locationService
+                    )
                 }
             } else {
                 ProgressView()
@@ -233,71 +237,6 @@ public struct CompassMapView: View {
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
     }
 
-    // MARK: - Empty state
-
-    @ViewBuilder
-    private func emptyStateOverlay(viewModel: MapViewModel) -> some View {
-        VStack(spacing: 10) {
-            Image(systemName: "mappin.slash")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-            Text(NSLocalizedString("map.empty.title", comment: "No experiences nearby"))
-                .font(.subheadline.weight(.medium))
-            Text(String(
-                format: NSLocalizedString("map.empty.radius", comment: "No experiences within radius"),
-                preferences.maxDistanceKm
-            ))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-
-            VStack(spacing: 8) {
-                Button {
-                    preferences.maxDistanceKm = 25
-                    viewModel.loadNearbyExperiences()
-                    viewModel.updateBottomInfo()
-                } label: {
-                    Text(NSLocalizedString("map.empty.expand", comment: "Expand search radius to 25km"))
-                        .font(.subheadline.weight(.medium))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-
-                if let nearestCode = viewModel.nearestSeededCity(
-                    to: locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
-                ),
-                   let nearestCity = viewModel.availableCities.first(where: { $0.code == nearestCode }) {
-                    Button {
-                        viewModel.selectCity(nearestCode)
-                    } label: {
-                        Text(String(
-                            format: NSLocalizedString("map.empty.browse", comment: "Browse nearest city"),
-                            nearestCity.name
-                        ))
-                        .font(.subheadline)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
-                }
-
-                Button {
-                    viewModel.clearFilters()
-                } label: {
-                    Text(NSLocalizedString("map.empty.clearFilters", comment: "Clear all filters"))
-                        .font(.subheadline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
-            }
-        }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal, 32)
-        .accessibilityElement(children: .combine)
-    }
-
     @ViewBuilder
     private func mapLayer(viewModel: MapViewModel) -> some View {
         let bindingCamera = Binding<MapCameraPosition>(
@@ -381,4 +320,72 @@ public struct CompassMapView: View {
         .environment(ExperienceService())
         .environment(AIService())
         .environment(UserPreferences())
+}
+
+private struct EmptyStateOverlay: View {
+    var viewModel: MapViewModel
+    var preferences: UserPreferences
+    var locationService: LocationService
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "mappin.slash")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+            Text(NSLocalizedString("map.empty.title", comment: "No experiences nearby"))
+                .font(.subheadline.weight(.medium))
+            Text(String(
+                format: NSLocalizedString("map.empty.radius", comment: "No experiences within radius"),
+                preferences.maxDistanceKm
+            ))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            VStack(spacing: 8) {
+                Button {
+                    preferences.maxDistanceKm = 25
+                    viewModel.loadNearbyExperiences()
+                    viewModel.updateBottomInfo()
+                } label: {
+                    Text(NSLocalizedString("map.empty.expand", comment: "Expand search radius to 25km"))
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+
+                if let nearestCode = viewModel.nearestSeededCity(
+                    to: locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
+                ),
+                   let nearestCity = viewModel.availableCities.first(where: { $0.code == nearestCode }) {
+                    Button {
+                        viewModel.selectCity(nearestCode)
+                    } label: {
+                        Text(String(
+                            format: NSLocalizedString("map.empty.browse", comment: "Browse nearest city"),
+                            nearestCity.name
+                        ))
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                }
+
+                Button {
+                    viewModel.clearFilters()
+                } label: {
+                    Text(NSLocalizedString("map.empty.clearFilters", comment: "Clear all filters"))
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 32)
+        .accessibilityElement(children: .combine)
+    }
 }
