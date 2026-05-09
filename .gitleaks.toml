@@ -8,10 +8,13 @@ useDefault = true
 [allowlist]
 description = "Placeholder values in env examples and docs"
 paths = [
-  '''\.env\.example''',
-  '''README\.md''',
-  '''CONTRIBUTING\.md''',
-  '''\.gitleaks\.toml''',
+  '''\\.env\\.example''',
+  '''README\\.md''',
+  '''CONTRIBUTING\\.md''',
+  '''\\.gitleaks\\.toml''',
+  # Test files use synthetic placeholder values (cache keys, UUIDs) that may
+  # match generic-api-key heuristics — allowlist the test directory.
+  '''apps/ios/SoloCompass/Tests/''',
 ]
 regexes = [
   # JWT-like placeholder (eyJ... header prefix)
