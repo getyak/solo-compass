@@ -1,7 +1,7 @@
 {
-  "project": "Solo Compass — DeepSeek Migration (TS-only stories)",
+  "project": "Solo Compass \u2014 DeepSeek Migration (TS-only stories)",
   "branchName": "ralph/deepseek-migration",
-  "description": "Migrate the @solo-compass/ai package from Anthropic Claude (claude-opus-4-7) to DeepSeek (deepseek-v4-pro) using OpenAI-compatible JSON mode. Adds resilience (retry/backoff), observability (Sentry + PostHog), and supply-chain hygiene (gitleaks). iOS changes are excluded from this Ralph run — handled separately. Pre-flight scaffolding (.env.example, .gitignore, packages/ai/package.json, cost-tracker.ts, client.ts) was committed in 0ed511c before this run; these stories pick up from that state. Full design in tasks/prd-deepseek-migration.md.",
+  "description": "Migrate the @solo-compass/ai package from Anthropic Claude (claude-opus-4-7) to DeepSeek (deepseek-v4-pro) using OpenAI-compatible JSON mode. Adds resilience (retry/backoff), observability (Sentry + PostHog), and supply-chain hygiene (gitleaks). iOS changes are excluded from this Ralph run \u2014 handled separately. Pre-flight scaffolding (.env.example, .gitignore, packages/ai/package.json, cost-tracker.ts, client.ts) was committed in 0ed511c before this run; these stories pick up from that state. Full design in tasks/prd-deepseek-migration.md.",
   "userStories": [
     {
       "id": "US-001",
@@ -19,7 +19,7 @@
         "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -37,7 +37,7 @@
         "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -51,7 +51,7 @@
         "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -67,7 +67,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -85,7 +85,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -105,7 +105,7 @@
         "Test suite passes (run: pnpm --filter @solo-compass/ai test)"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -115,15 +115,15 @@
       "acceptanceCriteria": [
         "apps/bot: at the very top of `src/index.ts`, before any other import, call `Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1, environment: process.env.NODE_ENV ?? 'development' })`. If SENTRY_DSN is empty or missing, skip init silently (do not throw).",
         "apps/bot: existing `captureException` calls continue to work (they already imported from @sentry/node)",
-        "apps/web: create three sibling files at the project root — `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` — each calling `Sentry.init` from `@sentry/nextjs` with appropriate settings. tracesSampleRate=0.1, dsn from env.",
+        "apps/web: create three sibling files at the project root \u2014 `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` \u2014 each calling `Sentry.init` from `@sentry/nextjs` with appropriate settings. tracesSampleRate=0.1, dsn from env.",
         "apps/web: update `next.config.ts` to wrap export with `withSentryConfig` from @sentry/nextjs (silent: true to keep build logs clean)",
-        "Add `SENTRY_DSN=` (empty) to `.env.example` under a `# ─── Sentry (error tracking) ───` block",
+        "Add `SENTRY_DSN=` (empty) to `.env.example` under a `# \u2500\u2500\u2500 Sentry (error tracking) \u2500\u2500\u2500` block",
         "Add `NEXT_PUBLIC_SENTRY_DSN=` to .env.example with note that it is the same value as SENTRY_DSN but exposed to browser bundles",
         "Both apps build without error when SENTRY_DSN is empty",
         "Typecheck passes for both apps (run: pnpm --filter @solo-compass/bot typecheck && pnpm --filter @solo-compass/web typecheck)"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -133,15 +133,15 @@
       "acceptanceCriteria": [
         "Add `posthog-node` runtime dependency to packages/ai/package.json (^4.0.0)",
         "In cost-tracker.ts, add a module-scoped lazy-initialized PostHog client that reads `process.env.POSTHOG_API_KEY` and `process.env.POSTHOG_HOST` (default https://app.posthog.com). If POSTHOG_API_KEY is empty, skip and only stdout-log.",
-        "trackCost() calls posthog.capture({ distinctId: 'system', event: 'ai_cost', properties: { route, usd_cents, model, input_tokens, output_tokens, duration_ms } }) — non-blocking, errors silently swallowed (with console.warn) so AI calls never fail because of PostHog",
-        "Add `POSTHOG_API_KEY=` and `POSTHOG_HOST=https://app.posthog.com` placeholders to .env.example under `# ─── PostHog (cost telemetry) ───`",
+        "trackCost() calls posthog.capture({ distinctId: 'system', event: 'ai_cost', properties: { route, usd_cents, model, input_tokens, output_tokens, duration_ms } }) \u2014 non-blocking, errors silently swallowed (with console.warn) so AI calls never fail because of PostHog",
+        "Add `POSTHOG_API_KEY=` and `POSTHOG_HOST=https://app.posthog.com` placeholders to .env.example under `# \u2500\u2500\u2500 PostHog (cost telemetry) \u2500\u2500\u2500`",
         "Add a unit test in packages/ai/src/__tests__/cost-tracker.test.ts: when POSTHOG_API_KEY is unset, no posthog import side-effects occur; when set, capture is called with expected event shape (mock the PostHog class)",
         "Existing stdout JSON log line continues to be emitted unchanged (other consumers may rely on it)",
         "Typecheck passes",
         "Test suite passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -158,7 +158,7 @@
         "Workflow runs in under 30 seconds on a typical push"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -168,12 +168,12 @@
       "acceptanceCriteria": [
         "Edit `.github/workflows/ios-ci.yml`: add a `Create placeholder .env` step that runs BEFORE `xcodegen` and writes a heredoc-style file to repo root with empty DEEPSEEK_API_KEY, default DEEPSEEK_BASE_URL/MODEL, empty SENTRY_DSN, and DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM env",
         "Edit `.github/workflows/testflight.yml`: same step but populated from `${{ secrets.DEEPSEEK_API_KEY }}`, `${{ secrets.SENTRY_DSN }}`, etc. (these GitHub Secrets are configured manually outside this PR; their absence at run time produces empty values which is acceptable for placeholder behavior)",
-        "Both workflows continue to pass schema-parity → build → test pipeline",
+        "Both workflows continue to pass schema-parity \u2192 build \u2192 test pipeline",
         "ios-ci.yml job named like 'Build iOS app (placeholder secrets)' so reviewers see this is intentional",
         "No real secrets committed in either workflow file"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
