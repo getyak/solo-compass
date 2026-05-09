@@ -30,12 +30,14 @@ public final class UserPreferences {
         var notificationsEnabled: Bool = false
         var quietHoursStart: Int = 22
         var quietHoursEnd: Int = 8
+        var seedImported: Bool = false
+        var swiftDataMirrored: Bool = false
 
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
             case visitHistory, completedExperiences, favoritedExperiences, favoritedAt, pendingCheckIns
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
-            case quietHoursStart, quietHoursEnd
+            case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
         }
 
         init() {}
@@ -54,7 +56,9 @@ public final class UserPreferences {
             hasCompletedOnboarding: Bool,
             notificationsEnabled: Bool,
             quietHoursStart: Int,
-            quietHoursEnd: Int
+            quietHoursEnd: Int,
+            seedImported: Bool,
+            swiftDataMirrored: Bool
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -70,6 +74,8 @@ public final class UserPreferences {
             self.notificationsEnabled = notificationsEnabled
             self.quietHoursStart = quietHoursStart
             self.quietHoursEnd = quietHoursEnd
+            self.seedImported = seedImported
+            self.swiftDataMirrored = swiftDataMirrored
         }
 
         init(from decoder: Decoder) throws {
@@ -88,6 +94,8 @@ public final class UserPreferences {
             self.notificationsEnabled = try c.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? false
             self.quietHoursStart = try c.decodeIfPresent(Int.self, forKey: .quietHoursStart) ?? 22
             self.quietHoursEnd = try c.decodeIfPresent(Int.self, forKey: .quietHoursEnd) ?? 8
+            self.seedImported = try c.decodeIfPresent(Bool.self, forKey: .seedImported) ?? false
+            self.swiftDataMirrored = try c.decodeIfPresent(Bool.self, forKey: .swiftDataMirrored) ?? false
         }
     }
 
@@ -105,6 +113,17 @@ public final class UserPreferences {
     public var notificationsEnabled: Bool { didSet { persist() } }
     public var quietHoursStart: Int { didSet { persist() } }
     public var quietHoursEnd: Int { didSet { persist() } }
+    public var seedImported: Bool { didSet { persist() } }
+    /// True after legacy UserDefaults arrays for completed / favorited /
+    /// pending check-ins have been mirrored into SwiftData. Set once in
+    /// `attachRepository(_:)` and then never re-run.
+    public var swiftDataMirrored: Bool { didSet { persist() } }
+
+    /// Optional repository handle used for double-writing user-action
+    /// mutations into SwiftData. `attachRepository(_:)` wires this up
+    /// once at app boot; tests usually leave it nil and rely on
+    /// UserDefaults only.
+    @ObservationIgnored private weak var experienceRepository: ExperienceRepository?
 
     private static let storageKey = "com.solocompass.userPreferences.v1"
     private let defaults: UserDefaults
@@ -126,6 +145,8 @@ public final class UserPreferences {
         self.notificationsEnabled = snapshot.notificationsEnabled
         self.quietHoursStart = snapshot.quietHoursStart
         self.quietHoursEnd = snapshot.quietHoursEnd
+        self.seedImported = snapshot.seedImported
+        self.swiftDataMirrored = snapshot.swiftDataMirrored
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -155,7 +176,9 @@ public final class UserPreferences {
             hasCompletedOnboarding: hasCompletedOnboarding,
             notificationsEnabled: notificationsEnabled,
             quietHoursStart: quietHoursStart,
-            quietHoursEnd: quietHoursEnd
+            quietHoursEnd: quietHoursEnd,
+            seedImported: seedImported,
+            swiftDataMirrored: swiftDataMirrored
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
@@ -167,20 +190,69 @@ public final class UserPreferences {
         }
     }
 
+    // MARK: - Repository wiring (US-009 double-write to SwiftData)
+
+    /// Wire the SwiftData-backed `ExperienceRepository` so subsequent
+    /// mutations are mirrored to disk. On the first call, also migrates
+    /// any pre-existing UserDefaults arrays into the corresponding
+    /// SwiftData tables.
+    @MainActor
+    public func attachRepository(_ repository: ExperienceRepository) {
+        self.experienceRepository = repository
+        if !swiftDataMirrored {
+            // One-shot mirror: copy existing in-memory state into the
+            // matching SwiftData tables. Idempotent — repo skips
+            // duplicates by id.
+            for id in completedExperiences {
+                if !repository.isCompleted(experienceId: id) {
+                    repository.recordCompletion(
+                        experienceId: id,
+                        at: visitHistory[id] ?? Date()
+                    )
+                }
+            }
+            for id in favoritedExperiences where !repository.isFavorited(experienceId: id) {
+                _ = repository.toggleFavorite(
+                    experienceId: id,
+                    at: favoritedAt[id] ?? Date()
+                )
+            }
+            swiftDataMirrored = true
+        }
+    }
+
     // MARK: - Convenience mutations
 
     public func markCompleted(_ id: String, at date: Date = Date()) {
         completedExperiences.insert(id)
         visitHistory[id] = date
+        // Double-write into SwiftData when wired. Each call inserts a
+        // fresh row (re-completions are tracked individually) — the
+        // repository handles persistence.
+        Task { @MainActor in
+            experienceRepository?.recordCompletion(experienceId: id, at: date)
+        }
     }
 
     public func toggleFavorite(_ id: String, at date: Date = Date()) {
+        let nowFavorited: Bool
         if favoritedExperiences.contains(id) {
             favoritedExperiences.remove(id)
             favoritedAt.removeValue(forKey: id)
+            nowFavorited = false
         } else {
             favoritedExperiences.insert(id)
             favoritedAt[id] = date
+            nowFavorited = true
+        }
+        Task { @MainActor [weak self] in
+            guard let repo = self?.experienceRepository else { return }
+            // Repo's toggleFavorite flips state; we want the repo to
+            // match our new in-memory state. Re-toggle if needed.
+            let repoState = repo.isFavorited(experienceId: id)
+            if repoState != nowFavorited {
+                _ = repo.toggleFavorite(experienceId: id, at: date)
+            }
         }
     }
 

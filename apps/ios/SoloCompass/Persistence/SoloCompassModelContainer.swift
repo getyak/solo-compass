@@ -11,11 +11,20 @@ import SwiftData
 public enum SoloCompassSchemaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { .init(1, 0, 0) }
 
-    /// Models are registered here as they're added in subsequent stories.
-    /// US-001 ships an empty list; US-002 adds `ExperienceRecord`; etc.
+    /// Models registered in v1.0 of the schema. Adding a new model in a
+    /// later release means a new VersionedSchema (v2) + a SchemaMigrationPlan.
     public static var models: [any PersistentModel.Type] {
         [
             ExperienceRecord.self,
+            UserCompletionRecord.self,
+            UserFavoriteRecord.self,
+            MicroSurveyRecord.self,
+            PendingCheckInRecord.self,
+            ExploreCacheRecord.self,
+            AISynthesisCacheRecord.self,
+            DiscoveredCityRecord.self,
+            RecentExploreRegion.self,
+            AIUsageRecord.self,
         ]
     }
 }
