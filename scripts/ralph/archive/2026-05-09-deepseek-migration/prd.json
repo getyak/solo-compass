@@ -1,0 +1,180 @@
+{
+  "project": "Solo Compass \u2014 DeepSeek Migration (TS-only stories)",
+  "branchName": "ralph/deepseek-migration",
+  "description": "Migrate the @solo-compass/ai package from Anthropic Claude (claude-opus-4-7) to DeepSeek (deepseek-v4-pro) using OpenAI-compatible JSON mode. Adds resilience (retry/backoff), observability (Sentry + PostHog), and supply-chain hygiene (gitleaks). iOS changes are excluded from this Ralph run \u2014 handled separately. Pre-flight scaffolding (.env.example, .gitignore, packages/ai/package.json, cost-tracker.ts, client.ts) was committed in 0ed511c before this run; these stories pick up from that state. Full design in tasks/prd-deepseek-migration.md.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Rewrite rank-experiences.ts for DeepSeek JSON mode",
+      "description": "As a developer, I need rank-experiences.ts to call DeepSeek via the OpenAI SDK using JSON mode instead of Anthropic tool-use, so the package compiles after the dependency switch.",
+      "acceptanceCriteria": [
+        "Remove `import Anthropic from \"@anthropic-ai/sdk\"` and replace with `import type OpenAI from \"openai\"` plus `import { createDeepseekClient, deepseekModel } from \"../client\"`",
+        "Replace tool-use block with chat.completions.create using response_format: { type: 'json_object' }",
+        "System prompt instructs the model to output ONLY a JSON object {\"ranked\":[{experienceId,score,reason}]} with no markdown fences",
+        "Add defensive fence-stripping helper that handles ```json...``` wrappers before JSON.parse",
+        "Optional `client?` parameter changes type from `Anthropic` to `OpenAI`; default falls back to createDeepseekClient()",
+        "Score clamping (0-100) and id-validation logic preserved exactly",
+        "withCostTracking integration preserved using new OpenAI.CompletionUsage shape",
+        "File no longer references claude-opus-4-7 or any Anthropic types",
+        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Rewrite structure-experience.ts for DeepSeek JSON mode",
+      "description": "As a developer, I need structure-experience.ts to use DeepSeek JSON mode for both extraction and refusal paths, so AI source-compilation works end-to-end on the new provider.",
+      "acceptanceCriteria": [
+        "Remove all `@anthropic-ai/sdk` imports and tool-use schemas (EMIT_EXPERIENCE_TOOL, REFUSE_TOOL)",
+        "System prompt requires the model to output JSON {\"action\":\"emit\"|\"refuse\", ...} with all schema fields described inline as JSON Schema-style guidance",
+        "On action='refuse', return { experience: null, refusalReason, modelConfidence: 0 }",
+        "On action='emit', map JSON fields to the Experience type identically to the previous implementation (id slug, GeoJSON coords, status='candidate', soloScore zeroed)",
+        "Defensive fence-stripping in shared parser",
+        "Optional `client?` parameter is `OpenAI` type",
+        "max_tokens: 2048 (unchanged from Anthropic version)",
+        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Update packages/ai index.ts exports for DeepSeek",
+      "description": "As a consumer of @solo-compass/ai, I need access to the new DeepSeek client factory so I can override the default client in tests or in apps that prefer dependency injection.",
+      "acceptanceCriteria": [
+        "Re-export `createDeepseekClient`, `deepseekModel`, `deepseekBaseURL` from `./client`",
+        "Existing exports (rankExperiences, structureExperience, parseIntent, dedup, trackCost, withCostTracking, all *Input/*Result types) remain unchanged",
+        "No remaining `Anthropic` type re-exports",
+        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Rewrite rank-experiences.test.ts to mock OpenAI shape",
+      "description": "As a maintainer, I need the unit tests to mock OpenAI's response shape so anti-hallucination guards continue to run without real API calls.",
+      "acceptanceCriteria": [
+        "Replace `import type Anthropic from \"@anthropic-ai/sdk\"` with `import type OpenAI from \"openai\"`",
+        "makeMockClient returns an object shaped like OpenAI client: `{ chat: { completions: { create: vi.fn().mockResolvedValue({ choices: [{ message: { content: <JSON-string> } }], usage: { prompt_tokens, completion_tokens, total_tokens }, model }) } } }`",
+        "Mock JSON content is `JSON.stringify({ ranked: rankedItems })`",
+        "All six existing test cases preserved (id-not-invented, score clamp 100, score clamp 0, max-3-items, empty-input, reason pass-through)",
+        "Test suite passes (run: pnpm --filter @solo-compass/ai test)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Rewrite structure-experience.test.ts to mock OpenAI shape and delete obsolete __golden__ files",
+      "description": "As a maintainer, I need golden-replay tests rewritten so they mock OpenAI's JSON response (or skipped pending live regeneration), and the now-obsolete Anthropic tool-use golden files removed.",
+      "acceptanceCriteria": [
+        "Delete `packages/ai/src/__golden__/wikivoyage-chiang-mai-suthep.json`",
+        "Delete `packages/ai/src/__golden__/reddit-coffee-thread.json`",
+        "Delete `packages/ai/src/__golden__/insufficient-blurb.json`",
+        "Add `packages/ai/src/__golden__/README.md` explaining how to regenerate via `LIVE_API=true pnpm --filter @solo-compass/ai test:live` once a real DEEPSEEK_API_KEY is available",
+        "Replace `structure-experience.test.ts` golden-replay tests with mock-based tests that hardcode small synthetic JSON responses inline (covers: emit-success path, refuse path, fence-wrapped response stripping, malformed JSON returns null with refusalReason)",
+        "All assertions remain meaningful (schema validity, GeoJSON order, source-url-not-fabricated, refusal reason non-empty)",
+        "Test suite passes (run: pnpm --filter @solo-compass/ai test)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add retry-with-backoff helper for DeepSeek calls",
+      "description": "As a user with flaky network or hitting DeepSeek rate limits, I need transient errors to be retried automatically so a single 429 or network blip does not break my recommendation request.",
+      "acceptanceCriteria": [
+        "Create `packages/ai/src/retry.ts` exporting `withRetry<T>(fn: () => Promise<T>, opts?: { maxAttempts?: number; backoffSecs?: number[]; signal?: AbortSignal }): Promise<T>`",
+        "Defaults: maxAttempts=3, backoffSecs=[0, 2, 6]",
+        "Retries on: network errors (TypeError, fetch errors), 429, 502, 503, 504",
+        "Does NOT retry on: 400, 401, 403, 422 (auth/format errors)",
+        "Each retry waits backoffSecs[attempt-1] seconds; after final attempt, throws the last error",
+        "Wrap the openai.chat.completions.create call in rank-experiences.ts and structure-experience.ts with `withRetry(...)`",
+        "Add unit tests in `packages/ai/src/__tests__/retry.test.ts` covering: success on first try, retry-then-succeed, give-up-after-max, no-retry-on-401",
+        "Use vi.useFakeTimers() to keep tests fast",
+        "Typecheck passes",
+        "Test suite passes (run: pnpm --filter @solo-compass/ai test)"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Initialize Sentry in apps/bot and apps/web entry points",
+      "description": "As a maintainer, I need crash and error reports to flow into Sentry so I can detect production issues without users having to file bugs.",
+      "acceptanceCriteria": [
+        "apps/bot: at the very top of `src/index.ts`, before any other import, call `Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1, environment: process.env.NODE_ENV ?? 'development' })`. If SENTRY_DSN is empty or missing, skip init silently (do not throw).",
+        "apps/bot: existing `captureException` calls continue to work (they already imported from @sentry/node)",
+        "apps/web: create three sibling files at the project root \u2014 `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` \u2014 each calling `Sentry.init` from `@sentry/nextjs` with appropriate settings. tracesSampleRate=0.1, dsn from env.",
+        "apps/web: update `next.config.ts` to wrap export with `withSentryConfig` from @sentry/nextjs (silent: true to keep build logs clean)",
+        "Add `SENTRY_DSN=` (empty) to `.env.example` under a `# \u2500\u2500\u2500 Sentry (error tracking) \u2500\u2500\u2500` block",
+        "Add `NEXT_PUBLIC_SENTRY_DSN=` to .env.example with note that it is the same value as SENTRY_DSN but exposed to browser bundles",
+        "Both apps build without error when SENTRY_DSN is empty",
+        "Typecheck passes for both apps (run: pnpm --filter @solo-compass/bot typecheck && pnpm --filter @solo-compass/web typecheck)"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Forward AI cost events to PostHog from cost-tracker",
+      "description": "As a maintainer, I want every AI call's cost emitted to PostHog (in addition to stdout) so I can build cost dashboards and alerts without rolling my own log aggregation.",
+      "acceptanceCriteria": [
+        "Add `posthog-node` runtime dependency to packages/ai/package.json (^4.0.0)",
+        "In cost-tracker.ts, add a module-scoped lazy-initialized PostHog client that reads `process.env.POSTHOG_API_KEY` and `process.env.POSTHOG_HOST` (default https://app.posthog.com). If POSTHOG_API_KEY is empty, skip and only stdout-log.",
+        "trackCost() calls posthog.capture({ distinctId: 'system', event: 'ai_cost', properties: { route, usd_cents, model, input_tokens, output_tokens, duration_ms } }) \u2014 non-blocking, errors silently swallowed (with console.warn) so AI calls never fail because of PostHog",
+        "Add `POSTHOG_API_KEY=` and `POSTHOG_HOST=https://app.posthog.com` placeholders to .env.example under `# \u2500\u2500\u2500 PostHog (cost telemetry) \u2500\u2500\u2500`",
+        "Add a unit test in packages/ai/src/__tests__/cost-tracker.test.ts: when POSTHOG_API_KEY is unset, no posthog import side-effects occur; when set, capture is called with expected event shape (mock the PostHog class)",
+        "Existing stdout JSON log line continues to be emitted unchanged (other consumers may rely on it)",
+        "Typecheck passes",
+        "Test suite passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add gitleaks secret-scanning GitHub Action",
+      "description": "As a maintainer, I need every push and PR to be scanned for accidentally committed secrets so a key leak is caught before it merges.",
+      "acceptanceCriteria": [
+        "Create `.github/workflows/secret-scan.yml` running on push (all branches) and pull_request",
+        "Workflow uses `gitleaks/gitleaks-action@v2` with default config",
+        "Workflow has `permissions: contents: read` only (least privilege)",
+        "Workflow fails (non-zero exit) when leaks are detected",
+        "Add `.gitleaks.toml` at repo root with allowlist entries for: (a) the Mapbox public-token placeholder pattern `pk.eyJ` in .env.example; (b) the Supabase placeholder URL pattern in .env.example; (c) the literal string `sk-replace-me`. The .toml extends gitleaks' default ruleset.",
+        "Add a 'Secret scanning' section to the root README.md describing how to run gitleaks locally (`gitleaks detect --source . --no-git`) and what the .gitleaks.toml allowlist exempts and why",
+        "Workflow runs in under 30 seconds on a typical push"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Inject placeholder .env in iOS CI workflows",
+      "description": "As CI, I need a placeholder .env so the iOS build's generate_secrets.sh step (added in a separate iOS commit) does not fail in environments where real secrets are not (and should not be) available.",
+      "acceptanceCriteria": [
+        "Edit `.github/workflows/ios-ci.yml`: add a `Create placeholder .env` step that runs BEFORE `xcodegen` and writes a heredoc-style file to repo root with empty DEEPSEEK_API_KEY, default DEEPSEEK_BASE_URL/MODEL, empty SENTRY_DSN, and DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM env",
+        "Edit `.github/workflows/testflight.yml`: same step but populated from `${{ secrets.DEEPSEEK_API_KEY }}`, `${{ secrets.SENTRY_DSN }}`, etc. (these GitHub Secrets are configured manually outside this PR; their absence at run time produces empty values which is acceptable for placeholder behavior)",
+        "Both workflows continue to pass schema-parity \u2192 build \u2192 test pipeline",
+        "ios-ci.yml job named like 'Build iOS app (placeholder secrets)' so reviewers see this is intentional",
+        "No real secrets committed in either workflow file"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

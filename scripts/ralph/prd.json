@@ -1,179 +1,726 @@
 {
-  "project": "Solo Compass \u2014 DeepSeek Migration (TS-only stories)",
-  "branchName": "ralph/deepseek-migration",
-  "description": "Migrate the @solo-compass/ai package from Anthropic Claude (claude-opus-4-7) to DeepSeek (deepseek-v4-pro) using OpenAI-compatible JSON mode. Adds resilience (retry/backoff), observability (Sentry + PostHog), and supply-chain hygiene (gitleaks). iOS changes are excluded from this Ralph run \u2014 handled separately. Pre-flight scaffolding (.env.example, .gitignore, packages/ai/package.json, cost-tracker.ts, client.ts) was committed in 0ed511c before this run; these stories pick up from that state. Full design in tasks/prd-deepseek-migration.md.",
+  "project": "Solo Compass — Paid-App Foundation (iOS v1.1)",
+  "branchName": "ralph/paid-app-foundation",
+  "description": "Turn the iOS app from a memory-only demo into a shippable paid product. Adds: SwiftData persistence (all Experiences + user state), region-keyed caches for Overpass and Claude synthesis, Sonnet 4.6 default model + Haiku for explanations, hallucination-resistant prompt, AI-confidence visual downgrade, reverse geocoding, MicroSurvey writeback, three-state Solo-Score cold-start UX, StoreKit 2 freemium with 7-day trial (Apple price tier 2 monthly / tier 11 yearly, globally uniform), paywall, Supabase anonymous auth + outbox sync + shared synthesis cache + Edge Function (removes Anthropic key from client), optional Sign-in-with-Apple linking, privacy manifest + consent sheet, zh-Hans localization, TestFlight prep. Local-first invariant: SwiftData is the source of truth for every UI read; backend is sync + cache only; app must stay fully usable offline. Full design in tasks/prd-paid-app-foundation.md.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Rewrite rank-experiences.ts for DeepSeek JSON mode",
-      "description": "As a developer, I need rank-experiences.ts to call DeepSeek via the OpenAI SDK using JSON mode instead of Anthropic tool-use, so the package compiles after the dependency switch.",
+      "title": "Add SwiftData ModelContainer with empty schema scaffold",
+      "description": "As a developer, I need a SoloCompassModelContainer.swift file that wires up an empty SwiftData ModelContainer wrapped in a VersionedSchema (SoloCompassSchemaV1), so subsequent stories can register @Model classes incrementally.",
       "acceptanceCriteria": [
-        "Remove `import Anthropic from \"@anthropic-ai/sdk\"` and replace with `import type OpenAI from \"openai\"` plus `import { createDeepseekClient, deepseekModel } from \"../client\"`",
-        "Replace tool-use block with chat.completions.create using response_format: { type: 'json_object' }",
-        "System prompt instructs the model to output ONLY a JSON object {\"ranked\":[{experienceId,score,reason}]} with no markdown fences",
-        "Add defensive fence-stripping helper that handles ```json...``` wrappers before JSON.parse",
-        "Optional `client?` parameter changes type from `Anthropic` to `OpenAI`; default falls back to createDeepseekClient()",
-        "Score clamping (0-100) and id-validation logic preserved exactly",
-        "withCostTracking integration preserved using new OpenAI.CompletionUsage shape",
-        "File no longer references claude-opus-4-7 or any Anthropic types",
-        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+        "Create apps/ios/SoloCompass/Persistence/SoloCompassModelContainer.swift",
+        "Define enum SoloCompassSchemaV1: VersionedSchema with versionIdentifier = Schema.Version(1, 0, 0) and empty models array initially",
+        "Expose a static .shared ModelContainer using SoloCompassSchemaV1 backed by an on-disk SQLite store",
+        "Inject ModelContainer into SoloCompassApp via .modelContainer(SoloCompassModelContainer.shared)",
+        "App still builds and launches with no behavior change",
+        "Typecheck passes (run: cd apps/ios && xcodebuild build -project SoloCompass.xcodeproj -scheme SoloCompass -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest')"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Rewrite structure-experience.ts for DeepSeek JSON mode",
-      "description": "As a developer, I need structure-experience.ts to use DeepSeek JSON mode for both extraction and refusal paths, so AI source-compilation works end-to-end on the new provider.",
+      "title": "Define ExperienceRecord @Model with two-way Experience mapping",
+      "description": "As a developer, I need an ExperienceRecord SwiftData @Model that round-trips losslessly with the existing Experience value type, so the app can persist seed and generated Experiences.",
       "acceptanceCriteria": [
-        "Remove all `@anthropic-ai/sdk` imports and tool-use schemas (EMIT_EXPERIENCE_TOOL, REFUSE_TOOL)",
-        "System prompt requires the model to output JSON {\"action\":\"emit\"|\"refuse\", ...} with all schema fields described inline as JSON Schema-style guidance",
-        "On action='refuse', return { experience: null, refusalReason, modelConfidence: 0 }",
-        "On action='emit', map JSON fields to the Experience type identically to the previous implementation (id slug, GeoJSON coords, status='candidate', soloScore zeroed)",
-        "Defensive fence-stripping in shared parser",
-        "Optional `client?` parameter is `OpenAI` type",
-        "max_tokens: 2048 (unchanged from Anthropic version)",
-        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+        "Create apps/ios/SoloCompass/Persistence/Models/ExperienceRecord.swift",
+        "@Model class ExperienceRecord stores all Experience fields: id (unique), title, oneLiner, whyItMatters, category (raw String), latitude, longitude, cityCode, addressHint, placeNameLocal, placeNameRomanized, durationMin, durationMax, status (raw String), createdAt, updatedAt, plus encoded JSON Data blobs for bestTimes, howTo, realInconveniences, sources, soloScore, confidence, stats, nearbyExperienceIds",
+        "Initializer ExperienceRecord(from: Experience) populates all fields using JSONEncoder.iso8601Encoder for blob fields",
+        "Computed property var asValue: Experience decodes blobs and returns a value-type Experience",
+        "Register ExperienceRecord.self in SoloCompassSchemaV1.models",
+        "Unit test: round-trip the first ExperienceService.hardcodedSeed entry through ExperienceRecord(from:).asValue and assert id, title, category, soloScore.overall match",
+        "Typecheck passes",
+        "Tests pass (run: xcodebuild test -project SoloCompass.xcodeproj -scheme SoloCompass -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest')"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Update packages/ai index.ts exports for DeepSeek",
-      "description": "As a consumer of @solo-compass/ai, I need access to the new DeepSeek client factory so I can override the default client in tests or in apps that prefer dependency injection.",
+      "title": "Add UserCompletionRecord and UserFavoriteRecord @Models",
+      "description": "As a developer, I need separate SwiftData tables for user completions and favorites so they can be queried per experience without mutating the Experience itself.",
       "acceptanceCriteria": [
-        "Re-export `createDeepseekClient`, `deepseekModel`, `deepseekBaseURL` from `./client`",
-        "Existing exports (rankExperiences, structureExperience, parseIntent, dedup, trackCost, withCostTracking, all *Input/*Result types) remain unchanged",
-        "No remaining `Anthropic` type re-exports",
-        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+        "Create apps/ios/SoloCompass/Persistence/Models/UserCompletionRecord.swift with fields: id (UUID), experienceId (String, indexed), completedAt (Date)",
+        "Create apps/ios/SoloCompass/Persistence/Models/UserFavoriteRecord.swift with fields: id (UUID), experienceId (String, unique), favoritedAt (Date)",
+        "Register both in SoloCompassSchemaV1.models",
+        "Unit test: insert two UserFavoriteRecords with same experienceId — assert second insert throws or upserts (document chosen behavior)",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Rewrite rank-experiences.test.ts to mock OpenAI shape",
-      "description": "As a maintainer, I need the unit tests to mock OpenAI's response shape so anti-hallucination guards continue to run without real API calls.",
+      "title": "Add MicroSurveyRecord and PendingCheckInRecord @Models",
+      "description": "As a developer, I need persistent storage for micro-survey responses and pending check-ins so the existing UI flows can write through.",
       "acceptanceCriteria": [
-        "Replace `import type Anthropic from \"@anthropic-ai/sdk\"` with `import type OpenAI from \"openai\"`",
-        "makeMockClient returns an object shaped like OpenAI client: `{ chat: { completions: { create: vi.fn().mockResolvedValue({ choices: [{ message: { content: <JSON-string> } }], usage: { prompt_tokens, completion_tokens, total_tokens }, model }) } } }`",
-        "Mock JSON content is `JSON.stringify({ ranked: rankedItems })`",
-        "All six existing test cases preserved (id-not-invented, score clamp 100, score clamp 0, max-3-items, empty-input, reason pass-through)",
-        "Test suite passes (run: pnpm --filter @solo-compass/ai test)",
-        "Typecheck passes"
+        "Create apps/ios/SoloCompass/Persistence/Models/MicroSurveyRecord.swift with fields: id (UUID), experienceId (String, indexed), comfort (Int 1-5), pressure (Int 1-5), recommend (String 'yes'|'depends'|'no'), submittedAt (Date), anonDeviceId (String)",
+        "Create apps/ios/SoloCompass/Persistence/Models/PendingCheckInRecord.swift with fields: id (UUID), experienceId (String, unique), triggeredAt (Date)",
+        "Register both in SoloCompassSchemaV1.models",
+        "Unit test: insert one MicroSurveyRecord and fetch it back, assert all fields match",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Rewrite structure-experience.test.ts to mock OpenAI shape and delete obsolete __golden__ files",
-      "description": "As a maintainer, I need golden-replay tests rewritten so they mock OpenAI's JSON response (or skipped pending live regeneration), and the now-obsolete Anthropic tool-use golden files removed.",
+      "title": "Add ExploreCacheRecord and AISynthesisCacheRecord @Models",
+      "description": "As a developer, I need cache tables for Overpass POI batches and AI synthesis results so subsequent stories can implement TTL-based cache hits.",
       "acceptanceCriteria": [
-        "Delete `packages/ai/src/__golden__/wikivoyage-chiang-mai-suthep.json`",
-        "Delete `packages/ai/src/__golden__/reddit-coffee-thread.json`",
-        "Delete `packages/ai/src/__golden__/insufficient-blurb.json`",
-        "Add `packages/ai/src/__golden__/README.md` explaining how to regenerate via `LIVE_API=true pnpm --filter @solo-compass/ai test:live` once a real DEEPSEEK_API_KEY is available",
-        "Replace `structure-experience.test.ts` golden-replay tests with mock-based tests that hardcode small synthetic JSON responses inline (covers: emit-success path, refuse path, fence-wrapped response stripping, malformed JSON returns null with refusalReason)",
-        "All assertions remain meaningful (schema validity, GeoJSON order, source-url-not-fabricated, refusal reason non-empty)",
-        "Test suite passes (run: pnpm --filter @solo-compass/ai test)",
-        "Typecheck passes"
+        "Create apps/ios/SoloCompass/Persistence/Models/ExploreCacheRecord.swift with fields: regionKey (String, unique e.g. '21.03_105.85_3000'), osmJSON (Data), fetchedAt (Date), poiCount (Int)",
+        "Create apps/ios/SoloCompass/Persistence/Models/AISynthesisCacheRecord.swift with fields: cacheKey (String, unique SHA256 hex), experiencesJSON (Data), synthesizedAt (Date), modelName (String)",
+        "Register both in SoloCompassSchemaV1.models",
+        "Unit test: insert and fetch one record from each table, assert fields match",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Add retry-with-backoff helper for DeepSeek calls",
-      "description": "As a user with flaky network or hitting DeepSeek rate limits, I need transient errors to be retried automatically so a single 429 or network blip does not break my recommendation request.",
+      "title": "Add DiscoveredCityRecord, RecentExploreRegion, AIUsageRecord @Models",
+      "description": "As a developer, I need three small @Models to back reverse-geocoded city names, last-explored regions for offline mode, and per-day AI usage counts.",
       "acceptanceCriteria": [
-        "Create `packages/ai/src/retry.ts` exporting `withRetry<T>(fn: () => Promise<T>, opts?: { maxAttempts?: number; backoffSecs?: number[]; signal?: AbortSignal }): Promise<T>`",
-        "Defaults: maxAttempts=3, backoffSecs=[0, 2, 6]",
-        "Retries on: network errors (TypeError, fetch errors), 429, 502, 503, 504",
-        "Does NOT retry on: 400, 401, 403, 422 (auth/format errors)",
-        "Each retry waits backoffSecs[attempt-1] seconds; after final attempt, throws the last error",
-        "Wrap the openai.chat.completions.create call in rank-experiences.ts and structure-experience.ts with `withRetry(...)`",
-        "Add unit tests in `packages/ai/src/__tests__/retry.test.ts` covering: success on first try, retry-then-succeed, give-up-after-max, no-retry-on-401",
-        "Use vi.useFakeTimers() to keep tests fast",
+        "Create apps/ios/SoloCompass/Persistence/Models/DiscoveredCityRecord.swift with fields: cityCode (String, unique), name (String), countryCode (String), centerLat (Double), centerLon (Double), discoveredAt (Date)",
+        "Create apps/ios/SoloCompass/Persistence/Models/RecentExploreRegion.swift with fields: id (UUID), centerLat (Double), centerLon (Double), radiusMeters (Int), exploredAt (Date)",
+        "Create apps/ios/SoloCompass/Persistence/Models/AIUsageRecord.swift with fields: id (UUID), date (Date, indexed, day-truncated), synthesisCalls (Int), explanationCalls (Int)",
+        "Register all three in SoloCompassSchemaV1.models",
+        "Unit test: insert one of each and fetch back, assert fields match",
         "Typecheck passes",
-        "Test suite passes (run: pnpm --filter @solo-compass/ai test)"
+        "Tests pass"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-007",
-      "title": "Initialize Sentry in apps/bot and apps/web entry points",
-      "description": "As a maintainer, I need crash and error reports to flow into Sentry so I can detect production issues without users having to file bugs.",
+      "title": "Implement ExperienceRepository with seed import",
+      "description": "As a developer, I need an ExperienceRepository that owns SwiftData CRUD for experiences and seeds the bundle JSON on first launch.",
       "acceptanceCriteria": [
-        "apps/bot: at the very top of `src/index.ts`, before any other import, call `Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1, environment: process.env.NODE_ENV ?? 'development' })`. If SENTRY_DSN is empty or missing, skip init silently (do not throw).",
-        "apps/bot: existing `captureException` calls continue to work (they already imported from @sentry/node)",
-        "apps/web: create three sibling files at the project root \u2014 `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` \u2014 each calling `Sentry.init` from `@sentry/nextjs` with appropriate settings. tracesSampleRate=0.1, dsn from env.",
-        "apps/web: update `next.config.ts` to wrap export with `withSentryConfig` from @sentry/nextjs (silent: true to keep build logs clean)",
-        "Add `SENTRY_DSN=` (empty) to `.env.example` under a `# \u2500\u2500\u2500 Sentry (error tracking) \u2500\u2500\u2500` block",
-        "Add `NEXT_PUBLIC_SENTRY_DSN=` to .env.example with note that it is the same value as SENTRY_DSN but exposed to browser bundles",
-        "Both apps build without error when SENTRY_DSN is empty",
-        "Typecheck passes for both apps (run: pnpm --filter @solo-compass/bot typecheck && pnpm --filter @solo-compass/web typecheck)"
+        "Create apps/ios/SoloCompass/Persistence/ExperienceRepository.swift as a @MainActor class taking ModelContext",
+        "Method importSeedIfNeeded() reads UserPreferences.seedImported flag; if false, decodes Resources/JSON/seed_experiences.json and inserts each as ExperienceRecord, then sets the flag",
+        "Add Bool seedImported (default false) to UserPreferences with UserDefaults backing",
+        "Method allExperiences() -> [Experience] fetches all rows and returns asValue",
+        "Method experience(id:) -> Experience? fetches by id",
+        "Method nearby(coordinate:radiusKm:) -> [Experience] fetches and filters by distance, sorted ascending",
+        "Method appendGenerated(_ experiences: [Experience]) inserts new ExperienceRecords; idempotent by id (skip duplicates)",
+        "Unit test: empty store -> importSeedIfNeeded() -> assert allExperiences().count == 5 and seedImported == true; second call is no-op",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 7,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-008",
-      "title": "Forward AI cost events to PostHog from cost-tracker",
-      "description": "As a maintainer, I want every AI call's cost emitted to PostHog (in addition to stdout) so I can build cost dashboards and alerts without rolling my own log aggregation.",
+      "title": "Refactor ExperienceService to delegate to ExperienceRepository",
+      "description": "As a developer, I need ExperienceService to become a thin facade over ExperienceRepository while preserving its existing public @Observable API so views compile unchanged.",
       "acceptanceCriteria": [
-        "Add `posthog-node` runtime dependency to packages/ai/package.json (^4.0.0)",
-        "In cost-tracker.ts, add a module-scoped lazy-initialized PostHog client that reads `process.env.POSTHOG_API_KEY` and `process.env.POSTHOG_HOST` (default https://app.posthog.com). If POSTHOG_API_KEY is empty, skip and only stdout-log.",
-        "trackCost() calls posthog.capture({ distinctId: 'system', event: 'ai_cost', properties: { route, usd_cents, model, input_tokens, output_tokens, duration_ms } }) \u2014 non-blocking, errors silently swallowed (with console.warn) so AI calls never fail because of PostHog",
-        "Add `POSTHOG_API_KEY=` and `POSTHOG_HOST=https://app.posthog.com` placeholders to .env.example under `# \u2500\u2500\u2500 PostHog (cost telemetry) \u2500\u2500\u2500`",
-        "Add a unit test in packages/ai/src/__tests__/cost-tracker.test.ts: when POSTHOG_API_KEY is unset, no posthog import side-effects occur; when set, capture is called with expected event shape (mock the PostHog class)",
-        "Existing stdout JSON log line continues to be emitted unchanged (other consumers may rely on it)",
+        "Modify apps/ios/SoloCompass/Services/ExperienceService.swift to hold a private ExperienceRepository instead of in-memory arrays",
+        "Existing public methods (allExperiences, filteredExperiences, getExperiences, getExperience, getBestNowExperiences, filter, appendGenerated, markCompleted, toggleFavorite) delegate to the repo and read-back",
+        "On init, call repository.importSeedIfNeeded() so existing tests/previews keep working",
+        "MapViewModel and ExperienceDetailViewModel and CompassMapView require zero source changes",
+        "Update existing tests testFilteringByCategoryAndDistance and testGetExperiencesNearReturnsSortedByDistance to pass against the new backing store",
         "Typecheck passes",
-        "Test suite passes"
+        "Tests pass"
       ],
       "priority": 8,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-009",
-      "title": "Add gitleaks secret-scanning GitHub Action",
-      "description": "As a maintainer, I need every push and PR to be scanned for accidentally committed secrets so a key leak is caught before it merges.",
+      "title": "Move UserPreferences completed/favorites lists into SwiftData",
+      "description": "As a user, I want my favorites and completed experiences to persist via SwiftData (not UserDefaults arrays) and survive a clean reinstall once I'm signed in.",
       "acceptanceCriteria": [
-        "Create `.github/workflows/secret-scan.yml` running on push (all branches) and pull_request",
-        "Workflow uses `gitleaks/gitleaks-action@v2` with default config",
-        "Workflow has `permissions: contents: read` only (least privilege)",
-        "Workflow fails (non-zero exit) when leaks are detected",
-        "Add `.gitleaks.toml` at repo root with allowlist entries for: (a) the Mapbox public-token placeholder pattern `pk.eyJ` in .env.example; (b) the Supabase placeholder URL pattern in .env.example; (c) the literal string `sk-replace-me`. The .toml extends gitleaks' default ruleset.",
-        "Add a 'Secret scanning' section to the root README.md describing how to run gitleaks locally (`gitleaks detect --source . --no-git`) and what the .gitleaks.toml allowlist exempts and why",
-        "Workflow runs in under 30 seconds on a typical push"
+        "UserPreferences.isCompleted(id) and isFavorited(id) become read-through to ExperienceRepository (which queries UserCompletionRecord / UserFavoriteRecord)",
+        "UserPreferences.markCompleted(id) inserts UserCompletionRecord; toggleFavorite(id) inserts/deletes UserFavoriteRecord",
+        "Migration: on first launch of v1.1, read the old UserDefaults completedExperienceIds and favoriteExperienceIds arrays, insert corresponding rows into SwiftData, then delete the old keys",
+        "Style, maxDistanceKm, dislikedCategories, lastSelectedCity remain in UserDefaults",
+        "Unit test: pre-populate UserDefaults with two completed ids and one favorite id, instantiate UserPreferences -> assert SwiftData has matching rows and old UserDefaults keys are cleared",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 9,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-010",
-      "title": "Inject placeholder .env in iOS CI workflows",
-      "description": "As CI, I need a placeholder .env so the iOS build's generate_secrets.sh step (added in a separate iOS commit) does not fail in environments where real secrets are not (and should not be) available.",
+      "title": "Persist generated Experiences from exploreNearby through SwiftData",
+      "description": "As a user, I want OSM-generated Experiences to survive force-quit so I don't lose what I just discovered.",
       "acceptanceCriteria": [
-        "Edit `.github/workflows/ios-ci.yml`: add a `Create placeholder .env` step that runs BEFORE `xcodegen` and writes a heredoc-style file to repo root with empty DEEPSEEK_API_KEY, default DEEPSEEK_BASE_URL/MODEL, empty SENTRY_DSN, and DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM env",
-        "Edit `.github/workflows/testflight.yml`: same step but populated from `${{ secrets.DEEPSEEK_API_KEY }}`, `${{ secrets.SENTRY_DSN }}`, etc. (these GitHub Secrets are configured manually outside this PR; their absence at run time produces empty values which is acceptable for placeholder behavior)",
-        "Both workflows continue to pass schema-parity \u2192 build \u2192 test pipeline",
-        "ios-ci.yml job named like 'Build iOS app (placeholder secrets)' so reviewers see this is intentional",
-        "No real secrets committed in either workflow file"
+        "MapViewModel.exploreNearby calls experienceService.appendGenerated which now writes through to SwiftData via the repo",
+        "After force-quit and relaunch, generated pins are still loaded into visibleExperiences (verify by extending an existing test that simulates exploration with mocked services)",
+        "ExperienceService.allExperiences after relaunch returns seed + previously-generated entries with correct ids",
+        "Unit test: append two generated Experiences via service, recreate the service against the same store, assert allExperiences contains them",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 10,
-      "passes": true,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Implement Overpass cache layer with 14-day TTL",
+      "description": "As a product owner, I need OverpassService to reuse cached POIs by region so repeated Explore taps don't burn quota.",
+      "acceptanceCriteria": [
+        "OverpassService takes an optional ExperienceRepository in init for cache access",
+        "fetchPOIs computes regionKey = String(format: '%.2f_%.2f_%d', lat.rounded, lon.rounded, radiusMeters)",
+        "On call: fetch ExploreCacheRecord by regionKey; if found and now - fetchedAt < 14 days, decode osmJSON and return without HTTP",
+        "On miss: real fetch -> on success, write ExploreCacheRecord with the raw JSON Data and current timestamp",
+        "Add public method clearExploreCache() that deletes all ExploreCacheRecord rows",
+        "Unit test (URLProtocol stub): two consecutive fetchPOIs at the same coordinate trigger only one HTTP request",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Implement AI synthesis cache layer with 30-day TTL",
+      "description": "As a product owner, I need AIService.synthesizeExperiences to dedupe by POI batch hash so the same input never re-runs through Claude.",
+      "acceptanceCriteria": [
+        "Add CryptoKit import; helper that computes SHA256 hex of the canonical input: sorted osmIds joined by '|' + cityCode + locale.identifier + modelName",
+        "AIService takes an optional ExperienceRepository in init",
+        "synthesizeExperiences checks AISynthesisCacheRecord by cacheKey; if found and now - synthesizedAt < 30 days, decode experiencesJSON and return without HTTP",
+        "On miss + successful synthesis: write AISynthesisCacheRecord with the encoded [Experience] JSON",
+        "Skeleton fallback path does NOT write to cache (only successful real-AI results do)",
+        "Add public method clearSynthesisCache()",
+        "Unit test: with a stubbed network returning a fixed response, two consecutive synthesizeExperiences with same POIs trigger only one HTTP call and return identical results",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Switch default synthesis model to claude-sonnet-4-6 with Haiku for explanations",
+      "description": "As a product owner, I want AI generation cost to drop ~80% by routing synthesis through Sonnet 4.6 and explanations through Haiku 4.5.",
+      "acceptanceCriteria": [
+        "AIService gains three private model names: synthesisModel = 'claude-sonnet-4-6', explanationModel = 'claude-haiku-4-5-20251001', voiceIntentModel = 'claude-sonnet-4-6'",
+        "Each per-method sendMessage call uses the appropriate model (synthesizeExperiences -> synthesisModel; explainRecommendation -> explanationModel; processVoiceIntent -> voiceIntentModel; recommendExperiences -> synthesisModel)",
+        "Models are read from Secrets.plist keys ANTHROPIC_MODEL_SYNTHESIS, ANTHROPIC_MODEL_EXPLANATION, ANTHROPIC_MODEL_VOICE if present, otherwise use the defaults above",
+        "Env var AI_FORCE_OPUS=1 routes everything to claude-opus-4-7 for golden-set runs",
+        "Unit test: with Secrets.plist absent and AI_FORCE_OPUS unset, the synthesis prompt request body contains 'claude-sonnet-4-6'; with AI_FORCE_OPUS set, it contains 'claude-opus-4-7'",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Harden synthesis prompt against hallucinated specifics",
+      "description": "As a user, I need generated Experiences to never invent menu items, hours, prices, or interior details the model couldn't actually know.",
+      "acceptanceCriteria": [
+        "Update AIService.synthesisPrompt to include an explicit constraints block: 'Use ONLY the provided OSM tags. Do NOT invent menu items, interior details, hours, prices, owner backstories, or specific seating positions. If a field is not derivable from tags, write a generic safe value.'",
+        "howTo guidance changed to navigation steps only (no 'order the X', no 'sit at the Y')",
+        "Add 2 few-shot examples in the prompt: one good (tag-derived, generic) and one bad (hallucinated specifics) showing the expected style",
+        "New regression test: feed a single POI with tags {amenity: cafe, name: 'Quan A'} through skeleton fallback (so no live model call needed) and assert NONE of these phrases appear in oneLiner/whyItMatters/howTo: 'order the', 'try the', 'sit at the', 'best seat', 'the owner', 'opens at', 'closes at', 'menu', 'price', 'specialty'",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add per-user daily AI quota with skeleton-mode degradation",
+      "description": "As a product owner, I want a hard daily cap on Claude calls per user so a runaway loop never costs more than a dollar.",
+      "acceptanceCriteria": [
+        "AIService gains async helper checkAndIncrementQuota(kind: .synthesis | .explanation) that reads/writes today's AIUsageRecord row",
+        "Free tier limit: synthesis 0, explanation 0 (effectively gated by entitlement; quota is the second line of defense)",
+        "Pro tier limit: synthesis 30/day, explanation 60/day; cache hits do NOT increment the counter",
+        "When limit hit, synthesizeExperiences sets a public quotaExceededAt: Date? and falls back to skeleton mode for remaining POIs in this call",
+        "MapViewModel exposes lastQuotaInfo: String? for UI (rendered in Story US-021)",
+        "Unit test: simulate 30 successful synthesis calls in one day, assert call 31 returns skeleton results and quotaExceededAt is set; assert counter resets after AIUsageRecord.date moves to next UTC day",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Add ReverseGeocodeService and DiscoveredCityRecord write-through",
+      "description": "As a user, I want my city picker to show real city names like 'Hanoi' instead of 'osm_21.0_105.9'.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Services/ReverseGeocodeService.swift wrapping CLGeocoder.reverseGeocodeLocation",
+        "Method resolve(coordinate:) async returns (cityCode: String, name: String, countryCode: String) where cityCode is a slug like 'vn-hanoi' (lowercased ISO country + locality dash-slug)",
+        "MapViewModel.exploreNearby (after successful POI fetch) calls the service; on success, upserts DiscoveredCityRecord and uses the resolved cityCode for the generated Experiences (instead of the synthetic osm_<lat>_<lon>)",
+        "On geocoder failure or offline, fall back to current osm_<lat>_<lon> cityCode; Experiences are still generated",
+        "Unit test (mocked geocoder): explore at Hanoi coords -> assert generated Experiences have cityCode 'vn-hanoi' and DiscoveredCityRecord row exists with name 'Hanoi'",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Auto-switch selected city after successful Explore",
+      "description": "As a user landing in a new city, I want the city filter to update automatically so I see the new pins without manual action.",
+      "acceptanceCriteria": [
+        "After exploreNearby appends N > 0 Experiences and ReverseGeocodeService returned a real cityCode, MapViewModel calls selectCity(resolvedCityCode)",
+        "MapViewModel.lastExploreToast: String? is set to 'Now exploring Hanoi · 12 places added' (or 'N places added near you' if geocoding failed)",
+        "availableCities now includes DiscoveredCityRecord rows so the new city appears in the picker immediately",
+        "cityNameMap is augmented with the discovered city so the city pill shows 'Hanoi' not 'vn-hanoi'",
+        "Unit test: with selectedCity = 'cmi' and mocked geocoder returning 'vn-hanoi'/'Hanoi', run exploreNearby at Hanoi coords -> assert selectedCity becomes 'vn-hanoi' and lastExploreToast contains 'Hanoi'",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Visual downgrade for confidence-1 markers",
+      "description": "As a user, I should immediately tell which pins are AI-guessed vs curated based on visual treatment.",
+      "acceptanceCriteria": [
+        "MarkerIconView gains a confidenceLevel: Int parameter (default 5 for backward compat)",
+        "When confidenceLevel <= 1: render with a dashed stroke border (lineWidth 2, dash [4,3]), 70% fill opacity, no shadow/glow, smaller badge (28x28 vs default 36x36)",
+        "When confidenceLevel >= 2: current rendering unchanged",
+        "Pass exp.confidence.level into MarkerIconView from CompassMapView and from candidate-experience markers",
+        "Unit test: render MarkerIconView with confidenceLevel 1 and confidenceLevel 4, assert SwiftUI snapshot identifiers differ (use ViewInspector or a hashable accessibility identifier)",
+        "Typecheck passes",
+        "Verify in simulator: tap Explore in Hanoi, confirm new pins are visually weaker than seed pins"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Three-state Solo-Score cold-start UX in detail view",
+      "description": "As a user, the Solo Score on a detail view should clearly mark whether it's an AI estimate, an early signal, or community-validated.",
+      "acceptanceCriteria": [
+        "ExperienceDetailView reads exp.soloScore.basedOnCount and renders one of three header states: 'Solo Score (AI estimate)' when basedOnCount == 0, 'Solo Score (early)' when 1...2, 'Solo Score' when >= 3",
+        "When basedOnCount == 0, score number is rendered with .opacity(0.6) and a small 'AI estimate' Capsule pill next to it",
+        "When basedOnCount in 1...2, subtitle reads 'Based on N early reports'",
+        "When basedOnCount >= 3, subtitle reads 'Based on N solo travelers' (current copy)",
+        "Add localized keys: solo.estimate.pill, solo.basedOn.early, solo.section.estimate, solo.section.early to en.lproj/Localizable.strings",
+        "Unit test: render the section with basedOnCount 0, 1, 3 — assert the three different header strings are present",
+        "Typecheck passes",
+        "Verify in simulator: open a generated Experience (basedOnCount 0) and a seed Experience (basedOnCount > 3), confirm headers and pills differ"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "MicroSurvey writeback to SoloScore via SwiftData aggregation",
+      "description": "As a user, my honest survey responses should improve the Solo Score that the next traveler sees.",
+      "acceptanceCriteria": [
+        "MicroSurveySheet onSubmit callback now writes a MicroSurveyRecord via ExperienceRepository (helper recordSurvey(experienceId:comfort:pressure:recommend:))",
+        "ExperienceRepository gains aggregatedSoloScore(experienceId:) -> (overall: Double, count: Int) computing: localSurveyMean = mean of (comfort+pressure)/2 across MicroSurveyRecords for that id; recommendBoost = +0.5 if >= 50% of recommendations are 'yes'; final = clamp(0...10, 0.5*originalOverall + 0.5*localSurveyMean + recommendBoost)",
+        "Experience.soloScore.overall and basedOnCount become derived: when SwiftData has surveys, return the aggregated value; otherwise return the seed/AI value",
+        "Cache aggregation result for 60s per experienceId to avoid recomputing on every render",
+        "Unit test: insert two MicroSurveyRecords for one experienceId (comfort=5/pressure=4/recommend=yes, comfort=4/pressure=5/recommend=yes) and assert aggregatedSoloScore.count == 2 and overall is within expected range",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Surface explore errors and quota banners on the map",
+      "description": "As a user, I should see why Explore failed or fell back to skeleton mode instead of staring at a silent map.",
+      "acceptanceCriteria": [
+        "CompassMapView observes viewModel.lastExploreError, viewModel.lastExploreToast, viewModel.lastQuotaInfo",
+        "lastExploreError: dismissible orange banner just below the filter bar with the error text",
+        "lastExploreToast: ephemeral 3-second Capsule above BottomInfoBar (e.g. 'Now exploring Hanoi · 12 places added')",
+        "lastQuotaInfo: persistent yellow banner showing 'Daily AI limit reached, resets in Xh' that auto-disappears when the date rolls over",
+        "Add localized keys: explore.toast.added, explore.toast.addedNamed, explore.quota.dailyLimit",
+        "Unit test: simulate exploreNearby success -> assert lastExploreToast set; simulate quota exceeded -> assert lastQuotaInfo set",
+        "Typecheck passes",
+        "Verify in simulator: trigger Explore offline, confirm banner appears with airplane icon"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Offline-mode fallback from RecentExploreRegion",
+      "description": "As a traveler with no signal, I should still see pins for the last region I explored.",
+      "acceptanceCriteria": [
+        "After every successful exploreNearby, write a RecentExploreRegion row (keep last 3, evict oldest)",
+        "When exploreNearby fails with a network error, find the closest RecentExploreRegion within 10 km of the requested coordinate; if found, query SwiftData for ExperienceRecord rows in that region and surface them",
+        "Set viewModel.lastExploreToast = 'Showing offline data from <relative-date>' if the region is older than 7 days",
+        "Unit test: simulate URLSession failure with one RecentExploreRegion present at the requested coordinate, assert offline pins are returned and toast is set",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Add StoreKit Configuration.storekit and SubscriptionService scaffold",
+      "description": "As a developer, I need a local StoreKit testing configuration and a SubscriptionService that fetches products and reports an entitlement enum.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Resources/Configuration.storekit with two auto-renewable subscriptions: com.solocompass.pro.monthly (Apple price tier 2, P1M, 7-day intro free trial) and com.solocompass.pro.yearly (Apple price tier 11, P1Y, 7-day intro free trial)",
+        "Create apps/ios/SoloCompass/Services/SubscriptionService.swift as @MainActor @Observable",
+        "Properties: products: [Product], entitlement: Entitlement (.free | .proTrial | .pro | .proExpired), isLoading: Bool",
+        "Method refreshEntitlement() iterates Transaction.currentEntitlements and sets entitlement",
+        "Listener task in init observes Transaction.updates and refreshes entitlement",
+        "Inject SubscriptionService into SoloCompassApp via .environment",
+        "project.yml updated to add the .storekit file under Resources",
+        "Unit test using Transaction.testSession: simulate purchase -> entitlement becomes .pro; simulate expiration -> entitlement becomes .proExpired",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Cache entitlement in Keychain for offline boot",
+      "description": "As a user, I shouldn't lose Pro access on a brief offline launch while StoreKit catches up.",
+      "acceptanceCriteria": [
+        "Add a small KeychainStore helper (Security framework) for read/write of a single 'entitlement' string key",
+        "SubscriptionService writes entitlement.rawValue to Keychain on every successful refreshEntitlement()",
+        "On init (before StoreKit responds), seed entitlement from Keychain so the UI can render Pro state immediately",
+        "When StoreKit returns, real value overrides cached value",
+        "Unit test: write '.pro' to Keychain, instantiate SubscriptionService -> entitlement == .pro before any StoreKit call",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Build PaywallView with monthly/yearly cards and free-trial CTA",
+      "description": "As a free user, I need a clear paywall to start a 7-day free trial with one tap.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Views/Paywall/PaywallView.swift",
+        "Layout: hero copy ('Unlock Solo Compass Pro'), bullet list (Explore Here AI synthesis, voice intent, AI explanations, daily quota 30+60), two product Cards stacked (yearly card has 'Best value' Capsule + per-month equivalent), 'Start 7-day free trial' primary button, 'Restore purchases' link, fine-print legal copy, 'Manage subscription' link to App Store",
+        "Localize en + zh-Hans (create Resources/zh-Hans.lproj/Localizable.strings if missing)",
+        "On product tap, call subscriptionService.purchase(product) which awaits Product.purchase(); on success, dismiss paywall and resume the gated action via a closure",
+        "Show ProgressView while products load",
+        "Unit test: render PaywallView in a SwiftUI test host with a mocked SubscriptionService returning two products, assert both card titles are present",
+        "Typecheck passes",
+        "Verify in simulator with the .storekit configuration: tap 'Start free trial', confirm StoreKit test sheet appears"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Gate exploreNearby and AI explanations behind entitlement",
+      "description": "As a product owner, AI features should require Pro; free users see the paywall.",
+      "acceptanceCriteria": [
+        "MapViewModel.exploreNearby checks subscriptionService.entitlement: if .free or .proExpired, set viewModel.isShowingPaywall = true and return without calling Overpass or AIService",
+        "Free users still get an OSM-only skeleton mode path: a new exploreNearbyFreeMode that calls Overpass + the existing AIService skeleton fallback (no Anthropic call). Wired to a separate UI state so the paywall is the upgrade hook",
+        "ExperienceDetailViewModel.requestAIExplanation gated similarly: free users see a 'Subscribe to unlock AI Insight' teaser instead of 'Loading...'",
+        "MapViewModel.handleVoiceTranscript gated similarly: free users see a paywall on first voice tap",
+        "Explore button label flips to 'Explore (Pro)' with a lock SF Symbol when entitlement is free",
+        "CompassMapView presents PaywallView in a sheet bound to viewModel.isShowingPaywall",
+        "Unit test: with mocked SubscriptionService entitlement = .free, call exploreNearby -> assert isShowingPaywall = true and OverpassService was NOT called",
+        "Typecheck passes",
+        "Verify in simulator: as free user, tap Explore -> paywall appears; complete trial purchase -> next Explore proceeds normally"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Restore purchases UI in Settings",
+      "description": "As a user reinstalling on a new phone, I want a one-tap 'Restore purchases' that re-grants Pro.",
+      "acceptanceCriteria": [
+        "SettingsView gains a 'Restore purchases' row under a 'Subscription' section, plus a 'Manage subscription' row that opens the App Store subscription management URL",
+        "Restore button calls AppStore.sync() then subscriptionService.refreshEntitlement(); shows a transient success/failure toast",
+        "Add localized keys: settings.subscription, settings.restore, settings.manage, restore.success, restore.failure",
+        "Unit test: with Transaction.testSession in a 'previously purchased' state, tapping Restore eventually sets entitlement to .pro",
+        "Typecheck passes",
+        "Verify in simulator: with .storekit testing config, simulate a previous purchase, tap Restore, confirm Pro is granted"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Bootstrap Supabase project schema + RLS migrations",
+      "description": "As a developer, I need a checked-in Supabase migration that creates all backend tables and per-user RLS policies.",
+      "acceptanceCriteria": [
+        "Create infra/supabase/migrations/0001_init.sql with tables: profiles, user_completions, user_favorites, micro_surveys, subscription_events, synthesized_experiences, osm_pois, solo_score_signals, recent_explore_regions",
+        "Each user-data table has user_id uuid not null, updated_at timestamptz default now(), and RLS policies 'select/insert/update/delete WHERE user_id = auth.uid()'",
+        "synthesized_experiences and osm_pois are read-public (RLS allows select to anon and authenticated), write only via service-role",
+        "Add infra/supabase/test_rls.ts that connects with anon and authenticated keys and asserts: anon cannot read another user's favorites; authenticated user cannot read another user's favorites",
+        "Document required env vars (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY) in .env.example",
+        "Add infra/supabase/README.md with apply/test instructions",
+        "Typecheck passes (no Swift changes)"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Add Supabase Swift SDK and SupabaseClient service",
+      "description": "As a developer, I need a single-instance SupabaseClient that holds the client SDK and exposes auth + database APIs.",
+      "acceptanceCriteria": [
+        "Add 'supabase-swift' as an SPM dependency in project.yml under SoloCompass target packages",
+        "Create apps/ios/SoloCompass/Services/SupabaseClient.swift exposing SupabaseClient.shared",
+        "Reads SUPABASE_URL and SUPABASE_ANON_KEY from Secrets.plist (or env vars) at init",
+        "Behind feature flag FF_BACKEND_SYNC = false by default in Resources/FeatureFlags.plist",
+        "Inject into SoloCompassApp environment",
+        "When FF_BACKEND_SYNC is false, all Supabase calls become no-ops returning .success or empty arrays so the app keeps working",
+        "Unit test: with FF_BACKEND_SYNC false, SupabaseClient.shared.signInAnonymously() returns immediately without throwing",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Anonymous sign-in on first launch and DeviceIdentityService integration",
+      "description": "As a user, I want my data synced without creating an account.",
+      "acceptanceCriteria": [
+        "DeviceIdentityService.bootstrap() (called from SoloCompassApp.onAppear) calls SupabaseClient.shared.signInAnonymously() if no session is in Keychain",
+        "Resulting userId stored in Keychain under key 'sc.anon.userId'",
+        "Subsequent launches refresh the session via the SDK's built-in refresh-token flow",
+        "When FF_BACKEND_SYNC is false, this is a no-op",
+        "Unit test (with mocked SupabaseClient): first launch -> signInAnonymously called once and userId persisted; second launch -> session restored, signInAnonymously NOT called",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Outbox sync for user_completions and user_favorites",
+      "description": "As a user toggling between phone and iPad, I want my favorites and completed list to converge within seconds.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Services/SyncService.swift as @MainActor @Observable",
+        "Add PendingSyncRecord @Model with fields: id, tableName (String), operation (String 'upsert'|'delete'), payloadJSON (Data), createdAt",
+        "Every UserCompletionRecord/UserFavoriteRecord write also enqueues a PendingSyncRecord",
+        "SyncService.flush() iterates pending records and POSTs to Supabase with upsert; on success deletes the record; on failure leaves it for next retry",
+        "Background flush every 30s when app is foreground (Timer); also call on UIApplication.willEnterForeground",
+        "Inbound: pull rows where updated_at > lastPulledAt (stored in UserDefaults); merge into SwiftData by id with LWW (compare updated_at, ties broken by lex device_id)",
+        "When FF_BACKEND_SYNC is false, all sync paths are no-ops",
+        "Unit test (mocked Supabase): toggle a favorite -> assert PendingSyncRecord created; flush() -> assert record deleted and Supabase upsert called",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Subscription event telemetry to Supabase",
+      "description": "As a founder, I need every Transaction lifecycle event written to Supabase subscription_events for funnel analytics.",
+      "acceptanceCriteria": [
+        "SubscriptionService.refreshEntitlement also extracts the latest Transaction and emits a subscription_events row with: event_type ('subscribed'|'expired'|'in_grace_period'|'revoked'|'upgraded'), product_id, original_purchase_date, expires_date, is_in_trial_period, device_id (anon)",
+        "Writes are routed through SyncService outbox so they survive offline boots",
+        "No PII (no email, no Apple ID)",
+        "Console.log of the emitted row in DEBUG builds",
+        "When FF_BACKEND_SYNC is false, drop the event silently",
+        "Unit test: simulate a trial-start Transaction -> assert one PendingSyncRecord queued for subscription_events with event_type 'subscribed' and is_in_trial_period true",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Supabase Edge Function synthesize-experiences (Deno/TS)",
+      "description": "As a security-conscious developer, I need an Edge Function that holds the Anthropic key server-side so the iOS app no longer ships it.",
+      "acceptanceCriteria": [
+        "Create infra/supabase/functions/synthesize-experiences/index.ts (Deno runtime)",
+        "Function authenticates the caller via the Authorization header (Supabase user JWT)",
+        "Reads ANTHROPIC_API_KEY from Deno.env.get; calls Anthropic Messages API with claude-sonnet-4-6",
+        "Validates response shape (parses JSON array, asserts each item has osmId/title/oneLiner/whyItMatters/category)",
+        "Inserts the validated batch into synthesized_experiences (using service-role key) keyed by SHA256 of input POI batch + cityCode + locale",
+        "Rate-limits per auth.uid: 30 calls/day for Pro (look up profiles.entitlement_tier); 0 calls/day for free-tier users",
+        "Returns { experiences: Experience[] } in the same shape the iOS client expects",
+        "Add infra/supabase/functions/synthesize-experiences/README.md with deploy and test instructions",
+        "Add a curl-based integration test in infra/supabase/functions/synthesize-experiences/test.sh that authenticates with a test JWT and asserts a valid response",
+        "Typecheck passes (Deno: deno check index.ts)"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Route iOS AIService through Edge Function and remove Anthropic key from client",
+      "description": "As a security-conscious developer, after this story the iOS bundle no longer contains an Anthropic API key.",
+      "acceptanceCriteria": [
+        "AIService.synthesizeExperiences (when FF_BACKEND_SYNC is true) calls SupabaseClient.shared.functions.invoke('synthesize-experiences', body: pois+cityCode+locale) instead of Anthropic directly",
+        "Response decoded into [Experience] using the same shape as before",
+        "Delete the ANTHROPIC_API_KEY field from Secrets.plist template and remove the resolveAPIKey() method's Secrets.plist read path; explanation/voice paths still use the SDK locally for now (gated by separate FF_LOCAL_AI_FALLBACK flag for staged rollout)",
+        "Skeleton fallback path unchanged: if Edge Function call fails or returns 5xx, fall back to skeleton",
+        "When FF_BACKEND_SYNC is false (beta.1 default), AIService keeps using the existing direct Anthropic path so testing can continue",
+        "Unit test (with mocked SupabaseClient.functions.invoke): assert synthesizeExperiences calls invoke with the right body and returns the decoded result",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Solo-Score signal aggregation via Supabase nightly function",
+      "description": "As a user, the Solo Scores I see should reflect actual community use, not just AI guesses.",
+      "acceptanceCriteria": [
+        "MicroSurvey submission also enqueues a solo_score_signals upsert via SyncService outbox (anon user_id, experience_id, comfort, pressure, recommend, submitted_at)",
+        "Add infra/supabase/functions/aggregate-solo-scores/index.ts (Deno) scheduled nightly via pg_cron: recomputes synthesized_experiences.aggregated_solo_score (mean+count) per experience_id from solo_score_signals over the last 90 days",
+        "iOS: on app foreground (FF_BACKEND_SYNC true), pull aggregated_solo_score for visible experiences and merge into ExperienceRecord.soloScore where signal_count >= 3",
+        "ExperienceRepository.aggregatedSoloScore(experienceId:) prefers the server aggregate when available, falls back to local survey aggregation",
+        "Unit test: set ExperienceRecord with server aggregate (signal_count 12, overall 8.4) and three local surveys, assert aggregatedSoloScore returns the server value",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Optional Sign-in-with-Apple to upgrade anonymous account",
+      "description": "As a user, I want to optionally link my anonymous Solo Compass account to my Apple ID for Family Sharing eligibility and account safety.",
+      "acceptanceCriteria": [
+        "SettingsView gains a row under 'My Data': 'Save with Apple' (when anonymous) / 'Linked to Apple ID' (when linked)",
+        "Tap presents AuthorizationAppleIDButton via ASAuthorizationController; on success, calls SupabaseClient.shared.auth.linkIdentity(provider: .apple) using the obtained credential",
+        "On link success: profiles.is_anonymous becomes false; all PendingSyncRecord entries are re-stamped with the new permanent userId; show success toast 'Linked to Apple ID'",
+        "On failure (user cancels, network error, etc): show toast 'Couldnt link account. Your data is still saved on this device.'",
+        "No real Apple email leaves the device (use private email relay)",
+        "Add capability 'Sign in with Apple' to project.yml entitlements",
+        "Document the flow in docs/PRIVACY.md",
+        "Unit test (mocked Supabase + ASAuthorization stub): start as anonymous with 3 favorites and 1 micro-survey, link to Apple, assert is_anonymous=false and all rows now belong to permanent userId",
+        "Typecheck passes",
+        "Verify in simulator: tap 'Save with Apple', confirm Apple sign-in sheet appears"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "First-run Explore-Here consent sheet",
+      "description": "As a privacy-conscious user, I want a clear opt-in moment before my coordinates leave the device.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Views/Onboarding/ExploreConsentSheet.swift",
+        "Shown via .sheet the first time the user taps Explore Here (gated by UserPreferences.exploreConsentGivenAt being nil)",
+        "Body explains: tapping Explore here sends your map center coordinate to OpenStreetMap (free, anonymous) and to our AI server; we never store who asked, only what was asked, for 30 days",
+        "Two buttons: 'Continue' (sets exploreConsentGivenAt = Date() and proceeds with the original explore action) and 'Not now' (dismisses, no explore)",
+        "Settings 'Privacy' section gains a 'Revoke explore consent' row that clears the flag",
+        "Add localized keys: explore.consent.title, explore.consent.body, explore.consent.continue, explore.consent.notNow, settings.privacy, settings.privacy.revokeConsent",
+        "Unit test: with consent unset, tap Explore -> sheet shown and OverpassService NOT called; tap Continue -> explore proceeds, consent flag set",
+        "Typecheck passes",
+        "Verify in simulator on a fresh install: tap Explore, confirm sheet appears once, tap Continue, confirm explore proceeds"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Privacy manifest (PrivacyInfo.xcprivacy)",
+      "description": "As an App Store applicant, I need a Privacy Manifest declaring all collected data types accurately.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Resources/PrivacyInfo.xcprivacy",
+        "Declared data types with purpose 'AppFunctionality' and not used for tracking: NSPrivacyCollectedDataTypePreciseLocation, NSPrivacyCollectedDataTypeCoarseLocation, NSPrivacyCollectedDataTypeDeviceID (for sync), NSPrivacyCollectedDataTypePurchaseHistory (StoreKit), NSPrivacyCollectedDataTypeOtherDiagnosticData (sync events)",
+        "Declared API reasons (ReasonAPIs): UserDefaults (CA92.1), FileTimestamp (C617.1) — only those actually used",
+        "Add the file path to project.yml SoloCompass target sources",
+        "Verify by manual file inspection vs Apple's spec",
+        "Update docs/PRIVACY.md with the same declarations in human-readable form",
+        "Privacy policy URL (https://solocompass.app/privacy) added to Info.plist key NSPrivacyPolicyURL",
+        "Typecheck passes"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "zh-Hans localization for paywall, onboarding, and Explore strings",
+      "description": "As a Chinese-language user, I want the App Store-visible strings (paywall, onboarding, Explore button, errors) in Simplified Chinese.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Resources/zh-Hans.lproj/Localizable.strings",
+        "Translate every key currently used by paywall, onboarding sheets, Explore button/banners, error messages, AI-badge copy (a focused subset; deep app strings can fallback to English)",
+        "Translations done by hand (or with translator review notes); literal Apple-style tone",
+        "Add zh-Hans to CFBundleLocalizations in Info.plist (via project.yml info.properties)",
+        "Verify by running the app in Simulator with the device language set to Simplified Chinese",
+        "Typecheck passes",
+        "Verify in simulator: switch language to Simplified Chinese, open paywall, confirm strings render correctly"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Schema parity check across iOS and TypeScript",
+      "description": "As a developer, pnpm parity:check should cover the new fields so future iOS-side schema changes don't drift from the TS schema.",
+      "acceptanceCriteria": [
+        "packages/core/src/experience.ts gets matching additions: id-prefix constant 'exp_osm_', confidenceLevel === 1 semantics for AI-generated entries, DiscoveredCity type matching DiscoveredCityRecord fields",
+        "scripts/check-swift-parity.ts extended: walk the new SwiftData @Model files, extract field names+types, compare against TS interfaces, fail the script on drift",
+        "Run pnpm parity:check locally and confirm it passes",
+        "CI: .github/workflows/ci.yml already runs parity:check; verify it still passes",
+        "Update PR template (if exists) to add 'Updated TS schema if Swift schema changed' checkbox",
+        "Typecheck passes (run: pnpm typecheck)"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "TestFlight prep: review prompt, App Store metadata stubs, BETA docs",
+      "description": "As a founder, I need TestFlight to upload cleanly and metadata stubs ready for App Store submission.",
+      "acceptanceCriteria": [
+        "Add SKStoreReviewController.requestReview() trigger after the user marks their 3rd Experience as completed (UserPreferences gains reviewPromptShown bool)",
+        "Create docs/APP_STORE.md with sections: SKU IDs, price tiers (2 monthly / 11 yearly), keywords (en + zh), category Travel, age 4+, screenshots checklist, ASO description draft (en + zh)",
+        "Create docs/BETA.md with beta tester invite list placeholder and feedback collection process (a Supabase form, link TBD)",
+        "Verify .github/workflows/testflight.yml works on this branch by committing a test tag (or document manual TestFlight upload steps)",
+        "Add a 'What's new in this version' template to docs/CHANGELOG.md for v1.1.0",
+        "Typecheck passes",
+        "Verify in simulator: complete 3 experiences in a row, confirm review prompt appears (in DEBUG build with a flag override)"
+      ],
+      "priority": 41,
+      "passes": false,
       "notes": ""
     }
   ]

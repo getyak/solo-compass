@@ -1,0 +1,19 @@
+# Solo Compass — Ralph Progress Log
+Started: 2026-05-08
+Tool: claude
+Branch: ralph/deepseek-migration
+PRD: tasks/prd-deepseek-migration.md
+Stories: 10
+---
+[2026-05-08T09:30:57Z] Story #US-001: Rewrite rank-experiences.ts for DeepSeek JSON mode — PASSED
+[2026-05-08T09:35:30Z] Story #US-002: Rewrite structure-experience.ts for DeepSeek JSON mode — PASSED
+[2026-05-08T09:35:17Z] Story #US-002: Rewrite structure-experience.ts for DeepSeek JSON mode — PASSED
+[2026-05-08T09:35:43Z] Story #US-003: Update packages/ai index.ts exports for DeepSeek — PASSED
+[2026-05-08T09:37:04Z] Story #US-004: Rewrite rank-experiences.test.ts to mock OpenAI shape — PASSED
+[2026-05-08T09:39:31Z] Story #US-005: Rewrite structure-experience.test.ts to mock OpenAI shape and delete obsolete __golden__ files — PASSED
+[2026-05-08T09:41:25Z] Story #US-006: Add retry-with-backoff helper for DeepSeek calls — PASSED
+[2026-05-08T09:43:29Z] Story #US-007: Initialize Sentry in apps/bot and apps/web entry points — PASSED
+[2026-05-08T09:45:34Z] Story #US-008: Forward AI cost events to PostHog from cost-tracker — PASSED
+[2026-05-08T09:46:24Z] Story #US-009: Add gitleaks secret-scanning GitHub Action — PASSED
+[2026-05-08T09:47:10Z] Story #US-010: Inject placeholder .env in iOS CI workflows — PASSED
+[2026-05-08T09:47:10Z] Ralph complete after 10 iterations
