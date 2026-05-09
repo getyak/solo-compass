@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct SoloCompassApp: App {
@@ -21,8 +22,13 @@ struct SoloCompassApp: App {
                     locationService.notificationService = notificationService
                     locationService.requestPermission()
                     preferences.pruneStaleCheckIns()
+                    // Wire SwiftData mirroring for completion/favorite
+                    // mutations and run the one-shot UserDefaults → SwiftData
+                    // migration on first launch of v1.1.
+                    preferences.attachRepository(experienceService.repo)
                     Task { await notificationService.checkAuthorizationStatus() }
                 }
         }
+        .modelContainer(SoloCompassModelContainer.shared)
     }
 }

@@ -1,20 +1,66 @@
 import Foundation
 import CoreLocation
 import Observation
+import SwiftData
 
-/// Loads and serves experiences. For MVP this reads from a bundled JSON file
-/// (`seed_experiences.json`) and falls back to a hardcoded Chiang Mai seed if
-/// the bundle resource is missing — which keeps SwiftUI previews and unit tests
-/// working without bundle setup.
+/// Thin @Observable facade over `ExperienceRepository`. View models and
+/// views observe `allExperiences` / `filteredExperiences` exactly as
+/// before; mutations go through here, get persisted to SwiftData, and
+/// the in-memory caches are refreshed.
+///
+/// On init we import the bundled seed once (idempotent) so first-launch
+/// users get the curated Chiang Mai entries without any explicit step.
 @Observable
+@MainActor
 public final class ExperienceService {
     public private(set) var allExperiences: [Experience]
     public private(set) var filteredExperiences: [Experience]
 
-    public init(seed: [Experience]? = nil) {
-        let initial = seed ?? Self.loadFromBundle() ?? Self.hardcodedSeed
-        self.allExperiences = initial
-        self.filteredExperiences = initial
+    private let repository: ExperienceRepository
+
+    /// Production init — wires up the shared SwiftData container and
+    /// imports the seed if needed.
+    public init() {
+        let repo = ExperienceRepository()
+        repo.importSeedIfNeeded()
+        let initial = repo.allExperiences()
+        let resolved = initial.isEmpty ? Self.hardcodedSeed : initial
+        self.repository = repo
+        self.allExperiences = resolved
+        self.filteredExperiences = resolved
+    }
+
+    /// Test/preview init. Pass `seed:` to load an in-memory list and
+    /// skip both bundle and SwiftData reads, or pass `repository:` to
+    /// override the persistence layer with an in-memory container.
+    public init(seed: [Experience]? = nil, repository: ExperienceRepository? = nil) {
+        if let seed {
+            let repo = repository ?? ExperienceRepository(
+                context: ModelContext(SoloCompassModelContainer.makeInMemory()),
+                preferences: nil
+            )
+            self.repository = repo
+            self.allExperiences = seed
+            self.filteredExperiences = seed
+            return
+        }
+        let repo = repository ?? ExperienceRepository()
+        repo.importSeedIfNeeded()
+        let initial = repo.allExperiences()
+        let resolved = initial.isEmpty ? Self.hardcodedSeed : initial
+        self.repository = repo
+        self.allExperiences = resolved
+        self.filteredExperiences = resolved
+    }
+
+    // MARK: - Reload from store
+
+    /// Re-pull from the repo and refresh the @Observable mirror. Call
+    /// after mutations that may have inserted/removed rows.
+    public func reload() {
+        let fresh = repository.allExperiences()
+        self.allExperiences = fresh.isEmpty ? Self.hardcodedSeed : fresh
+        self.filteredExperiences = self.allExperiences
     }
 
     // MARK: - Filtering
@@ -51,9 +97,14 @@ public final class ExperienceService {
         getExperiences(near: location, radiusKm: 5.0).filter { $0.isBestNow(at: date) }
     }
 
-    // MARK: - Mutations (in-memory; persistence handled by UserPreferences)
+    // MARK: - Mutations — write through repo
 
     public func markCompleted(_ id: String) {
+        // Bump in-memory stats so observers see it immediately. The
+        // authoritative count comes from UserCompletionRecord rows
+        // (US-009 wires read paths through the repo). Bumping
+        // preserves the previous UX where the detail view reflects
+        // the action right away.
         guard let idx = allExperiences.firstIndex(where: { $0.id == id }) else { return }
         let old = allExperiences[idx]
         let newStats = Experience.Stats(
@@ -61,46 +112,36 @@ public final class ExperienceService {
             averageRating: old.stats.averageRating,
             lastCompletedAt: Date()
         )
-        allExperiences[idx] = old.copy(stats: newStats, updatedAt: Date())
+        let updated = old.copy(stats: newStats, updatedAt: Date())
+        allExperiences[idx] = updated
         if let firstIdx = filteredExperiences.firstIndex(where: { $0.id == id }) {
-            filteredExperiences[firstIdx] = allExperiences[idx]
+            filteredExperiences[firstIdx] = updated
         }
+        repository.update(updated)
+        repository.recordCompletion(experienceId: id)
     }
 
     public func toggleFavorite(_ id: String, in preferences: UserPreferences) {
         preferences.toggleFavorite(id)
     }
 
-    /// Merge a batch of newly generated experiences into the in-memory store.
-    /// De-duplicates by id (existing entries win — they may have user state
-    /// like completion stats we don't want to clobber). Returns the count of
-    /// newly inserted experiences so callers can show feedback.
+    /// Merge a batch of newly generated experiences. Persists through
+    /// the repo and refreshes the @Observable mirrors.
     @discardableResult
     public func appendGenerated(_ generated: [Experience]) -> Int {
-        let existingIds = Set(allExperiences.map(\.id))
-        let fresh = generated.filter { !existingIds.contains($0.id) }
-        guard !fresh.isEmpty else { return 0 }
-        allExperiences.append(contentsOf: fresh)
-        filteredExperiences = allExperiences
-        return fresh.count
+        let added = repository.appendGenerated(generated)
+        if added > 0 {
+            reload()
+        }
+        return added
     }
 
-    // MARK: - Loading
+    // MARK: - Repo accessor
 
-    private static func loadFromBundle() -> [Experience]? {
-        guard let url = Bundle.main.url(forResource: "seed_experiences", withExtension: "json") else {
-            return nil
-        }
-        do {
-            let data = try Data(contentsOf: url)
-            return try JSONDecoder.iso8601Decoder.decode([Experience].self, from: data)
-        } catch {
-            #if DEBUG
-            print("[ExperienceService] failed to decode seed_experiences.json: \(error)")
-            #endif
-            return nil
-        }
-    }
+    /// Read-only access to the underlying repository for callers that
+    /// need queries beyond the @Observable mirror (e.g. completion
+    /// counts, favorite list).
+    public var repo: ExperienceRepository { repository }
 
     // MARK: - Distance helper (Haversine, mirrors core/geo.ts)
 
