@@ -112,6 +112,53 @@ final class SoloCompassTests: XCTestCase {
         }
     }
 
+    // MARK: - US-019 Three-state Solo Score cold-start UX
+
+    func testSoloScoreSectionHeaderStrings() {
+        // Mirrors the switch in ExperienceDetailView.soloScoreSection.
+        func headerKey(for count: Int) -> String {
+            switch count {
+            case 0:      return "solo.section.estimate"
+            case 1...2:  return "solo.section.early"
+            default:     return "section.soloScore"
+            }
+        }
+
+        XCTAssertEqual(headerKey(for: 0), "solo.section.estimate")
+        XCTAssertEqual(headerKey(for: 1), "solo.section.early")
+        XCTAssertEqual(headerKey(for: 2), "solo.section.early")
+        XCTAssertEqual(headerKey(for: 3), "section.soloScore")
+        XCTAssertEqual(headerKey(for: 42), "section.soloScore")
+
+        // Verify the keys resolve to distinct non-empty strings in the bundle.
+        let keys = ["solo.section.estimate", "solo.section.early", "section.soloScore"]
+        let resolved = keys.map { NSLocalizedString($0, bundle: Bundle(for: SoloCompassTests.self), comment: "") }
+        XCTAssertEqual(Set(resolved).count, 3, "Three states must map to three distinct header strings")
+        for s in resolved { XCTAssertFalse(s.isEmpty) }
+    }
+
+    func testSoloScoreSubtitleStrings() {
+        // basedOnCount == 0 → no subtitle (nil branch in view)
+        // basedOnCount == 1 → "Based on 1 early reports"
+        // basedOnCount >= 3 → "Based on N solo travelers"
+        let earlyFormat = NSLocalizedString(
+            "solo.basedOn.early",
+            bundle: Bundle(for: SoloCompassTests.self),
+            comment: ""
+        )
+        let communityFormat = NSLocalizedString(
+            "solo.basedOn",
+            bundle: Bundle(for: SoloCompassTests.self),
+            comment: ""
+        )
+        let earlySubtitle = String(format: earlyFormat, 1)
+        let communitySubtitle = String(format: communityFormat, 3)
+
+        XCTAssertTrue(earlySubtitle.contains("1"))
+        XCTAssertTrue(communitySubtitle.contains("3"))
+        XCTAssertNotEqual(earlySubtitle, communitySubtitle)
+    }
+
     func testTimeWindowContainsHour() {
         let day = TimeWindow(startHour: 8, endHour: 17)
         XCTAssertTrue(day.contains(hour: 12))

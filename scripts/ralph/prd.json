@@ -308,7 +308,7 @@
         "Verify in simulator: tap Explore in Hanoi, confirm new pins are visually weaker than seed pins"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

@@ -29,3 +29,4 @@ Stories: 41
 [2026-05-10T09:30:17Z] Story #US-015: Add per-user daily AI quota with skeleton-mode degradation — PASSED
 [2026-05-10T09:32:38Z] Story #US-016: Add ReverseGeocodeService and DiscoveredCityRecord write-through — PASSED
 [2026-05-10T09:34:44Z] Story #US-017: Auto-switch selected city after successful Explore — PASSED
+[2026-05-10T09:36:56Z] Story #US-018: Visual downgrade for confidence-1 markers — PASSED
