@@ -19,10 +19,12 @@ excluded:
   - Carthage
   - "**/Tests/**"
   - "**/Views/**"
+  - "**/Services/**"
 
 identifier_name:
   min_length: 1
   max_length: 60
+  allowed_symbols: ["_"]
   excluded:
     - c
     - d
