@@ -46,3 +46,5 @@ Stories: 41
 [2026-05-10T10:06:32Z] Story #US-029: Add Supabase Swift SDK and SupabaseClient service — PASSED
 [2026-05-10T10:11:04Z] Story #US-030: Anonymous sign-in on first launch and DeviceIdentityService integration — PASSED
 [2026-05-10T10:14:11Z] Story #US-031: Outbox sync for user_completions and user_favorites — PASSED
+[2026-05-10T10:17:41Z] Story #US-032: Subscription event telemetry to Supabase — PASSED
+[2026-05-10T10:17:41Z] Ralph complete after 41 iterations
