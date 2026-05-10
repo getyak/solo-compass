@@ -1313,14 +1313,11 @@ final class SoloCompassTests: XCTestCase {
         session.disableDialogs = true
         session.clearTransactions()
 
-        // Use accelerated rate so subscription expires quickly in tests.
-        session.timeRate = .oneRenewalEveryFiveSeconds
-
         let service = SubscriptionService()
 
         // Simulate a monthly purchase then immediately expire it.
-        _ = try await session.buyProduct(identifier: SubscriptionService.monthlyProductID)
-        session.expireSubscription(identifier: SubscriptionService.monthlyProductID)
+        _ = try await session.buyProduct(productIdentifier: SubscriptionService.monthlyProductID)
+        session.expireSubscription(productIdentifier: SubscriptionService.monthlyProductID)
 
         await service.refreshEntitlement()
 
