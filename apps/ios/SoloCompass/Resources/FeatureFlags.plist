@@ -8,5 +8,7 @@
     <false/>
     <key>FF_LOCAL_AI_FALLBACK</key>
     <false/>
+    <key>FF_FORCE_REVIEW_PROMPT</key>
+    <false/>
 </dict>
 </plist>

@@ -55,3 +55,4 @@ Stories: 41
 [2026-05-10T10:36:16Z] Story #US-037: First-run Explore-Here consent sheet — PASSED
 [2026-05-10T10:38:33Z] Story #US-038: Privacy manifest (PrivacyInfo.xcprivacy) — PASSED
 [2026-05-10T10:40:18Z] Story #US-039: zh-Hans localization for paywall, onboarding, and Explore strings — PASSED
+[2026-05-10T10:43:27Z] Story #US-040: Schema parity check across iOS and TypeScript — PASSED

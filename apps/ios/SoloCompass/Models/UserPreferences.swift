@@ -1,5 +1,7 @@
 import Foundation
 import Observation
+import StoreKit
+import UIKit
 
 /// User preferences persisted to UserDefaults.
 ///
@@ -34,13 +36,14 @@ public final class UserPreferences {
         var swiftDataMirrored: Bool = false
         var hasAcceptedExploreConsent: Bool = false
         var exploreConsentGivenAt: Date? = nil
+        var reviewPromptShown: Bool = false
 
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
             case visitHistory, completedExperiences, favoritedExperiences, favoritedAt, pendingCheckIns
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
-            case hasAcceptedExploreConsent, exploreConsentGivenAt
+            case hasAcceptedExploreConsent, exploreConsentGivenAt, reviewPromptShown
         }
 
         init() {}
@@ -63,7 +66,8 @@ public final class UserPreferences {
             seedImported: Bool,
             swiftDataMirrored: Bool,
             hasAcceptedExploreConsent: Bool,
-            exploreConsentGivenAt: Date?
+            exploreConsentGivenAt: Date?,
+            reviewPromptShown: Bool
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -83,6 +87,7 @@ public final class UserPreferences {
             self.swiftDataMirrored = swiftDataMirrored
             self.hasAcceptedExploreConsent = hasAcceptedExploreConsent
             self.exploreConsentGivenAt = exploreConsentGivenAt
+            self.reviewPromptShown = reviewPromptShown
         }
 
         init(from decoder: Decoder) throws {
@@ -105,6 +110,7 @@ public final class UserPreferences {
             self.swiftDataMirrored = try c.decodeIfPresent(Bool.self, forKey: .swiftDataMirrored) ?? false
             self.hasAcceptedExploreConsent = try c.decodeIfPresent(Bool.self, forKey: .hasAcceptedExploreConsent) ?? false
             self.exploreConsentGivenAt = try c.decodeIfPresent(Date.self, forKey: .exploreConsentGivenAt)
+            self.reviewPromptShown = try c.decodeIfPresent(Bool.self, forKey: .reviewPromptShown) ?? false
         }
     }
 
@@ -135,6 +141,10 @@ public final class UserPreferences {
     /// Non-nil means consent has been given; nil means the sheet must
     /// be shown before the first Overpass/AI call.
     public var exploreConsentGivenAt: Date? { didSet { persist() } }
+    /// True once SKStoreReviewController.requestReview() has been triggered
+    /// (after the user's 3rd distinct experience completion). Prevents repeat
+    /// prompts. US-041.
+    public var reviewPromptShown: Bool { didSet { persist() } }
 
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
@@ -166,6 +176,7 @@ public final class UserPreferences {
         self.swiftDataMirrored = snapshot.swiftDataMirrored
         self.hasAcceptedExploreConsent = snapshot.hasAcceptedExploreConsent
         self.exploreConsentGivenAt = snapshot.exploreConsentGivenAt
+        self.reviewPromptShown = snapshot.reviewPromptShown
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -199,7 +210,8 @@ public final class UserPreferences {
             seedImported: seedImported,
             swiftDataMirrored: swiftDataMirrored,
             hasAcceptedExploreConsent: hasAcceptedExploreConsent,
-            exploreConsentGivenAt: exploreConsentGivenAt
+            exploreConsentGivenAt: exploreConsentGivenAt,
+            reviewPromptShown: reviewPromptShown
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
@@ -278,11 +290,28 @@ public final class UserPreferences {
     public func markCompleted(_ id: String, at date: Date = Date()) {
         completedExperiences.insert(id)
         visitHistory[id] = date
-        // Double-write into SwiftData when wired. Each call inserts a
-        // fresh row (re-completions are tracked individually) — the
-        // repository handles persistence.
         Task { @MainActor in
-            experienceRepository?.recordCompletion(experienceId: id, at: date)
+            self.experienceRepository?.recordCompletion(experienceId: id, at: date)
+            self.requestReviewIfEligible()
+        }
+    }
+
+    /// Triggers SKStoreReviewController.requestReview() when the user has
+    /// completed exactly 3 distinct experiences and hasn't been prompted before.
+    /// In DEBUG builds, FF_FORCE_REVIEW_PROMPT=1 bypasses the threshold.
+    @MainActor
+    private func requestReviewIfEligible() {
+        #if DEBUG
+        let forced = FeatureFlags.forceReviewPrompt
+        #else
+        let forced = false
+        #endif
+        guard !reviewPromptShown || forced else { return }
+        guard forced || completedExperiences.count >= 3 else { return }
+        reviewPromptShown = true
+        if let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+            SKStoreReviewController.requestReview(in: scene)
         }
     }
 

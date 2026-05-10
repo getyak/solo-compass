@@ -32,6 +32,16 @@ public enum FeatureFlags {
         readBool("FF_LOCAL_AI_FALLBACK", default: false)
     }
 
+    /// DEBUG-only. When true, SKStoreReviewController.requestReview() fires
+    /// immediately on any markCompleted() call, bypassing the 3-completion
+    /// threshold and the reviewPromptShown guard. Use this to verify the
+    /// prompt appears in Simulator without completing 3 real experiences.
+    /// Always false in Release builds — the #if DEBUG guard in
+    /// UserPreferences.requestReviewIfEligible() strips it at compile time.
+    public static var forceReviewPrompt: Bool {
+        readBool("FF_FORCE_REVIEW_PROMPT", default: false)
+    }
+
     // MARK: - Internals
 
     static func readBool(_ key: String, default fallback: Bool) -> Bool {
