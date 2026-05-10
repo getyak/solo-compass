@@ -54,6 +54,18 @@ public final class MapViewModel {
     /// paywall) call this in `onUnlocked`.
     public var onPaywallUnlocked: (() -> Void)?
 
+    // MARK: - Explore consent (US-034)
+
+    /// Set to true the first time a user triggers an Explore action
+    /// without having accepted the data-use disclosure. The view binds
+    /// `.sheet(isPresented:)` to it.
+    public var isShowingExploreConsent: Bool = false
+
+    /// Closure to retry after the consent sheet is accepted. Mirrors
+    /// the paywall pattern so the original Explore action resumes
+    /// transparently.
+    public var onExploreConsentAccepted: (() -> Void)?
+
     // MARK: - Explore-here state
     public var isExploring: Bool = false
     public var lastExploreError: String?
@@ -540,6 +552,15 @@ public final class MapViewModel {
             isShowingPaywall = true
             return
         }
+        // US-034: voice intent goes through AIService → Anthropic.
+        // Surface the data-use disclosure once before the first call.
+        if !preferences.hasAcceptedExploreConsent {
+            onExploreConsentAccepted = { [weak self] in
+                Task { await self?.handleVoiceTranscript(transcript) }
+            }
+            isShowingExploreConsent = true
+            return
+        }
         let coordinate = locationService.currentLocation?.coordinate ?? Self.defaultCenter
         do {
             let response = try await aiService.processVoiceIntent(transcript: transcript, near: coordinate)
@@ -584,6 +605,17 @@ public final class MapViewModel {
                 Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters) }
             }
             isShowingPaywall = true
+            return
+        }
+
+        // US-034: surface the first-run data-use disclosure before the
+        // first OSM + Anthropic call. Same park-and-resume pattern as
+        // the paywall.
+        if !preferences.hasAcceptedExploreConsent {
+            onExploreConsentAccepted = { [weak self] in
+                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters) }
+            }
+            isShowingExploreConsent = true
             return
         }
 

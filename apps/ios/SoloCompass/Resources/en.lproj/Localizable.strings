@@ -275,3 +275,12 @@
 /* Overpass errors */
 "overpass.error.url" = "Overpass endpoint URL is invalid.";
 "overpass.error.request" = "Map data request failed (status %d).";
+
+/* Explore consent (US-034) */
+"explore.consent.title" = "Before we explore here";
+"explore.consent.subtitle" = "Solo Compass talks to two services on your behalf. Here's exactly what leaves your phone.";
+"explore.consent.bullet.location" = "Coarse location → OpenStreetMap. Public, no account, no tracking.";
+"explore.consent.bullet.ai" = "OSM tags + city slug → Anthropic, to draft solo-traveler descriptions. No personal data.";
+"explore.consent.bullet.no_pii" = "We never collect contacts, photos, or browsing history. Nothing is shared with advertisers.";
+"explore.consent.accept" = "Got it — explore";
+"explore.consent.cancel" = "Not now";

@@ -339,6 +339,10 @@ public struct CompassMapView: View {
             })
             .environment(subscriptionService)
         }
+        .modifier(ExploreConsentSheetModifier(
+            viewModel: viewModel,
+            preferences: preferences
+        ))
         // First-run onboarding
         .fullScreenCover(isPresented: Binding(
             get: { !preferences.hasCompletedOnboarding },

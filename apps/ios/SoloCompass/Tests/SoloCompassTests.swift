@@ -198,6 +198,19 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertTrue(reloaded.isFavorited("exp_test_2"))
     }
 
+    // US-034: explore consent default + accept persists across reload.
+    func testExploreConsentDefaultsFalseAndPersistsAfterAccept() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+        let prefs = UserPreferences(defaults: defaults)
+        XCTAssertFalse(prefs.hasAcceptedExploreConsent, "Default must be false so the sheet shows on first launch")
+
+        prefs.acceptExploreConsent()
+        XCTAssertTrue(prefs.hasAcceptedExploreConsent)
+
+        let reloaded = UserPreferences(defaults: defaults)
+        XCTAssertTrue(reloaded.hasAcceptedExploreConsent, "Acceptance must persist across launches")
+    }
+
     // MARK: - Overpass tag mapping
 
     func testOverpassCategoryFromAmenity() {

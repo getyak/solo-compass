@@ -32,12 +32,14 @@ public final class UserPreferences {
         var quietHoursEnd: Int = 8
         var seedImported: Bool = false
         var swiftDataMirrored: Bool = false
+        var hasAcceptedExploreConsent: Bool = false
 
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
             case visitHistory, completedExperiences, favoritedExperiences, favoritedAt, pendingCheckIns
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
+            case hasAcceptedExploreConsent
         }
 
         init() {}
@@ -58,7 +60,8 @@ public final class UserPreferences {
             quietHoursStart: Int,
             quietHoursEnd: Int,
             seedImported: Bool,
-            swiftDataMirrored: Bool
+            swiftDataMirrored: Bool,
+            hasAcceptedExploreConsent: Bool
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -76,6 +79,7 @@ public final class UserPreferences {
             self.quietHoursEnd = quietHoursEnd
             self.seedImported = seedImported
             self.swiftDataMirrored = swiftDataMirrored
+            self.hasAcceptedExploreConsent = hasAcceptedExploreConsent
         }
 
         init(from decoder: Decoder) throws {
@@ -96,6 +100,7 @@ public final class UserPreferences {
             self.quietHoursEnd = try c.decodeIfPresent(Int.self, forKey: .quietHoursEnd) ?? 8
             self.seedImported = try c.decodeIfPresent(Bool.self, forKey: .seedImported) ?? false
             self.swiftDataMirrored = try c.decodeIfPresent(Bool.self, forKey: .swiftDataMirrored) ?? false
+            self.hasAcceptedExploreConsent = try c.decodeIfPresent(Bool.self, forKey: .hasAcceptedExploreConsent) ?? false
         }
     }
 
@@ -118,6 +123,10 @@ public final class UserPreferences {
     /// pending check-ins have been mirrored into SwiftData. Set once in
     /// `attachRepository(_:)` and then never re-run.
     public var swiftDataMirrored: Bool { didSet { persist() } }
+    /// True once the user has dismissed the first-run Explore-Here
+    /// consent sheet (US-034). Gates the Explore button + voice intent
+    /// — never blocks UI for returning users.
+    public var hasAcceptedExploreConsent: Bool { didSet { persist() } }
 
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
@@ -147,6 +156,7 @@ public final class UserPreferences {
         self.quietHoursEnd = snapshot.quietHoursEnd
         self.seedImported = snapshot.seedImported
         self.swiftDataMirrored = snapshot.swiftDataMirrored
+        self.hasAcceptedExploreConsent = snapshot.hasAcceptedExploreConsent
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -178,7 +188,8 @@ public final class UserPreferences {
             quietHoursStart: quietHoursStart,
             quietHoursEnd: quietHoursEnd,
             seedImported: seedImported,
-            swiftDataMirrored: swiftDataMirrored
+            swiftDataMirrored: swiftDataMirrored,
+            hasAcceptedExploreConsent: hasAcceptedExploreConsent
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
@@ -258,6 +269,11 @@ public final class UserPreferences {
 
     public func completeOnboarding() {
         hasCompletedOnboarding = true
+    }
+
+    /// Mark the Explore-Here consent sheet as accepted. Idempotent.
+    public func acceptExploreConsent() {
+        hasAcceptedExploreConsent = true
     }
 
     /// Auto-clear pending check-ins older than 7 days.

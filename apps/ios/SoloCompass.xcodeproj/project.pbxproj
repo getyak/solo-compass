@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0A830B26D4A18948D16F3A42 /* Experience.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C97F8159A6FA7953D28DAB /* Experience.swift */; };
+		0EAA3D2EEA89D212150A6B57 /* ExploreConsentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB8B58A4F608F9951CBDF3C /* ExploreConsentSheet.swift */; };
 		116FF0278F882D45402B0E78 /* ExperienceRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03076AD221F78BBDE981C3A /* ExperienceRecord.swift */; };
 		13E5AEAEE5194DDB79AE92AC /* SoloCompassModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5435FBA9527C07A9FB07D46 /* SoloCompassModelContainer.swift */; };
 		15A48470CBEBB6D31C2201D9 /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = D4C10384834D53FE83113D51 /* Configuration.storekit */; };
@@ -90,6 +91,7 @@
 		409FB4B0922C4A1D8AAEB1D1 /* FeatureFlags.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = FeatureFlags.plist; sourceTree = "<group>"; };
 		4442EDB5CE3602DA3EA32725 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		576B08910782A58C3597E596 /* ReportIssueSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportIssueSheet.swift; sourceTree = "<group>"; };
+		5AB8B58A4F608F9951CBDF3C /* ExploreConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreConsentSheet.swift; sourceTree = "<group>"; };
 		5CA0BAEC05B72704552C0906 /* PendingCheckInRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingCheckInRecord.swift; sourceTree = "<group>"; };
 		5CE16BF3B189BB0F17E4CE92 /* ExperienceDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceDetailViewModel.swift; sourceTree = "<group>"; };
 		6163572F4644BF852B35FDA4 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
@@ -165,6 +167,7 @@
 			children = (
 				873ACB737A9B43254C17B238 /* CityPickerSheet.swift */,
 				BA6A3144D85CDAD01FA0FECB /* CompassMapView.swift */,
+				5AB8B58A4F608F9951CBDF3C /* ExploreConsentSheet.swift */,
 				0E0157D30FF53B21FF31D519 /* MarkerIconView.swift */,
 			);
 			path = Map;
@@ -477,6 +480,7 @@
 				7C14629A3FAB31975BFBB0A6 /* ExperienceRepository.swift in Sources */,
 				E7B5B022519434F7C07818CF /* ExperienceService.swift in Sources */,
 				1BF34EAE036021423C1ACE2D /* ExploreCacheRecord.swift in Sources */,
+				0EAA3D2EEA89D212150A6B57 /* ExploreConsentSheet.swift in Sources */,
 				E881A71769542A7C58CF5D10 /* FavoritesListView.swift in Sources */,
 				18D372538603D7A46EE6C86F /* FeatureFlags.swift in Sources */,
 				297541149234668D12EAF272 /* FilterBarView.swift in Sources */,
