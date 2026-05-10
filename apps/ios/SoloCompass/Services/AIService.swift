@@ -248,34 +248,16 @@ public final class AIService {
 
     // MARK: - Helpers
 
+    // US-034: ANTHROPIC_API_KEY is no longer read from Secrets.plist.
+    // The synthesis path now routes through the Supabase Edge Function
+    // when FF_ROUTE_AI_THROUGH_EDGE is on. Only the env-var path is
+    // kept so local QA runs (explanation/voice) and CI can still inject
+    // a key without bundling it in the app.
     private static func resolveAPIKey() -> String? {
-        if let env = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !env.isEmpty {
-            return env
-        }
-        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist") else {
+        guard let env = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !env.isEmpty else {
             return nil
         }
-        do {
-            let data = try Data(contentsOf: url)
-            guard let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
-                #if DEBUG
-                print("[AIService] Secrets.plist is not a [String: Any] dictionary")
-                #endif
-                return nil
-            }
-            guard let key = plist["ANTHROPIC_API_KEY"] as? String, !key.isEmpty else {
-                #if DEBUG
-                print("[AIService] ANTHROPIC_API_KEY missing or empty in Secrets.plist")
-                #endif
-                return nil
-            }
-            return key
-        } catch {
-            #if DEBUG
-            print("[AIService] Failed to read Secrets.plist: \(error)")
-            #endif
-            return nil
-        }
+        return env
     }
 
     private static func recommendationPrompt(candidates: [Experience], context: UserContext) -> String {

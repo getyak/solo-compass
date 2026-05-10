@@ -578,7 +578,7 @@
         "Typecheck passes (Deno: deno check index.ts)"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

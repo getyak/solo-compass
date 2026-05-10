@@ -10,6 +10,7 @@ public protocol SupabaseClientProtocol: AnyObject {
     func refreshSession() async -> Result<SupabaseClient.Session, SupabaseClient.SupabaseError>
     func post(table: String, body: Data) async -> Result<Data, SupabaseClient.SupabaseError>
     func get(table: String, query: [URLQueryItem]) async -> Result<Data, SupabaseClient.SupabaseError>
+    func invoke(function: String, body: Data) async -> Result<Data, SupabaseClient.SupabaseError>
 }
 
 /// Minimal Supabase REST client using URLSession — no third-party SDK.

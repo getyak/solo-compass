@@ -24,6 +24,14 @@ public enum FeatureFlags {
         readBool("FF_ROUTE_AI_THROUGH_EDGE", default: false)
     }
 
+    /// When true, explanation and voice intents still call Anthropic
+    /// directly from the device (using the env-var key). Used as a
+    /// staged rollout gate: synthesis moves to the Edge Function first
+    /// (US-034) while explanation/voice migrate later. Off by default.
+    public static var localAIFallback: Bool {
+        readBool("FF_LOCAL_AI_FALLBACK", default: false)
+    }
+
     // MARK: - Internals
 
     static func readBool(_ key: String, default fallback: Bool) -> Bool {

@@ -2096,4 +2096,17 @@ final class MockSupabaseClient: SupabaseClientProtocol {
         if disabled { return .failure(.backendDisabled) }
         return .success(Data())
     }
+
+    private(set) var invokeCallCount = 0
+    private(set) var lastInvokedFunction: String?
+    private(set) var lastInvokedBody: Data?
+    var invokeResult: Result<Data, SupabaseClient.SupabaseError> = .success(Data())
+
+    func invoke(function: String, body: Data) async -> Result<Data, SupabaseClient.SupabaseError> {
+        invokeCallCount += 1
+        lastInvokedFunction = function
+        lastInvokedBody = body
+        if disabled { return .failure(.backendDisabled) }
+        return invokeResult
+    }
 }

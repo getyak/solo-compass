@@ -6,5 +6,7 @@
     <false/>
     <key>FF_ROUTE_AI_THROUGH_EDGE</key>
     <false/>
+    <key>FF_LOCAL_AI_FALLBACK</key>
+    <false/>
 </dict>
 </plist>
