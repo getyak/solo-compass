@@ -1815,6 +1815,99 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertTrue(ids.contains("exp_osm_1002"))
     }
 
+    // MARK: - US-032 Subscription event telemetry
+
+    /// Simulate a trial-start: call the internal emission entry point with
+    /// event_type "subscribed" and is_in_trial_period true, then assert that
+    /// exactly one PendingSyncRecord is queued for the subscription_events table
+    /// with the expected field values.
+    func testTrialStartEmitsSubscriptionEventInOutbox() throws {
+        // Enable FF_BACKEND_SYNC via env for this test. The flag is read
+        // from ProcessInfo.environment, so we override the key before calling
+        // emitSubscriptionEvent and restore it after.
+        let flagKey = "FF_BACKEND_SYNC"
+        let prior = ProcessInfo.processInfo.environment[flagKey]
+        setenv(flagKey, "1", 1)
+        defer { prior.map { setenv(flagKey, $0, 1) } ?? unsetenv(flagKey) }
+
+        let container = SoloCompassModelContainer.makeInMemory()
+        let context = ModelContext(container)
+
+        // Wire a fresh SyncService backed by the in-memory container so we can
+        // inspect PendingSyncRecord rows without touching the production store.
+        let sync = SyncService()
+        sync.supabaseClient = MockSupabaseClient(backendDisabled: false)
+
+        let service = SubscriptionService()
+        service.syncService = sync
+        service.syncModelContext = context
+        service.deviceIDProvider = { "test-device-id" }
+
+        let purchaseDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let expiresDate = purchaseDate.addingTimeInterval(86_400 * 30)
+
+        service._emitSubscriptionEventFields(
+            eventType: "subscribed",
+            productID: SubscriptionService.monthlyProductID,
+            originalPurchaseDate: purchaseDate,
+            expiresDate: expiresDate,
+            isInTrialPeriod: true
+        )
+
+        // Fetch all queued records from the in-memory container.
+        let descriptor = FetchDescriptor<PendingSyncRecord>()
+        let records = try context.fetch(descriptor)
+
+        XCTAssertEqual(records.count, 1, "Exactly one PendingSyncRecord must be enqueued")
+
+        let record = try XCTUnwrap(records.first)
+        XCTAssertEqual(record.tableName, "subscription_events")
+        XCTAssertEqual(record.operation, "upsert")
+
+        // Decode the payload and verify the key fields.
+        struct DecodedPayload: Decodable {
+            let event_type: String
+            let product_id: String
+            let is_in_trial_period: Bool
+            let device_id: String
+        }
+        let payload = try JSONDecoder().decode(DecodedPayload.self, from: record.payloadJSON)
+        XCTAssertEqual(payload.event_type, "subscribed")
+        XCTAssertEqual(payload.product_id, SubscriptionService.monthlyProductID)
+        XCTAssertTrue(payload.is_in_trial_period, "Trial-start row must have is_in_trial_period=true")
+        XCTAssertEqual(payload.device_id, "test-device-id")
+    }
+
+    /// When FF_BACKEND_SYNC is false the emission is silently dropped —
+    /// no PendingSyncRecord must appear in the outbox.
+    func testSubscriptionEventDroppedWhenBackendSyncDisabled() throws {
+        let flagKey = "FF_BACKEND_SYNC"
+        let prior = ProcessInfo.processInfo.environment[flagKey]
+        setenv(flagKey, "0", 1)
+        defer { prior.map { setenv(flagKey, $0, 1) } ?? unsetenv(flagKey) }
+
+        let container = SoloCompassModelContainer.makeInMemory()
+        let context = ModelContext(container)
+
+        let sync = SyncService()
+        sync.supabaseClient = MockSupabaseClient(backendDisabled: true)
+
+        let service = SubscriptionService()
+        service.syncService = sync
+        service.syncModelContext = context
+
+        service._emitSubscriptionEventFields(
+            eventType: "subscribed",
+            productID: SubscriptionService.monthlyProductID,
+            originalPurchaseDate: nil,
+            expiresDate: nil,
+            isInTrialPeriod: true
+        )
+
+        let records = try context.fetch(FetchDescriptor<PendingSyncRecord>())
+        XCTAssertEqual(records.count, 0, "No outbox row must be written when FF_BACKEND_SYNC is off")
+    }
+
     // MARK: - US-030 Anonymous sign-in + DeviceIdentityService
 
     /// First launch: signInAnonymously called once and userId persisted.
@@ -1992,5 +2085,15 @@ final class MockSupabaseClient: SupabaseClientProtocol {
         if disabled { return .failure(.backendDisabled) }
         if let s = fixedSession { return .success(s) }
         return .failure(.notSignedIn)
+    }
+
+    func post(table: String, body: Data) async -> Result<Data, SupabaseClient.SupabaseError> {
+        if disabled { return .failure(.backendDisabled) }
+        return .success(Data())
+    }
+
+    func get(table: String, query: [URLQueryItem]) async -> Result<Data, SupabaseClient.SupabaseError> {
+        if disabled { return .failure(.backendDisabled) }
+        return .success(Data())
     }
 }
