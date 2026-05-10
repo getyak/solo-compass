@@ -484,7 +484,7 @@
         "Typecheck passes (no Swift changes)"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

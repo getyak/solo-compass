@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 /// Minimal Supabase REST client using URLSession — no third-party SDK.
 ///
@@ -13,6 +14,7 @@ import Foundation
 /// "do nothing" path that returns the empty / success equivalent. This
 /// preserves PRD G7 (local-first invariant): the app stays fully
 /// usable when the backend is unreachable.
+@Observable
 @MainActor
 public final class SupabaseClient {
     public static let shared = SupabaseClient()
