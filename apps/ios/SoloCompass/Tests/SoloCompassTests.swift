@@ -1706,6 +1706,43 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertNil(vm.lastExploreError, "lastExploreError must be nil — skeleton results are still valid")
     }
 
+    // MARK: - US-025 PaywallView product cards
+
+    /// PaywallView renders one card per product returned by SubscriptionService.
+    /// Verify that loadProducts() using the StoreKit test session returns exactly
+    /// two products whose display names match the Configuration.storekit catalog,
+    /// and that the yearly product is listed first (as the "Best value" card).
+    func testPaywallProductCardsLoadBothProducts() async throws {
+        guard let configURL = Bundle.main.url(
+            forResource: "Configuration", withExtension: "storekit"
+        ) else {
+            throw XCTSkip("Configuration.storekit not found in test bundle")
+        }
+
+        _ = KeychainStore.delete(account: "entitlement")
+        defer { _ = KeychainStore.delete(account: "entitlement") }
+
+        let session = try SKTestSession(contentsOf: configURL)
+        session.resetToDefaultState()
+        session.disableDialogs = true
+        session.clearTransactions()
+
+        let service = SubscriptionService()
+        XCTAssertTrue(service.products.isEmpty, "products must be empty before loadProducts()")
+
+        await service.loadProducts()
+
+        XCTAssertEqual(service.products.count, 2, "PaywallView expects exactly two product cards")
+
+        let names = service.products.map(\.displayName)
+        XCTAssertTrue(names.contains("Pro Yearly"), "yearly card title must be 'Pro Yearly'")
+        XCTAssertTrue(names.contains("Pro Monthly"), "monthly card title must be 'Pro Monthly'")
+
+        // Yearly must be first so it appears as the top (Best value) card.
+        XCTAssertEqual(service.products[0].id, SubscriptionService.yearlyProductID,
+                       "yearly product must be sorted first for the Best value card")
+    }
+
     // MARK: - US-010 generated experiences survive across service instances
 
     func testGeneratedExperiencesPersistAcrossServiceInstances() {

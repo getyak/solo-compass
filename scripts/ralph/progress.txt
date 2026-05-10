@@ -35,3 +35,5 @@ Stories: 41
 [2026-05-10T09:45:08Z] Story #US-021: Surface explore errors and quota banners on the map — PASSED
 [2026-05-10T09:47:42Z] Story #US-022: Offline-mode fallback from RecentExploreRegion — PASSED
 [2026-05-10T09:51:02Z] Story #US-023: Add StoreKit Configuration.storekit and SubscriptionService scaffold — PASSED
+[2026-05-10T09:52:58Z] Story #US-024: Cache entitlement in Keychain for offline boot — PASSED
+[2026-05-10T09:55:00Z] Story #US-025: Build PaywallView with monthly/yearly cards and free-trial CTA — PASSED
