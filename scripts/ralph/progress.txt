@@ -6,3 +6,4 @@ PRD: tasks/prd-paid-app-foundation.md
 Stories: 41
 ---
 [2026-05-10T09:15:00Z] Story #US-010: Persist generated Experiences from exploreNearby through SwiftData — PASSED
+[2026-05-10T09:01:25Z] Story #US-010: Persist generated Experiences from exploreNearby through SwiftData — PASSED

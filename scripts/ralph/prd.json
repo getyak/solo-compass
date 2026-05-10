@@ -1,5 +1,5 @@
 {
-  "project": "Solo Compass — Paid-App Foundation (iOS v1.1)",
+  "project": "Solo Compass \u2014 Paid-App Foundation (iOS v1.1)",
   "branchName": "ralph/paid-app-foundation",
   "description": "Turn the iOS app from a memory-only demo into a shippable paid product. Adds: SwiftData persistence (all Experiences + user state), region-keyed caches for Overpass and Claude synthesis, Sonnet 4.6 default model + Haiku for explanations, hallucination-resistant prompt, AI-confidence visual downgrade, reverse geocoding, MicroSurvey writeback, three-state Solo-Score cold-start UX, StoreKit 2 freemium with 7-day trial (Apple price tier 2 monthly / tier 11 yearly, globally uniform), paywall, Supabase anonymous auth + outbox sync + shared synthesis cache + Edge Function (removes Anthropic key from client), optional Sign-in-with-Apple linking, privacy manifest + consent sheet, zh-Hans localization, TestFlight prep. Local-first invariant: SwiftData is the source of truth for every UI read; backend is sync + cache only; app must stay fully usable offline. Full design in tasks/prd-paid-app-foundation.md.",
   "userStories": [
@@ -45,7 +45,7 @@
         "Create apps/ios/SoloCompass/Persistence/Models/UserCompletionRecord.swift with fields: id (UUID), experienceId (String, indexed), completedAt (Date)",
         "Create apps/ios/SoloCompass/Persistence/Models/UserFavoriteRecord.swift with fields: id (UUID), experienceId (String, unique), favoritedAt (Date)",
         "Register both in SoloCompassSchemaV1.models",
-        "Unit test: insert two UserFavoriteRecords with same experienceId — assert second insert throws or upserts (document chosen behavior)",
+        "Unit test: insert two UserFavoriteRecords with same experienceId \u2014 assert second insert throws or upserts (document chosen behavior)",
         "Typecheck passes",
         "Tests pass"
       ],
@@ -283,7 +283,7 @@
       "description": "As a user landing in a new city, I want the city filter to update automatically so I see the new pins without manual action.",
       "acceptanceCriteria": [
         "After exploreNearby appends N > 0 Experiences and ReverseGeocodeService returned a real cityCode, MapViewModel calls selectCity(resolvedCityCode)",
-        "MapViewModel.lastExploreToast: String? is set to 'Now exploring Hanoi · 12 places added' (or 'N places added near you' if geocoding failed)",
+        "MapViewModel.lastExploreToast: String? is set to 'Now exploring Hanoi \u00b7 12 places added' (or 'N places added near you' if geocoding failed)",
         "availableCities now includes DiscoveredCityRecord rows so the new city appears in the picker immediately",
         "cityNameMap is augmented with the discovered city so the city pill shows 'Hanoi' not 'vn-hanoi'",
         "Unit test: with selectedCity = 'cmi' and mocked geocoder returning 'vn-hanoi'/'Hanoi', run exploreNearby at Hanoi coords -> assert selectedCity becomes 'vn-hanoi' and lastExploreToast contains 'Hanoi'",
@@ -321,7 +321,7 @@
         "When basedOnCount in 1...2, subtitle reads 'Based on N early reports'",
         "When basedOnCount >= 3, subtitle reads 'Based on N solo travelers' (current copy)",
         "Add localized keys: solo.estimate.pill, solo.basedOn.early, solo.section.estimate, solo.section.early to en.lproj/Localizable.strings",
-        "Unit test: render the section with basedOnCount 0, 1, 3 — assert the three different header strings are present",
+        "Unit test: render the section with basedOnCount 0, 1, 3 \u2014 assert the three different header strings are present",
         "Typecheck passes",
         "Verify in simulator: open a generated Experience (basedOnCount 0) and a seed Experience (basedOnCount > 3), confirm headers and pills differ"
       ],
@@ -353,7 +353,7 @@
       "acceptanceCriteria": [
         "CompassMapView observes viewModel.lastExploreError, viewModel.lastExploreToast, viewModel.lastQuotaInfo",
         "lastExploreError: dismissible orange banner just below the filter bar with the error text",
-        "lastExploreToast: ephemeral 3-second Capsule above BottomInfoBar (e.g. 'Now exploring Hanoi · 12 places added')",
+        "lastExploreToast: ephemeral 3-second Capsule above BottomInfoBar (e.g. 'Now exploring Hanoi \u00b7 12 places added')",
         "lastQuotaInfo: persistent yellow banner showing 'Daily AI limit reached, resets in Xh' that auto-disappears when the date rolls over",
         "Add localized keys: explore.toast.added, explore.toast.addedNamed, explore.quota.dailyLimit",
         "Unit test: simulate exploreNearby success -> assert lastExploreToast set; simulate quota exceeded -> assert lastQuotaInfo set",
@@ -662,7 +662,7 @@
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Resources/PrivacyInfo.xcprivacy",
         "Declared data types with purpose 'AppFunctionality' and not used for tracking: NSPrivacyCollectedDataTypePreciseLocation, NSPrivacyCollectedDataTypeCoarseLocation, NSPrivacyCollectedDataTypeDeviceID (for sync), NSPrivacyCollectedDataTypePurchaseHistory (StoreKit), NSPrivacyCollectedDataTypeOtherDiagnosticData (sync events)",
-        "Declared API reasons (ReasonAPIs): UserDefaults (CA92.1), FileTimestamp (C617.1) — only those actually used",
+        "Declared API reasons (ReasonAPIs): UserDefaults (CA92.1), FileTimestamp (C617.1) \u2014 only those actually used",
         "Add the file path to project.yml SoloCompass target sources",
         "Verify by manual file inspection vs Apple's spec",
         "Update docs/PRIVACY.md with the same declarations in human-readable form",
