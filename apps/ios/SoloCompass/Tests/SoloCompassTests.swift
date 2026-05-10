@@ -1,6 +1,7 @@
 import XCTest
 import CoreLocation
 import SwiftData
+import StoreKitTest
 @testable import SoloCompass
 
 @MainActor
@@ -1256,6 +1257,75 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertTrue(SubscriptionService.Entitlement.proTrial.isActive)
         XCTAssertFalse(SubscriptionService.Entitlement.free.isActive)
         XCTAssertFalse(SubscriptionService.Entitlement.proExpired.isActive)
+    }
+
+    // MARK: - US-023 StoreKit testSession — purchase / expiration
+
+    /// Simulate a successful purchase via Transaction.testSession and verify
+    /// that refreshEntitlement() resolves to .pro.
+    func testSubscriptionPurchaseResolvesToPro() async throws {
+        // Transaction.testSession requires the StoreKit configuration file
+        // to be present in the test bundle — gated to avoid false failures
+        // when the bundle is unsigned or the file is absent.
+        guard let configURL = Bundle.main.url(
+            forResource: "Configuration", withExtension: "storekit"
+        ) else {
+            throw XCTSkip("Configuration.storekit not found in test bundle")
+        }
+
+        _ = KeychainStore.delete(account: "entitlement")
+        defer { _ = KeychainStore.delete(account: "entitlement") }
+
+        let session = try SKTestSession(contentsOf: configURL)
+        session.resetToDefaultState()
+        session.disableDialogs = true
+        session.clearTransactions()
+
+        let service = SubscriptionService()
+        XCTAssertEqual(service.entitlement, .free)
+
+        // Simulate purchase of the monthly product.
+        _ = try await session.buyProduct(identifier: SubscriptionService.monthlyProductID)
+
+        await service.refreshEntitlement()
+
+        XCTAssertTrue(
+            service.entitlement == .pro || service.entitlement == .proTrial,
+            "Expected .pro or .proTrial after purchase, got \(service.entitlement)"
+        )
+        XCTAssertTrue(service.entitlement.isActive)
+    }
+
+    /// Simulate a purchase followed by expiration and verify that
+    /// refreshEntitlement() resolves to .proExpired.
+    func testSubscriptionExpirationResolvesToProExpired() async throws {
+        guard let configURL = Bundle.main.url(
+            forResource: "Configuration", withExtension: "storekit"
+        ) else {
+            throw XCTSkip("Configuration.storekit not found in test bundle")
+        }
+
+        _ = KeychainStore.delete(account: "entitlement")
+        defer { _ = KeychainStore.delete(account: "entitlement") }
+
+        let session = try SKTestSession(contentsOf: configURL)
+        session.resetToDefaultState()
+        session.disableDialogs = true
+        session.clearTransactions()
+
+        // Use accelerated rate so subscription expires quickly in tests.
+        session.timeRate = .oneRenewalEveryFiveSeconds
+
+        let service = SubscriptionService()
+
+        // Simulate a monthly purchase then immediately expire it.
+        _ = try await session.buyProduct(identifier: SubscriptionService.monthlyProductID)
+        session.expireSubscription(identifier: SubscriptionService.monthlyProductID)
+
+        await service.refreshEntitlement()
+
+        XCTAssertEqual(service.entitlement, .proExpired)
+        XCTAssertFalse(service.entitlement.isActive)
     }
 
     // MARK: - US-024 free-tier gating

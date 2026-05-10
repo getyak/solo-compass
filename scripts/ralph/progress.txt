@@ -33,3 +33,4 @@ Stories: 41
 [2026-05-10T09:39:03Z] Story #US-019: Three-state Solo-Score cold-start UX in detail view — PASSED
 [2026-05-10T09:41:29Z] Story #US-020: MicroSurvey writeback to SoloScore via SwiftData aggregation — PASSED
 [2026-05-10T09:45:08Z] Story #US-021: Surface explore errors and quota banners on the map — PASSED
+[2026-05-10T09:47:42Z] Story #US-022: Offline-mode fallback from RecentExploreRegion — PASSED

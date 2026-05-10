@@ -25,6 +25,9 @@ targets:
       - path: SoloCompass
         excludes:
           - Tests/**
+    resources:
+      - path: SoloCompass/Resources/Configuration.storekit
+        buildPhase: resources
     info:
       path: SoloCompass/Resources/Info.plist
       properties:
@@ -66,12 +69,16 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: SoloCompass/Tests
+    resources:
+      - path: SoloCompass/Resources/Configuration.storekit
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.solocompass.tests
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Automatic
         CODE_SIGNING_ALLOWED: NO
+        STOREKIT_CONFIGURATION: SoloCompass/Resources/Configuration.storekit
     dependencies:
       - target: SoloCompass
 
