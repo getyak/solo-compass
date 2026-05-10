@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import SwiftUI
 
+// swiftlint:disable:next orphaned_doc_comment
 /// Experience — the core unit of Solo Compass.
 ///
 /// NOT a place. NOT a POI. A concrete, time-bound, story-rich thing worth
@@ -189,13 +190,13 @@ public struct SoloScore: Codable, Hashable {
     /// Visual color for the overall score: red→yellow→green.
     public var scoreColor: Color {
         let clamped = max(0, min(10, overall))
-        let t = clamped / 10.0
-        if t < 0.5 {
+        let normalized = clamped / 10.0
+        if normalized < 0.5 {
             // red → yellow
-            return Color(red: 1.0, green: t * 2, blue: 0.2)
+            return Color(red: 1.0, green: normalized * 2, blue: 0.2)
         } else {
             // yellow → green
-            return Color(red: 1.0 - (t - 0.5) * 2, green: 0.85, blue: 0.2)
+            return Color(red: 1.0 - (normalized - 0.5) * 2, green: 0.85, blue: 0.2)
         }
     }
 }

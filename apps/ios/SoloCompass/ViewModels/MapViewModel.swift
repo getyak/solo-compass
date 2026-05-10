@@ -111,7 +111,7 @@ public final class MapViewModel {
     /// matching experiences) plus reverse-geocoded discoveries from
     /// previous Explore sessions (Epic C US-016/017). Discovered cities
     /// override seed-derived names when the codes match.
-    public var availableCities: [(code: String, name: String, center: CLLocationCoordinate2D)] {
+    public var availableCities: [(code: String, name: String, center: CLLocationCoordinate2D)] { // swiftlint:disable:this large_tuple
         var cityExperiences: [String: [CLLocationCoordinate2D]] = [:]
         for exp in experienceService.allExperiences {
             guard let coord = exp.coordinate else { continue }
@@ -119,8 +119,7 @@ public final class MapViewModel {
             cityExperiences[code, default: []].append(coord)
         }
         let nameMap = cityNameMap
-        var byCode: [String: (code: String, name: String, center: CLLocationCoordinate2D)] = [:]
-
+        var byCode: [String: (code: String, name: String, center: CLLocationCoordinate2D)] = [:] // swiftlint:disable:this large_tuple
         // Seed-derived rows first.
         for (code, coords) in cityExperiences where !coords.isEmpty {
             let avgLat = coords.map(\.latitude).reduce(0, +) / Double(coords.count)
@@ -177,9 +176,9 @@ public final class MapViewModel {
         var bestDistance = Double.infinity
         for city in availableCities {
             let cityLoc = CLLocation(latitude: city.center.latitude, longitude: city.center.longitude)
-            let d = location.distance(from: cityLoc)
-            if d < bestDistance {
-                bestDistance = d
+            let dist = location.distance(from: cityLoc)
+            if dist < bestDistance {
+                bestDistance = dist
                 bestCode = city.code
             }
         }
