@@ -375,6 +375,7 @@ public final class UserPreferences {
 
     /// Read-through to SwiftData when the repository is wired; falls back
     /// to the in-memory set for previews and tests that skip `attachRepository`.
+    @MainActor
     public func isFavorited(_ id: String) -> Bool {
         if let repo = experienceRepository { return repo.isFavorited(experienceId: id) }
         return favoritedExperiences.contains(id)
@@ -382,6 +383,7 @@ public final class UserPreferences {
 
     /// Read-through to SwiftData when the repository is wired; falls back
     /// to the in-memory set for previews and tests that skip `attachRepository`.
+    @MainActor
     public func isCompleted(_ id: String) -> Bool {
         if let repo = experienceRepository { return repo.isCompleted(experienceId: id) }
         return completedExperiences.contains(id)
