@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![pnpm](https://img.shields.io/badge/pnpm-workspaces-orange)](https://pnpm.io/workspaces)
-[![Status](https://img.shields.io/badge/status-v1.1%20TestFlight-blue)](https://github.com/kubbot/solo-compass)
+[![Status](https://img.shields.io/badge/status-pre--alpha-red)](https://github.com/kubbot/solo-compass)
 
 ---
 
