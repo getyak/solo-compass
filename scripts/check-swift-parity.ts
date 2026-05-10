@@ -12,7 +12,11 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { extractTSStructs, SCHEMA_INTERFACES, SWIFTDATA_MODEL_INTERFACES } from "./parity/ts-extractor.js";
+import {
+  extractTSStructs,
+  SCHEMA_INTERFACES,
+  SWIFTDATA_MODEL_INTERFACES,
+} from "./parity/ts-extractor.js";
 import { extractSwiftStructs } from "./parity/swift-extractor.js";
 import { compareStructs, formatReport } from "./parity/comparator.js";
 import { checkDbParity, formatDbParityReport } from "./parity/db-parity.js";
@@ -150,7 +154,11 @@ function main(): void {
   }
 
   // Re-use the already-extracted TS structs — we just need different watch-set
-  const swiftDataResult = checkSwiftDataParity(tsStructs, swiftDataModels, SWIFTDATA_MODEL_INTERFACES);
+  const swiftDataResult = checkSwiftDataParity(
+    tsStructs,
+    swiftDataModels,
+    SWIFTDATA_MODEL_INTERFACES,
+  );
   process.stdout.write(swiftDataResult.report);
 
   // ── Exit ─────────────────────────────────────────────────────────────────

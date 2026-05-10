@@ -145,7 +145,8 @@ export function extractSwiftDataModels(rootDir: string, swiftGlobs: string[]): S
       const relFile = path.relative(rootDir, filePath);
 
       // Find all @Model-annotated class declarations
-      const MODEL_RE = /@Model\s+(?:(?:public|private|internal|fileprivate)\s+)?final\s+class\s+(\w+)[^{]*\{/g;
+      const MODEL_RE =
+        /@Model\s+(?:(?:public|private|internal|fileprivate)\s+)?final\s+class\s+(\w+)[^{]*\{/g;
       let m: RegExpExecArray | null;
 
       while ((m = MODEL_RE.exec(src)) !== null) {
@@ -167,6 +168,10 @@ export function extractSwiftDataModels(rootDir: string, swiftGlobs: string[]): S
           const ci = findClosingBrace(clean, oi);
           clean = clean.slice(0, nm.index) + "/* nested */" + clean.slice(ci + 1);
         }
+
+        // Strip @Attribute(...) wrappers so inline attributes like
+        // "@Attribute(.unique) public var cityCode: String" are parsed correctly
+        clean = clean.replace(/@Attribute\([^)]*\) /g, "");
 
         const fields: SwiftDataField[] = [];
         STORED_PROP_RE.lastIndex = 0;
@@ -298,10 +303,14 @@ export function checkSwiftDataParity(
             lines.push(`${prefix}  [missing in TS]       Swift: ${mm.swiftType}`);
             break;
           case "type_mismatch":
-            lines.push(`${prefix}  [type mismatch]       TS: ${mm.tsType}  ↔  Swift: ${mm.swiftType}`);
+            lines.push(
+              `${prefix}  [type mismatch]       TS: ${mm.tsType}  ↔  Swift: ${mm.swiftType}`,
+            );
             break;
           case "optionality_mismatch":
-            lines.push(`${prefix}  [optionality]         TS: ${mm.tsType}?  but Swift: ${mm.swiftType} (non-optional)`);
+            lines.push(
+              `${prefix}  [optionality]         TS: ${mm.tsType}?  but Swift: ${mm.swiftType} (non-optional)`,
+            );
             break;
         }
       }

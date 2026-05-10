@@ -102,22 +102,22 @@ The iOS app includes a Privacy Manifest (`Resources/PrivacyInfo.xcprivacy`) requ
 
 All types are declared with purpose **App Functionality** only, not linked to identity, and not used for tracking.
 
-| Data Type                    | Apple Key                                       | Purpose          | Linked | Tracking |
-| ---------------------------- | ----------------------------------------------- | ---------------- | ------ | -------- |
-| Precise location             | `NSPrivacyCollectedDataTypePreciseLocation`     | App Functionality | No    | No       |
-| Coarse location              | `NSPrivacyCollectedDataTypeCoarseLocation`      | App Functionality | No    | No       |
-| Device ID (anonymous, sync)  | `NSPrivacyCollectedDataTypeDeviceID`            | App Functionality | No    | No       |
-| Purchase history (StoreKit)  | `NSPrivacyCollectedDataTypePurchaseHistory`     | App Functionality | No    | No       |
-| Other diagnostic data (sync) | `NSPrivacyCollectedDataTypeOtherDiagnosticData` | App Functionality | No    | No       |
+| Data Type                    | Apple Key                                       | Purpose           | Linked | Tracking |
+| ---------------------------- | ----------------------------------------------- | ----------------- | ------ | -------- |
+| Precise location             | `NSPrivacyCollectedDataTypePreciseLocation`     | App Functionality | No     | No       |
+| Coarse location              | `NSPrivacyCollectedDataTypeCoarseLocation`      | App Functionality | No     | No       |
+| Device ID (anonymous, sync)  | `NSPrivacyCollectedDataTypeDeviceID`            | App Functionality | No     | No       |
+| Purchase history (StoreKit)  | `NSPrivacyCollectedDataTypePurchaseHistory`     | App Functionality | No     | No       |
+| Other diagnostic data (sync) | `NSPrivacyCollectedDataTypeOtherDiagnosticData` | App Functionality | No     | No       |
 
 ### Required Reason APIs
 
-| API category       | Apple key                                     | Reason code | Usage                                         |
-| ------------------ | --------------------------------------------- | ----------- | --------------------------------------------- |
-| UserDefaults       | `NSPrivacyAccessedAPICategoryUserDefaults`    | CA92.1      | First-run flags, consent state, user prefs, sync timestamps |
-| File timestamp     | `NSPrivacyAccessedAPICategoryFileTimestamp`   | C617.1      | SwiftData on-disk store + bundled seed JSON reads |
-| System boot time   | `NSPrivacyAccessedAPICategorySystemBootTime`  | 35F9.1      | Transitive use via URLSession / OS networking frameworks |
-| Disk space         | `NSPrivacyAccessedAPICategoryDiskSpace`       | E174.1      | Transitive use via SwiftData ModelContainer storage probing |
+| API category     | Apple key                                    | Reason code | Usage                                                       |
+| ---------------- | -------------------------------------------- | ----------- | ----------------------------------------------------------- |
+| UserDefaults     | `NSPrivacyAccessedAPICategoryUserDefaults`   | CA92.1      | First-run flags, consent state, user prefs, sync timestamps |
+| File timestamp   | `NSPrivacyAccessedAPICategoryFileTimestamp`  | C617.1      | SwiftData on-disk store + bundled seed JSON reads           |
+| System boot time | `NSPrivacyAccessedAPICategorySystemBootTime` | 35F9.1      | Transitive use via URLSession / OS networking frameworks    |
+| Disk space       | `NSPrivacyAccessedAPICategoryDiskSpace`      | E174.1      | Transitive use via SwiftData ModelContainer storage probing |
 
 Privacy policy URL declared in `Info.plist`: `https://solocompass.app/privacy`
 
