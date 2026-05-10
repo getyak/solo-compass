@@ -863,6 +863,75 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(StubURLProtocol.requestCount, 2, "after clear, second call hits network again")
     }
 
+    // MARK: - US-022 KeychainStore round-trip
+
+    func testKeychainStoreWriteReadDelete() {
+        let account = "test-\(UUID().uuidString)"
+        defer { _ = KeychainStore.delete(account: account) }
+
+        XCTAssertNil(KeychainStore.read(account: account))
+
+        XCTAssertTrue(KeychainStore.write(account: account, value: "pro"))
+        XCTAssertEqual(KeychainStore.read(account: account), "pro")
+
+        // Overwrite.
+        XCTAssertTrue(KeychainStore.write(account: account, value: "free"))
+        XCTAssertEqual(KeychainStore.read(account: account), "free")
+
+        XCTAssertTrue(KeychainStore.delete(account: account))
+        XCTAssertNil(KeychainStore.read(account: account))
+    }
+
+    // MARK: - US-021/022 SubscriptionService entitlement
+
+    func testSubscriptionServiceEntitlementSeedsFromKeychain() {
+        // Pre-seed Keychain with .pro before init so the fresh service
+        // reflects that immediately (offline-boot path, US-022).
+        _ = KeychainStore.delete(account: "entitlement")
+        _ = KeychainStore.write(account: "entitlement", value: "pro")
+        defer { _ = KeychainStore.delete(account: "entitlement") }
+
+        let service = SubscriptionService()
+        XCTAssertEqual(service.entitlement, .pro)
+        XCTAssertTrue(service.entitlement.isActive)
+    }
+
+    func testSubscriptionEntitlementIsActive() {
+        XCTAssertTrue(SubscriptionService.Entitlement.pro.isActive)
+        XCTAssertTrue(SubscriptionService.Entitlement.proTrial.isActive)
+        XCTAssertFalse(SubscriptionService.Entitlement.free.isActive)
+        XCTAssertFalse(SubscriptionService.Entitlement.proExpired.isActive)
+    }
+
+    // MARK: - US-024 free-tier gating
+
+    func testExploreNearbyOpensPaywallWhenFreeTier() async throws {
+        let prefs = UserPreferences(defaults: try XCTUnwrap(UserDefaults(suiteName: "us024-\(UUID().uuidString)")))
+        let svc = ExperienceService(seed: ExperienceService.hardcodedSeed)
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: svc,
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // Inject a free-tier subscription service. The KeychainStore
+        // line keeps the test hermetic in case CI shares Keychain.
+        _ = KeychainStore.delete(account: "entitlement")
+        let sub = SubscriptionService()
+        sub._setEntitlementForTesting(.free)
+        vm.attachSubscriptionService(sub)
+
+        XCTAssertFalse(vm.isShowingPaywall)
+        XCTAssertFalse(vm.isProUser)
+
+        // Free user taps Explore → no network call, paywall shown,
+        // retry closure parked for after purchase.
+        await vm.exploreNearby(at: CLLocationCoordinate2D(latitude: 21.0, longitude: 105.8))
+        XCTAssertTrue(vm.isShowingPaywall, "free tier must trigger paywall")
+        XCTAssertNotNil(vm.onPaywallUnlocked, "retry closure parked")
+    }
+
     // MARK: - US-016 ReverseGeocodeService slug
 
     func testReverseGeocodeSlugifyHandlesDiacriticsAndSpaces() {

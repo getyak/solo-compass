@@ -5,10 +5,13 @@ import SwiftUI
 public struct SettingsView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(NotificationService.self) private var notificationService
+    @Environment(SubscriptionService.self) private var subscriptionService
     var onClose: () -> Void
     var onShowFavorites: (() -> Void)?
 
     @State private var showingClearConfirm = false
+    @State private var restoreToast: String?
+    @State private var restoreInFlight = false
 
     public init(onClose: @escaping () -> Void = {}, onShowFavorites: (() -> Void)? = nil) {
         self.onClose = onClose
@@ -23,6 +26,7 @@ public struct SettingsView: View {
                 dislikedCategoriesSection
                 distanceSection
                 notificationsSection
+                subscriptionSection
                 statsSection
                 dataSection
             }
@@ -262,6 +266,68 @@ public struct SettingsView: View {
         } else {
             preferences.dislikedCategories.append(category)
         }
+    }
+
+    // MARK: - Subscription section (Epic D US-025)
+
+    private var subscriptionSection: some View {
+        Section {
+            HStack {
+                Text(NSLocalizedString("settings.subscription", comment: "Subscription"))
+                Spacer()
+                Text(entitlementLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
+                Task { await runRestore() }
+            } label: {
+                HStack {
+                    Text(NSLocalizedString("settings.restore", comment: "Restore purchases"))
+                    Spacer()
+                    if restoreInFlight {
+                        ProgressView()
+                    }
+                }
+            }
+            .disabled(restoreInFlight)
+
+            Link(
+                NSLocalizedString("settings.manage", comment: "Manage subscription"),
+                destination: URL(string: "https://apps.apple.com/account/subscriptions")!
+            )
+        } header: {
+            Text(NSLocalizedString("settings.subscription", comment: "Subscription"))
+        }
+        .alert(
+            restoreToast ?? "",
+            isPresented: .constant(restoreToast != nil),
+            actions: {
+                Button(NSLocalizedString("common.ok", comment: "OK")) {
+                    restoreToast = nil
+                }
+            }
+        )
+    }
+
+    private var entitlementLabel: String {
+        switch subscriptionService.entitlement {
+        case .pro:        return "Pro"
+        case .proTrial:   return "Pro (trial)"
+        case .proExpired: return "Expired"
+        case .free:       return "Free"
+        }
+    }
+
+    private func runRestore() async {
+        restoreInFlight = true
+        defer { restoreInFlight = false }
+        let success = await subscriptionService.restorePurchases()
+        restoreToast = NSLocalizedString(
+            success ? "restore.success" : "restore.failure",
+            comment: "Restore result"
+        )
     }
 }
 

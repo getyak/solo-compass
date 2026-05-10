@@ -25,6 +25,34 @@ public final class MapViewModel {
     private let overpassService: OverpassService
     private let geocodeService: ReverseGeocodeService
     private let preferences: UserPreferences
+    /// Optional so existing tests / previews can construct without a
+    /// real StoreKit-aware service. Production wires this from the
+    /// environment in `CompassMapView` (Epic D US-024).
+    private weak var subscriptionService: SubscriptionService?
+
+    /// Wire the subscription service after init (called from
+    /// CompassMapView.onAppear). Free tier gating only applies after
+    /// this is set; pre-attach treats every caller as Pro to keep the
+    /// existing test surface working.
+    public func attachSubscriptionService(_ service: SubscriptionService) {
+        self.subscriptionService = service
+    }
+
+    /// True when the active entitlement should pass AI gates.
+    /// Defaults to `true` when the subscription service hasn't been
+    /// attached yet (tests / previews) so we don't accidentally lock
+    /// out non-StoreKit code paths.
+    public var isProUser: Bool {
+        subscriptionService?.entitlement.isActive ?? true
+    }
+
+    /// Set to true whenever a free user tries an AI-gated action; the
+    /// view binds `.sheet(isPresented:)` to it.
+    public var isShowingPaywall: Bool = false
+
+    /// Closure to retry after a successful purchase. Consumers (the
+    /// paywall) call this in `onUnlocked`.
+    public var onPaywallUnlocked: (() -> Void)?
 
     // MARK: - Explore-here state
     public var isExploring: Bool = false
@@ -503,6 +531,15 @@ public final class MapViewModel {
     }
 
     public func handleVoiceTranscript(_ transcript: String) async {
+        // US-024: voice intent is Pro-only. Park the action and surface
+        // the paywall when a free user taps the mic.
+        if !isProUser {
+            onPaywallUnlocked = { [weak self] in
+                Task { await self?.handleVoiceTranscript(transcript) }
+            }
+            isShowingPaywall = true
+            return
+        }
         let coordinate = locationService.currentLocation?.coordinate ?? Self.defaultCenter
         do {
             let response = try await aiService.processVoiceIntent(transcript: transcript, near: coordinate)
@@ -539,6 +576,17 @@ public final class MapViewModel {
         radiusMeters: Int = 3000
     ) async {
         guard !isExploring else { return }
+
+        // US-024: free-tier gate. Park the original action so the
+        // paywall's onUnlocked can resume it after purchase, then bail.
+        if !isProUser {
+            onPaywallUnlocked = { [weak self] in
+                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters) }
+            }
+            isShowingPaywall = true
+            return
+        }
+
         isExploring = true
         lastExploreError = nil
         lastExploreAddedCount = 0

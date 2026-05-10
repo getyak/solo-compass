@@ -8,6 +8,7 @@ struct SoloCompassApp: App {
     @State private var aiService = AIService()
     @State private var preferences = UserPreferences()
     @State private var notificationService = NotificationService.shared
+    @State private var subscriptionService = SubscriptionService()
 
     var body: some Scene {
         WindowGroup {
@@ -17,6 +18,7 @@ struct SoloCompassApp: App {
                 .environment(aiService)
                 .environment(preferences)
                 .environment(notificationService)
+                .environment(subscriptionService)
                 .onAppear {
                     locationService.preferences = preferences
                     locationService.notificationService = notificationService
@@ -27,6 +29,13 @@ struct SoloCompassApp: App {
                     // migration on first launch of v1.1.
                     preferences.attachRepository(experienceService.repo)
                     Task { await notificationService.checkAuthorizationStatus() }
+                    // Refresh subscription entitlement from StoreKit on launch.
+                    // Pre-launch UI already reflects the Keychain-cached value
+                    // so this just confirms / corrects it once the network is up.
+                    Task {
+                        await subscriptionService.loadProducts()
+                        await subscriptionService.refreshEntitlement()
+                    }
                 }
         }
         .modelContainer(SoloCompassModelContainer.shared)

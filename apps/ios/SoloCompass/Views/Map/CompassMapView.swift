@@ -10,6 +10,7 @@ public struct CompassMapView: View {
     @Environment(AIService.self) private var aiService
     @Environment(UserPreferences.self) private var preferences
     @Environment(NotificationService.self) private var notificationService
+    @Environment(SubscriptionService.self) private var subscriptionService
 
     @State private var viewModel: MapViewModel?
     @State private var voiceService = VoiceService()
@@ -124,6 +125,8 @@ public struct CompassMapView: View {
 
                         // Explore-here button — pulls real OSM POIs near the
                         // current location and asks AIService to enrich them.
+                        // Free users see a lock overlay; tapping triggers the
+                        // paywall (Epic D US-024) instead of an actual call.
                         Button {
                             let anchor = viewModel.exploreAnchorCoordinate
                             Task { await viewModel.exploreNearby(at: anchor) }
@@ -133,8 +136,18 @@ public struct CompassMapView: View {
                                     ProgressView()
                                         .progressViewStyle(.circular)
                                 } else {
-                                    Image(systemName: "sparkle.magnifyingglass")
-                                        .font(.title3)
+                                    ZStack(alignment: .topTrailing) {
+                                        Image(systemName: "sparkle.magnifyingglass")
+                                            .font(.title3)
+                                        if !viewModel.isProUser {
+                                            Image(systemName: "lock.fill")
+                                                .font(.caption2)
+                                                .foregroundStyle(.white)
+                                                .padding(3)
+                                                .background(Circle().fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)))
+                                                .offset(x: 8, y: -8)
+                                        }
+                                    }
                                 }
                             }
                             .frame(width: 48, height: 48)
@@ -145,7 +158,11 @@ public struct CompassMapView: View {
                         .padding(.leading, 12)
                         .padding(.bottom, 80)
                         .disabled(viewModel.isExploring)
-                        .accessibilityLabel(Text(NSLocalizedString("explore.button", comment: "Explore here")))
+                        .accessibilityLabel(Text(
+                            viewModel.isProUser
+                                ? NSLocalizedString("explore.button", comment: "Explore here")
+                                : NSLocalizedString("explore.button.pro", comment: "Explore (Pro)")
+                        ))
 
                         Spacer()
 
@@ -192,6 +209,7 @@ public struct CompassMapView: View {
                     aiService: aiService,
                     preferences: preferences
                 )
+                vm.attachSubscriptionService(subscriptionService)
                 viewModel = vm
                 // On first launch with no saved city and no GPS, prompt city picker.
                 if preferences.lastSelectedCity == nil && locationService.currentLocation == nil {
@@ -306,6 +324,20 @@ public struct CompassMapView: View {
             }
             .environment(experienceService)
             .environment(preferences)
+        }
+        // US-024 paywall sheet — shown when a free user taps an AI-gated
+        // action. The view's onUnlocked closure resumes the original
+        // action (saved by MapViewModel as `onPaywallUnlocked`).
+        .sheet(isPresented: Binding(
+            get: { viewModel?.isShowingPaywall ?? false },
+            set: { if !$0 { viewModel?.isShowingPaywall = false } }
+        )) {
+            PaywallView(onUnlocked: {
+                let resume = viewModel?.onPaywallUnlocked
+                viewModel?.onPaywallUnlocked = nil
+                resume?()
+            })
+            .environment(subscriptionService)
         }
         // First-run onboarding
         .fullScreenCover(isPresented: Binding(

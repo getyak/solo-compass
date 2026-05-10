@@ -247,6 +247,31 @@
 "explore.toast.addedNamed" = "Now exploring %1$@ · %2$d places added";
 "explore.toast.added" = "%d places added near you";
 
+/* Paywall */
+"paywall.hero.title" = "Unlock Solo Compass Pro";
+"paywall.hero.subtitle" = "AI exploration anywhere on Earth, voice intent, and per-place AI insights.";
+"paywall.feature.explore" = "Explore here — AI-enriched real places in any city";
+"paywall.feature.voice" = "Voice intent — describe what you want, get a filtered map";
+"paywall.feature.insight" = "Per-experience AI insight on demand";
+"paywall.feature.quota" = "30 fresh AI explorations + 60 insights every day";
+"paywall.bestValue" = "Best value";
+"paywall.cta.startTrial" = "Start 7-day free trial";
+"paywall.fineprint" = "Free for 7 days, then charged automatically. Cancel anytime in Settings → Apple ID → Subscriptions. By subscribing you agree to the App Store EULA and our terms.";
+"paywall.restore" = "Restore purchases";
+"paywall.manage" = "Manage subscription";
+"paywall.error.title" = "Purchase didn't complete";
+
+/* Settings — Subscription */
+"settings.subscription" = "Subscription";
+"settings.restore" = "Restore purchases";
+"settings.manage" = "Manage subscription";
+"restore.success" = "Pro restored.";
+"restore.failure" = "No active subscription found on this Apple ID.";
+
+/* Free-tier paywall hooks */
+"explore.button.pro" = "Explore (Pro)";
+"detail.aiInsight.gated" = "Subscribe to unlock AI Insight";
+
 /* Overpass errors */
 "overpass.error.url" = "Overpass endpoint URL is invalid.";
 "overpass.error.request" = "Map data request failed (status %d).";

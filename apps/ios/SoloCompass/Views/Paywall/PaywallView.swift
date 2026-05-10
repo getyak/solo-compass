@@ -1,0 +1,247 @@
+import SwiftUI
+import StoreKit
+
+/// First user-visible paid moment. Shows the two product cards (yearly
+/// emphasized as "Best value"), the 7-day free trial CTA, restore link,
+/// and fine-print legal copy.
+///
+/// Driven by `SubscriptionService` from the environment. On a successful
+/// purchase, dismisses and calls the `onUnlocked` closure so the caller
+/// can resume whatever gated action triggered the paywall.
+public struct PaywallView: View {
+    @Environment(SubscriptionService.self) private var subscription
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedProductID: String = SubscriptionService.yearlyProductID
+    @State private var purchaseInFlight = false
+    @State private var purchaseError: String?
+
+    /// Called after a successful purchase or restore so callers can
+    /// resume the action that triggered the paywall.
+    var onUnlocked: () -> Void
+
+    public init(onUnlocked: @escaping () -> Void = {}) {
+        self.onUnlocked = onUnlocked
+    }
+
+    public var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                hero
+                bullets
+                productCards
+                ctaButton
+                fineprint
+                actionLinks
+            }
+            .padding(20)
+        }
+        .background(Color(.systemBackground))
+        .task {
+            if subscription.products.isEmpty {
+                await subscription.loadProducts()
+            }
+        }
+        .alert(
+            NSLocalizedString("paywall.error.title", comment: "Purchase error"),
+            isPresented: .constant(purchaseError != nil),
+            actions: {
+                Button(NSLocalizedString("common.ok", comment: "OK")) {
+                    purchaseError = nil
+                }
+            },
+            message: { Text(purchaseError ?? "") }
+        )
+    }
+
+    // MARK: - Sections
+
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 36))
+                .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+            Text(NSLocalizedString("paywall.hero.title", comment: "Unlock Solo Compass Pro"))
+                .font(.title.bold())
+            Text(NSLocalizedString("paywall.hero.subtitle", comment: "Subtitle"))
+                .font(.body)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var bullets: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            bullet("paywall.feature.explore", icon: "sparkle.magnifyingglass")
+            bullet("paywall.feature.voice", icon: "mic.fill")
+            bullet("paywall.feature.insight", icon: "brain.head.profile")
+            bullet("paywall.feature.quota", icon: "speedometer")
+        }
+    }
+
+    private func bullet(_ key: String, icon: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .frame(width: 24)
+                .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+            Text(NSLocalizedString(key, comment: ""))
+                .font(.subheadline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var productCards: some View {
+        VStack(spacing: 12) {
+            if subscription.isLoading && subscription.products.isEmpty {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+            } else {
+                ForEach(subscription.products, id: \.id) { product in
+                    productCard(product)
+                }
+            }
+        }
+    }
+
+    private func productCard(_ product: Product) -> some View {
+        let isYearly = product.id == SubscriptionService.yearlyProductID
+        let isSelected = selectedProductID == product.id
+        return Button {
+            selectedProductID = product.id
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(product.displayName)
+                            .font(.headline)
+                        if isYearly {
+                            Text(NSLocalizedString("paywall.bestValue", comment: "Best value badge"))
+                                .font(.caption2.weight(.bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    Text(product.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(product.displayPrice)
+                        .font(.title3.bold())
+                    Text(periodLabel(product))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255).opacity(0.12) : Color(.secondarySystemBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        isSelected
+                            ? Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+                            : Color.clear,
+                        lineWidth: 2
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(product.displayName))
+    }
+
+    private func periodLabel(_ product: Product) -> String {
+        guard let period = product.subscription?.subscriptionPeriod else { return "" }
+        let value = period.value
+        switch period.unit {
+        case .day:   return value == 1 ? "/day" : "/\(value)d"
+        case .week:  return value == 1 ? "/week" : "/\(value)w"
+        case .month: return value == 1 ? "/month" : "/\(value)mo"
+        case .year:  return value == 1 ? "/year" : "/\(value)y"
+        @unknown default: return ""
+        }
+    }
+
+    private var ctaButton: some View {
+        Button {
+            Task { await runPurchase() }
+        } label: {
+            HStack {
+                if purchaseInFlight {
+                    ProgressView().tint(.white)
+                } else {
+                    Text(NSLocalizedString("paywall.cta.startTrial", comment: "Start 7-day free trial"))
+                        .font(.headline)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .disabled(purchaseInFlight || subscription.products.isEmpty)
+    }
+
+    private var fineprint: some View {
+        Text(NSLocalizedString("paywall.fineprint", comment: "Subscription fine print"))
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.leading)
+    }
+
+    private var actionLinks: some View {
+        HStack(spacing: 24) {
+            Button(NSLocalizedString("paywall.restore", comment: "Restore purchases")) {
+                Task { await runRestore() }
+            }
+            .font(.caption)
+
+            Spacer()
+
+            Link(
+                NSLocalizedString("paywall.manage", comment: "Manage subscription"),
+                destination: URL(string: "https://apps.apple.com/account/subscriptions")!
+            )
+            .font(.caption)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Actions
+
+    private func runPurchase() async {
+        guard let product = subscription.products.first(where: { $0.id == selectedProductID }) else {
+            return
+        }
+        purchaseInFlight = true
+        defer { purchaseInFlight = false }
+        let success = await subscription.purchase(product)
+        if success {
+            onUnlocked()
+            dismiss()
+        } else if let err = subscription.lastError {
+            purchaseError = err
+        }
+    }
+
+    private func runRestore() async {
+        purchaseInFlight = true
+        defer { purchaseInFlight = false }
+        let success = await subscription.restorePurchases()
+        if success {
+            onUnlocked()
+            dismiss()
+        }
+    }
+}
+
+#Preview {
+    PaywallView()
+        .environment(SubscriptionService())
+}
