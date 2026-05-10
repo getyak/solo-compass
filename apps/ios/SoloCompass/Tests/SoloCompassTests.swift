@@ -1287,7 +1287,7 @@ final class SoloCompassTests: XCTestCase {
         // Simulate purchase of the monthly product.
         _ = try await session.buyProduct(identifier: SubscriptionService.monthlyProductID)
 
-        await service.refreshEntitlement()
+        try await service.refreshEntitlement()
 
         XCTAssertTrue(
             service.entitlement == .pro || service.entitlement == .proTrial,
@@ -1319,7 +1319,7 @@ final class SoloCompassTests: XCTestCase {
         _ = try await session.buyProduct(productIdentifier: SubscriptionService.monthlyProductID)
         session.expireSubscription(productIdentifier: SubscriptionService.monthlyProductID)
 
-        await service.refreshEntitlement()
+        try await service.refreshEntitlement()
 
         XCTAssertEqual(service.entitlement, .proExpired)
         XCTAssertFalse(service.entitlement.isActive)
