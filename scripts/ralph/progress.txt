@@ -51,3 +51,4 @@ Stories: 41
 [2026-05-10T10:23:17Z] Story #US-033: Supabase Edge Function synthesize-experiences (Deno/TS) — PASSED
 [2026-05-10T10:25:44Z] Story #US-034: Route iOS AIService through Edge Function and remove Anthropic key from client — PASSED
 [2026-05-10T10:29:20Z] Story #US-035: Solo-Score signal aggregation via Supabase nightly function — PASSED
+[2026-05-10T10:33:31Z] Story #US-036: Optional Sign-in-with-Apple to upgrade anonymous account — PASSED

@@ -33,13 +33,14 @@ public final class UserPreferences {
         var seedImported: Bool = false
         var swiftDataMirrored: Bool = false
         var hasAcceptedExploreConsent: Bool = false
+        var exploreConsentGivenAt: Date? = nil
 
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
             case visitHistory, completedExperiences, favoritedExperiences, favoritedAt, pendingCheckIns
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
-            case hasAcceptedExploreConsent
+            case hasAcceptedExploreConsent, exploreConsentGivenAt
         }
 
         init() {}
@@ -61,7 +62,8 @@ public final class UserPreferences {
             quietHoursEnd: Int,
             seedImported: Bool,
             swiftDataMirrored: Bool,
-            hasAcceptedExploreConsent: Bool
+            hasAcceptedExploreConsent: Bool,
+            exploreConsentGivenAt: Date?
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -80,6 +82,7 @@ public final class UserPreferences {
             self.seedImported = seedImported
             self.swiftDataMirrored = swiftDataMirrored
             self.hasAcceptedExploreConsent = hasAcceptedExploreConsent
+            self.exploreConsentGivenAt = exploreConsentGivenAt
         }
 
         init(from decoder: Decoder) throws {
@@ -101,6 +104,7 @@ public final class UserPreferences {
             self.seedImported = try c.decodeIfPresent(Bool.self, forKey: .seedImported) ?? false
             self.swiftDataMirrored = try c.decodeIfPresent(Bool.self, forKey: .swiftDataMirrored) ?? false
             self.hasAcceptedExploreConsent = try c.decodeIfPresent(Bool.self, forKey: .hasAcceptedExploreConsent) ?? false
+            self.exploreConsentGivenAt = try c.decodeIfPresent(Date.self, forKey: .exploreConsentGivenAt)
         }
     }
 
@@ -127,6 +131,10 @@ public final class UserPreferences {
     /// consent sheet (US-034). Gates the Explore button + voice intent
     /// — never blocks UI for returning users.
     public var hasAcceptedExploreConsent: Bool { didSet { persist() } }
+    /// Date the user first granted Explore-Here consent (US-037).
+    /// Non-nil means consent has been given; nil means the sheet must
+    /// be shown before the first Overpass/AI call.
+    public var exploreConsentGivenAt: Date? { didSet { persist() } }
 
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
@@ -157,6 +165,7 @@ public final class UserPreferences {
         self.seedImported = snapshot.seedImported
         self.swiftDataMirrored = snapshot.swiftDataMirrored
         self.hasAcceptedExploreConsent = snapshot.hasAcceptedExploreConsent
+        self.exploreConsentGivenAt = snapshot.exploreConsentGivenAt
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -189,7 +198,8 @@ public final class UserPreferences {
             quietHoursEnd: quietHoursEnd,
             seedImported: seedImported,
             swiftDataMirrored: swiftDataMirrored,
-            hasAcceptedExploreConsent: hasAcceptedExploreConsent
+            hasAcceptedExploreConsent: hasAcceptedExploreConsent,
+            exploreConsentGivenAt: exploreConsentGivenAt
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
@@ -305,6 +315,15 @@ public final class UserPreferences {
     /// Mark the Explore-Here consent sheet as accepted. Idempotent.
     public func acceptExploreConsent() {
         hasAcceptedExploreConsent = true
+        if exploreConsentGivenAt == nil {
+            exploreConsentGivenAt = Date()
+        }
+    }
+
+    /// Clear Explore-Here consent so the sheet reappears on next tap (US-037).
+    public func revokeExploreConsent() {
+        hasAcceptedExploreConsent = false
+        exploreConsentGivenAt = nil
     }
 
     /// Auto-clear pending check-ins older than 7 days.

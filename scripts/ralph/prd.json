@@ -633,7 +633,7 @@
         "Verify in simulator: tap 'Save with Apple', confirm Apple sign-in sheet appears"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
