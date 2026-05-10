@@ -1,7 +1,6 @@
 import Foundation
 import CoreLocation
 import Observation
-import SwiftData
 
 /// Talks to the public Overpass API (OpenStreetMap) to fetch real-world POIs
 /// near a coordinate. Used by the "Explore here" feature so users in cities
@@ -61,7 +60,7 @@ public final class OverpassService {
     private let session: URLSession
     private let endpoint = URL(string: "https://overpass-api.de/api/interpreter")
     private let maxResults: Int
-    private let modelContext: ModelContext?
+    private let repository: ExperienceRepository?
 
     /// Cache TTL — 14 days. Outside this window we re-fetch from
     /// Overpass. (See PRD US-B1.)
@@ -70,21 +69,24 @@ public final class OverpassService {
     public init(
         session: URLSession = .shared,
         maxResults: Int = 30,
-        modelContext: ModelContext? = nil
+        repository: ExperienceRepository? = nil
     ) {
         self.session = session
         self.maxResults = maxResults
-        self.modelContext = modelContext
+        self.repository = repository
     }
 
     /// Convenience init that uses the shared SwiftData container's main
     /// context for caching. Pass `nil` (default of designated init) in
     /// tests if you want cache disabled.
+    /// `@MainActor` required because `ExperienceRepository` is `@MainActor`-isolated
+    /// (it owns a SwiftData `ModelContext` which is bound to the main actor).
+    @MainActor
     public convenience init(session: URLSession = .shared, maxResults: Int = 30, useSharedCache: Bool) {
-        let ctx: ModelContext? = useSharedCache
-            ? ModelContext(SoloCompassModelContainer.shared)
+        let repo: ExperienceRepository? = useSharedCache
+            ? ExperienceRepository()
             : nil
-        self.init(session: session, maxResults: maxResults, modelContext: ctx)
+        self.init(session: session, maxResults: maxResults, repository: repo)
     }
 
     // MARK: - Public
@@ -126,9 +128,7 @@ public final class OverpassService {
     /// Public cache-clear; used by Settings → Storage.
     @MainActor
     public func clearExploreCache() {
-        guard let context = modelContext else { return }
-        try? context.delete(model: ExploreCacheRecord.self)
-        try? context.save()
+        repository?.clearExploreCache()
     }
 
     /// Deterministic key for a (lat, lon, radius) cell. Rounding to
@@ -167,40 +167,19 @@ public final class OverpassService {
 
     // MARK: - Cache
 
-    /// async-bridge: fetchPOIs is nonisolated, ModelContext is MainActor.
+    /// async-bridge: fetchPOIs is nonisolated, ExperienceRepository is MainActor.
     private func loadCached(regionKey key: String) async -> [POI]? {
         await MainActor.run { [weak self] in
-            guard let self, let context = self.modelContext else { return nil }
-            let descriptor = FetchDescriptor<ExploreCacheRecord>(
-                predicate: #Predicate { $0.regionKey == key }
-            )
-            guard let row = (try? context.fetch(descriptor))?.first else { return nil }
-            let age = Date().timeIntervalSince(row.fetchedAt)
-            guard age < Self.cacheTTLSeconds else { return nil }
-            return try? Self.decodePOIs(from: row.osmJSON)
+            guard let self, let repo = self.repository else { return nil }
+            guard let raw = repo.loadExploreCache(regionKey: key) else { return nil }
+            return try? Self.decodePOIs(from: raw)
         }
     }
 
     private func writeCache(regionKey key: String, raw: Data, poiCount: Int) async {
         await MainActor.run { [weak self] in
-            guard let self, let context = self.modelContext else { return }
-            // Delete-then-insert keeps semantics explicit and side-steps
-            // SwiftData's silent upsert behaviour on @Attribute(.unique).
-            let descriptor = FetchDescriptor<ExploreCacheRecord>(
-                predicate: #Predicate { $0.regionKey == key }
-            )
-            if let existing = (try? context.fetch(descriptor))?.first {
-                context.delete(existing)
-            }
-            context.insert(
-                ExploreCacheRecord(
-                    regionKey: key,
-                    osmJSON: raw,
-                    fetchedAt: Date(),
-                    poiCount: poiCount
-                )
-            )
-            try? context.save()
+            guard let self, let repo = self.repository else { return }
+            repo.writeExploreCache(regionKey: key, raw: raw, poiCount: poiCount)
         }
     }
 

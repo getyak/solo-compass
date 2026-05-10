@@ -228,11 +228,10 @@ public struct ExperienceDetailView: View {
     }
 
     private var soloScoreSection: some View {
-        // US-019 three-state cold-start UX: header copy + opacity +
-        // optional pill change with `basedOnCount`. Hiding the score
-        // would make the map feel empty for new regions, and showing
-        // an unmarked AI estimate would erode trust — so we mark it.
-        let count = viewModel.experience.soloScore.basedOnCount
+        // US-019/020: three-state cold-start UX. Use the aggregated score from
+        // local survey responses when available; otherwise the seed/AI value.
+        let score = viewModel.displaySoloScore
+        let count = score.basedOnCount
         let titleKey: String
         let subtitle: String?
         let isEstimate: Bool
@@ -261,7 +260,7 @@ public struct ExperienceDetailView: View {
         return sectionContainer(title: NSLocalizedString(titleKey, comment: "")) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    SoloScoreBadge(score: viewModel.experience.soloScore, style: .full)
+                    SoloScoreBadge(score: score, style: .full)
                         .opacity(isEstimate ? 0.6 : 1.0)
                     if isEstimate {
                         Text(NSLocalizedString("solo.estimate.pill", comment: "AI estimate pill"))

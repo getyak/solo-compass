@@ -1,8 +1,8 @@
-// RLS smoke test — Epic E US-026.
+// RLS smoke test — US-028.
 //
 // Verifies four invariants of the schema's row-level-security posture:
-//   1. anon cannot read user-scoped tables of any user
-//   2. user A authenticated cannot read user B's user-scoped tables
+//   1. anon cannot read user_favorites of any user
+//   2. user A authenticated cannot read user B's user_favorites
 //   3. anon CAN read synthesized_experiences (public-read)
 //   4. service-role CAN write synthesized_experiences (write boundary)
 //
@@ -32,18 +32,18 @@ const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
-// --- 1. anon cannot read user_completions ----------------------------------
+// --- 1. anon cannot read user_favorites ------------------------------------
 
 {
-  const { data, error } = await anonClient.from("user_completions").select("id").limit(1);
+  const { data, error } = await anonClient.from("user_favorites").select("experience_id").limit(1);
   // RLS denies — Supabase returns empty array (no rows match policy), not an error.
   assert(
     !error && Array.isArray(data) && data.length === 0,
-    "anon select on user_completions returns 0 rows (RLS denies)",
+    "anon select on user_favorites returns 0 rows (RLS denies)",
   );
 }
 
-// --- 2. cross-user isolation -----------------------------------------------
+// --- 2. cross-user isolation on user_favorites -----------------------------
 
 const userA = await anonClient.auth.signInAnonymously();
 const userB = await anonClient.auth.signInAnonymously();
@@ -51,35 +51,35 @@ assert(!!userA.data.user, "user A anonymous sign-in succeeded");
 assert(!!userB.data.user, "user B anonymous sign-in succeeded");
 
 if (userA.data.user && userB.data.user) {
-  // user A inserts a completion as themselves.
+  // user A favorites an experience as themselves.
   const aClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   await aClient.auth.setSession({
     access_token: userA.data.session!.access_token,
     refresh_token: userA.data.session!.refresh_token,
   });
   const { error: insertErr } = await aClient
-    .from("user_completions")
-    .insert({ user_id: userA.data.user.id, experience_id: "exp_test_rls" });
-  assert(!insertErr, `user A insert succeeds: ${insertErr?.message ?? "ok"}`);
+    .from("user_favorites")
+    .insert({ user_id: userA.data.user.id, experience_id: "exp_test_rls_fav" });
+  assert(!insertErr, `user A insert favorite succeeds: ${insertErr?.message ?? "ok"}`);
 
-  // user B should NOT see user A's row.
+  // user B should NOT see user A's favorite.
   const bClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   await bClient.auth.setSession({
     access_token: userB.data.session!.access_token,
     refresh_token: userB.data.session!.refresh_token,
   });
   const { data: leakCheck } = await bClient
-    .from("user_completions")
-    .select("id")
+    .from("user_favorites")
+    .select("experience_id")
     .eq("user_id", userA.data.user.id);
   assert(
     Array.isArray(leakCheck) && leakCheck.length === 0,
-    "user B cannot see user A's completions (RLS isolation)",
+    "user B cannot see user A's favorites (RLS isolation)",
   );
 
   // Cleanup with service role.
   await serviceClient
-    .from("user_completions")
+    .from("user_favorites")
     .delete()
     .or(`user_id.eq.${userA.data.user.id},user_id.eq.${userB.data.user.id}`);
   await serviceClient.auth.admin.deleteUser(userA.data.user.id).catch(() => {});

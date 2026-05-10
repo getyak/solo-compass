@@ -89,6 +89,38 @@ Email `privacy@solo-compass.app` from any address with a description of the
 request. We rotate the analytics salt monthly, which already invalidates
 older hashed ids — for a hard request, we'll rotate immediately.
 
+## iOS Privacy Manifest (PrivacyInfo.xcprivacy)
+
+The iOS app includes a Privacy Manifest (`Resources/PrivacyInfo.xcprivacy`) required by Apple for App Store submission. Its declarations mirror the table above for the iOS surface.
+
+### Tracking
+
+**App does not track users across other companies' apps or websites.**
+`NSPrivacyTracking: false` — no tracking domains declared.
+
+### Collected Data Types
+
+All types are declared with purpose **App Functionality** only, not linked to identity, and not used for tracking.
+
+| Data Type                    | Apple Key                                       | Purpose           | Linked | Tracking |
+| ---------------------------- | ----------------------------------------------- | ----------------- | ------ | -------- |
+| Precise location             | `NSPrivacyCollectedDataTypePreciseLocation`     | App Functionality | No     | No       |
+| Coarse location              | `NSPrivacyCollectedDataTypeCoarseLocation`      | App Functionality | No     | No       |
+| Device ID (anonymous, sync)  | `NSPrivacyCollectedDataTypeDeviceID`            | App Functionality | No     | No       |
+| Purchase history (StoreKit)  | `NSPrivacyCollectedDataTypePurchaseHistory`     | App Functionality | No     | No       |
+| Other diagnostic data (sync) | `NSPrivacyCollectedDataTypeOtherDiagnosticData` | App Functionality | No     | No       |
+
+### Required Reason APIs
+
+| API category     | Apple key                                    | Reason code | Usage                                                       |
+| ---------------- | -------------------------------------------- | ----------- | ----------------------------------------------------------- |
+| UserDefaults     | `NSPrivacyAccessedAPICategoryUserDefaults`   | CA92.1      | First-run flags, consent state, user prefs, sync timestamps |
+| File timestamp   | `NSPrivacyAccessedAPICategoryFileTimestamp`  | C617.1      | SwiftData on-disk store + bundled seed JSON reads           |
+| System boot time | `NSPrivacyAccessedAPICategorySystemBootTime` | 35F9.1      | Transitive use via URLSession / OS networking frameworks    |
+| Disk space       | `NSPrivacyAccessedAPICategoryDiskSpace`      | E174.1      | Transitive use via SwiftData ModelContainer storage probing |
+
+Privacy policy URL declared in `Info.plist`: `https://solocompass.app/privacy`
+
 ## Changes to this document
 
 This file is the source of truth. Material changes are committed and dated.

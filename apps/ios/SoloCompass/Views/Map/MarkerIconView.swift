@@ -60,6 +60,7 @@ public struct MarkerIconView: View {
         }
         .frame(width: 44, height: 44)
         .accessibilityLabel(Text(accessibilityLabel))
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 
     private var dotSize: CGFloat { isLowConfidence ? 28 : 36 }
@@ -147,21 +148,32 @@ public struct MarkerIconView: View {
 
     private var accessibilityLabel: String {
         let categoryName = category.localizedTitle
+        let suffix: String
         switch state {
         case .bestNow:
-            return "\(categoryName), \(NSLocalizedString("marker.a11y.bestNow", comment: ""))"
+            suffix = ", \(NSLocalizedString("marker.a11y.bestNow", comment: ""))"
         case .completed:
-            return "\(categoryName), \(NSLocalizedString("marker.a11y.completed", comment: ""))"
+            suffix = ", \(NSLocalizedString("marker.a11y.completed", comment: ""))"
         case .favorited:
-            return "\(categoryName), \(NSLocalizedString("marker.a11y.favorited", comment: ""))"
+            suffix = ", \(NSLocalizedString("marker.a11y.favorited", comment: ""))"
         case .upcoming(let m):
             let fmt = NSLocalizedString("marker.a11y.upcoming", comment: "starts in %d minutes")
-            return "\(categoryName), \(String(format: fmt, m))"
+            suffix = ", \(String(format: fmt, m))"
         case .footprinted:
-            return "\(categoryName), \(NSLocalizedString("marker.a11y.footprinted", comment: ""))"
+            suffix = ", \(NSLocalizedString("marker.a11y.footprinted", comment: ""))"
         case .default:
-            return categoryName
+            suffix = ""
         }
+        if isLowConfidence {
+            return "\(categoryName)\(suffix), \(NSLocalizedString("marker.a11y.lowConfidence", comment: ""))"
+        }
+        return "\(categoryName)\(suffix)"
+    }
+
+    /// Stable identifier encoding the confidence tier — used in unit tests to assert
+    /// that low-confidence and normal markers produce distinguishable views.
+    var accessibilityIdentifier: String {
+        "marker.\(category.rawValue).\(state.identifierFragment).\(isLowConfidence ? "low" : "normal")"
     }
 }
 

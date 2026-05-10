@@ -38,6 +38,14 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "  Iteration $i / $MAX_ITERATIONS"
   echo "═══════════════════════════════════════════════════════════"
 
+  # Guard: ensure we're on the correct branch (Claude Code may have switched it)
+  TARGET_BRANCH=$(python3 -c "import json; f=open('$PRD_FILE'); print(json.load(f).get('branchName','main'))")
+  CURRENT_BRANCH=$(git branch --show-current)
+  if [ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]; then
+    echo "   ⚠️ Branch drift: on $CURRENT_BRANCH, expected $TARGET_BRANCH — switching back"
+    git checkout "$TARGET_BRANCH"
+  fi
+
   # Find next incomplete story
   STORY=$(python3 -c "
 import json, sys
@@ -81,6 +89,8 @@ else:
 PROJECT: Solo Compass (独行罗盘) — living map for solo travelers
 iOS app location: apps/ios/SoloCompass/
 Tech: SwiftUI, MapKit, iOS 17+, MVVM with @Observable
+
+⚠️ CRITICAL: You are working on branch '$TARGET_BRANCH'. NEVER run git checkout, git switch, git branch, or any command that changes the current branch. NEVER push or pull. Only git add and git commit.
 
 STORY #$STORY_ID: $STORY_NAME
 DESCRIPTION: $STORY_DESC

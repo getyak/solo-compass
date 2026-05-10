@@ -1,3 +1,5 @@
+import AuthenticationServices
+import SwiftData
 import SwiftUI
 
 /// User preferences editor — travel style, category filters, max distance.
@@ -6,12 +8,19 @@ public struct SettingsView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(NotificationService.self) private var notificationService
     @Environment(SubscriptionService.self) private var subscriptionService
+    @Environment(\.modelContext) private var modelContext
     var onClose: () -> Void
     var onShowFavorites: (() -> Void)?
 
     @State private var showingClearConfirm = false
     @State private var restoreToast: String?
     @State private var restoreInFlight = false
+
+    // US-036: Apple ID link state
+    @State private var isAnonymous: Bool = false
+    @State private var appleSignInInFlight = false
+    @State private var appleSignInToast: String?
+    @State private var appleSignInService = AppleSignInService()
 
     public init(onClose: @escaping () -> Void = {}, onShowFavorites: (() -> Void)? = nil) {
         self.onClose = onClose
@@ -39,6 +48,9 @@ public struct SettingsView: View {
                     }
                     .fontWeight(.semibold)
                 }
+            }
+            .task {
+                isAnonymous = await SupabaseClient.shared.isAnonymous
             }
         }
     }
@@ -200,6 +212,9 @@ public struct SettingsView: View {
 
     private var dataSection: some View {
         Section {
+            // US-036: Save with Apple (anonymous only) / Linked to Apple ID
+            appleIDRow
+
             Button(role: .destructive) {
                 showingClearConfirm = true
             } label: {
@@ -229,6 +244,70 @@ public struct SettingsView: View {
             }
         } header: {
             Text(NSLocalizedString("settings.data.header", comment: "Data section header"))
+        }
+        .alert(
+            appleSignInToast ?? "",
+            isPresented: .constant(appleSignInToast != nil),
+            actions: {
+                Button(NSLocalizedString("common.ok", comment: "OK")) {
+                    appleSignInToast = nil
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var appleIDRow: some View {
+        if isAnonymous {
+            Button {
+                Task { await runAppleLink() }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "applelogo")
+                        .frame(width: 28)
+                        .foregroundStyle(.primary)
+                    Text(NSLocalizedString("settings.saveWithApple", comment: "Save with Apple"))
+                    Spacer()
+                    if appleSignInInFlight {
+                        ProgressView()
+                    }
+                }
+            }
+            .disabled(appleSignInInFlight)
+            .foregroundStyle(.primary)
+        } else {
+            HStack(spacing: 10) {
+                Image(systemName: "applelogo")
+                    .frame(width: 28)
+                    .foregroundStyle(.secondary)
+                Text(NSLocalizedString("settings.linkedToAppleID", comment: "Linked to Apple ID"))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Image(systemName: "checkmark").foregroundStyle(.green)
+            }
+        }
+    }
+
+    private func runAppleLink() async {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = scene.windows.first else { return }
+
+        appleSignInInFlight = true
+        defer { appleSignInInFlight = false }
+
+        let result = await appleSignInService.link(
+            presentationAnchor: window,
+            context: modelContext
+        )
+
+        switch result {
+        case .linked:
+            isAnonymous = false
+            appleSignInToast = NSLocalizedString("settings.appleLink.success", comment: "Apple link success")
+        case .cancelled:
+            break  // silent — user deliberately dismissed the sheet
+        case .failed:
+            appleSignInToast = NSLocalizedString("settings.appleLink.failure", comment: "Apple link failure")
         }
     }
 

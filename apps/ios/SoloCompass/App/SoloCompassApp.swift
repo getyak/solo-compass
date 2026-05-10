@@ -9,6 +9,7 @@ struct SoloCompassApp: App {
     @State private var preferences = UserPreferences()
     @State private var notificationService = NotificationService.shared
     @State private var subscriptionService = SubscriptionService()
+    private let supabaseClient = SupabaseClient.shared
 
     var body: some Scene {
         WindowGroup {
@@ -19,6 +20,7 @@ struct SoloCompassApp: App {
                 .environment(preferences)
                 .environment(notificationService)
                 .environment(subscriptionService)
+                .environment(supabaseClient)
                 .onAppear {
                     locationService.preferences = preferences
                     locationService.notificationService = notificationService

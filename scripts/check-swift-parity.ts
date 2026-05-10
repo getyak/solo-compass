@@ -12,11 +12,16 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { extractTSStructs, SCHEMA_INTERFACES } from "./parity/ts-extractor.js";
+import {
+  extractTSStructs,
+  SCHEMA_INTERFACES,
+  SWIFTDATA_MODEL_INTERFACES,
+} from "./parity/ts-extractor.js";
 import { extractSwiftStructs } from "./parity/swift-extractor.js";
 import { compareStructs, formatReport } from "./parity/comparator.js";
 import { checkDbParity, formatDbParityReport } from "./parity/db-parity.js";
 import { checkSqlSwiftParity } from "./parity/sql-swift-parity.js";
+import { extractSwiftDataModels, checkSwiftDataParity } from "./parity/swiftdata-parity.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -36,6 +41,11 @@ const TS_GLOBS = [
 // Swift source globs (relative to ROOT)
 // ---------------------------------------------------------------------------
 const SWIFT_GLOBS = ["apps/ios/SoloCompass/Models/*.swift"];
+
+// ---------------------------------------------------------------------------
+// SwiftData @Model source globs (relative to ROOT)
+// ---------------------------------------------------------------------------
+const SWIFTDATA_GLOBS = ["apps/ios/SoloCompass/Persistence/Models/*.swift"];
 
 // ---------------------------------------------------------------------------
 // Main
@@ -122,9 +132,38 @@ function main(): void {
 
   process.stdout.write(sqlSwiftResult.report);
 
+  // ── TS ↔ SwiftData @Model parity ─────────────────────────────────────────
+
+  if (VERBOSE) {
+    console.log("🔍 Checking TS↔SwiftData @Model parity...");
+  }
+
+  let swiftDataModels;
+  try {
+    swiftDataModels = extractSwiftDataModels(ROOT, SWIFTDATA_GLOBS);
+  } catch (err) {
+    console.error("❌ Failed to parse SwiftData @Model sources:");
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+
+  if (VERBOSE) {
+    console.log(
+      `   Found ${swiftDataModels.length} @Model class(es): ${swiftDataModels.map((m) => m.name).join(", ")}`,
+    );
+  }
+
+  // Re-use the already-extracted TS structs — we just need different watch-set
+  const swiftDataResult = checkSwiftDataParity(
+    tsStructs,
+    swiftDataModels,
+    SWIFTDATA_MODEL_INTERFACES,
+  );
+  process.stdout.write(swiftDataResult.report);
+
   // ── Exit ─────────────────────────────────────────────────────────────────
 
-  if (!swiftResult.ok || !dbResult.ok || !sqlSwiftResult.passed) {
+  if (!swiftResult.ok || !dbResult.ok || !sqlSwiftResult.passed || !swiftDataResult.ok) {
     process.exit(1);
   }
 }

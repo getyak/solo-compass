@@ -433,4 +433,16 @@ public enum ExperienceMarkerState: Hashable {
     case favorited
     case upcoming(minutes: Int)
     case footprinted
+
+    /// Stable string fragment used in accessibility identifiers.
+    public var identifierFragment: String {
+        switch self {
+        case .default:    return "default"
+        case .bestNow:    return "bestNow"
+        case .completed:  return "completed"
+        case .favorited:  return "favorited"
+        case .upcoming:   return "upcoming"
+        case .footprinted: return "footprinted"
+        }
+    }
 }

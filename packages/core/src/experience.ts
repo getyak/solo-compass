@@ -23,6 +23,15 @@ import type { SoloScore } from "./solo-score";
 export type ExperienceId = string & { readonly __brand: "ExperienceId" };
 
 /**
+ * ID prefix for experiences synthesised from OpenStreetMap POI data by the
+ * AI pipeline. These entries start at `confidenceLevel === 1` (AI-generated,
+ * not yet human-verified) and are promoted as users confirm them.
+ *
+ * Format: `exp_osm_<osm_id>` (e.g. `exp_osm_123456789`).
+ */
+export const EXP_OSM_ID_PREFIX = "exp_osm_" as const;
+
+/**
  * Experience categories. Kept deliberately small — adding categories has high
  * downstream cost (icon design, filter UI, recommendation tuning). Resist the
  * urge to subdivide. If something doesn't fit, ask whether it's really an
@@ -177,6 +186,24 @@ export interface Experience {
  * Surfaces on the map with a distinct icon — users can opt into verifying it.
  */
 export type CandidateExperience = Experience & { readonly status: "candidate" };
+
+/**
+ * A city the user has reverse-geocoded after an Explore session.
+ * Mirrors `DiscoveredCityRecord` in the iOS SwiftData layer.
+ *
+ * `cityCode` — slug like `"vn-hanoi"` or the synthetic `"osm_<lat>_<lon>"`.
+ * `centerLat` / `centerLon` — WGS-84 degrees, stored as two scalars (not a
+ *   `Coordinates` pair) so SwiftData can index them independently.
+ * `discoveredAt` — ISO 8601 UTC timestamp of first reverse-geocode.
+ */
+export interface DiscoveredCity {
+  readonly cityCode: string;
+  readonly name: string;
+  readonly countryCode: string;
+  readonly centerLat: number;
+  readonly centerLon: number;
+  readonly discoveredAt: string; // ISO 8601
+}
 
 /**
  * Type guard.

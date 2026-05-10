@@ -23,7 +23,7 @@ public final class MapViewModel {
     private let experienceService: ExperienceService
     private let aiService: AIService
     private let overpassService: OverpassService
-    private let geocodeService: ReverseGeocodeService
+    private let geocodeService: any ReverseGeocoding
     private let preferences: UserPreferences
     /// Optional so existing tests / previews can construct without a
     /// real StoreKit-aware service. Production wires this from the
@@ -53,6 +53,11 @@ public final class MapViewModel {
     /// Closure to retry after a successful purchase. Consumers (the
     /// paywall) call this in `onUnlocked`.
     public var onPaywallUnlocked: (() -> Void)?
+
+    /// Set to true while a free-tier Overpass-only explore is running.
+    /// Separate from `isExploring` so the UI can label the button
+    /// distinctly (no AI spinner; no quota banner).
+    public var isExploringFreeMode: Bool = false
 
     // MARK: - Explore consent (US-034)
 
@@ -258,7 +263,7 @@ public final class MapViewModel {
         aiService: AIService,
         preferences: UserPreferences,
         overpassService: OverpassService = OverpassService(),
-        geocodeService: ReverseGeocodeService = ReverseGeocodeService()
+        geocodeService: any ReverseGeocoding = ReverseGeocodeService()
     ) {
         self.locationService = locationService
         self.experienceService = experienceService
@@ -626,6 +631,10 @@ public final class MapViewModel {
         lastExploreToast = nil
         defer { isExploring = false }
 
+        // Propagate current subscription tier so AIService applies
+        // the right daily cap (Pro: 30/60, Free: 0/0).
+        aiService.isProTier = isProUser
+
         do {
             let pois = try await overpassService.fetchPOIs(near: coordinate, radiusMeters: radiusMeters)
             guard !pois.isEmpty else {
@@ -657,6 +666,13 @@ public final class MapViewModel {
             let added = experienceService.appendGenerated(generated)
             lastExploreAddedCount = added
 
+            // US-022: record a successful region so offline fallback can reuse it.
+            experienceService.repo.recordRecentExploreRegion(
+                centerLat: coordinate.latitude,
+                centerLon: coordinate.longitude,
+                radiusMeters: radiusMeters
+            )
+
             // US-015: surface quota banner if AIService just degraded.
             if aiService.quotaExceededAt != nil {
                 lastQuotaInfo = NSLocalizedString(
@@ -682,6 +698,93 @@ public final class MapViewModel {
                 }
             }
 
+            recenter(on: coordinate)
+        } catch {
+            // US-022: on network failure, look for a recent nearby region and
+            // surface its cached SwiftData pins instead of showing an error.
+            if let region = experienceService.repo.closestRecentRegion(to: coordinate) {
+                let offline = experienceService.repo.experiences(in: region)
+                if !offline.isEmpty {
+                    visibleExperiences = offline
+                    nearbySoloCount = 0
+                    updateBottomInfo()
+
+                    let formatter = RelativeDateTimeFormatter()
+                    formatter.unitsStyle = .full
+                    let relDate = formatter.localizedString(for: region.exploredAt, relativeTo: Date())
+                    let sevenDaysAgo = Date().addingTimeInterval(-7 * 24 * 3600)
+                    if region.exploredAt < sevenDaysAgo {
+                        lastExploreToast = String(
+                            format: NSLocalizedString(
+                                "explore.offline.staleToast",
+                                comment: "Showing offline data from <relative-date>"
+                            ),
+                            relDate
+                        )
+                    }
+                    return
+                }
+            }
+            lastExploreError = error.localizedDescription
+        }
+    }
+
+    /// Free-tier OSM-only explore: fetches Overpass POIs and converts them
+    /// through the AIService skeleton fallback (no Anthropic call). Wired to
+    /// `isExploringFreeMode` so the paywall button stays visible as the upgrade hook.
+    public func exploreNearbyFreeMode(
+        at coordinate: CLLocationCoordinate2D,
+        radiusMeters: Int = 3000
+    ) async {
+        guard !isExploringFreeMode else { return }
+        isExploringFreeMode = true
+        lastExploreError = nil
+        lastExploreAddedCount = 0
+        lastExploreToast = nil
+        defer { isExploringFreeMode = false }
+
+        // Force skeleton mode so AIService never touches Anthropic.
+        let savedProTier = aiService.isProTier
+        aiService.isProTier = false
+        defer { aiService.isProTier = savedProTier }
+
+        do {
+            let pois = try await overpassService.fetchPOIs(near: coordinate, radiusMeters: radiusMeters)
+            guard !pois.isEmpty else {
+                lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
+                return
+            }
+            let resolved = await geocodeService.resolve(coordinate: coordinate)
+            let cityCode = resolved?.cityCode ?? Self.cityCode(for: coordinate)
+            if let resolved {
+                experienceService.repo.recordDiscoveredCity(
+                    cityCode: resolved.cityCode,
+                    name: resolved.name,
+                    countryCode: resolved.countryCode,
+                    center: (lat: coordinate.latitude, lon: coordinate.longitude)
+                )
+            }
+            let generated = try await aiService.synthesizeExperiences(
+                from: pois,
+                cityCode: cityCode,
+                locale: .current
+            )
+            let added = experienceService.appendGenerated(generated)
+            lastExploreAddedCount = added
+            if added > 0 {
+                selectCity(cityCode)
+                if let resolved {
+                    lastExploreToast = String(
+                        format: NSLocalizedString("explore.toast.addedNamed", comment: "Now exploring %@ · %d places added"),
+                        resolved.name, added
+                    )
+                } else {
+                    lastExploreToast = String(
+                        format: NSLocalizedString("explore.toast.added", comment: "%d places added near you"),
+                        added
+                    )
+                }
+            }
             recenter(on: coordinate)
         } catch {
             lastExploreError = error.localizedDescription

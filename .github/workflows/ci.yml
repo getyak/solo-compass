@@ -41,3 +41,6 @@ jobs:
 
       - name: schema dryrun
         run: pnpm tsx scripts/schema-dryrun.ts
+
+      - name: parity check
+        run: pnpm parity:check

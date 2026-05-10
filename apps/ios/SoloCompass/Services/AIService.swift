@@ -69,6 +69,13 @@ public final class AIService {
     /// view shows a banner derived from this.
     public private(set) var quotaExceededAt: Date?
 
+    /// Set by MapViewModel (or tests) to reflect the current subscription
+    /// tier. Defaults to `true` so previews and tests without a
+    /// SubscriptionService still get Pro-tier quotas.
+    /// Free tier: synthesis 0 / explanation 0 (second line of defense
+    /// after the paywall gate in MapViewModel).
+    public var isProTier: Bool = true
+
     private let session: URLSession
     private let apiURL = URL(string: "https://api.anthropic.com/v1/messages")
     private let modelContext: ModelContext?
@@ -89,6 +96,12 @@ public final class AIService {
     public init(session: URLSession = .shared, modelContext: ModelContext? = nil) {
         self.session = session
         self.modelContext = modelContext
+    }
+
+    /// Initialise with an `ExperienceRepository`; the repository's context
+    /// is reused so synthesis cache I/O shares the same actor-bound store.
+    public convenience init(session: URLSession = .shared, repository: ExperienceRepository?) {
+        self.init(session: session, modelContext: repository?.modelContext)
     }
 
     /// Convenience that uses the shared SwiftData container's main
@@ -235,34 +248,16 @@ public final class AIService {
 
     // MARK: - Helpers
 
+    // US-034: ANTHROPIC_API_KEY is no longer read from Secrets.plist.
+    // The synthesis path now routes through the Supabase Edge Function
+    // when FF_ROUTE_AI_THROUGH_EDGE is on. Only the env-var path is
+    // kept so local QA runs (explanation/voice) and CI can still inject
+    // a key without bundling it in the app.
     private static func resolveAPIKey() -> String? {
-        if let env = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !env.isEmpty {
-            return env
-        }
-        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist") else {
+        guard let env = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !env.isEmpty else {
             return nil
         }
-        do {
-            let data = try Data(contentsOf: url)
-            guard let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
-                #if DEBUG
-                print("[AIService] Secrets.plist is not a [String: Any] dictionary")
-                #endif
-                return nil
-            }
-            guard let key = plist["ANTHROPIC_API_KEY"] as? String, !key.isEmpty else {
-                #if DEBUG
-                print("[AIService] ANTHROPIC_API_KEY missing or empty in Secrets.plist")
-                #endif
-                return nil
-            }
-            return key
-        } catch {
-            #if DEBUG
-            print("[AIService] Failed to read Secrets.plist: \(error)")
-            #endif
-            return nil
-        }
+        return env
     }
 
     private static func recommendationPrompt(candidates: [Experience], context: UserContext) -> String {
@@ -343,7 +338,10 @@ public final class AIService {
         }
 
         // US-015 quota check: cache hits don't count, network calls do.
-        if await isQuotaExceeded(kind: .synthesis) {
+        // checkAndIncrementQuota atomically checks and, if under limit,
+        // increments. Returns true = limit already hit (degrade now).
+        let quotaHit = await checkAndIncrementQuota(kind: .synthesis)
+        if quotaHit {
             await setQuotaExceeded()
             return capped.map { Self.skeletonExperience(from: $0, cityCode: cityCode) }
         }
@@ -356,7 +354,6 @@ public final class AIService {
                 let experiences = try await synthesizeViaEdge(
                     pois: capped, cityCode: cityCode, locale: locale, cacheKey: cacheKey
                 )
-                await incrementQuota(kind: .synthesis)
                 await writeCachedSynthesis(
                     cacheKey: cacheKey, experiences: experiences, modelName: modelName
                 )
@@ -371,7 +368,6 @@ public final class AIService {
         do {
             let raw = try await sendMessage(prompt: prompt, kind: .synthesis)
             let experiences = try Self.parseSynthesizedExperiences(raw, pois: capped, cityCode: cityCode)
-            await incrementQuota(kind: .synthesis)
             await writeCachedSynthesis(
                 cacheKey: cacheKey,
                 experiences: experiences,
@@ -569,25 +565,98 @@ public final class AIService {
 
     // MARK: - Daily quota (US-015)
 
-    /// Pro tier daily caps. Free tier is gated upstream (Epic D).
+    /// Pro tier daily caps.
     public static let dailySynthesisQuota = 30
     public static let dailyExplanationQuota = 60
 
-    /// True if the per-day cap for `kind` is reached. Pure read; no
-    /// mutation.
-    private func isQuotaExceeded(kind: ModelKind) async -> Bool {
+    /// Free tier daily caps: 0 for both (second line of defense after the
+    /// paywall gate; entitlement is the primary barrier).
+    public static let dailySynthesisQuotaFree = 0
+    public static let dailyExplanationQuotaFree = 0
+
+    /// Resolve the applicable daily cap for `kind` given the current tier.
+    private func dailyLimit(for kind: ModelKind) -> Int {
+        if isProTier {
+            switch kind {
+            case .synthesis, .voice: return Self.dailySynthesisQuota
+            case .explanation: return Self.dailyExplanationQuota
+            }
+        } else {
+            switch kind {
+            case .synthesis, .voice: return Self.dailySynthesisQuotaFree
+            case .explanation: return Self.dailyExplanationQuotaFree
+            }
+        }
+    }
+
+    /// Atomically checks whether today's quota for `kind` is already
+    /// reached, and if not, increments the counter.
+    ///
+    /// Returns `true` when the limit was already hit (caller should degrade
+    /// to skeleton mode). Returns `false` when the counter was incremented
+    /// and the real API call should proceed.
+    ///
+    /// Cache hits must bypass this method entirely — only real network
+    /// calls should call it.
+    @discardableResult
+    public func checkAndIncrementQuota(kind: ModelKind) async -> Bool {
         await MainActor.run { [weak self] in
             guard let self, let context = self.modelContext else { return false }
+            let limit = dailyLimit(for: kind)
             let today = AIUsageRecord.todayUTC()
             let descriptor = FetchDescriptor<AIUsageRecord>(
                 predicate: #Predicate { $0.date == today }
             )
-            guard let row = (try? context.fetch(descriptor))?.first else { return false }
+            let row = (try? context.fetch(descriptor))?.first
+
+            // Read current count.
+            let current: Int
             switch kind {
             case .synthesis, .voice:
-                return row.synthesisCalls >= Self.dailySynthesisQuota
+                current = row?.synthesisCalls ?? 0
             case .explanation:
-                return row.explanationCalls >= Self.dailyExplanationQuota
+                current = row?.explanationCalls ?? 0
+            }
+
+            if current >= limit {
+                return true  // quota hit; do not increment
+            }
+
+            // Under limit — increment.
+            let record = row ?? {
+                let r = AIUsageRecord(date: today)
+                context.insert(r)
+                return r
+            }()
+            switch kind {
+            case .synthesis, .voice:
+                record.synthesisCalls += 1
+            case .explanation:
+                record.explanationCalls += 1
+            }
+            try? context.save()
+            return false
+        }
+    }
+
+    /// True if the per-day cap for `kind` is reached. Pure read; no
+    /// mutation. Used internally to keep synthesizeExperiences readable.
+    private func isQuotaExceeded(kind: ModelKind) async -> Bool {
+        await MainActor.run { [weak self] in
+            guard let self, let context = self.modelContext else { return false }
+            let limit = dailyLimit(for: kind)
+            let today = AIUsageRecord.todayUTC()
+            let descriptor = FetchDescriptor<AIUsageRecord>(
+                predicate: #Predicate { $0.date == today }
+            )
+            guard let row = (try? context.fetch(descriptor))?.first else {
+                return limit == 0
+            }
+            switch kind {
+            case .synthesis, .voice:
+                return row.synthesisCalls >= limit
+            case .explanation:
+                return row.explanationCalls >= limit
             }
         }
     }

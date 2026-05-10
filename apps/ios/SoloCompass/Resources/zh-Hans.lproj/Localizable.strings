@@ -94,6 +94,7 @@
 "marker.a11y.favorited" = "已收藏";
 "marker.a11y.upcoming" = "%d 分钟后开始";
 "marker.a11y.footprinted" = "近期有独行旅人到访";
+"marker.a11y.lowConfidence" = "AI 推测，未核实";
 
 /* Bottom info accessibility */
 "info.nearbySolo.a11y" = "今天附近有 %d 位独行旅人路过";
@@ -246,6 +247,7 @@
 "explore.quota.dailyLimit" = "今日 AI 调用次数已达上限。明天恢复前会展示真实地点但不再增强。";
 "explore.toast.addedNamed" = "正在探索 %1$@ · 新增 %2$d 处地点";
 "explore.toast.added" = "附近新增 %d 处地点";
+"explore.offline.staleToast" = "正在显示 %@ 的离线缓存数据";
 
 /* Paywall */
 "paywall.hero.title" = "解锁 Solo Compass Pro";

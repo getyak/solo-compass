@@ -12,11 +12,14 @@ import SwiftData
 /// later move to a background actor if profiling demands it.
 @MainActor
 public final class ExperienceRepository {
-    private let context: ModelContext
+    /// Exposed so callers (e.g. `AIService`) can share the same actor-bound
+    /// context rather than opening a second one on the same container.
+    public let modelContext: ModelContext
+    private var context: ModelContext { modelContext }
     private let preferences: UserPreferences?
 
     public init(context: ModelContext, preferences: UserPreferences? = nil) {
-        self.context = context
+        self.modelContext = context
         self.preferences = preferences
     }
 
@@ -246,6 +249,10 @@ public final class ExperienceRepository {
     /// Record one micro-survey row. Comfort/pressure/recommend are all
     /// independent dimensions; we don't pre-aggregate at write time so
     /// later changes to the formula don't require migrating rows.
+    ///
+    /// US-035: also enqueues an upsert to `solo_score_signals` so the
+    /// nightly `aggregate-solo-scores` Edge Function can include this
+    /// device's signal in the community aggregate.
     public func recordSurvey(
         experienceId: String,
         comfort: Int,
@@ -265,6 +272,23 @@ public final class ExperienceRepository {
             )
         )
         try? context.save()
+        // Epic E US-035: queue a solo_score_signals upsert. The outbox is
+        // durable so the row reaches the server even if the user is offline.
+        // We use the anon device id as user_id so the server can dedupe
+        // per-device-per-experience submissions.
+        SyncService.shared.enqueue(
+            tableName: "solo_score_signals",
+            operation: "upsert",
+            payload: SyncSoloScoreSignalPayload(
+                user_id: anonDeviceId,
+                experience_id: experienceId,
+                comfort: max(1, min(5, comfort)),
+                pressure: max(1, min(5, pressure)),
+                recommend: recommend,
+                submitted_at: date
+            ),
+            context: context
+        )
     }
 
     public func surveyCount(experienceId: String) -> Int {
@@ -276,12 +300,17 @@ public final class ExperienceRepository {
     }
 
     /// Aggregate the local survey signals into a Solo-Score-like value.
-    /// Formula: localSurveyMean = mean of (comfort + pressure) / 2, on a
+    ///
+    /// US-035 preference order:
+    ///   1. Server aggregate (`ExperienceRecord.serverAggregatedSoloScore`) when
+    ///      `serverSignalCount >= 3` — this is authoritative community data.
+    ///   2. Local survey blend (formula below) when local surveys exist.
+    ///   3. `nil` — caller falls back to the seed/AI score.
+    ///
+    /// Local formula: localSurveyMean = mean of (comfort + pressure) / 2, on a
     /// 0–10 scale (raw 1–5 doubled). recommendBoost = +0.5 when ≥ 50 %
     /// of recommendations are "yes". Final = clamp(0...10, original/2 +
-    /// localSurveyMean/2 + recommendBoost). Returns `nil` if no surveys
-    /// exist (caller falls back to the seed/AI score). Cached for 60 s
-    /// per experience id to avoid recomputing on every render.
+    /// localSurveyMean/2 + recommendBoost). Cached for 60 s per experience id.
     public func aggregatedSoloScore(
         experienceId: String,
         seedOverall: Double
@@ -290,6 +319,20 @@ public final class ExperienceRepository {
            Date().timeIntervalSince(cached.cachedAt) < 60 {
             return (cached.overall, cached.count)
         }
+
+        // US-035: prefer the server aggregate when it has enough signals.
+        let expId = experienceId
+        let expDescriptor = FetchDescriptor<ExperienceRecord>(
+            predicate: #Predicate { $0.id == expId }
+        )
+        if let record = (try? context.fetch(expDescriptor))?.first,
+           let serverScore = record.serverAggregatedSoloScore,
+           let signalCount = record.serverSignalCount,
+           signalCount >= 3 {
+            aggregatedScoreCache[experienceId] = (serverScore, signalCount, Date())
+            return (serverScore, signalCount)
+        }
+
         let id = experienceId
         let descriptor = FetchDescriptor<MicroSurveyRecord>(
             predicate: #Predicate { $0.experienceId == id }
@@ -355,6 +398,109 @@ public final class ExperienceRepository {
         return (try? context.fetch(descriptor)) ?? []
     }
 
+    // MARK: - Explore cache (US-011)
+
+    /// Return cached raw Overpass JSON for `regionKey` if it exists and is
+    /// within the 14-day TTL; `nil` otherwise.
+    public func loadExploreCache(regionKey: String) -> Data? {
+        let descriptor = FetchDescriptor<ExploreCacheRecord>(
+            predicate: #Predicate { $0.regionKey == regionKey }
+        )
+        guard let row = (try? context.fetch(descriptor))?.first else { return nil }
+        let age = Date().timeIntervalSince(row.fetchedAt)
+        guard age < OverpassService.cacheTTLSeconds else { return nil }
+        return row.osmJSON
+    }
+
+    /// Persist raw Overpass JSON for `regionKey`. Delete-then-insert keeps
+    /// semantics explicit and side-steps SwiftData's silent upsert on
+    /// `@Attribute(.unique)`.
+    public func writeExploreCache(regionKey: String, raw: Data, poiCount: Int) {
+        let descriptor = FetchDescriptor<ExploreCacheRecord>(
+            predicate: #Predicate { $0.regionKey == regionKey }
+        )
+        if let existing = (try? context.fetch(descriptor))?.first {
+            context.delete(existing)
+        }
+        context.insert(
+            ExploreCacheRecord(
+                regionKey: regionKey,
+                osmJSON: raw,
+                fetchedAt: Date(),
+                poiCount: poiCount
+            )
+        )
+        try? context.save()
+    }
+
+    /// Delete all `ExploreCacheRecord` rows. Called from Settings → Storage.
+    public func clearExploreCache() {
+        try? context.delete(model: ExploreCacheRecord.self)
+        try? context.save()
+    }
+
+    // MARK: - Recent explore regions (US-022 offline fallback)
+
+    /// Write one row for a successful exploreNearby. Keeps only the 3 most
+    /// recent rows; oldest are deleted before inserting the new one.
+    public func recordRecentExploreRegion(
+        centerLat: Double,
+        centerLon: Double,
+        radiusMeters: Int,
+        at date: Date = Date()
+    ) {
+        let descriptor = FetchDescriptor<RecentExploreRegion>(
+            sortBy: [SortDescriptor(\.exploredAt, order: .forward)]
+        )
+        let existing = (try? context.fetch(descriptor)) ?? []
+        // Evict oldest rows so we never exceed 3.
+        let excess = existing.count - 2  // after inserting we'd have count+1; keep ≤ 3
+        if excess > 0 {
+            existing.prefix(excess).forEach { context.delete($0) }
+        }
+        context.insert(
+            RecentExploreRegion(
+                centerLat: centerLat,
+                centerLon: centerLon,
+                radiusMeters: radiusMeters,
+                exploredAt: date
+            )
+        )
+        try? context.save()
+    }
+
+    /// Find the closest RecentExploreRegion within `thresholdKm` of
+    /// `coordinate`. Returns nil when no region qualifies.
+    public func closestRecentRegion(
+        to coordinate: CLLocationCoordinate2D,
+        thresholdKm: Double = 10
+    ) -> RecentExploreRegion? {
+        let descriptor = FetchDescriptor<RecentExploreRegion>()
+        let regions = (try? context.fetch(descriptor)) ?? []
+        let here = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let thresholdMeters = thresholdKm * 1000
+        return regions
+            .map { region -> (RecentExploreRegion, Double) in
+                let there = CLLocation(latitude: region.centerLat, longitude: region.centerLon)
+                return (region, here.distance(from: there))
+            }
+            .filter { $0.1 <= thresholdMeters }
+            .min(by: { $0.1 < $1.1 })
+            .map(\.0)
+    }
+
+    /// Return ExperienceRecord rows whose coordinate falls within `region`.
+    public func experiences(in region: RecentExploreRegion) -> [Experience] {
+        let center = CLLocation(latitude: region.centerLat, longitude: region.centerLon)
+        let radiusMeters = Double(region.radiusMeters)
+        return allRecords()
+            .filter { record in
+                let loc = CLLocation(latitude: record.latitude, longitude: record.longitude)
+                return center.distance(from: loc) <= radiusMeters
+            }
+            .map(\.asValue)
+    }
+
     // MARK: - Bulk operations
 
     /// Wipe every user-data row. Does NOT delete experiences (they reseed
@@ -393,4 +539,18 @@ struct SyncFavoritePayload: Encodable {
     let user_id: String
     let experience_id: String
     let favorited_at: Date?
+}
+
+/// Sent to Supabase `solo_score_signals` on every MicroSurvey submission
+/// (US-035). The nightly `aggregate-solo-scores` Edge Function reads these
+/// rows to recompute `synthesized_experiences.aggregated_solo_score`.
+/// We use the anon device ID as `user_id` so the server can dedupe
+/// per-device signals without any PII.
+struct SyncSoloScoreSignalPayload: Encodable {
+    let user_id: String
+    let experience_id: String
+    let comfort: Int
+    let pressure: Int
+    let recommend: String
+    let submitted_at: Date
 }

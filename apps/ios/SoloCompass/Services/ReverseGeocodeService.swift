@@ -2,6 +2,12 @@ import Foundation
 import CoreLocation
 import Contacts
 
+/// Protocol that lets tests inject a stub instead of hitting `CLGeocoder`.
+@MainActor
+public protocol ReverseGeocoding: AnyObject {
+    func resolve(coordinate: CLLocationCoordinate2D) async -> ReverseGeocodeService.Resolved?
+}
+
 /// Wraps `CLGeocoder.reverseGeocodeLocation` and produces a slug-style
 /// city code that's stable across runs. Used by Epic C US-C3 so the
 /// city picker shows real names like "Hanoi" instead of synthetic
@@ -12,7 +18,7 @@ import Contacts
 /// reverse geocoding (50/min/app) — we let the OS handle that and just
 /// surface failures as `nil`.
 @MainActor
-public final class ReverseGeocodeService {
+public final class ReverseGeocodeService: ReverseGeocoding {
     public struct Resolved: Equatable, Sendable {
         public let cityCode: String       // slug like "vn-hanoi"
         public let name: String           // localized "Hanoi"

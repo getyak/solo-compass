@@ -14,7 +14,20 @@ public final class DeviceIdentityService {
     private let keychainService = "com.solocompass.device"
     private let keychainAccount = "device-id"
 
-    private init() {}
+    /// Keychain account under which the Supabase anonymous userId is stored (US-030).
+    static let userIdKeychainAccount = "sc.anon.userId"
+
+    private let client: any SupabaseClientProtocol
+
+    /// Designated initialiser for production (uses the real singleton).
+    private convenience init() {
+        self.init(client: SupabaseClient.shared)
+    }
+
+    /// Dependency-injected initialiser for unit tests.
+    init(client: any SupabaseClientProtocol) {
+        self.client = client
+    }
 
     /// Returns the stable anonymous device UUID, creating it on first call.
     public var deviceID: String {
@@ -24,18 +37,36 @@ public final class DeviceIdentityService {
         return new
     }
 
-    /// Bootstrap the device identity + Supabase anonymous session
-    /// (Epic E US-028). Called from `SoloCompassApp.onAppear`. When
-    /// `FF_BACKEND_SYNC` is off this is a fast no-op (the
-    /// SupabaseClient short-circuits to `.failure(.backendDisabled)`).
-    /// When on, idempotent: re-runs return the existing session if
-    /// not yet expired.
+    /// The Supabase anonymous userId persisted in Keychain after first sign-in.
+    public var anonymousUserId: String? {
+        KeychainStore.read(account: Self.userIdKeychainAccount)
+    }
+
+    /// Bootstrap the device identity + Supabase anonymous session (US-030).
+    /// Called from `SoloCompassApp.onAppear`. When `FF_BACKEND_SYNC` is off
+    /// this is a fast no-op (SupabaseClient short-circuits to
+    /// `.failure(.backendDisabled)`).
+    ///
+    /// First launch: calls `signInAnonymously()` and persists `userId` under
+    /// `sc.anon.userId` in the Keychain. Subsequent launches: the SDK's
+    /// built-in refresh-token flow restores the session; `signInAnonymously`
+    /// returns the cached (or refreshed) session without making a new signup
+    /// request, so `signInAnonymously` is NOT called a second time in the
+    /// sense of creating a new account.
     public func bootstrap() async {
         // Touch deviceID so the keychain row is created on first launch.
         _ = self.deviceID
-        // Best-effort: anonymous Supabase sign-in. We never block the
-        // UI on this — the local-first app must work without a session.
-        _ = await SupabaseClient.shared.signInAnonymously()
+
+        // Best-effort: anonymous Supabase sign-in (or session restore).
+        // We never block the UI on this — the local-first app must work
+        // without a session.
+        let result = await client.signInAnonymously()
+
+        // On success, persist the userId separately so other callers can
+        // read the stable anon identity without decoding the full session.
+        if case .success(let session) = result {
+            _ = KeychainStore.write(account: Self.userIdKeychainAccount, value: session.userId)
+        }
     }
 
     // MARK: - Keychain

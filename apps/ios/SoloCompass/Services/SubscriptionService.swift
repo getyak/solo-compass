@@ -177,6 +177,14 @@ public final class SubscriptionService {
         }
     }
 
+    // MARK: - Dependency injection (tests override these)
+
+    /// Overridable in tests to capture enqueued records without touching
+    /// the production singleton or a real SwiftData store.
+    var syncService: SyncService = .shared
+    var syncModelContext: ModelContext = ModelContext(SoloCompassModelContainer.shared)
+    var deviceIDProvider: () -> String = { DeviceIdentityService.shared.deviceID }
+
     // MARK: - Internal
 
     private func startTransactionListener() {
@@ -214,29 +222,52 @@ public final class SubscriptionService {
             eventType = "subscribed"
         case (.pro, .proExpired), (.proTrial, .proExpired):
             eventType = "expired"
+        case (_, _) where transaction.revocationDate != nil:
+            eventType = "revoked"
         default:
             eventType = "upgraded"
         }
+        _emitSubscriptionEventFields(
+            eventType: eventType,
+            productID: transaction.productID,
+            originalPurchaseDate: transaction.originalPurchaseDate,
+            expiresDate: transaction.expirationDate,
+            isInTrialPeriod: current == .proTrial
+        )
+    }
+
+    /// Package-internal entry point for testing: enqueues a subscription_events
+    /// row without requiring a real StoreKit Transaction. When FF_BACKEND_SYNC
+    /// is false, the call is a silent no-op.
+    func _emitSubscriptionEventFields(
+        eventType: String,
+        productID: String,
+        originalPurchaseDate: Date?,
+        expiresDate: Date?,
+        isInTrialPeriod: Bool
+    ) {
+        // When the backend sync feature flag is off, drop the event silently.
+        guard FeatureFlags.backendSync else { return }
+
         let payload = SubscriptionEventPayload(
             user_id: SupabaseClient.shared.currentSession?.userId,
             event_type: eventType,
-            product_id: transaction.productID,
-            original_purchase_date: transaction.originalPurchaseDate,
-            expires_date: transaction.expirationDate,
-            is_in_trial_period: current == .proTrial,
-            device_id: DeviceIdentityService.shared.deviceID
+            product_id: productID,
+            original_purchase_date: originalPurchaseDate,
+            expires_date: expiresDate,
+            is_in_trial_period: isInTrialPeriod,
+            device_id: deviceIDProvider()
         )
         // No PII (no email, no Apple ID). user_id is anonymous Supabase
         // UUID; device_id is the random per-device anon UUID.
-        let context = ModelContext(SoloCompassModelContainer.shared)
-        SyncService.shared.enqueue(
+        syncService.enqueue(
             tableName: "subscription_events",
             operation: "upsert",
             payload: payload,
-            context: context
+            context: syncModelContext
         )
         #if DEBUG
-        print("[SubscriptionService] emitted \(eventType) for \(transaction.productID)")
+        print("[SubscriptionService] emitted subscription_events row: event_type=\(eventType) product_id=\(productID) is_in_trial=\(isInTrialPeriod) device_id=\(deviceIDProvider())")
         #endif
     }
 }

@@ -62,6 +62,7 @@
 		EDBD7B0E715165E71BC0C17D /* DiscoveredCityRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE05EF69960CBB73431A6F2F /* DiscoveredCityRecord.swift */; };
 		EF2003CC07F7787C25847BDF /* ReportIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 576B08910782A58C3597E596 /* ReportIssueSheet.swift */; };
 		F34C1A42668EF5151AFEE3C3 /* AISynthesisCacheRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E69F3EF6F0100CFA47DAFE /* AISynthesisCacheRecord.swift */; };
+		B4AEDB7BA37C22DA0743E407 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71F67FC201CCBBF74157986 /* AppleSignInService.swift */; };
 		F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120FC7465285714C5FA8F96D /* VoiceService.swift */; };
 /* End PBXBuildFile section */
 
@@ -135,6 +136,7 @@
 		ED3CB5045CE59A613B5CAAF5 /* SoloCompassTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassTests.swift; sourceTree = "<group>"; };
 		F4814DBCEAB5975B6338558D /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
 		F63FDD874A8F533F0717132A /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
+		E71F67FC201CCBBF74157986 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 		FAFFA243BC698EF20C6BC1EF /* MapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -266,6 +268,7 @@
 				E406C379247653B4AA5A3E0E /* SupabaseClient.swift */,
 				6163572F4644BF852B35FDA4 /* SyncService.swift */,
 				120FC7465285714C5FA8F96D /* VoiceService.swift */,
+				E71F67FC201CCBBF74157986 /* AppleSignInService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -514,6 +517,7 @@
 				C2C0AF72D709EDC17C6ED874 /* UserPreferences.swift in Sources */,
 				BD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */,
 				F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */,
+				B4AEDB7BA37C22DA0743E407 /* AppleSignInService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

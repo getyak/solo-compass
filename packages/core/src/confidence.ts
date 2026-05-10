@@ -16,6 +16,17 @@
  * long it's been since *any* layer touched this experience.
  */
 
+/**
+ * Confidence level scale (0–5):
+ *   0  No data — experience exists in the schema but has no signals at all.
+ *   1  AI-generated — synthesised from open data (OSM/Wikivoyage/Reddit) but
+ *      not yet touched by any human. All `exp_osm_*` entries start here.
+ *      Show an "unverified" badge; don't surface in top recommendations.
+ *   2  Passive GPS — users have been physically near recently (30 days).
+ *   3  Active reports — ratings, voice notes, or photos submitted by users.
+ *   4  Trusted reporter — a high-weight user personally verified this.
+ *   5  Editorially reviewed — a team member has manually curated this entry.
+ */
 export type ConfidenceLevel = 0 | 1 | 2 | 3 | 4 | 5;
 
 export interface Confidence {

@@ -101,3 +101,9 @@ export const SCHEMA_INTERFACES = new Set([
   "SoloScore",
   "Confidence",
 ]);
+
+/**
+ * TS interfaces that mirror SwiftData @Model classes in Persistence/Models/.
+ * These are checked by the SwiftData parity pass (not the struct pass above).
+ */
+export const SWIFTDATA_MODEL_INTERFACES = new Set(["DiscoveredCity"]);

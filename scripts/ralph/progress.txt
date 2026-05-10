@@ -5,3 +5,56 @@ Branch: ralph/paid-app-foundation
 PRD: tasks/prd-paid-app-foundation.md
 Stories: 41
 ---
+[2026-05-10T09:15:00Z] Story #US-010: Persist generated Experiences from exploreNearby through SwiftData — PASSED
+[2026-05-10T09:01:25Z] Story #US-010: Persist generated Experiences from exploreNearby through SwiftData — PASSED
+[2026-05-10T09:02:12Z] Story #US-001: Add SwiftData ModelContainer with empty schema scaffold — PASSED
+[2026-05-10T09:03:31Z] Story #US-002: Define ExperienceRecord @Model with two-way Experience mapping — PASSED
+[2026-05-10T09:04:51Z] Story #US-003: Add UserCompletionRecord and UserFavoriteRecord @Models — PASSED
+[2026-05-10T09:06:33Z] Story #US-004: Add MicroSurveyRecord and PendingCheckInRecord @Models — PASSED
+[2026-05-10T09:07:45Z] Story #US-005: Add ExploreCacheRecord and AISynthesisCacheRecord @Models — PASSED
+[2026-05-10T09:08:55Z] Story #US-006: Add DiscoveredCityRecord, RecentExploreRegion, AIUsageRecord @Models — PASSED
+[2026-05-10T09:08:53Z] Story #US-006: Add DiscoveredCityRecord, RecentExploreRegion, AIUsageRecord @Models — PASSED
+[2026-05-10T09:10:00Z] Story #US-007: Implement ExperienceRepository with seed import — PASSED
+[2026-05-10T09:11:15Z] Story #US-007: Implement ExperienceRepository with seed import — PASSED
+[2026-05-10T09:12:30Z] Story #US-008: Refactor ExperienceService to delegate to ExperienceRepository — PASSED
+[2026-05-10T09:12:57Z] Story #US-008: Refactor ExperienceService to delegate to ExperienceRepository — PASSED
+[2026-05-10T09:16:06Z] Story #US-009: Move UserPreferences completed/favorites lists into SwiftData — PASSED
+[2026-05-10T09:19:46Z] Story #US-011: Implement Overpass cache layer with 14-day TTL — PASSED
+[2026-05-10T09:22:00Z] Story #US-012: Implement AI synthesis cache layer with 30-day TTL — PASSED
+[2026-05-10T09:22:25Z] Story #US-012: Implement AI synthesis cache layer with 30-day TTL — PASSED
+[2026-05-10T09:25:00Z] Story #US-013: Switch default synthesis model to claude-sonnet-4-6 with Haiku for explanations — PASSED
+[2026-05-10T09:24:56Z] Story #US-013: Switch default synthesis model to claude-sonnet-4-6 with Haiku for explanations — PASSED
+[2026-05-10T09:30:00Z] Story #US-014: Harden synthesis prompt against hallucinated specifics — PASSED
+[2026-05-10T09:27:01Z] Story #US-014: Harden synthesis prompt against hallucinated specifics — PASSED
+[2026-05-10T09:30:17Z] Story #US-015: Add per-user daily AI quota with skeleton-mode degradation — PASSED
+[2026-05-10T09:32:38Z] Story #US-016: Add ReverseGeocodeService and DiscoveredCityRecord write-through — PASSED
+[2026-05-10T09:34:44Z] Story #US-017: Auto-switch selected city after successful Explore — PASSED
+[2026-05-10T09:36:56Z] Story #US-018: Visual downgrade for confidence-1 markers — PASSED
+[2026-05-10T09:39:03Z] Story #US-019: Three-state Solo-Score cold-start UX in detail view — PASSED
+[2026-05-10T09:41:29Z] Story #US-020: MicroSurvey writeback to SoloScore via SwiftData aggregation — PASSED
+[2026-05-10T09:45:08Z] Story #US-021: Surface explore errors and quota banners on the map — PASSED
+[2026-05-10T09:47:42Z] Story #US-022: Offline-mode fallback from RecentExploreRegion — PASSED
+[2026-05-10T09:51:02Z] Story #US-023: Add StoreKit Configuration.storekit and SubscriptionService scaffold — PASSED
+[2026-05-10T09:52:58Z] Story #US-024: Cache entitlement in Keychain for offline boot — PASSED
+[2026-05-10T09:55:00Z] Story #US-025: Build PaywallView with monthly/yearly cards and free-trial CTA — PASSED
+[2026-05-10T09:56:10Z] Story #US-025: Build PaywallView with monthly/yearly cards and free-trial CTA — PASSED
+[2026-05-10T09:59:16Z] Story #US-026: Gate exploreNearby and AI explanations behind entitlement — PASSED
+[2026-05-10T10:02:00Z] Story #US-027: Restore purchases UI in Settings — PASSED
+[2026-05-10T10:01:57Z] Story #US-027: Restore purchases UI in Settings — PASSED
+[2026-05-10T10:05:00Z] Story #US-028: Bootstrap Supabase project schema + RLS migrations — PASSED
+[2026-05-10T10:04:45Z] Story #US-028: Bootstrap Supabase project schema + RLS migrations — PASSED
+[2026-05-10T10:06:32Z] Story #US-029: Add Supabase Swift SDK and SupabaseClient service — PASSED
+[2026-05-10T10:11:04Z] Story #US-030: Anonymous sign-in on first launch and DeviceIdentityService integration — PASSED
+[2026-05-10T10:14:11Z] Story #US-031: Outbox sync for user_completions and user_favorites — PASSED
+[2026-05-10T10:17:41Z] Story #US-032: Subscription event telemetry to Supabase — PASSED
+[2026-05-10T10:17:41Z] Ralph complete after 41 iterations
+[2026-05-10T10:23:17Z] Story #US-033: Supabase Edge Function synthesize-experiences (Deno/TS) — PASSED
+[2026-05-10T10:25:44Z] Story #US-034: Route iOS AIService through Edge Function and remove Anthropic key from client — PASSED
+[2026-05-10T10:29:20Z] Story #US-035: Solo-Score signal aggregation via Supabase nightly function — PASSED
+[2026-05-10T10:33:31Z] Story #US-036: Optional Sign-in-with-Apple to upgrade anonymous account — PASSED
+[2026-05-10T10:36:16Z] Story #US-037: First-run Explore-Here consent sheet — PASSED
+[2026-05-10T10:38:33Z] Story #US-038: Privacy manifest (PrivacyInfo.xcprivacy) — PASSED
+[2026-05-10T10:40:18Z] Story #US-039: zh-Hans localization for paywall, onboarding, and Explore strings — PASSED
+[2026-05-10T10:43:27Z] Story #US-040: Schema parity check across iOS and TypeScript — PASSED
+[2026-05-10T10:47:05Z] Story #US-041: TestFlight prep: review prompt, App Store metadata stubs, BETA docs — PASSED
+[2026-05-10T10:47:05Z] Ralph complete after 9 iterations

@@ -43,6 +43,18 @@ public final class ExperienceRecord {
     public var createdAt: Date
     public var updatedAt: Date
 
+    // MARK: - Server-aggregated Solo Score (US-035)
+
+    /// Mean overall Solo Score computed nightly by the `aggregate-solo-scores`
+    /// Edge Function over `solo_score_signals` rows in the last 90 days.
+    /// Nil until the first pull that returns a value with signal_count >= 3.
+    public var serverAggregatedSoloScore: Double?
+
+    /// Number of `solo_score_signals` rows that contributed to
+    /// `serverAggregatedSoloScore`. Used as a quality gate: the app only
+    /// trusts the server aggregate when this is >= 3.
+    public var serverSignalCount: Int?
+
     // MARK: - Encoded blobs
 
     public var bestTimesBlob: Data

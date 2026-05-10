@@ -1,5 +1,7 @@
 import Foundation
 import Observation
+import StoreKit
+import UIKit
 
 /// User preferences persisted to UserDefaults.
 ///
@@ -33,13 +35,15 @@ public final class UserPreferences {
         var seedImported: Bool = false
         var swiftDataMirrored: Bool = false
         var hasAcceptedExploreConsent: Bool = false
+        var exploreConsentGivenAt: Date? = nil
+        var reviewPromptShown: Bool = false
 
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
             case visitHistory, completedExperiences, favoritedExperiences, favoritedAt, pendingCheckIns
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
-            case hasAcceptedExploreConsent
+            case hasAcceptedExploreConsent, exploreConsentGivenAt, reviewPromptShown
         }
 
         init() {}
@@ -61,7 +65,9 @@ public final class UserPreferences {
             quietHoursEnd: Int,
             seedImported: Bool,
             swiftDataMirrored: Bool,
-            hasAcceptedExploreConsent: Bool
+            hasAcceptedExploreConsent: Bool,
+            exploreConsentGivenAt: Date?,
+            reviewPromptShown: Bool
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -80,6 +86,8 @@ public final class UserPreferences {
             self.seedImported = seedImported
             self.swiftDataMirrored = swiftDataMirrored
             self.hasAcceptedExploreConsent = hasAcceptedExploreConsent
+            self.exploreConsentGivenAt = exploreConsentGivenAt
+            self.reviewPromptShown = reviewPromptShown
         }
 
         init(from decoder: Decoder) throws {
@@ -101,6 +109,8 @@ public final class UserPreferences {
             self.seedImported = try c.decodeIfPresent(Bool.self, forKey: .seedImported) ?? false
             self.swiftDataMirrored = try c.decodeIfPresent(Bool.self, forKey: .swiftDataMirrored) ?? false
             self.hasAcceptedExploreConsent = try c.decodeIfPresent(Bool.self, forKey: .hasAcceptedExploreConsent) ?? false
+            self.exploreConsentGivenAt = try c.decodeIfPresent(Date.self, forKey: .exploreConsentGivenAt)
+            self.reviewPromptShown = try c.decodeIfPresent(Bool.self, forKey: .reviewPromptShown) ?? false
         }
     }
 
@@ -127,6 +137,14 @@ public final class UserPreferences {
     /// consent sheet (US-034). Gates the Explore button + voice intent
     /// — never blocks UI for returning users.
     public var hasAcceptedExploreConsent: Bool { didSet { persist() } }
+    /// Date the user first granted Explore-Here consent (US-037).
+    /// Non-nil means consent has been given; nil means the sheet must
+    /// be shown before the first Overpass/AI call.
+    public var exploreConsentGivenAt: Date? { didSet { persist() } }
+    /// True once SKStoreReviewController.requestReview() has been triggered
+    /// (after the user's 3rd distinct experience completion). Prevents repeat
+    /// prompts. US-041.
+    public var reviewPromptShown: Bool { didSet { persist() } }
 
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
@@ -157,6 +175,8 @@ public final class UserPreferences {
         self.seedImported = snapshot.seedImported
         self.swiftDataMirrored = snapshot.swiftDataMirrored
         self.hasAcceptedExploreConsent = snapshot.hasAcceptedExploreConsent
+        self.exploreConsentGivenAt = snapshot.exploreConsentGivenAt
+        self.reviewPromptShown = snapshot.reviewPromptShown
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -189,7 +209,9 @@ public final class UserPreferences {
             quietHoursEnd: quietHoursEnd,
             seedImported: seedImported,
             swiftDataMirrored: swiftDataMirrored,
-            hasAcceptedExploreConsent: hasAcceptedExploreConsent
+            hasAcceptedExploreConsent: hasAcceptedExploreConsent,
+            exploreConsentGivenAt: exploreConsentGivenAt,
+            reviewPromptShown: reviewPromptShown
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
@@ -203,24 +225,54 @@ public final class UserPreferences {
 
     // MARK: - Repository wiring (US-009 double-write to SwiftData)
 
+    /// Separate legacy UserDefaults keys written by app v1.0 as plain
+    /// `[String]` arrays. v1.1 reads these once, inserts SwiftData rows,
+    /// then removes the keys so the migration never reruns.
+    private static let legacyCompletedKey = "completedExperienceIds"
+    private static let legacyFavoritedKey = "favoriteExperienceIds"
+
     /// Wire the SwiftData-backed `ExperienceRepository` so subsequent
     /// mutations are mirrored to disk. On the first call, also migrates
-    /// any pre-existing UserDefaults arrays into the corresponding
-    /// SwiftData tables.
+    /// any pre-existing data: first reads the v1.0 separate-key arrays
+    /// (`completedExperienceIds` / `favoriteExperienceIds`) and inserts
+    /// corresponding SwiftData rows, then copies any in-memory state
+    /// accumulated since boot. Deletes the old keys so the migration
+    /// never reruns.
     @MainActor
     public func attachRepository(_ repository: ExperienceRepository) {
         self.experienceRepository = repository
         if !swiftDataMirrored {
-            // One-shot mirror: copy existing in-memory state into the
-            // matching SwiftData tables. Idempotent — repo skips
-            // duplicates by id.
-            for id in completedExperiences {
-                if !repository.isCompleted(experienceId: id) {
-                    repository.recordCompletion(
-                        experienceId: id,
-                        at: visitHistory[id] ?? Date()
-                    )
-                }
+            // Phase 1: migrate v1.0 legacy separate-key arrays.
+            let legacyCompleted = defaults.stringArray(forKey: Self.legacyCompletedKey) ?? []
+            let legacyFavorited = defaults.stringArray(forKey: Self.legacyFavoritedKey) ?? []
+
+            for id in legacyCompleted where !repository.isCompleted(experienceId: id) {
+                repository.recordCompletion(
+                    experienceId: id,
+                    at: visitHistory[id] ?? Date()
+                )
+                // Absorb into in-memory set so isCompleted() stays consistent.
+                completedExperiences.insert(id)
+            }
+            for id in legacyFavorited where !repository.isFavorited(experienceId: id) {
+                _ = repository.toggleFavorite(
+                    experienceId: id,
+                    at: favoritedAt[id] ?? Date()
+                )
+                favoritedExperiences.insert(id)
+            }
+
+            // Remove old keys — migration must not run a second time.
+            defaults.removeObject(forKey: Self.legacyCompletedKey)
+            defaults.removeObject(forKey: Self.legacyFavoritedKey)
+
+            // Phase 2: mirror any in-memory state that arrived after boot
+            // but before the repo was wired (e.g. from the v1 snapshot blob).
+            for id in completedExperiences where !repository.isCompleted(experienceId: id) {
+                repository.recordCompletion(
+                    experienceId: id,
+                    at: visitHistory[id] ?? Date()
+                )
             }
             for id in favoritedExperiences where !repository.isFavorited(experienceId: id) {
                 _ = repository.toggleFavorite(
@@ -228,6 +280,7 @@ public final class UserPreferences {
                     at: favoritedAt[id] ?? Date()
                 )
             }
+
             swiftDataMirrored = true
         }
     }
@@ -237,11 +290,28 @@ public final class UserPreferences {
     public func markCompleted(_ id: String, at date: Date = Date()) {
         completedExperiences.insert(id)
         visitHistory[id] = date
-        // Double-write into SwiftData when wired. Each call inserts a
-        // fresh row (re-completions are tracked individually) — the
-        // repository handles persistence.
         Task { @MainActor in
-            experienceRepository?.recordCompletion(experienceId: id, at: date)
+            self.experienceRepository?.recordCompletion(experienceId: id, at: date)
+            self.requestReviewIfEligible()
+        }
+    }
+
+    /// Triggers SKStoreReviewController.requestReview() when the user has
+    /// completed exactly 3 distinct experiences and hasn't been prompted before.
+    /// In DEBUG builds, FF_FORCE_REVIEW_PROMPT=1 bypasses the threshold.
+    @MainActor
+    private func requestReviewIfEligible() {
+        #if DEBUG
+        let forced = FeatureFlags.forceReviewPrompt
+        #else
+        let forced = false
+        #endif
+        guard !reviewPromptShown || forced else { return }
+        guard forced || completedExperiences.count >= 3 else { return }
+        reviewPromptShown = true
+        if let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+            SKStoreReviewController.requestReview(in: scene)
         }
     }
 
@@ -274,6 +344,15 @@ public final class UserPreferences {
     /// Mark the Explore-Here consent sheet as accepted. Idempotent.
     public func acceptExploreConsent() {
         hasAcceptedExploreConsent = true
+        if exploreConsentGivenAt == nil {
+            exploreConsentGivenAt = Date()
+        }
+    }
+
+    /// Clear Explore-Here consent so the sheet reappears on next tap (US-037).
+    public func revokeExploreConsent() {
+        hasAcceptedExploreConsent = false
+        exploreConsentGivenAt = nil
     }
 
     /// Auto-clear pending check-ins older than 7 days.
@@ -294,8 +373,19 @@ public final class UserPreferences {
         }
     }
 
-    public func isFavorited(_ id: String) -> Bool { favoritedExperiences.contains(id) }
-    public func isCompleted(_ id: String) -> Bool { completedExperiences.contains(id) }
+    /// Read-through to SwiftData when the repository is wired; falls back
+    /// to the in-memory set for previews and tests that skip `attachRepository`.
+    public func isFavorited(_ id: String) -> Bool {
+        if let repo = experienceRepository { return repo.isFavorited(experienceId: id) }
+        return favoritedExperiences.contains(id)
+    }
+
+    /// Read-through to SwiftData when the repository is wired; falls back
+    /// to the in-memory set for previews and tests that skip `attachRepository`.
+    public func isCompleted(_ id: String) -> Bool {
+        if let repo = experienceRepository { return repo.isCompleted(experienceId: id) }
+        return completedExperiences.contains(id)
+    }
 
     public func recordPendingCheckIn(_ id: String, at date: Date = Date()) {
         pendingCheckIns[id] = date

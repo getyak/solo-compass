@@ -1,28 +1,36 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git *)",
-      "Bash(ls *)",
-      "Bash(cat *)",
-      "Bash(mkdir *)",
-      "Bash(find *)",
-      "Bash(swift *)",
-      "Bash(xcodebuild *)",
-      "Bash(xcrun *)",
-      "Bash(which *)",
-      "Bash(curl *)",
-      "Bash(python3 *)",
-      "Bash(npm *)",
-      "Bash(pnpm *)",
-      "Bash(sleep *)",
-      "Bash(open *)",
-      "Agent",
       "Read",
       "Write",
       "Edit",
-      "WebSearch",
-      "WebFetch"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(find *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(xcodebuild *)",
+      "Bash(xcodegen *)",
+      "Bash(pnpm *)",
+      "Bash(swift *)"
     ],
-    "deny": ["Bash(rm -rf /*)", "Bash(> /dev/*)"]
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git switch *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)"
+    ]
   }
 }

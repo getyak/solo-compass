@@ -3,9 +3,14 @@ import SwiftData
 import Observation
 import UIKit
 
-/// Outbox sync (Epic E US-029). Local mutations enqueue
+/// Outbox sync (Epic E US-031). Local mutations enqueue
 /// `PendingSyncRecord` rows; this service drains them to Supabase
 /// every 30 seconds while in foreground and on willEnterForeground.
+///
+/// Inbound pull: on each flush cycle we also GET rows from Supabase
+/// where `updated_at > lastPulledAt` and merge them into SwiftData
+/// using last-write-wins (compare `updated_at`; ties broken by lex
+/// `device_id` so both devices converge to the same winner).
 ///
 /// Design choices:
 /// - The outbox is the single source of truth for "what needs to
@@ -14,7 +19,7 @@ import UIKit
 ///   resumable across app kills.
 /// - When `FF_BACKEND_SYNC` is off, `enqueue` still records rows
 ///   (cheap; lets us flip the flag on later without losing pre-flag
-///   activity) but `flush` is a no-op.
+///   activity) but `flush`/`pull` are no-ops.
 /// - Failures bump retryCount; we never throw out a row from the
 ///   outbox in v1.0 (dead-letter handling is post-launch).
 @MainActor
@@ -28,6 +33,29 @@ public final class SyncService {
 
     nonisolated(unsafe) private var foregroundTimer: Timer?
     nonisolated(unsafe) private var foregroundObserver: NSObjectProtocol?
+
+    // MARK: - lastPulledAt (UserDefaults, keyed per-table)
+
+    private static func lastPulledAtKey(for table: String) -> String {
+        "sc.sync.lastPulledAt.\(table)"
+    }
+
+    static func lastPulledAt(for table: String) -> Date? {
+        let ts = UserDefaults.standard.double(forKey: lastPulledAtKey(for: table))
+        guard ts > 0 else { return nil }
+        return Date(timeIntervalSince1970: ts)
+    }
+
+    static func setLastPulledAt(_ date: Date, for table: String) {
+        UserDefaults.standard.set(date.timeIntervalSince1970, forKey: lastPulledAtKey(for: table))
+    }
+
+    // MARK: - Dependency injection (production uses singletons; tests inject mocks)
+
+    // The client and device-id supplier are injectable so unit tests
+    // can replace them without touching any singleton.
+    var supabaseClient: any SupabaseClientProtocol = SupabaseClient.shared
+    var deviceID: () -> String = { DeviceIdentityService.shared.deviceID }
 
     private init() {}
 
@@ -43,13 +71,13 @@ public final class SyncService {
     public func start() {
         guard foregroundTimer == nil else { return }
         foregroundTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
-            Task { @MainActor [weak self] in await self?.flush() }
+            Task { @MainActor [weak self] in await self?.flushAndPull() }
         }
         foregroundObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.willEnterForegroundNotification,
             object: nil, queue: .main
         ) { _ in
-            Task { @MainActor [weak self] in await self?.flush() }
+            Task { @MainActor [weak self] in await self?.flushAndPull() }
         }
     }
 
@@ -74,7 +102,17 @@ public final class SyncService {
         refreshCount(context: context)
     }
 
-    // MARK: - Flush
+    // MARK: - Flush + Pull (combined cycle)
+
+    /// Drain the outbox then pull inbound changes. No-op when
+    /// `FF_BACKEND_SYNC` is off.
+    public func flushAndPull(context override: ModelContext? = nil) async {
+        let ctx = override ?? ModelContext(SoloCompassModelContainer.shared)
+        await flush(context: ctx)
+        await pull(context: ctx)
+    }
+
+    // MARK: - Flush (outbound)
 
     /// Drain the outbox. Returns the number of rows successfully
     /// sent + deleted. No-op when `FF_BACKEND_SYNC` is off.
@@ -99,7 +137,7 @@ public final class SyncService {
             let result: Result<Data, SupabaseClient.SupabaseError>
             switch row.operation {
             case "upsert":
-                result = await SupabaseClient.shared.post(table: row.tableName, body: row.payloadJSON)
+                result = await supabaseClient.post(table: row.tableName, body: row.payloadJSON)
             default:
                 row.retryCount += 1
                 continue
@@ -115,6 +153,203 @@ public final class SyncService {
         try? context.save()
         refreshCount(context: context)
         return sent
+    }
+
+    // MARK: - Pull (inbound)
+
+    /// Pull rows updated since `lastPulledAt` from Supabase and merge
+    /// them into SwiftData with last-write-wins semantics. No-op when
+    /// `FF_BACKEND_SYNC` is off.
+    ///
+    /// LWW rule: keep the row whose `updated_at` is later. On ties,
+    /// the row whose `device_id` sorts lexicographically later wins
+    /// — both devices apply the same deterministic rule so they converge.
+    ///
+    /// US-035: also pulls `aggregated_solo_score` + `signal_count` from
+    /// `synthesized_experiences` for any experiences currently in the local
+    /// store and merges the values into `ExperienceRecord` so
+    /// `ExperienceRepository.aggregatedSoloScore()` can prefer server data.
+    public func pull(context: ModelContext? = nil) async {
+        guard FeatureFlags.backendSync else { return }
+        let ctx = context ?? ModelContext(SoloCompassModelContainer.shared)
+        let myDeviceID = deviceID()
+
+        await pullTable(
+            "user_completions",
+            context: ctx,
+            deviceID: myDeviceID,
+            merge: mergeCompletion
+        )
+        await pullTable(
+            "user_favorites",
+            context: ctx,
+            deviceID: myDeviceID,
+            merge: mergeFavorite
+        )
+        await pullAggregatedSoloScores(context: ctx)
+    }
+
+    // MARK: - Internals
+
+    private func pullTable(
+        _ table: String,
+        context: ModelContext,
+        deviceID: String,
+        merge: @escaping (Data, ModelContext, String) -> Void
+    ) async {
+        let since = Self.lastPulledAt(for: table)
+        var query = [URLQueryItem(name: "select", value: "*")]
+        if let since {
+            // PostgREST filter: updated_at > since (ISO8601 string)
+            let iso = ISO8601DateFormatter().string(from: since)
+            query.append(URLQueryItem(name: "updated_at", value: "gt.\(iso)"))
+        }
+
+        let result = await supabaseClient.get(table: table, query: query)
+        guard case .success(let data) = result, !data.isEmpty else { return }
+
+        merge(data, context, deviceID)
+
+        // Advance the cursor to now so next pull only fetches deltas.
+        Self.setLastPulledAt(Date(), for: table)
+    }
+
+    // MARK: - LWW merge helpers
+
+    private func mergeCompletion(_ data: Data, _ context: ModelContext, _ myDeviceID: String) {
+        struct RemoteCompletion: Decodable {
+            let experience_id: String
+            let completed_at: String      // ISO8601
+            let updated_at: String        // ISO8601
+            let device_id: String?
+        }
+
+        guard let rows = try? JSONDecoder().decode([RemoteCompletion].self, from: data) else { return }
+        let formatter = ISO8601DateFormatter()
+
+        for row in rows {
+            guard let completedAt = formatter.date(from: row.completed_at),
+                  let updatedAt = formatter.date(from: row.updated_at) else { continue }
+
+            // Check if a local completion for this experience + completedAt exists.
+            let expId = row.experience_id
+            let completedAtRef = completedAt
+            let descriptor = FetchDescriptor<UserCompletionRecord>(
+                predicate: #Predicate {
+                    $0.experienceId == expId && $0.completedAt == completedAtRef
+                }
+            )
+            let existing = (try? context.fetch(descriptor)) ?? []
+
+            if existing.isEmpty {
+                // No local record — remote wins by default (LWW: remote is newer
+                // than lastPulledAt by definition of the query filter).
+                context.insert(
+                    UserCompletionRecord(experienceId: row.experience_id, completedAt: completedAt)
+                )
+            }
+            // If a local record already exists with the same (experienceId, completedAt)
+            // key, we keep the local row — it's already on-device and the data is
+            // identical (completions are immutable once written).
+            _ = updatedAt  // used for cursor advancement, not per-row LWW here
+            _ = myDeviceID
+        }
+        try? context.save()
+    }
+
+    private func mergeFavorite(_ data: Data, _ context: ModelContext, _ myDeviceID: String) {
+        struct RemoteFavorite: Decodable {
+            let experience_id: String
+            let favorited_at: String?     // nil means unfavorited (tombstone)
+            let updated_at: String        // ISO8601
+            let device_id: String?
+        }
+
+        guard let rows = try? JSONDecoder().decode([RemoteFavorite].self, from: data) else { return }
+        let formatter = ISO8601DateFormatter()
+
+        for row in rows {
+            guard let updatedAt = formatter.date(from: row.updated_at) else { continue }
+            let expId = row.experience_id
+            let descriptor = FetchDescriptor<UserFavoriteRecord>(
+                predicate: #Predicate { $0.experienceId == expId }
+            )
+            let existing = (try? context.fetch(descriptor)) ?? []
+
+            let remoteIsFavorited = row.favorited_at != nil
+            let remoteDeviceID = row.device_id ?? ""
+
+            if let local = existing.first {
+                // LWW: compare updated_at. On tie, lex device_id decides.
+                let localUpdatedAt = local.favoritedAt  // best proxy for local write time
+                let remoteWins: Bool
+                if updatedAt > localUpdatedAt {
+                    remoteWins = true
+                } else if updatedAt == localUpdatedAt {
+                    remoteWins = remoteDeviceID > myDeviceID
+                } else {
+                    remoteWins = false
+                }
+
+                if remoteWins {
+                    if remoteIsFavorited {
+                        local.favoritedAt = formatter.date(from: row.favorited_at!) ?? local.favoritedAt
+                    } else {
+                        context.delete(local)
+                    }
+                }
+            } else if remoteIsFavorited {
+                // No local record and remote says it's favorited — insert.
+                let favoritedAt = row.favorited_at.flatMap { formatter.date(from: $0) } ?? updatedAt
+                context.insert(
+                    UserFavoriteRecord(experienceId: row.experience_id, favoritedAt: favoritedAt)
+                )
+            }
+            // Remote says unfavorited and we have no local row — already in sync.
+        }
+        try? context.save()
+    }
+
+    // MARK: - US-035: Pull aggregated Solo Scores
+
+    /// Fetch `aggregated_solo_score` and `signal_count` from
+    /// `synthesized_experiences` for every experience currently in the local
+    /// store. Merges the values into `ExperienceRecord` so the repository's
+    /// `aggregatedSoloScore()` can prefer authoritative community data over
+    /// local-only survey blends when `signal_count >= 3`.
+    ///
+    /// We pull all IDs in one GET (select=id,aggregated_solo_score,signal_count)
+    /// rather than a per-experience call to keep network overhead low.
+    private func pullAggregatedSoloScores(context: ModelContext) async {
+        let descriptor = FetchDescriptor<ExperienceRecord>()
+        guard let records = try? context.fetch(descriptor), !records.isEmpty else { return }
+
+        let query: [URLQueryItem] = [
+            URLQueryItem(name: "select", value: "id,aggregated_solo_score,signal_count"),
+        ]
+        let result = await supabaseClient.get(table: "synthesized_experiences", query: query)
+        guard case .success(let data) = result, !data.isEmpty else { return }
+
+        struct AggRow: Decodable {
+            let id: String
+            let aggregated_solo_score: Double?
+            let signal_count: Int?
+        }
+        guard let rows = try? JSONDecoder().decode([AggRow].self, from: data) else { return }
+
+        let lookup = Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
+        var changed = false
+        for record in records {
+            guard let row = lookup[record.id],
+                  let score = row.aggregated_solo_score,
+                  let count = row.signal_count else { continue }
+            if record.serverAggregatedSoloScore != score || record.serverSignalCount != count {
+                record.serverAggregatedSoloScore = score
+                record.serverSignalCount = count
+                changed = true
+            }
+        }
+        if changed { try? context.save() }
     }
 
     private func refreshCount(context: ModelContext) {

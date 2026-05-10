@@ -28,6 +28,7 @@ If any is violated, explain in **Why** above why an exception is justified.
 <!-- Did you add/remove/rename a field in packages/core? If yes, the iOS app must mirror. -->
 
 - [ ] No schema change
+- [ ] Schema changed — updated TS schema in `packages/core/` to match Swift changes (or vice-versa)
 - [ ] Schema changed; iOS parity tracking issue: #
 
 ## Testing
