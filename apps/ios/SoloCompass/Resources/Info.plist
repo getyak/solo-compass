@@ -39,8 +39,6 @@
 	<array>
 		<string>location</string>
 	</array>
-	<key>NSPrivacyPolicyURL</key>
-	<string>https://solocompass.app/privacy</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
