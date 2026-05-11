@@ -237,6 +237,92 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(viewModel.bottomInfoText, infoAfterFirst, "Third bindToLocation should be a no-op")
     }
 
+    // MARK: - MapViewModel Auto-Explore (data-sparse trigger)
+
+    /// First GPS fix in Vientiane (zero seed coverage) should auto-fire
+    /// `exploreNearby`. With consent unset, the call short-circuits at the
+    /// consent gate, surfacing `isShowingExploreConsent` — observable proof
+    /// that the trigger fired without making any network call.
+    @MainActor
+    func testAutoExploreFiresInDataSparseArea() async throws {
+        let locationService = LocationService()
+        let prefs = UserPreferences()
+        prefs.hasAcceptedExploreConsent = false
+        let viewModel = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // Vientiane, Laos — ~700 km from every seeded Chiang Mai pin.
+        let vientiane = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
+        locationService.simulate(location: CLLocation(latitude: vientiane.latitude, longitude: vientiane.longitude))
+
+        XCTAssertFalse(viewModel.isShowingExploreConsent, "Pre-bind: consent sheet should not be visible")
+        viewModel.bindToLocation()
+        // autoExploreIfEmpty fires exploreNearby in a Task; yield so the
+        // MainActor-isolated continuation runs before we assert.
+        await Task.yield()
+
+        XCTAssertTrue(viewModel.isShowingExploreConsent,
+                      "Empty area + first GPS fix should auto-trigger exploreNearby, which surfaces the consent sheet")
+    }
+
+    /// First GPS fix in Chiang Mai (5 seeded experiences within 5 km) must
+    /// NOT auto-fire — the seed already covers the user.
+    @MainActor
+    func testAutoExploreSkipsWhenSeedCoversArea() throws {
+        let locationService = LocationService()
+        let prefs = UserPreferences()
+        prefs.hasAcceptedExploreConsent = false
+        let viewModel = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // Chiang Mai old city — all 5 hardcoded seed experiences sit within ~5 km.
+        let chiangMai = CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938)
+        locationService.simulate(location: CLLocation(latitude: chiangMai.latitude, longitude: chiangMai.longitude))
+
+        viewModel.bindToLocation()
+
+        XCTAssertFalse(viewModel.isShowingExploreConsent,
+                       "Seeded area should NOT auto-trigger exploreNearby (consent sheet must stay closed)")
+    }
+
+    /// `bindToLocation` runs the auto-explore check only once, gated by
+    /// `hasAutoCentered`. A second bind on the same GPS fix is a no-op.
+    @MainActor
+    func testAutoExploreOnlyFiresOnFirstGPSFix() async throws {
+        let locationService = LocationService()
+        let prefs = UserPreferences()
+        prefs.hasAcceptedExploreConsent = false
+        let viewModel = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        let vientiane = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
+        locationService.simulate(location: CLLocation(latitude: vientiane.latitude, longitude: vientiane.longitude))
+
+        viewModel.bindToLocation()
+        await Task.yield()
+        XCTAssertTrue(viewModel.isShowingExploreConsent, "First bind in empty area should auto-trigger")
+
+        // Simulate user dismissing the sheet.
+        viewModel.isShowingExploreConsent = false
+
+        viewModel.bindToLocation()
+        await Task.yield()
+        XCTAssertFalse(viewModel.isShowingExploreConsent,
+                       "Second bind on the same GPS fix must be a no-op (hasAutoCentered guard)")
+    }
+
     // MARK: - Preferences
 
     func testUserPreferencesPersistsRoundTrip() throws {

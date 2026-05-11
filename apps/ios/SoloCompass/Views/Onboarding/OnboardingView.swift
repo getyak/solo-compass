@@ -105,6 +105,7 @@ public struct OnboardingView: View {
             VStack(spacing: 12) {
                 Button {
                     preferences.completeOnboarding()
+                    preferences.acceptExploreConsent()
                     onComplete()
                 } label: {
                     Text(NSLocalizedString("onboarding.style.cta", comment: "Start exploring"))
@@ -117,6 +118,7 @@ public struct OnboardingView: View {
 
                 Button {
                     preferences.completeOnboarding()
+                    preferences.acceptExploreConsent()
                     onComplete()
                 } label: {
                     Text(NSLocalizedString("onboarding.style.skip", comment: "Decide later"))

@@ -100,6 +100,24 @@ public final class MapViewModel {
               let coordinate = locationService.currentLocation?.coordinate else { return }
         hasAutoCentered = true
         recenter(on: coordinate)
+        autoExploreIfEmpty(at: coordinate)
+    }
+
+    /// Auto-trigger Explore when the user lands in a data-sparse area
+    /// (e.g. Vientiane with zero seed data). Fires once after the first
+    /// GPS fix. Skips when there's already ≥3 experiences within 5 km,
+    /// or when a recent (<7 day) offline region cache covers the spot.
+    /// `exploreNearby` handles the paywall + consent gates internally.
+    private func autoExploreIfEmpty(at coordinate: CLLocationCoordinate2D) {
+        let nearby = experienceService.getExperiences(near: coordinate, radiusKm: 5.0)
+        guard nearby.count < 3 else { return }
+
+        if let region = experienceService.repo.closestRecentRegion(to: coordinate),
+           region.exploredAt > Date().addingTimeInterval(-7 * 24 * 3600) {
+            return
+        }
+
+        Task { await self.exploreNearby(at: coordinate) }
     }
 
     // MARK: - City selection
