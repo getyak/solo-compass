@@ -19,3 +19,4 @@ PRD: prd.json (10 stories, TS-only)
 [2026-05-12T08:52:49Z] Story #US-005: Rewrite structure-experience.test.ts to mock OpenAI shape and delete obsolete __golden__ files — PASSED
 [2026-05-12T08:53:42Z] Story #US-006: Add retry-with-backoff helper for DeepSeek calls — PASSED
 [2026-05-12T08:55:30Z] Story #US-007: Initialize Sentry in apps/bot and apps/web entry points — PASSED
+[2026-05-12T08:57:07Z] Story #US-008: Forward AI cost events to PostHog from cost-tracker — PASSED
