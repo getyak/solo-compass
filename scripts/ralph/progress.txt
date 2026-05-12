@@ -16,3 +16,4 @@ PRD: prd.json (10 stories, TS-only)
 [2026-05-12T08:50:11Z] Story #US-002: Rewrite structure-experience.ts for DeepSeek JSON mode — PASSED
 [2026-05-12T08:50:52Z] Story #US-003: Update packages/ai index.ts exports for DeepSeek — PASSED
 [2026-05-12T08:51:40Z] Story #US-004: Rewrite rank-experiences.test.ts to mock OpenAI shape — PASSED
+[2026-05-12T08:52:49Z] Story #US-005: Rewrite structure-experience.test.ts to mock OpenAI shape and delete obsolete __golden__ files — PASSED
