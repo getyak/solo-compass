@@ -21,3 +21,4 @@ PRD: prd.json (10 stories, TS-only)
 [2026-05-12T08:55:30Z] Story #US-007: Initialize Sentry in apps/bot and apps/web entry points — PASSED
 [2026-05-12T08:57:07Z] Story #US-008: Forward AI cost events to PostHog from cost-tracker — PASSED
 [2026-05-12T08:58:30Z] Story #US-009: Add gitleaks secret-scanning GitHub Action — PASSED
+[2026-05-12T08:59:46Z] Story #US-010: Inject placeholder .env in iOS CI workflows — PASSED

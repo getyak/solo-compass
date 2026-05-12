@@ -173,7 +173,7 @@
         "No real secrets committed in either workflow file"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
