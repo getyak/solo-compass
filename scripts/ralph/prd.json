@@ -51,7 +51,7 @@
         "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

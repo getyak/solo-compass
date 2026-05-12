@@ -14,3 +14,4 @@ PRD: prd.json (10 stories, TS-only)
 ---
 [2026-05-12T08:49:00Z] Story #US-001: Rewrite rank-experiences.ts for DeepSeek JSON mode — PASSED
 [2026-05-12T08:50:11Z] Story #US-002: Rewrite structure-experience.ts for DeepSeek JSON mode — PASSED
+[2026-05-12T08:50:52Z] Story #US-003: Update packages/ai index.ts exports for DeepSeek — PASSED
