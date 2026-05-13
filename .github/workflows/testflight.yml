@@ -168,6 +168,17 @@ jobs:
           ruby -c fastlane/Fastfile
           bundle exec fastlane lanes > /dev/null
 
+      # ── 4b. Pre-seed GeneratedSecrets.swift so xcodegen sees it ──────────
+      # The Xcode preBuildScript that emits GeneratedSecrets.swift only runs
+      # at archive time; xcodegen builds the project's sources list before
+      # that. If the file isn't on disk when xcodegen runs, it's never added
+      # to the project and Swift compile fails with "cannot find 'Secrets' in
+      # scope". The script has a no-.env placeholder fallback, so this is
+      # safe to run before Create .env from secrets — the real values are
+      # written later when the preBuildScript re-runs during archive.
+      - name: Pre-seed GeneratedSecrets.swift
+        run: bash scripts/generate_secrets.sh
+
       # ── 5. Generate .xcodeproj from project.yml ──────────────────────────
       - name: Install XcodeGen
         run: brew install xcodegen
