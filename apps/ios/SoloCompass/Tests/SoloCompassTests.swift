@@ -1387,7 +1387,17 @@ final class SoloCompassTests: XCTestCase {
         // Simulate purchase of the monthly product.
         _ = try await session.buyProduct(productIdentifier: SubscriptionService.monthlyProductID)
 
-        try await service.refreshEntitlement()
+        // SKTestSession.buyProduct returns before Transaction.currentEntitlements
+        // is fully visible on slower CI runners. Poll for up to ~2s before
+        // failing so a transient propagation race doesn't flake the test
+        // (observed on macOS GitHub runner in PR #97).
+        var attempts = 0
+        while attempts < 20 {
+            await service.refreshEntitlement()
+            if service.entitlement.isActive { break }
+            try await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+            attempts += 1
+        }
 
         XCTAssertTrue(
             service.entitlement == .pro || service.entitlement == .proTrial,

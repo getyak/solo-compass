@@ -7,7 +7,8 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./db";
+import type { Experience } from "@solo-compass/core";
+import { rowToExperience, type Database, type ExperienceRow } from "./db";
 
 export interface RecordCheckinParams {
   /** Opaque cookie ID — never a real identity. */
@@ -21,6 +22,13 @@ export interface RecordCheckinParams {
 export interface RecordCheckinResult {
   /** Whether a new completion was inserted (false = already existed). */
   readonly created: boolean;
+}
+
+export interface CompletionEntry {
+  readonly experience: Experience;
+  readonly completedAt: string;
+  readonly rating: number | null;
+  readonly note: string | null;
 }
 
 export class CompletionsRepo {
@@ -55,5 +63,54 @@ export class CompletionsRepo {
     if (insErr) throw new Error(`completion upsert failed: ${insErr.message}`);
 
     return { created: (count ?? 0) > 0 };
+  }
+
+  /**
+   * List recent completions for an anonymous cookie user, newest first.
+   * Returns an empty array if the user has never checked in.
+   */
+  async listByAnonId(params: {
+    readonly anonUserId: string;
+    readonly limit?: number;
+  }): Promise<readonly CompletionEntry[]> {
+    const { anonUserId, limit = 100 } = params;
+    const handle = `anon_${anonUserId.slice(0, 12)}`;
+
+    // Resolve the anon user. If they've never checked in, the row won't exist.
+    const { data: userRow, error: userErr } = await (this.client as any)
+      .from("users")
+      .select("id")
+      .eq("handle", handle)
+      .maybeSingle();
+    if (userErr) throw new Error(`anon user lookup failed: ${userErr.message}`);
+    if (!userRow) return [];
+
+    // Join completions → experiences. PostgREST embedded select syntax.
+    const { data, error } = await (this.client as any)
+      .from("completions")
+      .select("completed_at, rating, note, experience:experiences(*)")
+      .eq("user_id", userRow.id)
+      .order("completed_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(`completions list failed: ${error.message}`);
+
+    const rows = (data ?? []) as Array<{
+      completed_at: string;
+      rating: number | null;
+      note: string | null;
+      experience: ExperienceRow | null;
+    }>;
+
+    const entries: CompletionEntry[] = [];
+    for (const row of rows) {
+      if (!row.experience) continue; // dangling completion → skip
+      entries.push({
+        experience: rowToExperience(row.experience),
+        completedAt: row.completed_at,
+        rating: row.rating,
+        note: row.note,
+      });
+    }
+    return entries;
   }
 }

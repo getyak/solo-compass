@@ -269,6 +269,13 @@
 "settings.manage" = "管理订阅";
 "restore.success" = "已恢复 Pro。";
 "restore.failure" = "此 Apple ID 下未发现有效订阅。";
+"settings.adminUnlock" = "用测试邮箱解锁";
+"settings.adminUnlock.title" = "测试者解锁";
+"settings.adminUnlock.message" = "输入你的测试邮箱以在本设备上解锁 Pro。";
+"settings.adminUnlock.placeholder" = "you@example.com";
+"settings.adminUnlock.action" = "解锁";
+"settings.adminUnlock.success" = "已为测试账户解锁 Pro。";
+"settings.adminUnlock.failure" = "该邮箱不在测试白名单内。";
 
 /* Free-tier paywall hooks */
 "explore.button.pro" = "探索(Pro)";

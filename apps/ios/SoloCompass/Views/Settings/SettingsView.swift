@@ -16,6 +16,12 @@ public struct SettingsView: View {
     @State private var restoreToast: String?
     @State private var restoreInFlight = false
 
+    // Admin / tester email unlock — bypasses StoreKit for allow-listed
+    // emails so internal testers and the project owner can reach Pro
+    // without a sandbox Apple ID.
+    @State private var showingAdminUnlock = false
+    @State private var adminEmailInput = ""
+
     // US-036: Apple ID link state
     @State private var isAnonymous: Bool = false
     @State private var appleSignInInFlight = false
@@ -372,6 +378,15 @@ public struct SettingsView: View {
             }
             .disabled(restoreInFlight)
 
+            // Tester / admin email unlock — visible to everyone but only
+            // unlocks when the entered email is on the allow-list.
+            Button {
+                adminEmailInput = ""
+                showingAdminUnlock = true
+            } label: {
+                Text(NSLocalizedString("settings.adminUnlock", comment: "Unlock with tester email"))
+            }
+
             Link(
                 NSLocalizedString("settings.manage", comment: "Manage subscription"),
                 destination: URL(string: "https://apps.apple.com/account/subscriptions")!
@@ -388,6 +403,23 @@ public struct SettingsView: View {
                 }
             }
         )
+        .alert(
+            NSLocalizedString("settings.adminUnlock.title", comment: "Admin unlock title"),
+            isPresented: $showingAdminUnlock
+        ) {
+            TextField(
+                NSLocalizedString("settings.adminUnlock.placeholder", comment: "Email placeholder"),
+                text: $adminEmailInput
+            )
+            .textInputAutocapitalization(.never)
+            .keyboardType(.emailAddress)
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+            Button(NSLocalizedString("settings.adminUnlock.action", comment: "Unlock")) {
+                runAdminUnlock()
+            }
+        } message: {
+            Text(NSLocalizedString("settings.adminUnlock.message", comment: "Admin unlock message"))
+        }
     }
 
     private var entitlementLabel: String {
@@ -406,6 +438,14 @@ public struct SettingsView: View {
         restoreToast = NSLocalizedString(
             success ? "restore.success" : "restore.failure",
             comment: "Restore result"
+        )
+    }
+
+    private func runAdminUnlock() {
+        let success = subscriptionService.unlockWithAdminEmail(adminEmailInput)
+        restoreToast = NSLocalizedString(
+            success ? "settings.adminUnlock.success" : "settings.adminUnlock.failure",
+            comment: "Admin unlock result"
         )
     }
 }

@@ -21,6 +21,23 @@ public final class SubscriptionService {
     public static let yearlyProductID = "com.solocompass.pro.yearly"
     public static let allProductIDs: [String] = [monthlyProductID, yearlyProductID]
 
+    // MARK: - Admin / tester email allow-list
+    //
+    // Emails listed here unlock Pro without going through StoreKit. Use for
+    // internal testers and the project owner — never bake in real user
+    // emails. Matching is case-insensitive and whitespace-tolerant.
+    public static let adminEmails: Set<String> = [
+        "3293172751nss@gmail.com",
+        "xiong3293172751@outlook.com"
+    ]
+
+    /// Case-insensitive, whitespace-tolerant membership check against
+    /// `adminEmails`. Pure — no side effects.
+    public static func isAdminEmail(_ email: String) -> Bool {
+        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return adminEmails.contains(where: { $0.lowercased() == normalized })
+    }
+
     // MARK: - Entitlement
 
     public enum Entitlement: String, CaseIterable, Sendable {
@@ -175,6 +192,20 @@ public final class SubscriptionService {
             lastError = error.localizedDescription
             return false
         }
+    }
+
+    /// Tester / admin escape hatch: if `email` is on the allow-list, flip
+    /// entitlement to `.pro` and persist via Keychain so the unlock
+    /// survives relaunch. Returns true when the unlock applied.
+    ///
+    /// This bypasses StoreKit on purpose — internal testers shouldn't need
+    /// a sandbox Apple ID, and the project owner needs a Gmail-based entry
+    /// point that Sign in with Apple can't provide.
+    @discardableResult
+    public func unlockWithAdminEmail(_ email: String) -> Bool {
+        guard Self.isAdminEmail(email) else { return false }
+        setEntitlement(.pro)
+        return true
     }
 
     // MARK: - Dependency injection (tests override these)

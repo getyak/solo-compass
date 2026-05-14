@@ -26,6 +26,7 @@ import {
   type HealthStatus,
 } from "@solo-compass/core";
 import { getExperiencesRepo } from "@/lib/repos";
+import { DEV_FALLBACK_EXPERIENCES } from "@/lib/dev-fallback";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export interface NearbyResponse {
   readonly degraded?: true;
 }
 
-const MAX_RESULTS = 5;
+const MAX_RESULTS = 30;
 
 function fallbackRank(
   experiences: readonly Experience[],
@@ -106,7 +107,13 @@ export async function GET(
     const missingEnv =
       err instanceof Error && err.message.includes("Invalid server environment configuration");
     if (missingEnv) {
-      return NextResponse.json({ results: [], degraded: true });
+      // Local dev without Supabase: serve a small fixture so the UI is testable.
+      // `degraded: true` keeps the "AI paused" label visible so it's obvious this
+      // is fake data.
+      return NextResponse.json({
+        results: fallbackRank(DEV_FALLBACK_EXPERIENCES, center),
+        degraded: true,
+      });
     }
     // eslint-disable-next-line no-console
     console.error("findNearby failed", err);

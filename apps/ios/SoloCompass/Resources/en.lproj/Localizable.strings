@@ -269,6 +269,13 @@
 "settings.manage" = "Manage subscription";
 "restore.success" = "Pro restored.";
 "restore.failure" = "No active subscription found on this Apple ID.";
+"settings.adminUnlock" = "Unlock with tester email";
+"settings.adminUnlock.title" = "Tester Unlock";
+"settings.adminUnlock.message" = "Enter your tester email to unlock Pro on this device.";
+"settings.adminUnlock.placeholder" = "you@example.com";
+"settings.adminUnlock.action" = "Unlock";
+"settings.adminUnlock.success" = "Pro unlocked for tester account.";
+"settings.adminUnlock.failure" = "This email is not on the tester allow-list.";
 
 /* Free-tier paywall hooks */
 "explore.button.pro" = "Explore (Pro)";
