@@ -2318,6 +2318,148 @@ final class SoloCompassTests: XCTestCase {
             "userId must NOT be persisted when FF_BACKEND_SYNC is off"
         )
     }
+
+    // MARK: - US-VA-01 VoiceAgentSession state model
+
+    func testVoiceAgentSessionStartsIdleAndEmpty() {
+        let session = VoiceAgentSession()
+        XCTAssertEqual(session.state, .idle)
+        XCTAssertTrue(session.messages.isEmpty)
+        XCTAssertEqual(session.turnCount, 0)
+        XCTAssertEqual(session.recursionDepth, 0)
+        XCTAssertNil(session.endReason)
+        XCTAssertFalse(session.isEnded)
+    }
+
+    func testVoiceAgentSessionHappyPathSingleTurn() {
+        // user → assistant (no tools) → end-of-turn back to idle.
+        let session = VoiceAgentSession()
+        session.seedSystem("You are an assistant.")
+        XCTAssertEqual(session.messages.count, 1)
+
+        session.beginUserTurn(transcript: "find me a quiet café")
+        XCTAssertEqual(session.state, .thinking)
+        XCTAssertEqual(session.turnCount, 1)
+        XCTAssertEqual(session.messages.last?.role, .user)
+
+        // Plain assistant content, no tool_calls → .speaking → .idle.
+        let resulting = session.appendAssistantTurn(
+            content: "There are 3 within walking distance.",
+            toolCalls: []
+        )
+        XCTAssertEqual(resulting, .speaking)
+        XCTAssertEqual(session.recursionDepth, 0,
+                       "no recursion increment when there are no tool calls")
+
+        session.finishSpeakingTurn()
+        XCTAssertEqual(session.state, .idle)
+    }
+
+    func testVoiceAgentSessionToolCallRoundTrip() {
+        // user → assistant (tool_calls) → toolExecuting → tool result
+        // → thinking → assistant content → speaking.
+        let session = VoiceAgentSession()
+        session.beginUserTurn(transcript: "filter to coffee")
+
+        let call = VoiceAgentSession.ToolCall(
+            id: "call_1", name: "filter_by_category",
+            argumentsJSON: #"{"category":"coffee"}"#
+        )
+        session.appendAssistantTurn(content: nil, toolCalls: [call])
+        XCTAssertEqual(session.state, .toolExecuting(toolCount: 1))
+        XCTAssertEqual(session.recursionDepth, 1)
+
+        session.appendToolResult(
+            toolCallId: "call_1",
+            name: "filter_by_category",
+            resultJSON: #"{"ok":true,"visible_count":7}"#
+        )
+        let last = session.messages.last
+        XCTAssertEqual(last?.role, .tool)
+        XCTAssertEqual(last?.toolCallId, "call_1")
+
+        session.resumeThinkingAfterTools()
+        XCTAssertEqual(session.state, .thinking)
+
+        session.appendAssistantTurn(
+            content: "Filtered to 7 coffee spots.", toolCalls: []
+        )
+        XCTAssertEqual(session.state, .speaking)
+    }
+
+    func testVoiceAgentSessionCapsToolCallsPerTurn() {
+        let session = VoiceAgentSession()
+        session.beginUserTurn(transcript: "do everything")
+        let many = (1...10).map { i in
+            VoiceAgentSession.ToolCall(
+                id: "call_\(i)", name: "noop",
+                argumentsJSON: "{}"
+            )
+        }
+        session.appendAssistantTurn(content: nil, toolCalls: many)
+        XCTAssertEqual(
+            session.messages.last?.toolCalls.count,
+            VoiceAgentSession.toolCallsMaxPerTurn,
+            "extra tool_calls beyond the cap are dropped"
+        )
+        if case let .toolExecuting(count) = session.state {
+            XCTAssertEqual(count, VoiceAgentSession.toolCallsMaxPerTurn)
+        } else {
+            XCTFail("expected .toolExecuting after capped tool_calls")
+        }
+    }
+
+    func testVoiceAgentSessionRecursionBudget() {
+        let session = VoiceAgentSession()
+        session.beginUserTurn(transcript: "do recursive things")
+        for i in 1...VoiceAgentSession.recursionDepthMax {
+            session.appendAssistantTurn(
+                content: nil,
+                toolCalls: [.init(id: "c\(i)", name: "noop", argumentsJSON: "{}")]
+            )
+            session.appendToolResult(toolCallId: "c\(i)", name: "noop", resultJSON: "{}")
+            session.resumeThinkingAfterTools()
+        }
+        XCTAssertTrue(
+            session.hasExceededRecursionBudget,
+            "after recursionDepthMax loops the orchestrator must stop"
+        )
+    }
+
+    func testVoiceAgentSessionEndIsSticky() {
+        let session = VoiceAgentSession()
+        session.beginUserTurn(transcript: "hi")
+        session.end(reason: .userClose)
+        XCTAssertTrue(session.isEnded)
+        XCTAssertEqual(session.endReason, .userClose)
+        // Subsequent end(_:) should not overwrite the first reason.
+        session.end(reason: .timeout)
+        XCTAssertEqual(session.endReason, .userClose)
+        // Further transitions are no-ops.
+        session.beginListening()
+        XCTAssertEqual(session.state, .idle)
+    }
+
+    func testVoiceAgentSessionCompactsLongHistory() {
+        let session = VoiceAgentSession()
+        session.seedSystem("system prompt")
+        // Push the conversation past the cap. messagesMaxCount = 11
+        // counting the system prompt; we want noticeably more.
+        for i in 1...8 {
+            session.beginUserTurn(transcript: "user turn \(i)")
+            session.appendAssistantTurn(content: "reply \(i)", toolCalls: [])
+            session.finishSpeakingTurn()
+        }
+        XCTAssertLessThanOrEqual(
+            session.messages.count,
+            VoiceAgentSession.messagesMaxCount,
+            "compactIfNeeded must bound the history at messagesMaxCount"
+        )
+        XCTAssertEqual(session.messages.first?.role, .system,
+                       "the leading system prompt survives compaction")
+        // Last 4 should still be intact (PRD §5.2 keeps the recent tail).
+        XCTAssertEqual(session.messages.suffix(2).first?.role, .user)
+    }
 }
 
 // MARK: - URLProtocol stub for HTTP-mocked tests
