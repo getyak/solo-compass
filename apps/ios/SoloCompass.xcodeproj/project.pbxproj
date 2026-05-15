@@ -47,6 +47,7 @@
 		BCD734EA6E4D5CE922D0621D /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33B8A80F048D74BEDB8C1132 /* SubscriptionService.swift */; };
 		BD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */; };
 		C21906307DCC96E5B2583BFE /* CompassMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA6A3144D85CDAD01FA0FECB /* CompassMapView.swift */; };
+		C220FEC091B645D82519465E /* VoiceAgentSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112319E8315F5F6961C95264 /* VoiceAgentSession.swift */; };
 		C2C0AF72D709EDC17C6ED874 /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = F63FDD874A8F533F0717132A /* UserPreferences.swift */; };
 		C53DB60CA9E95907A2CBF2C0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C215AE07BA32182A887226F9 /* NotificationService.swift */; };
 		C735986DAC69807F27CC0E39 /* FeatureFlags.plist in Resources */ = {isa = PBXBuildFile; fileRef = 409FB4B0922C4A1D8AAEB1D1 /* FeatureFlags.plist */; };
@@ -83,6 +84,7 @@
 /* Begin PBXFileReference section */
 		001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIUsageRecord.swift; sourceTree = "<group>"; };
 		0E0157D30FF53B21FF31D519 /* MarkerIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkerIconView.swift; sourceTree = "<group>"; };
+		112319E8315F5F6961C95264 /* VoiceAgentSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgentSession.swift; sourceTree = "<group>"; };
 		120FC7465285714C5FA8F96D /* VoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceService.swift; sourceTree = "<group>"; };
 		12F087E4FA7161529378098C /* ExperienceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceService.swift; sourceTree = "<group>"; };
 		130B51007552B26F3C1D1AE0 /* PendingCheckInBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingCheckInBanner.swift; sourceTree = "<group>"; };
@@ -298,6 +300,7 @@
 				33B8A80F048D74BEDB8C1132 /* SubscriptionService.swift */,
 				E406C379247653B4AA5A3E0E /* SupabaseClient.swift */,
 				6163572F4644BF852B35FDA4 /* SyncService.swift */,
+				112319E8315F5F6961C95264 /* VoiceAgentSession.swift */,
 				120FC7465285714C5FA8F96D /* VoiceService.swift */,
 			);
 			path = Services;
@@ -579,6 +582,7 @@
 				219718C8521B1013D17AE22F /* UserCompletionRecord.swift in Sources */,
 				D53E53A5AA9AE6F77EF82418 /* UserFavoriteRecord.swift in Sources */,
 				C2C0AF72D709EDC17C6ED874 /* UserPreferences.swift in Sources */,
+				C220FEC091B645D82519465E /* VoiceAgentSession.swift in Sources */,
 				BD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */,
 				F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */,
 			);
