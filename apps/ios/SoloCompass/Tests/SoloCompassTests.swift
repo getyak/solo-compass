@@ -2440,6 +2440,158 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(session.state, .idle)
     }
 
+    // MARK: - US-VA-02 sendAgentMessage HTTP integration
+
+    /// Helper: build an AIService backed by StubURLProtocol so each test
+    /// can inspect the outgoing request body + control the response.
+    @MainActor
+    private func makeAgentTestAIService() -> AIService {
+        setenv("DEEPSEEK_API_KEY", "stub-key", 1)
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: config)
+        return AIService(session: session, modelContext: nil)
+    }
+
+    func testSendAgentMessageSerialisesToolsAndMessagesCorrectly() async throws {
+        nonisolated(unsafe) var capturedBody: [String: Any] = [:]
+        StubURLProtocol.handler = { request in
+            let body = StubURLProtocol.readBody(from: request.httpBodyStream)
+                ?? request.httpBody
+                ?? Data()
+            if let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+                capturedBody = json
+            }
+            // Plain content response is fine for this serialisation test.
+            let json = #"{"choices":[{"message":{"role":"assistant","content":"ok"}}]}"#
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200,
+                httpVersion: nil, headerFields: nil
+            )!
+            return (resp, Data(json.utf8))
+        }
+
+        let ai = await makeAgentTestAIService()
+        let messages: [VoiceAgentSession.Message] = [
+            .init(role: .system, content: "you are an assistant"),
+            .init(role: .user, content: "find coffee"),
+            .init(role: .assistant, content: nil, toolCalls: [
+                .init(id: "call_x", name: "filter_by_category",
+                      argumentsJSON: #"{"category":"coffee"}"#),
+            ]),
+            .init(role: .tool, content: #"{"ok":true}"#,
+                  toolCallId: "call_x", name: "filter_by_category"),
+        ]
+        let tools = [
+            AIService.AgentTool(
+                name: "filter_by_category",
+                description: "filter visible experiences by category",
+                parametersJSON: #"{"type":"object","required":["category"],"properties":{"category":{"type":"string"}}}"#
+            )
+        ]
+
+        _ = try await ai.sendAgentMessage(messages: messages, tools: tools)
+
+        // tool_choice + parallel_tool_calls flow through
+        XCTAssertEqual(capturedBody["tool_choice"] as? String, "auto")
+        XCTAssertEqual(capturedBody["parallel_tool_calls"] as? Bool, true)
+
+        // tools array serialises as OpenAI function shape
+        let toolsArray = try XCTUnwrap(capturedBody["tools"] as? [[String: Any]])
+        XCTAssertEqual(toolsArray.count, 1)
+        let firstTool = try XCTUnwrap(toolsArray.first)
+        XCTAssertEqual(firstTool["type"] as? String, "function")
+        let fn = try XCTUnwrap(firstTool["function"] as? [String: Any])
+        XCTAssertEqual(fn["name"] as? String, "filter_by_category")
+        XCTAssertNotNil(fn["parameters"] as? [String: Any],
+                        "parameters JSON must be a dict, not a string")
+
+        // messages array carries 4 rows with correct role+field mapping
+        let rows = try XCTUnwrap(capturedBody["messages"] as? [[String: Any]])
+        XCTAssertEqual(rows.map { $0["role"] as? String },
+                       ["system", "user", "assistant", "tool"])
+        // assistant row has tool_calls
+        let assistantRow = rows[2]
+        let toolCalls = try XCTUnwrap(assistantRow["tool_calls"] as? [[String: Any]])
+        XCTAssertEqual(toolCalls.first?["id"] as? String, "call_x")
+        // tool row has tool_call_id (not just name)
+        let toolRow = rows[3]
+        XCTAssertEqual(toolRow["tool_call_id"] as? String, "call_x")
+        XCTAssertEqual(toolRow["name"] as? String, "filter_by_category")
+    }
+
+    func testSendAgentMessageParsesToolCallsResponse() async throws {
+        StubURLProtocol.handler = { request in
+            // Mimic OpenAI tool_calls shape.
+            let json = """
+            {"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[
+              {"id":"call_a","type":"function","function":{"name":"filter_by_category","arguments":"{\\"category\\":\\"coffee\\"}"}},
+              {"id":"call_b","type":"function","function":{"name":"show_details","arguments":"{\\"experience_id\\":\\"exp_1\\"}"}}
+            ]}}]}
+            """
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200,
+                httpVersion: nil, headerFields: nil
+            )!
+            return (resp, Data(json.utf8))
+        }
+
+        let ai = await makeAgentTestAIService()
+        let result = try await ai.sendAgentMessage(messages: [
+            .init(role: .system, content: "system"),
+            .init(role: .user, content: "do two things"),
+        ], tools: [])
+
+        XCTAssertNil(result.content, "no plain content when model decides to call tools")
+        XCTAssertEqual(result.toolCalls.count, 2)
+        XCTAssertEqual(result.toolCalls[0].id, "call_a")
+        XCTAssertEqual(result.toolCalls[0].name, "filter_by_category")
+        XCTAssertEqual(result.toolCalls[0].argumentsJSON, #"{"category":"coffee"}"#)
+        XCTAssertEqual(result.toolCalls[1].name, "show_details")
+    }
+
+    func testSendAgentMessageParsesPlainContentResponse() async throws {
+        StubURLProtocol.handler = { request in
+            let json = #"{"choices":[{"message":{"role":"assistant","content":"Filtered to 7 coffee spots."}}]}"#
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200,
+                httpVersion: nil, headerFields: nil
+            )!
+            return (resp, Data(json.utf8))
+        }
+
+        let ai = await makeAgentTestAIService()
+        let result = try await ai.sendAgentMessage(messages: [
+            .init(role: .system, content: "system"),
+            .init(role: .user, content: "hi"),
+        ], tools: [])
+
+        XCTAssertEqual(result.content, "Filtered to 7 coffee spots.")
+        XCTAssertTrue(result.toolCalls.isEmpty)
+    }
+
+    func testSendAgentMessageThrowsOnHTTPError() async {
+        StubURLProtocol.handler = { request in
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 500,
+                httpVersion: nil, headerFields: nil
+            )!
+            return (resp, Data("boom".utf8))
+        }
+
+        let ai = await makeAgentTestAIService()
+        do {
+            _ = try await ai.sendAgentMessage(messages: [
+                .init(role: .user, content: "hi"),
+            ], tools: [])
+            XCTFail("expected throw on 500 response")
+        } catch AIService.AIError.requestFailed(let status, _) {
+            XCTAssertEqual(status, 500)
+        } catch {
+            XCTFail("unexpected error type: \(error)")
+        }
+    }
+
     func testVoiceAgentSessionCompactsLongHistory() {
         let session = VoiceAgentSession()
         session.seedSystem("system prompt")

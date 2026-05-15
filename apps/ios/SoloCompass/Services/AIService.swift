@@ -194,6 +194,168 @@ public final class AIService {
         }
     }
 
+    // MARK: - Voice agent (US-VA-02)
+
+    /// Function-calling tool definition sent to DeepSeek. The `parameters`
+    /// payload is the raw OpenAI-style JSON Schema for the tool's
+    /// arguments — callers (the router in US-VA-03) own its shape.
+    public struct AgentTool: Sendable {
+        public let name: String
+        public let description: String
+        /// JSON Schema as a JSON string ready to drop into the
+        /// `parameters` slot of `{"type":"function","function":{...}}`.
+        public let parametersJSON: String
+
+        public init(name: String, description: String, parametersJSON: String) {
+            self.name = name
+            self.description = description
+            self.parametersJSON = parametersJSON
+        }
+    }
+
+    /// What `sendAgentMessage` hands back. Mirrors the OpenAI shape:
+    /// when the model decides to call tools, `content` is nil and
+    /// `toolCalls` is populated; when it's done, `content` carries the
+    /// final assistant text.
+    public struct AgentResponse: Equatable, Sendable {
+        public let content: String?
+        public let toolCalls: [VoiceAgentSession.ToolCall]
+
+        public init(content: String?, toolCalls: [VoiceAgentSession.ToolCall]) {
+            self.content = content
+            self.toolCalls = toolCalls
+        }
+    }
+
+    /// POST a full message history + tool catalog to DeepSeek and return
+    /// either tool calls or final content. Stateless — the caller (the
+    /// voice agent orchestrator in US-VA-06) owns the conversation.
+    ///
+    /// Routes through `.voice` config for now (model + auth + quota);
+    /// US-VA-07 may carve out a dedicated `.voiceAgent` kind once we
+    /// have per-session quotas to enforce.
+    public func sendAgentMessage(
+        messages: [VoiceAgentSession.Message],
+        tools: [AgentTool]
+    ) async throws -> AgentResponse {
+        guard let key = Self.resolveAPIKey() else { throw AIError.missingAPIKey }
+        guard let apiURL else { throw AIError.requestFailed(status: 0, body: "bad URL") }
+
+        await MainActor.run { self.isProcessing = true }
+        defer { Task { @MainActor [weak self] in self?.isProcessing = false } }
+
+        var request = URLRequest(url: apiURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30  // tighter than synthesis: agent turn budget is 30s total
+
+        let body: [String: Any] = [
+            "model": Self.modelName(for: .voice),
+            "messages": Self.serializeAgentMessages(messages),
+            "tools": Self.serializeAgentTools(tools),
+            "tool_choice": "auto",
+            "parallel_tool_calls": true,
+            "max_tokens": 512,
+            "temperature": 0.3,
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw AIError.requestFailed(status: 0, body: "no response")
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let bodyText = String(data: data, encoding: .utf8) ?? ""
+            throw AIError.requestFailed(status: http.statusCode, body: bodyText)
+        }
+
+        return try Self.parseAgentResponse(data)
+    }
+
+    /// Serialise the conversation as the array DeepSeek wants. We map
+    /// each Role / Message field by hand so the wire shape stays
+    /// decoupled from the in-memory model.
+    static func serializeAgentMessages(_ messages: [VoiceAgentSession.Message]) -> [[String: Any]] {
+        messages.map { msg -> [String: Any] in
+            var row: [String: Any] = ["role": msg.role.rawValue]
+            if let content = msg.content {
+                row["content"] = content
+            } else {
+                // OpenAI requires "content" key even when null on assistant
+                // tool-call rows. NSNull renders as JSON null.
+                row["content"] = NSNull()
+            }
+            if !msg.toolCalls.isEmpty {
+                row["tool_calls"] = msg.toolCalls.map { call -> [String: Any] in
+                    [
+                        "id": call.id,
+                        "type": "function",
+                        "function": [
+                            "name": call.name,
+                            "arguments": call.argumentsJSON,
+                        ],
+                    ]
+                }
+            }
+            if let toolCallId = msg.toolCallId {
+                row["tool_call_id"] = toolCallId
+            }
+            if let name = msg.name {
+                row["name"] = name
+            }
+            return row
+        }
+    }
+
+    static func serializeAgentTools(_ tools: [AgentTool]) -> [[String: Any]] {
+        tools.compactMap { tool -> [String: Any]? in
+            guard
+                let data = tool.parametersJSON.data(using: .utf8),
+                let parametersDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else {
+                return nil
+            }
+            return [
+                "type": "function",
+                "function": [
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": parametersDict,
+                ],
+            ]
+        }
+    }
+
+    static func parseAgentResponse(_ data: Data) throws -> AgentResponse {
+        guard
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let choices = json["choices"] as? [[String: Any]],
+            let first = choices.first,
+            let message = first["message"] as? [String: Any]
+        else {
+            throw AIError.decodingFailed("Unexpected agent response shape")
+        }
+
+        // tool_calls path
+        if let rawCalls = message["tool_calls"] as? [[String: Any]], !rawCalls.isEmpty {
+            let calls: [VoiceAgentSession.ToolCall] = rawCalls.compactMap { entry in
+                guard
+                    let id = entry["id"] as? String,
+                    let fn = entry["function"] as? [String: Any],
+                    let name = fn["name"] as? String
+                else { return nil }
+                let args = fn["arguments"] as? String ?? "{}"
+                return VoiceAgentSession.ToolCall(id: id, name: name, argumentsJSON: args)
+            }
+            return AgentResponse(content: nil, toolCalls: calls)
+        }
+
+        // plain content path
+        let content = message["content"] as? String
+        return AgentResponse(content: content.map(Self.stripMarkdownFences), toolCalls: [])
+    }
+
     // MARK: - HTTP
 
     /// POST a single user prompt to DeepSeek (`/chat/completions`) and return
