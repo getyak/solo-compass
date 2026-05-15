@@ -134,6 +134,25 @@ public final class OverpassService {
     /// Deterministic key for a (lat, lon, radius) cell. Rounding to
     /// 0.01° (~1.1 km) means small map pans still hit the same cache
     /// row.
+    /// Flatten a list of per-ring POI batches into a single deduplicated
+    /// list, keyed by `osmId`. Earlier batches (inner rings) win — when a
+    /// POI appears in both R1 and R2 we keep the R1 copy. Preserves input
+    /// order within each batch.
+    ///
+    /// Used by the Pro multi-ring Explore (US-MR-02) to merge the outputs
+    /// of 4 concurrent Overpass calls before handing the result to a
+    /// single AI synthesis. See docs/PRD/pro-radial-explore.md.
+    public static func dedupe(across batches: [[POI]]) -> [POI] {
+        var seen = Set<Int64>()
+        var result: [POI] = []
+        for batch in batches {
+            for poi in batch where seen.insert(poi.osmId).inserted {
+                result.append(poi)
+            }
+        }
+        return result
+    }
+
     public static func regionKey(lat: Double, lon: Double, radiusMeters: Int) -> String {
         let roundedLat = (lat * 100).rounded() / 100
         let roundedLon = (lon * 100).rounded() / 100

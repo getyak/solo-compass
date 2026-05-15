@@ -883,6 +883,47 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(key, "21.03_105.85_3000", "rounding to 0.01° + radius suffix")
     }
 
+    // MARK: - US-MR-02 cross-ring dedupe
+
+    /// Helper: make a stub POI for dedupe tests. Real coordinates / tags
+    /// are irrelevant — only osmId matters for dedupe semantics.
+    private func makePOI(_ osmId: Int64, name: String = "Spot") -> OverpassService.POI {
+        OverpassService.POI(osmId: osmId, name: name, nameEn: nil, lat: 0, lon: 0, tags: [:])
+    }
+
+    func testDedupeKeepsInnerRingOnOverlap() {
+        // R1 (inner) and R2 (outer) overlap at osmId 2 and 3. R1 wins —
+        // and the kept POI carries R1's name, proving inner-first semantics.
+        let r1 = [makePOI(1, name: "R1-1"), makePOI(2, name: "R1-2"), makePOI(3, name: "R1-3")]
+        let r2 = [makePOI(2, name: "R2-2"), makePOI(3, name: "R2-3"), makePOI(4, name: "R2-4")]
+
+        let merged = OverpassService.dedupe(across: [r1, r2])
+
+        XCTAssertEqual(merged.map(\.osmId), [1, 2, 3, 4],
+                       "merged list preserves R1 order then appends R2-only entries")
+        XCTAssertEqual(merged.first { $0.osmId == 2 }?.name, "R1-2",
+                       "R1 wins when an osmId overlaps")
+        XCTAssertEqual(merged.first { $0.osmId == 3 }?.name, "R1-3",
+                       "R1 wins for all overlaps, not just the first")
+    }
+
+    func testDedupeHandlesEmptyAndAllOverlap() {
+        // Empty input, mixed empties, and 100%-overlap rings — all edge
+        // cases the 4-ring Pro Explore can plausibly hit.
+        XCTAssertTrue(OverpassService.dedupe(across: []).isEmpty)
+        XCTAssertTrue(OverpassService.dedupe(across: [[], [], []]).isEmpty)
+
+        let onlyR2 = OverpassService.dedupe(across: [[], [makePOI(7)]])
+        XCTAssertEqual(onlyR2.map(\.osmId), [7])
+
+        let identical = OverpassService.dedupe(across: [
+            [makePOI(1), makePOI(2)],
+            [makePOI(1), makePOI(2)],
+            [makePOI(1), makePOI(2)],
+        ])
+        XCTAssertEqual(identical.map(\.osmId), [1, 2])
+    }
+
     func testOverpassFetchUsesCacheOnSecondCall() async throws {
         // Stub URLProtocol to count requests and return a small valid OSM JSON.
         StubURLProtocol.handler = { _ in
