@@ -42,6 +42,18 @@ public enum FeatureFlags {
         readBool("FF_FORCE_REVIEW_PROMPT", default: false)
     }
 
+    /// When true and the user is Pro, `MapViewModel.exploreNearby` runs the
+    /// 4-ring radial schedule (1.5 / 3 / 6 / 12 km) instead of the single
+    /// 3 km query, then merges results through `OverpassService.dedupe` and
+    /// feeds them to a single AI synthesis call. Pro users without the flag
+    /// still get the original 1-ring behaviour. Free users are unaffected
+    /// regardless. See docs/PRD/pro-radial-explore.md (US-MR-01).
+    ///
+    /// Default off in beta — flip to true after staged 10% rollout review.
+    public static var proMultiRingExplore: Bool {
+        readBool("FF_PRO_MULTI_RING_EXPLORE", default: false)
+    }
+
     // MARK: - Internals
 
     static func readBool(_ key: String, default fallback: Bool) -> Bool {

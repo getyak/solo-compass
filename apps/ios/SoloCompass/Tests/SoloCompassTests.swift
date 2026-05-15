@@ -924,6 +924,149 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(identical.map(\.osmId), [1, 2])
     }
 
+    // MARK: - US-MR-01 multi-ring exploreNearby schedule
+
+    /// Build an OverpassService backed by StubURLProtocol that returns
+    /// one POI per ring, keyed by the `radius=` value in the request URL.
+    /// `failedRadii` lets a test mark specific rings as 5xx so we can
+    /// assert partial-failure tolerance.
+    @MainActor
+    private func makeMultiRingOverpass(failedRadii: Set<Int> = []) -> OverpassService {
+        StubURLProtocol.requestCount = 0
+        StubURLProtocol.handler = { request in
+            // Overpass query lives in the POST body. Parse the radius
+            // from `around:<radius>,<lat>,<lon>` so each ring gets a
+            // distinct osmId — that's how dedupe + counting works.
+            let body = StubURLProtocol.readBody(from: request.httpBodyStream)
+                ?? request.httpBody
+                ?? Data()
+            let bodyString = String(data: body, encoding: .utf8) ?? ""
+            // Extract integer after "around:".
+            var radius = 0
+            if let range = bodyString.range(of: "around:") {
+                let after = bodyString[range.upperBound...]
+                let digits = after.prefix { $0.isNumber }
+                radius = Int(digits) ?? 0
+            }
+            if failedRadii.contains(radius) {
+                let resp = HTTPURLResponse(
+                    url: request.url!, statusCode: 503,
+                    httpVersion: nil, headerFields: nil
+                )!
+                return (resp, Data())
+            }
+            // One node per ring; osmId = radius so dedupe distinguishes
+            // them and the test can assert which rings landed.
+            let json = """
+            {"elements":[{"type":"node","id":\(radius),"lat":0,"lon":0,"tags":{"name":"R\(radius)","amenity":"cafe"}}]}
+            """
+            let resp = HTTPURLResponse(
+                url: request.url!, statusCode: 200,
+                httpVersion: nil, headerFields: nil
+            )!
+            return (resp, Data(json.utf8))
+        }
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: config)
+        // useSharedCache:false so test doesn't write through to SwiftData.
+        return OverpassService(session: session, maxResults: 30, repository: nil)
+    }
+
+    @MainActor
+    private func makeMapViewModelForMultiRing(
+        overpass: OverpassService
+    ) -> MapViewModel {
+        MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: UserPreferences(),
+            overpassService: overpass
+        )
+    }
+
+    @MainActor
+    func testFetchExplorePOIsMultiRingAllSuccessReturnsDedupedUnion() async throws {
+        setenv("FF_PRO_MULTI_RING_EXPLORE", "1", 1)
+        defer { unsetenv("FF_PRO_MULTI_RING_EXPLORE") }
+
+        let vm = makeMapViewModelForMultiRing(overpass: makeMultiRingOverpass())
+        let (pois, effectiveRadius) = try await vm.fetchExplorePOIs(
+            near: CLLocationCoordinate2D(latitude: 21.0, longitude: 105.8),
+            singleRingRadius: 3000
+        )
+
+        // 4 rings, 1 unique POI each (osmId = ring radius) → 4 POIs out.
+        XCTAssertEqual(pois.count, MapViewModel.multiRingRadii.count,
+                       "all rings present in merged output")
+        XCTAssertEqual(
+            Set(pois.map(\.osmId)),
+            Set(MapViewModel.multiRingRadii.map(Int64.init)),
+            "each ring contributed exactly one POI"
+        )
+        XCTAssertEqual(effectiveRadius, MapViewModel.multiRingRadii.last,
+                       "effectiveRadius records the outermost ring for offline cache")
+        XCTAssertEqual(StubURLProtocol.requestCount, MapViewModel.multiRingRadii.count,
+                       "exactly one HTTP request per ring")
+    }
+
+    @MainActor
+    func testFetchExplorePOIsMultiRingTolerateSingleRingFailure() async throws {
+        setenv("FF_PRO_MULTI_RING_EXPLORE", "1", 1)
+        defer { unsetenv("FF_PRO_MULTI_RING_EXPLORE") }
+
+        // Fail R3 (6000m). Expect 3 POIs from R1/R2/R4, no throw.
+        let overpass = makeMultiRingOverpass(failedRadii: [6000])
+        let vm = makeMapViewModelForMultiRing(overpass: overpass)
+
+        let (pois, _) = try await vm.fetchExplorePOIs(
+            near: CLLocationCoordinate2D(latitude: 21.0, longitude: 105.8),
+            singleRingRadius: 3000
+        )
+
+        let ids = Set(pois.map(\.osmId))
+        XCTAssertEqual(ids, [1500, 3000, 12000],
+                       "surviving rings still land; R3 (6000) is missing")
+    }
+
+    @MainActor
+    func testFetchExplorePOIsMultiRingAllFailedThrows() async {
+        setenv("FF_PRO_MULTI_RING_EXPLORE", "1", 1)
+        defer { unsetenv("FF_PRO_MULTI_RING_EXPLORE") }
+
+        let overpass = makeMultiRingOverpass(failedRadii: [1500, 3000, 6000, 12000])
+        let vm = makeMapViewModelForMultiRing(overpass: overpass)
+
+        do {
+            _ = try await vm.fetchExplorePOIs(
+                near: CLLocationCoordinate2D(latitude: 21.0, longitude: 105.8),
+                singleRingRadius: 3000
+            )
+            XCTFail("expected an error when all rings fail so the outer catch can offer offline fallback")
+        } catch {
+            // Pass: any error is acceptable; the outer `exploreNearby`
+            // catch only needs *some* throw to trigger the offline branch.
+        }
+    }
+
+    @MainActor
+    func testFetchExplorePOIsFlagOffUsesSingleRing() async throws {
+        // Flag off → behave exactly like pre-MR-01: one Overpass call at
+        // singleRingRadius, effectiveRadius == that radius.
+        unsetenv("FF_PRO_MULTI_RING_EXPLORE")
+
+        let vm = makeMapViewModelForMultiRing(overpass: makeMultiRingOverpass())
+        let (pois, effectiveRadius) = try await vm.fetchExplorePOIs(
+            near: CLLocationCoordinate2D(latitude: 21.0, longitude: 105.8),
+            singleRingRadius: 2500
+        )
+
+        XCTAssertEqual(StubURLProtocol.requestCount, 1, "exactly one HTTP request")
+        XCTAssertEqual(effectiveRadius, 2500, "effectiveRadius matches the requested radius")
+        XCTAssertEqual(pois.map(\.osmId), [2500], "single ring at 2500m")
+    }
+
     func testOverpassFetchUsesCacheOnSecondCall() async throws {
         // Stub URLProtocol to count requests and return a small valid OSM JSON.
         StubURLProtocol.handler = { _ in

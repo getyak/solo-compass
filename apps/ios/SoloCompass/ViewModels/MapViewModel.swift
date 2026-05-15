@@ -653,7 +653,14 @@ public final class MapViewModel {
         aiService.isProTier = isProUser
 
         do {
-            let pois = try await overpassService.fetchPOIs(near: coordinate, radiusMeters: radiusMeters)
+            // US-MR-01: Pro multi-ring schedule (4 rings, dedup'd, single
+            // synthesis). Falls back to a 1-ring fetch when the flag is off
+            // or the user isn't on Pro. Returns the radius we should record
+            // for offline fallback (PRD §7: outermost ring only).
+            let (pois, effectiveRadius) = try await fetchExplorePOIs(
+                near: coordinate,
+                singleRingRadius: radiusMeters
+            )
             guard !pois.isEmpty else {
                 lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
                 return
@@ -684,10 +691,12 @@ public final class MapViewModel {
             lastExploreAddedCount = added
 
             // US-022: record a successful region so offline fallback can reuse it.
+            // For multi-ring runs this is the outermost ring (12 km) so the
+            // cached set has maximum coverage with one entry.
             experienceService.repo.recordRecentExploreRegion(
                 centerLat: coordinate.latitude,
                 centerLon: coordinate.longitude,
-                radiusMeters: radiusMeters
+                radiusMeters: effectiveRadius
             )
 
             // US-015: surface quota banner if AIService just degraded.
@@ -744,6 +753,82 @@ public final class MapViewModel {
             }
             lastExploreError = error.localizedDescription
         }
+    }
+
+    /// Pro multi-ring radii in meters (PRD docs/PRD/pro-radial-explore.md §3.1).
+    /// Inner-first order matters for dedupe semantics — nearer POIs win
+    /// when an osmId appears in two rings.
+    static let multiRingRadii: [Int] = [1_500, 3_000, 6_000, 12_000]
+
+    /// Pull OSM POIs for `exploreNearby`. When the Pro multi-ring flag is
+    /// on AND the user is Pro, fans out 4 concurrent Overpass calls and
+    /// merges via `OverpassService.dedupe`. Otherwise falls back to a
+    /// single-ring query at `singleRingRadius` (preserves pre-MR-01 behaviour).
+    ///
+    /// Returns `(pois, effectiveRadius)`. `effectiveRadius` is the radius
+    /// to record in `recordRecentExploreRegion` — outermost ring for
+    /// multi-ring runs, the caller's requested radius otherwise.
+    ///
+    /// Throws only when EVERY ring failed (multi-ring) or the single ring
+    /// failed (single). Partial ring failures are swallowed so the outer
+    /// catch in `exploreNearby` only fires when there's literally nothing
+    /// to show.
+    ///
+    /// `internal` rather than `private` so tests in the same module can
+    /// drive each ring scenario (full success / one ring fails / all fail)
+    /// without going through the whole `exploreNearby` pipeline.
+    func fetchExplorePOIs(
+        near coordinate: CLLocationCoordinate2D,
+        singleRingRadius: Int
+    ) async throws -> (pois: [OverpassService.POI], effectiveRadius: Int) {
+        // Single-ring legacy path. Used when:
+        //   - the flag is off, OR
+        //   - the user isn't Pro (free-tier never gets here, but defence)
+        guard FeatureFlags.proMultiRingExplore, isProUser else {
+            let pois = try await overpassService.fetchPOIs(
+                near: coordinate, radiusMeters: singleRingRadius
+            )
+            return (pois, singleRingRadius)
+        }
+
+        // Multi-ring: fan out 4 concurrent Overpass fetches. Each ring
+        // independently catches errors so one slow/failed ring doesn't
+        // tank the whole Explore. Order in the returned array matches
+        // `multiRingRadii` so inner rings win in dedupe.
+        let service = overpassService
+        var batches: [[OverpassService.POI]] = Array(
+            repeating: [], count: Self.multiRingRadii.count
+        )
+        var failedRings = 0
+
+        await withTaskGroup(of: (Int, [OverpassService.POI]).self) { group in
+            for (index, radius) in Self.multiRingRadii.enumerated() {
+                group.addTask { @MainActor in
+                    do {
+                        let pois = try await service.fetchPOIs(
+                            near: coordinate, radiusMeters: radius
+                        )
+                        return (index, pois)
+                    } catch {
+                        return (index, [])
+                    }
+                }
+            }
+            for await (index, pois) in group {
+                batches[index] = pois
+                if pois.isEmpty { failedRings += 1 }
+            }
+        }
+
+        // If every ring came back empty / failed, surface as a single
+        // throw so the outer catch can hit the offline fallback branch.
+        if failedRings == Self.multiRingRadii.count {
+            throw OverpassService.OverpassError.requestFailed(status: 0)
+        }
+
+        let merged = OverpassService.dedupe(across: batches)
+        let outermost = Self.multiRingRadii.last ?? singleRingRadius
+        return (merged, outermost)
     }
 
     /// Free-tier OSM-only explore: fetches Overpass POIs and converts them
