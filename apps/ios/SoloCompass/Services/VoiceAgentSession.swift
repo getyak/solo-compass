@@ -152,6 +152,16 @@ public final class VoiceAgentSession {
         messages.append(Message(role: .system, content: prompt))
     }
 
+    /// Append a per-turn system continuation (PRD §6.2). Used by the
+    /// orchestrator to inject `VISIBLE_EXPERIENCES` + user location
+    /// snapshots before each user turn so the model can resolve
+    /// referents ("the second one") without inventing ids.
+    public func appendSystemContext(_ payload: String) {
+        guard endReason == nil else { return }
+        guard !payload.isEmpty else { return }
+        messages.append(Message(role: .system, content: payload))
+    }
+
     /// Transition .idle → .listening. Caller is the long-press gesture.
     public func beginListening() {
         guard endReason == nil else { return }
