@@ -2592,6 +2592,156 @@ final class SoloCompassTests: XCTestCase {
         }
     }
 
+    // MARK: - US-VA-03 VoiceAgentToolRouter
+
+    /// Build a router + MapViewModel pre-seeded with two visible
+    /// experiences so the show_details / save_to_favorites / dismiss
+    /// tools have real ids to target.
+    @MainActor
+    private func makeRouterTestRig() -> (
+        router: VoiceAgentToolRouter,
+        vm: MapViewModel,
+        prefs: UserPreferences,
+        seededIds: [String]
+    ) {
+        let prefs = UserPreferences()
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+        let seeded = vm.visibleExperiences.prefix(2).map(\.id)
+        let router = VoiceAgentToolRouter(mapViewModel: vm, preferences: prefs)
+        return (router, vm, prefs, Array(seeded))
+    }
+
+    func testToolRouterAllToolsAreWellFormedSchemas() {
+        // Each PRD tool def must have a parseable JSON Schema in
+        // parametersJSON; otherwise sendAgentMessage will silently drop it.
+        for tool in VoiceAgentToolRouter.allTools {
+            XCTAssertFalse(tool.name.isEmpty)
+            XCTAssertFalse(tool.description.isEmpty)
+            let data = tool.parametersJSON.data(using: .utf8)!
+            let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            XCTAssertNotNil(obj, "tool \(tool.name) parametersJSON must be valid JSON")
+            XCTAssertEqual(obj?["type"] as? String, "object",
+                           "tool \(tool.name) schema must declare type:object")
+        }
+        XCTAssertEqual(VoiceAgentToolRouter.allTools.count, 5,
+                       "PRD spec is exactly 5 tools (US-VA-03)")
+    }
+
+    func testToolRouterFilterByCategoryHappyPath() async throws {
+        let rig = makeRouterTestRig()
+        let result = await rig.router.execute(.init(
+            id: "c1", name: "filter_by_category",
+            argumentsJSON: #"{"category":"coffee"}"#
+        ))
+        let parsed = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: Data(result.utf8)) as? [String: Any]
+        )
+        XCTAssertEqual(parsed["ok"] as? Bool, true)
+        XCTAssertEqual(parsed["category"] as? String, "coffee")
+        XCTAssertEqual(rig.vm.selectedCategory, .coffee,
+                       "filter_by_category must drive selectedCategory")
+    }
+
+    func testToolRouterFilterByCategoryRejectsUnknownCategory() async {
+        let rig = makeRouterTestRig()
+        let result = await rig.router.execute(.init(
+            id: "c1", name: "filter_by_category",
+            argumentsJSON: #"{"category":"not-a-real-cat"}"#
+        ))
+        // Error path must round-trip back to the model as {"ok":false}
+        XCTAssertTrue(result.contains(#""ok":false"#))
+        XCTAssertTrue(result.contains("unknown category"))
+    }
+
+    func testToolRouterShowDetailsHappyPath() async throws {
+        let rig = makeRouterTestRig()
+        guard let firstId = rig.seededIds.first else {
+            XCTFail("seed expected at least 1 experience")
+            return
+        }
+        let result = await rig.router.execute(.init(
+            id: "c1", name: "show_details",
+            argumentsJSON: #"{"experience_id":"\#(firstId)"}"#
+        ))
+        XCTAssertTrue(result.contains(#""ok":true"#))
+        XCTAssertEqual(rig.vm.selectedExperience?.id, firstId)
+        XCTAssertTrue(rig.vm.isShowingDetail)
+    }
+
+    func testToolRouterShowDetailsRejectsUnknownId() async {
+        let rig = makeRouterTestRig()
+        let result = await rig.router.execute(.init(
+            id: "c1", name: "show_details",
+            argumentsJSON: #"{"experience_id":"definitely-not-here"}"#
+        ))
+        XCTAssertTrue(result.contains(#""ok":false"#))
+        XCTAssertTrue(result.contains("not found"))
+    }
+
+    func testToolRouterSaveToFavoritesTogglesPersistence() async throws {
+        let rig = makeRouterTestRig()
+        guard let firstId = rig.seededIds.first else {
+            XCTFail("seed expected at least 1 experience")
+            return
+        }
+        XCTAssertFalse(rig.prefs.isFavorited(firstId))
+
+        let result = await rig.router.execute(.init(
+            id: "c1", name: "save_to_favorites",
+            argumentsJSON: #"{"experience_id":"\#(firstId)"}"#
+        ))
+        XCTAssertTrue(result.contains(#""now_favorited":true"#))
+        XCTAssertTrue(rig.prefs.isFavorited(firstId))
+
+        // Toggle off
+        let result2 = await rig.router.execute(.init(
+            id: "c2", name: "save_to_favorites",
+            argumentsJSON: #"{"experience_id":"\#(firstId)"}"#
+        ))
+        XCTAssertTrue(result2.contains(#""now_favorited":false"#))
+        XCTAssertFalse(rig.prefs.isFavorited(firstId))
+    }
+
+    func testToolRouterDismissRemovesFromVisible() async throws {
+        let rig = makeRouterTestRig()
+        guard let firstId = rig.seededIds.first else {
+            XCTFail("seed expected at least 1 experience")
+            return
+        }
+        let before = rig.vm.visibleExperiences.count
+        let result = await rig.router.execute(.init(
+            id: "c1", name: "dismiss_recommendation",
+            argumentsJSON: #"{"experience_id":"\#(firstId)"}"#
+        ))
+        XCTAssertTrue(result.contains(#""ok":true"#))
+        XCTAssertEqual(rig.vm.visibleExperiences.count, before - 1)
+        XCTAssertFalse(rig.vm.visibleExperiences.contains { $0.id == firstId })
+    }
+
+    func testToolRouterUnknownToolReturnsStructuredError() async {
+        let rig = makeRouterTestRig()
+        let result = await rig.router.execute(.init(
+            id: "c1", name: "fly_to_mars",
+            argumentsJSON: "{}"
+        ))
+        XCTAssertTrue(result.contains(#""ok":false"#))
+        XCTAssertTrue(result.contains("Unknown tool"))
+    }
+
+    func testToolRouterRejectsInvalidArgumentsJSON() async {
+        let rig = makeRouterTestRig()
+        let result = await rig.router.execute(.init(
+            id: "c1", name: "filter_by_category",
+            argumentsJSON: "not actually JSON"
+        ))
+        XCTAssertTrue(result.contains(#""ok":false"#))
+    }
+
     func testVoiceAgentSessionCompactsLongHistory() {
         let session = VoiceAgentSession()
         session.seedSystem("system prompt")

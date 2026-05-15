@@ -27,6 +27,7 @@
 		464746A44182622D4F617462 /* AIUsageRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */; };
 		48DF93F42CDDB1329B038865 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6556C23BF1B228BF686C5500 /* KeychainStore.swift */; };
 		50140E7D5FFAC2588C141A3F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = EE5F70FDF5F3A929496EC981 /* Supabase */; };
+		54952646C79E8F29AF89F4D6 /* VoiceAgentToolRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */; };
 		56F3055416F4A5316100F9B2 /* ExperienceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363714672D8A0FA8F7C39887 /* ExperienceCardView.swift */; };
 		58B7C9B20945838F81081941 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A22A40550CF207AB36C18 /* SettingsView.swift */; };
 		5C05B87EA78458094612AC01 /* BottomInfoBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13350B81187FB64B252B8A46 /* BottomInfoBar.swift */; };
@@ -90,6 +91,7 @@
 		130B51007552B26F3C1D1AE0 /* PendingCheckInBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingCheckInBanner.swift; sourceTree = "<group>"; };
 		13350B81187FB64B252B8A46 /* BottomInfoBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomInfoBar.swift; sourceTree = "<group>"; };
 		1FA8C8BF234F3C74D0D8A9BD /* SecretsRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsRuntime.swift; sourceTree = "<group>"; };
+		20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgentToolRouter.swift; sourceTree = "<group>"; };
 		23043E51C493093CF7244629 /* MicroSurveyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroSurveyRecord.swift; sourceTree = "<group>"; };
 		2C7919EAFDE363B49C4B4C47 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		2DA6E405C780A5A12A9FC1D6 /* MicroSurveySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroSurveySheet.swift; sourceTree = "<group>"; };
@@ -301,6 +303,7 @@
 				E406C379247653B4AA5A3E0E /* SupabaseClient.swift */,
 				6163572F4644BF852B35FDA4 /* SyncService.swift */,
 				112319E8315F5F6961C95264 /* VoiceAgentSession.swift */,
+				20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */,
 				120FC7465285714C5FA8F96D /* VoiceService.swift */,
 			);
 			path = Services;
@@ -583,6 +586,7 @@
 				D53E53A5AA9AE6F77EF82418 /* UserFavoriteRecord.swift in Sources */,
 				C2C0AF72D709EDC17C6ED874 /* UserPreferences.swift in Sources */,
 				C220FEC091B645D82519465E /* VoiceAgentSession.swift in Sources */,
+				54952646C79E8F29AF89F4D6 /* VoiceAgentToolRouter.swift in Sources */,
 				BD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */,
 				F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */,
 			);

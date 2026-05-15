@@ -371,6 +371,19 @@ public final class MapViewModel {
         isShowingDetail = false
     }
 
+    /// US-VA-03 tool `dismiss_recommendation`: hide one experience from
+    /// `visibleExperiences` without touching SwiftData. The next refresh
+    /// (filter change, new explore, app relaunch) brings it back —
+    /// dismissal is intentionally ephemeral so the AI can't permanently
+    /// blackhole results the user might want later.
+    public func dismissFromVisible(_ id: String) {
+        visibleExperiences.removeAll { $0.id == id }
+        if selectedExperience?.id == id {
+            selectedExperience = nil
+            isShowingDetail = false
+        }
+    }
+
     /// Recenter the camera and refresh experiences for the given coordinate.
     /// Use this for explicit recentering (e.g. "locate me" button), NOT for
     /// reacting to user pan/zoom — that would create a feedback loop where
