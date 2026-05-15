@@ -307,3 +307,15 @@
 "settings.language.restart.title" = "Restart required";
 "settings.language.restart.message" = "Quit and reopen Solo Compass to finish switching languages.";
 "settings.language.restart.ok" = "OK";
+
+/* Voice agent conversation sheet (US-VA-04) */
+"conversation.header.turn" = "Conversation · turn %d";
+"conversation.state.idle" = "Idle";
+"conversation.state.listening" = "Listening…";
+"conversation.state.transcribing" = "Transcribing…";
+"conversation.state.thinking" = "Thinking…";
+"conversation.state.toolExecuting" = "Running tools…";
+"conversation.state.speaking" = "Reply ready";
+"conversation.input.placeholder" = "Type a message…";
+"conversation.input.mic.a11y" = "Hold to speak";
+"conversation.input.send.a11y" = "Send message";

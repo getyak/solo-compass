@@ -307,3 +307,15 @@
 "settings.language.restart.title" = "需要重启";
 "settings.language.restart.message" = "请退出并重新打开 Solo Compass 以完成语言切换。";
 "settings.language.restart.ok" = "好的";
+
+/* Voice agent conversation sheet (US-VA-04) */
+"conversation.header.turn" = "对话 · 第 %d 轮";
+"conversation.state.idle" = "待机";
+"conversation.state.listening" = "正在聆听…";
+"conversation.state.transcribing" = "正在转写…";
+"conversation.state.thinking" = "正在思考…";
+"conversation.state.toolExecuting" = "正在执行工具…";
+"conversation.state.speaking" = "回复已就绪";
+"conversation.input.placeholder" = "输入消息…";
+"conversation.input.mic.a11y" = "按住说话";
+"conversation.input.send.a11y" = "发送消息";
