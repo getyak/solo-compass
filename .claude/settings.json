@@ -9,6 +9,18 @@
       "Bash(git status *)",
       "Bash(git diff *)",
       "Bash(git log *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git rebase *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git switch *)",
+      "Bash(git rev-parse *)",
+      "Bash(git remote *)",
+      "Bash(git stash *)",
+      "Bash(gh *)",
       "Bash(ls *)",
       "Bash(mkdir *)",
       "Bash(find *)",
@@ -23,14 +35,9 @@
     ],
     "deny": [
       "Bash(rm -rf /*)",
-      "Bash(git checkout *)",
-      "Bash(git branch *)",
-      "Bash(git switch *)",
-      "Bash(git push *)",
-      "Bash(git pull *)",
-      "Bash(git fetch *)",
-      "Bash(git merge *)",
-      "Bash(git rebase *)"
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)"
     ]
   }
 }
