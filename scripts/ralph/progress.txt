@@ -1,25 +1,7 @@
-# Solo Compass DeepSeek Migration — Ralph Progress Log
-Started: 2026-05-12T08:47:14Z
+# Solo Compass Voice Agent Followup Experience — Ralph Progress Log
+Started: 2026-05-17T13:00:00Z
 Tool: claude
-Branch: ralph/deepseek-migration
-PRD: prd.json (10 stories, TS-only)
----
-
-## Codebase Patterns
-- Monorepo: pnpm workspaces, turbo
-- packages/ai/ — AI prompts and clients (DeepSeek via OpenAI SDK)
-- packages/core/ — shared types, schema
-- TypeScript strict, noUncheckedIndexedAccess
-- Build: pnpm typecheck, pnpm format, pnpm test
----
-[2026-05-12T08:49:00Z] Story #US-001: Rewrite rank-experiences.ts for DeepSeek JSON mode — PASSED
-[2026-05-12T08:50:11Z] Story #US-002: Rewrite structure-experience.ts for DeepSeek JSON mode — PASSED
-[2026-05-12T08:50:52Z] Story #US-003: Update packages/ai index.ts exports for DeepSeek — PASSED
-[2026-05-12T08:51:40Z] Story #US-004: Rewrite rank-experiences.test.ts to mock OpenAI shape — PASSED
-[2026-05-12T08:52:49Z] Story #US-005: Rewrite structure-experience.test.ts to mock OpenAI shape and delete obsolete __golden__ files — PASSED
-[2026-05-12T08:53:42Z] Story #US-006: Add retry-with-backoff helper for DeepSeek calls — PASSED
-[2026-05-12T08:55:30Z] Story #US-007: Initialize Sentry in apps/bot and apps/web entry points — PASSED
-[2026-05-12T08:57:07Z] Story #US-008: Forward AI cost events to PostHog from cost-tracker — PASSED
-[2026-05-12T08:58:30Z] Story #US-009: Add gitleaks secret-scanning GitHub Action — PASSED
-[2026-05-12T08:59:46Z] Story #US-010: Inject placeholder .env in iOS CI workflows — PASSED
-All stories pass: true
+Branch: ralph/followup-experience
+PRD: prd.json (14 stories, iOS-only)
+Design: tasks/prd-followup-experience.md
+Related Audit: docs/AI_AUDIT_2026Q2.md (第 11 章)
