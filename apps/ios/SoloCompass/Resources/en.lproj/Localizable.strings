@@ -65,6 +65,7 @@
 "info.night" = "The night is winding down. %d places still open.";
 
 /* Voice */
+"voice.processing" = "Thinking: %@";
 "voice.button" = "Voice input";
 "voice.permission.title" = "Microphone access needed";
 "voice.permission.message" = "Solo Compass needs microphone and speech permission to take voice input.";

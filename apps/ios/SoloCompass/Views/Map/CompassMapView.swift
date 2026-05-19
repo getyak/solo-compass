@@ -162,6 +162,26 @@ public struct CompassMapView: View {
                     // ExploreProgressBar which hides itself when .idle.
                     ExploreProgressBar(progress: viewModel.exploreProgress)
 
+                    // Voice intent processing indicator — shown while AI handles the transcript.
+                    if viewModel.isProcessingVoiceIntent {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text(String(
+                                format: NSLocalizedString("voice.processing", comment: "AI is thinking about your request"),
+                                viewModel.currentVoiceTranscript.truncated(limit: 30)
+                            ))
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(.thinMaterial, in: Capsule())
+                        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
+
                     // Explore success toast — 3-second ephemeral capsule above BottomInfoBar.
                     if let toast = viewModel.lastExploreToast {
                         Text(toast)
@@ -579,6 +599,13 @@ public struct CompassMapView: View {
         .environment(ExperienceService())
         .environment(AIService())
         .environment(UserPreferences())
+}
+
+private extension String {
+    func truncated(limit: Int) -> String {
+        guard count > limit else { return self }
+        return String(prefix(limit)) + "…"
+    }
 }
 
 private struct EmptyStateOverlay: View {
