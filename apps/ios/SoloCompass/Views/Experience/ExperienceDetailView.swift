@@ -124,9 +124,15 @@ public struct ExperienceDetailView: View {
 
             if let local = viewModel.experience.location.placeNameLocal, !local.isEmpty {
                 let romanized = viewModel.experience.location.placeNameRomanized
-                Text(romanized?.isEmpty == false ? "\(local) · \(romanized ?? "")" : local)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                let label = romanized?.isEmpty == false ? "\(local) · \(romanized ?? "")" : local
+                Button {
+                    openInMaps(viewModel.experience)
+                } label: {
+                    Label(label, systemImage: "map")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -402,6 +408,15 @@ public struct ExperienceDetailView: View {
 
     private func format(window: TimeWindow) -> String {
         String(format: "%02d:00 – %02d:00", window.startHour, window.endHour)
+    }
+
+    private func openInMaps(_ experience: Experience) {
+        guard let coord = experience.location.clCoordinate else { return }
+        let placeName = experience.location.placeNameLocal ?? experience.title
+        let encoded = placeName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Location"
+        let urlString = "maps://?ll=\(coord.latitude),\(coord.longitude)&q=\(encoded)"
+        guard let url = URL(string: urlString) else { return }
+        UIApplication.shared.open(url)
     }
 }
 
