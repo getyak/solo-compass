@@ -513,7 +513,7 @@ private struct MapOverlayView: View {
                         ? "magnifyingglass" : "checkmark.circle.fill")
                         .font(.caption)
                         .foregroundStyle(toast == NSLocalizedString("voice.result.none", comment: "No matching places found nearby")
-                            ? .secondary : .green)
+                            ? Color.secondary : Color.green)
                     Text(toast)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.primary)
