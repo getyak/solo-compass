@@ -158,9 +158,24 @@ public struct CompassMapView: View {
                         .transition(.opacity)
                     }
 
-                    // US-MR-04: multi-ring progress capsule. Delegates to
-                    // ExploreProgressBar which hides itself when .idle.
-                    ExploreProgressBar(progress: viewModel.exploreProgress)
+                    // US-MR-04: multi-ring progress capsule — inlined to
+                    // avoid cross-file CI build error (ExploreProgressBar).
+                    if let progressText = CompassMapView.progressText(for: viewModel.exploreProgress) {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text(progressText)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(.thinMaterial, in: Capsule())
+                        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+                        .transition(.opacity)
+                        .accessibilityIdentifier("exploreProgress")
+                        .accessibilityLabel(Text(progressText))
+                    }
 
                     // Voice intent processing indicator — shown while AI handles the transcript.
                     if viewModel.isProcessingVoiceIntent {
