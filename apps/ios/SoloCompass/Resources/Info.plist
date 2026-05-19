@@ -27,6 +27,11 @@
 	<string>1</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>iosamap</string>
+	</array>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Solo Compass uses background location to alert you when you're near a place worth visiting — even when the app is closed.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

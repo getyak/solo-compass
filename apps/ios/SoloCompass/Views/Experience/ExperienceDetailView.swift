@@ -24,6 +24,15 @@ public struct ExperienceDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 heroSection
+                if let coord = viewModel.experience.location.clCoordinate {
+                    LocationCard(
+                        coordinate: coord,
+                        displayName: viewModel.experience.location.placeNameLocal
+                            ?? viewModel.experience.location.placeNameRomanized
+                            ?? viewModel.experience.title,
+                        addressHint: viewModel.experience.location.addressHint
+                    )
+                }
                 whyItMattersSection
                 aiInsightSection
                 if !viewModel.experience.bestTimes.isEmpty {

@@ -319,3 +319,11 @@
 "conversation.input.placeholder" = "Type a message…";
 "conversation.input.mic.a11y" = "Hold to speak";
 "conversation.input.send.a11y" = "Send message";
+
+/* Location card + navigation picker */
+"location.navigate" = "Navigate";
+"location.copyCoords" = "Copy coordinates";
+"location.openIn.apple" = "Apple Maps";
+"location.openIn.google" = "Google Maps";
+"location.openIn.amap" = "Amap";
+"action.cancel" = "Cancel";

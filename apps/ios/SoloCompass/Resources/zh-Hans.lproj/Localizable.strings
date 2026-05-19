@@ -319,3 +319,11 @@
 "conversation.input.placeholder" = "输入消息…";
 "conversation.input.mic.a11y" = "按住说话";
 "conversation.input.send.a11y" = "发送消息";
+
+/* Location card + navigation picker */
+"location.navigate" = "导航";
+"location.copyCoords" = "复制坐标";
+"location.openIn.apple" = "苹果地图";
+"location.openIn.google" = "Google 地图";
+"location.openIn.amap" = "高德地图";
+"action.cancel" = "取消";

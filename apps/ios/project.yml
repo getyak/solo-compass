@@ -55,6 +55,9 @@ targets:
           - location
         NSSpeechRecognitionUsageDescription: "Solo Compass uses speech recognition so you can describe what you're looking for by voice."
         NSMicrophoneUsageDescription: "Solo Compass uses the microphone for voice search."
+        LSApplicationQueriesSchemes:
+          - comgooglemaps
+          - iosamap
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.solocompass.app
