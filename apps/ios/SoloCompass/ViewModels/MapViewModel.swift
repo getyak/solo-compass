@@ -230,6 +230,11 @@ public final class MapViewModel {
     // True when a "Now" filter is active (best-now experiences only).
     public var isNowFilter: Bool = false
 
+    // MARK: - Voice processing feedback
+
+    public var isProcessingVoiceIntent: Bool = false
+    public var currentVoiceTranscript: String = ""
+
     // MARK: - Settings
 
     public var isShowingSettings: Bool = false
@@ -597,8 +602,12 @@ public final class MapViewModel {
             return
         }
         let coordinate = locationService.currentLocation?.coordinate ?? Self.defaultCenter
+        isProcessingVoiceIntent = true
+        currentVoiceTranscript = transcript
+        defer { isProcessingVoiceIntent = false }
         do {
             let response = try await aiService.processVoiceIntent(transcript: transcript, near: coordinate)
+            currentVoiceTranscript = ""
             aiExplanation = response.explanation
             if let suggestion = response.filterSuggestion {
                 selectCategory(suggestion)
