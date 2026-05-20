@@ -23,12 +23,11 @@ public struct CompassMapView: View {
     @State private var isShowingFavorites: Bool = false
     @State private var voiceOrchestrator: VoiceAgentOrchestrator? = nil
 
-    // "+" quick-action menu state
-    @State private var isShowingPlusMenu: Bool = false
+    // Single chat sheet (replaces former plus-menu + voice-overlay split).
+    @State private var isShowingChat: Bool = false
+    @State private var chatStartMode: ChatStartMode = .text
 
-    // Voice agent inline overlay (long-press path)
-    @State private var isShowingVoiceOverlay: Bool = false
-
+    enum ChatStartMode { case text, voice }
 
     public init() {}
 
@@ -83,8 +82,7 @@ public struct CompassMapView: View {
             .sheet(isPresented: detailSheetBinding) { detailSheetContent }
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
-            .sheet(isPresented: $isShowingPlusMenu) { plusMenuSheetContent }
-            .sheet(isPresented: conversationSheetBinding) { conversationSheetContent }
+            .sheet(isPresented: $isShowingChat) { chatSheetContent }
             .sheet(isPresented: paywallSheetBinding) { paywallSheetContent }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
@@ -113,9 +111,12 @@ public struct CompassMapView: View {
                         aiService: aiService,
                         voiceService: voiceService,
                         preferences: preferences,
-                        isShowingPlusMenu: $isShowingPlusMenu,
-                        isShowingVoiceOverlay: $isShowingVoiceOverlay,
-                        voiceOrchestrator: $voiceOrchestrator
+                        voiceOrchestrator: $voiceOrchestrator,
+                        onOpenChat: { mode in
+                            ensureOrchestrator(viewModel: viewModel)
+                            chatStartMode = mode
+                            isShowingChat = true
+                        }
                     )
                 }
 
@@ -132,19 +133,7 @@ public struct CompassMapView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                if isShowingVoiceOverlay, let orch = voiceOrchestrator {
-                    VoiceAgentInlineOverlay(
-                        orchestrator: orch,
-                        voiceService: voiceService,
-                        onDismiss: {
-                            orch.stop()
-                            voiceOrchestrator = nil
-                            isShowingVoiceOverlay = false
-                        }
-                    )
-                }
-
-                if viewModel.visibleExperiences.isEmpty && !isShowingVoiceOverlay {
+                if viewModel.visibleExperiences.isEmpty {
                     EmptyStateOverlay(
                         viewModel: viewModel,
                         preferences: preferences,
@@ -310,80 +299,38 @@ public struct CompassMapView: View {
     }
 
 
-    @ViewBuilder
-    private var plusMenuSheetContent: some View {
-        if let vm = viewModel {
-            PlusMenuSheet(
-                isPresented: $isShowingPlusMenu,
-                onQuickAsk: { text in
-                    isShowingPlusMenu = false
-                    let orch = VoiceAgentOrchestrator(
-                        aiService: aiService,
-                        voiceService: voiceService,
-                        mapViewModel: vm,
-                        preferences: preferences
-                    )
-                    orch.start()
-                    voiceOrchestrator = orch
-                    orch.handleTextInput(text)
-                    isShowingVoiceOverlay = true
-                },
-                onFilter: {
-                    isShowingPlusMenu = false
-                },
-                onNavigate: { destination in
-                    isShowingPlusMenu = false
-                    Task { await vm.handleVoiceTranscript("Navigate to \(destination)") }
-                },
-                onVoiceAgent: {
-                    isShowingPlusMenu = false
-                    let orch = VoiceAgentOrchestrator(
-                        aiService: aiService,
-                        voiceService: voiceService,
-                        mapViewModel: vm,
-                        preferences: preferences
-                    )
-                    orch.start()
-                    voiceOrchestrator = orch
-                    isShowingVoiceOverlay = true
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                }
-            )
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-        }
-    }
-
-    private var conversationSheetBinding: Binding<Bool> {
-        Binding(
-            get: {
-                voiceOrchestrator != nil && !isShowingVoiceOverlay
-            },
-            set: { showing in
-                if !showing {
-                    voiceOrchestrator?.stop()
-                    voiceOrchestrator = nil
-                }
-            }
+    /// Lazily instantiates `voiceOrchestrator` on first chat-sheet open.
+    /// Keeping the orchestrator around between dismissals would mean the
+    /// next session sees stale messages — we discard it when the sheet
+    /// closes (see `chatSheetContent.onDismiss`).
+    private func ensureOrchestrator(viewModel vm: MapViewModel) {
+        guard voiceOrchestrator == nil else { return }
+        let orch = VoiceAgentOrchestrator(
+            aiService: aiService,
+            voiceService: voiceService,
+            mapViewModel: vm,
+            preferences: preferences
         )
+        orch.start()
+        voiceOrchestrator = orch
     }
 
     @ViewBuilder
-    private var conversationSheetContent: some View {
+    private var chatSheetContent: some View {
         if let orch = voiceOrchestrator {
-            ConversationSheet(
-                onClose: {
+            ChatSheet(
+                orchestrator: orch,
+                voiceService: voiceService,
+                startInVoiceMode: chatStartMode == .voice,
+                onDismiss: {
                     orch.stop()
                     voiceOrchestrator = nil
-                },
-                onSubmitText: { orch.handleTextInput($0) },
-                voiceService: voiceService,
-                onVoiceTranscript: { orch.handleTranscript($0) },
-                orchestrator: orch
+                    isShowingChat = false
+                }
             )
-            .environment(orch.session)
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         }
     }
 
@@ -712,19 +659,18 @@ private struct DismissibleBanner: View {
     }
 }
 
-/// Bottom-right "+" button. Short tap fires `onShortTap`; long press (≥0.8s)
-/// fires `onLongPress` and provides haptic feedback.
-/// Bottom-right "+" button. Short tap fires `onShortTap`; long press (≥0.8s)
-/// Bottom control bar: settings, explore, spacer, \"+\" button.
-/// Extracted to prevent type-check timeouts in the CompassMapView body.
+/// Bottom control bar: settings, explore, spacer, "+" button.
+///
+/// Extracted from the `CompassMapView.body` to keep its type-checker happy.
+/// The "+" button collapses tap and long-press into a single intent — open
+/// the chat sheet — distinguished only by `ChatStartMode`.
 private struct MapControlBar: View {
     let viewModel: MapViewModel
     let aiService: AIService
     let voiceService: VoiceService
     let preferences: UserPreferences
-    @Binding var isShowingPlusMenu: Bool
-    @Binding var isShowingVoiceOverlay: Bool
     @Binding var voiceOrchestrator: VoiceAgentOrchestrator?
+    let onOpenChat: (CompassMapView.ChatStartMode) -> Void
 
     var body: some View {
         HStack(alignment: .bottom) {
@@ -771,24 +717,10 @@ private struct MapControlBar: View {
             Spacer()
 
             PlusActionButton(
-                isShowingMenu: $isShowingPlusMenu,
-                onShortTap: {
-                    guard !isShowingVoiceOverlay else { return }
-                    isShowingPlusMenu = true
-                },
+                onShortTap: { onOpenChat(.text) },
                 onLongPress: {
-                    guard !isShowingVoiceOverlay, voiceOrchestrator == nil else { return }
-                    isShowingPlusMenu = false
-                    let orch = VoiceAgentOrchestrator(
-                        aiService: aiService,
-                        voiceService: voiceService,
-                        mapViewModel: viewModel,
-                        preferences: preferences
-                    )
-                    orch.start()
-                    voiceOrchestrator = orch
-                    isShowingVoiceOverlay = true
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    onOpenChat(.voice)
                 }
             )
             .padding(.trailing, 20)
@@ -797,203 +729,74 @@ private struct MapControlBar: View {
     }
 }
 
-/// Inline voice agent overlay that dims the map and shows the thinking
-/// overlay + hold-to-speak orb. Extracted to prevent type-check timeouts
-/// in the CompassMapView body.
-private struct VoiceAgentInlineOverlay: View {
-    let orchestrator: VoiceAgentOrchestrator
-    let voiceService: VoiceService
-    let onDismiss: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.black.opacity(0.25)
-                .ignoresSafeArea()
-                .onTapGesture { } // absorb taps to map
-
-            VStack(spacing: 0) {
-                ThinkingOverlay(
-                    stepLabel: orchestrator.thinkingStep,
-                    streamingText: orchestrator.streamingContent,
-                    isExecutingTool: orchestrator.isExecutingTool,
-                    errorMessage: orchestrator.errorMessage
-                )
-                .padding(.top, 100)
-
-                Spacer()
-
-                VoiceAgentOverlay(
-                    orchestrator: orchestrator,
-                    voiceService: voiceService,
-                    onDismiss: onDismiss
-                )
-            }
-        }
-        .transition(.opacity)
-    }
-}
-
-/// Bottom-right "+" button. Short tap fires `onShortTap`; long press (≥0.8s)
-/// fires `onLongPress` and provides haptic feedback.
+/// Bottom-right "+" button. Tap opens the chat sheet in text mode; long
+/// press (≥0.6s) opens the chat sheet with the mic pre-armed for
+/// push-to-talk.
 ///
-/// Uses a sequenced ExclusiveGesture: long press takes priority over tap so
-/// a held gesture doesn't also fire the menu.
+/// `onPressingChanged` fires immediately on touch-down so the ring + scale
+/// animate within one frame — fixes the "looks frozen" bug where the user
+/// had to wait for the full long-press window before seeing any feedback.
 private struct PlusActionButton: View {
-    @Binding var isShowingMenu: Bool
     let onShortTap: () -> Void
     let onLongPress: () -> Void
 
-    @State private var longPressFired = false
+    @State private var isPressed: Bool = false
+    @State private var ringPulse: Bool = false
+    @State private var longPressFired: Bool = false
 
     var body: some View {
         ZStack {
+            // Ring that grows during the hold to telegraph "almost there".
+            Circle()
+                .stroke(Color.accentColor.opacity(isPressed ? 0.5 : 0.0), lineWidth: 3)
+                .frame(width: 64, height: 64)
+                .scaleEffect(ringPulse ? 1.18 : 1.0)
+                .opacity(ringPulse ? 0.0 : 1.0)
+                .animation(
+                    isPressed
+                        ? .easeOut(duration: 0.9).repeatForever(autoreverses: false)
+                        : .default,
+                    value: ringPulse
+                )
+
             Circle()
                 .fill(Color.black.opacity(0.85))
                 .frame(width: 56, height: 56)
                 .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
-                .scaleEffect(longPressFired ? 1.12 : 1.0)
-                .animation(.spring(response: 0.25), value: longPressFired)
+                .scaleEffect(isPressed ? 1.08 : 1.0)
+                .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isPressed)
 
             Image(systemName: "plus")
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(.white)
         }
         .contentShape(Circle())
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onEnded { _ in
-                    defer { longPressFired = false }
-                    guard !longPressFired else { return }
-                    onShortTap()
-                }
-        )
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.8)
-                .onEnded { _ in
-                    longPressFired = true
-                    onLongPress()
-                }
-        )
-        .accessibilityLabel(Text(NSLocalizedString("plus.button.a11y", comment: "Quick actions")))
-        .accessibilityHint(Text(NSLocalizedString("plus.button.hint", comment: "Tap for quick actions, hold for voice")))
-    }
-}
-
-/// Quick-action sheet opened by tapping the "+" button.
-private struct PlusMenuSheet: View {
-    @Binding var isPresented: Bool
-    let onQuickAsk: (String) -> Void
-    let onFilter: () -> Void
-    let onNavigate: (String) -> Void
-    let onVoiceAgent: () -> Void
-
-    @State private var askText: String = ""
-    @State private var navigateText: String = ""
-    @FocusState private var askFieldFocused: Bool
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    // Quick Ask
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label(
-                            NSLocalizedString("plus.menu.ask", comment: "Ask Solo"),
-                            systemImage: "bubble.left.fill"
-                        )
-                        .font(.subheadline.weight(.semibold))
-
-                        HStack(spacing: 8) {
-                            TextField(
-                                NSLocalizedString("plus.menu.ask.placeholder", comment: "What are you looking for?"),
-                                text: $askText
-                            )
-                            .textFieldStyle(.roundedBorder)
-                            .submitLabel(.send)
-                            .focused($askFieldFocused)
-                            .onSubmit { submitAsk() }
-
-                            Button(action: submitAsk) {
-                                Image(systemName: "arrow.up.circle.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(askText.isEmpty ? Color.secondary : Color.accentColor)
-                            }
-                            .disabled(askText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        }
+        .onLongPressGesture(
+            minimumDuration: 0.6,
+            maximumDistance: .infinity,
+            perform: {
+                longPressFired = true
+                onLongPress()
+            },
+            onPressingChanged: { pressing in
+                if pressing {
+                    // Immediate touch-down feedback: scale + ring + soft haptic.
+                    isPressed = true
+                    ringPulse = true
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                } else {
+                    isPressed = false
+                    ringPulse = false
+                    // If the press ended without the long-press firing, treat it as a tap.
+                    if !longPressFired {
+                        onShortTap()
                     }
-                    .padding(.vertical, 4)
-
-                    // Voice agent
-                    Button(action: onVoiceAgent) {
-                        Label(
-                            NSLocalizedString("plus.menu.voice", comment: "Voice Agent"),
-                            systemImage: "mic.fill"
-                        )
-                    }
-                    .foregroundStyle(.primary)
-                }
-
-                Section {
-                    // Filter Map
-                    Button(action: onFilter) {
-                        Label(
-                            NSLocalizedString("plus.menu.filter", comment: "Filter Map"),
-                            systemImage: "line.3.horizontal.decrease.circle"
-                        )
-                    }
-                    .foregroundStyle(.primary)
-
-                    // Navigate To
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label(
-                            NSLocalizedString("plus.menu.navigate", comment: "Navigate To…"),
-                            systemImage: "arrow.triangle.turn.up.right.circle.fill"
-                        )
-                        .font(.subheadline.weight(.semibold))
-
-                        HStack(spacing: 8) {
-                            TextField(
-                                NSLocalizedString("plus.menu.navigate.placeholder", comment: "Destination…"),
-                                text: $navigateText
-                            )
-                            .textFieldStyle(.roundedBorder)
-                            .submitLabel(.go)
-                            .onSubmit { submitNavigate() }
-
-                            Button(action: submitNavigate) {
-                                Image(systemName: "arrow.up.circle.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(navigateText.isEmpty ? Color.secondary : Color.accentColor)
-                            }
-                            .disabled(navigateText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        }
-                    }
-                    .padding(.vertical, 4)
+                    longPressFired = false
                 }
             }
-            .navigationTitle(NSLocalizedString("plus.menu.title", comment: "Quick Actions"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(NSLocalizedString("common.close", comment: "Close")) {
-                        isPresented = false
-                    }
-                }
-            }
-        }
-        .onAppear { askFieldFocused = true }
-    }
-
-    private func submitAsk() {
-        let trimmed = askText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        onQuickAsk(trimmed)
-    }
-
-    private func submitNavigate() {
-        let trimmed = navigateText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        onNavigate(trimmed)
+        )
+        .accessibilityLabel(Text(NSLocalizedString("plus.button.a11y", comment: "Chat with Solo")))
+        .accessibilityHint(Text(NSLocalizedString("plus.button.hint", comment: "Tap to open chat, hold to talk")))
     }
 }
 

@@ -347,16 +347,31 @@
 "voiceAgent.error.streaming" = "Connection interrupted — please try again";
 "voiceAgent.tts.fallback" = "Response ready";
 
-/* "+" quick-action button and menu */
-"plus.button.a11y" = "Quick actions";
-"plus.button.hint" = "Tap for quick actions, hold for voice agent";
-"plus.menu.title" = "Quick Actions";
-"plus.menu.ask" = "Ask Solo";
-"plus.menu.ask.placeholder" = "What are you looking for?";
-"plus.menu.voice" = "Voice Agent";
-"plus.menu.filter" = "Filter Map";
-"plus.menu.navigate" = "Navigate To…";
-"plus.menu.navigate.placeholder" = "Destination…";
+/* "+" quick-action button — single chat entry point */
+"plus.button.a11y" = "Chat with Solo";
+"plus.button.hint" = "Tap to open chat, hold to talk";
+
+/* Chat sheet — Messenger-style assistant surface */
+"chat.title" = "Solo Compass";
+"chat.empty.title" = "Ask me anything about places near you";
+"chat.empty.subtitle" = "Try 'what's good around me?' or hold the mic to talk.";
+"chat.input.placeholder" = "Type a message…";
+"chat.input.send.a11y" = "Send";
+"chat.input.mic.a11y" = "Voice";
+"chat.input.mic.hint" = "Tap to start or stop voice, hold to push-to-talk";
+"chat.state.listening" = "Listening — release to send";
+"chat.state.thinking" = "Thinking…";
+"chat.error.retry" = "Retry";
+"chat.bubble.user.a11y" = "You said: %@";
+"chat.bubble.assistant.a11y" = "Solo said: %@";
+"chat.tool.exploreNearby" = "Searched nearby";
+"chat.tool.filter" = "Filtered the map";
+"chat.tool.showDetails" = "Opened a place";
+"chat.tool.save" = "Saved to favorites";
+"chat.tool.dismiss" = "Hid a place";
+"chat.tool.search" = "Searched places";
+"chat.tool.navigate" = "Opened directions";
+"chat.tool.generic" = "Ran an action";
 
 /* Common */
 "common.settings" = "Settings";
