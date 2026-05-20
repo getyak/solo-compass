@@ -22,13 +22,13 @@ private struct SoloScoreResponse: Decodable {
 /// Fetches aggregated solo-score dimensions from the backend API.
 /// Falls back to the local seed SoloScore on any network or API failure.
 @MainActor
-final class ReviewsService {
-    static let shared = ReviewsService()
+public final class ReviewsService {
+    public static let shared = ReviewsService()
 
     private let session: URLSession
     private let baseURL: URL
 
-    init(session: URLSession = .shared, baseURL: URL? = nil) {
+    public init(session: URLSession = .shared, baseURL: URL? = nil) {
         self.session = session
         if let url = baseURL {
             self.baseURL = url

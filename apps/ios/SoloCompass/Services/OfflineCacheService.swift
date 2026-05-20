@@ -15,6 +15,7 @@ public final class OfflineCacheService {
 
     // MARK: - Core Data stack
 
+    @ObservationIgnored
     private lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "OfflineCache", managedObjectModel: Self.makeModel())
         let description = container.persistentStoreDescriptions.first
