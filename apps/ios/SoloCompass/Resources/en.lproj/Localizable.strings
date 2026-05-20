@@ -382,6 +382,9 @@
 "chat.tool.navigate" = "Opened directions";
 "chat.tool.generic" = "Ran an action";
 
+/* Skeleton loading placeholder */
+"skeleton.loading" = "Loading";
+
 /* Common */
 "common.settings" = "Settings";
 

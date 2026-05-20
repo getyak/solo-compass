@@ -2968,4 +2968,40 @@ final class LanguageServiceTests: XCTestCase {
         let svc = LanguageService(defaults: defaults)
         XCTAssertEqual(svc.current, .simplifiedChinese)
     }
+
+    // MARK: - US-001 SkeletonView
+
+    func testSkeletonViewDefaultLineCountIsThree() {
+        let skeleton = SkeletonView()
+        XCTAssertEqual(skeleton.lineCount, 3)
+    }
+
+    func testSkeletonViewDefaultWidthFractionsLastLineIs60Percent() {
+        let skeleton = SkeletonView(lineCount: 3)
+        XCTAssertEqual(skeleton.widthFractions.count, 3)
+        XCTAssertEqual(skeleton.widthFractions[2], 0.6, accuracy: 0.001,
+                       "Last line should default to 60% width")
+        XCTAssertEqual(skeleton.widthFractions[0], 1.0, accuracy: 0.001,
+                       "First lines should default to full width")
+    }
+
+    func testSkeletonViewCustomWidthFractionsApplied() {
+        let fractions: [CGFloat] = [1.0, 0.85, 0.5]
+        let skeleton = SkeletonView(lineCount: 3, widthFractions: fractions)
+        XCTAssertEqual(skeleton.widthFractions, fractions,
+                       "Custom width fractions should be preserved exactly")
+    }
+
+    func testSkeletonViewMismatchedWidthFractionsUsesDefaults() {
+        // Supplying 2 fractions for lineCount=3 should fall back to defaults
+        let skeleton = SkeletonView(lineCount: 3, widthFractions: [0.5, 0.5])
+        XCTAssertEqual(skeleton.widthFractions.count, 3,
+                       "Mismatched fractions array should be replaced with defaults")
+        XCTAssertEqual(skeleton.widthFractions[2], 0.6, accuracy: 0.001)
+    }
+
+    func testSkeletonViewLineCountClampedToAtLeastOne() {
+        let skeleton = SkeletonView(lineCount: 0)
+        XCTAssertEqual(skeleton.lineCount, 1, "lineCount must be at least 1")
+    }
 }

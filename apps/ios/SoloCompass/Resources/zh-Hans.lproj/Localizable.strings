@@ -320,6 +320,9 @@
 "conversation.input.mic.a11y" = "按住说话";
 "conversation.input.send.a11y" = "发送消息";
 
+/* Skeleton loading placeholder */
+"skeleton.loading" = "加载中";
+
 /* Location card + navigation picker */
 "location.navigate" = "导航";
 "location.copyCoords" = "复制坐标";
