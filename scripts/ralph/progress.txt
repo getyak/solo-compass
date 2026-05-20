@@ -1,6 +1,11 @@
-# Codex /add Page v0.5 — Ralph Progress Log
+# Solo Compass Experience & Architecture v1 — Ralph Progress Log
 Started: 2026-05-20
 Tool: claude
-Branch: ralph/codex-add-page-v0-5
-PRD: tasks/prd-codex-add-page-v0-5.md
-Stories: 28
+Branch: ralph/experience-architecture-v1
+PRD: tasks/prd-experience-architecture-v1.md
+Stories: 42
+
+Phases:
+  Phase 1 — UI/UX Refactor:        US-001 .. US-020 (20 stories)
+  Phase 2 — AI Architecture:       US-021 .. US-036 (16 stories)
+  Phase 3 — Roadmap Exploration:   US-037 .. US-042 ( 6 stories)
