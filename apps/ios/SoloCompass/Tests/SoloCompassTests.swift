@@ -3157,4 +3157,125 @@ final class LanguageServiceTests: XCTestCase {
         XCTAssertEqual(deduped[0].geonameId, 1154689)
         XCTAssertEqual(deduped[1].geonameId, 1609350)
     }
+
+    // MARK: - US-022 ContextManager
+
+    func testContextManagerFullContext() async throws {
+        let locationService = LocationService()
+        locationService.simulate(location: CLLocation(latitude: 18.7877, longitude: 98.9938))
+        let prefs = UserPreferences()
+        let seed = ExperienceService.hardcodedSeed
+        let rect = MKMapRect(x: 0, y: 0, width: 1_000_000, height: 1_000_000)
+
+        let manager = DefaultContextManager(
+            locationService: locationService,
+            preferences: prefs,
+            viewportProvider: { (rect, seed) }
+        )
+
+        let ctx = await manager.snapshot()
+
+        XCTAssertNotNil(ctx.location, "location should be present when GPS is available")
+        XCTAssertEqual(ctx.location?.count, 2)
+        XCTAssertLessThanOrEqual(ctx.viewportPois.count, 20)
+        XCTAssertFalse(ctx.preferences.soloTravelStyle.isEmpty)
+        XCTAssertFalse(ctx.localTime.isEmpty)
+        XCTAssertNil(ctx.weather, "weather is nil when no weather service is wired")
+    }
+
+    func testContextManagerMissingWeather() async throws {
+        let prefs = UserPreferences()
+        let rect = MKMapRect(x: 0, y: 0, width: 500_000, height: 500_000)
+        let manager = DefaultContextManager(
+            locationService: LocationService(),
+            preferences: prefs,
+            viewportProvider: { (rect, ExperienceService.hardcodedSeed) }
+        )
+
+        let ctx = await manager.snapshot()
+        XCTAssertNil(ctx.weather, "weather must be absent when no WeatherSnapshot is provided")
+    }
+
+    func testContextManagerLargeViewportTrimsToTwenty() async throws {
+        // Build 55 fake experiences by duplicating seed entries with distinct IDs.
+        guard let template = ExperienceService.hardcodedSeed.first else {
+            XCTFail("hardcodedSeed is empty")
+            return
+        }
+        var large: [Experience] = []
+        for i in 0..<55 {
+            large.append(Experience(
+                id: "fake-\(i)",
+                title: template.title,
+                oneLiner: template.oneLiner,
+                whyItMatters: template.whyItMatters,
+                category: template.category,
+                location: template.location,
+                bestTimes: template.bestTimes,
+                durationMinutes: template.durationMinutes,
+                howTo: template.howTo,
+                realInconveniences: template.realInconveniences,
+                soloScore: template.soloScore,
+                sources: template.sources,
+                confidence: template.confidence,
+                nearbyExperienceIds: template.nearbyExperienceIds,
+                stats: template.stats,
+                status: template.status,
+                createdAt: template.createdAt,
+                updatedAt: template.updatedAt
+            ))
+        }
+
+        let rect = MKMapRect(x: 0, y: 0, width: 5_000_000, height: 5_000_000)
+        let manager = DefaultContextManager(
+            locationService: LocationService(),
+            preferences: UserPreferences(),
+            viewportProvider: { (rect, large) }
+        )
+
+        let ctx = await manager.snapshot()
+        XCTAssertLessThanOrEqual(ctx.viewportPois.count, 20, "viewport POIs must be trimmed to 20")
+        XCTAssertEqual(ctx.viewportPois.count, 20)
+    }
+
+    func testContextManagerNoLocation() async throws {
+        // LocationService with no simulated fix → currentLocation is nil.
+        let prefs = UserPreferences()
+        let rect = MKMapRect(x: 0, y: 0, width: 500_000, height: 500_000)
+        let manager = DefaultContextManager(
+            locationService: LocationService(),
+            preferences: prefs,
+            viewportProvider: { (rect, []) }
+        )
+
+        let ctx = await manager.snapshot()
+        XCTAssertNil(ctx.location, "location must be nil when no GPS fix is available")
+        XCTAssertEqual(ctx.viewportPois, [])
+    }
+
+    // MARK: - US-023 VoiceAgentOrchestrator context injection
+
+    func testContextManagerSnapshotContainsExpectedKeys() async throws {
+        let locationService = LocationService()
+        locationService.simulate(location: CLLocation(latitude: 13.7563, longitude: 100.5018))
+        let prefs = UserPreferences()
+        let seed = ExperienceService.hardcodedSeed
+        let rect = MKMapRect(x: 0, y: 0, width: 1_000_000, height: 1_000_000)
+
+        let manager = DefaultContextManager(
+            locationService: locationService,
+            preferences: prefs,
+            viewportProvider: { (rect, seed) }
+        )
+
+        let ctx = await manager.snapshot()
+        let json = try XCTUnwrap(ctx.jsonString(), "jsonString() must produce valid JSON")
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let parsed = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertNotNil(parsed["viewportBBox"], "payload must contain viewportBBox key")
+        XCTAssertNotNil(parsed["viewportPois"], "payload must contain viewportPois key")
+        XCTAssertNotNil(parsed["preferences"], "payload must contain preferences key")
+        XCTAssertNotNil(parsed["localTime"], "payload must contain localTime key")
+    }
 }
