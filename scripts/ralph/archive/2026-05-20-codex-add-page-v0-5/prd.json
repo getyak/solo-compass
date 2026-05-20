@@ -1,0 +1,460 @@
+{
+  "project": "Codex /add Page v0.5",
+  "branchName": "ralph/codex-add-page-v0-5",
+  "description": "Codex Web /add page production-readiness pass: draft persistence (local + server), Cmd+Enter submit, first-frame state consistency, full mode buttons (URL/Photo/File/Voice/Bookmarklet), queue-card navigation, and minimal /memos/[id] detail page. See tasks/prd-codex-add-page-v0-5.md.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add drafts schema and migration",
+      "description": "As a developer, I need a drafts table so user drafts can be persisted server-side.",
+      "acceptanceCriteria": [
+        "Create drafts table with columns: id (uuid pk), user_id (fk), content (text), type (varchar), updated_at (timestamptz default now())",
+        "Unique constraint on (user_id) — one draft per user for /add",
+        "Generate and run migration successfully",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Implement GET /api/drafts/add endpoint",
+      "description": "As a client, I want to fetch the current user's latest draft on page load.",
+      "acceptanceCriteria": [
+        "GET /api/drafts/add returns 200 with { content, type, updatedAt } when draft exists",
+        "Returns 204 when no draft exists",
+        "Returns 401 when unauthenticated",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implement PUT /api/drafts/add endpoint",
+      "description": "As a client, I want to upsert the current user's draft idempotently.",
+      "acceptanceCriteria": [
+        "PUT /api/drafts/add accepts { content, type } and upserts by user_id",
+        "Returns 200 with updated draft",
+        "Validates content length <= 100KB and type in enum",
+        "Returns 401 when unauthenticated, 400 on validation failure",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implement DELETE /api/drafts/add endpoint",
+      "description": "As a client, I want to clear the saved draft after successful submission.",
+      "acceptanceCriteria": [
+        "DELETE /api/drafts/add removes draft for current user, returns 204",
+        "Idempotent — returns 204 even when no draft existed",
+        "Returns 401 when unauthenticated",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add localStorage draft persistence on /add",
+      "description": "As a user, I want my draft to survive a page refresh via localStorage.",
+      "acceptanceCriteria": [
+        "Clicking Save draft writes { content, type, attachments_meta, savedAt } to localStorage key 'codex:add:draft' (versioned prefix 'v1:')",
+        "On page mount, if local draft exists and savedAt is within 30 days, restore content/type and show 'Draft restored' banner with Discard button",
+        "Banner auto-hides after 5s or when user starts editing",
+        "Successful POST /api/memos clears the localStorage key",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Sync drafts to server with debounce + conflict resolution",
+      "description": "As a multi-device user, I want my draft to sync across devices via the drafts API.",
+      "acceptanceCriteria": [
+        "After Save draft, debounce 1.5s then PUT /api/drafts/add",
+        "Retry up to 2 times on network error, silent on failure",
+        "On mount, prefer local draft; if local is empty, GET /api/drafts/add and restore",
+        "When both exist, use the one with newer updatedAt",
+        "On 401, degrade to local-only without error toast",
+        "Successful POST /api/memos calls DELETE /api/drafts/add",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Add Cmd+Enter / Ctrl+Enter submit shortcut",
+      "description": "As a keyboard user, I want to submit with Cmd/Ctrl+Enter inside the textarea.",
+      "acceptanceCriteria": [
+        "Textarea keydown handler triggers Add when (metaKey || ctrlKey) && key === 'Enter'",
+        "No-op when Add button is disabled (empty content or submitting)",
+        "Ignored when event.isComposing === true (IME safety)",
+        "Hint text shows below input: '⌘/Ctrl + Enter to submit'",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Fix breadcrumb first-frame inconsistency",
+      "description": "As a user, I want the breadcrumb to show 'CODEX / Add' immediately on navigation, not after refresh.",
+      "acceptanceCriteria": [
+        "Breadcrumb component reads current route from usePathname() (or server-resolved per route)",
+        "Navigating from /home, /wiki, /chat to /add shows 'Add' in first frame",
+        "Direct visits to /add and /add?from=... show 'Add' in first frame",
+        "No layout shift on hydration",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Return full memo object from POST /api/memos and optimistic queue update",
+      "description": "As a user, I want a newly submitted item to show QUEUED immediately, no refresh needed.",
+      "acceptanceCriteria": [
+        "POST /api/memos 201 response body includes complete memo: { id, type, content, compile_status: 'queued', created_at }",
+        "Client optimistically prepends the response memo to Compile Queue without refetching",
+        "On 4xx/5xx, revert the optimistic insert and show toast",
+        "Queue item renders QUEUED label immediately based on compile_status",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Wire SSE compile-status updates to in-place queue item rerender",
+      "description": "As a user, I want queue items to update from QUEUED → COMPILING → DONE in real time.",
+      "acceptanceCriteria": [
+        "Client subscribes to /api/stream/compile and matches events by memo id",
+        "compile_status transitions update the matching queue item in place",
+        "When status becomes 'done', item moves to Recently Compiled section",
+        "When status becomes 'failed', item shows FAILED badge",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Implement GET /api/memos/[id] endpoint",
+      "description": "As a client, I want to fetch a single memo's full data for the detail page.",
+      "acceptanceCriteria": [
+        "GET /api/memos/[id] returns 200 with { id, type, content, compile_status, compiled_at, compiled_payload, created_at, attachments }",
+        "Returns 404 when memo does not exist or belongs to another user",
+        "Returns 401 when unauthenticated",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Implement POST /api/memos/[id]/recompile endpoint",
+      "description": "As a user, I want to retry a failed compilation.",
+      "acceptanceCriteria": [
+        "POST /api/memos/[id]/recompile re-enqueues the memo, returns 200 with updated memo",
+        "Allowed only when compile_status === 'failed'; returns 409 otherwise",
+        "Rate-limited to once per 5 minutes per memo, returns 429 when limited",
+        "Returns 404 / 401 appropriately",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Build minimal /memos/[id] detail page",
+      "description": "As a user, I want a detail page that shows a memo's content, type, status, and compiled payload.",
+      "acceptanceCriteria": [
+        "New route /memos/[id] as Server Component, fetches via GET /api/memos/[id]",
+        "Renders content with preserved newlines and safe HTML escaping",
+        "Shows type badge, status badge (QUEUED/COMPILING/DONE/FAILED), created_at",
+        "When compile_status === 'done', renders compiled_payload",
+        "Breadcrumb shows 'CODEX / Add / Memo' with back button to /add",
+        "404 page for missing memos, error.tsx for server errors",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Subscribe to SSE on detail page for non-terminal statuses",
+      "description": "As a user, I want the detail page to update live while a memo is compiling.",
+      "acceptanceCriteria": [
+        "When compile_status is 'queued' or 'compiling', subscribe to /api/stream/compile?id=<id>",
+        "Update status badge and compiled_payload in place when event arrives",
+        "Close SSE connection when status becomes 'done' or 'failed' or component unmounts",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add Retry button on failed memos in detail page",
+      "description": "As a user, I want to retry a failed compilation from the detail page.",
+      "acceptanceCriteria": [
+        "When compile_status === 'failed', show error message and Retry button",
+        "Retry button calls POST /api/memos/[id]/recompile and refreshes status to QUEUED",
+        "On 429, show toast with cooldown message; on 5xx, show toast",
+        "Button disabled while request is in flight",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Make queue cards navigate to /memos/[id]",
+      "description": "As a user, I want to click a queue card body to open the memo detail page.",
+      "acceptanceCriteria": [
+        "Card body uses next/link to /memos/[id] (middle-click opens new tab)",
+        "Right-side LIGHT/FULL toggle and ✕ buttons stopPropagation, do not navigate",
+        "Card has role='link' and is keyboard-focusable; Enter/Space triggers navigation",
+        "Hover/focus visual feedback preserved",
+        "Applies to both Compile Queue and Recently Compiled lists",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Fix URL mode behavior on /add",
+      "description": "As a user, clicking URL should switch to URL input mode, not autofill the current page URL.",
+      "acceptanceCriteria": [
+        "Click URL button sets mode = 'url', highlights button, changes placeholder to 'Paste a URL (https://...)'",
+        "Textarea content is NOT modified; window.location.href is no longer auto-filled",
+        "Live validation: invalid URL disables Add button and shows 'Enter a valid URL'",
+        "Valid URL shows host preview below input (e.g., 'example.com')",
+        "Toggling off URL mode preserves textarea content",
+        "POST /api/memos body uses { type: 'url', content: <url> }",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Make Voice button visibly disabled with tooltip",
+      "description": "As a user, I want the Voice button to show clear disabled state with explanation.",
+      "acceptanceCriteria": [
+        "Voice button renders with disabled visual style (reduced opacity, not-allowed cursor)",
+        "Hover and keyboard focus show tooltip 'Voice input — coming soon' via aria-describedby",
+        "Click has no side effect (no toast, no state change)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Fix Bookmarklet button — show Modal with script and instructions",
+      "description": "As a user, I want the Bookmarklet button to show a Modal with the drag-to-bookmark link and copy script, not attach an image.",
+      "acceptanceCriteria": [
+        "Click Bookmarklet opens a Modal with: drag-to-bookmark anchor <a href='javascript:...'>Save to Codex</a>, instructions, Copy script button, Close button",
+        "Modal does NOT attach IMG_3836.PNG or any placeholder file",
+        "Closing Modal preserves textarea content, mode, and attachments",
+        "Copy script button copies the bookmarklet source via navigator.clipboard",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Add attachments column to memos schema and migration",
+      "description": "As a developer, I need to store attachment metadata on memos.",
+      "acceptanceCriteria": [
+        "Add attachments jsonb column to memos table, default '[]'::jsonb",
+        "Shape: Array<{ url, mime, size, original_name }>",
+        "Generate and run migration successfully",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Extend POST /api/memos to accept multipart/form-data with attachments",
+      "description": "As a client, I want to upload files alongside a memo in a single request.",
+      "acceptanceCriteria": [
+        "POST /api/memos accepts multipart/form-data while remaining backward-compatible with application/json",
+        "Multipart fields: type, content, files[]",
+        "MIME whitelist: image/jpeg, image/png, image/webp, application/pdf, text/markdown, text/plain, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/rtf",
+        "Size limits: images <=10MB each (max 4), files <=25MB (max 1)",
+        "Upload to existing object storage, write attachments metadata into memo row",
+        "Returns 413 on oversize, 415 on bad MIME, 400 on missing fields",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Implement Photo mode on /add",
+      "description": "As a user, clicking Photo opens an image picker and previews selected images.",
+      "acceptanceCriteria": [
+        "Click Photo triggers hidden <input type='file' accept='image/*' capture='environment'>",
+        "Up to 4 photos per memo; over limit shows 'Up to 4 photos per memo'",
+        "Each image <=10MB; oversize shows 'Image too large (max 10MB)'",
+        "Preview chip above textarea: 64x64 thumbnail + filename + size + ✕ remove",
+        "Submit sends multipart POST /api/memos with type='photo' and files[]",
+        "Removing all photos clears Photo mode highlight",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Implement File mode on /add",
+      "description": "As a user, clicking File opens a system file picker for documents.",
+      "acceptanceCriteria": [
+        "Click File triggers hidden <input type='file' accept='.pdf,.md,.txt,.docx,.rtf'>",
+        "Single file per memo, <=25MB; oversize shows clear error",
+        "Preview chip: file icon + filename + size + ✕ remove",
+        "Submit sends multipart POST /api/memos with type='file'",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Add drag-and-drop file handling to /add",
+      "description": "As a user, I want to drag files onto the /add page to attach them.",
+      "acceptanceCriteria": [
+        "Dragging files over the /add page shows a drop overlay",
+        "Dropped images route to Photo mode; dropped documents route to File mode",
+        "Files exceeding limits trigger same error messages as click-to-upload",
+        "Preventing browser default open-file behavior",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Show attachments on memo detail page and preserve on compile failure",
+      "description": "As a user, I want to see attachments on the detail page and have them survive a failed compilation.",
+      "acceptanceCriteria": [
+        "/memos/[id] renders attachments list with thumbnails (images) or icons (files) and original_name",
+        "Compile-failure state still shows attachments and 'Compilation failed' message",
+        "Click on attachment opens the file (target='_blank' for files, lightbox for images)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Stabilize mode-button rendering performance",
+      "description": "As a user, I want mode buttons to respond within 200ms, with no 30s render hangs.",
+      "acceptanceCriteria": [
+        "Mode button onClick performs no synchronous blocking work (file pickers and Modals open async)",
+        "Mode highlight state is local useState to avoid full /add re-render",
+        "Add Playwright stress test: 100 random mode-button clicks complete within 30s with no timeout",
+        "React DevTools Profiler: each mode switch commit <=16ms",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Add accessibility polish to /add",
+      "description": "As a keyboard/AT user, I want full keyboard access and accessible labels.",
+      "acceptanceCriteria": [
+        "Input area hint: '⌘/Ctrl + Enter to submit · Drag & drop files supported'",
+        "All mode buttons are Tab-reachable with visible focus ring",
+        "Attachment ✕ button has aria-label='Remove attachment'",
+        "Queue card supports keyboard navigation (focus + Enter triggers /memos/[id])",
+        "axe-core scan of /add returns 0 critical/serious violations",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Add analytics events for /add interactions",
+      "description": "As a PM, I want event tracking on key interactions to validate Success Metrics.",
+      "acceptanceCriteria": [
+        "Fire events via existing analytics: add.draft.save, add.draft.restore, add.submit, add.submit.shortcut, add.mode.switch, memo.detail.view, memo.recompile",
+        "add.mode.switch payload includes target mode",
+        "add.submit payload includes type and hasAttachments boolean",
+        "No event fires when action is disabled or no-op",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

@@ -1,17 +1,18 @@
 {
-  "project": "Codex /add Page v0.5",
-  "branchName": "ralph/codex-add-page-v0-5",
-  "description": "Codex Web /add page production-readiness pass: draft persistence (local + server), Cmd+Enter submit, first-frame state consistency, full mode buttons (URL/Photo/File/Voice/Bookmarklet), queue-card navigation, and minimal /memos/[id] detail page. See tasks/prd-codex-add-page-v0-5.md.",
+  "project": "Solo Compass Experience & Architecture v1",
+  "branchName": "ralph/experience-architecture-v1",
+  "description": "Solo Compass UI/UX refactor + AI architecture upgrade + Roadmap exploration. Three-phase delivery: (1) Apple-grade UI polish — floating filter capsule, glassmorphism FAB, skeleton screens, radar-chart solo scores, chat state machine, voice waveform, city-picker dedup, InsetGrouped preferences. (2) AI depth — ContextManager protocol, Go RAG pipeline for real-review-based scores, multi-agent orchestration (Intent/Query/Guide). (3) Roadmap — Markdown PKM export, Obsidian dark theme, offline-first cache, Edge AI spike. See tasks/prd-experience-architecture-v1.md.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add drafts schema and migration",
-      "description": "As a developer, I need a drafts table so user drafts can be persisted server-side.",
+      "title": "Create SharedUI module with SkeletonView component",
+      "description": "As a developer, I need a reusable SkeletonView so multiple screens can show loading placeholders.",
       "acceptanceCriteria": [
-        "Create drafts table with columns: id (uuid pk), user_id (fk), content (text), type (varchar), updated_at (timestamptz default now())",
-        "Unique constraint on (user_id) — one draft per user for /add",
-        "Generate and run migration successfully",
-        "Typecheck passes",
+        "Create Views/Shared/SkeletonView.swift with shimmer animation",
+        "Support .redacted(reason: .placeholder) integration",
+        "Configurable line count and width fractions",
+        "Add SwiftUI #Preview demonstrating 3-line text skeleton",
+        "Typecheck passes (xcodebuild build -project apps/ios/SoloCompass.xcodeproj -scheme SoloCompass)",
         "Tests pass"
       ],
       "priority": 1,
@@ -20,12 +21,13 @@
     },
     {
       "id": "US-002",
-      "title": "Implement GET /api/drafts/add endpoint",
-      "description": "As a client, I want to fetch the current user's latest draft on page load.",
+      "title": "Create GlassmorphismCapsule reusable component",
+      "description": "As a developer, I need a Capsule component with Material background for floating UI elements.",
       "acceptanceCriteria": [
-        "GET /api/drafts/add returns 200 with { content, type, updatedAt } when draft exists",
-        "Returns 204 when no draft exists",
-        "Returns 401 when unauthenticated",
+        "Create Views/Shared/GlassmorphismCapsule.swift using .regularMaterial",
+        "Configurable padding and shadow",
+        "Supports trailing/leading content via @ViewBuilder",
+        "Add SwiftUI #Preview",
         "Typecheck passes",
         "Tests pass"
       ],
@@ -35,15 +37,15 @@
     },
     {
       "id": "US-003",
-      "title": "Implement PUT /api/drafts/add endpoint",
-      "description": "As a client, I want to upsert the current user's draft idempotently.",
+      "title": "Refactor FilterBarView to floating capsule layout",
+      "description": "As a user, I want the top filter bar to feel like a floating capsule so the map gets more vertical space.",
       "acceptanceCriteria": [
-        "PUT /api/drafts/add accepts { content, type } and upserts by user_id",
-        "Returns 200 with updated draft",
-        "Validates content length <= 100KB and type in enum",
-        "Returns 401 when unauthenticated, 400 on validation failure",
+        "FilterBarView uses GlassmorphismCapsule wrapper",
+        "Capsule is horizontally centered at top with 16pt side insets",
+        "Background no longer occupies full width as a solid bar",
+        "Existing filter chip behavior preserved (tap to toggle)",
         "Typecheck passes",
-        "Tests pass"
+        "Verify in browser using dev-browser skill (iOS Simulator screenshot via xcrun simctl)"
       ],
       "priority": 3,
       "passes": false,
@@ -51,14 +53,16 @@
     },
     {
       "id": "US-004",
-      "title": "Implement DELETE /api/drafts/add endpoint",
-      "description": "As a client, I want to clear the saved draft after successful submission.",
+      "title": "Add scroll-aware hide/show behavior to FilterBarView",
+      "description": "As a user, I want the filter capsule to fade and shrink when I pan the map so I can see more of the map.",
       "acceptanceCriteria": [
-        "DELETE /api/drafts/add removes draft for current user, returns 204",
-        "Idempotent — returns 204 even when no draft existed",
-        "Returns 401 when unauthenticated",
+        "Observe MapCameraPosition changes in CompassMapView",
+        "When camera changes (user pans/zooms), capsule fades to opacity 0.4 and scales to 0.85",
+        "After 1.5s of no camera change, capsule restores to full opacity + scale",
+        "Animation uses .spring(response: 0.35, dampingFraction: 0.8)",
+        "Tap on capsule restores it immediately",
         "Typecheck passes",
-        "Tests pass"
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
       "passes": false,
@@ -66,13 +70,13 @@
     },
     {
       "id": "US-005",
-      "title": "Add localStorage draft persistence on /add",
-      "description": "As a user, I want my draft to survive a page refresh via localStorage.",
+      "title": "Apply glassmorphism + haptic feedback to map FABs",
+      "description": "As a user, I want floating action buttons on the map to feel premium with haptic feedback.",
       "acceptanceCriteria": [
-        "Clicking Save draft writes { content, type, attachments_meta, savedAt } to localStorage key 'codex:add:draft' (versioned prefix 'v1:')",
-        "On page mount, if local draft exists and savedAt is within 30 days, restore content/type and show 'Draft restored' banner with Discard button",
-        "Banner auto-hides after 5s or when user starts editing",
-        "Successful POST /api/memos clears the localStorage key",
+        "All FAB buttons in CompassMapView use .regularMaterial background",
+        "Drop shadow added via .shadow(color: .black.opacity(0.15), radius: 8, y: 4)",
+        "Each FAB triggers UIImpactFeedbackGenerator(style: .soft) on press",
+        "Press animation: .scaleEffect(0.92) with .spring(response: 0.25)",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -82,15 +86,13 @@
     },
     {
       "id": "US-006",
-      "title": "Sync drafts to server with debounce + conflict resolution",
-      "description": "As a multi-device user, I want my draft to sync across devices via the drafts API.",
+      "title": "Add camera offset when POI selected to avoid sheet overlap",
+      "description": "As a user, when I tap a pin, the map should pan so the selected pin is not hidden behind the bottom sheet.",
       "acceptanceCriteria": [
-        "After Save draft, debounce 1.5s then PUT /api/drafts/add",
-        "Retry up to 2 times on network error, silent on failure",
-        "On mount, prefer local draft; if local is empty, GET /api/drafts/add and restore",
-        "When both exist, use the one with newer updatedAt",
-        "On 401, degrade to local-only without error toast",
-        "Successful POST /api/memos calls DELETE /api/drafts/add",
+        "When a POI is selected, CompassMapView shifts camera so the pin sits in the top 40% of visible area",
+        "Computation accounts for current sheet height (small/medium/large detent)",
+        "Camera transition uses .smooth animation over 0.35s",
+        "Deselecting returns to user-driven camera",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -100,13 +102,13 @@
     },
     {
       "id": "US-007",
-      "title": "Add Cmd+Enter / Ctrl+Enter submit shortcut",
-      "description": "As a keyboard user, I want to submit with Cmd/Ctrl+Enter inside the textarea.",
+      "title": "Remove placeholder copy from ExperienceDetailView Why-worth section",
+      "description": "As a user, I should not see 'we don't have a curated story yet' placeholder text.",
       "acceptanceCriteria": [
-        "Textarea keydown handler triggers Add when (metaKey || ctrlKey) && key === 'Enter'",
-        "No-op when Add button is disabled (empty content or submitting)",
-        "Ignored when event.isComposing === true (IME safety)",
-        "Hint text shows below input: '⌘/Ctrl + Enter to submit'",
+        "ExperienceDetailView hides the Why-worth Section entirely when story is nil/empty",
+        "When loading, shows SkeletonView with 3 placeholder lines",
+        "When loaded with content, renders normally",
+        "No literal placeholder string remains in source",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -116,15 +118,17 @@
     },
     {
       "id": "US-008",
-      "title": "Fix breadcrumb first-frame inconsistency",
-      "description": "As a user, I want the breadcrumb to show 'CODEX / Add' immediately on navigation, not after refresh.",
+      "title": "Create SoloScoreRadarChart component with differentiated demo data",
+      "description": "As a user, I want to see solo score dimensions visualized as a radar chart with real differentiation.",
       "acceptanceCriteria": [
-        "Breadcrumb component reads current route from usePathname() (or server-resolved per route)",
-        "Navigating from /home, /wiki, /chat to /add shows 'Add' in first frame",
-        "Direct visits to /add and /add?from=... show 'Add' in first frame",
-        "No layout shift on hydration",
+        "Create Views/Shared/SoloScoreRadarChart.swift using Canvas + Path",
+        "Renders 5-6 axes: seating, staff-leave-alone, wifi, noise, safety, lighting",
+        "Each axis labeled with SF Symbol icon",
+        "When dimension variance < 0.5, falls back to highlighted progress bars",
+        "Update at least 3 seed POIs in apps/ios/SoloCompass/Resources/JSON/seed_experiences.json with differentiated solo scores (variance >= 1.5)",
+        "Add SwiftUI #Preview with mock high-variance data",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Tests pass"
       ],
       "priority": 8,
       "passes": false,
@@ -132,15 +136,14 @@
     },
     {
       "id": "US-009",
-      "title": "Return full memo object from POST /api/memos and optimistic queue update",
-      "description": "As a user, I want a newly submitted item to show QUEUED immediately, no refresh needed.",
+      "title": "Integrate SoloScoreRadarChart into ExperienceDetailView",
+      "description": "As a user, I want to see the radar chart in the POI detail sheet, replacing uniform 7.0 progress bars.",
       "acceptanceCriteria": [
-        "POST /api/memos 201 response body includes complete memo: { id, type, content, compile_status: 'queued', created_at }",
-        "Client optimistically prepends the response memo to Compile Queue without refetching",
-        "On 4xx/5xx, revert the optimistic insert and show toast",
-        "Queue item renders QUEUED label immediately based on compile_status",
+        "ExperienceDetailView replaces uniform progress bars with SoloScoreRadarChart",
+        "Falls back to progress bars when variance is low (handled by chart component)",
+        "Layout matches sheet width with 16pt padding",
+        "Tap on radar reveals dimension breakdown tooltip",
         "Typecheck passes",
-        "Tests pass",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 9,
@@ -149,13 +152,13 @@
     },
     {
       "id": "US-010",
-      "title": "Wire SSE compile-status updates to in-place queue item rerender",
-      "description": "As a user, I want queue items to update from QUEUED → COMPILING → DONE in real time.",
+      "title": "Polish navigate/copy button hierarchy in ExperienceDetailView",
+      "description": "As a user, I want the primary navigate button to feel prominent while the copy button stays subtle.",
       "acceptanceCriteria": [
-        "Client subscribes to /api/stream/compile and matches events by memo id",
-        "compile_status transitions update the matching queue item in place",
-        "When status becomes 'done', item moves to Recently Compiled section",
-        "When status becomes 'failed', item shows FAILED badge",
+        "Navigate button uses LinearGradient (accentColor to accentColor.opacity(0.85))",
+        "Navigate icon: SF Symbol 'arrow.triangle.turn.up.right.diamond.fill'",
+        "Copy button restyled as ghost (icon only, no fill, foregroundStyle(.secondary))",
+        "Both buttons set to 44pt minimum height (iOS HIG)",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -165,12 +168,13 @@
     },
     {
       "id": "US-011",
-      "title": "Implement GET /api/memos/[id] endpoint",
-      "description": "As a client, I want to fetch a single memo's full data for the detail page.",
+      "title": "Define ChatUIState enum and state machine",
+      "description": "As a developer, I need a strict state machine for the chat overlay so each state has explicit UI.",
       "acceptanceCriteria": [
-        "GET /api/memos/[id] returns 200 with { id, type, content, compile_status, compiled_at, compiled_payload, created_at, attachments }",
-        "Returns 404 when memo does not exist or belongs to another user",
-        "Returns 401 when unauthenticated",
+        "Create Models/ChatUIState.swift with cases: .idle, .listening, .processing, .responding(String), .error(ChatError), .unconfigured",
+        "Define ChatError enum: .network, .apiKey, .permission, .unknown",
+        "VoiceAgentOrchestrator publishes @Published var uiState: ChatUIState",
+        "Unit tests cover all state transitions",
         "Typecheck passes",
         "Tests pass"
       ],
@@ -180,15 +184,15 @@
     },
     {
       "id": "US-012",
-      "title": "Implement POST /api/memos/[id]/recompile endpoint",
-      "description": "As a user, I want to retry a failed compilation.",
+      "title": "Build state-specific ViewModifiers for chat overlay",
+      "description": "As a user, I want each chat state to look distinct (listening pulse, processing spinner, error card).",
       "acceptanceCriteria": [
-        "POST /api/memos/[id]/recompile re-enqueues the memo, returns 200 with updated memo",
-        "Allowed only when compile_status === 'failed'; returns 409 otherwise",
-        "Rate-limited to once per 5 minutes per memo, returns 429 when limited",
-        "Returns 404 / 401 appropriately",
+        "Create Views/Shared/ChatStateModifier.swift with one ViewModifier per state",
+        "Idle: subtle outline, listening: pulsing ring, processing: spinner, responding: stream cursor, error: red border, unconfigured: amber tint",
+        "Each modifier respects Dynamic Type and reduce-motion",
+        "Add SwiftUI #Preview cycling through all states",
         "Typecheck passes",
-        "Tests pass"
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
       "passes": false,
@@ -196,15 +200,13 @@
     },
     {
       "id": "US-013",
-      "title": "Build minimal /memos/[id] detail page",
-      "description": "As a user, I want a detail page that shows a memo's content, type, status, and compiled payload.",
+      "title": "Add unconfigured-state guidance card with Settings deep link",
+      "description": "As a user without an API key configured, I want a friendly card instead of a raw error key.",
       "acceptanceCriteria": [
-        "New route /memos/[id] as Server Component, fetches via GET /api/memos/[id]",
-        "Renders content with preserved newlines and safe HTML escaping",
-        "Shows type badge, status badge (QUEUED/COMPILING/DONE/FAILED), created_at",
-        "When compile_status === 'done', renders compiled_payload",
-        "Breadcrumb shows 'CODEX / Add / Memo' with back button to /add",
-        "404 page for missing memos, error.tsx for server errors",
+        "When ChatUIState is .unconfigured, render guidance card: title, body, primary button 'Open Settings'",
+        "Tapping primary button navigates to Preferences > AI section",
+        "All strings come from NSLocalizedString (no raw chat.* keys visible)",
+        "Replace any hard-coded 'AI 功能尚未配置' string usage",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -214,12 +216,13 @@
     },
     {
       "id": "US-014",
-      "title": "Subscribe to SSE on detail page for non-terminal statuses",
-      "description": "As a user, I want the detail page to update live while a memo is compiling.",
+      "title": "Audit and fix all unlocalized chat.* string keys",
+      "description": "As a non-English user, I should never see raw NSLocalizedString keys like chat.title or chat.voice.idle in the UI.",
       "acceptanceCriteria": [
-        "When compile_status is 'queued' or 'compiling', subscribe to /api/stream/compile?id=<id>",
-        "Update status badge and compiled_payload in place when event arrives",
-        "Close SSE connection when status becomes 'done' or 'failed' or component unmounts",
+        "grep -rE 'chat\\.[a-z]+\\.[a-z]+' apps/ios/SoloCompass/Resources/en.lproj/ - every key referenced in code must exist",
+        "Add missing keys to en.lproj/Localizable.strings",
+        "Add equivalent keys to zh-Hans.lproj/Localizable.strings (create file if missing)",
+        "Run app and confirm chat overlay shows human-readable text in both locales",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -229,15 +232,16 @@
     },
     {
       "id": "US-015",
-      "title": "Add Retry button on failed memos in detail page",
-      "description": "As a user, I want to retry a failed compilation from the detail page.",
+      "title": "Add localization-key consistency check script",
+      "description": "As a developer, I want CI to catch missing NSLocalizedString keys before they ship.",
       "acceptanceCriteria": [
-        "When compile_status === 'failed', show error message and Retry button",
-        "Retry button calls POST /api/memos/[id]/recompile and refreshes status to QUEUED",
-        "On 429, show toast with cooldown message; on 5xx, show toast",
-        "Button disabled while request is in flight",
+        "Create scripts/check-localization.ts",
+        "Script scans .swift files for NSLocalizedString('...') calls",
+        "Script verifies each key exists in en.lproj/Localizable.strings",
+        "Exit non-zero with list of missing keys",
+        "Add 'localization:check' npm script in root package.json",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Tests pass"
       ],
       "priority": 15,
       "passes": false,
@@ -245,16 +249,17 @@
     },
     {
       "id": "US-016",
-      "title": "Make queue cards navigate to /memos/[id]",
-      "description": "As a user, I want to click a queue card body to open the memo detail page.",
+      "title": "Create VoiceWaveformView with audio-amplitude-driven rendering",
+      "description": "As a voice user, I want a Siri-like waveform that responds to my speaking volume.",
       "acceptanceCriteria": [
-        "Card body uses next/link to /memos/[id] (middle-click opens new tab)",
-        "Right-side LIGHT/FULL toggle and ✕ buttons stopPropagation, do not navigate",
-        "Card has role='link' and is keyboard-focusable; Enter/Space triggers navigation",
-        "Hover/focus visual feedback preserved",
-        "Applies to both Compile Queue and Recently Compiled lists",
+        "Create Views/Shared/VoiceWaveformView.swift",
+        "Subscribes to AVAudioEngine installTap amplitude updates via Combine",
+        "Renders 3 layered gradient ripples using Canvas + TimelineView(.animation)",
+        "Amplitude range 0-1 maps linearly to ripple amplitude 0-40pt",
+        "Maintains 60 FPS on iPhone 12+ (no nested ForEach inside Canvas)",
+        "Add SwiftUI #Preview with mocked amplitude",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Tests pass"
       ],
       "priority": 16,
       "passes": false,
@@ -262,15 +267,13 @@
     },
     {
       "id": "US-017",
-      "title": "Fix URL mode behavior on /add",
-      "description": "As a user, clicking URL should switch to URL input mode, not autofill the current page URL.",
+      "title": "Integrate VoiceWaveformView into chat overlay listening state",
+      "description": "As a user, when I tap-to-talk the chat should show the live waveform behind my transcript.",
       "acceptanceCriteria": [
-        "Click URL button sets mode = 'url', highlights button, changes placeholder to 'Paste a URL (https://...)'",
-        "Textarea content is NOT modified; window.location.href is no longer auto-filled",
-        "Live validation: invalid URL disables Add button and shows 'Enter a valid URL'",
-        "Valid URL shows host preview below input (e.g., 'example.com')",
-        "Toggling off URL mode preserves textarea content",
-        "POST /api/memos body uses { type: 'url', content: <url> }",
+        "When ChatUIState is .listening, render VoiceWaveformView as background",
+        "Waveform fades in over 0.2s when entering listening, out when leaving",
+        "VoiceService publishes amplitude stream consumed by waveform",
+        "Performance regression check: no dropped frames during listening (manual on simulator)",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -280,14 +283,16 @@
     },
     {
       "id": "US-018",
-      "title": "Make Voice button visibly disabled with tooltip",
-      "description": "As a user, I want the Voice button to show clear disabled state with explanation.",
+      "title": "Add City schema and dedupe seed data by geonameId",
+      "description": "As a developer, I need a canonical City type with geonameId so multiple language variants collapse to one row.",
       "acceptanceCriteria": [
-        "Voice button renders with disabled visual style (reduced opacity, not-allowed cursor)",
-        "Hover and keyboard focus show tooltip 'Voice input — coming soon' via aria-describedby",
-        "Click has no side effect (no toast, no state change)",
+        "Add City type in packages/core/src/city.ts with fields: geonameId (number), nameLocal, nameSystem, lat, lon, countryCode",
+        "Update packages/data seed loader to dedupe by geonameId",
+        "Mirror Swift Codable City in apps/ios/SoloCompass/Models/City.swift",
+        "Add unit tests for dedupe logic (input with 3 duplicates returns 1)",
+        "pnpm parity:check passes",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Tests pass"
       ],
       "priority": 18,
       "passes": false,
@@ -295,13 +300,14 @@
     },
     {
       "id": "US-019",
-      "title": "Fix Bookmarklet button — show Modal with script and instructions",
-      "description": "As a user, I want the Bookmarklet button to show a Modal with the drag-to-bookmark link and copy script, not attach an image.",
+      "title": "Create BilingualCityRow component and update CityPickerSheet",
+      "description": "As a user, I want to see each city as 'Local Name System Name' (e.g. '万象 Vientiane') in the picker.",
       "acceptanceCriteria": [
-        "Click Bookmarklet opens a Modal with: drag-to-bookmark anchor <a href='javascript:...'>Save to Codex</a>, instructions, Copy script button, Close button",
-        "Modal does NOT attach IMG_3836.PNG or any placeholder file",
-        "Closing Modal preserves textarea content, mode, and attachments",
-        "Copy script button copies the bookmarklet source via navigator.clipboard",
+        "Create Views/Shared/BilingualCityRow.swift accepting City model",
+        "Layout: local name (headline) + system name (subheadline secondary)",
+        "Right-side detail: distance from current location",
+        "CityPickerSheet rows replaced with BilingualCityRow",
+        "Sort: distance ascending, then alphabetical",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -311,14 +317,15 @@
     },
     {
       "id": "US-020",
-      "title": "Add attachments column to memos schema and migration",
-      "description": "As a developer, I need to store attachment metadata on memos.",
+      "title": "Convert Preferences to InsetGrouped list style with icon rows",
+      "description": "As a user, I want the settings screen to feel like Apple's native Settings app.",
       "acceptanceCriteria": [
-        "Add attachments jsonb column to memos table, default '[]'::jsonb",
-        "Shape: Array<{ url, mime, size, original_name }>",
-        "Generate and run migration successfully",
+        "All Preferences screens use .listStyle(.insetGrouped)",
+        "Each Row has a rounded filled icon (16pt SF Symbol) on the left",
+        "Section Headers use .font(.subheadline.weight(.medium)).foregroundStyle(.secondary)",
+        "Sections: Account, Preferences, AI & Privacy, About",
         "Typecheck passes",
-        "Tests pass"
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 20,
       "passes": false,
@@ -326,15 +333,13 @@
     },
     {
       "id": "US-021",
-      "title": "Extend POST /api/memos to accept multipart/form-data with attachments",
-      "description": "As a client, I want to upload files alongside a memo in a single request.",
+      "title": "Define LLMContext schema in packages/core",
+      "description": "As a developer, I need a typed LLM context schema shared between TS and Swift.",
       "acceptanceCriteria": [
-        "POST /api/memos accepts multipart/form-data while remaining backward-compatible with application/json",
-        "Multipart fields: type, content, files[]",
-        "MIME whitelist: image/jpeg, image/png, image/webp, application/pdf, text/markdown, text/plain, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/rtf",
-        "Size limits: images <=10MB each (max 4), files <=25MB (max 1)",
-        "Upload to existing object storage, write attachments metadata into memo row",
-        "Returns 413 on oversize, 415 on bad MIME, 400 on missing fields",
+        "Create packages/core/src/llm-context.ts with LLMContext type: location, viewportBBox, viewportPois (top 20 ids), preferences, localTime, weather (optional)",
+        "Add Zod schema export for runtime validation",
+        "Add unit tests for schema validation (valid + invalid cases)",
+        "Update scripts/check-swift-parity.ts to include this type",
         "Typecheck passes",
         "Tests pass"
       ],
@@ -344,17 +349,17 @@
     },
     {
       "id": "US-022",
-      "title": "Implement Photo mode on /add",
-      "description": "As a user, clicking Photo opens an image picker and previews selected images.",
+      "title": "Implement ContextManager protocol and DefaultContextManager",
+      "description": "As a developer, I need a Swift-side aggregator that produces the LLMContext snapshot for prompts.",
       "acceptanceCriteria": [
-        "Click Photo triggers hidden <input type='file' accept='image/*' capture='environment'>",
-        "Up to 4 photos per memo; over limit shows 'Up to 4 photos per memo'",
-        "Each image <=10MB; oversize shows 'Image too large (max 10MB)'",
-        "Preview chip above textarea: 64x64 thumbnail + filename + size + ✕ remove",
-        "Submit sends multipart POST /api/memos with type='photo' and files[]",
-        "Removing all photos clears Photo mode highlight",
+        "Create Services/Context/ContextManager.swift with protocol + DefaultContextManager actor",
+        "Aggregates CLLocation, MKMapRect viewport POIs (top 20), UserPreferences, Date, optional WeatherSnapshot",
+        "Outputs LLMContext matching packages/core schema",
+        "snapshot() completes in < 50ms in benchmarks",
+        "Unit tests cover at least 4 scenarios: full context, missing weather, large viewport (>50 POIs trims to 20), no location",
+        "pnpm parity:check passes",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Tests pass"
       ],
       "priority": 22,
       "passes": false,
@@ -362,15 +367,15 @@
     },
     {
       "id": "US-023",
-      "title": "Implement File mode on /add",
-      "description": "As a user, clicking File opens a system file picker for documents.",
+      "title": "Wire ContextManager into VoiceAgentOrchestrator",
+      "description": "As a developer, VoiceAgentOrchestrator should consume ContextManager.snapshot() instead of a bare prompt.",
       "acceptanceCriteria": [
-        "Click File triggers hidden <input type='file' accept='.pdf,.md,.txt,.docx,.rtf'>",
-        "Single file per memo, <=25MB; oversize shows clear error",
-        "Preview chip: file icon + filename + size + ✕ remove",
-        "Submit sends multipart POST /api/memos with type='file'",
+        "VoiceAgentOrchestrator depends on ContextManager via initializer injection",
+        "Each LLM call includes the serialized LLMContext JSON in the system prompt",
+        "Existing voice flow regression-tested manually in Simulator",
+        "Add unit test verifying context payload contains expected keys",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Tests pass"
       ],
       "priority": 23,
       "passes": false,
@@ -378,15 +383,16 @@
     },
     {
       "id": "US-024",
-      "title": "Add drag-and-drop file handling to /add",
-      "description": "As a user, I want to drag files onto the /add page to attach them.",
+      "title": "Scaffold Go backend apps/api with /healthz endpoint",
+      "description": "As a developer, I need a Go service skeleton in apps/api so the RAG pipeline has a home.",
       "acceptanceCriteria": [
-        "Dragging files over the /add page shows a drop overlay",
-        "Dropped images route to Photo mode; dropped documents route to File mode",
-        "Files exceeding limits trigger same error messages as click-to-upload",
-        "Preventing browser default open-file behavior",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create apps/api/ with go.mod, main.go using gin",
+        "Implement GET /healthz returning {\"status\":\"ok\"}",
+        "Add Dockerfile for the service",
+        "Add Makefile target 'api-run' that boots locally on :8080",
+        "Add README.md describing service purpose and env vars",
+        "go test ./... passes",
+        "Typecheck passes"
       ],
       "priority": 24,
       "passes": false,
@@ -394,14 +400,14 @@
     },
     {
       "id": "US-025",
-      "title": "Show attachments on memo detail page and preserve on compile failure",
-      "description": "As a user, I want to see attachments on the detail page and have them survive a failed compilation.",
+      "title": "Add PostgreSQL schema with reviews_extracted table",
+      "description": "As a developer, I need a Postgres table to store extracted review metrics with pgvector embeddings.",
       "acceptanceCriteria": [
-        "/memos/[id] renders attachments list with thumbnails (images) or icons (files) and original_name",
-        "Compile-failure state still shows attachments and 'Compilation failed' message",
-        "Click on attachment opens the file (target='_blank' for files, lightbox for images)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Add apps/api/migrations/0001_reviews_extracted.sql with columns: id, experience_id, source, raw_text, embedding (vector(768)), wifi_score, noise_score, seating_score, staff_score, lighting_score, safety_score, created_at",
+        "Add docker-compose.yml fragment to spin up postgres + pgvector locally",
+        "Add migrate.go helper to apply migrations",
+        "go test passes",
+        "Typecheck passes"
       ],
       "priority": 25,
       "passes": false,
@@ -409,15 +415,16 @@
     },
     {
       "id": "US-026",
-      "title": "Stabilize mode-button rendering performance",
-      "description": "As a user, I want mode buttons to respond within 200ms, with no 30s render hangs.",
+      "title": "Implement reviews fetcher for OpenStreetMap notes",
+      "description": "As a developer, I need a fetcher that pulls review-like notes from OSM as the first data source.",
       "acceptanceCriteria": [
-        "Mode button onClick performs no synchronous blocking work (file pickers and Modals open async)",
-        "Mode highlight state is local useState to avoid full /add re-render",
-        "Add Playwright stress test: 100 random mode-button clicks complete within 30s with no timeout",
-        "React DevTools Profiler: each mode switch commit <=16ms",
-        "Typecheck passes",
-        "Tests pass"
+        "Create apps/api/internal/reviews/fetcher_osm.go",
+        "Fetches OSM notes within a bbox via Overpass API",
+        "Returns []Review with source='osm', raw_text, lat, lon, created_at",
+        "Includes context.Context cancellation + 30s timeout",
+        "Unit tests use a recorded HTTP fixture (no live calls in CI)",
+        "go test passes",
+        "Typecheck passes"
       ],
       "priority": 26,
       "passes": false,
@@ -425,16 +432,16 @@
     },
     {
       "id": "US-027",
-      "title": "Add accessibility polish to /add",
-      "description": "As a keyboard/AT user, I want full keyboard access and accessible labels.",
+      "title": "Implement Claude-API extractor for solo-traveler metrics",
+      "description": "As a developer, I need an extractor that turns raw review text into structured scores via Claude.",
       "acceptanceCriteria": [
-        "Input area hint: '⌘/Ctrl + Enter to submit · Drag & drop files supported'",
-        "All mode buttons are Tab-reachable with visible focus ring",
-        "Attachment ✕ button has aria-label='Remove attachment'",
-        "Queue card supports keyboard navigation (focus + Enter triggers /memos/[id])",
-        "axe-core scan of /add returns 0 critical/serious violations",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create apps/api/internal/reviews/extractor.go using Anthropic Go SDK or HTTP",
+        "Input: raw review text. Output: ExtractedScores struct with wifi/noise/seating/staff/lighting/safety (0-10 floats) + summary string",
+        "Uses Claude prompt with strict JSON output schema (no free text)",
+        "Reads API key from env ANTHROPIC_API_KEY",
+        "Mock-based unit tests (no live API calls)",
+        "go test passes",
+        "Typecheck passes"
       ],
       "priority": 27,
       "passes": false,
@@ -442,17 +449,244 @@
     },
     {
       "id": "US-028",
-      "title": "Add analytics events for /add interactions",
-      "description": "As a PM, I want event tracking on key interactions to validate Success Metrics.",
+      "title": "Expose GET /v1/experiences/:id/solo-score endpoint",
+      "description": "As an iOS client, I need a single endpoint that returns aggregated solo-score dimensions for a POI.",
       "acceptanceCriteria": [
-        "Fire events via existing analytics: add.draft.save, add.draft.restore, add.submit, add.submit.shortcut, add.mode.switch, memo.detail.view, memo.recompile",
-        "add.mode.switch payload includes target mode",
-        "add.submit payload includes type and hasAttachments boolean",
-        "No event fires when action is disabled or no-op",
+        "GET /v1/experiences/:id/solo-score returns JSON with dimensions, sample_count, confidence",
+        "Reads from reviews_extracted aggregated by experience_id (mean per dimension)",
+        "Returns 404 when no rows exist",
+        "Add integration test using testcontainers-go (or in-memory postgres mock)",
+        "go test passes",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Create iOS ReviewsService client with fallback",
+      "description": "As a developer, I need an iOS client that calls the backend solo-score endpoint and falls back to local computation on failure.",
+      "acceptanceCriteria": [
+        "Create Services/ReviewsService.swift with fetchSoloScore(experienceId:) async throws -> SoloScore",
+        "On network/API failure, log and fall back to local packages/core solo-score computation",
+        "ExperienceDetailView uses ReviewsService when available, else local score",
+        "Unit tests cover success path, 404 path, network-error fallback",
         "Typecheck passes",
         "Tests pass"
       ],
-      "priority": 28,
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Define AgentMessage protocol and three Agent stubs",
+      "description": "As a developer, I need typed Agent stubs (Intent/Query/Guide) before wiring routing.",
+      "acceptanceCriteria": [
+        "Create Services/Agents/AgentMessage.swift with AgentMessage, AgentResponse types",
+        "Create IntentAgent.swift, QueryAgent.swift, GuideAgent.swift each with a `handle(_ msg:)` async method",
+        "Each agent returns a deterministic stub for now",
+        "Unit tests verify protocol conformance and stub responses",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Implement IntentAgent with Claude classification prompt",
+      "description": "As a developer, I need IntentAgent to classify user input into FindExperience / ChangeSettings / GetRecommendation / SmallTalk.",
+      "acceptanceCriteria": [
+        "IntentAgent.handle calls Claude with a < 500-token classification prompt",
+        "Returns Intent enum (FindExperience / ChangeSettings / GetRecommendation / SmallTalk) + confidence",
+        "Confidence < 0.6 falls back to SmallTalk",
+        "Unit tests with 4 representative inputs (one per intent) using mocked Claude responses",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Implement QueryAgent with local Core Data / GraphQL query translation",
+      "description": "As a developer, I need QueryAgent to translate natural-language into structured POI filters.",
+      "acceptanceCriteria": [
+        "QueryAgent translates intents like 'quiet cafe for work nearby' into ExperienceFilter struct",
+        "Uses Claude function-calling to extract: category, max_distance_m, openNow, soloScoreMin",
+        "Falls back to keyword match when LLM unavailable",
+        "Unit tests with 3 query scenarios (mocked Claude)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Implement GuideAgent with streaming response",
+      "description": "As a user, the recommendation reply should stream in like ChatGPT and feel warm.",
+      "acceptanceCriteria": [
+        "GuideAgent uses Anthropic streaming (stream: true) via AsyncThrowingStream",
+        "System prompt includes ContextManager snapshot + selected experience(s) from QueryAgent",
+        "First token arrives < 800ms in benchmark (mocked or live)",
+        "Unit tests with mocked stream",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Replace VoiceAgentOrchestrator with AgentRouter",
+      "description": "As a developer, I need to route user input through Intent then Query then Guide agents in sequence.",
+      "acceptanceCriteria": [
+        "Create Services/Agents/AgentRouter.swift",
+        "Router: IntentAgent classifies; if FindExperience or GetRecommendation, QueryAgent finds POIs then GuideAgent generates streamed reply",
+        "Keep old VoiceAgentOrchestrator behind a FeatureFlag 'agentRouterEnabled' (default true; legacy path remains until flag removed)",
+        "E2E test: 3 scripted conversations cover all 4 intents and pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Enable Anthropic prompt caching for context payload",
+      "description": "As a product, I need prompt caching to keep Chat latency low and cost down.",
+      "acceptanceCriteria": [
+        "AgentRouter prompts mark ContextManager snapshot block with cache_control: ephemeral",
+        "Log cache hit/miss in debug builds",
+        "Manual benchmark documents cache hit rate across 5 sequential queries (target >= 60%)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Add Chat first-token-latency performance test",
+      "description": "As a team, we need a CI-friendly benchmark that fails if first-token latency regresses.",
+      "acceptanceCriteria": [
+        "Add SoloCompassTests/PerformanceTests.swift measuring AgentRouter first-token latency with mocked streaming Claude",
+        "Test asserts P95 < 800ms across 20 samples",
+        "Test runs under `xcodebuild test -only-testing:SoloCompassTests/PerformanceTests`",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Add Markdown PKM export to ExperienceDetailView",
+      "description": "As a digital nomad, I want to export a POI as a Markdown note for Notion/Obsidian/Flomo.",
+      "acceptanceCriteria": [
+        "Add 'Export Note' button in ExperienceDetailView toolbar",
+        "Generates Markdown with frontmatter (title, coordinates, date, weather, tags) + body",
+        "Frontmatter is Obsidian Properties compatible (YAML)",
+        "Tapping button presents UIActivityViewController with 3 actions: copy, Notion Web Clipper URL, share sheet",
+        "Unit test verifies generated Markdown for a fixture POI",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Create ThemeService and ObsidianTheme tokens",
+      "description": "As a developer, I need a centralized theme system so we can ship an Obsidian-style dark theme.",
+      "acceptanceCriteria": [
+        "Create Services/ThemeService.swift with @Observable currentTheme property",
+        "Define Themes/Theme.swift protocol (background, accent, secondary, surface colors)",
+        "Implement Themes/SystemTheme.swift (existing look) and Themes/ObsidianTheme.swift (background #0D1117, accent #39FF14)",
+        "Inject theme via @Environment",
+        "Unit tests for switching",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Apply ObsidianTheme to map and detail views with theme picker",
+      "description": "As a hacker-aesthetic user, I want to toggle Obsidian theme and see it apply across map + detail screens.",
+      "acceptanceCriteria": [
+        "Preferences > Appearance section adds theme picker (System / Obsidian)",
+        "CompassMapView background, FAB tint, and POI marker use theme tokens",
+        "ExperienceDetailView surfaces use theme tokens",
+        "POI markers in Obsidian theme render as glowing dot grid (5x5)",
+        "Contrast verified >= 4.5:1 for body text (WCAG AA)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Add offline cache for visited city POIs via Core Data",
+      "description": "As a user in low-connectivity areas, I want previously visited cities' POIs to be available offline.",
+      "acceptanceCriteria": [
+        "Create Services/OfflineCacheService.swift with Core Data store",
+        "On city visit, cache all loaded POIs with TTL 7 days",
+        "Background refresh task updates cache on Wi-Fi when expired",
+        "LRU eviction when total cache > 100MB",
+        "Unit tests for cache hit, expiry, eviction",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Show offline-mode banner in CompassMapView when network unavailable",
+      "description": "As a user, I want a clear indicator when the app is showing cached data due to no network.",
+      "acceptanceCriteria": [
+        "NWPathMonitor publishes connectivity",
+        "When offline AND cached data is being shown, show pill banner: 'Offline mode - showing cached data'",
+        "Banner uses GlassmorphismCapsule + amber tint",
+        "Banner dismisses automatically when connectivity returns",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Produce Edge AI feasibility spike report",
+      "description": "As a team, we need a written evaluation of running a small LLM/embedding model on-device for offline intent classification.",
+      "acceptanceCriteria": [
+        "Create docs/edge-ai-feasibility.md",
+        "Section 1: Apple NaturalLanguage framework - capabilities, accuracy benchmark on 20 sample utterances",
+        "Section 2: Core ML quantized intent classifier - feasibility, model size estimate",
+        "Section 3: MLX framework with nomic-embed-text (~80MB) - performance on iPhone 15 Pro",
+        "Section 4: Recommendation + 3-step adoption roadmap",
+        "No production code required (spike only)",
+        "Typecheck passes"
+      ],
+      "priority": 42,
       "passes": false,
       "notes": ""
     }
