@@ -1,0 +1,57 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [98.9931, 18.7877]
+      },
+      "properties": {
+        "id": 123456,
+        "url": "https://api.openstreetmap.org/api/0.6/notes/123456",
+        "comment_url": "https://api.openstreetmap.org/api/0.6/notes/123456/comment",
+        "close_url": "https://api.openstreetmap.org/api/0.6/notes/123456/close",
+        "date_created": "2024-01-15 08:30:00 UTC",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2024-01-15 08:30:00 UTC",
+            "uid": 9999,
+            "user": "traveler1",
+            "user_url": "https://www.openstreetmap.org/user/traveler1",
+            "action": "opened",
+            "text": "Great cafe for solo work, free wifi and quiet atmosphere",
+            "html": "<p>Great cafe for solo work, free wifi and quiet atmosphere</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [98.9944, 18.7901]
+      },
+      "properties": {
+        "id": 789012,
+        "url": "https://api.openstreetmap.org/api/0.6/notes/789012",
+        "comment_url": "https://api.openstreetmap.org/api/0.6/notes/789012/comment",
+        "close_url": "https://api.openstreetmap.org/api/0.6/notes/789012/close",
+        "date_created": "2024-02-20 14:00:00 UTC",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2024-02-20 14:00:00 UTC",
+            "uid": 8888,
+            "user": "soloexplorer",
+            "user_url": "https://www.openstreetmap.org/user/soloexplorer",
+            "action": "opened",
+            "text": "Nice night market, safe area, lots of seating",
+            "html": "<p>Nice night market, safe area, lots of seating</p>"
+          }
+        ]
+      }
+    }
+  ]
+}
