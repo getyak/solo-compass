@@ -6,3 +6,4 @@ Tool: claude
 [2026-05-20T11:34:52Z] Story #US-002: Create GlassmorphismCapsule reusable component — PASSED
 [2026-05-20T11:36:03Z] Story #US-003: Refactor FilterBarView to floating capsule layout — PASSED
 [2026-05-20T11:38:07Z] Story #US-004: Add scroll-aware hide/show behavior to FilterBarView — PASSED
+[2026-05-20T11:39:40Z] Story #US-005: Apply glassmorphism + haptic feedback to map FABs — PASSED
