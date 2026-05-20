@@ -1,179 +1,693 @@
 {
-  "project": "Solo Compass \u2014 DeepSeek Migration (TS-only stories)",
-  "branchName": "ralph/deepseek-migration",
-  "description": "Migrate the @solo-compass/ai package from Anthropic Claude (claude-opus-4-7) to DeepSeek (deepseek-v4-pro) using OpenAI-compatible JSON mode. Adds resilience (retry/backoff), observability (Sentry + PostHog), and supply-chain hygiene (gitleaks). iOS changes are excluded from this Ralph run \u2014 handled separately. Pre-flight scaffolding (.env.example, .gitignore, packages/ai/package.json, cost-tracker.ts, client.ts) was committed in 0ed511c before this run; these stories pick up from that state. Full design in tasks/prd-deepseek-migration.md.",
+  "project": "Solo Compass Experience & Architecture v1",
+  "branchName": "ralph/experience-architecture-v1",
+  "description": "Solo Compass UI/UX refactor + AI architecture upgrade + Roadmap exploration. Three-phase delivery: (1) Apple-grade UI polish — floating filter capsule, glassmorphism FAB, skeleton screens, radar-chart solo scores, chat state machine, voice waveform, city-picker dedup, InsetGrouped preferences. (2) AI depth — ContextManager protocol, Go RAG pipeline for real-review-based scores, multi-agent orchestration (Intent/Query/Guide). (3) Roadmap — Markdown PKM export, Obsidian dark theme, offline-first cache, Edge AI spike. See tasks/prd-experience-architecture-v1.md.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Rewrite rank-experiences.ts for DeepSeek JSON mode",
-      "description": "As a developer, I need rank-experiences.ts to call DeepSeek via the OpenAI SDK using JSON mode instead of Anthropic tool-use, so the package compiles after the dependency switch.",
+      "title": "Create SharedUI module with SkeletonView component",
+      "description": "As a developer, I need a reusable SkeletonView so multiple screens can show loading placeholders.",
       "acceptanceCriteria": [
-        "Remove `import Anthropic from \"@anthropic-ai/sdk\"` and replace with `import type OpenAI from \"openai\"` plus `import { createDeepseekClient, deepseekModel } from \"../client\"`",
-        "Replace tool-use block with chat.completions.create using response_format: { type: 'json_object' }",
-        "System prompt instructs the model to output ONLY a JSON object {\"ranked\":[{experienceId,score,reason}]} with no markdown fences",
-        "Add defensive fence-stripping helper that handles ```json...``` wrappers before JSON.parse",
-        "Optional `client?` parameter changes type from `Anthropic` to `OpenAI`; default falls back to createDeepseekClient()",
-        "Score clamping (0-100) and id-validation logic preserved exactly",
-        "withCostTracking integration preserved using new OpenAI.CompletionUsage shape",
-        "File no longer references claude-opus-4-7 or any Anthropic types",
-        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+        "Create Views/Shared/SkeletonView.swift with shimmer animation",
+        "Support .redacted(reason: .placeholder) integration",
+        "Configurable line count and width fractions",
+        "Add SwiftUI #Preview demonstrating 3-line text skeleton",
+        "Typecheck passes (xcodebuild build -project apps/ios/SoloCompass.xcodeproj -scheme SoloCompass)",
+        "Tests pass"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Rewrite structure-experience.ts for DeepSeek JSON mode",
-      "description": "As a developer, I need structure-experience.ts to use DeepSeek JSON mode for both extraction and refusal paths, so AI source-compilation works end-to-end on the new provider.",
+      "title": "Create GlassmorphismCapsule reusable component",
+      "description": "As a developer, I need a Capsule component with Material background for floating UI elements.",
       "acceptanceCriteria": [
-        "Remove all `@anthropic-ai/sdk` imports and tool-use schemas (EMIT_EXPERIENCE_TOOL, REFUSE_TOOL)",
-        "System prompt requires the model to output JSON {\"action\":\"emit\"|\"refuse\", ...} with all schema fields described inline as JSON Schema-style guidance",
-        "On action='refuse', return { experience: null, refusalReason, modelConfidence: 0 }",
-        "On action='emit', map JSON fields to the Experience type identically to the previous implementation (id slug, GeoJSON coords, status='candidate', soloScore zeroed)",
-        "Defensive fence-stripping in shared parser",
-        "Optional `client?` parameter is `OpenAI` type",
-        "max_tokens: 2048 (unchanged from Anthropic version)",
-        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+        "Create Views/Shared/GlassmorphismCapsule.swift using .regularMaterial",
+        "Configurable padding and shadow",
+        "Supports trailing/leading content via @ViewBuilder",
+        "Add SwiftUI #Preview",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Update packages/ai index.ts exports for DeepSeek",
-      "description": "As a consumer of @solo-compass/ai, I need access to the new DeepSeek client factory so I can override the default client in tests or in apps that prefer dependency injection.",
+      "title": "Refactor FilterBarView to floating capsule layout",
+      "description": "As a user, I want the top filter bar to feel like a floating capsule so the map gets more vertical space.",
       "acceptanceCriteria": [
-        "Re-export `createDeepseekClient`, `deepseekModel`, `deepseekBaseURL` from `./client`",
-        "Existing exports (rankExperiences, structureExperience, parseIntent, dedup, trackCost, withCostTracking, all *Input/*Result types) remain unchanged",
-        "No remaining `Anthropic` type re-exports",
-        "Typecheck passes (run: pnpm --filter @solo-compass/ai typecheck)"
+        "FilterBarView uses GlassmorphismCapsule wrapper",
+        "Capsule is horizontally centered at top with 16pt side insets",
+        "Background no longer occupies full width as a solid bar",
+        "Existing filter chip behavior preserved (tap to toggle)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (iOS Simulator screenshot via xcrun simctl)"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Rewrite rank-experiences.test.ts to mock OpenAI shape",
-      "description": "As a maintainer, I need the unit tests to mock OpenAI's response shape so anti-hallucination guards continue to run without real API calls.",
+      "title": "Add scroll-aware hide/show behavior to FilterBarView",
+      "description": "As a user, I want the filter capsule to fade and shrink when I pan the map so I can see more of the map.",
       "acceptanceCriteria": [
-        "Replace `import type Anthropic from \"@anthropic-ai/sdk\"` with `import type OpenAI from \"openai\"`",
-        "makeMockClient returns an object shaped like OpenAI client: `{ chat: { completions: { create: vi.fn().mockResolvedValue({ choices: [{ message: { content: <JSON-string> } }], usage: { prompt_tokens, completion_tokens, total_tokens }, model }) } } }`",
-        "Mock JSON content is `JSON.stringify({ ranked: rankedItems })`",
-        "All six existing test cases preserved (id-not-invented, score clamp 100, score clamp 0, max-3-items, empty-input, reason pass-through)",
-        "Test suite passes (run: pnpm --filter @solo-compass/ai test)",
-        "Typecheck passes"
+        "Observe MapCameraPosition changes in CompassMapView",
+        "When camera changes (user pans/zooms), capsule fades to opacity 0.4 and scales to 0.85",
+        "After 1.5s of no camera change, capsule restores to full opacity + scale",
+        "Animation uses .spring(response: 0.35, dampingFraction: 0.8)",
+        "Tap on capsule restores it immediately",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Rewrite structure-experience.test.ts to mock OpenAI shape and delete obsolete __golden__ files",
-      "description": "As a maintainer, I need golden-replay tests rewritten so they mock OpenAI's JSON response (or skipped pending live regeneration), and the now-obsolete Anthropic tool-use golden files removed.",
+      "title": "Apply glassmorphism + haptic feedback to map FABs",
+      "description": "As a user, I want floating action buttons on the map to feel premium with haptic feedback.",
       "acceptanceCriteria": [
-        "Delete `packages/ai/src/__golden__/wikivoyage-chiang-mai-suthep.json`",
-        "Delete `packages/ai/src/__golden__/reddit-coffee-thread.json`",
-        "Delete `packages/ai/src/__golden__/insufficient-blurb.json`",
-        "Add `packages/ai/src/__golden__/README.md` explaining how to regenerate via `LIVE_API=true pnpm --filter @solo-compass/ai test:live` once a real DEEPSEEK_API_KEY is available",
-        "Replace `structure-experience.test.ts` golden-replay tests with mock-based tests that hardcode small synthetic JSON responses inline (covers: emit-success path, refuse path, fence-wrapped response stripping, malformed JSON returns null with refusalReason)",
-        "All assertions remain meaningful (schema validity, GeoJSON order, source-url-not-fabricated, refusal reason non-empty)",
-        "Test suite passes (run: pnpm --filter @solo-compass/ai test)",
-        "Typecheck passes"
+        "All FAB buttons in CompassMapView use .regularMaterial background",
+        "Drop shadow added via .shadow(color: .black.opacity(0.15), radius: 8, y: 4)",
+        "Each FAB triggers UIImpactFeedbackGenerator(style: .soft) on press",
+        "Press animation: .scaleEffect(0.92) with .spring(response: 0.25)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Add retry-with-backoff helper for DeepSeek calls",
-      "description": "As a user with flaky network or hitting DeepSeek rate limits, I need transient errors to be retried automatically so a single 429 or network blip does not break my recommendation request.",
+      "title": "Add camera offset when POI selected to avoid sheet overlap",
+      "description": "As a user, when I tap a pin, the map should pan so the selected pin is not hidden behind the bottom sheet.",
       "acceptanceCriteria": [
-        "Create `packages/ai/src/retry.ts` exporting `withRetry<T>(fn: () => Promise<T>, opts?: { maxAttempts?: number; backoffSecs?: number[]; signal?: AbortSignal }): Promise<T>`",
-        "Defaults: maxAttempts=3, backoffSecs=[0, 2, 6]",
-        "Retries on: network errors (TypeError, fetch errors), 429, 502, 503, 504",
-        "Does NOT retry on: 400, 401, 403, 422 (auth/format errors)",
-        "Each retry waits backoffSecs[attempt-1] seconds; after final attempt, throws the last error",
-        "Wrap the openai.chat.completions.create call in rank-experiences.ts and structure-experience.ts with `withRetry(...)`",
-        "Add unit tests in `packages/ai/src/__tests__/retry.test.ts` covering: success on first try, retry-then-succeed, give-up-after-max, no-retry-on-401",
-        "Use vi.useFakeTimers() to keep tests fast",
+        "When a POI is selected, CompassMapView shifts camera so the pin sits in the top 40% of visible area",
+        "Computation accounts for current sheet height (small/medium/large detent)",
+        "Camera transition uses .smooth animation over 0.35s",
+        "Deselecting returns to user-driven camera",
         "Typecheck passes",
-        "Test suite passes (run: pnpm --filter @solo-compass/ai test)"
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-007",
-      "title": "Initialize Sentry in apps/bot and apps/web entry points",
-      "description": "As a maintainer, I need crash and error reports to flow into Sentry so I can detect production issues without users having to file bugs.",
+      "title": "Remove placeholder copy from ExperienceDetailView Why-worth section",
+      "description": "As a user, I should not see 'we don't have a curated story yet' placeholder text.",
       "acceptanceCriteria": [
-        "apps/bot: at the very top of `src/index.ts`, before any other import, call `Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1, environment: process.env.NODE_ENV ?? 'development' })`. If SENTRY_DSN is empty or missing, skip init silently (do not throw).",
-        "apps/bot: existing `captureException` calls continue to work (they already imported from @sentry/node)",
-        "apps/web: create three sibling files at the project root \u2014 `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` \u2014 each calling `Sentry.init` from `@sentry/nextjs` with appropriate settings. tracesSampleRate=0.1, dsn from env.",
-        "apps/web: update `next.config.ts` to wrap export with `withSentryConfig` from @sentry/nextjs (silent: true to keep build logs clean)",
-        "Add `SENTRY_DSN=` (empty) to `.env.example` under a `# \u2500\u2500\u2500 Sentry (error tracking) \u2500\u2500\u2500` block",
-        "Add `NEXT_PUBLIC_SENTRY_DSN=` to .env.example with note that it is the same value as SENTRY_DSN but exposed to browser bundles",
-        "Both apps build without error when SENTRY_DSN is empty",
-        "Typecheck passes for both apps (run: pnpm --filter @solo-compass/bot typecheck && pnpm --filter @solo-compass/web typecheck)"
+        "ExperienceDetailView hides the Why-worth Section entirely when story is nil/empty",
+        "When loading, shows SkeletonView with 3 placeholder lines",
+        "When loaded with content, renders normally",
+        "No literal placeholder string remains in source",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-008",
-      "title": "Forward AI cost events to PostHog from cost-tracker",
-      "description": "As a maintainer, I want every AI call's cost emitted to PostHog (in addition to stdout) so I can build cost dashboards and alerts without rolling my own log aggregation.",
+      "title": "Create SoloScoreRadarChart component with differentiated demo data",
+      "description": "As a user, I want to see solo score dimensions visualized as a radar chart with real differentiation.",
       "acceptanceCriteria": [
-        "Add `posthog-node` runtime dependency to packages/ai/package.json (^4.0.0)",
-        "In cost-tracker.ts, add a module-scoped lazy-initialized PostHog client that reads `process.env.POSTHOG_API_KEY` and `process.env.POSTHOG_HOST` (default https://app.posthog.com). If POSTHOG_API_KEY is empty, skip and only stdout-log.",
-        "trackCost() calls posthog.capture({ distinctId: 'system', event: 'ai_cost', properties: { route, usd_cents, model, input_tokens, output_tokens, duration_ms } }) \u2014 non-blocking, errors silently swallowed (with console.warn) so AI calls never fail because of PostHog",
-        "Add `POSTHOG_API_KEY=` and `POSTHOG_HOST=https://app.posthog.com` placeholders to .env.example under `# \u2500\u2500\u2500 PostHog (cost telemetry) \u2500\u2500\u2500`",
-        "Add a unit test in packages/ai/src/__tests__/cost-tracker.test.ts: when POSTHOG_API_KEY is unset, no posthog import side-effects occur; when set, capture is called with expected event shape (mock the PostHog class)",
-        "Existing stdout JSON log line continues to be emitted unchanged (other consumers may rely on it)",
+        "Create Views/Shared/SoloScoreRadarChart.swift using Canvas + Path",
+        "Renders 5-6 axes: seating, staff-leave-alone, wifi, noise, safety, lighting",
+        "Each axis labeled with SF Symbol icon",
+        "When dimension variance < 0.5, falls back to highlighted progress bars",
+        "Update at least 3 seed POIs in apps/ios/SoloCompass/Resources/JSON/seed_experiences.json with differentiated solo scores (variance >= 1.5)",
+        "Add SwiftUI #Preview with mock high-variance data",
         "Typecheck passes",
-        "Test suite passes"
+        "Tests pass"
       ],
       "priority": 8,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-009",
-      "title": "Add gitleaks secret-scanning GitHub Action",
-      "description": "As a maintainer, I need every push and PR to be scanned for accidentally committed secrets so a key leak is caught before it merges.",
+      "title": "Integrate SoloScoreRadarChart into ExperienceDetailView",
+      "description": "As a user, I want to see the radar chart in the POI detail sheet, replacing uniform 7.0 progress bars.",
       "acceptanceCriteria": [
-        "Create `.github/workflows/secret-scan.yml` running on push (all branches) and pull_request",
-        "Workflow uses `gitleaks/gitleaks-action@v2` with default config",
-        "Workflow has `permissions: contents: read` only (least privilege)",
-        "Workflow fails (non-zero exit) when leaks are detected",
-        "Add `.gitleaks.toml` at repo root with allowlist entries for: (a) the Mapbox public-token placeholder pattern `pk.eyJ` in .env.example; (b) the Supabase placeholder URL pattern in .env.example; (c) the literal string `sk-replace-me`. The .toml extends gitleaks' default ruleset.",
-        "Add a 'Secret scanning' section to the root README.md describing how to run gitleaks locally (`gitleaks detect --source . --no-git`) and what the .gitleaks.toml allowlist exempts and why",
-        "Workflow runs in under 30 seconds on a typical push"
+        "ExperienceDetailView replaces uniform progress bars with SoloScoreRadarChart",
+        "Falls back to progress bars when variance is low (handled by chart component)",
+        "Layout matches sheet width with 16pt padding",
+        "Tap on radar reveals dimension breakdown tooltip",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 9,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-010",
-      "title": "Inject placeholder .env in iOS CI workflows",
-      "description": "As CI, I need a placeholder .env so the iOS build's generate_secrets.sh step (added in a separate iOS commit) does not fail in environments where real secrets are not (and should not be) available.",
+      "title": "Polish navigate/copy button hierarchy in ExperienceDetailView",
+      "description": "As a user, I want the primary navigate button to feel prominent while the copy button stays subtle.",
       "acceptanceCriteria": [
-        "Edit `.github/workflows/ios-ci.yml`: add a `Create placeholder .env` step that runs BEFORE `xcodegen` and writes a heredoc-style file to repo root with empty DEEPSEEK_API_KEY, default DEEPSEEK_BASE_URL/MODEL, empty SENTRY_DSN, and DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM env",
-        "Edit `.github/workflows/testflight.yml`: same step but populated from `${{ secrets.DEEPSEEK_API_KEY }}`, `${{ secrets.SENTRY_DSN }}`, etc. (these GitHub Secrets are configured manually outside this PR; their absence at run time produces empty values which is acceptable for placeholder behavior)",
-        "Both workflows continue to pass schema-parity \u2192 build \u2192 test pipeline",
-        "ios-ci.yml job named like 'Build iOS app (placeholder secrets)' so reviewers see this is intentional",
-        "No real secrets committed in either workflow file"
+        "Navigate button uses LinearGradient (accentColor to accentColor.opacity(0.85))",
+        "Navigate icon: SF Symbol 'arrow.triangle.turn.up.right.diamond.fill'",
+        "Copy button restyled as ghost (icon only, no fill, foregroundStyle(.secondary))",
+        "Both buttons set to 44pt minimum height (iOS HIG)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 10,
-      "passes": true,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Define ChatUIState enum and state machine",
+      "description": "As a developer, I need a strict state machine for the chat overlay so each state has explicit UI.",
+      "acceptanceCriteria": [
+        "Create Models/ChatUIState.swift with cases: .idle, .listening, .processing, .responding(String), .error(ChatError), .unconfigured",
+        "Define ChatError enum: .network, .apiKey, .permission, .unknown",
+        "VoiceAgentOrchestrator publishes @Published var uiState: ChatUIState",
+        "Unit tests cover all state transitions",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Build state-specific ViewModifiers for chat overlay",
+      "description": "As a user, I want each chat state to look distinct (listening pulse, processing spinner, error card).",
+      "acceptanceCriteria": [
+        "Create Views/Shared/ChatStateModifier.swift with one ViewModifier per state",
+        "Idle: subtle outline, listening: pulsing ring, processing: spinner, responding: stream cursor, error: red border, unconfigured: amber tint",
+        "Each modifier respects Dynamic Type and reduce-motion",
+        "Add SwiftUI #Preview cycling through all states",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Add unconfigured-state guidance card with Settings deep link",
+      "description": "As a user without an API key configured, I want a friendly card instead of a raw error key.",
+      "acceptanceCriteria": [
+        "When ChatUIState is .unconfigured, render guidance card: title, body, primary button 'Open Settings'",
+        "Tapping primary button navigates to Preferences > AI section",
+        "All strings come from NSLocalizedString (no raw chat.* keys visible)",
+        "Replace any hard-coded 'AI 功能尚未配置' string usage",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Audit and fix all unlocalized chat.* string keys",
+      "description": "As a non-English user, I should never see raw NSLocalizedString keys like chat.title or chat.voice.idle in the UI.",
+      "acceptanceCriteria": [
+        "grep -rE 'chat\\.[a-z]+\\.[a-z]+' apps/ios/SoloCompass/Resources/en.lproj/ - every key referenced in code must exist",
+        "Add missing keys to en.lproj/Localizable.strings",
+        "Add equivalent keys to zh-Hans.lproj/Localizable.strings (create file if missing)",
+        "Run app and confirm chat overlay shows human-readable text in both locales",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add localization-key consistency check script",
+      "description": "As a developer, I want CI to catch missing NSLocalizedString keys before they ship.",
+      "acceptanceCriteria": [
+        "Create scripts/check-localization.ts",
+        "Script scans .swift files for NSLocalizedString('...') calls",
+        "Script verifies each key exists in en.lproj/Localizable.strings",
+        "Exit non-zero with list of missing keys",
+        "Add 'localization:check' npm script in root package.json",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Create VoiceWaveformView with audio-amplitude-driven rendering",
+      "description": "As a voice user, I want a Siri-like waveform that responds to my speaking volume.",
+      "acceptanceCriteria": [
+        "Create Views/Shared/VoiceWaveformView.swift",
+        "Subscribes to AVAudioEngine installTap amplitude updates via Combine",
+        "Renders 3 layered gradient ripples using Canvas + TimelineView(.animation)",
+        "Amplitude range 0-1 maps linearly to ripple amplitude 0-40pt",
+        "Maintains 60 FPS on iPhone 12+ (no nested ForEach inside Canvas)",
+        "Add SwiftUI #Preview with mocked amplitude",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Integrate VoiceWaveformView into chat overlay listening state",
+      "description": "As a user, when I tap-to-talk the chat should show the live waveform behind my transcript.",
+      "acceptanceCriteria": [
+        "When ChatUIState is .listening, render VoiceWaveformView as background",
+        "Waveform fades in over 0.2s when entering listening, out when leaving",
+        "VoiceService publishes amplitude stream consumed by waveform",
+        "Performance regression check: no dropped frames during listening (manual on simulator)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Add City schema and dedupe seed data by geonameId",
+      "description": "As a developer, I need a canonical City type with geonameId so multiple language variants collapse to one row.",
+      "acceptanceCriteria": [
+        "Add City type in packages/core/src/city.ts with fields: geonameId (number), nameLocal, nameSystem, lat, lon, countryCode",
+        "Update packages/data seed loader to dedupe by geonameId",
+        "Mirror Swift Codable City in apps/ios/SoloCompass/Models/City.swift",
+        "Add unit tests for dedupe logic (input with 3 duplicates returns 1)",
+        "pnpm parity:check passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Create BilingualCityRow component and update CityPickerSheet",
+      "description": "As a user, I want to see each city as 'Local Name System Name' (e.g. '万象 Vientiane') in the picker.",
+      "acceptanceCriteria": [
+        "Create Views/Shared/BilingualCityRow.swift accepting City model",
+        "Layout: local name (headline) + system name (subheadline secondary)",
+        "Right-side detail: distance from current location",
+        "CityPickerSheet rows replaced with BilingualCityRow",
+        "Sort: distance ascending, then alphabetical",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Convert Preferences to InsetGrouped list style with icon rows",
+      "description": "As a user, I want the settings screen to feel like Apple's native Settings app.",
+      "acceptanceCriteria": [
+        "All Preferences screens use .listStyle(.insetGrouped)",
+        "Each Row has a rounded filled icon (16pt SF Symbol) on the left",
+        "Section Headers use .font(.subheadline.weight(.medium)).foregroundStyle(.secondary)",
+        "Sections: Account, Preferences, AI & Privacy, About",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Define LLMContext schema in packages/core",
+      "description": "As a developer, I need a typed LLM context schema shared between TS and Swift.",
+      "acceptanceCriteria": [
+        "Create packages/core/src/llm-context.ts with LLMContext type: location, viewportBBox, viewportPois (top 20 ids), preferences, localTime, weather (optional)",
+        "Add Zod schema export for runtime validation",
+        "Add unit tests for schema validation (valid + invalid cases)",
+        "Update scripts/check-swift-parity.ts to include this type",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Implement ContextManager protocol and DefaultContextManager",
+      "description": "As a developer, I need a Swift-side aggregator that produces the LLMContext snapshot for prompts.",
+      "acceptanceCriteria": [
+        "Create Services/Context/ContextManager.swift with protocol + DefaultContextManager actor",
+        "Aggregates CLLocation, MKMapRect viewport POIs (top 20), UserPreferences, Date, optional WeatherSnapshot",
+        "Outputs LLMContext matching packages/core schema",
+        "snapshot() completes in < 50ms in benchmarks",
+        "Unit tests cover at least 4 scenarios: full context, missing weather, large viewport (>50 POIs trims to 20), no location",
+        "pnpm parity:check passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Wire ContextManager into VoiceAgentOrchestrator",
+      "description": "As a developer, VoiceAgentOrchestrator should consume ContextManager.snapshot() instead of a bare prompt.",
+      "acceptanceCriteria": [
+        "VoiceAgentOrchestrator depends on ContextManager via initializer injection",
+        "Each LLM call includes the serialized LLMContext JSON in the system prompt",
+        "Existing voice flow regression-tested manually in Simulator",
+        "Add unit test verifying context payload contains expected keys",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Scaffold Go backend apps/api with /healthz endpoint",
+      "description": "As a developer, I need a Go service skeleton in apps/api so the RAG pipeline has a home.",
+      "acceptanceCriteria": [
+        "Create apps/api/ with go.mod, main.go using gin",
+        "Implement GET /healthz returning {\"status\":\"ok\"}",
+        "Add Dockerfile for the service",
+        "Add Makefile target 'api-run' that boots locally on :8080",
+        "Add README.md describing service purpose and env vars",
+        "go test ./... passes",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Add PostgreSQL schema with reviews_extracted table",
+      "description": "As a developer, I need a Postgres table to store extracted review metrics with pgvector embeddings.",
+      "acceptanceCriteria": [
+        "Add apps/api/migrations/0001_reviews_extracted.sql with columns: id, experience_id, source, raw_text, embedding (vector(768)), wifi_score, noise_score, seating_score, staff_score, lighting_score, safety_score, created_at",
+        "Add docker-compose.yml fragment to spin up postgres + pgvector locally",
+        "Add migrate.go helper to apply migrations",
+        "go test passes",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Implement reviews fetcher for OpenStreetMap notes",
+      "description": "As a developer, I need a fetcher that pulls review-like notes from OSM as the first data source.",
+      "acceptanceCriteria": [
+        "Create apps/api/internal/reviews/fetcher_osm.go",
+        "Fetches OSM notes within a bbox via Overpass API",
+        "Returns []Review with source='osm', raw_text, lat, lon, created_at",
+        "Includes context.Context cancellation + 30s timeout",
+        "Unit tests use a recorded HTTP fixture (no live calls in CI)",
+        "go test passes",
+        "Typecheck passes"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Implement Claude-API extractor for solo-traveler metrics",
+      "description": "As a developer, I need an extractor that turns raw review text into structured scores via Claude.",
+      "acceptanceCriteria": [
+        "Create apps/api/internal/reviews/extractor.go using Anthropic Go SDK or HTTP",
+        "Input: raw review text. Output: ExtractedScores struct with wifi/noise/seating/staff/lighting/safety (0-10 floats) + summary string",
+        "Uses Claude prompt with strict JSON output schema (no free text)",
+        "Reads API key from env ANTHROPIC_API_KEY",
+        "Mock-based unit tests (no live API calls)",
+        "go test passes",
+        "Typecheck passes"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Expose GET /v1/experiences/:id/solo-score endpoint",
+      "description": "As an iOS client, I need a single endpoint that returns aggregated solo-score dimensions for a POI.",
+      "acceptanceCriteria": [
+        "GET /v1/experiences/:id/solo-score returns JSON with dimensions, sample_count, confidence",
+        "Reads from reviews_extracted aggregated by experience_id (mean per dimension)",
+        "Returns 404 when no rows exist",
+        "Add integration test using testcontainers-go (or in-memory postgres mock)",
+        "go test passes",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Create iOS ReviewsService client with fallback",
+      "description": "As a developer, I need an iOS client that calls the backend solo-score endpoint and falls back to local computation on failure.",
+      "acceptanceCriteria": [
+        "Create Services/ReviewsService.swift with fetchSoloScore(experienceId:) async throws -> SoloScore",
+        "On network/API failure, log and fall back to local packages/core solo-score computation",
+        "ExperienceDetailView uses ReviewsService when available, else local score",
+        "Unit tests cover success path, 404 path, network-error fallback",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Define AgentMessage protocol and three Agent stubs",
+      "description": "As a developer, I need typed Agent stubs (Intent/Query/Guide) before wiring routing.",
+      "acceptanceCriteria": [
+        "Create Services/Agents/AgentMessage.swift with AgentMessage, AgentResponse types",
+        "Create IntentAgent.swift, QueryAgent.swift, GuideAgent.swift each with a `handle(_ msg:)` async method",
+        "Each agent returns a deterministic stub for now",
+        "Unit tests verify protocol conformance and stub responses",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Implement IntentAgent with Claude classification prompt",
+      "description": "As a developer, I need IntentAgent to classify user input into FindExperience / ChangeSettings / GetRecommendation / SmallTalk.",
+      "acceptanceCriteria": [
+        "IntentAgent.handle calls Claude with a < 500-token classification prompt",
+        "Returns Intent enum (FindExperience / ChangeSettings / GetRecommendation / SmallTalk) + confidence",
+        "Confidence < 0.6 falls back to SmallTalk",
+        "Unit tests with 4 representative inputs (one per intent) using mocked Claude responses",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Implement QueryAgent with local Core Data / GraphQL query translation",
+      "description": "As a developer, I need QueryAgent to translate natural-language into structured POI filters.",
+      "acceptanceCriteria": [
+        "QueryAgent translates intents like 'quiet cafe for work nearby' into ExperienceFilter struct",
+        "Uses Claude function-calling to extract: category, max_distance_m, openNow, soloScoreMin",
+        "Falls back to keyword match when LLM unavailable",
+        "Unit tests with 3 query scenarios (mocked Claude)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Implement GuideAgent with streaming response",
+      "description": "As a user, the recommendation reply should stream in like ChatGPT and feel warm.",
+      "acceptanceCriteria": [
+        "GuideAgent uses Anthropic streaming (stream: true) via AsyncThrowingStream",
+        "System prompt includes ContextManager snapshot + selected experience(s) from QueryAgent",
+        "First token arrives < 800ms in benchmark (mocked or live)",
+        "Unit tests with mocked stream",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Replace VoiceAgentOrchestrator with AgentRouter",
+      "description": "As a developer, I need to route user input through Intent then Query then Guide agents in sequence.",
+      "acceptanceCriteria": [
+        "Create Services/Agents/AgentRouter.swift",
+        "Router: IntentAgent classifies; if FindExperience or GetRecommendation, QueryAgent finds POIs then GuideAgent generates streamed reply",
+        "Keep old VoiceAgentOrchestrator behind a FeatureFlag 'agentRouterEnabled' (default true; legacy path remains until flag removed)",
+        "E2E test: 3 scripted conversations cover all 4 intents and pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Enable Anthropic prompt caching for context payload",
+      "description": "As a product, I need prompt caching to keep Chat latency low and cost down.",
+      "acceptanceCriteria": [
+        "AgentRouter prompts mark ContextManager snapshot block with cache_control: ephemeral",
+        "Log cache hit/miss in debug builds",
+        "Manual benchmark documents cache hit rate across 5 sequential queries (target >= 60%)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Add Chat first-token-latency performance test",
+      "description": "As a team, we need a CI-friendly benchmark that fails if first-token latency regresses.",
+      "acceptanceCriteria": [
+        "Add SoloCompassTests/PerformanceTests.swift measuring AgentRouter first-token latency with mocked streaming Claude",
+        "Test asserts P95 < 800ms across 20 samples",
+        "Test runs under `xcodebuild test -only-testing:SoloCompassTests/PerformanceTests`",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Add Markdown PKM export to ExperienceDetailView",
+      "description": "As a digital nomad, I want to export a POI as a Markdown note for Notion/Obsidian/Flomo.",
+      "acceptanceCriteria": [
+        "Add 'Export Note' button in ExperienceDetailView toolbar",
+        "Generates Markdown with frontmatter (title, coordinates, date, weather, tags) + body",
+        "Frontmatter is Obsidian Properties compatible (YAML)",
+        "Tapping button presents UIActivityViewController with 3 actions: copy, Notion Web Clipper URL, share sheet",
+        "Unit test verifies generated Markdown for a fixture POI",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Create ThemeService and ObsidianTheme tokens",
+      "description": "As a developer, I need a centralized theme system so we can ship an Obsidian-style dark theme.",
+      "acceptanceCriteria": [
+        "Create Services/ThemeService.swift with @Observable currentTheme property",
+        "Define Themes/Theme.swift protocol (background, accent, secondary, surface colors)",
+        "Implement Themes/SystemTheme.swift (existing look) and Themes/ObsidianTheme.swift (background #0D1117, accent #39FF14)",
+        "Inject theme via @Environment",
+        "Unit tests for switching",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Apply ObsidianTheme to map and detail views with theme picker",
+      "description": "As a hacker-aesthetic user, I want to toggle Obsidian theme and see it apply across map + detail screens.",
+      "acceptanceCriteria": [
+        "Preferences > Appearance section adds theme picker (System / Obsidian)",
+        "CompassMapView background, FAB tint, and POI marker use theme tokens",
+        "ExperienceDetailView surfaces use theme tokens",
+        "POI markers in Obsidian theme render as glowing dot grid (5x5)",
+        "Contrast verified >= 4.5:1 for body text (WCAG AA)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Add offline cache for visited city POIs via Core Data",
+      "description": "As a user in low-connectivity areas, I want previously visited cities' POIs to be available offline.",
+      "acceptanceCriteria": [
+        "Create Services/OfflineCacheService.swift with Core Data store",
+        "On city visit, cache all loaded POIs with TTL 7 days",
+        "Background refresh task updates cache on Wi-Fi when expired",
+        "LRU eviction when total cache > 100MB",
+        "Unit tests for cache hit, expiry, eviction",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Show offline-mode banner in CompassMapView when network unavailable",
+      "description": "As a user, I want a clear indicator when the app is showing cached data due to no network.",
+      "acceptanceCriteria": [
+        "NWPathMonitor publishes connectivity",
+        "When offline AND cached data is being shown, show pill banner: 'Offline mode - showing cached data'",
+        "Banner uses GlassmorphismCapsule + amber tint",
+        "Banner dismisses automatically when connectivity returns",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Produce Edge AI feasibility spike report",
+      "description": "As a team, we need a written evaluation of running a small LLM/embedding model on-device for offline intent classification.",
+      "acceptanceCriteria": [
+        "Create docs/edge-ai-feasibility.md",
+        "Section 1: Apple NaturalLanguage framework - capabilities, accuracy benchmark on 20 sample utterances",
+        "Section 2: Core ML quantized intent classifier - feasibility, model size estimate",
+        "Section 3: MLX framework with nomic-embed-text (~80MB) - performance on iPhone 15 Pro",
+        "Section 4: Recommendation + 3-step adoption roadmap",
+        "No production code required (spike only)",
+        "Typecheck passes"
+      ],
+      "priority": 42,
+      "passes": false,
       "notes": ""
     }
   ]

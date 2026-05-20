@@ -50,7 +50,6 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "═══════════════════════════════════════════════════════════"
 
   # Guard: ensure we're on the correct branch (Claude Code may have switched it)
-  TARGET_BRANCH=$(python3 -c "import json; f=open('$PRD_FILE'); print(json.load(f).get('branchName','main'))")
   CURRENT_BRANCH=$(git branch --show-current)
   if [ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]; then
     echo "   ⚠️ Branch drift: on $CURRENT_BRANCH, expected $TARGET_BRANCH — switching back"
@@ -95,26 +94,25 @@ else:
   echo "   Acceptance: $STORY_ACCEPT"
 
   # Build the Claude Code prompt
-  PROMPT="You are implementing a SINGLE user story for the Solo Compass DeepSeek Migration (TS-only stories).
+  PROMPT="You are implementing a SINGLE user story for the Solo Compass Experience & Architecture v1 PRD.
 
-PROJECT: Solo Compass (独行罗盘) — living map for solo travelers
-This PRD: DeepSeek Migration — migrating packages/ai/ from Anthropic Claude to DeepSeek via OpenAI-compatible SDK.
-Working directory: packages/ai/ (TypeScript), packages/core/ (shared types)
-Tech: TypeScript strict, pnpm monorepo, OpenAI SDK, DeepSeek API
-Monorepo structure: apps/ (web, bot, ios), packages/ (core, ai, data)
+PROJECT: Solo Compass (独行罗盘) — map-first companion app for solo travelers.
+Current PRD: UI/UX refactor + AI architecture upgrade + roadmap exploration, sourced from tasks/prd-experience-architecture-v1.md.
+Tech stack: pnpm monorepo; iOS app under apps/ios/SoloCompass (SwiftUI + MapKit, XcodeGen); web/bot/packages in TypeScript strict.
+Read CLAUDE.md first for project conventions. Choose the relevant target from the story acceptance criteria.
 
 ⚠️ CRITICAL: You are working on branch '$TARGET_BRANCH'. NEVER run git checkout, git switch, git branch, or any command that changes the current branch. NEVER push or pull. Only git add and git commit.
 
 STORY #$STORY_ID: $STORY_NAME
 DESCRIPTION: $STORY_DESC
-ACCEPTANCE CRITERIA: $STORY_ACCEPT
+ACCEPTANCE CRITERIA:
+$STORY_ACCEPT
 
-Read the CLAUDE.md for project conventions. Read existing TypeScript files to understand the codebase.
-Implement ONLY this story. Do NOT touch unrelated code.
+Implement ONLY this story. Do NOT touch unrelated code. Keep changes focused and preserve existing behavior.
 After implementing:
-1. Run typecheck: pnpm typecheck
-2. Run format: pnpm format
-3. Run tests: pnpm test
+1. For iOS stories: cd apps/ios && xcodegen if project.yml changes, then xcodebuild build -project SoloCompass.xcodeproj -scheme SoloCompass -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' when practical
+2. For TypeScript stories: pnpm typecheck and relevant tests
+3. Run formatting according to existing project scripts when practical
 4. Print a summary of what you changed
 5. The acceptance criteria must be satisfied"
 
