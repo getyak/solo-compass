@@ -51,6 +51,7 @@
 		BD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */; };
 		C21906307DCC96E5B2583BFE /* CompassMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA6A3144D85CDAD01FA0FECB /* CompassMapView.swift */; };
 		C220FEC091B645D82519465E /* VoiceAgentSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112319E8315F5F6961C95264 /* VoiceAgentSession.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* VoiceAgentOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E1D0C9B8A7968574635241 /* VoiceAgentOrchestrator.swift */; };
 		C2C0AF72D709EDC17C6ED874 /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = F63FDD874A8F533F0717132A /* UserPreferences.swift */; };
 		C306F7501DA85110BE3C85B5 /* NavigationLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07ACA7C1A1574A244E73796 /* NavigationLauncher.swift */; };
 		C53DB60CA9E95907A2CBF2C0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C215AE07BA32182A887226F9 /* NotificationService.swift */; };
@@ -96,6 +97,7 @@
 		13350B81187FB64B252B8A46 /* BottomInfoBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomInfoBar.swift; sourceTree = "<group>"; };
 		1FA8C8BF234F3C74D0D8A9BD /* SecretsRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsRuntime.swift; sourceTree = "<group>"; };
 		20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgentToolRouter.swift; sourceTree = "<group>"; };
+		F2E1D0C9B8A7968574635241 /* VoiceAgentOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgentOrchestrator.swift; sourceTree = "<group>"; };
 		23043E51C493093CF7244629 /* MicroSurveyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroSurveyRecord.swift; sourceTree = "<group>"; };
 		2BCB9264712588AB26CB1337 /* ConversationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSheet.swift; sourceTree = "<group>"; };
 		2C7919EAFDE363B49C4B4C47 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
@@ -315,6 +317,7 @@
 				6163572F4644BF852B35FDA4 /* SyncService.swift */,
 				112319E8315F5F6961C95264 /* VoiceAgentSession.swift */,
 				20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */,
+				F2E1D0C9B8A7968574635241 /* VoiceAgentOrchestrator.swift */,
 				120FC7465285714C5FA8F96D /* VoiceService.swift */,
 			);
 			path = Services;
@@ -611,6 +614,7 @@
 				C2C0AF72D709EDC17C6ED874 /* UserPreferences.swift in Sources */,
 				C220FEC091B645D82519465E /* VoiceAgentSession.swift in Sources */,
 				54952646C79E8F29AF89F4D6 /* VoiceAgentToolRouter.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* VoiceAgentOrchestrator.swift in Sources */,
 				BD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */,
 				F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */,
 			);
