@@ -28,33 +28,34 @@ public struct FilterBarView: View {
     ]
 
     public var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                pill(
-                    label: NSLocalizedString("filter.now", comment: "Now"),
-                    isSelected: isNowSelected,
-                    color: Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255),
-                    action: onSelectNow
-                )
-                pill(
-                    label: NSLocalizedString("filter.all", comment: "All"),
-                    isSelected: !isNowSelected && selectedCategory == nil,
-                    color: Color.primary,
-                    action: onSelectAll
-                )
-                ForEach(Self.visibleCategories) { category in
-                    iconPill(
-                        category: category,
-                        isSelected: selectedCategory == category,
-                        action: { onSelectCategory(category) }
+        GlassmorphismCapsule(horizontalPadding: 0, verticalPadding: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    pill(
+                        label: NSLocalizedString("filter.now", comment: "Now"),
+                        isSelected: isNowSelected,
+                        color: Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255),
+                        action: onSelectNow
                     )
+                    pill(
+                        label: NSLocalizedString("filter.all", comment: "All"),
+                        isSelected: !isNowSelected && selectedCategory == nil,
+                        color: Color.primary,
+                        action: onSelectAll
+                    )
+                    ForEach(Self.visibleCategories) { category in
+                        iconPill(
+                            category: category,
+                            isSelected: selectedCategory == category,
+                            action: { onSelectCategory(category) }
+                        )
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
         }
-        .background(.ultraThinMaterial, in: Capsule())
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .animation(.easeInOut(duration: 0.2), value: selectedCategory)
         .animation(.easeInOut(duration: 0.2), value: isNowSelected)
     }
