@@ -56,7 +56,7 @@ public struct VoiceAgentOverlay: View {
                     } label: {
                         Text(NSLocalizedString("common.settings", comment: "Settings"))
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.accentColor)
+                            .foregroundStyle(.tint)
                     }
                 }
                 .padding(.horizontal, 14)

@@ -235,7 +235,7 @@ public final class MapViewModel {
     public var isProcessingVoiceIntent: Bool = false
     public var currentVoiceTranscript: String = ""
     /// Ephemeral toast shown after voice AI resolves. Nil when not active.
-    public var voiceResultToast: String? = nil
+    public var voiceResultToast: String?
 
     // MARK: - Settings
 
