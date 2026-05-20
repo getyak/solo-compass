@@ -1,7 +1,7 @@
 {
   "project": "Solo Compass Experience & Architecture v1",
   "branchName": "ralph/experience-architecture-v1",
-  "description": "Solo Compass UI/UX refactor + AI architecture upgrade + Roadmap exploration. Three-phase delivery: (1) Apple-grade UI polish — floating filter capsule, glassmorphism FAB, skeleton screens, radar-chart solo scores, chat state machine, voice waveform, city-picker dedup, InsetGrouped preferences. (2) AI depth — ContextManager protocol, Go RAG pipeline for real-review-based scores, multi-agent orchestration (Intent/Query/Guide). (3) Roadmap — Markdown PKM export, Obsidian dark theme, offline-first cache, Edge AI spike. See tasks/prd-experience-architecture-v1.md.",
+  "description": "Solo Compass UI/UX refactor + AI architecture upgrade + Roadmap exploration. Three-phase delivery: (1) Apple-grade UI polish \u2014 floating filter capsule, glassmorphism FAB, skeleton screens, radar-chart solo scores, chat state machine, voice waveform, city-picker dedup, InsetGrouped preferences. (2) AI depth \u2014 ContextManager protocol, Go RAG pipeline for real-review-based scores, multi-agent orchestration (Intent/Query/Guide). (3) Roadmap \u2014 Markdown PKM export, Obsidian dark theme, offline-first cache, Edge AI spike. See tasks/prd-experience-architecture-v1.md.",
   "userStories": [
     {
       "id": "US-001",
@@ -206,7 +206,7 @@
         "When ChatUIState is .unconfigured, render guidance card: title, body, primary button 'Open Settings'",
         "Tapping primary button navigates to Preferences > AI section",
         "All strings come from NSLocalizedString (no raw chat.* keys visible)",
-        "Replace any hard-coded 'AI 功能尚未配置' string usage",
+        "Replace any hard-coded 'AI \u529f\u80fd\u5c1a\u672a\u914d\u7f6e' string usage",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -301,7 +301,7 @@
     {
       "id": "US-019",
       "title": "Create BilingualCityRow component and update CityPickerSheet",
-      "description": "As a user, I want to see each city as 'Local Name System Name' (e.g. '万象 Vientiane') in the picker.",
+      "description": "As a user, I want to see each city as 'Local Name System Name' (e.g. '\u4e07\u8c61 Vientiane') in the picker.",
       "acceptanceCriteria": [
         "Create Views/Shared/BilingualCityRow.swift accepting City model",
         "Layout: local name (headline) + system name (subheadline secondary)",
@@ -345,7 +345,7 @@
       ],
       "priority": 21,
       "passes": true,
-      "notes": "Implemented without Zod (not installed in monorepo) — custom validateLLMContext() provides same runtime guarantees. 12 tests pass."
+      "notes": "Implemented without Zod (not installed in monorepo) \u2014 custom validateLLMContext() provides same runtime guarantees. 12 tests pass."
     },
     {
       "id": "US-022",
@@ -379,7 +379,7 @@
       ],
       "priority": 23,
       "passes": true,
-      "notes": "VoiceAgentOrchestrator already contained full integration (initializer injection + buildSystemPrompt context block) from partial commit. Protocol now resolves — no new Swift changes needed. Unit test testContextManagerSnapshotContainsExpectedKeys validates JSON payload keys."
+      "notes": "VoiceAgentOrchestrator already contained full integration (initializer injection + buildSystemPrompt context block) from partial commit. Protocol now resolves \u2014 no new Swift changes needed. Unit test testContextManagerSnapshotContainsExpectedKeys validates JSON payload keys."
     },
     {
       "id": "US-024",
@@ -410,7 +410,7 @@
         "Typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
