@@ -17,10 +17,12 @@ public final class ExperienceDetailViewModel {
     public var isLoadingWhyItMatters: Bool = false
     public var nearbyExperiences: [Experience] = []
     public var visitCount: Int
+    var remoteSoloScore: SoloScore?
 
     private let experienceService: ExperienceService
     private let aiService: AIService
     private let preferences: UserPreferences
+    private let reviewsService: ReviewsService
     private weak var subscriptionService: SubscriptionService?
 
     /// True when the entitlement grants AI access. Defaults to true when no
@@ -34,24 +36,25 @@ public final class ExperienceDetailViewModel {
         experienceService: ExperienceService,
         aiService: AIService,
         preferences: UserPreferences,
-        subscriptionService: SubscriptionService? = nil
+        subscriptionService: SubscriptionService? = nil,
+        reviewsService: ReviewsService = .shared
     ) {
         self.experience = experience
         self.experienceService = experienceService
         self.aiService = aiService
         self.preferences = preferences
         self.subscriptionService = subscriptionService
+        self.reviewsService = reviewsService
         self.isCompleted = preferences.isCompleted(experience.id)
         self.isFavorited = preferences.isFavorited(experience.id)
         self.visitCount = experience.stats.completionCount
         loadNearby()
     }
 
-    /// Returns the best available SoloScore for display: aggregated from local
-    /// survey responses when any exist, otherwise the seed/AI value.
-    /// The aggregation blends the original overall (50%) with local survey mean
-    /// (50%) plus a +0.5 recommend boost when ≥50% said "yes".
+    /// Returns the best available SoloScore for display.
+    /// Priority: remote backend score > local survey aggregation > seed/AI value.
     public var displaySoloScore: SoloScore {
+        if let remote = remoteSoloScore { return remote }
         let repo = experienceService.repo
         guard let agg = repo.aggregatedSoloScore(
             experienceId: experience.id,
@@ -64,6 +67,15 @@ public final class ExperienceDetailViewModel {
             breakdown: experience.soloScore.breakdown,
             hint: experience.soloScore.hint,
             basedOnCount: agg.count
+        )
+    }
+
+    /// Loads the solo score from the backend, falling back to local on any error.
+    public func loadRemoteSoloScore() async {
+        let local = displaySoloScore
+        remoteSoloScore = try? await reviewsService.fetchSoloScore(
+            experienceId: experience.id,
+            fallback: local
         )
     }
 

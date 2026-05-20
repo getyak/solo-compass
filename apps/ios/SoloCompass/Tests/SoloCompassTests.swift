@@ -2811,6 +2811,18 @@ final class StubURLProtocol: URLProtocol {
     }
 }
 
+// MARK: - FailingURLProtocol (US-029)
+
+/// Always fails with a network error — used to simulate connectivity loss.
+final class FailingURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+    }
+    override func stopLoading() {}
+}
+
 // MARK: - ReverseGeocoding stub
 
 /// Deterministic geocoder for unit tests. Returns a fixed `Resolved`
@@ -3277,5 +3289,79 @@ final class LanguageServiceTests: XCTestCase {
         XCTAssertNotNil(parsed["viewportPois"], "payload must contain viewportPois key")
         XCTAssertNotNil(parsed["preferences"], "payload must contain preferences key")
         XCTAssertNotNil(parsed["localTime"], "payload must contain localTime key")
+    }
+
+    // MARK: - US-029 ReviewsService
+
+    private func makeReviewsService(
+        status: Int,
+        body: String
+    ) -> ReviewsService {
+        StubURLProtocol.handler = { _ in
+            let resp = HTTPURLResponse(
+                url: URL(string: "http://localhost:8080")!,
+                statusCode: status,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (resp, Data(body.utf8))
+        }
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        return ReviewsService(
+            session: URLSession(configuration: config),
+            baseURL: URL(string: "http://localhost:8080")!
+        )
+    }
+
+    @MainActor
+    func testReviewsServiceSuccessPath() async throws {
+        let body = """
+        {"experience_id":"exp-1","dimensions":{"wifi":8.0,"noise":7.0,"seating":9.0,"staff":6.5,"lighting":7.5,"safety":8.5},"sample_count":10,"confidence":0.8}
+        """
+        let service = makeReviewsService(status: 200, body: body)
+        let score = try await service.fetchSoloScore(experienceId: "exp-1")
+        XCTAssertEqual(score.basedOnCount, 10)
+        XCTAssertGreaterThan(score.overall, 0)
+        XCTAssertLessThanOrEqual(score.overall, 10)
+    }
+
+    @MainActor
+    func testReviewsService404ReturnsFallback() async throws {
+        let service = makeReviewsService(status: 404, body: #"{"error":"no reviews found"}"#)
+        let fallback = ExperienceService.hardcodedSeed.first!.soloScore
+        let score = try await service.fetchSoloScore(experienceId: "exp-missing", fallback: fallback)
+        XCTAssertEqual(score.overall, fallback.overall, accuracy: 0.001,
+                       "404 path must return the fallback score")
+    }
+
+    @MainActor
+    func testReviewsServiceNetworkErrorReturnsFallback() async throws {
+        StubURLProtocol.handler = { _ in
+            fatalError("should not be called — we use a different error path")
+        }
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [FailingURLProtocol.self]
+        let service = ReviewsService(
+            session: URLSession(configuration: config),
+            baseURL: URL(string: "http://localhost:8080")!
+        )
+        let fallback = ExperienceService.hardcodedSeed.first!.soloScore
+        let score = try await service.fetchSoloScore(experienceId: "exp-net-fail", fallback: fallback)
+        XCTAssertEqual(score.overall, fallback.overall, accuracy: 0.001,
+                       "network error must return the fallback score")
+    }
+
+    @MainActor
+    func testReviewsService404ThrowsWhenNoFallback() async {
+        let service = makeReviewsService(status: 404, body: #"{"error":"no reviews found"}"#)
+        do {
+            _ = try await service.fetchSoloScore(experienceId: "exp-ghost")
+            XCTFail("expected ReviewsServiceError.notFound")
+        } catch ReviewsServiceError.notFound {
+            // pass
+        } catch {
+            XCTFail("unexpected error type: \(error)")
+        }
     }
 }

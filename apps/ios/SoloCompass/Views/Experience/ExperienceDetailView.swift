@@ -91,7 +91,10 @@ public struct ExperienceDetailView: View {
                 onCancel: { isShowingReport = false }
             )
         }
-        .task { await viewModel.loadAIExplanation() }
+        .task {
+            await viewModel.loadAIExplanation()
+            await viewModel.loadRemoteSoloScore()
+        }
     }
 
     // MARK: - Hero
