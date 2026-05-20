@@ -1,6 +1,7 @@
+import AVFoundation
+import CoreLocation
 import Foundation
 import Observation
-import CoreLocation
 
 /// Drives one VoiceAgentSession through the think → tool_execute → repeat loop.
 ///
@@ -36,6 +37,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
     public private(set) var isExecutingTool: Bool = false
 
     private var turnTask: Task<Void, Never>?
+    private let synthesizer = AVSpeechSynthesizer()
 
     public init(
         aiService: AIService,
@@ -89,9 +91,20 @@ public final class VoiceAgentOrchestrator: Identifiable {
         streamingContent = ""
         thinkingStep = ""
         isExecutingTool = false
+        synthesizer.stopSpeaking(at: .immediate)
         if !session.isEnded {
             session.end(reason: .userClose)
         }
+    }
+
+    /// Speak the agent's final text response via AVSpeechSynthesizer.
+    public func speakResponse(_ text: String) {
+        guard !text.isEmpty else { return }
+        synthesizer.stopSpeaking(at: .immediate)
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.rate = 0.52
+        utterance.pitchMultiplier = 1.05
+        synthesizer.speak(utterance)
     }
 
     // MARK: - Turn loop
@@ -120,9 +133,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     streamingContent = ""
                     shouldContinue = true
                 } else {
+                    let finalText = streamingContent
                     session.finishSpeakingTurn()
                     thinkingStep = ""
                     shouldContinue = false
+                    speakResponse(finalText)
                 }
 
                 if Date().timeIntervalSince(turnStart) > VoiceAgentSession.turnTimeoutSeconds {
@@ -220,8 +235,10 @@ public final class VoiceAgentOrchestrator: Identifiable {
     private func sendForceText(prompt: String) async {
         session.appendSystemContinuation(prompt)
         _ = await sendToAIFallback()
+        let finalText = streamingContent
         session.finishSpeakingTurn()
         thinkingStep = ""
+        speakResponse(finalText)
     }
 
     // MARK: - UI helpers

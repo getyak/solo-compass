@@ -338,11 +338,14 @@
 
 /* Voice agent inline overlay (VoiceAgentOverlay) */
 "voiceAgent.orb.a11y" = "Hold to speak to Solo Compass";
-"voiceAgent.orb.hint" = "Hold and speak your request, then release";
+"voiceAgent.orb.hint" = "Double tap and hold to speak";
 "voiceAgent.orb.listening" = "Listening…";
 "voiceAgent.orb.release" = "Release to send";
 "voiceAgent.orb.responding" = "Responding…";
 "voiceAgent.orb.holdToSpeak" = "Hold to speak";
+"voiceAgent.permissionDenied" = "Microphone access needed — enable in Settings";
+"voiceAgent.error.streaming" = "Connection interrupted — please try again";
+"voiceAgent.tts.fallback" = "Response ready";
 
 /* "+" quick-action button and menu */
 "plus.button.a11y" = "Quick actions";
@@ -354,6 +357,9 @@
 "plus.menu.filter" = "Filter Map";
 "plus.menu.navigate" = "Navigate To…";
 "plus.menu.navigate.placeholder" = "Destination…";
+
+/* Common */
+"common.settings" = "Settings";
 
 /* Location card + navigation picker */
 "location.navigate" = "Navigate";

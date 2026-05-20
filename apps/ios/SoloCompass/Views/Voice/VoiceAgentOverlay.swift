@@ -22,6 +22,7 @@ public struct VoiceAgentOverlay: View {
     @State private var liveTranscript: String = ""
     @State private var pulse: Bool = false
     @State private var voiceStreamTask: Task<Void, Never>? = nil
+    @State private var permissionDenied: Bool = false
 
     public init(
         orchestrator: VoiceAgentOrchestrator,
@@ -38,6 +39,33 @@ public struct VoiceAgentOverlay: View {
     public var body: some View {
         VStack(spacing: 0) {
             Spacer()
+
+            // Permission denied banner
+            if permissionDenied {
+                HStack(spacing: 8) {
+                    Image(systemName: "mic.slash.fill")
+                        .foregroundStyle(.orange)
+                    Text(NSLocalizedString("voiceAgent.permissionDenied", comment: "Microphone access needed — enable in Settings"))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Text(NSLocalizedString("common.settings", comment: "Settings"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.accentColor)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 24)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.bottom, 12)
+            }
 
             // Live transcript floats above the orb
             if isHolding, !liveTranscript.isEmpty {
@@ -113,7 +141,8 @@ public struct VoiceAgentOverlay: View {
                     .onEnded { _ in if isHolding { endHolding() } }
             )
             .accessibilityLabel(Text(NSLocalizedString("voiceAgent.orb.a11y", comment: "Hold to speak to Solo Compass")))
-            .accessibilityHint(Text(NSLocalizedString("voiceAgent.orb.hint", comment: "Hold and speak your request")))
+            .accessibilityHint(Text(NSLocalizedString("voiceAgent.orb.hint", comment: "Double tap and hold to speak")))
+            .accessibilityAddTraits(.startsMediaSession)
 
             // Dismiss button
             Button(action: onDismiss) {
@@ -183,7 +212,11 @@ public struct VoiceAgentOverlay: View {
         if session.state == .idle { session.beginListening() }
         Task {
             let granted = await voiceService.requestPermission()
-            guard granted else { return }
+            guard granted else {
+                withAnimation(.easeInOut(duration: 0.25)) { permissionDenied = true }
+                return
+            }
+            withAnimation { permissionDenied = false }
             do {
                 isHolding = true
                 liveTranscript = ""

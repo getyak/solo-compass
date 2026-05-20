@@ -110,8 +110,13 @@ public struct CompassMapView: View {
                         // long press (≥0.8s) → inline voice agent mode.
                         PlusActionButton(
                             isShowingMenu: $isShowingPlusMenu,
-                            onShortTap: { isShowingPlusMenu = true },
+                            onShortTap: {
+                                guard !isShowingVoiceOverlay else { return }
+                                isShowingPlusMenu = true
+                            },
                             onLongPress: {
+                                guard !isShowingVoiceOverlay, voiceOrchestrator == nil else { return }
+                                isShowingPlusMenu = false
                                 let orch = VoiceAgentOrchestrator(
                                     aiService: aiService,
                                     voiceService: voiceService,
@@ -154,7 +159,8 @@ public struct CompassMapView: View {
                             ThinkingOverlay(
                                 stepLabel: orch.thinkingStep,
                                 streamingText: orch.streamingContent,
-                                isExecutingTool: orch.isExecutingTool
+                                isExecutingTool: orch.isExecutingTool,
+                                errorMessage: orch.errorMessage
                             )
                             .padding(.top, 100)
 

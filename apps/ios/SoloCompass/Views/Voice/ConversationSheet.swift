@@ -141,9 +141,15 @@ public struct ConversationSheet: View {
 
                     // Thinking step chip shown while model is working
                     if let step = orchestrator?.thinkingStep, !step.isEmpty, isAgentActive {
-                        thinkingChip(step).id("thinkingChip")
+                        thinkingChip(step)
+                            .id("thinkingChip")
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .leading)),
+                                removal: .opacity
+                            ))
                     } else if session.state == .thinking && orchestrator == nil {
                         thinkingBubble.id("thinking")
+                            .transition(.opacity)
                     }
 
                     // Streaming assistant response word-by-word
@@ -159,10 +165,15 @@ public struct ConversationSheet: View {
                 .padding(.vertical, 14)
             }
             .onChange(of: session.messages.count) {
-                if let last = session.messages.last {
-                    withAnimation(.easeOut(duration: 0.18)) {
+                withAnimation(.easeOut(duration: 0.18)) {
+                    if let last = session.messages.last {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
+                }
+            }
+            .onChange(of: orchestrator?.thinkingStep) { _, _ in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    proxy.scrollTo("thinkingChip", anchor: .bottom)
                 }
             }
             .onChange(of: orchestrator?.streamingContent) { _, _ in

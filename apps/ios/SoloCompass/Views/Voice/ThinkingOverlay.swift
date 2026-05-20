@@ -13,20 +13,39 @@ public struct ThinkingOverlay: View {
     public let streamingText: String
     /// Whether a tool is currently executing (drives spinner visibility).
     public let isExecutingTool: Bool
+    /// When non-nil, shown as an error banner above the thinking content.
+    public let errorMessage: String?
 
-    public init(stepLabel: String, streamingText: String, isExecutingTool: Bool) {
+    public init(
+        stepLabel: String,
+        streamingText: String,
+        isExecutingTool: Bool,
+        errorMessage: String? = nil
+    ) {
         self.stepLabel = stepLabel
         self.streamingText = streamingText
         self.isExecutingTool = isExecutingTool
+        self.errorMessage = errorMessage
     }
 
     private var isVisible: Bool {
-        !stepLabel.isEmpty || !streamingText.isEmpty
+        !stepLabel.isEmpty || !streamingText.isEmpty || errorMessage != nil
     }
 
     public var body: some View {
         if isVisible {
             VStack(alignment: .leading, spacing: 6) {
+                if let error = errorMessage {
+                    HStack(spacing: 8) {
+                        Image(systemName: "wifi.exclamationmark")
+                            .foregroundStyle(.orange)
+                        Text(error)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.primary)
+                    }
+                    .transition(.opacity)
+                }
+
                 if !stepLabel.isEmpty {
                     HStack(spacing: 8) {
                         if isExecutingTool || streamingText.isEmpty {
@@ -54,7 +73,7 @@ public struct ThinkingOverlay: View {
             .padding(.horizontal, 16)
             .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             .accessibilityElement(children: .combine)
-            .accessibilityLabel(Text([stepLabel, streamingText].filter { !$0.isEmpty }.joined(separator: ". ")))
+            .accessibilityLabel(Text([errorMessage, stepLabel, streamingText].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")))
         }
     }
 }
