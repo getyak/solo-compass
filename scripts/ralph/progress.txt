@@ -35,3 +35,4 @@ Tool: claude
 [MANUAL] Story #US-014: Explore zero-POI uses offline cache before erroring — PASSED (salvaged tests after max_turns; implementation in fd950e9)
 [2026-05-21T05:36:12Z] Story #US-014: Explore zero-POI uses offline cache before erroring — PASSED
 [2026-05-21T05:37:36Z] Story #US-015: VoiceMicButton use onLongPressGesture instead of DragGesture — PASSED
+[2026-05-21T05:38:08Z] Story #US-015: VoiceMicButton use onLongPressGesture instead of DragGesture — PASSED
