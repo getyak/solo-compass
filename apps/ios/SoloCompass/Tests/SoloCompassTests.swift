@@ -4113,6 +4113,50 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
                        "normal user input must pass through unchanged inside tags")
     }
 
+    // MARK: - US-021 TTS stops immediately on stop()
+
+    /// Verifies that calling stop() halts AVSpeechSynthesizer within 50 ms.
+    /// The synthesizer is accessed via the internal isSynthesizerSpeaking
+    /// property exposed for testing.
+    @MainActor
+    func testStopHaltsSynthesizerImmediately() throws {
+        let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        UserDefaults.standard.set("test-key", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        defer {
+            if let saved = savedOverride {
+                UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            }
+        }
+
+        let orch = VoiceAgentOrchestrator(
+            aiService: AIService(),
+            voiceService: VoiceService(),
+            mapViewModel: MapViewModel(
+                locationService: LocationService(),
+                experienceService: ExperienceService(),
+                aiService: AIService(),
+                preferences: UserPreferences()
+            ),
+            preferences: UserPreferences()
+        )
+
+        // Start speaking a long utterance so the synthesizer is active.
+        orch.speakResponse("This is a long sentence that the synthesizer should stop speaking before it finishes the whole thing completely.")
+
+        // Give AVSpeechSynthesizer a moment to begin (it schedules asynchronously).
+        let expectStarted = expectation(description: "synthesizer starts")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { expectStarted.fulfill() }
+        wait(for: [expectStarted], timeout: 0.2)
+
+        // stop() must halt speech immediately.
+        orch.stop()
+
+        XCTAssertFalse(orch.isSynthesizerSpeaking,
+                       "synthesizer must not be speaking within 50 ms of stop()")
+    }
+
     // MARK: - US-018 Dynamic Type XXL audit
 
     /// Verifies that ExperienceDetailView hero title text does not

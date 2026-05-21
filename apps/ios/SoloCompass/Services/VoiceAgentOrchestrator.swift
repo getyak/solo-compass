@@ -106,6 +106,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
     /// Terminate the session.
     public func stop() {
+        synthesizer.stopSpeaking(at: .immediate)
         turnTask?.cancel()
         turnTask = nil
         isRunning = false
@@ -114,11 +115,13 @@ public final class VoiceAgentOrchestrator: Identifiable {
         thinkingStep = ""
         isExecutingTool = false
         uiState = .idle
-        synthesizer.stopSpeaking(at: .immediate)
         if !session.isEnded {
             session.end(reason: .userClose)
         }
     }
+
+    /// Exposed for testing only — reflects AVSpeechSynthesizer's speaking state.
+    var isSynthesizerSpeaking: Bool { synthesizer.isSpeaking }
 
     /// Speak the agent's final text response via AVSpeechSynthesizer.
     public func speakResponse(_ text: String) {
