@@ -33,3 +33,4 @@ Tool: claude
 [2026-05-21T05:35:08Z] Ralph complete after 8 iterations
 
 [MANUAL] Story #US-014: Explore zero-POI uses offline cache before erroring — PASSED (salvaged tests after max_turns; implementation in fd950e9)
+[2026-05-21T05:36:12Z] Story #US-014: Explore zero-POI uses offline cache before erroring — PASSED
