@@ -214,7 +214,8 @@ public struct CompassMapView: View {
     private var settingsSheetContent: some View {
         SettingsView(
             onClose: { viewModel?.isShowingSettings = false },
-            onShowFavorites: { isShowingFavorites = true }
+            onShowFavorites: { isShowingFavorites = true },
+            onDistanceCommitted: { viewModel?.reloadForDistanceChange() }
         )
         .environment(preferences)
         .environment(notificationService)
@@ -777,9 +778,8 @@ private struct FABButtonStyle: ButtonStyle {
     }
 }
 
-/// Bottom-right "+" button. Tap opens the chat sheet with the mic pre-armed
-/// for push-to-talk — voice is the primary action. Long press (≥0.6s) opens
-/// the chat sheet in text mode for users who prefer typing.
+/// Bottom-right "+" button. Tap opens the chat sheet in text mode (iOS convention).
+/// Long press (≥0.6s) opens the chat sheet with the mic pre-armed for push-to-talk.
 ///
 /// `onPressingChanged` fires immediately on touch-down so the ring + scale
 /// animate within one frame — fixes the "looks frozen" bug where the user
