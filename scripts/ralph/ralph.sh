@@ -95,10 +95,10 @@ else:
   echo "   Acceptance: $STORY_ACCEPT"
 
   # Build the Claude Code prompt
-  PROMPT="You are implementing a SINGLE user story for the Solo Compass Experience & Architecture v1 PRD.
+  PROMPT="You are implementing a SINGLE user story for the Solo Compass iOS UI/AI Deep Optimization PRD.
 
 PROJECT: Solo Compass (独行罗盘) — map-first companion app for solo travelers.
-Current PRD: UI/UX refactor + AI architecture upgrade + roadmap exploration, sourced from tasks/prd-experience-architecture-v1.md.
+Current PRD: static-analysis-driven cleanup of Solo Compass iOS, sourced from tasks/prd-ui-ai-deep-optimization.md.
 Tech stack: pnpm monorepo; iOS app under apps/ios/SoloCompass (SwiftUI + MapKit, XcodeGen); web/bot/packages in TypeScript strict.
 Read CLAUDE.md first for project conventions. Choose the relevant target from the story acceptance criteria.
 
@@ -112,7 +112,7 @@ $STORY_ACCEPT
 Implement ONLY this story. Do NOT touch unrelated code. Keep changes focused and preserve existing behavior.
 After implementing:
 1. For iOS stories: cd apps/ios && xcodegen if project.yml changes, then xcodebuild build -project SoloCompass.xcodeproj -scheme SoloCompass -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' when practical
-2. For TypeScript stories: pnpm typecheck and relevant tests
+2. For TypeScript/scripts/docs stories: pnpm typecheck and relevant tests; run scripts/check-localization.ts when localization changes
 3. Run formatting according to existing project scripts when practical
 4. Print a summary of what you changed
 5. The acceptance criteria must be satisfied"

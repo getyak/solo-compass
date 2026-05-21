@@ -31,12 +31,24 @@ public struct PaywallView: View {
                 bullets
                 productCards
                 ctaButton
+                continueFreeButton
                 fineprint
                 actionLinks
             }
             .padding(20)
         }
         .background(Color(.systemBackground))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel(NSLocalizedString("paywall.close", comment: "Close paywall"))
+                }
+            }
+        }
         .task {
             if subscription.products.isEmpty {
                 await subscription.loadProducts()
@@ -196,6 +208,18 @@ public struct PaywallView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .disabled(isDisabled)
+    }
+
+    private var continueFreeButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Text(NSLocalizedString("paywall.continueFree", comment: "Continue with Free"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
     }
 
     private var fineprint: some View {

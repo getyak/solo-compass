@@ -1,4 +1,55 @@
 # Solo Compass UI/AI Deep Optimization — Ralph Progress Log
-Started: 2026-05-21T00:00:00Z
+Started: 2026-05-21T04:57:58Z
 Tool: claude
 ---
+[2026-05-21T04:59:27Z] Story #US-001: Remove auto explore-consent from Onboarding — PASSED
+[2026-05-21T05:01:42Z] Story #US-002: Add explicit dismiss + Continue-with-Free CTA to PaywallView — FAILED (iteration 2)
+[2026-05-21T05:10:00Z] Story #US-002: Add explicit dismiss + Continue-with-Free CTA to PaywallView — PASSED
+[2026-05-21T05:03:13Z] Story #US-002: Add explicit dismiss + Continue-with-Free CTA to PaywallView — PASSED
+[2026-05-21T05:05:46Z] Story #US-003: Wire ChatSheet unconfigured state when API key missing — PASSED
+[2026-05-21T05:07:58Z] Story #US-004: Make ReviewsService skip localhost in Release builds — PASSED
+[2026-05-21T05:10:31Z] Story #US-005: Decide and document AgentRouter integration strategy — PASSED
+[2026-05-21T05:11:57Z] Story #US-006: Remove duplicate appleIDRow in SettingsView — PASSED
+
+[2026-05-21T05:20:40Z] Story #US-007: Extract shared applyFilters helper in MapViewModel — PASSED (salvaged from uncommitted work after prior Claude/Ralph run)
+[2026-05-21T05:22:00Z] Story #US-008: Delete OfflineCacheService dead code or wire it in — PASSED
+[2026-05-21T05:23:04Z] Story #US-008: Delete OfflineCacheService dead code or wire it in — FAILED (iteration 1)
+[2026-05-21T05:23:18Z] Story #US-009: Make ThemeService.currentTheme a computed property — FAILED (iteration 2)
+[2026-05-21T05:30:00Z] Story #US-009: Make ThemeService.currentTheme a computed property — PASSED
+[2026-05-21T05:24:32Z] Story #US-009: Make ThemeService.currentTheme a computed property — PASSED
+[2026-05-21T05:24:48Z] Story #US-009: Make ThemeService.currentTheme a computed property — PASSED
+[2026-05-21T05:25:56Z] Story #US-010: Replace per-frame panResetTask with debounced timer — PASSED
+[2026-05-21T05:26:50Z] Story #US-010: Replace per-frame panResetTask with debounced timer — PASSED
+[2026-05-21T05:27:45Z] Story #US-011: Invert PlusActionButton tap/long-press semantics — PASSED
+[2026-05-21T05:29:19Z] Story #US-011: Invert PlusActionButton tap/long-press semantics — PASSED
+[2026-05-21T05:29:39Z] Story #US-012: Debounce distance slider reload in SettingsView — FAILED (iteration 5)
+[2026-05-21T05:30:27Z] Story #US-012: Debounce distance slider reload in SettingsView — PASSED
+[2026-05-21T05:30:27Z] Ralph complete after 6 iterations
+[2026-05-21T05:31:21Z] Story #US-012: Debounce distance slider reload in SettingsView — PASSED
+[2026-05-21T05:32:44Z] Story #US-013: Clear-all-data also wipes SwiftData mirrors — FAILED (iteration 1)
+[2026-05-21T05:33:21Z] Story #US-013: Clear-all-data also wipes SwiftData mirrors — PASSED
+[2026-05-21T05:34:27Z] Story #US-013: Clear-all-data also wipes SwiftData mirrors — PASSED
+[2026-05-21T05:35:08Z] Story #US-014: Explore zero-POI uses offline cache before erroring — FAILED (iteration 8)
+[2026-05-21T05:35:08Z] Ralph complete after 8 iterations
+
+[MANUAL] Story #US-014: Explore zero-POI uses offline cache before erroring — PASSED (salvaged tests after max_turns; implementation in fd950e9)
+[2026-05-21T05:36:12Z] Story #US-014: Explore zero-POI uses offline cache before erroring — PASSED
+[2026-05-21T05:37:36Z] Story #US-015: VoiceMicButton use onLongPressGesture instead of DragGesture — PASSED
+[2026-05-21T05:38:08Z] Story #US-015: VoiceMicButton use onLongPressGesture instead of DragGesture — PASSED
+[2026-05-21T05:40:14Z] Story #US-016: Smooth Multi-Ring scanning progress UI — PASSED
+[2026-05-21T05:41:35Z] Story #US-016: Smooth Multi-Ring scanning progress UI — FAILED (iteration 2)
+[2026-05-21T05:43:25Z] Story #US-017: Add prompt-injection guard around user transcript — PASSED
+[2026-05-21T05:44:54Z] Story #US-018: Dynamic Type XXL audit for ExperienceDetailView — PASSED
+[2026-05-21T05:46:26Z] Story #US-019: Add 150-marker rendering performance baseline test — PASSED
+[2026-05-21T05:49:48Z] Story #US-020: Add map snapshot to Markdown export (opt-in) — FAILED (iteration 6)
+[2026-05-21T05:51:07Z] Story #US-020: Add map snapshot to Markdown export (opt-in) — FAILED (iteration 7)
+[2026-05-21T05:54:22Z] Story #US-020: Add map snapshot to Markdown export (opt-in) — FAILED (iteration 8)
+[2026-05-21T05:54:22Z] Ralph complete after 8 iterations
+
+[MANUAL] Story #US-020: Add map snapshot to Markdown export (opt-in) — PASSED (salvaged after max_turns)
+[2026-05-21T05:57:29Z] Story #US-021: Guarantee TTS stops the instant ChatSheet dismisses — FAILED (iteration 1)
+[2026-05-21T06:00:00Z] Story #US-021: Guarantee TTS stops the instant ChatSheet dismisses — PASSED
+[2026-05-21T05:58:48Z] Story #US-021: Guarantee TTS stops the instant ChatSheet dismisses — PASSED
+[2026-05-21T05:58:48Z] Ralph complete after 2 iterations
+
+[MANUAL] Story #US-022: Document Anthropic vs DeepSeek dual-endpoint topology — PASSED

@@ -16,7 +16,7 @@
         "Tests pass"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -34,7 +34,7 @@
         "Verify in Simulator: Explore -> Paywall -> tap X -> no auto-resumed Explore"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -51,7 +51,7 @@
         "Verify in Simulator: clear Secrets.plist key -> tap + -> unconfiguredCard appears with Open Settings CTA"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -67,7 +67,7 @@
         "Tests pass"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -83,7 +83,7 @@
         "Tests pass (unchanged)"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -99,7 +99,7 @@
         "Verify in Simulator: open Settings -> confirm Apple ID row appears once"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -115,7 +115,7 @@
         "Tests pass"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -131,7 +131,7 @@
         "Tests pass"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -148,7 +148,7 @@
         "Verify in Simulator: Settings -> switch Theme between System and Obsidian -> CompassMapView background updates without app relaunch"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -164,7 +164,7 @@
         "Verify in Simulator: drag the map for 5s -> FilterBar dims; release -> after 1.5s FilterBar restores"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -182,7 +182,7 @@
         "Verify in Simulator: tap + -> text chat; long-press + >=0.6s -> voice surface with active mic"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -199,7 +199,7 @@
         "Verify in Simulator: drag slider rapidly -> label updates smoothly, map markers update only when finger lifts"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -215,7 +215,7 @@
         "Verify in Simulator: favorite an experience -> Settings -> Clear all data -> relaunch app -> favorites list empty"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -232,7 +232,7 @@
         "Tests pass"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -248,7 +248,7 @@
         "Verify in Simulator: open chat in voice mode -> press-and-hold mic -> recording starts; release -> transcript sends"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -263,7 +263,7 @@
         "Verify in Simulator: trigger Explore as Pro user -> progress capsule visibly counts up ring-by-ring"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -279,7 +279,7 @@
         "Tests pass"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -287,7 +287,7 @@
       "title": "Dynamic Type XXL audit for ExperienceDetailView",
       "description": "As an accessibility user with XXL text, I want ExperienceDetailView hero and section titles to scale without truncation.",
       "acceptanceCriteria": [
-        "In ExperienceDetailView.swift heroSection: title Text gets .lineLimit(nil) AND .minimumScaleFactor(0.8); category badge HStack wraps gracefully",
+        "In ExperienceDetailView.swift heroSection: title Text gets .lineLimit(nil) AND .minimumScaleFactor(0.8); category label HStack wraps gracefully",
         "All section titles use .font(.headline).minimumScaleFactor(0.85)",
         "Add a #Preview variant with .environment(\\.dynamicTypeSize, .accessibility3)",
         "Add snapshot test (if SnapshotTesting is available) OR a basic XCTest measuring intrinsicContentSize at XXL",
@@ -296,7 +296,7 @@
         "Verify in Simulator: Settings -> Accessibility -> set largest font -> open detail -> no clipping or ellipsis on title / section headings"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -312,7 +312,7 @@
         "Tests pass"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -331,7 +331,7 @@
         "Verify in Simulator: enable toggle -> Export Note -> preview shows map image; paste into Notion to confirm renders"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -347,7 +347,7 @@
         "Verify in Simulator: trigger a long AI reply that speaks -> swipe down to close chat -> audio stops within ~50ms"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -363,7 +363,7 @@
         "Tests pass (unchanged)"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]

@@ -37,6 +37,7 @@ public final class UserPreferences {
         var hasAcceptedExploreConsent: Bool = false
         var exploreConsentGivenAt: Date?
         var reviewPromptShown: Bool = false
+        var includeMapInExport: Bool = false
 
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
@@ -45,6 +46,7 @@ public final class UserPreferences {
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
             case hasAcceptedExploreConsent, exploreConsentGivenAt, reviewPromptShown
+            case includeMapInExport
         }
 
         init() {}
@@ -68,7 +70,8 @@ public final class UserPreferences {
             swiftDataMirrored: Bool,
             hasAcceptedExploreConsent: Bool,
             exploreConsentGivenAt: Date?,
-            reviewPromptShown: Bool
+            reviewPromptShown: Bool,
+            includeMapInExport: Bool
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -89,6 +92,7 @@ public final class UserPreferences {
             self.hasAcceptedExploreConsent = hasAcceptedExploreConsent
             self.exploreConsentGivenAt = exploreConsentGivenAt
             self.reviewPromptShown = reviewPromptShown
+            self.includeMapInExport = includeMapInExport
         }
 
         init(from decoder: Decoder) throws {
@@ -112,6 +116,7 @@ public final class UserPreferences {
             self.hasAcceptedExploreConsent = try container.decodeIfPresent(Bool.self, forKey: .hasAcceptedExploreConsent) ?? false
             self.exploreConsentGivenAt = try container.decodeIfPresent(Date.self, forKey: .exploreConsentGivenAt)
             self.reviewPromptShown = try container.decodeIfPresent(Bool.self, forKey: .reviewPromptShown) ?? false
+            self.includeMapInExport = try container.decodeIfPresent(Bool.self, forKey: .includeMapInExport) ?? false
         }
     }
 
@@ -146,6 +151,9 @@ public final class UserPreferences {
     /// (after the user's 3rd distinct experience completion). Prevents repeat
     /// prompts. US-041.
     public var reviewPromptShown: Bool { didSet { persist() } }
+    /// When true, MarkdownExporter embeds a 300×200 map snapshot as a
+    /// base64 data: URL image in exported notes. US-020.
+    public var includeMapInExport: Bool { didSet { persist() } }
 
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
@@ -178,6 +186,7 @@ public final class UserPreferences {
         self.hasAcceptedExploreConsent = snapshot.hasAcceptedExploreConsent
         self.exploreConsentGivenAt = snapshot.exploreConsentGivenAt
         self.reviewPromptShown = snapshot.reviewPromptShown
+        self.includeMapInExport = snapshot.includeMapInExport
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -212,7 +221,8 @@ public final class UserPreferences {
             swiftDataMirrored: swiftDataMirrored,
             hasAcceptedExploreConsent: hasAcceptedExploreConsent,
             exploreConsentGivenAt: exploreConsentGivenAt,
-            reviewPromptShown: reviewPromptShown
+            reviewPromptShown: reviewPromptShown,
+            includeMapInExport: includeMapInExport
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

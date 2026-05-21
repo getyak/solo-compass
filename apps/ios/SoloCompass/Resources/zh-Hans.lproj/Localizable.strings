@@ -252,6 +252,7 @@
 "explore.progress.scanning" = "正在扫描 · 第 %1$d/%2$d 环";
 "explore.progress.synthesizing" = "AI 正在整理 %d 处地点…";
 "explore.offline.staleToast" = "正在显示 %@ 的离线缓存数据";
+"explore.toast.cachedFallback" = "正在显示缓存结果";
 
 /* Paywall */
 "paywall.hero.title" = "解锁 Solo Compass Pro";
@@ -266,6 +267,8 @@
 "paywall.restore" = "恢复购买";
 "paywall.manage" = "管理订阅";
 "paywall.error.title" = "购买未完成";
+"paywall.close" = "关闭";
+"paywall.continueFree" = "免费继续使用";
 
 /* Settings — Subscription */
 "settings.subscription" = "订阅";
@@ -356,6 +359,10 @@
 "chat.error.permission" = "需要麦克风权限 — 请在设置中启用。";
 "chat.error.unknown" = "出现错误 — 请重试。";
 
+/* "+" quick-action button — single chat entry point */
+"plus.button.a11y" = "和 Solo 聊天";
+"plus.button.hint" = "点击文字输入，长按语音说话";
+
 /* Chat voice surface */
 "chat.voice.title" = "和 Solo 说话";
 "chat.voice.tap.toType" = "点击改为文字输入";
@@ -410,3 +417,6 @@
 /* Theme picker (US-039) */
 "settings.appearance" = "外观";
 "settings.theme" = "主题";
+
+/* Map preview in exports (US-020) */
+"settings.exportMapPreview" = "导出时包含地图预览";

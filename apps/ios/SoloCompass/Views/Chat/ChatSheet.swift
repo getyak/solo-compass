@@ -567,20 +567,21 @@ private struct VoiceMicButton: View {
                 )
         }
         .contentShape(Circle())
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    if !pressed {
-                        pressed = true
-                        pulse = true
-                        onPress()
-                    }
-                }
-                .onEnded { _ in
+        .onLongPressGesture(
+            minimumDuration: 0,
+            maximumDistance: .infinity,
+            perform: { /* no-op: press/release handled by onPressingChanged */ },
+            onPressingChanged: { pressing in
+                if pressing {
+                    pressed = true
+                    pulse = true
+                    onPress()
+                } else {
                     pressed = false
                     pulse = false
                     onRelease()
                 }
+            }
         )
         .accessibilityLabel(Text(NSLocalizedString("voiceAgent.orb.a11y", comment: "Hold to speak to Solo Compass")))
         .accessibilityHint(Text(NSLocalizedString("voiceAgent.orb.hint", comment: "Double tap and hold to speak")))
@@ -589,6 +590,17 @@ private struct VoiceMicButton: View {
 
 #Preview("Empty") {
     let orch = previewOrchestrator()
+    return ChatSheet(
+        orchestrator: orch,
+        voiceService: VoiceService(),
+        startInVoiceMode: false,
+        onDismiss: {}
+    )
+}
+
+#Preview("Unconfigured") {
+    let orch = previewOrchestrator()
+    orch.previewSetUnconfigured()
     return ChatSheet(
         orchestrator: orch,
         voiceService: VoiceService(),

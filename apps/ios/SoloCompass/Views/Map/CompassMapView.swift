@@ -28,7 +28,8 @@ public struct CompassMapView: View {
     @State private var isShowingChat: Bool = false
     @State private var chatStartMode: ChatStartMode = .text
     @State private var isMapPanning: Bool = false
-    @State private var panResetTask: Task<Void, Never>? = nil
+    @State private var lastPanAt: Date = .distantPast
+    @State private var panDebounceTask: Task<Void, Never>? = nil
 
     private let networkMonitor = NetworkMonitor.shared
 
@@ -87,8 +88,11 @@ public struct CompassMapView: View {
             .sheet(isPresented: detailSheetBinding) { detailSheetContent }
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
-            .sheet(isPresented: $isShowingChat) { chatSheetContent }
-            .sheet(isPresented: paywallSheetBinding) { paywallSheetContent }
+            .sheet(isPresented: $isShowingChat, onDismiss: {
+                voiceOrchestrator?.stop()
+                voiceOrchestrator = nil
+            }) { chatSheetContent }
+            .sheet(isPresented: paywallSheetBinding, onDismiss: { viewModel?.onPaywallUnlocked = nil }) { paywallSheetContent }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
     }
@@ -213,7 +217,8 @@ public struct CompassMapView: View {
     private var settingsSheetContent: some View {
         SettingsView(
             onClose: { viewModel?.isShowingSettings = false },
-            onShowFavorites: { isShowingFavorites = true }
+            onShowFavorites: { isShowingFavorites = true },
+            onDistanceCommitted: { viewModel?.reloadForDistanceChange() }
         )
         .environment(preferences)
         .environment(notificationService)
@@ -410,11 +415,18 @@ public struct CompassMapView: View {
             }
             .onMapCameraChange(frequency: .continuous) { _ in
                 isMapPanning = true
-                panResetTask?.cancel()
-                panResetTask = Task {
-                    try? await Task.sleep(for: .seconds(1.5))
-                    guard !Task.isCancelled else { return }
-                    isMapPanning = false
+                lastPanAt = Date()
+                if panDebounceTask == nil {
+                    panDebounceTask = Task {
+                        repeat {
+                            try? await Task.sleep(for: .milliseconds(100))
+                            if Task.isCancelled { return }
+                        } while Date().timeIntervalSince(lastPanAt) < 1.5
+                        if !Task.isCancelled {
+                            isMapPanning = false
+                        }
+                        panDebounceTask = nil
+                    }
                 }
             }
             .onMapCameraChange(frequency: .onEnd) { context in
@@ -746,9 +758,9 @@ private struct MapControlBar: View {
             PlusActionButton(
                 onShortTap: {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    onOpenChat(.voice)
+                    onOpenChat(.text)
                 },
-                onLongPress: { onOpenChat(.text) }
+                onLongPress: { onOpenChat(.voice) }
             )
             .padding(.trailing, 20)
             .padding(.bottom, 80)
@@ -769,9 +781,8 @@ private struct FABButtonStyle: ButtonStyle {
     }
 }
 
-/// Bottom-right "+" button. Tap opens the chat sheet with the mic pre-armed
-/// for push-to-talk — voice is the primary action. Long press (≥0.6s) opens
-/// the chat sheet in text mode for users who prefer typing.
+/// Bottom-right "+" button. Tap opens the chat sheet in text mode (iOS convention).
+/// Long press (≥0.6s) opens the chat sheet with the mic pre-armed for push-to-talk.
 ///
 /// `onPressingChanged` fires immediately on touch-down so the ring + scale
 /// animate within one frame — fixes the "looks frozen" bug where the user

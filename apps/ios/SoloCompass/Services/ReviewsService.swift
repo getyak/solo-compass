@@ -21,21 +21,38 @@ private struct SoloScoreResponse: Decodable {
 
 /// Fetches aggregated solo-score dimensions from the backend API.
 /// Falls back to the local seed SoloScore on any network or API failure.
+/// In Release builds without SOLO_API_BASE_URL set, short-circuits immediately to avoid
+/// 30-second localhost timeouts on users' devices.
 @MainActor
 public final class ReviewsService {
     public static let shared = ReviewsService()
 
     private let session: URLSession
     private let baseURL: URL
+    // True when running in a Release build with no backend configured.
+    private let isUnconfigured: Bool
 
     public init(session: URLSession = .shared, baseURL: URL? = nil) {
         self.session = session
         if let url = baseURL {
             self.baseURL = url
+            self.isUnconfigured = false
         } else {
             let envURL = ProcessInfo.processInfo.environment["SOLO_API_BASE_URL"]
                 .flatMap { URL(string: $0) }
+#if DEBUG
             self.baseURL = envURL ?? URL(string: "http://localhost:8080")!
+            self.isUnconfigured = false
+#else
+            if let url = envURL {
+                self.baseURL = url
+                self.isUnconfigured = false
+            } else {
+                // No backend configured in Release — skip network entirely.
+                self.baseURL = URL(string: "about:blank")!
+                self.isUnconfigured = true
+            }
+#endif
         }
     }
 
@@ -43,6 +60,12 @@ public final class ReviewsService {
     /// - Returns: A `SoloScore` built from aggregated review dimensions, or the provided `fallback`.
     /// - Throws: Only re-throws if `fallback` is nil; otherwise swallows errors and returns fallback.
     func fetchSoloScore(experienceId: String, fallback: SoloScore? = nil) async throws -> SoloScore {
+        // In Release builds with no SOLO_API_BASE_URL, avoid a 30-second timeout to localhost.
+        if isUnconfigured {
+            if let fb = fallback { return fb }
+            throw ReviewsServiceError.notFound(experienceId)
+        }
+
         let url = baseURL
             .appendingPathComponent("v1")
             .appendingPathComponent("experiences")

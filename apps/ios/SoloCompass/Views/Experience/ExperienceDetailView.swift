@@ -144,12 +144,17 @@ public struct ExperienceDetailView: View {
                 Text(viewModel.experience.category.localizedTitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(1)
                 Spacer()
                 ConfidenceBadge(confidence: viewModel.experience.confidence, compact: false)
             }
+            .fixedSize(horizontal: false, vertical: true)
 
             Text(viewModel.experience.title)
                 .font(.title2.bold())
+                .lineLimit(nil)
+                .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(viewModel.experience.oneLiner)
@@ -480,6 +485,8 @@ public struct ExperienceDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
+                .minimumScaleFactor(0.85)
+                .lineLimit(nil)
             content()
         }
     }
@@ -500,6 +507,23 @@ public struct ExperienceDetailView: View {
         NavigationStack {
             ExperienceDetailView(viewModel: vm) {}
         }
+    } else {
+        Text("No seed data")
+    }
+}
+
+#Preview("Dynamic Type XXL") {
+    if let exp = ExperienceService.hardcodedSeed.first {
+        let vm = ExperienceDetailViewModel(
+            experience: exp,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+        NavigationStack {
+            ExperienceDetailView(viewModel: vm) {}
+        }
+        .environment(\.dynamicTypeSize, .accessibility3)
     } else {
         Text("No seed data")
     }

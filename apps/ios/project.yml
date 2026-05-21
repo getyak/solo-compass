@@ -58,6 +58,13 @@ targets:
         LSApplicationQueriesSchemes:
           - comgooglemaps
           - iosamap
+        # localhost ATS exception is only exercised in DEBUG. Release builds short-circuit
+        # in ReviewsService before any network request when SOLO_API_BASE_URL is unset.
+        NSAppTransportSecurity:
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSIncludesSubdomains: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.solocompass.app

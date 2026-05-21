@@ -506,7 +506,7 @@ public final class ExperienceRepository {
 
     /// Wipe every user-data row. Does NOT delete experiences (they reseed
     /// from bundle). Used by GDPR delete and the Settings reset.
-    public func clearUserData() {
+    public func clearAllUserData() {
         try? context.delete(model: UserCompletionRecord.self)
         try? context.delete(model: UserFavoriteRecord.self)
         try? context.delete(model: MicroSurveyRecord.self)

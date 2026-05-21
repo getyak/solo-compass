@@ -11,7 +11,6 @@
 		2C4AD2A9657C5080FC8B467D /* City.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC7BD09EB1055A454D95BE97 /* City.swift */; };
 		B45026E0FC30AA532B8B4951 /* MarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2575FE02BC995302BB791077 /* MarkdownExporter.swift */; };
 		D94873977E1F3387C0E193DB /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120681F433EEB66A5DBEBBC9 /* NetworkMonitor.swift */; };
-		B1C6618C36548C2F9A52954F /* OfflineCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76852CD8D6576F7E4A225EF1 /* OfflineCacheService.swift */; };
 		5D2B999D692C4649BCE813F1 /* ReviewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1A8965C3343897E677CFF3 /* ReviewsService.swift */; };
 		EAA744F457A4DF627B68DC3D /* ThemeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C2962966E1536D2C61C028 /* ThemeService.swift */; };
 		6521611D855CC017B809200B /* AgentMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BDF2964C023A404252A611B /* AgentMessage.swift */; };
@@ -122,7 +121,6 @@
 		BC7BD09EB1055A454D95BE97 /* City.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = City.swift; sourceTree = "<group>"; };
 		2575FE02BC995302BB791077 /* MarkdownExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExporter.swift; sourceTree = "<group>"; };
 		120681F433EEB66A5DBEBBC9 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
-		76852CD8D6576F7E4A225EF1 /* OfflineCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineCacheService.swift; sourceTree = "<group>"; };
 		9C1A8965C3343897E677CFF3 /* ReviewsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewsService.swift; sourceTree = "<group>"; };
 		C5C2962966E1536D2C61C028 /* ThemeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeService.swift; sourceTree = "<group>"; };
 		0BDF2964C023A404252A611B /* AgentMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentMessage.swift; sourceTree = "<group>"; };
@@ -385,8 +383,7 @@
 				D07ACA7C1A1574A244E73796 /* NavigationLauncher.swift */,
 				120681F433EEB66A5DBEBBC9 /* NetworkMonitor.swift */,
 				C215AE07BA32182A887226F9 /* NotificationService.swift */,
-				76852CD8D6576F7E4A225EF1 /* OfflineCacheService.swift */,
-				67173C74F1A76C3CE5C38C0A /* OverpassService.swift */,
+					67173C74F1A76C3CE5C38C0A /* OverpassService.swift */,
 				64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */,
 				9C1A8965C3343897E677CFF3 /* ReviewsService.swift */,
 				33B8A80F048D74BEDB8C1132 /* SubscriptionService.swift */,
@@ -730,7 +727,6 @@
 				D94873977E1F3387C0E193DB /* NetworkMonitor.swift in Sources */,
 				C53DB60CA9E95907A2CBF2C0 /* NotificationService.swift in Sources */,
 				AED6B1543E1AD8F1D3C342FF /* ObsidianTheme.swift in Sources */,
-				B1C6618C36548C2F9A52954F /* OfflineCacheService.swift in Sources */,
 				A670A5BE78C7ED4BA9886F11 /* OfflineBanner.swift in Sources */,
 				C81007F6A39364D0872736B2 /* OnboardingView.swift in Sources */,
 				B28F15C454376D86258FCD77 /* OverpassService.swift in Sources */,

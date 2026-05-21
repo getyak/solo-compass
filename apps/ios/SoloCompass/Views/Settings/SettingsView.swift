@@ -6,6 +6,7 @@ import SwiftUI
 /// Accessed via the map's navigation bar settings button.
 public struct SettingsView: View {
     @Environment(UserPreferences.self) private var preferences
+    @Environment(ExperienceService.self) private var experienceService
     @Environment(NotificationService.self) private var notificationService
     @Environment(SubscriptionService.self) private var subscriptionService
     @Environment(LanguageService.self) private var languageService
@@ -13,11 +14,16 @@ public struct SettingsView: View {
     @Environment(\.themeService) private var themeService
     var onClose: () -> Void
     var onShowFavorites: (() -> Void)?
+    var onDistanceCommitted: (() -> Void)?
 
     @State private var showingClearConfirm = false
     @State private var restoreToast: String?
     @State private var restoreInFlight = false
     @State private var showingLanguageRestartAlert = false
+
+    // Draft value shown in the label while the slider is being dragged.
+    // Written to preferences.maxDistanceKm only on release.
+    @State private var draftDistanceKm: Double? = nil
 
     // Admin / tester email unlock — bypasses StoreKit for allow-listed
     // emails so internal testers and the project owner can reach Pro
@@ -31,17 +37,20 @@ public struct SettingsView: View {
     @State private var appleSignInToast: String?
     @State private var appleSignInService = AppleSignInService()
 
-    public init(onClose: @escaping () -> Void = {}, onShowFavorites: (() -> Void)? = nil) {
+    public init(
+        onClose: @escaping () -> Void = {},
+        onShowFavorites: (() -> Void)? = nil,
+        onDistanceCommitted: (() -> Void)? = nil
+    ) {
         self.onClose = onClose
         self.onShowFavorites = onShowFavorites
+        self.onDistanceCommitted = onDistanceCommitted
     }
 
     public var body: some View {
         NavigationStack {
             List {
                 // US-020: Apple Settings-style InsetGrouped layout
-                // Section: Account
-                accountSection
                 // Section: Preferences
                 travelStyleSection
                 preferredCategoriesSection
@@ -52,6 +61,7 @@ public struct SettingsView: View {
                 // Section: AI & Privacy
                 languageSection
                 notificationsSection
+                exportSection
                 // Section: Subscription
                 subscriptionSection
                 // Section: About / Stats / Data
@@ -72,16 +82,6 @@ public struct SettingsView: View {
             .task {
                 isAnonymous = await SupabaseClient.shared.isAnonymous
             }
-        }
-    }
-
-    // MARK: - Account Section (US-020)
-
-    private var accountSection: some View {
-        Section {
-            appleIDRow
-        } header: {
-            settingsSectionHeader("person.circle.fill", label: "Account")
         }
     }
 
@@ -204,7 +204,7 @@ public struct SettingsView: View {
 
     private var distanceSection: some View {
         Section {
-            @Bindable var prefs = preferences
+            let displayedKm = draftDistanceKm ?? preferences.maxDistanceKm
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: "location.magnifyingglass")
@@ -214,16 +214,52 @@ public struct SettingsView: View {
                         .background(Color.green, in: RoundedRectangle(cornerRadius: 7))
                     Text(NSLocalizedString("settings.maxDistance", comment: "Max Distance"))
                     Spacer()
-                    Text(distanceLabel(preferences.maxDistanceKm))
+                    Text(distanceLabel(displayedKm))
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
-                Slider(value: $prefs.maxDistanceKm, in: 1...25, step: 0.5).tint(.blue)
+                Slider(
+                    value: Binding(
+                        get: { draftDistanceKm ?? preferences.maxDistanceKm },
+                        set: { draftDistanceKm = $0 }
+                    ),
+                    in: 1...25,
+                    step: 0.5,
+                    onEditingChanged: { editing in
+                        if !editing, let draft = draftDistanceKm {
+                            preferences.maxDistanceKm = draft
+                            draftDistanceKm = nil
+                            onDistanceCommitted?()
+                        }
+                    }
+                ).tint(.blue)
             }
         } header: {
             settingsSectionHeader("location.circle", label: NSLocalizedString("settings.distance", comment: "Discovery Radius"))
         } footer: {
             Text(NSLocalizedString("settings.distance.footer", comment: "Only experiences within this radius appear on the map."))
+        }
+    }
+
+    // MARK: - Export
+
+    private var exportSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { preferences.includeMapInExport },
+                set: { preferences.includeMapInExport = $0 }
+            )) {
+                HStack(spacing: 10) {
+                    Image(systemName: "map")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.teal, in: RoundedRectangle(cornerRadius: 7))
+                    Text(NSLocalizedString("settings.exportMapPreview", comment: "Include map preview in exports"))
+                }
+            }
+        } header: {
+            settingsSectionHeader("square.and.arrow.up", label: NSLocalizedString("export.preview", comment: "Export preview"))
         }
     }
 
@@ -362,6 +398,7 @@ public struct SettingsView: View {
                     preferences.pendingCheckIns = [:]
                     preferences.preferredCategories = []
                     preferences.dislikedCategories = []
+                    experienceService.repo.clearAllUserData()
                 }
                 Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
             } message: {

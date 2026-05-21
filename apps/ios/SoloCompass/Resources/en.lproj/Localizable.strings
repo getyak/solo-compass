@@ -266,6 +266,7 @@
 "explore.progress.scanning" = "Scanning area · ring %1$d of %2$d";
 "explore.progress.synthesizing" = "Synthesizing %d places…";
 "explore.offline.staleToast" = "Showing offline data from %@";
+"explore.toast.cachedFallback" = "Showing cached results";
 
 /* Paywall */
 "paywall.hero.title" = "Unlock Solo Compass Pro";
@@ -280,6 +281,8 @@
 "paywall.restore" = "Restore purchases";
 "paywall.manage" = "Manage subscription";
 "paywall.error.title" = "Purchase didn't complete";
+"paywall.close" = "Close";
+"paywall.continueFree" = "Continue with Free";
 
 /* Settings — Subscription */
 "settings.subscription" = "Subscription";
@@ -358,8 +361,8 @@
 "voiceAgent.tts.fallback" = "Response ready";
 
 /* "+" quick-action button — single chat entry point */
-"plus.button.a11y" = "Talk to Solo";
-"plus.button.hint" = "Tap to talk, hold to type";
+"plus.button.a11y" = "Chat with Solo";
+"plus.button.hint" = "Tap to type, hold to talk";
 
 /* Voice-first state view shown inside ChatSheet on voice entry */
 "chat.voice.title" = "Talk to Solo";
@@ -447,3 +450,6 @@
 /* Theme picker (US-039) */
 "settings.appearance" = "Appearance";
 "settings.theme" = "Theme";
+
+/* Map preview in exports (US-020) */
+"settings.exportMapPreview" = "Include map preview in exports";
