@@ -287,7 +287,7 @@
       "title": "Dynamic Type XXL audit for ExperienceDetailView",
       "description": "As an accessibility user with XXL text, I want ExperienceDetailView hero and section titles to scale without truncation.",
       "acceptanceCriteria": [
-        "In ExperienceDetailView.swift heroSection: title Text gets .lineLimit(nil) AND .minimumScaleFactor(0.8); category badge HStack wraps gracefully",
+        "In ExperienceDetailView.swift heroSection: title Text gets .lineLimit(nil) AND .minimumScaleFactor(0.8); category label HStack wraps gracefully",
         "All section titles use .font(.headline).minimumScaleFactor(0.85)",
         "Add a #Preview variant with .environment(\\.dynamicTypeSize, .accessibility3)",
         "Add snapshot test (if SnapshotTesting is available) OR a basic XCTest measuring intrinsicContentSize at XXL",
