@@ -3468,3 +3468,82 @@ final class LanguageServiceTests: XCTestCase {
         XCTAssertFalse(cache.hasCachedData(forCity: "unknown-city-\(UUID().uuidString)"))
     }
 }
+
+// MARK: - US-003 VoiceAgentOrchestrator unconfigured state
+
+@MainActor
+final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
+
+    /// When resolvedDeepSeekApiKey is empty, start() must set uiState = .unconfigured
+    /// and must NOT set isRunning (no session seeded, no mic started).
+    func testMissingKeyYieldsUnconfiguredState() {
+        // Clear any UserDefaults override so resolvedDeepSeekApiKey falls back
+        // to the build-time value. In CI the build-time key is empty (""), so
+        // this test exercises the real unconfigured path.
+        // If a real key is present in the environment (dev machine), we stub
+        // the override key to empty to force the unconfigured branch.
+        let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        defer {
+            if let saved = savedOverride {
+                UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            }
+        }
+
+        // Also clear the env-level key so the GeneratedSecrets fallback is also empty.
+        let hadEnvKey = getenv("DEEPSEEK_API_KEY") != nil
+        unsetenv("DEEPSEEK_API_KEY")
+        defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", "", 1) } }
+
+        let orch = VoiceAgentOrchestrator(
+            aiService: AIService(),
+            voiceService: VoiceService(),
+            mapViewModel: MapViewModel(
+                locationService: LocationService(),
+                experienceService: ExperienceService(),
+                aiService: AIService(),
+                preferences: UserPreferences()
+            ),
+            preferences: UserPreferences()
+        )
+
+        XCTAssertEqual(orch.uiState, .idle, "precondition: uiState starts idle")
+        XCTAssertFalse(orch.isRunning, "precondition: not running before start()")
+
+        orch.start()
+
+        XCTAssertEqual(orch.uiState, .unconfigured,
+                       "start() with empty API key must set uiState = .unconfigured")
+        XCTAssertFalse(orch.isRunning,
+                       "orchestrator must NOT become running when key is missing")
+    }
+
+    /// Calling start() a second time while already unconfigured must remain unconfigured.
+    func testRepeatedStartWhileUnconfiguredStaysUnconfigured() {
+        UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        }
+        unsetenv("DEEPSEEK_API_KEY")
+
+        let orch = VoiceAgentOrchestrator(
+            aiService: AIService(),
+            voiceService: VoiceService(),
+            mapViewModel: MapViewModel(
+                locationService: LocationService(),
+                experienceService: ExperienceService(),
+                aiService: AIService(),
+                preferences: UserPreferences()
+            ),
+            preferences: UserPreferences()
+        )
+
+        orch.start()
+        XCTAssertEqual(orch.uiState, .unconfigured)
+
+        orch.start()
+        XCTAssertEqual(orch.uiState, .unconfigured, "second start() must not change state")
+    }
+}

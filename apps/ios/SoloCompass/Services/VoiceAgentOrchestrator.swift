@@ -66,8 +66,14 @@ public final class VoiceAgentOrchestrator: Identifiable {
     // MARK: - Public API
 
     /// Seed with system prompt and begin listening immediately.
+    /// US-003: If the resolved API key is empty, short-circuit to .unconfigured
+    /// before touching the session — no system prompt is seeded, no mic starts.
     public func start() {
         guard !isRunning else { return }
+        guard !Secrets.resolvedDeepSeekApiKey.isEmpty else {
+            uiState = .unconfigured
+            return
+        }
         isRunning = true
         isSeeded = false
         errorMessage = nil
@@ -122,6 +128,14 @@ public final class VoiceAgentOrchestrator: Identifiable {
         utterance.rate = 0.52
         utterance.pitchMultiplier = 1.05
         synthesizer.speak(utterance)
+    }
+
+    // MARK: - Preview helpers
+
+    /// For use in SwiftUI `#Preview` only — forces the unconfigured state
+    /// so the unconfiguredCard branch is visible without clearing Secrets.plist.
+    public func previewSetUnconfigured() {
+        uiState = .unconfigured
     }
 
     // MARK: - Turn loop

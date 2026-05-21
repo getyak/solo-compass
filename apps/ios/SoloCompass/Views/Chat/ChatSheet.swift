@@ -597,6 +597,17 @@ private struct VoiceMicButton: View {
     )
 }
 
+#Preview("Unconfigured") {
+    let orch = previewOrchestrator()
+    orch.previewSetUnconfigured()
+    return ChatSheet(
+        orchestrator: orch,
+        voiceService: VoiceService(),
+        startInVoiceMode: false,
+        onDismiss: {}
+    )
+}
+
 #Preview("With history") {
     let orch = previewOrchestrator(seeded: true)
     return ChatSheet(
