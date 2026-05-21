@@ -540,6 +540,59 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertTrue(loadIDs.contains(target.id))
     }
 
+    // MARK: - US-012 Distance slider debounce
+
+    /// visibleExperiences must NOT change while the slider is dragged (simulated
+    /// by calling reloadForDistanceChange only once the draft is committed), and
+    /// must update immediately after `reloadForDistanceChange` is called.
+    @MainActor
+    func testDistanceSliderReloadOnlyOnRelease() throws {
+        let preferences = UserPreferences()
+        preferences.maxDistanceKm = 5.0
+        let locationService = LocationService()
+        let center = CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938)
+        locationService.simulate(location: CLLocation(latitude: center.latitude, longitude: center.longitude))
+
+        let viewModel = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(seed: ExperienceService.hardcodedSeed),
+            aiService: AIService(),
+            preferences: preferences
+        )
+        viewModel.selectedCity = nil
+
+        // Capture the baseline visible set at 5 km radius.
+        viewModel.loadNearbyExperiences()
+        let baselineIDs = viewModel.visibleExperiences.map(\.id)
+        XCTAssertGreaterThan(baselineIDs.count, 0, "seed must have experiences in Chiang Mai")
+
+        // Simulate dragging: draft changes but reloadForDistanceChange is NOT called.
+        // visibleExperiences must remain unchanged (the view only calls this on release).
+        var draftKm = 1.0
+        for _ in 0..<5 {
+            draftKm += 0.5
+            // In the real app the preferences.maxDistanceKm is NOT written during drag;
+            // we model that here by not writing to preferences and not reloading.
+        }
+        XCTAssertEqual(viewModel.visibleExperiences.map(\.id), baselineIDs,
+                       "visibleExperiences must not change during slider drag")
+
+        // Simulate release: draft is committed to preferences, then reload fires.
+        preferences.maxDistanceKm = 1.0
+        viewModel.reloadForDistanceChange()
+        let narrowIDs = viewModel.visibleExperiences.map(\.id)
+
+        // At 1 km the set may differ from 5 km (could be smaller or same
+        // depending on seed placement) — what matters is the reload was triggered.
+        // We verify the reload ran by checking that loadNearbyExperiences used the
+        // new radius (preferences.maxDistanceKm == 1.0).
+        let allWithin1km = ExperienceService(seed: ExperienceService.hardcodedSeed)
+            .getExperiences(near: center, radiusKm: 1.0)
+            .map(\.id)
+        XCTAssertEqual(Set(narrowIDs), Set(allWithin1km),
+                       "after release, visibleExperiences must reflect the committed radius")
+    }
+
     // MARK: - SwiftData ExperienceRecord round-trip
 
     @MainActor

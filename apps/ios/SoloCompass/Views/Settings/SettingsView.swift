@@ -13,11 +13,16 @@ public struct SettingsView: View {
     @Environment(\.themeService) private var themeService
     var onClose: () -> Void
     var onShowFavorites: (() -> Void)?
+    var onDistanceCommitted: (() -> Void)?
 
     @State private var showingClearConfirm = false
     @State private var restoreToast: String?
     @State private var restoreInFlight = false
     @State private var showingLanguageRestartAlert = false
+
+    // Draft value shown in the label while the slider is being dragged.
+    // Written to preferences.maxDistanceKm only on release.
+    @State private var draftDistanceKm: Double? = nil
 
     // Admin / tester email unlock — bypasses StoreKit for allow-listed
     // emails so internal testers and the project owner can reach Pro
@@ -31,9 +36,14 @@ public struct SettingsView: View {
     @State private var appleSignInToast: String?
     @State private var appleSignInService = AppleSignInService()
 
-    public init(onClose: @escaping () -> Void = {}, onShowFavorites: (() -> Void)? = nil) {
+    public init(
+        onClose: @escaping () -> Void = {},
+        onShowFavorites: (() -> Void)? = nil,
+        onDistanceCommitted: (() -> Void)? = nil
+    ) {
         self.onClose = onClose
         self.onShowFavorites = onShowFavorites
+        self.onDistanceCommitted = onDistanceCommitted
     }
 
     public var body: some View {
@@ -193,6 +203,7 @@ public struct SettingsView: View {
     private var distanceSection: some View {
         Section {
             @Bindable var prefs = preferences
+            let displayedKm = draftDistanceKm ?? preferences.maxDistanceKm
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: "location.magnifyingglass")
@@ -202,11 +213,25 @@ public struct SettingsView: View {
                         .background(Color.green, in: RoundedRectangle(cornerRadius: 7))
                     Text(NSLocalizedString("settings.maxDistance", comment: "Max Distance"))
                     Spacer()
-                    Text(distanceLabel(preferences.maxDistanceKm))
+                    Text(distanceLabel(displayedKm))
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
-                Slider(value: $prefs.maxDistanceKm, in: 1...25, step: 0.5).tint(.blue)
+                Slider(
+                    value: Binding(
+                        get: { draftDistanceKm ?? preferences.maxDistanceKm },
+                        set: { draftDistanceKm = $0 }
+                    ),
+                    in: 1...25,
+                    step: 0.5,
+                    onEditingChanged: { editing in
+                        if !editing, let draft = draftDistanceKm {
+                            preferences.maxDistanceKm = draft
+                            draftDistanceKm = nil
+                            onDistanceCommitted?()
+                        }
+                    }
+                ).tint(.blue)
             }
         } header: {
             settingsSectionHeader("location.circle", label: NSLocalizedString("settings.distance", comment: "Discovery Radius"))

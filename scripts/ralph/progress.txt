@@ -21,3 +21,4 @@ Tool: claude
 [2026-05-21T05:25:56Z] Story #US-010: Replace per-frame panResetTask with debounced timer — PASSED
 [2026-05-21T05:26:50Z] Story #US-010: Replace per-frame panResetTask with debounced timer — PASSED
 [2026-05-21T05:27:45Z] Story #US-011: Invert PlusActionButton tap/long-press semantics — PASSED
+[2026-05-21T05:29:19Z] Story #US-011: Invert PlusActionButton tap/long-press semantics — PASSED

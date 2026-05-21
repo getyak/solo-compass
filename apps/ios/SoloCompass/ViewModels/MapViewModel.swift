@@ -325,6 +325,12 @@ public final class MapViewModel {
 
     // MARK: - Loading
 
+    /// Called when the distance slider is released in SettingsView.
+    /// Reloads visible experiences with the newly committed radius.
+    public func reloadForDistanceChange() {
+        loadNearbyExperiences()
+    }
+
     public func loadNearbyExperiences() {
         let center = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
         let radiusKm = max(1.0, preferences.maxDistanceKm)
