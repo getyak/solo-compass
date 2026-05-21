@@ -6,3 +6,4 @@ Tool: claude
 [2026-05-21T05:01:42Z] Story #US-002: Add explicit dismiss + Continue-with-Free CTA to PaywallView — FAILED (iteration 2)
 [2026-05-21T05:10:00Z] Story #US-002: Add explicit dismiss + Continue-with-Free CTA to PaywallView — PASSED
 [2026-05-21T05:03:13Z] Story #US-002: Add explicit dismiss + Continue-with-Free CTA to PaywallView — PASSED
+[2026-05-21T05:05:46Z] Story #US-003: Wire ChatSheet unconfigured state when API key missing — PASSED

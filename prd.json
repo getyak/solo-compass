@@ -51,7 +51,7 @@
         "Verify in Simulator: clear Secrets.plist key -> tap + -> unconfiguredCard appears with Open Settings CTA"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
