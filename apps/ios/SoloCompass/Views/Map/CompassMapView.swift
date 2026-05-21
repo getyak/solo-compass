@@ -28,7 +28,8 @@ public struct CompassMapView: View {
     @State private var isShowingChat: Bool = false
     @State private var chatStartMode: ChatStartMode = .text
     @State private var isMapPanning: Bool = false
-    @State private var panResetTask: Task<Void, Never>? = nil
+    @State private var lastPanAt: Date = .distantPast
+    @State private var panDebounceTask: Task<Void, Never>? = nil
 
     private let networkMonitor = NetworkMonitor.shared
 
@@ -410,11 +411,18 @@ public struct CompassMapView: View {
             }
             .onMapCameraChange(frequency: .continuous) { _ in
                 isMapPanning = true
-                panResetTask?.cancel()
-                panResetTask = Task {
-                    try? await Task.sleep(for: .seconds(1.5))
-                    guard !Task.isCancelled else { return }
-                    isMapPanning = false
+                lastPanAt = Date()
+                if panDebounceTask == nil {
+                    panDebounceTask = Task {
+                        repeat {
+                            try? await Task.sleep(for: .milliseconds(100))
+                            if Task.isCancelled { return }
+                        } while Date().timeIntervalSince(lastPanAt) < 1.5
+                        if !Task.isCancelled {
+                            isMapPanning = false
+                        }
+                        panDebounceTask = nil
+                    }
                 }
             }
             .onMapCameraChange(frequency: .onEnd) { context in

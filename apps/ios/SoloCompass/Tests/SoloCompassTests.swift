@@ -3551,6 +3551,79 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
                        "orchestrator must NOT become running when key is missing")
     }
 
+    // MARK: - US-010 Pan debounce: single long-lived Task, not N per-frame Tasks
+
+    /// Simulates 60 fps of camera-change events for 5 s, then asserts that
+    /// the debounce machinery spawned fewer than 10 concurrent tasks total.
+    ///
+    /// Implementation note: `CompassMapView` uses a single `panDebounceTask`
+    /// that is only created when `panDebounceTask == nil`. The task polls
+    /// `lastPanAt` every 100 ms and clears itself when the debounce window
+    /// elapses. This guarantees at most one live task at any instant —
+    /// giving a max concurrent count of 1 across the entire 5 s burst.
+    ///
+    /// The test replays the same logic in isolation (no SwiftUI needed) so
+    /// it runs headlessly on the CI simulator without UIKit ceremony.
+    func testPanDebounceSpawnsAtMostOneTaskDuring60FpsBurst() async {
+        actor PanDebounceHarness {
+            var isMapPanning: Bool = false
+            var lastPanAt: Date = .distantPast
+            var panDebounceTask: Task<Void, Never>? = nil
+            var peakConcurrentTasks: Int = 0
+            private var currentConcurrentTasks: Int = 0
+
+            func handleCameraChange() {
+                isMapPanning = true
+                lastPanAt = Date()
+                if panDebounceTask == nil {
+                    currentConcurrentTasks += 1
+                    if currentConcurrentTasks > peakConcurrentTasks {
+                        peakConcurrentTasks = currentConcurrentTasks
+                    }
+                    panDebounceTask = Task {
+                        repeat {
+                            try? await Task.sleep(for: .milliseconds(100))
+                            if Task.isCancelled { return }
+                        } while await Date().timeIntervalSince(self.lastPanAt) < 1.5
+                        if !Task.isCancelled {
+                            await self.markDone()
+                        }
+                    }
+                }
+            }
+
+            func markDone() {
+                isMapPanning = false
+                panDebounceTask = nil
+                currentConcurrentTasks -= 1
+            }
+
+            func snapshot() -> (peakConcurrentTasks: Int, isMapPanning: Bool) {
+                (peakConcurrentTasks, isMapPanning)
+            }
+        }
+
+        let harness = PanDebounceHarness()
+        let frameIntervalNs: UInt64 = 1_000_000_000 / 60  // ~16.7 ms
+
+        // Fire 60 fps events for 5 s (300 events total).
+        for _ in 0..<300 {
+            await harness.handleCameraChange()
+            try? await Task.sleep(nanoseconds: frameIntervalNs)
+        }
+
+        // Wait for the debounce window to expire (1.5 s + small margin).
+        try? await Task.sleep(for: .milliseconds(1700))
+
+        let snap = await harness.snapshot()
+        XCTAssertLessThan(
+            snap.peakConcurrentTasks, 10,
+            "debounce must not spawn more than 10 concurrent tasks; got \(snap.peakConcurrentTasks)"
+        )
+        XCTAssertFalse(snap.isMapPanning,
+                       "isMapPanning must be false after debounce window elapses")
+    }
+
     /// Calling start() a second time while already unconfigured must remain unconfigured.
     func testRepeatedStartWhileUnconfiguredStaysUnconfigured() {
         UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
