@@ -88,7 +88,7 @@ public struct CompassMapView: View {
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
             .sheet(isPresented: $isShowingChat) { chatSheetContent }
-            .sheet(isPresented: paywallSheetBinding) { paywallSheetContent }
+            .sheet(isPresented: paywallSheetBinding, onDismiss: { viewModel?.onPaywallUnlocked = nil }) { paywallSheetContent }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
     }

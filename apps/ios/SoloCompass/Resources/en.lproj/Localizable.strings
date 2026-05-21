@@ -280,6 +280,8 @@
 "paywall.restore" = "Restore purchases";
 "paywall.manage" = "Manage subscription";
 "paywall.error.title" = "Purchase didn't complete";
+"paywall.close" = "Close";
+"paywall.continueFree" = "Continue with Free";
 
 /* Settings — Subscription */
 "settings.subscription" = "Subscription";

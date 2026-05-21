@@ -266,6 +266,8 @@
 "paywall.restore" = "恢复购买";
 "paywall.manage" = "管理订阅";
 "paywall.error.title" = "购买未完成";
+"paywall.close" = "关闭";
+"paywall.continueFree" = "免费继续使用";
 
 /* Settings — Subscription */
 "settings.subscription" = "订阅";
