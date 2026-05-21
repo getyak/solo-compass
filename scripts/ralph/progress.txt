@@ -29,3 +29,7 @@ Tool: claude
 [2026-05-21T05:32:44Z] Story #US-013: Clear-all-data also wipes SwiftData mirrors — FAILED (iteration 1)
 [2026-05-21T05:33:21Z] Story #US-013: Clear-all-data also wipes SwiftData mirrors — PASSED
 [2026-05-21T05:34:27Z] Story #US-013: Clear-all-data also wipes SwiftData mirrors — PASSED
+[2026-05-21T05:35:08Z] Story #US-014: Explore zero-POI uses offline cache before erroring — FAILED (iteration 8)
+[2026-05-21T05:35:08Z] Ralph complete after 8 iterations
+
+[MANUAL] Story #US-014: Explore zero-POI uses offline cache before erroring — PASSED (salvaged tests after max_turns; implementation in fd950e9)

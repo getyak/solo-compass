@@ -3705,6 +3705,130 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
                        "isMapPanning must be false after debounce window elapses")
     }
 
+    // MARK: - US-014 Explore zero-POI cache fallback
+
+    /// When Overpass returns empty (no network error, just empty results) but a
+    /// recent region with cached experiences exists nearby, exploreNearby must
+    /// surface the cache and show a "Showing cached results" toast rather than
+    /// setting lastExploreError.
+    @MainActor
+    func testExploreNearbyUsesCacheWhenFetchReturnsEmpty() async throws {
+        // 1. Stub Overpass to return an empty elements array — no network error,
+        //    just zero POIs found. exploreNearby reaches the `guard !pois.isEmpty`
+        //    branch and should query the repo before setting lastExploreError.
+        StubURLProtocol.requestCount = 0
+        StubURLProtocol.handler = { request in
+            let empty = #"{"elements":[]}"#
+            return (HTTPURLResponse(
+                url: request.url!, statusCode: 200,
+                httpVersion: nil, headerFields: nil)!,
+                Data(empty.utf8))
+        }
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: config)
+
+        // 2. Build an isolated in-memory SwiftData store.
+        let container = SoloCompassModelContainer.makeInMemory()
+        let context = ModelContext(container)
+        let repo = ExperienceRepository(context: context, preferences: nil)
+
+        // 3. Seed two experiences in Chiang Mai (lat 18.79, lon 98.99) into the repo.
+        let coordinate = CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938)
+        let seedExp = ExperienceService.hardcodedSeed.prefix(2).map { $0 }
+        repo.appendGenerated(seedExp)
+
+        // 4. Record a recent explore region covering that coordinate so
+        //    closestRecentRegion returns it and experiences(in:) returns the seed rows.
+        repo.recordRecentExploreRegion(
+            centerLat: coordinate.latitude,
+            centerLon: coordinate.longitude,
+            radiusMeters: 5000
+        )
+
+        let service = ExperienceService(seed: [], repository: repo)
+        let overpass = OverpassService(session: session, maxResults: 30, repository: nil)
+
+        let prefs = UserPreferences()
+        prefs.hasAcceptedExploreConsent = true
+        prefs.acceptExploreConsent()
+
+        // 5. Subscribe the Pro tier so we don't hit the paywall gate.
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: service,
+            aiService: AIService(),
+            preferences: prefs,
+            overpassService: overpass
+        )
+        // Bypass subscription gate: no SubscriptionService attached → isProUser == true.
+
+        // 6. Run exploreNearby — flag off so single-ring path runs.
+        unsetenv("FF_PRO_MULTI_RING_EXPLORE")
+        await vm.exploreNearby(at: coordinate, radiusMeters: 3000)
+
+        // 7. Assert: cache was served, not an error.
+        XCTAssertNil(vm.lastExploreError,
+                     "lastExploreError must be nil when cache provides results")
+        XCTAssertFalse(vm.visibleExperiences.isEmpty,
+                       "visibleExperiences must contain the cached set")
+        XCTAssertEqual(vm.lastExploreToast,
+                       NSLocalizedString("explore.toast.cachedFallback", comment: ""),
+                       "toast must indicate cached results are being shown")
+
+        // The visible set must match exactly what's in the cached region.
+        let cachedIds = Set(seedExp.map(\.id))
+        let visibleIds = Set(vm.visibleExperiences.map(\.id))
+        XCTAssertEqual(visibleIds, cachedIds,
+                       "visibleExperiences must equal the cached experience set")
+    }
+
+    /// When both Overpass returns empty AND there is no nearby cache, only then
+    /// should lastExploreError be set.
+    @MainActor
+    func testExploreNearbySetErrorWhenBothFetchAndCacheEmpty() async throws {
+        StubURLProtocol.requestCount = 0
+        StubURLProtocol.handler = { request in
+            let empty = #"{"elements":[]}"#
+            return (HTTPURLResponse(
+                url: request.url!, statusCode: 200,
+                httpVersion: nil, headerFields: nil)!,
+                Data(empty.utf8))
+        }
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: config)
+
+        // Empty repo — no cached regions, no experiences.
+        let container = SoloCompassModelContainer.makeInMemory()
+        let context = ModelContext(container)
+        let repo = ExperienceRepository(context: context, preferences: nil)
+        let service = ExperienceService(seed: [], repository: repo)
+        let overpass = OverpassService(session: session, maxResults: 30, repository: nil)
+
+        let prefs = UserPreferences()
+        prefs.acceptExploreConsent()
+
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: service,
+            aiService: AIService(),
+            preferences: prefs,
+            overpassService: overpass
+        )
+
+        unsetenv("FF_PRO_MULTI_RING_EXPLORE")
+        await vm.exploreNearby(
+            at: CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
+            radiusMeters: 3000
+        )
+
+        XCTAssertNotNil(vm.lastExploreError,
+                        "lastExploreError must be set when both fetch and cache return empty")
+        XCTAssertNil(vm.lastExploreToast,
+                     "no toast when error is set")
+    }
+
     /// Calling start() a second time while already unconfigured must remain unconfigured.
     func testRepeatedStartWhileUnconfiguredStaysUnconfigured() {
         UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
