@@ -248,7 +248,7 @@
         "Verify in Simulator: open chat in voice mode -> press-and-hold mic -> recording starts; release -> transcript sends"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

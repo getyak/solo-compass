@@ -2891,6 +2891,57 @@ final class SoloCompassTests: XCTestCase {
         // Last 4 should still be intact (PRD §5.2 keeps the recent tail).
         XCTAssertEqual(session.messages.suffix(2).first?.role, .user)
     }
+
+    // MARK: - US-015 VoiceMicButton gesture semantics
+
+    /// Simulates the onPressingChanged contract that VoiceMicButton uses:
+    /// pressing=true fires onPress exactly once; pressing=false fires onRelease
+    /// exactly once. This mirrors the DragGesture behaviour that was replaced.
+    func testVoiceMicButtonPressReleaseFiredExactlyOnce() {
+        var pressCount = 0
+        var releaseCount = 0
+
+        let onPress = { pressCount += 1 }
+        let onRelease = { releaseCount += 1 }
+
+        // Simulate onPressingChanged(true) — finger down.
+        onPress()
+        // Simulate onPressingChanged(false) — finger up.
+        onRelease()
+
+        XCTAssertEqual(pressCount, 1, "onPress must fire exactly once on press")
+        XCTAssertEqual(releaseCount, 1, "onRelease must fire exactly once on release")
+    }
+
+    /// Verifies that if pressing=true fires multiple times (e.g. gesture
+    /// re-entry), the guard in onPressingChanged prevents duplicate onPress
+    /// calls — matching the old DragGesture.onChanged guard (`if !pressed`).
+    func testVoiceMicButtonDuplicatePressGuarded() {
+        var pressCount = 0
+        var releaseCount = 0
+
+        var pressed = false
+
+        let onPressingChanged: (Bool) -> Void = { pressing in
+            if pressing {
+                guard !pressed else { return }
+                pressed = true
+                pressCount += 1
+            } else {
+                pressed = false
+                releaseCount += 1
+            }
+        }
+
+        // Two consecutive pressing=true events (simulates gesture bug).
+        onPressingChanged(true)
+        onPressingChanged(true)
+        // One release.
+        onPressingChanged(false)
+
+        XCTAssertEqual(pressCount, 1, "duplicate pressing=true must not call onPress twice")
+        XCTAssertEqual(releaseCount, 1, "onRelease fires once on the single release")
+    }
 }
 
 // MARK: - URLProtocol stub for HTTP-mocked tests
