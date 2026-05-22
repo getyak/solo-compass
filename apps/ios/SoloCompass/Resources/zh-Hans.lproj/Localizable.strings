@@ -409,6 +409,24 @@
 "export.notion" = "在 Notion 中打开";
 "export.share" = "分享…";
 
+/* Share sheet — card modes & actions */
+"share.title" = "分享";
+"share.mode.xiaohongshu" = "小红书风";
+"share.mode.twitter" = "推特卡";
+"share.mode.square" = "方形";
+"share.mode.minimal" = "极简";
+"share.mode.markdown" = "Markdown";
+"share.systemShare" = "分享…";
+"share.copyImage" = "复制图片";
+"share.copied" = "已复制到剪贴板";
+"share.imageCopied" = "图片已复制";
+"share.renderFailed" = "卡片生成失败，请重试";
+"share.saveHint" = "点击分享后，选择「存储图像」即可保存到相册";
+"share.style.xiaohongshuPortrait" = "竖版 9:16";
+"share.style.twitterLandscape" = "横版 1.91:1";
+"share.style.instagramSquare" = "方形 1:1";
+"share.style.minimalText" = "极简 9:16";
+
 /* Offline banner (US-041) */
 "offline.banner" = "离线模式 · 显示缓存数据";
 

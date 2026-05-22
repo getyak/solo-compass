@@ -114,9 +114,9 @@ public struct ExperienceDetailView: View {
             get: { exportMarkdown.map { ExportPayload(markdown: $0) } },
             set: { if $0 == nil { exportMarkdown = nil } }
         )) { payload in
-            MarkdownShareSheet(
+            ShareSheet(
+                experience: viewModel.experience,
                 markdown: payload.markdown,
-                title: viewModel.experience.title,
                 notionURL: MarkdownExporter.notionWebClipperURL(title: viewModel.experience.title)
             )
         }

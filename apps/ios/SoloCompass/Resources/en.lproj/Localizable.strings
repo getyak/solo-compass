@@ -442,6 +442,24 @@
 "export.notion" = "Open in Notion";
 "export.share" = "Share…";
 
+/* Share sheet — card modes & actions */
+"share.title" = "Share";
+"share.mode.xiaohongshu" = "Story";
+"share.mode.twitter" = "Twitter Card";
+"share.mode.square" = "Square";
+"share.mode.minimal" = "Minimal";
+"share.mode.markdown" = "Markdown";
+"share.systemShare" = "Share…";
+"share.copyImage" = "Copy image";
+"share.copied" = "Copied to clipboard";
+"share.imageCopied" = "Image copied";
+"share.renderFailed" = "Couldn't render the card. Please try again.";
+"share.saveHint" = "Tap Share, then choose Save Image to save to Photos.";
+"share.style.xiaohongshuPortrait" = "Story 9:16";
+"share.style.twitterLandscape" = "Twitter 1.91:1";
+"share.style.instagramSquare" = "Square 1:1";
+"share.style.minimalText" = "Minimal 9:16";
+
 /* Offline banner (US-041) */
 "offline.banner" = "Offline mode · showing cached data";
 

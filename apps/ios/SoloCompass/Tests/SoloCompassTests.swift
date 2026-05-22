@@ -32,6 +32,51 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(decoded.soloScore.overall, original.soloScore.overall, accuracy: 0.001)
     }
 
+    // MARK: - userTags (US-005)
+
+    /// Round-trip a populated userTags array through JSON.
+    func testExperienceUserTagsJSONRoundTrip() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let tagged = Experience(
+            id: base.id,
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds,
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            userTags: ["sunset", "quiet", "rainy-season-ok"]
+        )
+        let data = try JSONEncoder.iso8601Encoder.encode(tagged)
+        let decoded = try JSONDecoder.iso8601Decoder.decode(Experience.self, from: data)
+        XCTAssertEqual(decoded.userTags, ["sunset", "quiet", "rainy-season-ok"])
+    }
+
+    /// Existing seed JSON without the userTags field must still decode — the
+    /// field is optional and absence decodes to nil.
+    func testExperienceJSONDecodesWithoutUserTagsField() throws {
+        let original = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let data = try JSONEncoder.iso8601Encoder.encode(original)
+        var dict = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+        dict.removeValue(forKey: "userTags")
+        let strippedData = try JSONSerialization.data(withJSONObject: dict)
+        let decoded = try JSONDecoder.iso8601Decoder.decode(Experience.self, from: strippedData)
+        XCTAssertNil(decoded.userTags)
+    }
+
     // MARK: - Distance
 
     func testCLLocationDistanceBetweenChiangMaiPoints() {
@@ -4631,5 +4676,84 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         let prompt = await orch.buildSystemPrompt(experience: nil)
         XCTAssertFalse(prompt.contains("<experience_context>"),
                        "global (nil) scope must not contain <experience_context>")
+    }
+
+    // MARK: - Share card system (visual card share)
+
+    /// Every `ExperienceCategory` must produce a non-empty emoji and a distinct
+    /// color pair so the gradient hero never falls back to a generic look.
+    func testCategoryVisualCoversAllCases() {
+        for cat in ExperienceCategory.allCases {
+            XCTAssertFalse(CategoryVisual.emoji(for: cat).isEmpty, "emoji missing for \(cat)")
+            let pair = CategoryVisual.colorPair(for: cat)
+            XCTAssertNotEqual(
+                String(describing: pair.0),
+                String(describing: pair.1),
+                "color pair for \(cat) must have distinct endpoints"
+            )
+        }
+    }
+
+    /// Building a card payload from an Experience must preserve title, category,
+    /// solo score, and a non-nil coordinate when the source has lon/lat.
+    func testShareCardPayloadFromExperience() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let payload = ShareCardPayload(experience: base)
+
+        XCTAssertEqual(payload.title, base.title)
+        XCTAssertEqual(payload.category, base.category)
+        XCTAssertEqual(payload.soloScore, base.soloScore.overall, accuracy: 0.001)
+        XCTAssertEqual(payload.score100, Int((base.soloScore.overall * 10).rounded()))
+
+        if base.location.coordinates.count >= 2 {
+            XCTAssertNotNil(payload.coordinate)
+            XCTAssertEqual(payload.coordinate?.lon ?? 0, base.location.coordinates[0], accuracy: 1e-6)
+            XCTAssertEqual(payload.coordinate?.lat ?? 0, base.location.coordinates[1], accuracy: 1e-6)
+        }
+    }
+
+    /// Each style's render size and pixel size must agree with `renderScale`.
+    func testShareCardStyleSizes() {
+        for style in ShareCardStyle.allCases {
+            let render = style.renderSize
+            let pixel = style.pixelSize
+            XCTAssertEqual(render.width * style.renderScale, pixel.width, accuracy: 0.001)
+            XCTAssertEqual(render.height * style.renderScale, pixel.height, accuracy: 0.001)
+            XCTAssertGreaterThan(pixel.width, 0)
+            XCTAssertGreaterThan(pixel.height, 0)
+        }
+    }
+
+    /// ImageRenderer must produce a UIImage whose pixel size matches the style's
+    /// declared target (±1px tolerance for SwiftUI rounding).
+    func testShareCardRendererOutputSize() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let payload = ShareCardPayload(experience: base)
+
+        for style in ShareCardStyle.allCases {
+            let image = try ShareCardRenderer.renderImage(payload: payload, style: style)
+            let actualW = image.size.width * image.scale
+            let actualH = image.size.height * image.scale
+            XCTAssertEqual(actualW, style.pixelSize.width, accuracy: 1.0,
+                           "width mismatch for \(style.rawValue): got \(actualW)")
+            XCTAssertEqual(actualH, style.pixelSize.height, accuracy: 1.0,
+                           "height mismatch for \(style.rawValue): got \(actualH)")
+        }
+    }
+
+    /// PNG temp-file path must exist, be non-empty, and live under NSTemporaryDirectory.
+    func testShareCardRendererPNGWritesTempFile() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let payload = ShareCardPayload(experience: base)
+
+        let url = try ShareCardRenderer.renderTempPNG(payload: payload, style: .instagramSquare)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+        let size = (attrs[.size] as? NSNumber)?.intValue ?? 0
+        XCTAssertGreaterThan(size, 1000, "PNG should be more than a kilobyte")
+        XCTAssertTrue(url.path.hasPrefix(NSTemporaryDirectory()),
+                      "temp PNG must live under NSTemporaryDirectory")
     }
 }
