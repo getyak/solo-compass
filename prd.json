@@ -260,7 +260,7 @@
         "Bash test invocation 'scripts/sc-evaluator/run.sh home-screen-cold-start' completes within 10 minutes on M-series hardware"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

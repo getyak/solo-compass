@@ -1,0 +1,3 @@
+# Append-only findings — ignore generated runs, keep the directory.
+*
+!.gitignore
