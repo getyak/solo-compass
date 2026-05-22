@@ -241,7 +241,7 @@
         "xcodebuild build passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "2026-05-22: removed simulator-screenshot/XCUITest acceptance to keep Ralph in build+unit-test scope (no simctl boot)."
     },
     {

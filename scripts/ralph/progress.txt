@@ -44,3 +44,4 @@ Tool: claude
     └─ NEXT_STEPS: (auto) prior run ended (max_turns) Reached maximum number of turns (60)
 [2026-05-22T11:27:35Z] Story #US-013: Add FoursquareService as fallback data source after Overpass returns thin results — PASSED
 [2026-05-22T12:03:55Z] Story #US-014: Safe-area audit across iPhone 17 family with screenshot evidence — PASSED
+[2026-05-22T12:23:04Z] Story #US-015: Enlarge city pill tap target to 44x44 pt minimum — PASSED

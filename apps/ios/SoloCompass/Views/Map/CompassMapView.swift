@@ -509,6 +509,14 @@ private extension String {
     }
 }
 
+/// Layout metrics shared between `MapOverlayView` and its tests.
+enum MapOverlayMetrics {
+    /// Minimum hit target size per Apple HIG (44×44 pt).
+    /// The visual city pill is smaller than this, so `.contentShape` + `.frame`
+    /// expand the tappable region without changing the visual appearance.
+    static let cityPillHitTarget: CGFloat = 44
+}
+
 private struct MapOverlayView: View {
     var viewModel: MapViewModel
     var isAIProcessing: Bool
@@ -697,6 +705,11 @@ private struct MapOverlayView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(.regularMaterial, in: Capsule())
+            .frame(
+                minWidth: MapOverlayMetrics.cityPillHitTarget,
+                minHeight: MapOverlayMetrics.cityPillHitTarget
+            )
+            .contentShape(Rectangle())
         }
         .accessibilityLabel(Text(cityName))
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
