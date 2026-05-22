@@ -217,6 +217,9 @@
 "detail.report" = "Report an issue";
 "detail.more" = "More options";
 
+/* US-004: Ask Solo about this experience (Pro chat) */
+"experience.askSolo.cta" = "Ask Solo about this";
+
 /* Onboarding */
 "onboarding.welcome.title" = "Places worth being alone.";
 "onboarding.welcome.subtitle" = "A map of things worth doing solo, wherever you are.";

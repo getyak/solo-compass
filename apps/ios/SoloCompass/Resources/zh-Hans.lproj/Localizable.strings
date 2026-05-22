@@ -209,6 +209,9 @@
 "detail.report" = "反馈问题";
 "detail.more" = "更多选项";
 
+/* US-004: Ask Solo about this experience (Pro chat) */
+"experience.askSolo.cta" = "向 Solo 提问";
+
 /* Onboarding */
 "onboarding.welcome.title" = "值得独处的地方。";
 "onboarding.welcome.subtitle" = "一张地图,记录适合一人前往的体验。";

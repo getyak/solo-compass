@@ -89,6 +89,11 @@ public struct CompassMapView: View {
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
             .sheet(isPresented: $isShowingChat, onDismiss: {
+                // US-004: explicitly unscope before tearing down so a future
+                // global "+" chat — even if we ever stop discarding the
+                // orchestrator on dismiss — never inherits an <experience_context>
+                // block from a per-card session.
+                voiceOrchestrator?.rebindContext(nil)
                 voiceOrchestrator?.stop()
                 voiceOrchestrator = nil
             }) { chatSheetContent }
@@ -269,7 +274,7 @@ public struct CompassMapView: View {
 
     @ViewBuilder
     private var detailSheetContent: some View {
-        if let exp = viewModel?.selectedExperience {
+        if let exp = viewModel?.selectedExperience, let vm = viewModel {
             NavigationStack {
                 ExperienceDetailView(
                     viewModel: ExperienceDetailViewModel(
@@ -280,7 +285,20 @@ public struct CompassMapView: View {
                         subscriptionService: subscriptionService
                     ),
                     onClose: { viewModel?.dismissDetail() },
-                    onMarkDone: { experience in surveyExperience = experience }
+                    onMarkDone: { experience in surveyExperience = experience },
+                    // US-004: open ChatSheet bound to this experience. We
+                    // dismiss the detail sheet first so the chat sheet can
+                    // come up cleanly (iOS won't stack two .sheet()s on the
+                    // same parent reliably). The orchestrator is lazily
+                    // created if needed, then `rebindContext` injects the
+                    // <experience_context> system block.
+                    onAskSolo: { experience in
+                        viewModel?.dismissDetail()
+                        ensureOrchestrator(viewModel: vm)
+                        voiceOrchestrator?.rebindContext(experience)
+                        chatStartMode = .text
+                        isShowingChat = true
+                    }
                 )
             }
         }
@@ -350,6 +368,10 @@ public struct CompassMapView: View {
                 voiceService: voiceService,
                 startInVoiceMode: chatStartMode == .voice,
                 onDismiss: {
+                    // US-004: explicit unscope on close mirrors the .sheet
+                    // `onDismiss` path so the in-view "X" button is just as
+                    // safe as a swipe-down.
+                    orch.rebindContext(nil)
                     orch.stop()
                     voiceOrchestrator = nil
                     isShowingChat = false
