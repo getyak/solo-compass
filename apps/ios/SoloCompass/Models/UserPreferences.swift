@@ -38,6 +38,7 @@ public final class UserPreferences {
         var exploreConsentGivenAt: Date?
         var reviewPromptShown: Bool = false
         var includeMapInExport: Bool = false
+        var visibleCategories: Set<ExperienceCategory> = Set(ExperienceCategory.allCases)
 
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
@@ -46,7 +47,7 @@ public final class UserPreferences {
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
             case hasAcceptedExploreConsent, exploreConsentGivenAt, reviewPromptShown
-            case includeMapInExport
+            case includeMapInExport, visibleCategories
         }
 
         init() {}
@@ -71,7 +72,8 @@ public final class UserPreferences {
             hasAcceptedExploreConsent: Bool,
             exploreConsentGivenAt: Date?,
             reviewPromptShown: Bool,
-            includeMapInExport: Bool
+            includeMapInExport: Bool,
+            visibleCategories: Set<ExperienceCategory>
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -93,6 +95,7 @@ public final class UserPreferences {
             self.exploreConsentGivenAt = exploreConsentGivenAt
             self.reviewPromptShown = reviewPromptShown
             self.includeMapInExport = includeMapInExport
+            self.visibleCategories = visibleCategories
         }
 
         init(from decoder: Decoder) throws {
@@ -117,6 +120,8 @@ public final class UserPreferences {
             self.exploreConsentGivenAt = try container.decodeIfPresent(Date.self, forKey: .exploreConsentGivenAt)
             self.reviewPromptShown = try container.decodeIfPresent(Bool.self, forKey: .reviewPromptShown) ?? false
             self.includeMapInExport = try container.decodeIfPresent(Bool.self, forKey: .includeMapInExport) ?? false
+            self.visibleCategories = try container.decodeIfPresent(Set<ExperienceCategory>.self, forKey: .visibleCategories)
+                ?? Set(ExperienceCategory.allCases)
         }
     }
 
@@ -154,6 +159,11 @@ public final class UserPreferences {
     /// When true, MarkdownExporter embeds a 300×200 map snapshot as a
     /// base64 data: URL image in exported notes. US-020.
     public var includeMapInExport: Bool { didSet { persist() } }
+    /// Subset of ExperienceCategory cases the user wants to see as pills
+    /// in FilterBarView. Defaults to all 8 cases. Hiding a category drops
+    /// its pill from the filter bar but does NOT affect map markers or
+    /// recommendation ranking. US-006.
+    public var visibleCategories: Set<ExperienceCategory> { didSet { persist() } }
 
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
@@ -187,6 +197,7 @@ public final class UserPreferences {
         self.exploreConsentGivenAt = snapshot.exploreConsentGivenAt
         self.reviewPromptShown = snapshot.reviewPromptShown
         self.includeMapInExport = snapshot.includeMapInExport
+        self.visibleCategories = snapshot.visibleCategories
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -222,7 +233,8 @@ public final class UserPreferences {
             hasAcceptedExploreConsent: hasAcceptedExploreConsent,
             exploreConsentGivenAt: exploreConsentGivenAt,
             reviewPromptShown: reviewPromptShown,
-            includeMapInExport: includeMapInExport
+            includeMapInExport: includeMapInExport,
+            visibleCategories: visibleCategories
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

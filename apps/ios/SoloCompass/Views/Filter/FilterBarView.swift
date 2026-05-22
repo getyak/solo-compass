@@ -11,6 +11,11 @@ public struct FilterBarView: View {
     /// Driven by the parent when the map camera is moving; triggers fade+shrink.
     @Binding var isMapPanning: Bool
 
+    /// User's chosen subset of categories. Injected via SwiftUI environment
+    /// (US-006). Previews/tests that don't supply preferences get a freshly
+    /// constructed `UserPreferences`, which defaults to all 8 categories.
+    @Environment(UserPreferences.self) private var preferences
+
     public init(
         selectedCategory: ExperienceCategory?,
         isNowSelected: Bool,
@@ -27,9 +32,17 @@ public struct FilterBarView: View {
         self._isMapPanning = isMapPanning
     }
 
-    private static let visibleCategories: [ExperienceCategory] = [
-        .culture, .coffee, .food, .nature, .work, .wellness,
-    ]
+    /// Iterate `allCases` (not the `Set`) so pill order stays stable and
+    /// matches enum declaration order.
+    private var visibleCategories: [ExperienceCategory] {
+        Self.visiblePills(from: preferences.visibleCategories)
+    }
+
+    /// Pure function exposed for unit testing — keeps pill ordering tied to
+    /// `ExperienceCategory.allCases` and filters by the user's chosen set.
+    static func visiblePills(from selection: Set<ExperienceCategory>) -> [ExperienceCategory] {
+        ExperienceCategory.allCases.filter { selection.contains($0) }
+    }
 
     public var body: some View {
         GlassmorphismCapsule(horizontalPadding: 0, verticalPadding: 0) {
@@ -47,7 +60,7 @@ public struct FilterBarView: View {
                         color: Color.primary,
                         action: onSelectAll
                     )
-                    ForEach(Self.visibleCategories) { category in
+                    ForEach(visibleCategories) { category in
                         iconPill(
                             category: category,
                             isSelected: selectedCategory == category,
@@ -130,4 +143,5 @@ public struct FilterBarView: View {
     }
     .padding(.vertical)
     .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+    .environment(UserPreferences())
 }
