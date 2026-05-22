@@ -559,6 +559,105 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(pois[1].name, "Park")
     }
 
+    // MARK: - US-010 categoryToOverpassFilter
+
+    /// The categoryToOverpassFilter table must cover every
+    /// ExperienceCategory and inject a usable filter clause into the
+    /// generated Overpass QL string when a category is supplied.
+    func testCategoryToOverpassFilterCoversAllEightCategories() {
+        let mapping = OverpassService.categoryToOverpassFilter
+        for category in ExperienceCategory.allCases {
+            XCTAssertNotNil(mapping[category], "category \(category.rawValue) missing in filter table")
+        }
+        XCTAssertEqual(mapping.count, ExperienceCategory.allCases.count)
+    }
+
+    func testOverpassBuildQueryInjectsCategoryFilters() {
+        // Each category must produce a query string with the around clause
+        // and a fragment we expect for that category. This pins the mapping
+        // so accidental edits to the table get caught immediately.
+        struct Expect {
+            let category: ExperienceCategory
+            let mustContain: [String]
+        }
+        let cases: [Expect] = [
+            .init(category: .coffee, mustContain: [#""amenity"="cafe""#]),
+            .init(category: .work, mustContain: [#""amenity"="coworking_space""#]),
+            .init(category: .nature, mustContain: [#"leisure"~"^(park|garden|nature_reserve)$"#, #""natural""#]),
+            .init(category: .culture, mustContain: [#"tourism"~"^(attraction|gallery|museum|artwork)$"#, #""historic""#]),
+            .init(category: .food, mustContain: [#"amenity"~"^(restaurant|fast_food|food_court)$"#]),
+            .init(category: .wellness, mustContain: [#""spa""#, #""healthcare""#]),
+            .init(category: .nightlife, mustContain: [#"amenity"~"^(bar|pub|nightclub)$"#]),
+            .init(category: .hidden, mustContain: [#""tourism"="viewpoint""#]),
+        ]
+        for c in cases {
+            let q = OverpassService.buildQuery(
+                lat: 21.0285, lon: 105.8542,
+                radiusMeters: 3000, limit: 30,
+                category: c.category
+            )
+            XCTAssertTrue(q.contains("around:3000,21.0285,105.8542"),
+                          "[\(c.category.rawValue)] missing around clause")
+            XCTAssertTrue(q.contains("out body 30"),
+                          "[\(c.category.rawValue)] missing out body clause")
+            for fragment in c.mustContain {
+                XCTAssertTrue(q.contains(fragment),
+                              "[\(c.category.rawValue)] missing required fragment '\(fragment)' — got:\n\(q)")
+            }
+            // The category-narrowed query must NOT carry the
+            // broad-spectrum union body (ice_cream is only there).
+            XCTAssertFalse(q.contains("ice_cream"),
+                           "[\(c.category.rawValue)] should not include generic-query tags")
+        }
+    }
+
+    /// Round-trip guard: when we ask Overpass for a specific category
+    /// and stub the response with a tag-shaped node for that category,
+    /// the decoded POI must classify back via `category(for:)` to the
+    /// category we asked for. Network is stubbed via StubURLProtocol.
+    func testFetchPOIsCategoryRoundTripsThroughStubbedResponse() async throws {
+        struct Scenario {
+            let category: ExperienceCategory
+            let tagPair: String  // e.g. `"amenity":"cafe"`
+        }
+        let scenarios: [Scenario] = [
+            .init(category: .coffee, tagPair: #""amenity":"cafe""#),
+            .init(category: .food, tagPair: #""amenity":"restaurant""#),
+            .init(category: .nightlife, tagPair: #""amenity":"bar""#),
+            .init(category: .work, tagPair: #""amenity":"coworking_space""#),
+            .init(category: .culture, tagPair: #""tourism":"museum""#),
+            .init(category: .nature, tagPair: #""leisure":"park""#),
+            .init(category: .wellness, tagPair: #""amenity":"spa""#),
+            .init(category: .hidden, tagPair: #""tourism":"viewpoint""#),
+        ]
+        for (index, scenario) in scenarios.enumerated() {
+            let osmId = 1000 + index
+            let pair = scenario.tagPair
+            StubURLProtocol.handler = { _ in
+                let body = #"{"elements":[{"type":"node","id":\#(osmId),"lat":21.03,"lon":105.85,"tags":{"name":"Stub",\#(pair)}}]}"#
+                return (HTTPURLResponse(
+                    url: URL(string: "https://overpass-api.de/api/interpreter")!,
+                    statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    body.data(using: .utf8)!)
+            }
+            let config = URLSessionConfiguration.ephemeral
+            config.protocolClasses = [StubURLProtocol.self]
+            let session = URLSession(configuration: config)
+            let service = OverpassService(session: session, maxResults: 5, repository: nil)
+            let coord = CLLocationCoordinate2D(latitude: 21.0285, longitude: 105.8542)
+
+            let pois = try await service.fetchPOIs(
+                near: coord,
+                radiusMeters: 3000,
+                category: scenario.category
+            )
+            XCTAssertEqual(pois.count, 1, "[\(scenario.category.rawValue)] expected 1 stubbed POI")
+            let resolved = OverpassService.category(for: pois[0].tags)
+            XCTAssertEqual(resolved, scenario.category,
+                           "[\(scenario.category.rawValue)] round-trip failed: classifier returned \(resolved.rawValue)")
+        }
+    }
+
     // MARK: - AI synthesis fallback
 
     @MainActor

@@ -94,14 +94,20 @@ public final class OverpassService {
     /// Fetch up to `maxResults` POIs within `radiusMeters` of the coordinate.
     /// Cache hit: returns persisted POIs without HTTP. Cache miss:
     /// performs a real fetch with 1 retry, writes through to cache.
+    ///
+    /// When `category` is non-nil, the Overpass query is narrowed to
+    /// tag filters from `categoryToOverpassFilter` — so tapping the
+    /// Coffee pill returns coffee shops, not a generic mix.
     public func fetchPOIs(
         near coordinate: CLLocationCoordinate2D,
-        radiusMeters: Int = 3000
+        radiusMeters: Int = 3000,
+        category: ExperienceCategory? = nil
     ) async throws -> [POI] {
         let regionKey = Self.regionKey(
             lat: coordinate.latitude,
             lon: coordinate.longitude,
-            radiusMeters: radiusMeters
+            radiusMeters: radiusMeters,
+            category: category
         )
 
         if let cached = await loadCached(regionKey: regionKey) {
@@ -112,7 +118,13 @@ public final class OverpassService {
         await MainActor.run { self.isFetching = true }
         defer { Task { @MainActor [weak self] in self?.isFetching = false } }
 
-        let query = Self.buildQuery(lat: coordinate.latitude, lon: coordinate.longitude, radiusMeters: radiusMeters, limit: maxResults)
+        let query = Self.buildQuery(
+            lat: coordinate.latitude,
+            lon: coordinate.longitude,
+            radiusMeters: radiusMeters,
+            limit: maxResults,
+            category: category
+        )
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -153,10 +165,19 @@ public final class OverpassService {
         return result
     }
 
-    public static func regionKey(lat: Double, lon: Double, radiusMeters: Int) -> String {
+    public static func regionKey(
+        lat: Double,
+        lon: Double,
+        radiusMeters: Int,
+        category: ExperienceCategory? = nil
+    ) -> String {
         let roundedLat = (lat * 100).rounded() / 100
         let roundedLon = (lon * 100).rounded() / 100
-        return String(format: "%.2f_%.2f_%d", roundedLat, roundedLon, radiusMeters)
+        let base = String(format: "%.2f_%.2f_%d", roundedLat, roundedLon, radiusMeters)
+        if let category {
+            return "\(base)_\(category.rawValue)"
+        }
+        return base
     }
 
     // MARK: - HTTP
@@ -204,16 +225,73 @@ public final class OverpassService {
 
     // MARK: - Query
 
-    static func buildQuery(lat: Double, lon: Double, radiusMeters: Int, limit: Int) -> String {
+    /// Single source of truth for narrowing an Explore-here query to a
+    /// specific Solo Compass category. Each value is one or more
+    /// Overpass QL `node[...](around)` clauses (newline-joined) that
+    /// will be substituted into the union body of `buildQuery` when a
+    /// caller passes `category:` to `fetchPOIs`.
+    ///
+    /// The filters are deliberately a subset of the broader tag set
+    /// used by the generic (category == nil) query, so any POI returned
+    /// here will round-trip back to the same `ExperienceCategory` via
+    /// `category(for:)`.
+    public static let categoryToOverpassFilter: [ExperienceCategory: String] = [
+        .coffee: ##"""
+        node["amenity"="cafe"](AROUND);
+        node["shop"~"^(coffee|tea)$"](AROUND);
+        """##,
+        .work: ##"""
+        node["amenity"="coworking_space"](AROUND);
+        node["amenity"="library"](AROUND);
+        """##,
+        .nature: ##"""
+        node["leisure"~"^(park|garden|nature_reserve)$"](AROUND);
+        node["natural"~"^(beach|peak|hot_spring|wood|water)$"](AROUND);
+        """##,
+        .culture: ##"""
+        node["tourism"~"^(attraction|gallery|museum|artwork)$"](AROUND);
+        node["historic"](AROUND);
+        """##,
+        .food: ##"""
+        node["amenity"~"^(restaurant|fast_food|food_court)$"](AROUND);
+        """##,
+        .wellness: ##"""
+        node["leisure"="spa"](AROUND);
+        node["amenity"="spa"](AROUND);
+        node["healthcare"](AROUND);
+        """##,
+        .nightlife: ##"""
+        node["amenity"~"^(bar|pub|nightclub)$"](AROUND);
+        """##,
+        .hidden: ##"""
+        node["tourism"="viewpoint"](AROUND);
+        """##
+    ]
+
+    static func buildQuery(
+        lat: Double,
+        lon: Double,
+        radiusMeters: Int,
+        limit: Int,
+        category: ExperienceCategory? = nil
+    ) -> String {
         let around = "around:\(radiusMeters),\(lat),\(lon)"
+        let body: String
+        if let category, let filter = categoryToOverpassFilter[category] {
+            body = filter.replacingOccurrences(of: "AROUND", with: around)
+        } else {
+            body = """
+            node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|food_court|library|coworking_space|spa)$"](\(around));
+            node["tourism"~"^(attraction|viewpoint|gallery|museum|artwork|zoo|aquarium)$"](\(around));
+            node["leisure"~"^(park|garden|nature_reserve|fitness_centre)$"](\(around));
+            node["natural"~"^(beach|peak|hot_spring)$"](\(around));
+            node["shop"~"^(books|coffee|tea)$"](\(around));
+            """
+        }
         return """
         [out:json][timeout:15];
         (
-          node["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|food_court|library|coworking_space|spa)$"](\(around));
-          node["tourism"~"^(attraction|viewpoint|gallery|museum|artwork|zoo|aquarium)$"](\(around));
-          node["leisure"~"^(park|garden|nature_reserve|fitness_centre)$"](\(around));
-          node["natural"~"^(beach|peak|hot_spring)$"](\(around));
-          node["shop"~"^(books|coffee|tea)$"](\(around));
+        \(body)
         );
         out body \(limit);
         """
