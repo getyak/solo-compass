@@ -45,7 +45,7 @@
         "xcodebuild build for iPhone 17 Pro / iOS 26.4 passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
