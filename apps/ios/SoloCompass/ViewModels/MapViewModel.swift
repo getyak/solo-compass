@@ -225,6 +225,30 @@ public final class MapViewModel {
     /// `isNowFilter` — selecting any of those clears the others. US-008.
     public var selectedCustomTag: String?
     public var visibleExperiences: [Experience] = []
+
+    // MARK: - Empty-state progression (US-012)
+
+    /// Progressive escalation when `visibleExperiences` is empty. The
+    /// `EmptyStateOverlay` view renders a different button per stage:
+    /// `.tryExpand` (5 km → 25 km) → `.tryExplore` (Overpass at 12 km)
+    /// → `.browseCity` (jump to nearest seeded city). Stage advances
+    /// only as long as each previous action still yields an empty
+    /// result; the first non-empty render resets to `.tryExpand`.
+    public enum EmptyStateStage { case tryExpand, tryExplore, browseCity }
+
+    /// Current empty-state stage. Updated by `recordEmptyStateRender()`,
+    /// which the view calls after every refresh.
+    public private(set) var emptyStateStage: EmptyStateStage = .tryExpand
+
+    /// Consecutive empty renders since the last non-empty result. Used
+    /// to flip into `.browseCity` after three failed cycles.
+    private var emptyStateConsecutiveEmptyCount: Int = 0
+
+    /// Set once the user taps the `.tryExpand` button so the next empty
+    /// render upgrades to `.tryExplore` (PRD: "tryExplore after tapping
+    /// expand still yields empty").
+    private var emptyStateExpandTried: Bool = false
+
     public var selectedExperience: Experience?
     public var isShowingDetail: Bool = false
     public var bottomInfoText: String = ""
@@ -390,6 +414,59 @@ public final class MapViewModel {
         isNowFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
+    }
+
+    // MARK: - Empty-state progression (US-012)
+
+    /// Advance / reset the empty-state stage machine based on the
+    /// current `visibleExperiences` snapshot. Callers (the view + the
+    /// action handlers below) invoke this whenever a refresh has
+    /// settled. The first non-empty render fully resets the machine.
+    public func recordEmptyStateRender() {
+        guard visibleExperiences.isEmpty else {
+            emptyStateConsecutiveEmptyCount = 0
+            emptyStateExpandTried = false
+            emptyStateStage = .tryExpand
+            return
+        }
+        emptyStateConsecutiveEmptyCount += 1
+        if emptyStateConsecutiveEmptyCount >= 3 {
+            emptyStateStage = .browseCity
+        } else if emptyStateExpandTried {
+            emptyStateStage = .tryExplore
+        } else {
+            emptyStateStage = .tryExpand
+        }
+    }
+
+    /// US-012 stage 1: bump `maxDistanceKm` to 25 km and fire an
+    /// Explore at the current anchor. Marks the expand attempt so the
+    /// next empty render escalates to `.tryExplore`.
+    public func emptyStateActionTryExpand() {
+        emptyStateExpandTried = true
+        preferences.maxDistanceKm = 25
+        let anchor = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+        loadNearbyExperiences()
+        recordEmptyStateRender()
+        Task { await self.exploreNearby(at: anchor) }
+    }
+
+    /// US-012 stage 2: widen the Overpass radius to 12 km. Stage stays
+    /// in `.tryExplore` until either the explore returns results (reset)
+    /// or three consecutive empty renders flip it to `.browseCity`.
+    public func emptyStateActionTryExplore() {
+        let anchor = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+        recordEmptyStateRender()
+        Task { await self.exploreNearby(at: anchor, radiusMeters: 12000) }
+    }
+
+    /// US-012 stage 3: reuse the existing "Browse nearest city" jump
+    /// that the legacy overlay shipped with.
+    public func emptyStateActionBrowseCity() {
+        let anchor = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+        if let code = nearestSeededCity(to: anchor) {
+            selectCity(code)
+        }
     }
 
     /// Toggle a custom-tag pill. Selecting the currently-active tag clears

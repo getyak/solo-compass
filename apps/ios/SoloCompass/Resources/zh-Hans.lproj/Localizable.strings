@@ -109,6 +109,11 @@
 "map.empty.expand" = "扩展到 25 公里";
 "map.empty.browse" = "浏览 %@";
 "map.empty.clearFilters" = "清除筛选";
+
+/* Map empty-state stage machine (US-012) */
+"map.empty.stage.tryExpand" = "扩展到 25 公里";
+"map.empty.stage.tryExplore" = "搜索更远范围";
+"map.empty.stage.browseCity" = "浏览 %@";
 "map.loading" = "地图加载中";
 
 /* City picker */

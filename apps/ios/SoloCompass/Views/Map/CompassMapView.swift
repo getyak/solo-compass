@@ -886,6 +886,15 @@ private struct EmptyStateOverlay: View {
     var preferences: UserPreferences
     var locationService: LocationService
 
+    private var nearestCityName: String? {
+        let anchor = locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
+        guard let code = viewModel.nearestSeededCity(to: anchor),
+              let city = viewModel.availableCities.first(where: { $0.code == code }) else {
+            return nil
+        }
+        return city.name
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: "mappin.slash")
@@ -901,33 +910,52 @@ private struct EmptyStateOverlay: View {
             .foregroundStyle(.secondary)
 
             VStack(spacing: 8) {
-                Button {
-                    preferences.maxDistanceKm = 25
-                    viewModel.loadNearbyExperiences()
-                    viewModel.updateBottomInfo()
-                } label: {
-                    Text(NSLocalizedString("map.empty.expand", comment: "Expand search radius to 25km"))
+                // US-012: a single stage-driven primary action replaces the old
+                // static button stack. The view model picks which stage we're
+                // in based on consecutive empty renders + whether the user
+                // already tried Expand.
+                switch viewModel.emptyStateStage {
+                case .tryExpand:
+                    Button {
+                        viewModel.emptyStateActionTryExpand()
+                    } label: {
+                        Text(NSLocalizedString(
+                            "map.empty.stage.tryExpand",
+                            comment: "Stage 1: expand search radius to 25km"
+                        ))
                         .font(.subheadline.weight(.medium))
                         .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-
-                if let nearestCode = viewModel.nearestSeededCity(
-                    to: locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
-                ),
-                   let nearestCity = viewModel.availableCities.first(where: { $0.code == nearestCode }) {
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
+                case .tryExplore:
                     Button {
-                        viewModel.selectCity(nearestCode)
+                        viewModel.emptyStateActionTryExplore()
                     } label: {
-                        Text(String(
-                            format: NSLocalizedString("map.empty.browse", comment: "Browse nearest city"),
-                            nearestCity.name
+                        Text(NSLocalizedString(
+                            "map.empty.stage.tryExplore",
+                            comment: "Stage 2: widen Overpass explore to 12km"
                         ))
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.medium))
                         .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
+                case .browseCity:
+                    Button {
+                        viewModel.emptyStateActionBrowseCity()
+                    } label: {
+                        Text(String(
+                            format: NSLocalizedString(
+                                "map.empty.stage.browseCity",
+                                comment: "Stage 3: jump to nearest seeded city"
+                            ),
+                            nearestCityName ?? ""
+                        ))
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
                     .controlSize(.regular)
                 }
 
@@ -946,5 +974,9 @@ private struct EmptyStateOverlay: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal, 32)
         .accessibilityElement(children: .combine)
+        .onAppear { viewModel.recordEmptyStateRender() }
+        .onChange(of: viewModel.visibleExperiences.count) { _, _ in
+            viewModel.recordEmptyStateRender()
+        }
     }
 }

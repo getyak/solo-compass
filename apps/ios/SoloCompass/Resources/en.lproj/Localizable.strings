@@ -117,6 +117,11 @@
 "map.empty.expand" = "Expand to 25km";
 "map.empty.browse" = "Browse %@";
 "map.empty.clearFilters" = "Clear filters";
+
+/* Map empty-state stage machine (US-012). Three distinct labels — no shared "no results" string. */
+"map.empty.stage.tryExpand" = "Expand to 25 km";
+"map.empty.stage.tryExplore" = "Explore farther";
+"map.empty.stage.browseCity" = "Browse %@";
 "map.loading" = "Loading map";
 
 /* City picker */

@@ -380,6 +380,54 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(viewModel.bottomInfoText, infoAfterFirst, "Third bindToLocation should be a no-op")
     }
 
+    // MARK: - MapViewModel Empty-state Stage Machine (US-012)
+
+    /// Drive the stage machine through its three transitions:
+    /// `.tryExpand` (first empty render) → `.tryExplore` (after Expand
+    /// still yields empty) → `.browseCity` (third consecutive empty).
+    /// `visibleExperiences` stays empty throughout because the
+    /// `ExperienceService()` seed contains no entries near Paris and no
+    /// network is touched (the async `exploreNearby` call inside
+    /// `emptyStateActionTryExpand` short-circuits at the paywall /
+    /// consent gate without ever populating results).
+    @MainActor
+    func testEmptyStateStageProgression() throws {
+        let prefs = UserPreferences(
+            defaults: UserDefaults(suiteName: "us012.empty.\(UUID().uuidString)")!
+        )
+        prefs.maxDistanceKm = 5
+        let viewModel = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(seed: []),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // Sanity: no seed data → first render is empty.
+        XCTAssertTrue(viewModel.visibleExperiences.isEmpty)
+
+        // Render 1 — first empty render lands on .tryExpand.
+        viewModel.recordEmptyStateRender()
+        XCTAssertEqual(viewModel.emptyStateStage, .tryExpand,
+                       "First empty render should surface .tryExpand")
+
+        // User taps Expand. maxDistanceKm flips to 25, and the internal
+        // recordEmptyStateRender (still empty) advances stage to .tryExplore.
+        viewModel.emptyStateActionTryExpand()
+        XCTAssertEqual(prefs.maxDistanceKm, 25,
+                       "tryExpand must bump preferences.maxDistanceKm to 25 km")
+        XCTAssertTrue(viewModel.visibleExperiences.isEmpty,
+                      "Still empty after Expand — no seed data")
+        XCTAssertEqual(viewModel.emptyStateStage, .tryExplore,
+                       "Empty after Expand should escalate to .tryExplore")
+
+        // User taps Explore farther. Internal recordEmptyStateRender brings
+        // the consecutive empty count to 3 → .browseCity.
+        viewModel.emptyStateActionTryExplore()
+        XCTAssertEqual(viewModel.emptyStateStage, .browseCity,
+                       "Three consecutive empty cycles should flip to .browseCity")
+    }
+
     // MARK: - MapViewModel Auto-Explore (data-sparse trigger)
 
     /// First GPS fix in Vientiane (zero seed coverage) should auto-fire
