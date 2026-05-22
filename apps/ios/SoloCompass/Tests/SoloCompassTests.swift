@@ -466,6 +466,53 @@ final class SoloCompassTests: XCTestCase {
                        "Second bind on the same GPS fix must be a no-op (hasAutoCentered guard)")
     }
 
+    // MARK: - US-011 auto-explore on empty category
+
+    /// Picking a category that yields zero visible experiences inside a
+    /// seeded city schedules an auto-Explore and stamps the per-category
+    /// cooldown. A second tap on the same category within 10 s must NOT
+    /// re-fire — `canAutoExplore` reports false until the window elapses.
+    @MainActor
+    func testAutoExploreCategoryCooldownGatesSecondTap() async throws {
+        let locationService = LocationService()
+        let prefs = UserPreferences()
+        prefs.hasAcceptedExploreConsent = false
+        let viewModel = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // Anchor inside Chiang Mai so isAnchorInsideSeededCity == true.
+        let chiangMai = CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938)
+        locationService.simulate(location: CLLocation(latitude: chiangMai.latitude, longitude: chiangMai.longitude))
+
+        // Eliminate debounce so the first tap stamps the cooldown
+        // deterministically before we assert on the second.
+        viewModel.autoExploreDebounceMs = 0
+
+        // Pick `.hidden` — no seed experience uses this category, so
+        // applyFilters returns an empty list and the auto-Explore branch
+        // is taken.
+        XCTAssertTrue(viewModel.canAutoExplore(category: .hidden),
+                      "Fresh ViewModel: cooldown must allow the first auto-Explore")
+        viewModel.selectCategory(.hidden)
+
+        XCTAssertFalse(viewModel.canAutoExplore(category: .hidden),
+                       "After the first empty-category selection, the per-category cooldown must block a re-fire within 10 s")
+
+        // Different category resets independently — verifies the gate
+        // is per-category, not global.
+        XCTAssertTrue(viewModel.canAutoExplore(category: .coffee),
+                      "Cooldown must be per-category — a different pill is still allowed")
+
+        // Simulating cooldown expiry re-enables the trigger.
+        let later = Date().addingTimeInterval(MapViewModel.autoExploreCooldown + 1)
+        XCTAssertTrue(viewModel.canAutoExplore(category: .hidden, now: later),
+                      "After autoExploreCooldown elapses, the same category can fire again")
+    }
+
     // MARK: - Preferences
 
     func testUserPreferencesPersistsRoundTrip() throws {

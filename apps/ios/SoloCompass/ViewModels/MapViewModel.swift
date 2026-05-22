@@ -372,6 +372,8 @@ public final class MapViewModel {
         isNowFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
+        // US-011: empty category inside a seeded city → debounced auto-Explore.
+        scheduleAutoExploreForEmptyCategoryIfNeeded()
     }
 
     public func selectNowFilter() {
@@ -738,7 +740,8 @@ public final class MapViewModel {
     /// experiences group together in city pills.
     public func exploreNearby(
         at coordinate: CLLocationCoordinate2D,
-        radiusMeters: Int = 3000
+        radiusMeters: Int = 3000,
+        category: ExperienceCategory? = nil
     ) async {
         guard !isExploring else { return }
 
@@ -746,7 +749,7 @@ public final class MapViewModel {
         // paywall's onUnlocked can resume it after purchase, then bail.
         if !isProUser {
             onPaywallUnlocked = { [weak self] in
-                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters) }
+                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters, category: category) }
             }
             isShowingPaywall = true
             return
@@ -757,7 +760,7 @@ public final class MapViewModel {
         // the paywall.
         if !preferences.hasAcceptedExploreConsent {
             onExploreConsentAccepted = { [weak self] in
-                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters) }
+                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters, category: category) }
             }
             isShowingExploreConsent = true
             return
@@ -788,7 +791,8 @@ public final class MapViewModel {
             // for offline fallback (PRD §7: outermost ring only).
             let (pois, effectiveRadius) = try await fetchExplorePOIs(
                 near: coordinate,
-                singleRingRadius: radiusMeters
+                singleRingRadius: radiusMeters,
+                category: category
             )
             guard !pois.isEmpty else {
                 if let region = experienceService.repo.closestRecentRegion(to: coordinate) {
@@ -989,14 +993,15 @@ public final class MapViewModel {
     /// without going through the whole `exploreNearby` pipeline.
     func fetchExplorePOIs(
         near coordinate: CLLocationCoordinate2D,
-        singleRingRadius: Int
+        singleRingRadius: Int,
+        category: ExperienceCategory? = nil
     ) async throws -> (pois: [OverpassService.POI], effectiveRadius: Int) {
         // Single-ring legacy path. Used when:
         //   - the flag is off, OR
         //   - the user isn't Pro (free-tier never gets here, but defence)
         guard FeatureFlags.proMultiRingExplore, isProUser else {
             let pois = try await overpassService.fetchPOIs(
-                near: coordinate, radiusMeters: singleRingRadius
+                near: coordinate, radiusMeters: singleRingRadius, category: category
             )
             return (pois, singleRingRadius)
         }
@@ -1020,7 +1025,7 @@ public final class MapViewModel {
                 group.addTask { @MainActor in
                     do {
                         let pois = try await service.fetchPOIs(
-                            near: coordinate, radiusMeters: radius
+                            near: coordinate, radiusMeters: radius, category: category
                         )
                         return (index, pois)
                     } catch {
@@ -1060,7 +1065,8 @@ public final class MapViewModel {
     /// `isExploringFreeMode` so the paywall button stays visible as the upgrade hook.
     public func exploreNearbyFreeMode(
         at coordinate: CLLocationCoordinate2D,
-        radiusMeters: Int = 3000
+        radiusMeters: Int = 3000,
+        category: ExperienceCategory? = nil
     ) async {
         guard !isExploringFreeMode else { return }
         isExploringFreeMode = true
@@ -1075,7 +1081,9 @@ public final class MapViewModel {
         defer { aiService.isProTier = savedProTier }
 
         do {
-            let pois = try await overpassService.fetchPOIs(near: coordinate, radiusMeters: radiusMeters)
+            let pois = try await overpassService.fetchPOIs(
+                near: coordinate, radiusMeters: radiusMeters, category: category
+            )
             guard !pois.isEmpty else {
                 lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
                 return
@@ -1131,6 +1139,91 @@ public final class MapViewModel {
     /// Explore button.
     public var exploreAnchorCoordinate: CLLocationCoordinate2D {
         locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+    }
+
+    // MARK: - US-011 auto-explore on empty category
+
+    /// Debounce window (ms) before an empty-category selection fires
+    /// auto-Explore. Default 600 ms; tests override with 0 for determinism.
+    var autoExploreDebounceMs: UInt64 = 600
+
+    /// Throttle window — same category can't auto-fire more than once.
+    static let autoExploreCooldown: TimeInterval = 10
+
+    /// Per-category timestamp of the most recent auto-Explore trigger.
+    /// Used to gate `selectCategory` so a quick second tap on the same
+    /// pill inside `autoExploreCooldown` is a no-op.
+    private var lastAutoExploreByCategory: [ExperienceCategory: Date] = [:]
+
+    /// Most recent debounce Task, cancelled when a new category arrives
+    /// or filters change so we don't fire stale Explore calls.
+    private var pendingAutoExploreTask: Task<Void, Never>?
+
+    /// Distance from the explore anchor to the nearest seeded city — used
+    /// to decide whether to silently auto-fetch when a category turns up
+    /// empty. ≤50 km counts as "inside a seeded city".
+    private static let seededCityRadiusMeters: CLLocationDistance = 50_000
+
+    /// True when the user's current anchor sits within 50 km of any
+    /// `availableCities` entry. We only auto-Explore inside seeded areas
+    /// because empty results outside seeded coverage are expected and
+    /// already handled by the existing offline / consent flows.
+    var isAnchorInsideSeededCity: Bool {
+        let anchor = exploreAnchorCoordinate
+        let here = CLLocation(latitude: anchor.latitude, longitude: anchor.longitude)
+        for city in availableCities {
+            let cityLoc = CLLocation(latitude: city.center.latitude, longitude: city.center.longitude)
+            if here.distance(from: cityLoc) <= Self.seededCityRadiusMeters {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Public test hook: returns whether a fresh trigger for `category`
+    /// would be allowed under the cooldown, without firing anything.
+    func canAutoExplore(category: ExperienceCategory, now: Date = Date()) -> Bool {
+        guard let last = lastAutoExploreByCategory[category] else { return true }
+        return now.timeIntervalSince(last) >= Self.autoExploreCooldown
+    }
+
+    /// Called from `selectCategory`. Schedules an auto-Explore when the
+    /// just-applied filter left nothing on the map AND the user is inside
+    /// a seeded city. Per-category cooldown prevents a re-fire within
+    /// `autoExploreCooldown` seconds. Free vs Pro picks the correct
+    /// fetch path (single-ring Overpass vs multi-ring schedule).
+    private func scheduleAutoExploreForEmptyCategoryIfNeeded() {
+        guard let category = selectedCategory else { return }
+        guard visibleExperiences.isEmpty else { return }
+        guard isAnchorInsideSeededCity else { return }
+        guard canAutoExplore(category: category) else { return }
+
+        // Stamp the trigger time NOW (before the debounce fires) so two
+        // quick taps in <10s — even before the first network call
+        // completes — collapse to one Explore. The AC asks for "second
+        // tap within 10 s does NOT re-fire" regardless of timing within
+        // the debounce.
+        lastAutoExploreByCategory[category] = Date()
+
+        pendingAutoExploreTask?.cancel()
+        let debounceMs = autoExploreDebounceMs
+        let anchor = exploreAnchorCoordinate
+        let isPro = isProUser
+        pendingAutoExploreTask = Task { [weak self] in
+            if debounceMs > 0 {
+                try? await Task.sleep(nanoseconds: debounceMs * 1_000_000)
+            }
+            if Task.isCancelled { return }
+            guard let self else { return }
+            // Re-check that the category is still active — user may have
+            // tapped a different pill during the debounce.
+            guard self.selectedCategory == category else { return }
+            if isPro {
+                await self.exploreNearby(at: anchor, category: category)
+            } else {
+                await self.exploreNearbyFreeMode(at: anchor, category: category)
+            }
+        }
     }
 
     // MARK: - Helpers
