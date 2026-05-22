@@ -308,7 +308,7 @@
         "Add a JSON Schema file at scripts/sc-evaluator/findings.schema.json so the JSON shadow can be validated"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
