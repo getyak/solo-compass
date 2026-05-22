@@ -158,6 +158,9 @@
 "settings.maxDistance" = "Max Distance";
 "settings.distance" = "Discovery Radius";
 "settings.distance.footer" = "Only experiences within this radius appear on the map.";
+"settings.filterBar" = "Filter bar";
+"settings.filter.visible_categories" = "Visible categories";
+"settings.filter.visible_categories.footer" = "Choose which category pills appear on the map's filter bar. Hidden categories still show on the map.";
 "settings.completed" = "Completed";
 "settings.favorites" = "Favorites";
 "settings.stats" = "Your Journey";

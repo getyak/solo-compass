@@ -150,6 +150,9 @@
 "settings.maxDistance" = "最远距离";
 "settings.distance" = "发现半径";
 "settings.distance.footer" = "只有在此半径内的体验才会显示在地图上。";
+"settings.filterBar" = "筛选栏";
+"settings.filter.visible_categories" = "可见分类";
+"settings.filter.visible_categories.footer" = "选择在地图筛选栏中显示哪些分类标签。隐藏的分类仍会出现在地图上。";
 "settings.completed" = "已完成";
 "settings.favorites" = "收藏";
 "settings.stats" = "你的旅程";
