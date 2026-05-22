@@ -356,9 +356,9 @@ public final class OverpassService {
         }
         if let tourism = tags["tourism"] {
             switch tourism {
-            case "attraction", "viewpoint", "artwork":
-                return .culture
-            case "gallery", "museum":
+            case "viewpoint":
+                return .hidden
+            case "attraction", "artwork", "gallery", "museum":
                 return .culture
             case "zoo", "aquarium":
                 return .nature

@@ -23,10 +23,10 @@ their bare name: `scripts/sc-evaluator/run.sh <name>`.
 ## File shape
 
 ```yaml
-name: home-screen-cold-start          # optional, informational
+name: home-screen-cold-start # optional, informational
 description: Cold launch and snapshot # optional, informational
 
-steps:                                # required, non-empty list
+steps: # required, non-empty list
   - <step>
   - <step>
 ```
@@ -37,15 +37,15 @@ Steps that take no args may be written as `- launch:` (null body).
 
 ## Supported steps
 
-| Step            | Required args                              | Optional args            | Notes |
-| --------------- | ------------------------------------------ | ------------------------ | ----- |
-| `launch`        | —                                          | —                        | Cold-launches `SC_BUNDLE_ID` on `SC_UDID`. |
-| `tap`           | `x`+`y` **or** `accessibilityId`           | —                        | Exactly one of the two forms — never both. |
-| `longPress`     | `x`+`y` **or** `accessibilityId`           | `duration` (default 1.0) | Same coordinate / id rule as `tap`. Duration is seconds. |
-| `screenshot`    | `label` (string)                           | —                        | Written to `scripts/sc-evaluator/screenshots/<run_id>/<NN>-<label>.png` and linked from the findings file's `## Screenshots` section. `NN` is the 2-digit zero-padded step ordinal. Legacy `name` is still accepted as a synonym for `label`. |
-| `assertVisible` | `accessibilityId` (string)                 | —                        | Fails the step if the element cannot be located. |
-| `assertText`    | `text` (string)                            | `accessibilityId`        | If `accessibilityId` is given, only that element's text is checked. |
-| `wait`          | `seconds` (number > 0)                     | —                        | Sleeps the journey for `seconds`. |
+| Step            | Required args                    | Optional args            | Notes                                                                                                                                                                                                                                         |
+| --------------- | -------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `launch`        | —                                | —                        | Cold-launches `SC_BUNDLE_ID` on `SC_UDID`.                                                                                                                                                                                                    |
+| `tap`           | `x`+`y` **or** `accessibilityId` | —                        | Exactly one of the two forms — never both.                                                                                                                                                                                                    |
+| `longPress`     | `x`+`y` **or** `accessibilityId` | `duration` (default 1.0) | Same coordinate / id rule as `tap`. Duration is seconds.                                                                                                                                                                                      |
+| `screenshot`    | `label` (string)                 | —                        | Written to `scripts/sc-evaluator/screenshots/<run_id>/<NN>-<label>.png` and linked from the findings file's `## Screenshots` section. `NN` is the 2-digit zero-padded step ordinal. Legacy `name` is still accepted as a synonym for `label`. |
+| `assertVisible` | `accessibilityId` (string)       | —                        | Fails the step if the element cannot be located.                                                                                                                                                                                              |
+| `assertText`    | `text` (string)                  | `accessibilityId`        | If `accessibilityId` is given, only that element's text is checked.                                                                                                                                                                           |
+| `wait`          | `seconds` (number > 0)           | —                        | Sleeps the journey for `seconds`.                                                                                                                                                                                                             |
 
 `x` and `y` are point coordinates in the simulator's screen space (top-left
 origin). They can be integers or floats.
@@ -150,10 +150,10 @@ PNGs can be committed alongside the findings file.
 Each evaluator run produces a pair of files under
 `scripts/sc-evaluator/findings/`:
 
-| File                      | Purpose                                     |
-| ------------------------- | ------------------------------------------- |
-| `<run_id>.md`             | Human-readable markdown report (canonical). |
-| `<run_id>.json`           | Machine-readable shadow of the same data.   |
+| File            | Purpose                                     |
+| --------------- | ------------------------------------------- |
+| `<run_id>.md`   | Human-readable markdown report (canonical). |
+| `<run_id>.json` | Machine-readable shadow of the same data.   |
 
 The JSON shadow is validated by [`findings.schema.json`](./findings.schema.json)
 (JSON Schema draft 2020-12). The markdown file leads with a YAML frontmatter
@@ -185,19 +185,24 @@ ios_version: "26.4"
 - Repo: /Users/me/solo-compass
 
 ## Steps
+
 - [PASS] **simulator.resolve** — udid=…
 - [PASS] **home.launch** — com.solocompass.app: 14872
 
 ## Findings
+
 - **home.launch** — simctl launch failed: …
 
 ## Suggested Fixes
-  - suggested fix: `apps/ios/SoloCompass/App/SoloCompassApp.swift:1` — verify @main entry and bundle id
+
+- suggested fix: `apps/ios/SoloCompass/App/SoloCompassApp.swift:1` — verify @main entry and bundle id
 
 ## Screenshots
+
 ![home-map](../screenshots/2026-05-22T12-29-25Z/02-home-map.png)
 
 ## Summary
+
 - steps: 5/5 passed
 - findings: 0
 - artifacts: ./2026-05-22T12-29-25Z_artifacts/
@@ -206,14 +211,14 @@ ios_version: "26.4"
 
 ### Required frontmatter fields
 
-| Field         | Type   | Source                                                | Example                  |
-| ------------- | ------ | ----------------------------------------------------- | ------------------------ |
-| `run_id`      | string | `date -u +%Y-%m-%dT%H:%M:%SZ` at run start            | `2026-05-22T12:29:25Z`   |
-| `journey`     | string | Bare name passed to `run.sh`                          | `home-screen-cold-start` |
-| `timestamp`   | string | Same value as `run_id` (kept separate by convention)  | `2026-05-22T12:29:25Z`   |
-| `commit_sha`  | string | `git rev-parse --short HEAD` (or `unknown`)           | `acc3a5c`                |
-| `simulator`   | string | Resolved from `simctl list devices --json`            | `iPhone 17 Pro`          |
-| `ios_version` | string | Parsed from the device's CoreSimulator runtime id     | `26.4`                   |
+| Field         | Type   | Source                                               | Example                  |
+| ------------- | ------ | ---------------------------------------------------- | ------------------------ |
+| `run_id`      | string | `date -u +%Y-%m-%dT%H:%M:%SZ` at run start           | `2026-05-22T12:29:25Z`   |
+| `journey`     | string | Bare name passed to `run.sh`                         | `home-screen-cold-start` |
+| `timestamp`   | string | Same value as `run_id` (kept separate by convention) | `2026-05-22T12:29:25Z`   |
+| `commit_sha`  | string | `git rev-parse --short HEAD` (or `unknown`)          | `acc3a5c`                |
+| `simulator`   | string | Resolved from `simctl list devices --json`           | `iPhone 17 Pro`          |
+| `ios_version` | string | Parsed from the device's CoreSimulator runtime id    | `26.4`                   |
 
 ### Required body sections (in order)
 
@@ -226,7 +231,7 @@ ios_version: "26.4"
    When there are no findings the section reads `_no findings_`.
 3. **`## Suggested Fixes`** — one bullet per `emit_fix_anchor` call,
    `  - suggested fix: \`<file:line>\` — <hint>`. Reads
-   `_no suggested fixes_` when none were emitted.
+`_no suggested fixes_` when none were emitted.
 4. **`## Screenshots`** — `![<label>](<path>)` image references, ordered
    by capture time. Reads `_no screenshots_` when none were captured.
 
@@ -247,12 +252,8 @@ a strict, machine-parseable shape. Schema:
   "commit_sha": "acc3a5c",
   "simulator": "iPhone 17 Pro",
   "ios_version": "26.4",
-  "steps": [
-    { "status": "PASS", "name": "simulator.resolve", "detail": "udid=…" }
-  ],
-  "findings": [
-    { "name": "home.launch", "detail": "simctl launch failed: …" }
-  ],
+  "steps": [{ "status": "PASS", "name": "simulator.resolve", "detail": "udid=…" }],
+  "findings": [{ "name": "home.launch", "detail": "simctl launch failed: …" }],
   "suggested_fixes": [
     {
       "finding": "home.launch",

@@ -1,6 +1,6 @@
 # PRD: Post-Pro-Chat Rebuild — Solo Compass
 
-**Status:** Draft  v1
+**Status:** Draft v1
 **Author:** Xinwei Xiong (with Claude Code)
 **Created:** 2026-05-21
 **Scope window:** All open work identified in the 2026-05-21 dual-agent diagnosis session, no time-boxing.
@@ -24,18 +24,21 @@ This PRD captures **everything that came out of that session that has not yet sh
 ## 2. Goals
 
 ### Product goals (Solo Compass iOS)
+
 - Pro chat must be **functionally complete**, not just unblocked: text + voice + per-card AI follow-up.
 - The map must **always have something to show** in seeded cities — no dead-end "no experiences nearby" with a button that takes the user nowhere.
 - Categories must be **user-controllable** without a new app build.
 - Visual polish: zero overlap with system chrome on the iPhone 17 family.
 
 ### Tooling goals (dual-agent QA harness)
+
 - Land a real, runnable `sc-evaluator` + `sc-executor` + `sc-loop` trio in the repo.
 - Evaluator must be able to **boot a simulator, drive the app, and produce screenshots** so visual regressions (e.g. control-vs-status-bar overlap) are detectable, not just behavioral failures.
 - Executor must consume the evaluator's findings file and produce patches that pass tests before the next iteration.
 - Termination is **automatic**, based on a per-story acceptance script — no manual loop control.
 
 ### Non-goals
+
 - See §6.
 
 ---
@@ -47,9 +50,11 @@ User stories are grouped by epic. Each story is **small enough to implement in o
 ### Epic A — Chat completeness (Pro)
 
 #### US-A01: Per-experience AI follow-up button on `ExperienceDetailView`
+
 **Description:** As a Pro user, I want to ask Solo follow-up questions about the experience I'm looking at, so that I can dig into operating hours, solo-friendliness, what to pair it with — without re-typing the place name.
 
 **Acceptance criteria:**
+
 - [ ] `ExperienceDetailView` shows an "Ask Solo about this" button below the hero card, above the "Mark done" CTA.
 - [ ] Tapping it opens the existing `ChatSheet` with **the experience JSON injected as `<experience_context>` in the system prompt** (see FR-A1).
 - [ ] The first assistant turn for that sheet must be able to reference the experience by name without the user typing it.
@@ -59,18 +64,22 @@ User stories are grouped by epic. Each story is **small enough to implement in o
 - [ ] Screenshot via `simctl io screenshot` shows the button rendered on the detail sheet at iPhone 17 Pro / iOS 26.4.
 
 #### US-A02: Reusing one orchestrator across scoped + unscoped chats
+
 **Description:** As a developer, I want to reuse `VoiceAgentOrchestrator` instead of creating one per experience, so that memory stays bounded when a user opens 10 cards in a row.
 
 **Acceptance criteria:**
+
 - [ ] `CompassMapView.ensureOrchestrator` accepts an optional `experienceContext: Experience?`.
 - [ ] When `experienceContext` changes, the orchestrator resets its session and re-seeds the system prompt — no new instance allocated.
 - [ ] `XCTest` asserts that opening 5 different experience cards in sequence results in **exactly 1** `VoiceAgentOrchestrator` instance (use weak-ref counting helper).
 - [ ] No regression in the unscoped `+` button flow.
 
 #### US-A03: Fix `testMissingKeyYieldsUnconfiguredState` on dev machines
+
 **Description:** As a developer, I want the unconfigured-state test to pass locally even when `GeneratedSecrets.deepSeekApiKey` is non-empty (dev `.env` baked in), so that CI parity is restored.
 
 **Acceptance criteria:**
+
 - [ ] Test stubs `Secrets.resolveAPIKey` (or uses a protocol-injected resolver) so that the compile-time key value is irrelevant.
 - [ ] Same applies to `testRepeatedStartWhileUnconfiguredStaysUnconfigured`.
 - [ ] Both tests pass on a machine with a real DeepSeek key in `.env`.
@@ -78,9 +87,11 @@ User stories are grouped by epic. Each story is **small enough to implement in o
 ### Epic B — Map data freshness
 
 #### US-B01: Auto-explore on empty category filter
+
 **Description:** As a user, when I tap a category and the visible list goes to zero, I expect the app to fetch more data rather than show a static empty card.
 
 **Acceptance criteria:**
+
 - [ ] When `MapViewModel.applyFilters` returns 0 results **and** the user is in a seeded city, automatically call `exploreNearby(at: viewModel.exploreAnchorCoordinate)` once (debounced to ≤ 1 call / 10 s per category).
 - [ ] Free-tier users see a single-ring Overpass POI fetch; Pro users get the existing multi-ring schedule.
 - [ ] If `exploreNearby` itself returns empty, the current `EmptyStateOverlay` is shown (existing behavior).
@@ -88,56 +99,68 @@ User stories are grouped by epic. Each story is **small enough to implement in o
 - [ ] Screenshot test confirms a typical "Computer" category tap in Chiang Mai surfaces ≥ 1 marker within 8 s.
 
 #### US-B02: "Expand to 25 km" → actually broaden, then offer Explore
-**Description:** As a user, when 5 km has no results, the "expand to 25 km" button should *try harder*, and if 25 km is still empty, offer the obvious next step instead of looping.
+
+**Description:** As a user, when 5 km has no results, the "expand to 25 km" button should _try harder_, and if 25 km is still empty, offer the obvious next step instead of looping.
 
 **Acceptance criteria:**
+
 - [ ] Tapping "Expand to 25 km" sets `preferences.maxDistanceKm = 25` **and** triggers `exploreNearby` at the current anchor.
 - [ ] If after expand+explore the result set is still empty, the empty card's CTA flips to **"Explore farther"** which runs `exploreNearby(radiusMeters: 12000)`.
 - [ ] After three consecutive empty cycles, the CTA flips to the existing "Browse nearest city" button (no infinite loop).
 - [ ] Screenshot test from a remote coordinate (e.g. 0,0) confirms the CTA sequence.
 
 #### US-B03: Overpass POI category mapping completeness audit
+
 **Description:** As a user, when I tap "Coffee" I want only coffee-shop POIs, and when I tap "Computer" I want only co-working / laptop-friendly spots — not a generic mix.
 
 **Acceptance criteria:**
+
 - [ ] `OverpassService.fetchPOIs` accepts a `category: ExperienceCategory?` filter and builds the Overpass query accordingly (e.g. `amenity=cafe` for `.coffee`, `amenity=coworking_space` for `.work`).
 - [ ] Unit test asserts the generated Overpass QL string for each of the 8 categories.
 - [ ] Integration test (network-stubbed) confirms category-tagged results round-trip into `Experience.category` correctly.
 
 #### US-B04: Foursquare Places integration (optional secondary source)
+
 **Description:** As a product owner, I want a second data source so that thin-OSM cities (e.g. small Asian towns) still surface usable results.
 
 **Acceptance criteria:**
+
 - [ ] New `FoursquareService` mirrors the `OverpassService` interface (`fetchPOIs(near:radiusMeters:category:)`).
 - [ ] API key read from `Secrets.resolvedFoursquareKey` (UserDefaults override → GeneratedSecrets, mirrors the DeepSeek pattern).
-- [ ] `MapViewModel.exploreNearby` calls Overpass first; if results < 5 *and* Foursquare key present, it falls back to Foursquare and merges (de-duped by coord rounded to 4 decimals).
+- [ ] `MapViewModel.exploreNearby` calls Overpass first; if results < 5 _and_ Foursquare key present, it falls back to Foursquare and merges (de-duped by coord rounded to 4 decimals).
 - [ ] Cost guard: at most 1 Foursquare call per `exploreNearby` invocation.
 - [ ] Unit tests cover the merge / dedupe logic.
 
 ### Epic C — User-configurable categories
 
 #### US-C01: Schema extension — built-in + custom tags
+
 **Description:** As a developer, I want `Experience.category` to keep its enum strength but allow `Experience.userTags: [String]` so users can layer their own labels.
 
 **Acceptance criteria:**
+
 - [ ] Add `userTags: [String]` (default `[]`) to `Experience` in `Models/Experience.swift` **and** `packages/core/src/experience.ts`.
 - [ ] Add a SwiftData migration for the new field.
 - [ ] `pnpm parity:check` passes.
 - [ ] Existing JSON seed still loads (the field is optional).
 
 #### US-C02: Settings → "Visible categories" multi-select
+
 **Description:** As a user, I want to hide categories I don't care about (e.g. "Nightlife") so the filter bar is shorter.
 
 **Acceptance criteria:**
+
 - [ ] New row in `SettingsView`: "Visible categories" → opens a checkbox list of the 8 built-ins.
 - [ ] Selection persisted in `UserPreferences.visibleCategories: [ExperienceCategory]`.
 - [ ] `FilterBarView.visibleCategories` reads from preferences (no longer the hard-coded constant at `FilterBarView.swift:30`).
 - [ ] Screenshot test confirms unselected categories disappear from the filter bar.
 
 #### US-C03: Custom-tag chip on the filter bar (v1 — manual)
+
 **Description:** As a user, I want to type a custom tag once and see all experiences tagged with it.
 
 **Acceptance criteria:**
+
 - [ ] Settings → "Custom tags" → list with add / delete.
 - [ ] Each custom tag renders as an extra pill on the filter bar after the 8 built-ins.
 - [ ] Tapping it filters `visibleExperiences` to those with the tag in `userTags`.
@@ -147,63 +170,77 @@ User stories are grouped by epic. Each story is **small enough to implement in o
 ### Epic D — Visual polish
 
 #### US-D01: Audit safe-area handling across all overlays
+
 **Description:** As a user on iPhone 17 Pro / Pro Max / Air, no app control should sit under the Dynamic Island or status-bar text.
 
 **Acceptance criteria:**
+
 - [ ] Screenshot evidence on **3** simulators: iPhone 17 Pro, iPhone 17 Pro Max, iPhone Air (latest iOS).
 - [ ] Each screenshot shows: city pill, filter bar, MapCompass, MapUserLocationButton, the `+` button, the explore button — all inside safe areas.
 - [ ] Bottom info bar's text is not clipped by the home indicator.
 
 #### US-D02: City pill — minimum tap target
+
 **Description:** As a user, I want the city pill to be at least 44×44 pt (Apple HIG).
 
 **Acceptance criteria:**
+
 - [ ] Pill's tappable frame ≥ 44×44 (use `.contentShape(Rectangle().inset(by: -8))` if visual size is smaller).
 - [ ] XCUITest hit-tests at the corners of the visual pill.
 
 ### Epic E — Dual-agent QA harness
 
 #### US-E01: `sc-evaluator` skill — bootable
+
 **Description:** As a developer, I want a `sc-evaluator` command that boots a simulator, installs the latest build, exercises a named user journey, and writes a findings file.
 
 **Acceptance criteria:**
+
 - [ ] New skill at `~/.claude/skills/sc-evaluator/SKILL.md` plus runtime script `scripts/sc-evaluator/run.sh`.
 - [ ] Usage: `sc-evaluator <journey-name>` → exits 0 if journey passes, 1 if any finding raised.
 - [ ] Each run writes `scripts/sc-evaluator/findings/<timestamp>.md` with: journey name, pass/fail per step, screenshot links, suggested fix anchors.
 - [ ] Findings file is **append-only** — never overwrites prior runs.
 
 #### US-E02: Evaluator screenshot pipeline
+
 **Description:** As a developer, I need the evaluator to take screenshots at every interesting step so visual issues (control overlap, layout regression) are detectable.
 
 **Acceptance criteria:**
+
 - [ ] Every step in a journey can call `screenshot(label)` which:
-   1. Saves PNG to `scripts/sc-evaluator/screenshots/<run-id>/<label>.png` via `simctl io screenshot`.
-   2. Appends `![label](path)` to the findings file.
+  1.  Saves PNG to `scripts/sc-evaluator/screenshots/<run-id>/<label>.png` via `simctl io screenshot`.
+  2.  Appends `![label](path)` to the findings file.
 - [ ] At least one journey ("home-screen-cold-start") has ≥ 3 screenshot steps.
 - [ ] Screenshots are gitignored by default; opt-in via `SC_EVALUATOR_KEEP_SCREENSHOTS=1`.
 
 #### US-E03: Journey DSL
+
 **Description:** As a developer, I want a tiny DSL to declare user journeys so authoring new tests doesn't require reading the harness code.
 
 **Acceptance criteria:**
+
 - [ ] Journeys live at `scripts/sc-evaluator/journeys/<name>.yml`.
 - [ ] DSL supports steps: `launch`, `tap`, `longPress`, `screenshot`, `assertVisible`, `assertText`, `wait`.
 - [ ] `tap` accepts either coordinates **or** an accessibility identifier.
 - [ ] First two journeys shipped: `home-screen-cold-start.yml`, `pro-chat-roundtrip.yml`.
 
 #### US-E04: `sc-executor` skill — consume findings, propose patch
+
 **Description:** As a developer, I want an executor that reads the latest findings file and proposes (or commits, depending on mode) targeted patches.
 
 **Acceptance criteria:**
+
 - [ ] New skill at `~/.claude/skills/sc-executor/SKILL.md`.
 - [ ] Usage: `sc-executor [--apply]` → reads the most recent `findings/*.md`, plans, edits, then either prints the diff (default) or commits to a branch `agent/<run-id>` (with `--apply`).
 - [ ] Refuses to act if findings file is older than 1 h (stale-input guard).
 - [ ] Always runs `xcodebuild build` before declaring success.
 
 #### US-E05: `sc-loop` — wire evaluator ↔ executor with termination
+
 **Description:** As a developer, I want a single command that runs evaluator → executor → evaluator until either all journeys pass or the iteration cap is hit.
 
 **Acceptance criteria:**
+
 - [ ] New skill at `~/.claude/skills/sc-loop/SKILL.md`.
 - [ ] Usage: `sc-loop <journey-name> [--max-iterations 5]`.
 - [ ] Each iteration logs to `scripts/sc-loop/runs/<run-id>/iteration-<n>.md`.
@@ -211,9 +248,11 @@ User stories are grouped by epic. Each story is **small enough to implement in o
 - [ ] Final run summary printed at end with iteration count and exit reason.
 
 #### US-E06: Feedback channel format
+
 **Description:** As a developer, I want a stable schema for the findings file so future tools can parse it.
 
 **Acceptance criteria:**
+
 - [ ] Findings file uses a documented front-matter block: `run_id`, `journey`, `timestamp`, `commit_sha`, `simulator`, `ios_version`.
 - [ ] Body sections are: `## Steps`, `## Findings`, `## Suggested Fixes` (each finding includes file:line anchors).
 - [ ] JSON-shadow file `findings/<timestamp>.json` written alongside the markdown for machine consumers.
@@ -227,26 +266,26 @@ Numbered for cross-reference. Maps to user stories in parentheses.
 
 ### Product
 
-- **FR-A1** *(US-A01)*: When the experience-scoped chat opens, the system prompt sent to the model must include a `<experience_context>` block with `title`, `category`, `cityCode`, `bestTimes`, `confidenceLevel`, `soloScore`. No coordinates leak.
-- **FR-A2** *(US-A01)*: The "Ask Solo about this" button is hidden if `aiService.isProTier == false && Secrets.resolvedDeepSeekApiKey.isEmpty` — i.e. the same gate the `+` button uses.
-- **FR-A3** *(US-A02)*: `VoiceAgentOrchestrator` exposes `func rebindContext(_ experience: Experience?)` that clears the session and reseeds the system prompt without re-allocating dependencies.
-- **FR-B1** *(US-B01)*: `MapViewModel.applyFilters` returns its result via a publisher that triggers `exploreNearby` after a 600 ms idle when the result count is 0. The trigger is gated on a per-category timestamp.
-- **FR-B2** *(US-B02)*: `EmptyStateOverlay`'s primary button text + action are derived from a `EmptyStateStage` enum: `.tryExpand → .tryExplore → .browseCity`.
-- **FR-B3** *(US-B03)*: `OverpassService` exposes a static `categoryToOverpassFilter` mapping table; the table is the single source of truth and is asserted in tests.
-- **FR-B4** *(US-B04)*: When `FoursquareService` is enabled (key present), it is called **only after** Overpass returns < 5 results, and merged via `(latRounded4, lonRounded4)` dedupe.
-- **FR-C1** *(US-C01)*: `Experience` adds `userTags: [String]?` (nullable for schema compatibility). TS schema mirror lives in `packages/core/src/experience.ts`.
-- **FR-C2** *(US-C02)*: `UserPreferences.visibleCategories: Set<ExperienceCategory>` (default = all 8). `FilterBarView` reads from this set.
-- **FR-C3** *(US-C03)*: `UserPreferences.customTags: [String]` (default `[]`). A pill is rendered for each tag, scroll-horizontal alongside the 8 built-ins.
-- **FR-D1** *(US-D01)*: No SwiftUI overlay may use `.ignoresSafeArea()` for the top edge without an explicit safe-area inset replacement. A lint rule (string match in the CI script) flags violations.
+- **FR-A1** _(US-A01)_: When the experience-scoped chat opens, the system prompt sent to the model must include a `<experience_context>` block with `title`, `category`, `cityCode`, `bestTimes`, `confidenceLevel`, `soloScore`. No coordinates leak.
+- **FR-A2** _(US-A01)_: The "Ask Solo about this" button is hidden if `aiService.isProTier == false && Secrets.resolvedDeepSeekApiKey.isEmpty` — i.e. the same gate the `+` button uses.
+- **FR-A3** _(US-A02)_: `VoiceAgentOrchestrator` exposes `func rebindContext(_ experience: Experience?)` that clears the session and reseeds the system prompt without re-allocating dependencies.
+- **FR-B1** _(US-B01)_: `MapViewModel.applyFilters` returns its result via a publisher that triggers `exploreNearby` after a 600 ms idle when the result count is 0. The trigger is gated on a per-category timestamp.
+- **FR-B2** _(US-B02)_: `EmptyStateOverlay`'s primary button text + action are derived from a `EmptyStateStage` enum: `.tryExpand → .tryExplore → .browseCity`.
+- **FR-B3** _(US-B03)_: `OverpassService` exposes a static `categoryToOverpassFilter` mapping table; the table is the single source of truth and is asserted in tests.
+- **FR-B4** _(US-B04)_: When `FoursquareService` is enabled (key present), it is called **only after** Overpass returns < 5 results, and merged via `(latRounded4, lonRounded4)` dedupe.
+- **FR-C1** _(US-C01)_: `Experience` adds `userTags: [String]?` (nullable for schema compatibility). TS schema mirror lives in `packages/core/src/experience.ts`.
+- **FR-C2** _(US-C02)_: `UserPreferences.visibleCategories: Set<ExperienceCategory>` (default = all 8). `FilterBarView` reads from this set.
+- **FR-C3** _(US-C03)_: `UserPreferences.customTags: [String]` (default `[]`). A pill is rendered for each tag, scroll-horizontal alongside the 8 built-ins.
+- **FR-D1** _(US-D01)_: No SwiftUI overlay may use `.ignoresSafeArea()` for the top edge without an explicit safe-area inset replacement. A lint rule (string match in the CI script) flags violations.
 
 ### Tooling
 
-- **FR-E1** *(US-E01)*: Evaluator runtime is a bash + Python (no extra Swift) script so it can run in any CI image with Xcode CLT.
-- **FR-E2** *(US-E02)*: Screenshot capture goes through `xcrun simctl io <udid> screenshot` — no third-party deps.
-- **FR-E3** *(US-E03)*: Journey YAML schema is validated on load; unknown step names fail fast.
-- **FR-E4** *(US-E04)*: Executor commits to a per-run branch only when `--apply` is set. Default = dry-run diff print.
-- **FR-E5** *(US-E05)*: Loop iteration cap default = 5, max = 20. Cap is a hard limit, not just a default.
-- **FR-E6** *(US-E06)*: All findings files share a JSON-Schema-validated frontmatter (see `scripts/sc-evaluator/SCHEMA.md`).
+- **FR-E1** _(US-E01)_: Evaluator runtime is a bash + Python (no extra Swift) script so it can run in any CI image with Xcode CLT.
+- **FR-E2** _(US-E02)_: Screenshot capture goes through `xcrun simctl io <udid> screenshot` — no third-party deps.
+- **FR-E3** _(US-E03)_: Journey YAML schema is validated on load; unknown step names fail fast.
+- **FR-E4** _(US-E04)_: Executor commits to a per-run branch only when `--apply` is set. Default = dry-run diff print.
+- **FR-E5** _(US-E05)_: Loop iteration cap default = 5, max = 20. Cap is a hard limit, not just a default.
+- **FR-E6** _(US-E06)_: All findings files share a JSON-Schema-validated frontmatter (see `scripts/sc-evaluator/SCHEMA.md`).
 
 ---
 
@@ -333,12 +372,14 @@ The following are explicitly **excluded** from this PRD. Anything here that's ev
 ## 9. Success Metrics
 
 ### Product
+
 - **Chat send success rate ≥ 99 %** for Pro users over a 7-day window (telemetry: `chat.send.success` / `chat.send.attempt`).
 - **Empty-state → action conversion ≥ 60 %** — when the EmptyStateOverlay shows, ≥ 60 % of users tap a CTA (not just dismiss the sheet).
 - **Category usage entropy** — daily-active categories per user goes from ~2.1 (current; only 6 built-ins, no custom) to ≥ 3.0 after US-C02 + US-C03.
 - **Visual regression count = 0** for the iPhone 17 family in the next two releases (measured by US-D01 screenshot diff).
 
 ### Tooling
+
 - **One-command run from clean state.** `sc-loop home-screen-cold-start` on a fresh checkout produces a green run within 10 min.
 - **First catch.** Dual-agent harness independently re-discovers the "MapCompass under status bar" issue within its first 3 runs against an artificially regressed branch.
 - **Iteration time.** Mean wall-clock per evaluator+executor cycle ≤ 4 min on M-series hardware.
@@ -347,29 +388,29 @@ The following are explicitly **excluded** from this PRD. Anything here that's ev
 
 ## 10. Open Questions
 
-1. Should the per-experience AI follow-up chat persist its session to the experience's detail page so re-opening the card resumes the conversation, or always start fresh? *(US-A01 default: fresh.)*
+1. Should the per-experience AI follow-up chat persist its session to the experience's detail page so re-opening the card resumes the conversation, or always start fresh? _(US-A01 default: fresh.)_
 2. For empty-category auto-explore (US-B01), do we charge the Pro user's daily quota or piggyback on the free single-ring budget?
 3. For user custom tags (US-C03), do we sort the tag pills alphabetically, by recency-of-use, or by user-defined order?
 4. For the evaluator (US-E02), do we keep screenshots forever (compressed) or expire after N days? Storage isn't free even locally.
-5. Should `sc-loop` (US-E05) ever be allowed to push directly to a remote branch, or always stay local? *(Default proposal: always local; humans push.)*
-6. Should the dual-agent harness include a **third** "reviewer" agent (security / style review of the executor's diff), or is two-agent + human review enough? *(Default: two-agent for v1; revisit if executor output quality drops.)*
+5. Should `sc-loop` (US-E05) ever be allowed to push directly to a remote branch, or always stay local? _(Default proposal: always local; humans push.)_
+6. Should the dual-agent harness include a **third** "reviewer" agent (security / style review of the executor's diff), or is two-agent + human review enough? _(Default: two-agent for v1; revisit if executor output quality drops.)_
 
 ---
 
 ## Appendix A — Mapping to the session diagnosis
 
-| Original session finding | Covered by |
-|---|---|
-| #1 Category tap → "expand 25 km" no-op | US-B01, US-B02 |
-| #1b Data sources too sparse | US-B03, US-B04 |
-| #2 Categories hard-coded | US-C01, US-C02, US-C03 |
-| #3 Right-top controls overlap status bar | **Shipped in PR #125**; ongoing audit in US-D01 |
-| #4 "+" tap → no message echo, no AI reply | **Shipped in PR #125** |
-| #5 Long-press voice → released, nothing happens | **Shipped in PR #125** |
-| #6 Experience card has no AI follow-up entry | US-A01, US-A02 |
-| Dual-agent skill files don't exist | US-E01–E06 |
-| `testMissingKeyYieldsUnconfiguredState` pre-existing failure on dev | US-A03 |
-| Swift 6 sending warnings in `MapViewModel` | §5 (parked) |
+| Original session finding                                            | Covered by                                      |
+| ------------------------------------------------------------------- | ----------------------------------------------- |
+| #1 Category tap → "expand 25 km" no-op                              | US-B01, US-B02                                  |
+| #1b Data sources too sparse                                         | US-B03, US-B04                                  |
+| #2 Categories hard-coded                                            | US-C01, US-C02, US-C03                          |
+| #3 Right-top controls overlap status bar                            | **Shipped in PR #125**; ongoing audit in US-D01 |
+| #4 "+" tap → no message echo, no AI reply                           | **Shipped in PR #125**                          |
+| #5 Long-press voice → released, nothing happens                     | **Shipped in PR #125**                          |
+| #6 Experience card has no AI follow-up entry                        | US-A01, US-A02                                  |
+| Dual-agent skill files don't exist                                  | US-E01–E06                                      |
+| `testMissingKeyYieldsUnconfiguredState` pre-existing failure on dev | US-A03                                          |
+| Swift 6 sending warnings in `MapViewModel`                          | §5 (parked)                                     |
 
 ## Appendix B — File index (read these first when implementing)
 
