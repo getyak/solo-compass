@@ -29,6 +29,15 @@ public final class VoiceAgentOrchestrator: Identifiable {
     public private(set) var isRunning = false
     public private(set) var errorMessage: String?
 
+    /// US-002: experience this orchestrator is currently scoped to.
+    /// `nil` means the global "+ button" chat. Swapped via `rebindContext(_:)`.
+    public private(set) var scopedExperience: Experience?
+
+    /// US-002: latest system prompt produced for the active scope. Exposed
+    /// for tests so they can assert that scope swaps actually re-seed the
+    /// session with a fresh prompt.
+    public private(set) var currentSystemPrompt: String = ""
+
     /// Streaming text being assembled word-by-word; cleared when the final
     /// assistant message is committed to the session.
     public private(set) var streamingContent: String = ""
@@ -89,9 +98,47 @@ public final class VoiceAgentOrchestrator: Identifiable {
         thinkingStep = NSLocalizedString("agent.step.listening", comment: "Listening…")
         Task {
             let prompt = await buildSystemPrompt()
+            currentSystemPrompt = prompt
             session.seedSystem(prompt)
             session.beginListening()
             isSeeded = true
+        }
+    }
+
+    /// US-002: Swap the experience scope on a live orchestrator without
+    /// reallocating its `AIService` / `VoiceService` / `MapViewModel` /
+    /// `ContextManager` dependencies. Pass `nil` for the global "+ button"
+    /// chat or an `Experience` for a per-card chat. Clears the in-flight
+    /// turn (if any), wipes the session message history, and re-seeds the
+    /// system prompt so the model immediately sees the new scope.
+    ///
+    /// Idempotent and safe to call before `start()`, during `.listening`,
+    /// or after a turn has completed.
+    public func rebindContext(_ experience: Experience?) {
+        // Cancel any in-flight turn so its streaming events don't bleed
+        // into the new scope's session.
+        turnTask?.cancel()
+        turnTask = nil
+        synthesizer.stopSpeaking(at: .immediate)
+        didRequestImmediateSpeechStop = true
+
+        scopedExperience = experience
+        streamingContent = ""
+        thinkingStep = ""
+        isExecutingTool = false
+        errorMessage = nil
+
+        // Re-seed the system prompt synchronously enough that callers can
+        // observe `currentSystemPrompt` after this Task completes.
+        Task {
+            let prompt = await buildSystemPrompt()
+            currentSystemPrompt = prompt
+            session.reseedSystem(prompt)
+            isSeeded = true
+            if isRunning {
+                session.beginListening()
+                uiState = .listening
+            }
         }
     }
 
@@ -374,9 +421,27 @@ public final class VoiceAgentOrchestrator: Identifiable {
             }
         }
 
+        // US-002: when scoped to a specific experience (per-card chat),
+        // inject a focused block so the model anchors its answers to that
+        // place. When `scopedExperience` is `nil`, the chat is global.
+        var experienceBlock = ""
+        if let exp = scopedExperience {
+            let expCoord = exp.location.clCoordinate ?? MapViewModel.defaultCenter
+            experienceBlock = """
+
+            SCOPED EXPERIENCE (the user opened this card — focus answers here):
+              id: \(exp.id)
+              title: \(exp.title)
+              category: \(exp.category.rawValue)
+              one-liner: \(exp.oneLiner)
+              solo-score: \(String(format: "%.1f", exp.soloScore.overall))/10
+              coords: (\(String(format: "%.4f", expCoord.latitude)), \(String(format: "%.4f", expCoord.longitude)))
+            """
+        }
+
         return """
         You are Solo Compass, a warm and knowledgeable travel companion for solo travelers.
-        The user is at approximately (\(String(format: "%.4f", coord.latitude)), \(String(format: "%.4f", coord.longitude))).\(contextBlock)
+        The user is at approximately (\(String(format: "%.4f", coord.latitude)), \(String(format: "%.4f", coord.longitude))).\(contextBlock)\(experienceBlock)
 
         CURRENT VISIBLE EXPERIENCES (use ONLY these IDs when calling tools):
         \(visibleSummary)

@@ -4296,4 +4296,95 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         XCTAssertEqual(a3Height, UIScreen.main.bounds.height, accuracy: 1,
                        "accessibility3 view fills screen — no clipping")
     }
+
+    // MARK: - US-002 rebindContext swaps scope without re-allocating
+
+    /// Calling rebindContext(nil) → rebindContext(A) → rebindContext(B) on the
+    /// same VoiceAgentOrchestrator must:
+    ///   1. Keep the same instance (identity-stable, dependencies preserved).
+    ///   2. After each rebind, the currentSystemPrompt reflects the latest
+    ///      scope — nil ⇒ no SCOPED EXPERIENCE block; A ⇒ contains A's id;
+    ///      B ⇒ contains B's id but NOT A's id.
+    @MainActor
+    func testRebindContextSwapsScopeAndReseedsSystemPrompt() async throws {
+        let seeds = ExperienceService.hardcodedSeed
+        let expA = try XCTUnwrap(seeds.first, "need at least one seed experience")
+        let expB = try XCTUnwrap(
+            seeds.first(where: { $0.id != expA.id }),
+            "need a second distinct seed experience"
+        )
+
+        let ai = AIService()
+        let voice = VoiceService()
+        let mapVM = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences()
+        )
+        let orch = VoiceAgentOrchestrator(
+            aiService: ai,
+            voiceService: voice,
+            mapViewModel: mapVM,
+            preferences: UserPreferences()
+        )
+        let originalId = orch.id
+
+        // rebindContext kicks off an async Task to (re)build the prompt; poll
+        // until the system prompt reflects the requested scope, or fail at 2 s.
+        func waitForRebind(
+            _ exp: Experience?,
+            file: StaticString = #file,
+            line: UInt = #line
+        ) async throws {
+            let deadline = Date().addingTimeInterval(2.0)
+            while Date() < deadline {
+                let scopeMatches = orch.scopedExperience?.id == exp?.id
+                let promptHasContent = !orch.currentSystemPrompt.isEmpty
+                let promptMatches: Bool
+                if let exp = exp {
+                    promptMatches = orch.currentSystemPrompt.contains("id: \(exp.id)")
+                } else {
+                    promptMatches = !orch.currentSystemPrompt.contains("SCOPED EXPERIENCE")
+                }
+                if scopeMatches && promptHasContent && promptMatches { return }
+                try await Task.sleep(nanoseconds: 20_000_000) // 20 ms
+            }
+            XCTFail("rebindContext did not reflect scope within 2 s", file: file, line: line)
+        }
+
+        // 1. Global scope (no experience).
+        orch.rebindContext(nil)
+        try await waitForRebind(nil)
+        XCTAssertEqual(orch.id, originalId, "same orchestrator instance after rebind(nil)")
+        XCTAssertNil(orch.scopedExperience, "scopedExperience must be nil after rebind(nil)")
+        XCTAssertFalse(
+            orch.currentSystemPrompt.contains("SCOPED EXPERIENCE"),
+            "global chat prompt must not contain a SCOPED EXPERIENCE block"
+        )
+
+        // 2. Scope to experience A.
+        orch.rebindContext(expA)
+        try await waitForRebind(expA)
+        XCTAssertEqual(orch.id, originalId, "same orchestrator instance after rebind(A)")
+        XCTAssertEqual(orch.scopedExperience?.id, expA.id)
+        XCTAssertTrue(
+            orch.currentSystemPrompt.contains("id: \(expA.id)"),
+            "system prompt must reference experience A's id"
+        )
+
+        // 3. Scope to experience B — must drop A's reference.
+        orch.rebindContext(expB)
+        try await waitForRebind(expB)
+        XCTAssertEqual(orch.id, originalId, "same orchestrator instance after rebind(B)")
+        XCTAssertEqual(orch.scopedExperience?.id, expB.id)
+        XCTAssertTrue(
+            orch.currentSystemPrompt.contains("id: \(expB.id)"),
+            "system prompt must reference experience B's id"
+        )
+        XCTAssertFalse(
+            orch.currentSystemPrompt.contains("id: \(expA.id)"),
+            "after rebinding to B, prompt must not still mention A's id"
+        )
+    }
 }
