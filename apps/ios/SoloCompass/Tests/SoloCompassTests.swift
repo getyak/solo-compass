@@ -614,7 +614,9 @@ final class SoloCompassTests: XCTestCase {
 
     func testOverpassCategoryFromTourismAndLeisure() {
         XCTAssertEqual(OverpassService.category(for: ["tourism": "museum"]), .culture)
-        XCTAssertEqual(OverpassService.category(for: ["tourism": "viewpoint"]), .culture)
+        // viewpoint maps to .hidden — categoryToOverpassFilter[.hidden] queries
+        // only tourism=viewpoint, so the inverse classifier must agree.
+        XCTAssertEqual(OverpassService.category(for: ["tourism": "viewpoint"]), .hidden)
         XCTAssertEqual(OverpassService.category(for: ["leisure": "park"]), .nature)
         XCTAssertEqual(OverpassService.category(for: ["natural": "beach"]), .nature)
     }
