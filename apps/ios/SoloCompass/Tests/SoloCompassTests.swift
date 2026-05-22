@@ -3777,11 +3777,14 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
     /// Edge-routing path, start() must set uiState = .unconfigured and must
     /// NOT set isRunning (no session seeded, no mic started).
     func testMissingKeyYieldsUnconfiguredState() {
-        // Clear any UserDefaults override so resolvedDeepSeekApiKey falls back
-        // to the build-time value. In CI the build-time key is empty (""), so
-        // this test exercises the real unconfigured path.
-        // If a real key is present in the environment (dev machine), we stub
-        // the override key to empty to force the unconfigured branch.
+        // US-001: Inject an empty-key resolver so the unconfigured branch fires
+        // regardless of whether GeneratedSecrets.deepSeekApiKey is baked-in on
+        // this machine (a dev `.env` typically has a real key).
+        Secrets.apiKeyResolver = EmptyAPIKeyResolver()
+        defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
+
+        // Clear any UserDefaults override too — belt + suspenders; the resolver
+        // already wins, but this keeps the recorded environment clean.
         let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
         UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
         defer {
@@ -3792,7 +3795,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
             }
         }
 
-        // Also clear the env-level key so the GeneratedSecrets fallback is also empty.
+        // Also clear the env-level key so any direct ProcessInfo reads are empty.
         let hadEnvKey = getenv("DEEPSEEK_API_KEY") != nil
         unsetenv("DEEPSEEK_API_KEY")
         defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", "", 1) } }
@@ -4110,19 +4113,35 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
 
     /// Calling start() a second time while already unconfigured must remain unconfigured.
     func testRepeatedStartWhileUnconfiguredStaysUnconfigured() {
+        // US-001: Inject an empty-key resolver so the unconfigured branch fires
+        // even when GeneratedSecrets bakes in a real dev key.
+        Secrets.apiKeyResolver = EmptyAPIKeyResolver()
+        defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
+
+        let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
         UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
         defer {
-            UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            if let saved = savedOverride {
+                UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            }
         }
+        let hadEnvKey = getenv("DEEPSEEK_API_KEY") != nil
         unsetenv("DEEPSEEK_API_KEY")
+        defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", "", 1) } }
+
+        // Force the non-Edge path so the local-key guard governs the state.
+        let ai = AIService()
+        ai.isProTier = false
 
         let orch = VoiceAgentOrchestrator(
-            aiService: AIService(),
+            aiService: ai,
             voiceService: VoiceService(),
             mapViewModel: MapViewModel(
                 locationService: LocationService(),
                 experienceService: ExperienceService(),
-                aiService: AIService(),
+                aiService: ai,
                 preferences: UserPreferences()
             ),
             preferences: UserPreferences()

@@ -1,5 +1,5 @@
 {
-  "project": "Solo Compass — Post-Pro-Chat Rebuild v1",
+  "project": "Solo Compass \u2014 Post-Pro-Chat Rebuild v1",
   "branchName": "ralph/post-pro-chat-rebuild-v1",
   "description": "Everything identified in the 2026-05-21 dual-agent diagnosis that has not yet shipped: complete the Pro chat surface (per-experience AI follow-up, one shared orchestrator, fix dev-machine unconfigured test), make the map's data layer self-healing (auto-explore on empty filter, fix the 25km expand chain, Overpass category mapping, Foursquare fallback), let users configure categories (userTags schema, visible-categories multi-select, custom-tag pills), polish safe-area + tap-target visuals, and land a real dual-agent QA harness with screenshots (sc-evaluator, sc-executor, sc-loop). Source: docs/PRD/prd-post-pro-chat-rebuild-v1.md.",
   "userStories": [
@@ -16,7 +16,7 @@
         "xcodebuild build for iPhone 17 Pro / iOS 26.4 passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -25,7 +25,7 @@
       "description": "As a developer, I want one VoiceAgentOrchestrator instance to handle both the unscoped + button chat and per-experience chats, so memory stays bounded as users open many cards.",
       "acceptanceCriteria": [
         "Add public func rebindContext(_ experience: Experience?) to VoiceAgentOrchestrator",
-        "rebindContext clears the current session and re-seeds the system prompt with (or without) the experience block — does NOT recreate AIService/VoiceService dependencies",
+        "rebindContext clears the current session and re-seeds the system prompt with (or without) the experience block \u2014 does NOT recreate AIService/VoiceService dependencies",
         "Unit test asserts calling rebindContext(nil) then rebindContext(experienceA) then rebindContext(experienceB) keeps the same orchestrator instance and the latest system prompt matches the latest scope",
         "xcodebuild build for iPhone 17 Pro / iOS 26.4 passes"
       ],
@@ -89,7 +89,7 @@
       "description": "As a user, I want to hide categories I don't care about so the filter bar stays short.",
       "acceptanceCriteria": [
         "Add visibleCategories: Set<ExperienceCategory> (default = all 8 cases) to UserPreferences",
-        "FilterBarView reads visibleCategories from UserPreferences via @Environment — no more hard-coded constant at FilterBarView.swift:30",
+        "FilterBarView reads visibleCategories from UserPreferences via @Environment \u2014 no more hard-coded constant at FilterBarView.swift:30",
         "When visibleCategories changes, FilterBarView re-renders to show only selected pills",
         "Unit test asserts that removing .nightlife from visibleCategories drops the nightlife pill",
         "xcodebuild build passes"
@@ -154,7 +154,7 @@
       "title": "Add categoryToOverpassFilter mapping and accept category in OverpassService.fetchPOIs",
       "description": "As a user, I want category-tagged Explore results so tapping Coffee returns coffee shops, not a generic mix.",
       "acceptanceCriteria": [
-        "Add a static categoryToOverpassFilter: [ExperienceCategory: String] table in OverpassService — single source of truth",
+        "Add a static categoryToOverpassFilter: [ExperienceCategory: String] table in OverpassService \u2014 single source of truth",
         "Mapping covers all 8 categories with sensible Overpass QL filters (e.g. amenity=cafe for .coffee, amenity=coworking_space for .work, leisure=park OR natural=* for .nature, tourism=attraction OR historic=* for .culture, amenity=restaurant for .food, leisure=spa OR healthcare=* for .wellness, amenity=bar OR amenity=nightclub for .nightlife, tourism=viewpoint for .hidden)",
         "fetchPOIs gains an optional category: ExperienceCategory? parameter; when non-nil it injects the matching filter clause",
         "Returned POIs round-trip into Experience.category matching the requested category",
@@ -210,7 +210,7 @@
         "Add Services/FoursquareService.swift mirroring OverpassService API: fetchPOIs(near:radiusMeters:category:) async throws -> [Experience]",
         "Add Secrets.resolvedFoursquareKey (UserDefaults override -> GeneratedSecrets fallback, mirroring resolvedDeepSeekApiKey)",
         "MapViewModel.exploreNearby: call Overpass first; if results.count < 5 AND resolvedFoursquareKey is non-empty, call Foursquare with the same params and merge",
-        "Merge dedupes by (latRounded4, lonRounded4) — keep the Overpass record when both sources match",
+        "Merge dedupes by (latRounded4, lonRounded4) \u2014 keep the Overpass record when both sources match",
         "Hard cap: at most 1 Foursquare call per exploreNearby invocation",
         "Add daily counter UserPreferences.foursquareCallsToday for visibility (no enforcement in v1; reset at local midnight)",
         "Unit tests cover the dedupe logic and the < 5 threshold gate",
@@ -227,7 +227,7 @@
       "acceptanceCriteria": [
         "Take screenshots on three simulators (iPhone 17 Pro, iPhone 17 Pro Max, iPhone Air, all on latest iOS) showing the cold-launch map screen after granting when-in-use location",
         "Save screenshots to docs/qa/safearea-audit/<device>-<iso-date>.png and reference them in this story's notes field upon completion",
-        "Each screenshot must show ALL of: city pill, filter bar, MapCompass, MapUserLocationButton, the + button, the explore button — none clipped by status bar / Dynamic Island / home indicator",
+        "Each screenshot must show ALL of: city pill, filter bar, MapCompass, MapUserLocationButton, the + button, the explore button \u2014 none clipped by status bar / Dynamic Island / home indicator",
         "If any device shows a clip, fix the underlying view's safe-area handling and re-screenshot",
         "BottomInfoBar text is not clipped by the home indicator on any device",
         "xcodebuild build passes"
@@ -260,7 +260,7 @@
         "Exit code 0 = all assertions passed; exit code 1 = one or more findings raised",
         "Findings written to scripts/sc-evaluator/findings/<run_id>.md where run_id is an ISO-8601 UTC timestamp (e.g. 2026-05-21T19-45-00Z)",
         "Findings file contains: journey name, per-step pass/fail, screenshot links, suggested fix anchors (file:line references)",
-        "Findings are append-only — re-running the same journey creates a new file, never overwrites",
+        "Findings are append-only \u2014 re-running the same journey creates a new file, never overwrites",
         "First journey shipped: home-screen-cold-start (placeholder that just launches and screenshots is acceptable for this story)",
         "Skill definition file at ~/.claude/skills/sc-evaluator/SKILL.md that delegates to run.sh",
         "Bash test invocation 'scripts/sc-evaluator/run.sh home-screen-cold-start' completes within 10 minutes on M-series hardware"
@@ -324,7 +324,7 @@
       "acceptanceCriteria": [
         "Create scripts/sc-executor/run.sh that reads scripts/sc-evaluator/findings/*.md and selects the most recent",
         "Refuses to act if the latest findings file is older than 1 hour (prints a clear stale-input message and exits non-zero)",
-        "Default mode: dry-run — prints the proposed unified diff to stdout, no file changes",
+        "Default mode: dry-run \u2014 prints the proposed unified diff to stdout, no file changes",
         "--apply mode: writes changes, commits to a branch agent/<run_id>, leaves it un-pushed",
         "Always runs `xcodebuild build` after applying and aborts (resets the working tree) if the build fails",
         "Skill definition file at ~/.claude/skills/sc-executor/SKILL.md that delegates to run.sh"
@@ -338,9 +338,9 @@
       "title": "Add sc-loop runtime that wires evaluator and executor with a hard iteration cap",
       "description": "As a developer, I want one command to drive the evaluator -> executor -> evaluator cycle until journeys pass or the iteration cap is hit.",
       "acceptanceCriteria": [
-        "Create scripts/sc-loop/run.sh accepting <journey-name> and optional --max-iterations N (default 5, max 20 — values above 20 are clamped with a warning)",
+        "Create scripts/sc-loop/run.sh accepting <journey-name> and optional --max-iterations N (default 5, max 20 \u2014 values above 20 are clamped with a warning)",
         "Each iteration logs to scripts/sc-loop/runs/<run_id>/iteration-<N>.md with timestamp, evaluator exit code, executor action",
-        "Loop terminates on: (a) evaluator exits 0 — success; (b) iteration cap reached — exhausted; (c) executor refuses to act (stale findings or build broken) — stopped",
+        "Loop terminates on: (a) evaluator exits 0 \u2014 success; (b) iteration cap reached \u2014 exhausted; (c) executor refuses to act (stale findings or build broken) \u2014 stopped",
         "Final summary printed to stdout: total iterations, exit reason, path to the run directory",
         "Skill definition file at ~/.claude/skills/sc-loop/SKILL.md that delegates to run.sh",
         "Smoke test: running `scripts/sc-loop/run.sh home-screen-cold-start --max-iterations 1` on a clean checkout completes within 10 minutes and produces a runs/<run_id>/ directory"

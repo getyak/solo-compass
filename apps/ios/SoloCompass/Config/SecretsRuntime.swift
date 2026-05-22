@@ -9,20 +9,48 @@ import Foundation
 // prefer a UserDefaults-stored key (entered by the user in Settings) over the
 // build-time baked-in value. This lets open-source / TestFlight users supply
 // their own DeepSeek key without re-building.
+//
+// US-001: Resolution goes through an `APIKeyResolver` seam so unit tests can
+// inject an empty-key resolver and exercise the unconfigured-state branch
+// even on dev machines whose `.env` bakes in a real DeepSeek key.
+
+/// Resolves the effective DeepSeek API key for the current process.
+/// Production uses `DefaultAPIKeyResolver`; tests can swap in
+/// `EmptyAPIKeyResolver` (or a custom one) via `Secrets.apiKeyResolver`.
+protocol APIKeyResolver {
+    func resolveDeepSeekAPIKey() -> String
+}
+
+/// Production resolver: UserDefaults override → build-time baked key.
+struct DefaultAPIKeyResolver: APIKeyResolver {
+    func resolveDeepSeekAPIKey() -> String {
+        if let override = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey),
+           !override.isEmpty {
+            return override
+        }
+        return Secrets.deepSeekApiKey
+    }
+}
+
+/// Test resolver: always returns an empty key so the unconfigured branch fires.
+struct EmptyAPIKeyResolver: APIKeyResolver {
+    func resolveDeepSeekAPIKey() -> String { "" }
+}
 
 extension Secrets {
     enum RuntimeKeys {
         static let deepSeekApiKey = "runtimeDeepSeekKey"
     }
 
-    /// Effective DeepSeek API key. UserDefaults override > GeneratedSecrets.
-    /// Returns "" when neither is set; callers map empty → `AIError.missingAPIKey`.
+    /// Active resolver — swap in tests via `Secrets.apiKeyResolver = EmptyAPIKeyResolver()`
+    /// and restore to `DefaultAPIKeyResolver()` afterwards.
+    nonisolated(unsafe) static var apiKeyResolver: APIKeyResolver = DefaultAPIKeyResolver()
+
+    /// Effective DeepSeek API key. Reads through `apiKeyResolver`.
+    /// Returns "" when neither override nor baked key is set; callers map
+    /// empty → `AIError.missingAPIKey` / `.unconfigured`.
     static var resolvedDeepSeekApiKey: String {
-        if let override = UserDefaults.standard.string(forKey: RuntimeKeys.deepSeekApiKey),
-           !override.isEmpty {
-            return override
-        }
-        return deepSeekApiKey
+        apiKeyResolver.resolveDeepSeekAPIKey()
     }
 
     static var resolvedDeepSeekBaseURL: String {
