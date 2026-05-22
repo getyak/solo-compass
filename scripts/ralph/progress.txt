@@ -29,3 +29,5 @@ Tool: claude
 [2026-05-22T09:33:52Z] Story #US-005: Add userTags field to Experience schema with SwiftData migration — FAILED (iteration 5)
 [2026-05-22T09:35:13Z] Story #US-005: Add userTags field to Experience schema with SwiftData migration — FAILED (iteration 6)
 [2026-05-22T08:36:30Z] Story #US-005: Add userTags field to Experience schema with SwiftData migration — PASSED (manual; ralph.sh false-negatived 4-6: Claude SDK exited non-zero on API socket drop / empty SDK output, but code in working tree was correct — verified by pnpm parity:check + xcodebuild build on iPhone 17 sim)
+[2026-05-22T09:38:09Z] Story #US-005: Add userTags field to Experience schema with SwiftData migration — FAILED (iteration 1)
+[2026-05-22T09:43:11Z] Story #US-005: Add userTags field to Experience schema with SwiftData migration — PASSED
