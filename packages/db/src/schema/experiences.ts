@@ -49,4 +49,7 @@ export const experiences = pgTable("experiences", {
   realInconveniences: jsonb("real_inconveniences"),
   soloScore: jsonb("solo_score"),
   sources: jsonb("sources"),
+  // User-defined free-form tags layered on top of the category enum (US-005).
+  // Optional JSONB array of strings; absence is equivalent to an empty array.
+  userTags: jsonb("user_tags"),
 });

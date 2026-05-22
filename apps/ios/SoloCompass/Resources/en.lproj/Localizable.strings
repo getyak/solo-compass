@@ -117,6 +117,11 @@
 "map.empty.expand" = "Expand to 25km";
 "map.empty.browse" = "Browse %@";
 "map.empty.clearFilters" = "Clear filters";
+
+/* Map empty-state stage machine (US-012). Three distinct labels — no shared "no results" string. */
+"map.empty.stage.tryExpand" = "Expand to 25 km";
+"map.empty.stage.tryExplore" = "Explore farther";
+"map.empty.stage.browseCity" = "Browse %@";
 "map.loading" = "Loading map";
 
 /* City picker */
@@ -158,6 +163,16 @@
 "settings.maxDistance" = "Max Distance";
 "settings.distance" = "Discovery Radius";
 "settings.distance.footer" = "Only experiences within this radius appear on the map.";
+"settings.filterBar" = "Filter bar";
+"settings.filter.visible_categories" = "Visible categories";
+"settings.filter.visible_categories.footer" = "Choose which category pills appear on the map's filter bar. Hidden categories still show on the map.";
+"settings.filter.custom_tags" = "Custom tags";
+"settings.filter.custom_tags.footer" = "Free-form labels you can attach to experiences. They appear as pills on the map's filter bar.";
+"settings.filter.custom_tags.add_placeholder" = "New tag";
+"settings.filter.custom_tags.add" = "Add";
+"settings.filter.custom_tags.empty_error" = "Tag cannot be empty.";
+"settings.filter.custom_tags.duplicate_error" = "Tag already exists.";
+"settings.filter.custom_tags.empty_state" = "No custom tags yet. Add one above.";
 "settings.completed" = "Completed";
 "settings.favorites" = "Favorites";
 "settings.stats" = "Your Journey";
@@ -216,6 +231,9 @@
 /* Experience detail overflow */
 "detail.report" = "Report an issue";
 "detail.more" = "More options";
+
+/* US-004: Ask Solo about this experience (Pro chat) */
+"experience.askSolo.cta" = "Ask Solo about this";
 
 /* Onboarding */
 "onboarding.welcome.title" = "Places worth being alone.";
@@ -438,6 +456,24 @@
 "export.copy" = "Copy Markdown";
 "export.notion" = "Open in Notion";
 "export.share" = "Share…";
+
+/* Share sheet — card modes & actions */
+"share.title" = "Share";
+"share.mode.xiaohongshu" = "Story";
+"share.mode.twitter" = "Twitter Card";
+"share.mode.square" = "Square";
+"share.mode.minimal" = "Minimal";
+"share.mode.markdown" = "Markdown";
+"share.systemShare" = "Share…";
+"share.copyImage" = "Copy image";
+"share.copied" = "Copied to clipboard";
+"share.imageCopied" = "Image copied";
+"share.renderFailed" = "Couldn't render the card. Please try again.";
+"share.saveHint" = "Tap Share, then choose Save Image to save to Photos.";
+"share.style.xiaohongshuPortrait" = "Story 9:16";
+"share.style.twitterLandscape" = "Twitter 1.91:1";
+"share.style.instagramSquare" = "Square 1:1";
+"share.style.minimalText" = "Minimal 9:16";
 
 /* Offline banner (US-041) */
 "offline.banner" = "Offline mode · showing cached data";

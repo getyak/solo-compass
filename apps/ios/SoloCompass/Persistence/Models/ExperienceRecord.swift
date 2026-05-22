@@ -66,6 +66,12 @@ public final class ExperienceRecord {
     public var statsBlob: Data
     public var nearbyExperienceIdsBlob: Data
 
+    /// User-defined free-form tags (US-005). Added in SchemaV2.
+    /// JSON-encoded `[String]`. Optional so rows migrated from v1 (without this
+    /// column written) decode as `nil`, which the value-mapping layer treats
+    /// as the empty array — see `asValue` below.
+    public var userTagsBlob: Data?
+
     public init(
         id: String,
         title: String,
@@ -90,7 +96,8 @@ public final class ExperienceRecord {
         soloScoreBlob: Data,
         confidenceBlob: Data,
         statsBlob: Data,
-        nearbyExperienceIdsBlob: Data
+        nearbyExperienceIdsBlob: Data,
+        userTagsBlob: Data? = nil
     ) {
         self.id = id
         self.title = title
@@ -116,6 +123,7 @@ public final class ExperienceRecord {
         self.confidenceBlob = confidenceBlob
         self.statsBlob = statsBlob
         self.nearbyExperienceIdsBlob = nearbyExperienceIdsBlob
+        self.userTagsBlob = userTagsBlob
     }
 }
 
@@ -154,7 +162,8 @@ extension ExperienceRecord {
                 soloScoreBlob: try encoder.encode(experience.soloScore),
                 confidenceBlob: try encoder.encode(experience.confidence),
                 statsBlob: try encoder.encode(experience.stats),
-                nearbyExperienceIdsBlob: try encoder.encode(experience.nearbyExperienceIds)
+                nearbyExperienceIdsBlob: try encoder.encode(experience.nearbyExperienceIds),
+                userTagsBlob: try encoder.encode(experience.userTags ?? [])
             )
         } catch {
             fatalError("Failed to encode Experience \(experience.id): \(error)")
@@ -191,7 +200,8 @@ extension ExperienceRecord {
                 stats: try decoder.decode(Experience.Stats.self, from: statsBlob),
                 status: Experience.Status(rawValue: status) ?? .active,
                 createdAt: createdAt,
-                updatedAt: updatedAt
+                updatedAt: updatedAt,
+                userTags: userTagsBlob.map { (try? decoder.decode([String].self, from: $0)) ?? [] } ?? []
             )
         } catch {
             fatalError("Failed to decode ExperienceRecord \(id): \(error)")

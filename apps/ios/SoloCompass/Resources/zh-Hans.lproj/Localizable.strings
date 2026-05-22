@@ -109,6 +109,11 @@
 "map.empty.expand" = "扩展到 25 公里";
 "map.empty.browse" = "浏览 %@";
 "map.empty.clearFilters" = "清除筛选";
+
+/* Map empty-state stage machine (US-012) */
+"map.empty.stage.tryExpand" = "扩展到 25 公里";
+"map.empty.stage.tryExplore" = "搜索更远范围";
+"map.empty.stage.browseCity" = "浏览 %@";
 "map.loading" = "地图加载中";
 
 /* City picker */
@@ -150,6 +155,16 @@
 "settings.maxDistance" = "最远距离";
 "settings.distance" = "发现半径";
 "settings.distance.footer" = "只有在此半径内的体验才会显示在地图上。";
+"settings.filterBar" = "筛选栏";
+"settings.filter.visible_categories" = "可见分类";
+"settings.filter.visible_categories.footer" = "选择在地图筛选栏中显示哪些分类标签。隐藏的分类仍会出现在地图上。";
+"settings.filter.custom_tags" = "自定义标签";
+"settings.filter.custom_tags.footer" = "你可以为体验附加的自由格式标签，会以药丸形式显示在地图筛选栏上。";
+"settings.filter.custom_tags.add_placeholder" = "新标签";
+"settings.filter.custom_tags.add" = "添加";
+"settings.filter.custom_tags.empty_error" = "标签不能为空。";
+"settings.filter.custom_tags.duplicate_error" = "标签已存在。";
+"settings.filter.custom_tags.empty_state" = "暂无自定义标签，请在上方添加。";
 "settings.completed" = "已完成";
 "settings.favorites" = "收藏";
 "settings.stats" = "你的旅程";
@@ -208,6 +223,9 @@
 /* Experience detail overflow */
 "detail.report" = "反馈问题";
 "detail.more" = "更多选项";
+
+/* US-004: Ask Solo about this experience (Pro chat) */
+"experience.askSolo.cta" = "向 Solo 提问";
 
 /* Onboarding */
 "onboarding.welcome.title" = "值得独处的地方。";
@@ -405,6 +423,24 @@
 "export.copy" = "复制 Markdown";
 "export.notion" = "在 Notion 中打开";
 "export.share" = "分享…";
+
+/* Share sheet — card modes & actions */
+"share.title" = "分享";
+"share.mode.xiaohongshu" = "小红书风";
+"share.mode.twitter" = "推特卡";
+"share.mode.square" = "方形";
+"share.mode.minimal" = "极简";
+"share.mode.markdown" = "Markdown";
+"share.systemShare" = "分享…";
+"share.copyImage" = "复制图片";
+"share.copied" = "已复制到剪贴板";
+"share.imageCopied" = "图片已复制";
+"share.renderFailed" = "卡片生成失败，请重试";
+"share.saveHint" = "点击分享后，选择「存储图像」即可保存到相册";
+"share.style.xiaohongshuPortrait" = "竖版 9:16";
+"share.style.twitterLandscape" = "横版 1.91:1";
+"share.style.instagramSquare" = "方形 1:1";
+"share.style.minimalText" = "极简 9:16";
 
 /* Offline banner (US-041) */
 "offline.banner" = "离线模式 · 显示缓存数据";

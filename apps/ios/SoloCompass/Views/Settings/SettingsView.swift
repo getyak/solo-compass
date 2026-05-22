@@ -56,6 +56,8 @@ public struct SettingsView: View {
                 preferredCategoriesSection
                 dislikedCategoriesSection
                 distanceSection
+                // Section: Filter bar (US-007)
+                filterBarSection
                 // Section: Appearance (US-039)
                 appearanceSection
                 // Section: AI & Privacy
@@ -238,6 +240,59 @@ public struct SettingsView: View {
             settingsSectionHeader("location.circle", label: NSLocalizedString("settings.distance", comment: "Discovery Radius"))
         } footer: {
             Text(NSLocalizedString("settings.distance.footer", comment: "Only experiences within this radius appear on the map."))
+        }
+    }
+
+    // MARK: - Filter Bar (US-007)
+
+    private var filterBarSection: some View {
+        Section {
+            NavigationLink {
+                VisibleCategoriesView()
+                    .environment(preferences)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.indigo, in: RoundedRectangle(cornerRadius: 7))
+                    Text(NSLocalizedString("settings.filter.visible_categories", comment: "Visible categories"))
+                    Spacer()
+                    Text("\(preferences.visibleCategories.count)/\(ExperienceCategory.allCases.count)")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
+
+            // US-009: Custom tags management
+            NavigationLink {
+                CustomTagsView()
+                    .environment(preferences)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "tag")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.purple, in: RoundedRectangle(cornerRadius: 7))
+                    Text(NSLocalizedString("settings.filter.custom_tags", comment: "Custom tags"))
+                    Spacer()
+                    Text("\(preferences.customTags.count)")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
+        } header: {
+            settingsSectionHeader(
+                "slider.horizontal.below.rectangle",
+                label: NSLocalizedString("settings.filterBar", comment: "Filter bar")
+            )
+        } footer: {
+            Text(NSLocalizedString(
+                "settings.filter.visible_categories.footer",
+                comment: "Filter bar visible categories footer"
+            ))
         }
     }
 
@@ -655,4 +710,193 @@ extension UserPreferences.SoloTravelStyle {
     SettingsView()
         .environment(UserPreferences())
         .environment(LanguageService())
+}
+
+// MARK: - Visible Categories (US-007)
+
+/// Multi-select list of the 8 built-in ExperienceCategory cases. Toggling a
+/// checkbox writes through to `UserPreferences.visibleCategories` immediately,
+/// which persists via the existing UserDefaults Codable blob.
+struct VisibleCategoriesView: View {
+    @Environment(UserPreferences.self) private var preferences
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(ExperienceCategory.allCases) { category in
+                    let isOn = preferences.visibleCategories.contains(category)
+                    HStack(spacing: 12) {
+                        Image(systemName: category.symbol)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(category.color, in: RoundedRectangle(cornerRadius: 7))
+                        Text(category.localizedTitle)
+                        Spacer()
+                        if isOn {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { toggle(category) }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+                }
+            } footer: {
+                Text(NSLocalizedString(
+                    "settings.filter.visible_categories.footer",
+                    comment: "Filter bar visible categories footer"
+                ))
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(NSLocalizedString(
+            "settings.filter.visible_categories",
+            comment: "Visible categories"
+        ))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func toggle(_ category: ExperienceCategory) {
+        var next = preferences.visibleCategories
+        if next.contains(category) {
+            next.remove(category)
+        } else {
+            next.insert(category)
+        }
+        preferences.visibleCategories = next
+    }
+}
+
+#Preview {
+    NavigationStack {
+        VisibleCategoriesView()
+            .environment(UserPreferences())
+    }
+}
+
+// MARK: - Custom Tags (US-009)
+
+/// Management screen for `UserPreferences.customTags`. Lets the user add new
+/// free-form tags via an inline text field + "Add" button, and remove existing
+/// tags via swipe-to-delete. Mutations write through to `UserPreferences`
+/// immediately, which `FilterBarView` observes and re-renders.
+struct CustomTagsView: View {
+    @Environment(UserPreferences.self) private var preferences
+
+    @State private var draft: String = ""
+    @State private var errorMessage: String?
+    @FocusState private var fieldFocused: Bool
+
+    var body: some View {
+        List {
+            Section {
+                HStack(spacing: 8) {
+                    TextField(
+                        NSLocalizedString(
+                            "settings.filter.custom_tags.add_placeholder",
+                            comment: "New tag placeholder"
+                        ),
+                        text: $draft
+                    )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .focused($fieldFocused)
+                    .onSubmit { addDraft() }
+                    .onChange(of: draft) { _, _ in errorMessage = nil }
+
+                    Button {
+                        addDraft()
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.blue)
+                    }
+                    .accessibilityLabel(NSLocalizedString(
+                        "settings.filter.custom_tags.add",
+                        comment: "Add tag"
+                    ))
+                    .buttonStyle(.plain)
+                }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            Section {
+                if preferences.customTags.isEmpty {
+                    Text(NSLocalizedString(
+                        "settings.filter.custom_tags.empty_state",
+                        comment: "Empty custom tags hint"
+                    ))
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+                } else {
+                    ForEach(preferences.customTags, id: \.self) { tag in
+                        HStack(spacing: 12) {
+                            Image(systemName: "tag.fill")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white)
+                                .frame(width: 30, height: 30)
+                                .background(Color.purple, in: RoundedRectangle(cornerRadius: 7))
+                            Text(tag)
+                            Spacer()
+                        }
+                    }
+                    .onDelete(perform: deleteTags)
+                }
+            } footer: {
+                Text(NSLocalizedString(
+                    "settings.filter.custom_tags.footer",
+                    comment: "Custom tags footer"
+                ))
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(NSLocalizedString(
+            "settings.filter.custom_tags",
+            comment: "Custom tags"
+        ))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func addDraft() {
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            errorMessage = NSLocalizedString(
+                "settings.filter.custom_tags.empty_error",
+                comment: "Empty tag error"
+            )
+            return
+        }
+        if preferences.customTags.contains(trimmed) {
+            errorMessage = NSLocalizedString(
+                "settings.filter.custom_tags.duplicate_error",
+                comment: "Duplicate tag error"
+            )
+            return
+        }
+        preferences.customTags.append(trimmed)
+        draft = ""
+        errorMessage = nil
+    }
+
+    private func deleteTags(at offsets: IndexSet) {
+        var next = preferences.customTags
+        next.remove(atOffsets: offsets)
+        preferences.customTags = next
+    }
+}
+
+#Preview {
+    NavigationStack {
+        CustomTagsView()
+            .environment(UserPreferences())
+    }
 }

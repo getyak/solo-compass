@@ -152,6 +152,23 @@ public final class VoiceAgentSession {
         messages.append(Message(role: .system, content: prompt))
     }
 
+    /// Clear the conversation and re-seed with a fresh system prompt.
+    ///
+    /// US-002: used by `VoiceAgentOrchestrator.rebindContext(_:)` to swap
+    /// experience scope on a live session without reallocating the
+    /// orchestrator or its AI/Voice service dependencies. Resets
+    /// `turnCount`, `recursionDepth`, and `state` so the next turn starts
+    /// from a clean slate. If the session was already ended, this
+    /// reactivates it for reuse.
+    public func reseedSystem(_ prompt: String) {
+        messages.removeAll()
+        turnCount = 0
+        recursionDepth = 0
+        state = .idle
+        endReason = nil
+        messages.append(Message(role: .system, content: prompt))
+    }
+
     /// Transition .idle → .listening. Caller is the long-press gesture.
     public func beginListening() {
         guard endReason == nil else { return }

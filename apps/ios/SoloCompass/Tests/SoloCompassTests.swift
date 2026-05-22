@@ -32,6 +32,147 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(decoded.soloScore.overall, original.soloScore.overall, accuracy: 0.001)
     }
 
+    // MARK: - userTags (US-005)
+
+    /// Round-trip a populated userTags array through JSON.
+    func testExperienceUserTagsJSONRoundTrip() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let tagged = Experience(
+            id: base.id,
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds,
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            userTags: ["sunset", "quiet", "rainy-season-ok"]
+        )
+        let data = try JSONEncoder.iso8601Encoder.encode(tagged)
+        let decoded = try JSONDecoder.iso8601Decoder.decode(Experience.self, from: data)
+        XCTAssertEqual(decoded.userTags, ["sunset", "quiet", "rainy-season-ok"])
+    }
+
+    /// Existing seed JSON without the userTags field must still decode — the
+    /// field is optional and absence decodes to nil.
+    func testExperienceJSONDecodesWithoutUserTagsField() throws {
+        let original = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let data = try JSONEncoder.iso8601Encoder.encode(original)
+        var dict = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+        dict.removeValue(forKey: "userTags")
+        let strippedData = try JSONSerialization.data(withJSONObject: dict)
+        let decoded = try JSONDecoder.iso8601Decoder.decode(Experience.self, from: strippedData)
+        XCTAssertNil(decoded.userTags)
+    }
+
+    // MARK: - customTags (US-008)
+
+    /// `UserPreferences.customTags` defaults to empty and survives a
+    /// UserDefaults reload.
+    func testUserPreferencesCustomTagsPersistsAcrossReload() throws {
+        let suite = "us008.persist.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let prefs = UserPreferences(defaults: defaults)
+        XCTAssertEqual(prefs.customTags, [], "customTags must default to empty")
+
+        prefs.customTags = ["sunset", "rainy-ok"]
+        let reloaded = UserPreferences(defaults: defaults)
+        XCTAssertEqual(reloaded.customTags, ["sunset", "rainy-ok"])
+    }
+
+    /// Selecting a custom-tag pill filters `visibleExperiences` down to
+    /// experiences whose `userTags` contains that tag; selecting the same
+    /// pill again clears the filter (toggle behaviour).
+    @MainActor
+    func testSelectCustomTagFiltersVisibleExperiencesAndToggles() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        // Two experiences at the same coordinate so distance filtering
+        // doesn't drop either; distinct IDs so they're separate rows.
+        let tagged = Experience(
+            id: "us008-tagged",
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds,
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            userTags: ["sunset", "quiet"]
+        )
+        let untagged = Experience(
+            id: "us008-untagged",
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds,
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            userTags: nil
+        )
+
+        let service = ExperienceService(seed: [tagged, untagged])
+        let prefs = UserPreferences(
+            defaults: UserDefaults(suiteName: "us008.toggle.\(UUID().uuidString)")!
+        )
+        prefs.maxDistanceKm = 50
+        prefs.customTags = ["sunset"]
+
+        let viewModel = MapViewModel(
+            locationService: LocationService(),
+            experienceService: service,
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // First tap — narrows visible to the tagged experience only.
+        viewModel.selectCustomTag("sunset")
+        XCTAssertEqual(viewModel.selectedCustomTag, "sunset")
+        XCTAssertEqual(viewModel.visibleExperiences.map(\.id), ["us008-tagged"])
+
+        // Same pill again — clears the filter; both experiences come back.
+        viewModel.selectCustomTag("sunset")
+        XCTAssertNil(viewModel.selectedCustomTag)
+        XCTAssertEqual(
+            Set(viewModel.visibleExperiences.map(\.id)),
+            Set(["us008-tagged", "us008-untagged"])
+        )
+    }
+
     // MARK: - Distance
 
     func testCLLocationDistanceBetweenChiangMaiPoints() {
@@ -239,6 +380,54 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(viewModel.bottomInfoText, infoAfterFirst, "Third bindToLocation should be a no-op")
     }
 
+    // MARK: - MapViewModel Empty-state Stage Machine (US-012)
+
+    /// Drive the stage machine through its three transitions:
+    /// `.tryExpand` (first empty render) → `.tryExplore` (after Expand
+    /// still yields empty) → `.browseCity` (third consecutive empty).
+    /// `visibleExperiences` stays empty throughout because the
+    /// `ExperienceService()` seed contains no entries near Paris and no
+    /// network is touched (the async `exploreNearby` call inside
+    /// `emptyStateActionTryExpand` short-circuits at the paywall /
+    /// consent gate without ever populating results).
+    @MainActor
+    func testEmptyStateStageProgression() throws {
+        let prefs = UserPreferences(
+            defaults: UserDefaults(suiteName: "us012.empty.\(UUID().uuidString)")!
+        )
+        prefs.maxDistanceKm = 5
+        let viewModel = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(seed: []),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // Sanity: no seed data → first render is empty.
+        XCTAssertTrue(viewModel.visibleExperiences.isEmpty)
+
+        // Render 1 — first empty render lands on .tryExpand.
+        viewModel.recordEmptyStateRender()
+        XCTAssertEqual(viewModel.emptyStateStage, .tryExpand,
+                       "First empty render should surface .tryExpand")
+
+        // User taps Expand. maxDistanceKm flips to 25, and the internal
+        // recordEmptyStateRender (still empty) advances stage to .tryExplore.
+        viewModel.emptyStateActionTryExpand()
+        XCTAssertEqual(prefs.maxDistanceKm, 25,
+                       "tryExpand must bump preferences.maxDistanceKm to 25 km")
+        XCTAssertTrue(viewModel.visibleExperiences.isEmpty,
+                      "Still empty after Expand — no seed data")
+        XCTAssertEqual(viewModel.emptyStateStage, .tryExplore,
+                       "Empty after Expand should escalate to .tryExplore")
+
+        // User taps Explore farther. Internal recordEmptyStateRender brings
+        // the consecutive empty count to 3 → .browseCity.
+        viewModel.emptyStateActionTryExplore()
+        XCTAssertEqual(viewModel.emptyStateStage, .browseCity,
+                       "Three consecutive empty cycles should flip to .browseCity")
+    }
+
     // MARK: - MapViewModel Auto-Explore (data-sparse trigger)
 
     /// First GPS fix in Vientiane (zero seed coverage) should auto-fire
@@ -325,6 +514,53 @@ final class SoloCompassTests: XCTestCase {
                        "Second bind on the same GPS fix must be a no-op (hasAutoCentered guard)")
     }
 
+    // MARK: - US-011 auto-explore on empty category
+
+    /// Picking a category that yields zero visible experiences inside a
+    /// seeded city schedules an auto-Explore and stamps the per-category
+    /// cooldown. A second tap on the same category within 10 s must NOT
+    /// re-fire — `canAutoExplore` reports false until the window elapses.
+    @MainActor
+    func testAutoExploreCategoryCooldownGatesSecondTap() async throws {
+        let locationService = LocationService()
+        let prefs = UserPreferences()
+        prefs.hasAcceptedExploreConsent = false
+        let viewModel = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // Anchor inside Chiang Mai so isAnchorInsideSeededCity == true.
+        let chiangMai = CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938)
+        locationService.simulate(location: CLLocation(latitude: chiangMai.latitude, longitude: chiangMai.longitude))
+
+        // Eliminate debounce so the first tap stamps the cooldown
+        // deterministically before we assert on the second.
+        viewModel.autoExploreDebounceMs = 0
+
+        // Pick `.hidden` — no seed experience uses this category, so
+        // applyFilters returns an empty list and the auto-Explore branch
+        // is taken.
+        XCTAssertTrue(viewModel.canAutoExplore(category: .hidden),
+                      "Fresh ViewModel: cooldown must allow the first auto-Explore")
+        viewModel.selectCategory(.hidden)
+
+        XCTAssertFalse(viewModel.canAutoExplore(category: .hidden),
+                       "After the first empty-category selection, the per-category cooldown must block a re-fire within 10 s")
+
+        // Different category resets independently — verifies the gate
+        // is per-category, not global.
+        XCTAssertTrue(viewModel.canAutoExplore(category: .coffee),
+                      "Cooldown must be per-category — a different pill is still allowed")
+
+        // Simulating cooldown expiry re-enables the trigger.
+        let later = Date().addingTimeInterval(MapViewModel.autoExploreCooldown + 1)
+        XCTAssertTrue(viewModel.canAutoExplore(category: .hidden, now: later),
+                      "After autoExploreCooldown elapses, the same category can fire again")
+    }
+
     // MARK: - Preferences
 
     func testUserPreferencesPersistsRoundTrip() throws {
@@ -378,7 +614,9 @@ final class SoloCompassTests: XCTestCase {
 
     func testOverpassCategoryFromTourismAndLeisure() {
         XCTAssertEqual(OverpassService.category(for: ["tourism": "museum"]), .culture)
-        XCTAssertEqual(OverpassService.category(for: ["tourism": "viewpoint"]), .culture)
+        // viewpoint maps to .hidden — categoryToOverpassFilter[.hidden] queries
+        // only tourism=viewpoint, so the inverse classifier must agree.
+        XCTAssertEqual(OverpassService.category(for: ["tourism": "viewpoint"]), .hidden)
         XCTAssertEqual(OverpassService.category(for: ["leisure": "park"]), .nature)
         XCTAssertEqual(OverpassService.category(for: ["natural": "beach"]), .nature)
     }
@@ -416,6 +654,105 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(pois[0].nameEn, "The Cafe")
         XCTAssertEqual(pois[0].osmId, 1)
         XCTAssertEqual(pois[1].name, "Park")
+    }
+
+    // MARK: - US-010 categoryToOverpassFilter
+
+    /// The categoryToOverpassFilter table must cover every
+    /// ExperienceCategory and inject a usable filter clause into the
+    /// generated Overpass QL string when a category is supplied.
+    func testCategoryToOverpassFilterCoversAllEightCategories() {
+        let mapping = OverpassService.categoryToOverpassFilter
+        for category in ExperienceCategory.allCases {
+            XCTAssertNotNil(mapping[category], "category \(category.rawValue) missing in filter table")
+        }
+        XCTAssertEqual(mapping.count, ExperienceCategory.allCases.count)
+    }
+
+    func testOverpassBuildQueryInjectsCategoryFilters() {
+        // Each category must produce a query string with the around clause
+        // and a fragment we expect for that category. This pins the mapping
+        // so accidental edits to the table get caught immediately.
+        struct Expect {
+            let category: ExperienceCategory
+            let mustContain: [String]
+        }
+        let cases: [Expect] = [
+            .init(category: .coffee, mustContain: [#""amenity"="cafe""#]),
+            .init(category: .work, mustContain: [#""amenity"="coworking_space""#]),
+            .init(category: .nature, mustContain: [#"leisure"~"^(park|garden|nature_reserve)$"#, #""natural""#]),
+            .init(category: .culture, mustContain: [#"tourism"~"^(attraction|gallery|museum|artwork)$"#, #""historic""#]),
+            .init(category: .food, mustContain: [#"amenity"~"^(restaurant|fast_food|food_court)$"#]),
+            .init(category: .wellness, mustContain: [#""spa""#, #""healthcare""#]),
+            .init(category: .nightlife, mustContain: [#"amenity"~"^(bar|pub|nightclub)$"#]),
+            .init(category: .hidden, mustContain: [#""tourism"="viewpoint""#]),
+        ]
+        for c in cases {
+            let q = OverpassService.buildQuery(
+                lat: 21.0285, lon: 105.8542,
+                radiusMeters: 3000, limit: 30,
+                category: c.category
+            )
+            XCTAssertTrue(q.contains("around:3000,21.0285,105.8542"),
+                          "[\(c.category.rawValue)] missing around clause")
+            XCTAssertTrue(q.contains("out body 30"),
+                          "[\(c.category.rawValue)] missing out body clause")
+            for fragment in c.mustContain {
+                XCTAssertTrue(q.contains(fragment),
+                              "[\(c.category.rawValue)] missing required fragment '\(fragment)' — got:\n\(q)")
+            }
+            // The category-narrowed query must NOT carry the
+            // broad-spectrum union body (ice_cream is only there).
+            XCTAssertFalse(q.contains("ice_cream"),
+                           "[\(c.category.rawValue)] should not include generic-query tags")
+        }
+    }
+
+    /// Round-trip guard: when we ask Overpass for a specific category
+    /// and stub the response with a tag-shaped node for that category,
+    /// the decoded POI must classify back via `category(for:)` to the
+    /// category we asked for. Network is stubbed via StubURLProtocol.
+    func testFetchPOIsCategoryRoundTripsThroughStubbedResponse() async throws {
+        struct Scenario {
+            let category: ExperienceCategory
+            let tagPair: String  // e.g. `"amenity":"cafe"`
+        }
+        let scenarios: [Scenario] = [
+            .init(category: .coffee, tagPair: #""amenity":"cafe""#),
+            .init(category: .food, tagPair: #""amenity":"restaurant""#),
+            .init(category: .nightlife, tagPair: #""amenity":"bar""#),
+            .init(category: .work, tagPair: #""amenity":"coworking_space""#),
+            .init(category: .culture, tagPair: #""tourism":"museum""#),
+            .init(category: .nature, tagPair: #""leisure":"park""#),
+            .init(category: .wellness, tagPair: #""amenity":"spa""#),
+            .init(category: .hidden, tagPair: #""tourism":"viewpoint""#),
+        ]
+        for (index, scenario) in scenarios.enumerated() {
+            let osmId = 1000 + index
+            let pair = scenario.tagPair
+            StubURLProtocol.handler = { _ in
+                let body = #"{"elements":[{"type":"node","id":\#(osmId),"lat":21.03,"lon":105.85,"tags":{"name":"Stub",\#(pair)}}]}"#
+                return (HTTPURLResponse(
+                    url: URL(string: "https://overpass-api.de/api/interpreter")!,
+                    statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                    body.data(using: .utf8)!)
+            }
+            let config = URLSessionConfiguration.ephemeral
+            config.protocolClasses = [StubURLProtocol.self]
+            let session = URLSession(configuration: config)
+            let service = OverpassService(session: session, maxResults: 5, repository: nil)
+            let coord = CLLocationCoordinate2D(latitude: 21.0285, longitude: 105.8542)
+
+            let pois = try await service.fetchPOIs(
+                near: coord,
+                radiusMeters: 3000,
+                category: scenario.category
+            )
+            XCTAssertEqual(pois.count, 1, "[\(scenario.category.rawValue)] expected 1 stubbed POI")
+            let resolved = OverpassService.category(for: pois[0].tags)
+            XCTAssertEqual(resolved, scenario.category,
+                           "[\(scenario.category.rawValue)] round-trip failed: classifier returned \(resolved.rawValue)")
+        }
     }
 
     // MARK: - AI synthesis fallback
@@ -3777,11 +4114,14 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
     /// Edge-routing path, start() must set uiState = .unconfigured and must
     /// NOT set isRunning (no session seeded, no mic started).
     func testMissingKeyYieldsUnconfiguredState() {
-        // Clear any UserDefaults override so resolvedDeepSeekApiKey falls back
-        // to the build-time value. In CI the build-time key is empty (""), so
-        // this test exercises the real unconfigured path.
-        // If a real key is present in the environment (dev machine), we stub
-        // the override key to empty to force the unconfigured branch.
+        // US-001: Inject an empty-key resolver so the unconfigured branch fires
+        // regardless of whether GeneratedSecrets.deepSeekApiKey is baked-in on
+        // this machine (a dev `.env` typically has a real key).
+        Secrets.apiKeyResolver = EmptyAPIKeyResolver()
+        defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
+
+        // Clear any UserDefaults override too — belt + suspenders; the resolver
+        // already wins, but this keeps the recorded environment clean.
         let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
         UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
         defer {
@@ -3792,7 +4132,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
             }
         }
 
-        // Also clear the env-level key so the GeneratedSecrets fallback is also empty.
+        // Also clear the env-level key so any direct ProcessInfo reads are empty.
         let hadEnvKey = getenv("DEEPSEEK_API_KEY") != nil
         unsetenv("DEEPSEEK_API_KEY")
         defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", "", 1) } }
@@ -4110,19 +4450,35 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
 
     /// Calling start() a second time while already unconfigured must remain unconfigured.
     func testRepeatedStartWhileUnconfiguredStaysUnconfigured() {
+        // US-001: Inject an empty-key resolver so the unconfigured branch fires
+        // even when GeneratedSecrets bakes in a real dev key.
+        Secrets.apiKeyResolver = EmptyAPIKeyResolver()
+        defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
+
+        let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
         UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
         defer {
-            UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            if let saved = savedOverride {
+                UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            }
         }
+        let hadEnvKey = getenv("DEEPSEEK_API_KEY") != nil
         unsetenv("DEEPSEEK_API_KEY")
+        defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", "", 1) } }
+
+        // Force the non-Edge path so the local-key guard governs the state.
+        let ai = AIService()
+        ai.isProTier = false
 
         let orch = VoiceAgentOrchestrator(
-            aiService: AIService(),
+            aiService: ai,
             voiceService: VoiceService(),
             mapViewModel: MapViewModel(
                 locationService: LocationService(),
                 experienceService: ExperienceService(),
-                aiService: AIService(),
+                aiService: ai,
                 preferences: UserPreferences()
             ),
             preferences: UserPreferences()
@@ -4276,5 +4632,565 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
                        "default view fills screen")
         XCTAssertEqual(a3Height, UIScreen.main.bounds.height, accuracy: 1,
                        "accessibility3 view fills screen — no clipping")
+    }
+
+    // MARK: - US-002 rebindContext swaps scope without re-allocating
+
+    /// Calling rebindContext(nil) → rebindContext(A) → rebindContext(B) on the
+    /// same VoiceAgentOrchestrator must:
+    ///   1. Keep the same instance (identity-stable, dependencies preserved).
+    ///   2. After each rebind, the currentSystemPrompt reflects the latest
+    ///      scope — nil ⇒ no SCOPED EXPERIENCE block; A ⇒ contains A's id;
+    ///      B ⇒ contains B's id but NOT A's id.
+    @MainActor
+    func testRebindContextSwapsScopeAndReseedsSystemPrompt() async throws {
+        let seeds = ExperienceService.hardcodedSeed
+        let expA = try XCTUnwrap(seeds.first, "need at least one seed experience")
+        let expB = try XCTUnwrap(
+            seeds.first(where: { $0.id != expA.id }),
+            "need a second distinct seed experience"
+        )
+
+        let ai = AIService()
+        let voice = VoiceService()
+        let mapVM = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences()
+        )
+        let orch = VoiceAgentOrchestrator(
+            aiService: ai,
+            voiceService: voice,
+            mapViewModel: mapVM,
+            preferences: UserPreferences()
+        )
+        let originalId = orch.id
+
+        // rebindContext kicks off an async Task to (re)build the prompt; poll
+        // until the system prompt reflects the requested scope, or fail at 2 s.
+        func waitForRebind(
+            _ exp: Experience?,
+            file: StaticString = #file,
+            line: UInt = #line
+        ) async throws {
+            let deadline = Date().addingTimeInterval(2.0)
+            while Date() < deadline {
+                let scopeMatches = orch.scopedExperience?.id == exp?.id
+                let promptHasContent = !orch.currentSystemPrompt.isEmpty
+                let promptMatches: Bool
+                if let exp = exp {
+                    promptMatches = orch.currentSystemPrompt.contains("id: \(exp.id)")
+                } else {
+                    promptMatches = !orch.currentSystemPrompt.contains("<experience_context>")
+                }
+                if scopeMatches && promptHasContent && promptMatches { return }
+                try await Task.sleep(nanoseconds: 20_000_000) // 20 ms
+            }
+            XCTFail("rebindContext did not reflect scope within 2 s", file: file, line: line)
+        }
+
+        // 1. Global scope (no experience).
+        orch.rebindContext(nil)
+        try await waitForRebind(nil)
+        XCTAssertEqual(orch.id, originalId, "same orchestrator instance after rebind(nil)")
+        XCTAssertNil(orch.scopedExperience, "scopedExperience must be nil after rebind(nil)")
+        XCTAssertFalse(
+            orch.currentSystemPrompt.contains("<experience_context>"),
+            "global chat prompt must not contain an <experience_context> block"
+        )
+
+        // 2. Scope to experience A.
+        orch.rebindContext(expA)
+        try await waitForRebind(expA)
+        XCTAssertEqual(orch.id, originalId, "same orchestrator instance after rebind(A)")
+        XCTAssertEqual(orch.scopedExperience?.id, expA.id)
+        XCTAssertTrue(
+            orch.currentSystemPrompt.contains("id: \(expA.id)"),
+            "system prompt must reference experience A's id"
+        )
+
+        // 3. Scope to experience B — must drop A's reference.
+        orch.rebindContext(expB)
+        try await waitForRebind(expB)
+        XCTAssertEqual(orch.id, originalId, "same orchestrator instance after rebind(B)")
+        XCTAssertEqual(orch.scopedExperience?.id, expB.id)
+        XCTAssertTrue(
+            orch.currentSystemPrompt.contains("id: \(expB.id)"),
+            "system prompt must reference experience B's id"
+        )
+        XCTAssertFalse(
+            orch.currentSystemPrompt.contains("id: \(expA.id)"),
+            "after rebinding to B, prompt must not still mention A's id"
+        )
+    }
+
+    // MARK: - US-004 "Ask Solo about this" wires experience into system prompt
+
+    /// Simulates the user tapping the "Ask Solo about this" button on
+    /// ExperienceDetailView. The detail view fires its `onAskSolo` callback,
+    /// which (in `CompassMapView.detailSheetContent`) routes to
+    /// `VoiceAgentOrchestrator.rebindContext(experience)` before presenting
+    /// ChatSheet. After that call:
+    ///   • `scopedExperience` must equal the tapped experience
+    ///   • `currentSystemPrompt` must contain the `<experience_context>` block
+    ///   • The block must reference the tapped experience's title
+    /// Dismissing the chat (`rebindContext(nil)`) must strip the block so the
+    /// next unscoped "+" chat starts clean.
+    @MainActor
+    func testExperienceAskAIInjectsContext() async throws {
+        let seeds = ExperienceService.hardcodedSeed
+        let exp = try XCTUnwrap(seeds.first, "need at least one seed experience")
+
+        let ai = AIService()
+        let voice = VoiceService()
+        let mapVM = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences()
+        )
+        let orch = VoiceAgentOrchestrator(
+            aiService: ai,
+            voiceService: voice,
+            mapViewModel: mapVM,
+            preferences: UserPreferences()
+        )
+
+        func waitForPrompt(
+            containing fragment: String,
+            shouldContain: Bool,
+            file: StaticString = #file,
+            line: UInt = #line
+        ) async throws {
+            let deadline = Date().addingTimeInterval(2.0)
+            while Date() < deadline {
+                let hasFragment = orch.currentSystemPrompt.contains(fragment)
+                if hasFragment == shouldContain { return }
+                try await Task.sleep(nanoseconds: 20_000_000)
+            }
+            XCTFail(
+                "system prompt did not \(shouldContain ? "include" : "drop") '\(fragment)' within 2 s",
+                file: file,
+                line: line
+            )
+        }
+
+        // 1. Simulate tap: rebind to the experience (this is what
+        //    ExperienceDetailView.onAskSolo → CompassMapView triggers).
+        orch.rebindContext(exp)
+        try await waitForPrompt(containing: "<experience_context>", shouldContain: true)
+
+        XCTAssertEqual(orch.scopedExperience?.id, exp.id, "scopedExperience must match the tapped experience")
+        XCTAssertTrue(
+            orch.currentSystemPrompt.contains("<experience_context>"),
+            "system prompt must contain the <experience_context> block after Ask Solo"
+        )
+        XCTAssertTrue(
+            orch.currentSystemPrompt.contains(exp.title),
+            "system prompt must reference the experience's title (\(exp.title))"
+        )
+
+        // 2. Simulate chat dismiss: rebind to nil. The next "+" global chat
+        //    must not inherit the prior <experience_context> block.
+        orch.rebindContext(nil)
+        try await waitForPrompt(containing: "<experience_context>", shouldContain: false)
+
+        XCTAssertNil(orch.scopedExperience, "scopedExperience must be nil after chat dismiss")
+        XCTAssertFalse(
+            orch.currentSystemPrompt.contains("<experience_context>"),
+            "global chat prompt must not contain an <experience_context> block after rebind(nil)"
+        )
+        XCTAssertFalse(
+            orch.currentSystemPrompt.contains(exp.title),
+            "global chat prompt must not still mention the prior experience's title"
+        )
+    }
+
+    /// US-004 visual evidence: render `ExperienceDetailView` with `onAskSolo`
+    /// wired (so `askSoloSection` is shown) and `canAskSolo == true`, snapshot
+    /// the hosting view, and attach the PNG to the test result. Also writes the
+    /// PNG to /tmp/sc-screens/us004-ask-solo.png so a human auditor can inspect
+    /// the button outside the xcresult bundle.
+    ///
+    /// This is the "screenshot saved via simctl io" acceptance criterion —
+    /// driving the live UI from a unit-test runner is not reliable (the
+    /// agent process can't post HID taps into Simulator), so we render the
+    /// SwiftUI view tree directly. The button is identifiable by its
+    /// `accessibilityIdentifier("experience.askSolo.cta")`, which the test
+    /// also asserts is present in the hosted view hierarchy.
+    @MainActor
+    func testExperienceDetailViewAskSoloButtonSnapshot() throws {
+        let exp = try XCTUnwrap(ExperienceService.hardcodedSeed.first, "need at least one seed experience")
+
+        let ai = AIService()
+        ai.isProTier = true // force `canAskSolo` true
+
+        let vm = ExperienceDetailViewModel(
+            experience: exp,
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences(),
+            reviewsService: ReviewsService()
+        )
+
+        XCTAssertTrue(vm.canAskSolo, "Pro-tier user must see Ask Solo")
+
+        let detail = ExperienceDetailView(
+            viewModel: vm,
+            onClose: {},
+            onMarkDone: nil,
+            onAskSolo: { _ in } // non-nil so askSoloSection renders
+        )
+
+        let host = UIHostingController(rootView: detail)
+        host.overrideUserInterfaceStyle = .light
+        host.view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+
+        let renderer = UIGraphicsImageRenderer(bounds: host.view.bounds)
+        let image = renderer.image { _ in
+            host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+        }
+        let png = try XCTUnwrap(image.pngData(), "failed to encode PNG")
+
+        let outDir = URL(fileURLWithPath: "/tmp/sc-screens", isDirectory: true)
+        try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        let outURL = outDir.appendingPathComponent("us004-ask-solo.png")
+        try png.write(to: outURL)
+
+        let attachment = XCTAttachment(data: png, uniformTypeIdentifier: "public.png")
+        attachment.name = "us004-ask-solo-button"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        // Smoke-check the screenshot isn't blank — a layout failure would yield
+        // a near-zero-byte PNG. Real content for the detail view at 402×874
+        // exceeds 100 KB even after compression.
+        XCTAssertGreaterThan(png.count, 100_000, "screenshot looks empty (PNG=\(png.count)B)")
+    }
+
+    // MARK: - US-003 <experience_context> block contents + no coord leak
+
+    /// buildSystemPrompt(experience:) must emit an <experience_context> block
+    /// containing title, category rawValue, cityCode, a bestTimes summary,
+    /// confidence.level, and soloScore.overall — and MUST NOT include any
+    /// substring derived from Experience.location.coordinates.
+    @MainActor
+    func testBuildSystemPromptInjectsExperienceContextWithoutCoordinates() async throws {
+        let seeds = ExperienceService.hardcodedSeed
+        let exp = try XCTUnwrap(seeds.first, "need at least one seed experience")
+
+        let ai = AIService()
+        let voice = VoiceService()
+        let mapVM = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences()
+        )
+        let orch = VoiceAgentOrchestrator(
+            aiService: ai,
+            voiceService: voice,
+            mapViewModel: mapVM,
+            preferences: UserPreferences()
+        )
+
+        let prompt = await orch.buildSystemPrompt(experience: exp)
+
+        // Block delimiters present.
+        XCTAssertTrue(prompt.contains("<experience_context>"),
+                      "must contain opening <experience_context> tag")
+        XCTAssertTrue(prompt.contains("</experience_context>"),
+                      "must contain closing </experience_context> tag")
+
+        // Required fields present.
+        XCTAssertTrue(prompt.contains("id: \(exp.id)"))
+        XCTAssertTrue(prompt.contains("title: \(exp.title)"))
+        XCTAssertTrue(prompt.contains("category: \(exp.category.rawValue)"))
+        XCTAssertTrue(prompt.contains("cityCode: \(exp.location.cityCode)"))
+        XCTAssertTrue(prompt.contains("confidence.level: \(exp.confidence.level)"))
+        let scoreString = String(format: "%.1f", exp.soloScore.overall)
+        XCTAssertTrue(prompt.contains("soloScore.overall: \(scoreString)"),
+                      "must include soloScore.overall formatted to one decimal")
+
+        // bestTimes summary: either explicit windows or the "none" sentinel.
+        let bestTimesSummary = VoiceAgentOrchestrator.summarizeBestTimes(exp.bestTimes)
+        XCTAssertTrue(prompt.contains("bestTimes: \(bestTimesSummary)"))
+
+        // No coordinate substring may appear inside the <experience_context>
+        // block — neither raw GeoJSON [lon, lat] strings nor the
+        // 4-decimal "(lat, lon)" form previously used by the old
+        // SCOPED EXPERIENCE block.
+        let coords = exp.location.coordinates
+        if coords.count >= 2 {
+            let lon = coords[0]
+            let lat = coords[1]
+            let lon4 = String(format: "%.4f", lon)
+            let lat4 = String(format: "%.4f", lat)
+            // Extract the experience_context block and assert no coord text.
+            if let startRange = prompt.range(of: "<experience_context>"),
+               let endRange = prompt.range(of: "</experience_context>") {
+                let blockText = String(prompt[startRange.lowerBound..<endRange.upperBound])
+                XCTAssertFalse(blockText.contains(lon4),
+                               "<experience_context> must not leak longitude")
+                XCTAssertFalse(blockText.contains(lat4),
+                               "<experience_context> must not leak latitude")
+                XCTAssertFalse(blockText.lowercased().contains("coord"),
+                               "<experience_context> must not mention coordinates at all")
+            } else {
+                XCTFail("experience_context block boundaries not found")
+            }
+        }
+    }
+
+    /// Passing `nil` to buildSystemPrompt(experience:) must NOT emit any
+    /// <experience_context> block.
+    @MainActor
+    func testBuildSystemPromptOmitsExperienceContextWhenNil() async {
+        let ai = AIService()
+        let voice = VoiceService()
+        let mapVM = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences()
+        )
+        let orch = VoiceAgentOrchestrator(
+            aiService: ai,
+            voiceService: voice,
+            mapViewModel: mapVM,
+            preferences: UserPreferences()
+        )
+
+        let prompt = await orch.buildSystemPrompt(experience: nil)
+        XCTAssertFalse(prompt.contains("<experience_context>"),
+                       "global (nil) scope must not contain <experience_context>")
+    }
+
+    // MARK: - Share card system (visual card share)
+
+    /// Every `ExperienceCategory` must produce a non-empty emoji and a distinct
+    /// color pair so the gradient hero never falls back to a generic look.
+    func testCategoryVisualCoversAllCases() {
+        for cat in ExperienceCategory.allCases {
+            XCTAssertFalse(CategoryVisual.emoji(for: cat).isEmpty, "emoji missing for \(cat)")
+            let pair = CategoryVisual.colorPair(for: cat)
+            XCTAssertNotEqual(
+                String(describing: pair.0),
+                String(describing: pair.1),
+                "color pair for \(cat) must have distinct endpoints"
+            )
+        }
+    }
+
+    /// Building a card payload from an Experience must preserve title, category,
+    /// solo score, and a non-nil coordinate when the source has lon/lat.
+    func testShareCardPayloadFromExperience() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let payload = ShareCardPayload(experience: base)
+
+        XCTAssertEqual(payload.title, base.title)
+        XCTAssertEqual(payload.category, base.category)
+        XCTAssertEqual(payload.soloScore, base.soloScore.overall, accuracy: 0.001)
+        XCTAssertEqual(payload.score100, Int((base.soloScore.overall * 10).rounded()))
+
+        if base.location.coordinates.count >= 2 {
+            XCTAssertNotNil(payload.coordinate)
+            XCTAssertEqual(payload.coordinate?.lon ?? 0, base.location.coordinates[0], accuracy: 1e-6)
+            XCTAssertEqual(payload.coordinate?.lat ?? 0, base.location.coordinates[1], accuracy: 1e-6)
+        }
+    }
+
+    /// Each style's render size and pixel size must agree with `renderScale`.
+    func testShareCardStyleSizes() {
+        for style in ShareCardStyle.allCases {
+            let render = style.renderSize
+            let pixel = style.pixelSize
+            XCTAssertEqual(render.width * style.renderScale, pixel.width, accuracy: 0.001)
+            XCTAssertEqual(render.height * style.renderScale, pixel.height, accuracy: 0.001)
+            XCTAssertGreaterThan(pixel.width, 0)
+            XCTAssertGreaterThan(pixel.height, 0)
+        }
+    }
+
+    /// ImageRenderer must produce a UIImage whose pixel size matches the style's
+    /// declared target (±1px tolerance for SwiftUI rounding).
+    func testShareCardRendererOutputSize() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let payload = ShareCardPayload(experience: base)
+
+        for style in ShareCardStyle.allCases {
+            let image = try ShareCardRenderer.renderImage(payload: payload, style: style)
+            let actualW = image.size.width * image.scale
+            let actualH = image.size.height * image.scale
+            XCTAssertEqual(actualW, style.pixelSize.width, accuracy: 1.0,
+                           "width mismatch for \(style.rawValue): got \(actualW)")
+            XCTAssertEqual(actualH, style.pixelSize.height, accuracy: 1.0,
+                           "height mismatch for \(style.rawValue): got \(actualH)")
+        }
+    }
+
+    /// PNG temp-file path must exist, be non-empty, and live under NSTemporaryDirectory.
+    func testShareCardRendererPNGWritesTempFile() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let payload = ShareCardPayload(experience: base)
+
+        let url = try ShareCardRenderer.renderTempPNG(payload: payload, style: .instagramSquare)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+        let size = (attrs[.size] as? NSNumber)?.intValue ?? 0
+        XCTAssertGreaterThan(size, 1000, "PNG should be more than a kilobyte")
+        XCTAssertTrue(url.path.hasPrefix(NSTemporaryDirectory()),
+                      "temp PNG must live under NSTemporaryDirectory")
+    }
+}
+
+// MARK: - US-013 FoursquareService
+
+@MainActor
+final class FoursquareServiceTests: XCTestCase {
+
+    /// Merge keeps the Overpass record when both sources contain a POI in
+    /// the same 4-decimal-coord cell. The Overpass entry comes first in
+    /// the output and the Foursquare duplicate is dropped.
+    func testMergePrefersOverpassOnCellCollision() {
+        let overpass: [OverpassService.POI] = [
+            .init(osmId: 1, name: "OSM Cafe", nameEn: nil,
+                  lat: 21.0341, lon: 105.8521,
+                  tags: ["amenity": "cafe", "source": "osm"])
+        ]
+        let foursquare: [OverpassService.POI] = [
+            .init(osmId: 1_000, name: "FSQ Cafe", nameEn: nil,
+                  lat: 21.03413, lon: 105.85214,
+                  tags: ["amenity": "cafe", "source": "foursquare"]),
+            .init(osmId: 1_001, name: "FSQ Bar", nameEn: nil,
+                  lat: 21.0500, lon: 105.8600,
+                  tags: ["amenity": "bar", "source": "foursquare"])
+        ]
+        let merged = FoursquareService.merge(overpass: overpass, foursquare: foursquare)
+        XCTAssertEqual(merged.count, 2)
+        XCTAssertEqual(merged[0].name, "OSM Cafe", "Overpass record must win on cell collision")
+        XCTAssertEqual(merged[0].tags["source"], "osm")
+        XCTAssertEqual(merged[1].name, "FSQ Bar", "non-colliding Foursquare entry must be kept")
+    }
+
+    /// Merge collapses two Foursquare entries that fall in the same cell —
+    /// only the first one survives. Verifies the dedupe runs over the
+    /// Foursquare list itself, not just the cross-source comparison.
+    func testMergeDedupesWithinFoursquare() {
+        let overpass: [OverpassService.POI] = []
+        let foursquare: [OverpassService.POI] = [
+            .init(osmId: 2_000, name: "First", nameEn: nil,
+                  lat: 1.2345, lon: 2.3456, tags: [:]),
+            .init(osmId: 2_001, name: "Same Cell", nameEn: nil,
+                  lat: 1.23454, lon: 2.34564, tags: [:])
+        ]
+        let merged = FoursquareService.merge(overpass: overpass, foursquare: foursquare)
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged.first?.name, "First")
+    }
+
+    /// Merge preserves Overpass input order and appends Foursquare additions
+    /// in their original order — Solo Score / AI synthesis upstream relies
+    /// on stable ordering for reproducibility.
+    func testMergePreservesOrder() {
+        let overpass: [OverpassService.POI] = [
+            .init(osmId: 10, name: "A", nameEn: nil, lat: 10.0001, lon: 20.0001, tags: [:]),
+            .init(osmId: 11, name: "B", nameEn: nil, lat: 10.0010, lon: 20.0010, tags: [:])
+        ]
+        let foursquare: [OverpassService.POI] = [
+            .init(osmId: 20, name: "X", nameEn: nil, lat: 10.0020, lon: 20.0020, tags: [:]),
+            .init(osmId: 21, name: "Y", nameEn: nil, lat: 10.0030, lon: 20.0030, tags: [:])
+        ]
+        let merged = FoursquareService.merge(overpass: overpass, foursquare: foursquare)
+        XCTAssertEqual(merged.map(\.name), ["A", "B", "X", "Y"])
+    }
+
+    /// `decodePOIs` skips entries missing a name or coordinate. A well-formed
+    /// Foursquare response should yield POIs with stable, non-OSM-range ids
+    /// and surface the first category as an OSM-compatible `amenity` tag.
+    func testDecodePOIsSkipsMalformedAndMapsCategory() throws {
+        let json = """
+        {
+          "results": [
+            {
+              "fsq_id": "abc123",
+              "name": "Hidden Brew",
+              "geocodes": { "main": { "latitude": 21.03, "longitude": 105.85 } },
+              "categories": [ { "id": 13032, "name": "Coffee Shop" } ]
+            },
+            {
+              "fsq_id": "noname",
+              "geocodes": { "main": { "latitude": 0.0, "longitude": 0.0 } }
+            },
+            {
+              "fsq_id": "nogeo",
+              "name": "Missing Coords"
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let pois = try FoursquareService.decodePOIs(from: json)
+        XCTAssertEqual(pois.count, 1, "rows missing name or coords must be dropped")
+        let only = try XCTUnwrap(pois.first)
+        XCTAssertEqual(only.name, "Hidden Brew")
+        XCTAssertEqual(only.tags["source"], "foursquare")
+        XCTAssertEqual(only.tags["fsq_id"], "abc123")
+        XCTAssertEqual(only.tags["amenity"], "cafe", "category name must round-trip to an Overpass-style amenity tag")
+        XCTAssertEqual(only.osmId, FoursquareService.stableInt64Id(forFsqId: "abc123"))
+        XCTAssertGreaterThan(only.osmId, 0x4000_0000_0000_0000)
+    }
+
+    /// US-013 threshold gate: `foursquareFallbackThreshold` defines the
+    /// boundary at which a thin Overpass result triggers a fallback.
+    func testFallbackThresholdGate() {
+        XCTAssertEqual(MapViewModel.foursquareFallbackThreshold, 5)
+        XCTAssertTrue(0 < MapViewModel.foursquareFallbackThreshold)
+        XCTAssertTrue(4 < MapViewModel.foursquareFallbackThreshold)
+        XCTAssertFalse(5 < MapViewModel.foursquareFallbackThreshold)
+        XCTAssertFalse(10 < MapViewModel.foursquareFallbackThreshold)
+    }
+
+    /// `fetchPOIs` must throw `.missingAPIKey` immediately when the resolved
+    /// key is empty — never makes a network request, never increments the
+    /// daily counter. Guards the < 5 + empty-key gate in `exploreNearby`.
+    func testFetchPOIsThrowsMissingKeyWhenUnconfigured() async {
+        let service = FoursquareService(apiKeyProvider: { "" })
+        do {
+            _ = try await service.fetchPOIs(
+                near: CLLocationCoordinate2D(latitude: 0, longitude: 0)
+            )
+            XCTFail("fetchPOIs with empty key must throw")
+        } catch let FoursquareService.FoursquareError.missingAPIKey {
+            // ok
+        } catch {
+            XCTFail("expected .missingAPIKey, got \(error)")
+        }
+    }
+
+    /// Daily counter resets across local-midnight boundaries. Calling
+    /// `incrementFoursquareCallsToday` on day N+1 must reset the counter
+    /// back to 1, not increment yesterday's value.
+    func testFoursquareCounterResetsAtLocalMidnight() {
+        let defaults = UserDefaults(suiteName: "test-fsq-counter-\(UUID().uuidString)")!
+        let prefs = UserPreferences(defaults: defaults)
+        let cal = Calendar.current
+        let yesterday = cal.date(byAdding: .day, value: -1, to: Date())!
+        let today = Date()
+
+        prefs.incrementFoursquareCallsToday(now: yesterday, calendar: cal)
+        XCTAssertEqual(prefs.foursquareCallsToday, 1)
+
+        prefs.incrementFoursquareCallsToday(now: today, calendar: cal)
+        XCTAssertEqual(prefs.foursquareCallsToday, 1, "rollover must reset counter to 1, not increment")
+
+        prefs.incrementFoursquareCallsToday(now: today, calendar: cal)
+        XCTAssertEqual(prefs.foursquareCallsToday, 2, "subsequent same-day calls must increment")
     }
 }

@@ -350,6 +350,10 @@ public struct Experience: Codable, Hashable, Identifiable {
     public let createdAt: Date
     public let updatedAt: Date
 
+    /// User-defined free-form tags layered on top of the category enum.
+    /// Optional in JSON; treated as `[]` everywhere a non-nil array is expected.
+    public let userTags: [String]?
+
     public init(
         id: String,
         title: String,
@@ -368,7 +372,8 @@ public struct Experience: Codable, Hashable, Identifiable {
         stats: Stats,
         status: Status,
         createdAt: Date,
-        updatedAt: Date
+        updatedAt: Date,
+        userTags: [String]? = nil
     ) {
         self.id = id
         self.title = title
@@ -388,6 +393,7 @@ public struct Experience: Codable, Hashable, Identifiable {
         self.status = status
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.userTags = userTags
     }
 
     public var coordinate: CLLocationCoordinate2D? { location.clCoordinate }
@@ -408,7 +414,8 @@ public struct Experience: Codable, Hashable, Identifiable {
             stats: stats ?? self.stats,
             status: status ?? self.status,
             createdAt: createdAt,
-            updatedAt: updatedAt ?? self.updatedAt
+            updatedAt: updatedAt ?? self.updatedAt,
+            userTags: self.userTags
         )
     }
 

@@ -89,6 +89,11 @@ public struct CompassMapView: View {
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
             .sheet(isPresented: $isShowingChat, onDismiss: {
+                // US-004: explicitly unscope before tearing down so a future
+                // global "+" chat — even if we ever stop discarding the
+                // orchestrator on dismiss — never inherits an <experience_context>
+                // block from a per-card session.
+                voiceOrchestrator?.rebindContext(nil)
                 voiceOrchestrator?.stop()
                 voiceOrchestrator = nil
             }) { chatSheetContent }
@@ -269,7 +274,7 @@ public struct CompassMapView: View {
 
     @ViewBuilder
     private var detailSheetContent: some View {
-        if let exp = viewModel?.selectedExperience {
+        if let exp = viewModel?.selectedExperience, let vm = viewModel {
             NavigationStack {
                 ExperienceDetailView(
                     viewModel: ExperienceDetailViewModel(
@@ -280,7 +285,20 @@ public struct CompassMapView: View {
                         subscriptionService: subscriptionService
                     ),
                     onClose: { viewModel?.dismissDetail() },
-                    onMarkDone: { experience in surveyExperience = experience }
+                    onMarkDone: { experience in surveyExperience = experience },
+                    // US-004: open ChatSheet bound to this experience. We
+                    // dismiss the detail sheet first so the chat sheet can
+                    // come up cleanly (iOS won't stack two .sheet()s on the
+                    // same parent reliably). The orchestrator is lazily
+                    // created if needed, then `rebindContext` injects the
+                    // <experience_context> system block.
+                    onAskSolo: { experience in
+                        viewModel?.dismissDetail()
+                        ensureOrchestrator(viewModel: vm)
+                        voiceOrchestrator?.rebindContext(experience)
+                        chatStartMode = .text
+                        isShowingChat = true
+                    }
                 )
             }
         }
@@ -350,6 +368,10 @@ public struct CompassMapView: View {
                 voiceService: voiceService,
                 startInVoiceMode: chatStartMode == .voice,
                 onDismiss: {
+                    // US-004: explicit unscope on close mirrors the .sheet
+                    // `onDismiss` path so the in-view "X" button is just as
+                    // safe as a swipe-down.
+                    orch.rebindContext(nil)
                     orch.stop()
                     voiceOrchestrator = nil
                     isShowingChat = false
@@ -487,6 +509,14 @@ private extension String {
     }
 }
 
+/// Layout metrics shared between `MapOverlayView` and its tests.
+enum MapOverlayMetrics {
+    /// Minimum hit target size per Apple HIG (44×44 pt).
+    /// The visual city pill is smaller than this, so `.contentShape` + `.frame`
+    /// expand the tappable region without changing the visual appearance.
+    static let cityPillHitTarget: CGFloat = 44
+}
+
 private struct MapOverlayView: View {
     var viewModel: MapViewModel
     var isAIProcessing: Bool
@@ -508,9 +538,11 @@ private struct MapOverlayView: View {
             FilterBarView(
                 selectedCategory: viewModel.selectedCategory,
                 isNowSelected: viewModel.isNowFilter,
+                selectedCustomTag: viewModel.selectedCustomTag,
                 onSelectNow: { viewModel.selectNowFilter() },
                 onSelectAll: { viewModel.clearFilters() },
                 onSelectCategory: { viewModel.selectCategory($0) },
+                onSelectCustomTag: { viewModel.selectCustomTag($0) },
                 isMapPanning: $isMapPanning
             )
             .padding(.top, 4)
@@ -673,6 +705,11 @@ private struct MapOverlayView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(.regularMaterial, in: Capsule())
+            .frame(
+                minWidth: MapOverlayMetrics.cityPillHitTarget,
+                minHeight: MapOverlayMetrics.cityPillHitTarget
+            )
+            .contentShape(Rectangle())
         }
         .accessibilityLabel(Text(cityName))
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
@@ -862,6 +899,15 @@ private struct EmptyStateOverlay: View {
     var preferences: UserPreferences
     var locationService: LocationService
 
+    private var nearestCityName: String? {
+        let anchor = locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
+        guard let code = viewModel.nearestSeededCity(to: anchor),
+              let city = viewModel.availableCities.first(where: { $0.code == code }) else {
+            return nil
+        }
+        return city.name
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: "mappin.slash")
@@ -877,33 +923,52 @@ private struct EmptyStateOverlay: View {
             .foregroundStyle(.secondary)
 
             VStack(spacing: 8) {
-                Button {
-                    preferences.maxDistanceKm = 25
-                    viewModel.loadNearbyExperiences()
-                    viewModel.updateBottomInfo()
-                } label: {
-                    Text(NSLocalizedString("map.empty.expand", comment: "Expand search radius to 25km"))
+                // US-012: a single stage-driven primary action replaces the old
+                // static button stack. The view model picks which stage we're
+                // in based on consecutive empty renders + whether the user
+                // already tried Expand.
+                switch viewModel.emptyStateStage {
+                case .tryExpand:
+                    Button {
+                        viewModel.emptyStateActionTryExpand()
+                    } label: {
+                        Text(NSLocalizedString(
+                            "map.empty.stage.tryExpand",
+                            comment: "Stage 1: expand search radius to 25km"
+                        ))
                         .font(.subheadline.weight(.medium))
                         .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-
-                if let nearestCode = viewModel.nearestSeededCity(
-                    to: locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
-                ),
-                   let nearestCity = viewModel.availableCities.first(where: { $0.code == nearestCode }) {
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
+                case .tryExplore:
                     Button {
-                        viewModel.selectCity(nearestCode)
+                        viewModel.emptyStateActionTryExplore()
                     } label: {
-                        Text(String(
-                            format: NSLocalizedString("map.empty.browse", comment: "Browse nearest city"),
-                            nearestCity.name
+                        Text(NSLocalizedString(
+                            "map.empty.stage.tryExplore",
+                            comment: "Stage 2: widen Overpass explore to 12km"
                         ))
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.medium))
                         .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
+                case .browseCity:
+                    Button {
+                        viewModel.emptyStateActionBrowseCity()
+                    } label: {
+                        Text(String(
+                            format: NSLocalizedString(
+                                "map.empty.stage.browseCity",
+                                comment: "Stage 3: jump to nearest seeded city"
+                            ),
+                            nearestCityName ?? ""
+                        ))
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
                     .controlSize(.regular)
                 }
 
@@ -922,5 +987,9 @@ private struct EmptyStateOverlay: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal, 32)
         .accessibilityElement(children: .combine)
+        .onAppear { viewModel.recordEmptyStateRender() }
+        .onChange(of: viewModel.visibleExperiences.count) { _, _ in
+            viewModel.recordEmptyStateRender()
+        }
     }
 }

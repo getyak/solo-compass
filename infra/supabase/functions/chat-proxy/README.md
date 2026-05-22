@@ -28,7 +28,9 @@ Request body is OpenAI-compatible (the iOS `AIService` already builds it):
 {
   "model": "deepseek-chat",
   "messages": [{ "role": "user", "content": "…" }],
-  "tools": [ /* function defs */ ],
+  "tools": [
+    /* function defs */
+  ],
   "tool_choice": "auto",
   "stream": true,
   "max_tokens": 512,
@@ -42,12 +44,12 @@ Request body is OpenAI-compatible (the iOS `AIService` already builds it):
 
 ## Auth + Entitlement
 
-| Status | Meaning |
-|--------|---------|
-| 401    | Missing / invalid JWT |
+| Status | Meaning                                                |
+| ------ | ------------------------------------------------------ |
+| 401    | Missing / invalid JWT                                  |
 | 402    | `profiles.entitlement_tier` is `free` or `pro_expired` |
-| 429    | Daily kind-quota exceeded for this user |
-| 502    | DeepSeek upstream error |
+| 429    | Daily kind-quota exceeded for this user                |
+| 502    | DeepSeek upstream error                                |
 
 The entitlement tier is kept in sync with the StoreKit outbox by the
 trigger in `0002_subscription_to_profile.sql`.

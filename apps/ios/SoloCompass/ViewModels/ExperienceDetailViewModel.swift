@@ -20,7 +20,7 @@ public final class ExperienceDetailViewModel {
     var remoteSoloScore: SoloScore?
 
     private let experienceService: ExperienceService
-    private let aiService: AIService
+    public let aiService: AIService
     private let preferences: UserPreferences
     private let reviewsService: ReviewsService
     private weak var subscriptionService: SubscriptionService?
@@ -29,6 +29,14 @@ public final class ExperienceDetailViewModel {
     /// subscription service is attached (tests / previews).
     private var isProUser: Bool {
         subscriptionService?.entitlement.isActive ?? true
+    }
+
+    /// US-004: gate for the "Ask Solo about this" button. Mirrors the "+" plus
+    /// button gate — hidden iff the user is not on the Pro tier AND no local
+    /// DeepSeek key is configured. Either Pro entitlement (Edge-routed) OR a
+    /// local key is enough to keep the button visible.
+    public var canAskSolo: Bool {
+        aiService.isProTier || !Secrets.resolvedDeepSeekApiKey.isEmpty
     }
 
     public init(

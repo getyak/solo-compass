@@ -78,3 +78,8 @@ coverage/
 .claude/scheduled_tasks.lock
 Gemfile.lock
 __pycache__/
+
+# sc-evaluator screenshot artifacts (per-run PNGs).
+# Opt-in retention: run with SC_EVALUATOR_KEEP_SCREENSHOTS=1 to have run.sh
+# `git add -f` the current run's directory so it can be committed.
+scripts/sc-evaluator/screenshots/

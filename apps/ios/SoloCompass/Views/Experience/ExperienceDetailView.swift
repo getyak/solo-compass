@@ -7,6 +7,11 @@ public struct ExperienceDetailView: View {
     @State var viewModel: ExperienceDetailViewModel
     var onClose: () -> Void
     var onMarkDone: ((_ experience: Experience) -> Void)?
+    /// US-004: When non-nil, render the "Ask Solo about this" button (subject
+    /// to `viewModel.canAskSolo`). Tapping fires this with the current
+    /// experience; the parent is responsible for opening ChatSheet bound to
+    /// that experience via `VoiceAgentOrchestrator.rebindContext(_:)`.
+    var onAskSolo: ((_ experience: Experience) -> Void)?
 
     @Environment(\.themeService) private var themeService
     @State private var isShowingReport: Bool = false
@@ -16,17 +21,20 @@ public struct ExperienceDetailView: View {
     public init(
         viewModel: ExperienceDetailViewModel,
         onClose: @escaping () -> Void = {},
-        onMarkDone: ((_ experience: Experience) -> Void)? = nil
+        onMarkDone: ((_ experience: Experience) -> Void)? = nil,
+        onAskSolo: ((_ experience: Experience) -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self.onClose = onClose
         self.onMarkDone = onMarkDone
+        self.onAskSolo = onAskSolo
     }
 
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 heroSection
+                askSoloSection
                 if let coord = viewModel.experience.location.clCoordinate {
                     LocationCard(
                         coordinate: coord,
@@ -106,9 +114,9 @@ public struct ExperienceDetailView: View {
             get: { exportMarkdown.map { ExportPayload(markdown: $0) } },
             set: { if $0 == nil { exportMarkdown = nil } }
         )) { payload in
-            MarkdownShareSheet(
+            ShareSheet(
+                experience: viewModel.experience,
                 markdown: payload.markdown,
-                title: viewModel.experience.title,
                 notionURL: MarkdownExporter.notionWebClipperURL(title: viewModel.experience.title)
             )
         }
@@ -167,6 +175,55 @@ public struct ExperienceDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
+        }
+    }
+
+    // MARK: - Ask Solo (US-004)
+
+    /// "Ask Solo about this" CTA. Hidden unless:
+    ///   • the parent supplied `onAskSolo` (so a chat surface is actually
+    ///     reachable from this presentation context), and
+    ///   • `viewModel.canAskSolo` is true (Pro entitlement OR a local
+    ///     DeepSeek key is configured — mirrors the "+" plus-button gate).
+    @ViewBuilder
+    private var askSoloSection: some View {
+        if let onAskSolo, viewModel.canAskSolo {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onAskSolo(viewModel.experience)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "bubble.left.and.text.bubble.right")
+                        .font(.subheadline.weight(.semibold))
+                    Text(NSLocalizedString(
+                        "experience.askSolo.cta",
+                        comment: "Open Solo chat scoped to this experience"
+                    ))
+                    .font(.subheadline.weight(.semibold))
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.accentColor.opacity(0.12))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1)
+                )
+                .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("experience.askSolo.cta")
+            .accessibilityLabel(Text(NSLocalizedString(
+                "experience.askSolo.cta",
+                comment: "Open Solo chat scoped to this experience"
+            )))
         }
     }
 

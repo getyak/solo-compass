@@ -23,6 +23,7 @@ public final class MapViewModel {
     private let experienceService: ExperienceService
     private let aiService: AIService
     private let overpassService: OverpassService
+    private let foursquareService: FoursquareService
     private let geocodeService: any ReverseGeocoding
     private let preferences: UserPreferences
     /// Optional so existing tests / previews can construct without a
@@ -219,7 +220,36 @@ public final class MapViewModel {
     // Observers watch this instead of cameraPosition directly.
     private var cameraPositionVersion: UInt8 = 0
     public var selectedCategory: ExperienceCategory?
+    /// Currently selected custom-tag pill from `FilterBarView`. When non-nil,
+    /// `applyFilters(...)` keeps only experiences whose `userTags` contains
+    /// this value. Mutually exclusive with `selectedCategory` and
+    /// `isNowFilter` — selecting any of those clears the others. US-008.
+    public var selectedCustomTag: String?
     public var visibleExperiences: [Experience] = []
+
+    // MARK: - Empty-state progression (US-012)
+
+    /// Progressive escalation when `visibleExperiences` is empty. The
+    /// `EmptyStateOverlay` view renders a different button per stage:
+    /// `.tryExpand` (5 km → 25 km) → `.tryExplore` (Overpass at 12 km)
+    /// → `.browseCity` (jump to nearest seeded city). Stage advances
+    /// only as long as each previous action still yields an empty
+    /// result; the first non-empty render resets to `.tryExpand`.
+    public enum EmptyStateStage { case tryExpand, tryExplore, browseCity }
+
+    /// Current empty-state stage. Updated by `recordEmptyStateRender()`,
+    /// which the view calls after every refresh.
+    public private(set) var emptyStateStage: EmptyStateStage = .tryExpand
+
+    /// Consecutive empty renders since the last non-empty result. Used
+    /// to flip into `.browseCity` after three failed cycles.
+    private var emptyStateConsecutiveEmptyCount: Int = 0
+
+    /// Set once the user taps the `.tryExpand` button so the next empty
+    /// render upgrades to `.tryExplore` (PRD: "tryExplore after tapping
+    /// expand still yields empty").
+    private var emptyStateExpandTried: Bool = false
+
     public var selectedExperience: Experience?
     public var isShowingDetail: Bool = false
     public var bottomInfoText: String = ""
@@ -287,12 +317,14 @@ public final class MapViewModel {
         aiService: AIService,
         preferences: UserPreferences,
         overpassService: OverpassService = OverpassService(),
+        foursquareService: FoursquareService = FoursquareService(),
         geocodeService: any ReverseGeocoding = ReverseGeocodeService()
     ) {
         self.locationService = locationService
         self.experienceService = experienceService
         self.aiService = aiService
         self.overpassService = overpassService
+        self.foursquareService = foursquareService
         self.geocodeService = geocodeService
         self.preferences = preferences
         self.selectedCity = preferences.lastSelectedCity
@@ -348,6 +380,9 @@ public final class MapViewModel {
         if let category = selectedCategory {
             nearby = nearby.filter { $0.category == category }
         }
+        if let tag = selectedCustomTag {
+            nearby = nearby.filter { ($0.userTags ?? []).contains(tag) }
+        }
         if isNowFilter {
             nearby = nearby.filter { $0.isBestNow() }
         }
@@ -360,21 +395,95 @@ public final class MapViewModel {
 
     public func selectCategory(_ category: ExperienceCategory?) {
         selectedCategory = category
+        selectedCustomTag = nil
         isNowFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
+        // US-011: empty category inside a seeded city → debounced auto-Explore.
+        scheduleAutoExploreForEmptyCategoryIfNeeded()
     }
 
     public func selectNowFilter() {
         isNowFilter = true
         selectedCategory = nil
+        selectedCustomTag = nil
         loadNearbyExperiences()
         updateBottomInfo()
     }
 
     public func clearFilters() {
         selectedCategory = nil
+        selectedCustomTag = nil
         isNowFilter = false
+        loadNearbyExperiences()
+        updateBottomInfo()
+    }
+
+    // MARK: - Empty-state progression (US-012)
+
+    /// Advance / reset the empty-state stage machine based on the
+    /// current `visibleExperiences` snapshot. Callers (the view + the
+    /// action handlers below) invoke this whenever a refresh has
+    /// settled. The first non-empty render fully resets the machine.
+    public func recordEmptyStateRender() {
+        guard visibleExperiences.isEmpty else {
+            emptyStateConsecutiveEmptyCount = 0
+            emptyStateExpandTried = false
+            emptyStateStage = .tryExpand
+            return
+        }
+        emptyStateConsecutiveEmptyCount += 1
+        if emptyStateConsecutiveEmptyCount >= 3 {
+            emptyStateStage = .browseCity
+        } else if emptyStateExpandTried {
+            emptyStateStage = .tryExplore
+        } else {
+            emptyStateStage = .tryExpand
+        }
+    }
+
+    /// US-012 stage 1: bump `maxDistanceKm` to 25 km and fire an
+    /// Explore at the current anchor. Marks the expand attempt so the
+    /// next empty render escalates to `.tryExplore`.
+    public func emptyStateActionTryExpand() {
+        emptyStateExpandTried = true
+        preferences.maxDistanceKm = 25
+        let anchor = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+        loadNearbyExperiences()
+        recordEmptyStateRender()
+        Task { await self.exploreNearby(at: anchor) }
+    }
+
+    /// US-012 stage 2: widen the Overpass radius to 12 km. Stage stays
+    /// in `.tryExplore` until either the explore returns results (reset)
+    /// or three consecutive empty renders flip it to `.browseCity`.
+    public func emptyStateActionTryExplore() {
+        let anchor = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+        recordEmptyStateRender()
+        Task { await self.exploreNearby(at: anchor, radiusMeters: 12000) }
+    }
+
+    /// US-012 stage 3: reuse the existing "Browse nearest city" jump
+    /// that the legacy overlay shipped with.
+    public func emptyStateActionBrowseCity() {
+        let anchor = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+        if let code = nearestSeededCity(to: anchor) {
+            selectCity(code)
+        }
+    }
+
+    /// Toggle a custom-tag pill. Selecting the currently-active tag clears
+    /// it (same toggle behaviour as built-in category pills). Selecting a
+    /// different tag replaces the current selection and clears any other
+    /// active filter. US-008.
+    public func selectCustomTag(_ tag: String) {
+        if selectedCustomTag == tag {
+            selectedCustomTag = nil
+        } else {
+            selectedCustomTag = tag
+            selectedCategory = nil
+            isNowFilter = false
+        }
         loadNearbyExperiences()
         updateBottomInfo()
     }
@@ -711,7 +820,8 @@ public final class MapViewModel {
     /// experiences group together in city pills.
     public func exploreNearby(
         at coordinate: CLLocationCoordinate2D,
-        radiusMeters: Int = 3000
+        radiusMeters: Int = 3000,
+        category: ExperienceCategory? = nil
     ) async {
         guard !isExploring else { return }
 
@@ -719,7 +829,7 @@ public final class MapViewModel {
         // paywall's onUnlocked can resume it after purchase, then bail.
         if !isProUser {
             onPaywallUnlocked = { [weak self] in
-                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters) }
+                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters, category: category) }
             }
             isShowingPaywall = true
             return
@@ -730,7 +840,7 @@ public final class MapViewModel {
         // the paywall.
         if !preferences.hasAcceptedExploreConsent {
             onExploreConsentAccepted = { [weak self] in
-                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters) }
+                Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters, category: category) }
             }
             isShowingExploreConsent = true
             return
@@ -759,10 +869,35 @@ public final class MapViewModel {
             // synthesis). Falls back to a 1-ring fetch when the flag is off
             // or the user isn't on Pro. Returns the radius we should record
             // for offline fallback (PRD §7: outermost ring only).
-            let (pois, effectiveRadius) = try await fetchExplorePOIs(
+            let (overpassPois, effectiveRadius) = try await fetchExplorePOIs(
                 near: coordinate,
-                singleRingRadius: radiusMeters
+                singleRingRadius: radiusMeters,
+                category: category
             )
+
+            // US-013: Foursquare fallback. Thin Overpass results (< 5) AND a
+            // configured key trigger ONE Foursquare call at the same radius +
+            // category. Merged via 4-decimal-cell dedupe; Overpass wins on
+            // collision. Counter increments for visibility — never enforced.
+            var pois = overpassPois
+            let fsqKey = Secrets.resolvedFoursquareKey
+            if overpassPois.count < Self.foursquareFallbackThreshold, !fsqKey.isEmpty {
+                do {
+                    let fsq = try await foursquareService.fetchPOIs(
+                        near: coordinate,
+                        radiusMeters: radiusMeters,
+                        category: category
+                    )
+                    preferences.incrementFoursquareCallsToday()
+                    pois = FoursquareService.merge(overpass: overpassPois, foursquare: fsq)
+                } catch {
+                    // Best-effort. A Foursquare miss still leaves Overpass
+                    // pois in place — never blocks the Explore flow.
+                    #if DEBUG
+                    print("[MapViewModel] Foursquare fallback failed: \(error)")
+                    #endif
+                }
+            }
             guard !pois.isEmpty else {
                 if let region = experienceService.repo.closestRecentRegion(to: coordinate) {
                     let cached = experienceService.repo.experiences(in: region)
@@ -908,6 +1043,10 @@ public final class MapViewModel {
     /// when an osmId appears in two rings.
     static let multiRingRadii: [Int] = [1_500, 3_000, 6_000, 12_000]
 
+    /// US-013: Overpass-thin threshold. Below this POI count, `exploreNearby`
+    /// attempts a single Foursquare fallback when a key is configured.
+    static let foursquareFallbackThreshold: Int = 5
+
     /// Coarse-grained UX state for an in-flight Explore. The view binds to
     /// `exploreProgress` to render an inline progress capsule above the
     /// BottomInfoBar (PRD §5, US-MR-04). `.idle` is the resting state.
@@ -962,14 +1101,15 @@ public final class MapViewModel {
     /// without going through the whole `exploreNearby` pipeline.
     func fetchExplorePOIs(
         near coordinate: CLLocationCoordinate2D,
-        singleRingRadius: Int
+        singleRingRadius: Int,
+        category: ExperienceCategory? = nil
     ) async throws -> (pois: [OverpassService.POI], effectiveRadius: Int) {
         // Single-ring legacy path. Used when:
         //   - the flag is off, OR
         //   - the user isn't Pro (free-tier never gets here, but defence)
         guard FeatureFlags.proMultiRingExplore, isProUser else {
             let pois = try await overpassService.fetchPOIs(
-                near: coordinate, radiusMeters: singleRingRadius
+                near: coordinate, radiusMeters: singleRingRadius, category: category
             )
             return (pois, singleRingRadius)
         }
@@ -993,7 +1133,7 @@ public final class MapViewModel {
                 group.addTask { @MainActor in
                     do {
                         let pois = try await service.fetchPOIs(
-                            near: coordinate, radiusMeters: radius
+                            near: coordinate, radiusMeters: radius, category: category
                         )
                         return (index, pois)
                     } catch {
@@ -1033,7 +1173,8 @@ public final class MapViewModel {
     /// `isExploringFreeMode` so the paywall button stays visible as the upgrade hook.
     public func exploreNearbyFreeMode(
         at coordinate: CLLocationCoordinate2D,
-        radiusMeters: Int = 3000
+        radiusMeters: Int = 3000,
+        category: ExperienceCategory? = nil
     ) async {
         guard !isExploringFreeMode else { return }
         isExploringFreeMode = true
@@ -1048,7 +1189,9 @@ public final class MapViewModel {
         defer { aiService.isProTier = savedProTier }
 
         do {
-            let pois = try await overpassService.fetchPOIs(near: coordinate, radiusMeters: radiusMeters)
+            let pois = try await overpassService.fetchPOIs(
+                near: coordinate, radiusMeters: radiusMeters, category: category
+            )
             guard !pois.isEmpty else {
                 lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
                 return
@@ -1104,6 +1247,91 @@ public final class MapViewModel {
     /// Explore button.
     public var exploreAnchorCoordinate: CLLocationCoordinate2D {
         locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+    }
+
+    // MARK: - US-011 auto-explore on empty category
+
+    /// Debounce window (ms) before an empty-category selection fires
+    /// auto-Explore. Default 600 ms; tests override with 0 for determinism.
+    var autoExploreDebounceMs: UInt64 = 600
+
+    /// Throttle window — same category can't auto-fire more than once.
+    static let autoExploreCooldown: TimeInterval = 10
+
+    /// Per-category timestamp of the most recent auto-Explore trigger.
+    /// Used to gate `selectCategory` so a quick second tap on the same
+    /// pill inside `autoExploreCooldown` is a no-op.
+    private var lastAutoExploreByCategory: [ExperienceCategory: Date] = [:]
+
+    /// Most recent debounce Task, cancelled when a new category arrives
+    /// or filters change so we don't fire stale Explore calls.
+    private var pendingAutoExploreTask: Task<Void, Never>?
+
+    /// Distance from the explore anchor to the nearest seeded city — used
+    /// to decide whether to silently auto-fetch when a category turns up
+    /// empty. ≤50 km counts as "inside a seeded city".
+    private static let seededCityRadiusMeters: CLLocationDistance = 50_000
+
+    /// True when the user's current anchor sits within 50 km of any
+    /// `availableCities` entry. We only auto-Explore inside seeded areas
+    /// because empty results outside seeded coverage are expected and
+    /// already handled by the existing offline / consent flows.
+    var isAnchorInsideSeededCity: Bool {
+        let anchor = exploreAnchorCoordinate
+        let here = CLLocation(latitude: anchor.latitude, longitude: anchor.longitude)
+        for city in availableCities {
+            let cityLoc = CLLocation(latitude: city.center.latitude, longitude: city.center.longitude)
+            if here.distance(from: cityLoc) <= Self.seededCityRadiusMeters {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Public test hook: returns whether a fresh trigger for `category`
+    /// would be allowed under the cooldown, without firing anything.
+    func canAutoExplore(category: ExperienceCategory, now: Date = Date()) -> Bool {
+        guard let last = lastAutoExploreByCategory[category] else { return true }
+        return now.timeIntervalSince(last) >= Self.autoExploreCooldown
+    }
+
+    /// Called from `selectCategory`. Schedules an auto-Explore when the
+    /// just-applied filter left nothing on the map AND the user is inside
+    /// a seeded city. Per-category cooldown prevents a re-fire within
+    /// `autoExploreCooldown` seconds. Free vs Pro picks the correct
+    /// fetch path (single-ring Overpass vs multi-ring schedule).
+    private func scheduleAutoExploreForEmptyCategoryIfNeeded() {
+        guard let category = selectedCategory else { return }
+        guard visibleExperiences.isEmpty else { return }
+        guard isAnchorInsideSeededCity else { return }
+        guard canAutoExplore(category: category) else { return }
+
+        // Stamp the trigger time NOW (before the debounce fires) so two
+        // quick taps in <10s — even before the first network call
+        // completes — collapse to one Explore. The AC asks for "second
+        // tap within 10 s does NOT re-fire" regardless of timing within
+        // the debounce.
+        lastAutoExploreByCategory[category] = Date()
+
+        pendingAutoExploreTask?.cancel()
+        let debounceMs = autoExploreDebounceMs
+        let anchor = exploreAnchorCoordinate
+        let isPro = isProUser
+        pendingAutoExploreTask = Task { [weak self] in
+            if debounceMs > 0 {
+                try? await Task.sleep(nanoseconds: debounceMs * 1_000_000)
+            }
+            if Task.isCancelled { return }
+            guard let self else { return }
+            // Re-check that the category is still active — user may have
+            // tapped a different pill during the debounce.
+            guard self.selectedCategory == category else { return }
+            if isPro {
+                await self.exploreNearby(at: anchor, category: category)
+            } else {
+                await self.exploreNearbyFreeMode(at: anchor, category: category)
+            }
+        }
     }
 
     // MARK: - Helpers
