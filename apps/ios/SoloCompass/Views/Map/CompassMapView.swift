@@ -530,9 +530,11 @@ private struct MapOverlayView: View {
             FilterBarView(
                 selectedCategory: viewModel.selectedCategory,
                 isNowSelected: viewModel.isNowFilter,
+                selectedCustomTag: viewModel.selectedCustomTag,
                 onSelectNow: { viewModel.selectNowFilter() },
                 onSelectAll: { viewModel.clearFilters() },
                 onSelectCategory: { viewModel.selectCategory($0) },
+                onSelectCustomTag: { viewModel.selectCustomTag($0) },
                 isMapPanning: $isMapPanning
             )
             .padding(.top, 4)

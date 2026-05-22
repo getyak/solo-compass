@@ -77,6 +77,102 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertNil(decoded.userTags)
     }
 
+    // MARK: - customTags (US-008)
+
+    /// `UserPreferences.customTags` defaults to empty and survives a
+    /// UserDefaults reload.
+    func testUserPreferencesCustomTagsPersistsAcrossReload() throws {
+        let suite = "us008.persist.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let prefs = UserPreferences(defaults: defaults)
+        XCTAssertEqual(prefs.customTags, [], "customTags must default to empty")
+
+        prefs.customTags = ["sunset", "rainy-ok"]
+        let reloaded = UserPreferences(defaults: defaults)
+        XCTAssertEqual(reloaded.customTags, ["sunset", "rainy-ok"])
+    }
+
+    /// Selecting a custom-tag pill filters `visibleExperiences` down to
+    /// experiences whose `userTags` contains that tag; selecting the same
+    /// pill again clears the filter (toggle behaviour).
+    @MainActor
+    func testSelectCustomTagFiltersVisibleExperiencesAndToggles() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        // Two experiences at the same coordinate so distance filtering
+        // doesn't drop either; distinct IDs so they're separate rows.
+        let tagged = Experience(
+            id: "us008-tagged",
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds,
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            userTags: ["sunset", "quiet"]
+        )
+        let untagged = Experience(
+            id: "us008-untagged",
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds,
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            userTags: nil
+        )
+
+        let service = ExperienceService(seed: [tagged, untagged])
+        let prefs = UserPreferences(
+            defaults: UserDefaults(suiteName: "us008.toggle.\(UUID().uuidString)")!
+        )
+        prefs.maxDistanceKm = 50
+        prefs.customTags = ["sunset"]
+
+        let viewModel = MapViewModel(
+            locationService: LocationService(),
+            experienceService: service,
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // First tap — narrows visible to the tagged experience only.
+        viewModel.selectCustomTag("sunset")
+        XCTAssertEqual(viewModel.selectedCustomTag, "sunset")
+        XCTAssertEqual(viewModel.visibleExperiences.map(\.id), ["us008-tagged"])
+
+        // Same pill again — clears the filter; both experiences come back.
+        viewModel.selectCustomTag("sunset")
+        XCTAssertNil(viewModel.selectedCustomTag)
+        XCTAssertEqual(
+            Set(viewModel.visibleExperiences.map(\.id)),
+            Set(["us008-tagged", "us008-untagged"])
+        )
+    }
+
     // MARK: - Distance
 
     func testCLLocationDistanceBetweenChiangMaiPoints() {

@@ -39,6 +39,7 @@ public final class UserPreferences {
         var reviewPromptShown: Bool = false
         var includeMapInExport: Bool = false
         var visibleCategories: Set<ExperienceCategory> = Set(ExperienceCategory.allCases)
+        var customTags: [String] = []
 
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
@@ -47,7 +48,7 @@ public final class UserPreferences {
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
             case hasAcceptedExploreConsent, exploreConsentGivenAt, reviewPromptShown
-            case includeMapInExport, visibleCategories
+            case includeMapInExport, visibleCategories, customTags
         }
 
         init() {}
@@ -73,7 +74,8 @@ public final class UserPreferences {
             exploreConsentGivenAt: Date?,
             reviewPromptShown: Bool,
             includeMapInExport: Bool,
-            visibleCategories: Set<ExperienceCategory>
+            visibleCategories: Set<ExperienceCategory>,
+            customTags: [String]
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -96,6 +98,7 @@ public final class UserPreferences {
             self.reviewPromptShown = reviewPromptShown
             self.includeMapInExport = includeMapInExport
             self.visibleCategories = visibleCategories
+            self.customTags = customTags
         }
 
         init(from decoder: Decoder) throws {
@@ -122,6 +125,7 @@ public final class UserPreferences {
             self.includeMapInExport = try container.decodeIfPresent(Bool.self, forKey: .includeMapInExport) ?? false
             self.visibleCategories = try container.decodeIfPresent(Set<ExperienceCategory>.self, forKey: .visibleCategories)
                 ?? Set(ExperienceCategory.allCases)
+            self.customTags = try container.decodeIfPresent([String].self, forKey: .customTags) ?? []
         }
     }
 
@@ -164,6 +168,11 @@ public final class UserPreferences {
     /// its pill from the filter bar but does NOT affect map markers or
     /// recommendation ranking. US-006.
     public var visibleCategories: Set<ExperienceCategory> { didSet { persist() } }
+    /// User-defined free-form tag pills rendered in `FilterBarView` after the
+    /// 8 built-in category pills. Each entry corresponds to a value found in
+    /// `Experience.userTags` and lets the user filter the map by their own
+    /// labels (e.g. "sunset", "rainy-ok"). Defaults to empty. US-008.
+    public var customTags: [String] { didSet { persist() } }
 
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
@@ -198,6 +207,7 @@ public final class UserPreferences {
         self.reviewPromptShown = snapshot.reviewPromptShown
         self.includeMapInExport = snapshot.includeMapInExport
         self.visibleCategories = snapshot.visibleCategories
+        self.customTags = snapshot.customTags
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -234,7 +244,8 @@ public final class UserPreferences {
             exploreConsentGivenAt: exploreConsentGivenAt,
             reviewPromptShown: reviewPromptShown,
             includeMapInExport: includeMapInExport,
-            visibleCategories: visibleCategories
+            visibleCategories: visibleCategories,
+            customTags: customTags
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

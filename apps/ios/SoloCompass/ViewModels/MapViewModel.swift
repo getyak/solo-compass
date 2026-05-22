@@ -219,6 +219,11 @@ public final class MapViewModel {
     // Observers watch this instead of cameraPosition directly.
     private var cameraPositionVersion: UInt8 = 0
     public var selectedCategory: ExperienceCategory?
+    /// Currently selected custom-tag pill from `FilterBarView`. When non-nil,
+    /// `applyFilters(...)` keeps only experiences whose `userTags` contains
+    /// this value. Mutually exclusive with `selectedCategory` and
+    /// `isNowFilter` — selecting any of those clears the others. US-008.
+    public var selectedCustomTag: String?
     public var visibleExperiences: [Experience] = []
     public var selectedExperience: Experience?
     public var isShowingDetail: Bool = false
@@ -348,6 +353,9 @@ public final class MapViewModel {
         if let category = selectedCategory {
             nearby = nearby.filter { $0.category == category }
         }
+        if let tag = selectedCustomTag {
+            nearby = nearby.filter { ($0.userTags ?? []).contains(tag) }
+        }
         if isNowFilter {
             nearby = nearby.filter { $0.isBestNow() }
         }
@@ -360,6 +368,7 @@ public final class MapViewModel {
 
     public func selectCategory(_ category: ExperienceCategory?) {
         selectedCategory = category
+        selectedCustomTag = nil
         isNowFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
@@ -368,13 +377,31 @@ public final class MapViewModel {
     public func selectNowFilter() {
         isNowFilter = true
         selectedCategory = nil
+        selectedCustomTag = nil
         loadNearbyExperiences()
         updateBottomInfo()
     }
 
     public func clearFilters() {
         selectedCategory = nil
+        selectedCustomTag = nil
         isNowFilter = false
+        loadNearbyExperiences()
+        updateBottomInfo()
+    }
+
+    /// Toggle a custom-tag pill. Selecting the currently-active tag clears
+    /// it (same toggle behaviour as built-in category pills). Selecting a
+    /// different tag replaces the current selection and clears any other
+    /// active filter. US-008.
+    public func selectCustomTag(_ tag: String) {
+        if selectedCustomTag == tag {
+            selectedCustomTag = nil
+        } else {
+            selectedCustomTag = tag
+            selectedCategory = nil
+            isNowFilter = false
+        }
         loadNearbyExperiences()
         updateBottomInfo()
     }
