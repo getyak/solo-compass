@@ -340,7 +340,7 @@
         "Smoke test: running `scripts/sc-loop/run.sh home-screen-cold-start --max-iterations 1` on a clean checkout completes within 10 minutes and produces a runs/<run_id>/ directory"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
