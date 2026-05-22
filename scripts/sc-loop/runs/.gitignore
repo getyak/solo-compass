@@ -1,0 +1,3 @@
+# Append-only per-run logs — ignore generated runs, keep the directory.
+*
+!.gitignore
