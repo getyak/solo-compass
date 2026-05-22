@@ -1,0 +1,17 @@
+# Journey: home-screen-cold-start
+#
+# Cold-launch SoloCompass.app and capture the home (map) screen. Mirrors the
+# legacy home-screen-cold-start.sh, but expressed in the DSL described in
+# scripts/sc-evaluator/SCHEMA.md.
+
+name: home-screen-cold-start
+description: Cold launch and screenshot the map home screen.
+
+steps:
+  - launch:
+  - wait:
+      seconds: 4
+  - screenshot:
+      name: "01_home_map"
+  - assertVisible:
+      accessibilityId: "compass.map"

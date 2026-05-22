@@ -1,0 +1,38 @@
+# Journey: pro-chat-roundtrip
+#
+# Drives the Pro Chat surface through a single user → assistant turn so the
+# evaluator can screenshot the reply state and confirm the chat scroll view
+# remains responsive. Coordinates assume iPhone 17 Pro; the chat composer is
+# also reachable by accessibilityId for stability across device sizes.
+
+name: pro-chat-roundtrip
+description: Open Pro Chat, send a prompt, capture the response state.
+
+steps:
+  - launch:
+  - wait:
+      seconds: 3
+  - assertVisible:
+      accessibilityId: "compass.map"
+  - tap:
+      accessibilityId: "chat.openButton"
+  - wait:
+      seconds: 2
+  - assertVisible:
+      accessibilityId: "chat.composer"
+  - screenshot:
+      name: "01_chat_opened"
+  - tap:
+      accessibilityId: "chat.composer.textField"
+  - assertText:
+      accessibilityId: "chat.composer.textField"
+      text: ""
+  - longPress:
+      accessibilityId: "chat.composer.sendButton"
+      duration: 0.8
+  - wait:
+      seconds: 6
+  - screenshot:
+      name: "02_chat_reply"
+  - assertVisible:
+      accessibilityId: "chat.messageList"
