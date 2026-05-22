@@ -32,3 +32,4 @@ Tool: claude
 [2026-05-22T09:38:09Z] Story #US-005: Add userTags field to Experience schema with SwiftData migration — FAILED (iteration 1)
 [2026-05-22T09:43:11Z] Story #US-005: Add userTags field to Experience schema with SwiftData migration — PASSED
 [2026-05-22T09:51:16Z] Story #US-006: Add visibleCategories to UserPreferences and wire into FilterBarView — PASSED
+[2026-05-22T09:57:07Z] Story #US-007: Add 'Visible categories' multi-select row to SettingsView — PASSED
