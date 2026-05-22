@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://solo-compass.local/sc-evaluator/findings.schema.json",
+  "title": "sc-evaluator findings JSON shadow",
+  "description": "Machine-readable shadow of the markdown findings file produced by scripts/sc-evaluator/run.sh. Every successful run writes both findings/<run_id>.md and findings/<run_id>.json; this schema describes the JSON document. See scripts/sc-evaluator/SCHEMA.md for the equivalent markdown layout.",
+  "type": "object",
+  "required": [
+    "run_id",
+    "journey",
+    "timestamp",
+    "commit_sha",
+    "simulator",
+    "ios_version",
+    "steps",
+    "findings",
+    "suggested_fixes",
+    "screenshots",
+    "summary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp identifying this run (with colons). Matches the frontmatter run_id and the body 'Started' line.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "journey": {
+      "type": "string",
+      "description": "Bare journey name (no extension), e.g. 'home-screen-cold-start'.",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp the run started; identical to run_id today, kept as a separate field so tooling can distinguish identity from time.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "commit_sha": {
+      "type": "string",
+      "description": "Short git SHA of HEAD at run start (`git rev-parse --short HEAD`), or 'unknown' if not in a git checkout.",
+      "minLength": 4
+    },
+    "simulator": {
+      "type": "string",
+      "description": "Human-readable simulator device name, e.g. 'iPhone 17 Pro'.",
+      "minLength": 1
+    },
+    "ios_version": {
+      "type": "string",
+      "description": "iOS runtime version as reported by simctl, e.g. '26.4'.",
+      "minLength": 1
+    },
+    "steps": {
+      "type": "array",
+      "description": "Chronological record of every step the runtime emitted, including setup steps (simulator.resolve, build, app.install) and journey steps.",
+      "items": {
+        "type": "object",
+        "required": ["status", "name", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["PASS", "FAIL"]
+          },
+          "name": {
+            "type": "string",
+            "description": "Dot-namespaced step identifier (e.g. 'simulator.resolve', 'step3.screenshot').",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "description": "Free-form detail string; matches the text after the em-dash in the markdown bullet."
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "Subset of `steps` that failed. One entry per FAIL step.",
+      "items": {
+        "type": "object",
+        "required": ["name", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "suggested_fixes": {
+      "type": "array",
+      "description": "Anchors emitted via emit_fix_anchor. Each fix carries a `file:line` anchor when applicable. The `finding` field links a fix to the nearest preceding failing step (empty string when no finding was open at the time the fix was emitted).",
+      "items": {
+        "type": "object",
+        "required": ["finding", "anchor", "hint"],
+        "additionalProperties": false,
+        "properties": {
+          "finding": {
+            "type": "string",
+            "description": "Name of the FAIL step this fix attaches to, or '' for fixes emitted outside any failure context."
+          },
+          "anchor": {
+            "type": "string",
+            "description": "File:line reference (e.g. 'apps/ios/SoloCompass/App/SoloCompassApp.swift:1') or a bare file path when no specific line applies.",
+            "minLength": 1
+          },
+          "hint": {
+            "type": "string",
+            "description": "Short remediation hint."
+          }
+        }
+      }
+    },
+    "screenshots": {
+      "type": "array",
+      "description": "Screenshot artifacts captured during the run, in the order they were emitted.",
+      "items": {
+        "type": "object",
+        "required": ["label", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Kebab-case label provided to the screenshot step (e.g. 'home-map').",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to the PNG relative to the markdown findings file, e.g. '../screenshots/<run_id>/01-home-map.png'.",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Aggregate run result. Mirrors the '## Summary' section in the markdown file.",
+      "required": ["steps_passed", "steps_total", "findings_count", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "steps_passed": { "type": "integer", "minimum": 0 },
+        "steps_total": { "type": "integer", "minimum": 0 },
+        "findings_count": { "type": "integer", "minimum": 0 },
+        "result": {
+          "type": "string",
+          "enum": ["PASS", "FAIL"]
+        },
+        "failure_reason": {
+          "type": ["string", "null"],
+          "description": "Short reason tag for FAIL results (e.g. '(setup)', '(build)', '(install)'). Null on PASS or when no specific category applies."
+        }
+      }
+    }
+  }
+}

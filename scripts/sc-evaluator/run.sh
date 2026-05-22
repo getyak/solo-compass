@@ -89,30 +89,59 @@ fi
 
 # ---------- run id + findings file ----------
 RUN_ID="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+# ISO-8601 UTC timestamp with colons. RUN_ID is filesystem-safe (hyphens),
+# while RUN_TIMESTAMP_ISO is the canonical machine-readable form emitted in
+# the frontmatter and JSON shadow.
+RUN_TIMESTAMP_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 FINDINGS_FILE="$FINDINGS_DIR/${RUN_ID}.md"
+FINDINGS_JSON="$FINDINGS_DIR/${RUN_ID}.json"
 ARTIFACTS_DIR="$FINDINGS_DIR/${RUN_ID}_artifacts"
 RUN_SCREENSHOTS_DIR="$SCREENSHOTS_DIR/${RUN_ID}"
 mkdir -p "$ARTIFACTS_DIR" "$RUN_SCREENSHOTS_DIR"
 
-# Append-only safety: never overwrite an existing file.
+# Append-only safety: never overwrite existing outputs.
 if [[ -e "$FINDINGS_FILE" ]]; then
   echo "error: findings file already exists (would overwrite): $FINDINGS_FILE" >&2
   exit 2
 fi
+if [[ -e "$FINDINGS_JSON" ]]; then
+  echo "error: findings JSON shadow already exists (would overwrite): $FINDINGS_JSON" >&2
+  exit 2
+fi
+
+# Short commit SHA for the frontmatter / JSON shadow; falls back to "unknown"
+# outside a git checkout.
+COMMIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+# Populated after simulator resolution; emitted into frontmatter at flush time.
+SIMULATOR_NAME=""
+IOS_VERSION=""
 
 # ---------- findings helpers ----------
 FINDINGS_COUNT=0
 STEP_RESULTS=()
 
-cat > "$FINDINGS_FILE" <<EOF
-# sc-evaluator finding — ${RUN_ID}
+# Sidecar JSON-Lines streams: each helper appends one record per line. At end
+# of run, a small python pass synthesizes findings/<run_id>.json from these
+# streams so we never string-concatenate JSON in bash.
+STEPS_JSONL="$ARTIFACTS_DIR/.steps.jsonl"
+FINDINGS_JSONL="$ARTIFACTS_DIR/.findings.jsonl"
+FIXES_JSONL="$ARTIFACTS_DIR/.fixes.jsonl"
+SCREENSHOTS_JSONL="$ARTIFACTS_DIR/.screenshots.jsonl"
+: > "$STEPS_JSONL"
+: > "$FINDINGS_JSONL"
+: > "$FIXES_JSONL"
+: > "$SCREENSHOTS_JSONL"
 
-- Journey: \`${JOURNEY}\`
-- Started: ${RUN_ID}
-- Repo: ${REPO_ROOT}
-
-## Steps
-EOF
+# Markdown bodies for the four content sections. Buffered separately so the
+# final file can emit them in the order required by SCHEMA.md
+# (Steps → Findings → Suggested Fixes → Screenshots → Summary) regardless of
+# the chronological order in which they were produced during the run.
+STEPS_BUFFER="$ARTIFACTS_DIR/.steps-buffer.md"
+FINDINGS_BUFFER="$ARTIFACTS_DIR/.findings-buffer.md"
+FIXES_BUFFER="$ARTIFACTS_DIR/.fixes-buffer.md"
+: > "$STEPS_BUFFER"
+: > "$FINDINGS_BUFFER"
+: > "$FIXES_BUFFER"
 
 # Screenshot links are buffered to a sidecar file during the run and flushed
 # into a `## Screenshots` section right before the `## Summary` block. This
@@ -121,35 +150,210 @@ EOF
 SCREENSHOTS_BUFFER="$ARTIFACTS_DIR/.screenshots-buffer.md"
 : > "$SCREENSHOTS_BUFFER"
 
+# JSONL append helper — minimal python so we get correct quoting / escaping
+# for arbitrary detail strings (which may contain quotes, newlines, etc.).
+_sc_jsonl_append() {
+  # _sc_jsonl_append <jsonl-file> <k1> <v1> [<k2> <v2> ...]
+  local file="$1"
+  shift
+  python3 - "$file" "$@" <<'PY'
+import json, sys
+file = sys.argv[1]
+kvs = sys.argv[2:]
+record = {}
+for i in range(0, len(kvs), 2):
+    record[kvs[i]] = kvs[i + 1]
+with open(file, "a", encoding="utf-8") as fh:
+    fh.write(json.dumps(record, sort_keys=True))
+    fh.write("\n")
+PY
+}
+
 emit_step() {
   # emit_step <status:PASS|FAIL> <step-name> <detail...>
+  #
+  # Records a step into both the markdown `## Steps` buffer and the JSON-Lines
+  # stream consumed at end-of-run when synthesizing the JSON shadow.
   local status="$1"
   local name="$2"
   shift 2
   local detail="$*"
   STEP_RESULTS+=("$status|$name|$detail")
-  printf -- "- [%s] **%s** — %s\n" "$status" "$name" "$detail" >> "$FINDINGS_FILE"
+  printf -- "- [%s] **%s** — %s\n" "$status" "$name" "$detail" >> "$STEPS_BUFFER"
+  _sc_jsonl_append "$STEPS_JSONL" status "$status" name "$name" detail "$detail"
   if [[ "$status" == "FAIL" ]]; then
     FINDINGS_COUNT=$((FINDINGS_COUNT + 1))
+    # Each FAIL becomes a `## Findings` entry. Anchors emitted via
+    # emit_fix_anchor between now and the next emit_step are attached to this
+    # finding by recording the latest finding name in $LAST_FINDING_NAME so
+    # emit_fix_anchor can include it in its JSONL record.
+    LAST_FINDING_NAME="$name"
+    printf -- "- **%s** — %s\n" "$name" "$detail" >> "$FINDINGS_BUFFER"
+    _sc_jsonl_append "$FINDINGS_JSONL" name "$name" detail "$detail"
   fi
 }
 
 emit_screenshot() {
   # emit_screenshot <label> <relative-path-from-findings-file>
   #
-  # Buffers a Markdown image link for the eventual `## Screenshots` section.
-  # The buffer is flushed into the findings file at the end of the run so
-  # screenshot links stay grouped instead of being interleaved with steps.
+  # Buffers a Markdown image link for the eventual `## Screenshots` section
+  # and records the (label, path) pair for the JSON shadow.
   local label="$1"
   local rel="$2"
   printf -- "![%s](%s)\n" "$label" "$rel" >> "$SCREENSHOTS_BUFFER"
+  _sc_jsonl_append "$SCREENSHOTS_JSONL" label "$label" path "$rel"
 }
+
+# Tracks the most recent failing step so emit_fix_anchor can associate a fix
+# with its parent finding. Empty when no finding is currently open.
+LAST_FINDING_NAME=""
 
 emit_fix_anchor() {
   # emit_fix_anchor <file:line> <hint>
+  #
+  # Each fix anchor is attached to the most recent FAIL step (the "current"
+  # finding) when one exists. Anchors emitted before any failure — e.g. setup
+  # hints — are still captured in the JSON shadow with an empty finding name.
   local anchor="$1"
   local hint="$2"
-  printf -- "  - suggested fix: \`%s\` — %s\n" "$anchor" "$hint" >> "$FINDINGS_FILE"
+  printf -- "  - suggested fix: \`%s\` — %s\n" "$anchor" "$hint" >> "$FIXES_BUFFER"
+  _sc_jsonl_append "$FIXES_JSONL" finding "$LAST_FINDING_NAME" anchor "$anchor" hint "$hint"
+}
+
+# ---------- final flush: assemble frontmatter + ordered sections + JSON ----------
+#
+# Centralized writer used by every exit path. Always overwrites
+# $FINDINGS_FILE with the canonical layout (frontmatter → Steps → Findings →
+# Suggested Fixes → Screenshots → Summary) and writes the JSON shadow at
+# $FINDINGS_JSON. Safe to call multiple times.
+#
+# Args:
+#   $1 — final result label: "PASS" | "FAIL"
+#   $2 — optional summary suffix (e.g. "(setup)", "(build)") for the markdown
+#        result line; the JSON shadow stores it as `summary.failure_reason`.
+flush_findings_file() {
+  local result="$1" reason="${2:-}"
+
+  local total_steps=${#STEP_RESULTS[@]}
+  local pass_steps=0
+  local entry
+  for entry in "${STEP_RESULTS[@]}"; do
+    [[ "${entry%%|*}" == "PASS" ]] && pass_steps=$((pass_steps + 1))
+  done
+
+  # Build the markdown file.
+  {
+    printf -- '---\n'
+    printf -- 'run_id: "%s"\n' "$RUN_TIMESTAMP_ISO"
+    printf -- 'journey: "%s"\n' "$JOURNEY"
+    printf -- 'timestamp: "%s"\n' "$RUN_TIMESTAMP_ISO"
+    printf -- 'commit_sha: "%s"\n' "$COMMIT_SHA"
+    printf -- 'simulator: "%s"\n' "$SIMULATOR_NAME"
+    printf -- 'ios_version: "%s"\n' "$IOS_VERSION"
+    printf -- '---\n\n'
+    printf -- '# sc-evaluator finding — %s\n\n' "$RUN_ID"
+    printf -- '- Journey: `%s`\n' "$JOURNEY"
+    printf -- '- Started: %s\n' "$RUN_TIMESTAMP_ISO"
+    printf -- '- Repo: %s\n\n' "$REPO_ROOT"
+
+    printf -- '## Steps\n'
+    if [[ -s "$STEPS_BUFFER" ]]; then
+      cat "$STEPS_BUFFER"
+    fi
+
+    printf -- '\n## Findings\n'
+    if [[ -s "$FINDINGS_BUFFER" ]]; then
+      cat "$FINDINGS_BUFFER"
+    else
+      printf -- '_no findings_\n'
+    fi
+
+    printf -- '\n## Suggested Fixes\n'
+    if [[ -s "$FIXES_BUFFER" ]]; then
+      cat "$FIXES_BUFFER"
+    else
+      printf -- '_no suggested fixes_\n'
+    fi
+
+    printf -- '\n## Screenshots\n'
+    if [[ -s "$SCREENSHOTS_BUFFER" ]]; then
+      cat "$SCREENSHOTS_BUFFER"
+    else
+      printf -- '_no screenshots_\n'
+    fi
+
+    printf -- '\n## Summary\n'
+    printf -- '- steps: %d/%d passed\n' "$pass_steps" "$total_steps"
+    printf -- '- findings: %d\n' "$FINDINGS_COUNT"
+    printf -- '- artifacts: ./%s_artifacts/\n' "$RUN_ID"
+    if [[ -n "$reason" ]]; then
+      printf -- '- result: **%s** %s\n' "$result" "$reason"
+    else
+      printf -- '- result: **%s**\n' "$result"
+    fi
+  } > "$FINDINGS_FILE"
+
+  # JSON shadow — synthesized from the JSON-Lines sidecar streams.
+  python3 - \
+      "$FINDINGS_JSON" \
+      "$RUN_TIMESTAMP_ISO" \
+      "$JOURNEY" \
+      "$COMMIT_SHA" \
+      "$SIMULATOR_NAME" \
+      "$IOS_VERSION" \
+      "$STEPS_JSONL" \
+      "$FINDINGS_JSONL" \
+      "$FIXES_JSONL" \
+      "$SCREENSHOTS_JSONL" \
+      "$pass_steps" "$total_steps" "$FINDINGS_COUNT" \
+      "$result" "$reason" <<'PY' || true
+import json, sys
+from pathlib import Path
+
+(out, run_id, journey, commit_sha, simulator, ios_version,
+ steps_p, findings_p, fixes_p, screenshots_p,
+ pass_steps, total_steps, findings_count,
+ result, reason) = sys.argv[1:16]
+
+def load(p):
+    path = Path(p)
+    if not path.is_file():
+        return []
+    out = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return out
+
+doc = {
+    "run_id": run_id,
+    "journey": journey,
+    "timestamp": run_id,
+    "commit_sha": commit_sha,
+    "simulator": simulator,
+    "ios_version": ios_version,
+    "steps": load(steps_p),
+    "findings": load(findings_p),
+    "suggested_fixes": load(fixes_p),
+    "screenshots": load(screenshots_p),
+    "summary": {
+        "steps_passed": int(pass_steps),
+        "steps_total": int(total_steps),
+        "findings_count": int(findings_count),
+        "result": result,
+        "failure_reason": reason or None,
+    },
+}
+Path(out).write_text(
+    json.dumps(doc, indent=2, sort_keys=True) + "\n",
+    encoding="utf-8",
+)
+PY
 }
 
 # ---------- simulator detection / boot ----------
@@ -179,7 +383,10 @@ if [[ -z "$UDID" ]]; then
   if [[ -z "$UDID" ]]; then
     emit_step FAIL "simulator.resolve" "no available iPhone simulator (need ${PREFERRED_DEVICE} on ${PREFERRED_OS})"
     echo "FAILED: no simulator" >&2
-    printf "\n## Summary\n- result: **FAIL** (setup)\n- findings: %d\n" "$FINDINGS_COUNT" >> "$FINDINGS_FILE"
+    # Defaults populate frontmatter when simulator detection never ran.
+    SIMULATOR_NAME="$PREFERRED_DEVICE"
+    IOS_VERSION="${PREFERRED_OS#iOS }"
+    flush_findings_file FAIL "(setup)"
     exit 2
   fi
 
@@ -191,6 +398,33 @@ fi
 open -gja Simulator >/dev/null 2>&1 || true
 xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1 || true
 emit_step PASS "simulator.resolve" "udid=$UDID"
+
+# Resolve the human-readable device name and iOS version for the UDID we
+# locked onto. `simctl list devices --json` is the most reliable source.
+# Falls back to the configured defaults if the lookup fails so frontmatter
+# is always populated with non-empty values.
+SIM_LOOKUP="$(xcrun simctl list devices --json 2>/dev/null \
+  | python3 - "$UDID" <<'PY' 2>/dev/null || true
+import json, sys
+udid = sys.argv[1]
+data = json.load(sys.stdin)
+for runtime, devs in (data.get("devices") or {}).items():
+    for d in devs:
+        if d.get("udid") == udid:
+            # runtime looks like "com.apple.CoreSimulator.SimRuntime.iOS-26-4"
+            ios = runtime.rsplit(".", 1)[-1]
+            if ios.lower().startswith("ios-"):
+                ios = ios[4:].replace("-", ".")
+            print(f"{d.get('name','')}\t{ios}")
+            sys.exit(0)
+PY
+)"
+if [[ -n "$SIM_LOOKUP" ]]; then
+  SIMULATOR_NAME="${SIM_LOOKUP%%	*}"
+  IOS_VERSION="${SIM_LOOKUP##*	}"
+fi
+[[ -z "$SIMULATOR_NAME" ]] && SIMULATOR_NAME="$PREFERRED_DEVICE"
+[[ -z "$IOS_VERSION" ]] && IOS_VERSION="${PREFERRED_OS#iOS }"
 
 # ---------- build (optional) ----------
 APP_PATH=""
@@ -207,8 +441,9 @@ if [[ "$SKIP_BUILD" -eq 0 ]]; then
   else
     emit_step FAIL "build" "xcodebuild failed — see ${RUN_ID}_artifacts/xcodebuild.log"
     emit_fix_anchor "apps/ios/SoloCompass" "inspect xcodebuild.log tail for first error"
-    tail -5 "$BUILD_LOG" 2>/dev/null | sed 's/^/    /' >> "$FINDINGS_FILE" || true
-    printf "\n## Summary\n- result: **FAIL** (build)\n- findings: %d\n" "$FINDINGS_COUNT" >> "$FINDINGS_FILE"
+    # Echo a short tail into the findings buffer so the file is self-contained.
+    tail -5 "$BUILD_LOG" 2>/dev/null | sed 's/^/    /' >> "$FINDINGS_BUFFER" || true
+    flush_findings_file FAIL "(build)"
     exit 1
   fi
 fi
@@ -221,7 +456,7 @@ APP_PATH="$(find ~/Library/Developer/Xcode/DerivedData -name SoloCompass.app \
 if [[ -z "$APP_PATH" || ! -d "$APP_PATH" ]]; then
   emit_step FAIL "app.locate" "SoloCompass.app not found in DerivedData"
   emit_fix_anchor "scripts/sc-evaluator/run.sh" "run without --no-build, or build manually in Xcode"
-  printf "\n## Summary\n- result: **FAIL** (setup)\n- findings: %d\n" "$FINDINGS_COUNT" >> "$FINDINGS_FILE"
+  flush_findings_file FAIL "(setup)"
   exit 2
 fi
 emit_step PASS "app.locate" "$APP_PATH"
@@ -231,7 +466,7 @@ if xcrun simctl install "$UDID" "$APP_PATH" >/dev/null 2>&1; then
   emit_step PASS "app.install" "$BUNDLE_ID"
 else
   emit_step FAIL "app.install" "simctl install failed"
-  printf "\n## Summary\n- result: **FAIL** (install)\n- findings: %d\n" "$FINDINGS_COUNT" >> "$FINDINGS_FILE"
+  flush_findings_file FAIL "(install)"
   exit 1
 fi
 
@@ -343,37 +578,18 @@ else
   source "$JOURNEY_SCRIPT" || JOURNEY_EXIT=$?
 fi
 
-# ---------- flush screenshots section ----------
-# Append the `## Screenshots` block (with all buffered image links) before
-# the summary, so the findings file ordering is: Steps → Screenshots → Summary.
-if [[ -s "$SCREENSHOTS_BUFFER" ]]; then
-  {
-    printf "\n## Screenshots\n"
-    cat "$SCREENSHOTS_BUFFER"
-  } >> "$FINDINGS_FILE"
+# ---------- final flush (markdown + JSON shadow) ----------
+if [[ "$FINDINGS_COUNT" -eq 0 && "$JOURNEY_EXIT" -eq 0 ]]; then
+  flush_findings_file PASS ""
+else
+  flush_findings_file FAIL ""
 fi
-rm -f "$SCREENSHOTS_BUFFER"
 
-# ---------- summary ----------
-TOTAL_STEPS=${#STEP_RESULTS[@]}
-PASS_STEPS=0
-for entry in "${STEP_RESULTS[@]}"; do
-  [[ "${entry%%|*}" == "PASS" ]] && PASS_STEPS=$((PASS_STEPS + 1))
-done
-
-{
-  printf "\n## Summary\n"
-  printf -- "- steps: %d/%d passed\n" "$PASS_STEPS" "$TOTAL_STEPS"
-  printf -- "- findings: %d\n" "$FINDINGS_COUNT"
-  printf -- "- artifacts: ./%s_artifacts/\n" "$RUN_ID"
-  if [[ "$FINDINGS_COUNT" -eq 0 && "$JOURNEY_EXIT" -eq 0 ]]; then
-    printf -- "- result: **PASS**\n"
-  else
-    printf -- "- result: **FAIL**\n"
-  fi
-} >> "$FINDINGS_FILE"
+# Sidecar buffers are no longer needed once the canonical outputs exist.
+rm -f "$SCREENSHOTS_BUFFER" "$STEPS_BUFFER" "$FINDINGS_BUFFER" "$FIXES_BUFFER"
 
 echo "→ findings: $FINDINGS_FILE"
+echo "→ findings json: $FINDINGS_JSON"
 
 # Screenshot retention: scripts/sc-evaluator/screenshots/ is git-ignored by
 # default (see .gitignore). When the developer wants to commit a run's
