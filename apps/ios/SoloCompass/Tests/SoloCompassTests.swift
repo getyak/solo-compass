@@ -5047,3 +5047,148 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
                       "temp PNG must live under NSTemporaryDirectory")
     }
 }
+
+// MARK: - US-013 FoursquareService
+
+@MainActor
+final class FoursquareServiceTests: XCTestCase {
+
+    /// Merge keeps the Overpass record when both sources contain a POI in
+    /// the same 4-decimal-coord cell. The Overpass entry comes first in
+    /// the output and the Foursquare duplicate is dropped.
+    func testMergePrefersOverpassOnCellCollision() {
+        let overpass: [OverpassService.POI] = [
+            .init(osmId: 1, name: "OSM Cafe", nameEn: nil,
+                  lat: 21.0341, lon: 105.8521,
+                  tags: ["amenity": "cafe", "source": "osm"])
+        ]
+        let foursquare: [OverpassService.POI] = [
+            .init(osmId: 1_000, name: "FSQ Cafe", nameEn: nil,
+                  lat: 21.03413, lon: 105.85214,
+                  tags: ["amenity": "cafe", "source": "foursquare"]),
+            .init(osmId: 1_001, name: "FSQ Bar", nameEn: nil,
+                  lat: 21.0500, lon: 105.8600,
+                  tags: ["amenity": "bar", "source": "foursquare"])
+        ]
+        let merged = FoursquareService.merge(overpass: overpass, foursquare: foursquare)
+        XCTAssertEqual(merged.count, 2)
+        XCTAssertEqual(merged[0].name, "OSM Cafe", "Overpass record must win on cell collision")
+        XCTAssertEqual(merged[0].tags["source"], "osm")
+        XCTAssertEqual(merged[1].name, "FSQ Bar", "non-colliding Foursquare entry must be kept")
+    }
+
+    /// Merge collapses two Foursquare entries that fall in the same cell —
+    /// only the first one survives. Verifies the dedupe runs over the
+    /// Foursquare list itself, not just the cross-source comparison.
+    func testMergeDedupesWithinFoursquare() {
+        let overpass: [OverpassService.POI] = []
+        let foursquare: [OverpassService.POI] = [
+            .init(osmId: 2_000, name: "First", nameEn: nil,
+                  lat: 1.2345, lon: 2.3456, tags: [:]),
+            .init(osmId: 2_001, name: "Same Cell", nameEn: nil,
+                  lat: 1.23454, lon: 2.34564, tags: [:])
+        ]
+        let merged = FoursquareService.merge(overpass: overpass, foursquare: foursquare)
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged.first?.name, "First")
+    }
+
+    /// Merge preserves Overpass input order and appends Foursquare additions
+    /// in their original order — Solo Score / AI synthesis upstream relies
+    /// on stable ordering for reproducibility.
+    func testMergePreservesOrder() {
+        let overpass: [OverpassService.POI] = [
+            .init(osmId: 10, name: "A", nameEn: nil, lat: 10.0001, lon: 20.0001, tags: [:]),
+            .init(osmId: 11, name: "B", nameEn: nil, lat: 10.0010, lon: 20.0010, tags: [:])
+        ]
+        let foursquare: [OverpassService.POI] = [
+            .init(osmId: 20, name: "X", nameEn: nil, lat: 10.0020, lon: 20.0020, tags: [:]),
+            .init(osmId: 21, name: "Y", nameEn: nil, lat: 10.0030, lon: 20.0030, tags: [:])
+        ]
+        let merged = FoursquareService.merge(overpass: overpass, foursquare: foursquare)
+        XCTAssertEqual(merged.map(\.name), ["A", "B", "X", "Y"])
+    }
+
+    /// `decodePOIs` skips entries missing a name or coordinate. A well-formed
+    /// Foursquare response should yield POIs with stable, non-OSM-range ids
+    /// and surface the first category as an OSM-compatible `amenity` tag.
+    func testDecodePOIsSkipsMalformedAndMapsCategory() throws {
+        let json = """
+        {
+          "results": [
+            {
+              "fsq_id": "abc123",
+              "name": "Hidden Brew",
+              "geocodes": { "main": { "latitude": 21.03, "longitude": 105.85 } },
+              "categories": [ { "id": 13032, "name": "Coffee Shop" } ]
+            },
+            {
+              "fsq_id": "noname",
+              "geocodes": { "main": { "latitude": 0.0, "longitude": 0.0 } }
+            },
+            {
+              "fsq_id": "nogeo",
+              "name": "Missing Coords"
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let pois = try FoursquareService.decodePOIs(from: json)
+        XCTAssertEqual(pois.count, 1, "rows missing name or coords must be dropped")
+        let only = try XCTUnwrap(pois.first)
+        XCTAssertEqual(only.name, "Hidden Brew")
+        XCTAssertEqual(only.tags["source"], "foursquare")
+        XCTAssertEqual(only.tags["fsq_id"], "abc123")
+        XCTAssertEqual(only.tags["amenity"], "cafe", "category name must round-trip to an Overpass-style amenity tag")
+        XCTAssertEqual(only.osmId, FoursquareService.stableInt64Id(forFsqId: "abc123"))
+        XCTAssertGreaterThan(only.osmId, 0x4000_0000_0000_0000)
+    }
+
+    /// US-013 threshold gate: `foursquareFallbackThreshold` defines the
+    /// boundary at which a thin Overpass result triggers a fallback.
+    func testFallbackThresholdGate() {
+        XCTAssertEqual(MapViewModel.foursquareFallbackThreshold, 5)
+        XCTAssertTrue(0 < MapViewModel.foursquareFallbackThreshold)
+        XCTAssertTrue(4 < MapViewModel.foursquareFallbackThreshold)
+        XCTAssertFalse(5 < MapViewModel.foursquareFallbackThreshold)
+        XCTAssertFalse(10 < MapViewModel.foursquareFallbackThreshold)
+    }
+
+    /// `fetchPOIs` must throw `.missingAPIKey` immediately when the resolved
+    /// key is empty — never makes a network request, never increments the
+    /// daily counter. Guards the < 5 + empty-key gate in `exploreNearby`.
+    func testFetchPOIsThrowsMissingKeyWhenUnconfigured() async {
+        let service = FoursquareService(apiKeyProvider: { "" })
+        do {
+            _ = try await service.fetchPOIs(
+                near: CLLocationCoordinate2D(latitude: 0, longitude: 0)
+            )
+            XCTFail("fetchPOIs with empty key must throw")
+        } catch let FoursquareService.FoursquareError.missingAPIKey {
+            // ok
+        } catch {
+            XCTFail("expected .missingAPIKey, got \(error)")
+        }
+    }
+
+    /// Daily counter resets across local-midnight boundaries. Calling
+    /// `incrementFoursquareCallsToday` on day N+1 must reset the counter
+    /// back to 1, not increment yesterday's value.
+    func testFoursquareCounterResetsAtLocalMidnight() {
+        let defaults = UserDefaults(suiteName: "test-fsq-counter-\(UUID().uuidString)")!
+        let prefs = UserPreferences(defaults: defaults)
+        let cal = Calendar.current
+        let yesterday = cal.date(byAdding: .day, value: -1, to: Date())!
+        let today = Date()
+
+        prefs.incrementFoursquareCallsToday(now: yesterday, calendar: cal)
+        XCTAssertEqual(prefs.foursquareCallsToday, 1)
+
+        prefs.incrementFoursquareCallsToday(now: today, calendar: cal)
+        XCTAssertEqual(prefs.foursquareCallsToday, 1, "rollover must reset counter to 1, not increment")
+
+        prefs.incrementFoursquareCallsToday(now: today, calendar: cal)
+        XCTAssertEqual(prefs.foursquareCallsToday, 2, "subsequent same-day calls must increment")
+    }
+}

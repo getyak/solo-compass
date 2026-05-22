@@ -53,6 +53,7 @@
 		8004F51AA0F117D38EC71610 /* BilingualCityRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A95DD95393E5BF9C89FB4977 /* BilingualCityRow.swift */; };
 		8632F83028F07E07435FE075 /* AgentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DB59261DB471FD587F4134 /* AgentTests.swift */; };
 		86F4628473C2D520D4C2FFFB /* SoloScoreBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */; };
+		8B118DFAAE23443EF7D90735 /* FilterBarViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1694A46513909CFE464D92E /* FilterBarViewTests.swift */; };
 		8B4F2A6E8F3C6EAD0F9A8E32 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EA0858036CFEA9774139AFD7 /* PrivacyInfo.xcprivacy */; };
 		953C7BD48AF4AF55608145A6 /* LanguageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87002BB6D344B384A3FDFBFD /* LanguageService.swift */; };
 		987A873E2C50C8064135E1EF /* ShareCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5895B058A34A2634E816A72F /* ShareCardModel.swift */; };
@@ -96,6 +97,7 @@
 		D825B4D4C81AC33373DA1437 /* AgentMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5DCEFC3560FED53D0CB5D19 /* AgentMessage.swift */; };
 		E0DDDA434921159DDD70F035 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4442EDB5CE3602DA3EA32725 /* Assets.xcassets */; };
 		E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71DE291BE5569E719413B74 /* SoloCompassApp.swift */; };
+		E611DCAFD85FC84D6BF6CADD /* FoursquareService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67DAE302128E657E150C4B0D /* FoursquareService.swift */; };
 		E7B5B022519434F7C07818CF /* ExperienceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12F087E4FA7161529378098C /* ExperienceService.swift */; };
 		E881A71769542A7C58CF5D10 /* FavoritesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C3BA25EFA9F149FB4FAAB3 /* FavoritesListView.swift */; };
 		EBE1ACB7D574EE000B028B23 /* SoloCompassTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED3CB5045CE59A613B5CAAF5 /* SoloCompassTests.swift */; };
@@ -164,6 +166,7 @@
 		64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReverseGeocodeService.swift; sourceTree = "<group>"; };
 		6556C23BF1B228BF686C5500 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		67173C74F1A76C3CE5C38C0A /* OverpassService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverpassService.swift; sourceTree = "<group>"; };
+		67DAE302128E657E150C4B0D /* FoursquareService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoursquareService.swift; sourceTree = "<group>"; };
 		6C5CA5533D846B39EF16CDFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		6DFBC1C003B8745713588A23 /* City.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = City.swift; sourceTree = "<group>"; };
 		70AF2705AB2F24B69DE8CB4F /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
@@ -215,6 +218,7 @@
 		D5B8BA7FFBD93A01E54B7E4A /* ExperienceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceDetailView.swift; sourceTree = "<group>"; };
 		D5DCEFC3560FED53D0CB5D19 /* AgentMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentMessage.swift; sourceTree = "<group>"; };
 		E03076AD221F78BBDE981C3A /* ExperienceRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceRecord.swift; sourceTree = "<group>"; };
+		E1694A46513909CFE464D92E /* FilterBarViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterBarViewTests.swift; sourceTree = "<group>"; };
 		E406C379247653B4AA5A3E0E /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		E5DB59261DB471FD587F4134 /* AgentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTests.swift; sourceTree = "<group>"; };
 		E71DE291BE5569E719413B74 /* SoloCompassApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassApp.swift; sourceTree = "<group>"; };
@@ -292,6 +296,7 @@
 			isa = PBXGroup;
 			children = (
 				E5DB59261DB471FD587F4134 /* AgentTests.swift */,
+				E1694A46513909CFE464D92E /* FilterBarViewTests.swift */,
 				F7FB43528F45882868CCC203 /* NavigationLauncherTests.swift */,
 				70AF2705AB2F24B69DE8CB4F /* PerformanceTests.swift */,
 				7A6F9AAA8749FA23B91F7C93 /* ReviewsServiceTests.swift */,
@@ -396,6 +401,7 @@
 				CF9D63763EFB0BE589EA0470 /* DeviceIdentityService.swift */,
 				12F087E4FA7161529378098C /* ExperienceService.swift */,
 				79B73212B8F704EABD27EF5B /* FeatureFlags.swift */,
+				67DAE302128E657E150C4B0D /* FoursquareService.swift */,
 				6556C23BF1B228BF686C5500 /* KeychainStore.swift */,
 				87002BB6D344B384A3FDFBFD /* LanguageService.swift */,
 				2C7919EAFDE363B49C4B4C47 /* LocationService.swift */,
@@ -684,6 +690,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8632F83028F07E07435FE075 /* AgentTests.swift in Sources */,
+				8B118DFAAE23443EF7D90735 /* FilterBarViewTests.swift in Sources */,
 				D4193263CDA544D0995749B0 /* NavigationLauncherTests.swift in Sources */,
 				D7ABC99B7839B64FF014D344 /* PerformanceTests.swift in Sources */,
 				49C48BE7027B3D172A0BD9B1 /* ReviewsServiceTests.swift in Sources */,
@@ -727,6 +734,7 @@
 				E881A71769542A7C58CF5D10 /* FavoritesListView.swift in Sources */,
 				18D372538603D7A46EE6C86F /* FeatureFlags.swift in Sources */,
 				297541149234668D12EAF272 /* FilterBarView.swift in Sources */,
+				E611DCAFD85FC84D6BF6CADD /* FoursquareService.swift in Sources */,
 				391D6B5C48997AD74F367C0C /* GeneratedSecrets.swift in Sources */,
 				73A99E8CB82341F557681FCF /* GlassmorphismCapsule.swift in Sources */,
 				FD3636FCB777A292C57B7B06 /* GuideAgent.swift in Sources */,

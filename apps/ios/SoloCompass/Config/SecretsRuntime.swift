@@ -40,6 +40,9 @@ struct EmptyAPIKeyResolver: APIKeyResolver {
 extension Secrets {
     enum RuntimeKeys {
         static let deepSeekApiKey = "runtimeDeepSeekKey"
+        /// US-013: per-process UserDefaults override for the Foursquare key.
+        /// Lets devs / TestFlight users plug in a key without re-building.
+        static let foursquareApiKey = "runtimeFoursquareKey"
     }
 
     /// Active resolver — swap in tests via `Secrets.apiKeyResolver = EmptyAPIKeyResolver()`
@@ -59,5 +62,16 @@ extension Secrets {
 
     static var resolvedDeepSeekModel: String {
         deepSeekModel.isEmpty ? "deepseek-chat" : deepSeekModel
+    }
+
+    /// Effective Foursquare API key: UserDefaults override → build-time baked.
+    /// Returns "" when neither is set; callers must gate on empty so they
+    /// never make a request with an absent key (US-013).
+    static var resolvedFoursquareKey: String {
+        if let override = UserDefaults.standard.string(forKey: RuntimeKeys.foursquareApiKey),
+           !override.isEmpty {
+            return override
+        }
+        return foursquareApiKey
     }
 }

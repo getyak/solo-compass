@@ -40,6 +40,11 @@ public final class UserPreferences {
         var includeMapInExport: Bool = false
         var visibleCategories: Set<ExperienceCategory> = Set(ExperienceCategory.allCases)
         var customTags: [String] = []
+        // US-013: Foursquare fallback usage tracking — visibility only,
+        // no enforcement in v1. `foursquareCallsTodayDate` stamps the local
+        // day the counter was last reset; mismatches roll it back to zero.
+        var foursquareCallsToday: Int = 0
+        var foursquareCallsTodayDate: Date?
 
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
@@ -49,6 +54,7 @@ public final class UserPreferences {
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
             case hasAcceptedExploreConsent, exploreConsentGivenAt, reviewPromptShown
             case includeMapInExport, visibleCategories, customTags
+            case foursquareCallsToday, foursquareCallsTodayDate
         }
 
         init() {}
@@ -75,7 +81,9 @@ public final class UserPreferences {
             reviewPromptShown: Bool,
             includeMapInExport: Bool,
             visibleCategories: Set<ExperienceCategory>,
-            customTags: [String]
+            customTags: [String],
+            foursquareCallsToday: Int,
+            foursquareCallsTodayDate: Date?
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -99,6 +107,8 @@ public final class UserPreferences {
             self.includeMapInExport = includeMapInExport
             self.visibleCategories = visibleCategories
             self.customTags = customTags
+            self.foursquareCallsToday = foursquareCallsToday
+            self.foursquareCallsTodayDate = foursquareCallsTodayDate
         }
 
         init(from decoder: Decoder) throws {
@@ -126,6 +136,8 @@ public final class UserPreferences {
             self.visibleCategories = try container.decodeIfPresent(Set<ExperienceCategory>.self, forKey: .visibleCategories)
                 ?? Set(ExperienceCategory.allCases)
             self.customTags = try container.decodeIfPresent([String].self, forKey: .customTags) ?? []
+            self.foursquareCallsToday = try container.decodeIfPresent(Int.self, forKey: .foursquareCallsToday) ?? 0
+            self.foursquareCallsTodayDate = try container.decodeIfPresent(Date.self, forKey: .foursquareCallsTodayDate)
         }
     }
 
@@ -173,6 +185,14 @@ public final class UserPreferences {
     /// `Experience.userTags` and lets the user filter the map by their own
     /// labels (e.g. "sunset", "rainy-ok"). Defaults to empty. US-008.
     public var customTags: [String] { didSet { persist() } }
+    /// US-013: number of Foursquare fallback calls made today. Reset on
+    /// local-midnight rollover. Visibility-only in v1 (no enforcement).
+    public var foursquareCallsToday: Int { didSet { persist() } }
+    /// US-013: local-calendar day the counter above was last reset.
+    /// When `Calendar.current.startOfDay(for: now)` differs from the
+    /// stored value, `incrementFoursquareCallsToday` rolls the counter
+    /// back to 1 instead of incrementing.
+    public var foursquareCallsTodayDate: Date? { didSet { persist() } }
 
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
@@ -208,6 +228,8 @@ public final class UserPreferences {
         self.includeMapInExport = snapshot.includeMapInExport
         self.visibleCategories = snapshot.visibleCategories
         self.customTags = snapshot.customTags
+        self.foursquareCallsToday = snapshot.foursquareCallsToday
+        self.foursquareCallsTodayDate = snapshot.foursquareCallsTodayDate
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -245,7 +267,9 @@ public final class UserPreferences {
             reviewPromptShown: reviewPromptShown,
             includeMapInExport: includeMapInExport,
             visibleCategories: visibleCategories,
-            customTags: customTags
+            customTags: customTags,
+            foursquareCallsToday: foursquareCallsToday,
+            foursquareCallsTodayDate: foursquareCallsTodayDate
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
@@ -387,6 +411,21 @@ public final class UserPreferences {
     public func revokeExploreConsent() {
         hasAcceptedExploreConsent = false
         exploreConsentGivenAt = nil
+    }
+
+    /// US-013: bump the Foursquare-fallback usage counter. Rolls the counter
+    /// back to 1 (not 0 — we're recording *this* call) when the stored day
+    /// stamp differs from the local-calendar start-of-day for `now`.
+    /// Visibility-only — no enforcement is performed here.
+    public func incrementFoursquareCallsToday(now: Date = Date(), calendar: Calendar = .current) {
+        let today = calendar.startOfDay(for: now)
+        if let stamped = foursquareCallsTodayDate,
+           calendar.startOfDay(for: stamped) == today {
+            foursquareCallsToday += 1
+        } else {
+            foursquareCallsToday = 1
+            foursquareCallsTodayDate = today
+        }
     }
 
     /// Auto-clear pending check-ins older than 7 days.

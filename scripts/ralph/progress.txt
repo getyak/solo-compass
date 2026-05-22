@@ -40,3 +40,6 @@ Tool: claude
 [2026-05-22T10:28:26Z] Story #US-010: Add categoryToOverpassFilter mapping and accept category in OverpassService.fetchPOIs — PASSED
 [2026-05-22T10:57:34Z] Story #US-011: Auto-trigger exploreNearby when category filter yields zero results — PASSED
 [2026-05-22T11:09:02Z] Story #US-012: Replace EmptyStateOverlay's static buttons with EmptyStateStage progression — PASSED
+[2026-05-22T11:21:16Z] Story #US-013: Add FoursquareService as fallback data source after Overpass returns thin results — FAILED (iteration 10)
+    └─ NEXT_STEPS: (auto) prior run ended (max_turns) Reached maximum number of turns (60)
+[2026-05-22T11:27:35Z] Story #US-013: Add FoursquareService as fallback data source after Overpass returns thin results — PASSED

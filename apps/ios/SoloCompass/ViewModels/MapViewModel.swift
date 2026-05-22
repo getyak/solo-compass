@@ -23,6 +23,7 @@ public final class MapViewModel {
     private let experienceService: ExperienceService
     private let aiService: AIService
     private let overpassService: OverpassService
+    private let foursquareService: FoursquareService
     private let geocodeService: any ReverseGeocoding
     private let preferences: UserPreferences
     /// Optional so existing tests / previews can construct without a
@@ -316,12 +317,14 @@ public final class MapViewModel {
         aiService: AIService,
         preferences: UserPreferences,
         overpassService: OverpassService = OverpassService(),
+        foursquareService: FoursquareService = FoursquareService(),
         geocodeService: any ReverseGeocoding = ReverseGeocodeService()
     ) {
         self.locationService = locationService
         self.experienceService = experienceService
         self.aiService = aiService
         self.overpassService = overpassService
+        self.foursquareService = foursquareService
         self.geocodeService = geocodeService
         self.preferences = preferences
         self.selectedCity = preferences.lastSelectedCity
@@ -866,11 +869,35 @@ public final class MapViewModel {
             // synthesis). Falls back to a 1-ring fetch when the flag is off
             // or the user isn't on Pro. Returns the radius we should record
             // for offline fallback (PRD §7: outermost ring only).
-            let (pois, effectiveRadius) = try await fetchExplorePOIs(
+            let (overpassPois, effectiveRadius) = try await fetchExplorePOIs(
                 near: coordinate,
                 singleRingRadius: radiusMeters,
                 category: category
             )
+
+            // US-013: Foursquare fallback. Thin Overpass results (< 5) AND a
+            // configured key trigger ONE Foursquare call at the same radius +
+            // category. Merged via 4-decimal-cell dedupe; Overpass wins on
+            // collision. Counter increments for visibility — never enforced.
+            var pois = overpassPois
+            let fsqKey = Secrets.resolvedFoursquareKey
+            if overpassPois.count < Self.foursquareFallbackThreshold, !fsqKey.isEmpty {
+                do {
+                    let fsq = try await foursquareService.fetchPOIs(
+                        near: coordinate,
+                        radiusMeters: radiusMeters,
+                        category: category
+                    )
+                    preferences.incrementFoursquareCallsToday()
+                    pois = FoursquareService.merge(overpass: overpassPois, foursquare: fsq)
+                } catch {
+                    // Best-effort. A Foursquare miss still leaves Overpass
+                    // pois in place — never blocks the Explore flow.
+                    #if DEBUG
+                    print("[MapViewModel] Foursquare fallback failed: \(error)")
+                    #endif
+                }
+            }
             guard !pois.isEmpty else {
                 if let region = experienceService.repo.closestRecentRegion(to: coordinate) {
                     let cached = experienceService.repo.experiences(in: region)
@@ -1015,6 +1042,10 @@ public final class MapViewModel {
     /// Inner-first order matters for dedupe semantics — nearer POIs win
     /// when an osmId appears in two rings.
     static let multiRingRadii: [Int] = [1_500, 3_000, 6_000, 12_000]
+
+    /// US-013: Overpass-thin threshold. Below this POI count, `exploreNearby`
+    /// attempts a single Foursquare fallback when a key is configured.
+    static let foursquareFallbackThreshold: Int = 5
 
     /// Coarse-grained UX state for an in-flight Explore. The view binds to
     /// `exploreProgress` to render an inline progress capsule above the
