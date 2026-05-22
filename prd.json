@@ -324,7 +324,7 @@
         "Skill definition file at ~/.claude/skills/sc-executor/SKILL.md that delegates to run.sh"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
