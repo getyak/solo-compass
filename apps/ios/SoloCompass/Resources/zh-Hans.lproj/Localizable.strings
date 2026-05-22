@@ -153,6 +153,13 @@
 "settings.filterBar" = "筛选栏";
 "settings.filter.visible_categories" = "可见分类";
 "settings.filter.visible_categories.footer" = "选择在地图筛选栏中显示哪些分类标签。隐藏的分类仍会出现在地图上。";
+"settings.filter.custom_tags" = "自定义标签";
+"settings.filter.custom_tags.footer" = "你可以为体验附加的自由格式标签，会以药丸形式显示在地图筛选栏上。";
+"settings.filter.custom_tags.add_placeholder" = "新标签";
+"settings.filter.custom_tags.add" = "添加";
+"settings.filter.custom_tags.empty_error" = "标签不能为空。";
+"settings.filter.custom_tags.duplicate_error" = "标签已存在。";
+"settings.filter.custom_tags.empty_state" = "暂无自定义标签，请在上方添加。";
 "settings.completed" = "已完成";
 "settings.favorites" = "收藏";
 "settings.stats" = "你的旅程";

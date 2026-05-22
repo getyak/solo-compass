@@ -161,6 +161,13 @@
 "settings.filterBar" = "Filter bar";
 "settings.filter.visible_categories" = "Visible categories";
 "settings.filter.visible_categories.footer" = "Choose which category pills appear on the map's filter bar. Hidden categories still show on the map.";
+"settings.filter.custom_tags" = "Custom tags";
+"settings.filter.custom_tags.footer" = "Free-form labels you can attach to experiences. They appear as pills on the map's filter bar.";
+"settings.filter.custom_tags.add_placeholder" = "New tag";
+"settings.filter.custom_tags.add" = "Add";
+"settings.filter.custom_tags.empty_error" = "Tag cannot be empty.";
+"settings.filter.custom_tags.duplicate_error" = "Tag already exists.";
+"settings.filter.custom_tags.empty_state" = "No custom tags yet. Add one above.";
 "settings.completed" = "Completed";
 "settings.favorites" = "Favorites";
 "settings.stats" = "Your Journey";
