@@ -32,7 +32,9 @@ STEP_SCHEMA: dict[str, dict[str, bool]] = {
     "launch": {},
     "tap": {},  # either {x,y} or {accessibilityId} — validated below
     "longPress": {},  # same as tap; optional duration
-    "screenshot": {"name": True},
+    # `screenshot` accepts `label` (preferred, per US-018) or legacy `name`.
+    # Validation lives in validate_step below; the normalized arg key is `label`.
+    "screenshot": {},
     "assertVisible": {"accessibilityId": True},
     "assertText": {"text": True},
     "wait": {"seconds": True},
@@ -123,9 +125,14 @@ def validate_step(step: object, idx: int) -> tuple[str, dict]:
                 fail("wait.seconds must be a positive number", idx, kind)
             args["seconds"] = float(v)
         if kind == "screenshot":
-            n = args.get("name")
-            if not isinstance(n, str) or not n:
-                fail("screenshot.name must be a non-empty string", idx, kind)
+            # Accept either `label` (preferred) or legacy `name`. Normalize to `label`
+            # in the emitted args so run.sh has a single field to read.
+            label = body.get("label", body.get("name"))
+            if not isinstance(label, str) or not label:
+                fail("screenshot.label must be a non-empty string", idx, kind)
+            # Drop legacy `name` if present; emit only `label`.
+            args.pop("name", None)
+            args["label"] = label
         if kind == "assertVisible":
             aid = args.get("accessibilityId")
             if not isinstance(aid, str) or not aid:

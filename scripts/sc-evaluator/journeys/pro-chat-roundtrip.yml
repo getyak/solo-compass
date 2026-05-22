@@ -21,7 +21,7 @@ steps:
   - assertVisible:
       accessibilityId: "chat.composer"
   - screenshot:
-      name: "01_chat_opened"
+      label: "01_chat_opened"
   - tap:
       accessibilityId: "chat.composer.textField"
   - assertText:
@@ -33,6 +33,6 @@ steps:
   - wait:
       seconds: 6
   - screenshot:
-      name: "02_chat_reply"
+      label: "02_chat_reply"
   - assertVisible:
       accessibilityId: "chat.messageList"

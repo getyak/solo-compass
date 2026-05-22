@@ -1,17 +1,25 @@
 # Journey: home-screen-cold-start
 #
-# Cold-launch SoloCompass.app and capture the home (map) screen. Mirrors the
-# legacy home-screen-cold-start.sh, but expressed in the DSL described in
+# Cold-launch SoloCompass.app and capture the home (map) screen across the
+# three states a first-time user sees: the raw cold-launch frame, the post
+# location-permission state, and the fully loaded map. Mirrors the legacy
+# home-screen-cold-start.sh but expressed in the DSL described in
 # scripts/sc-evaluator/SCHEMA.md.
 
 name: home-screen-cold-start
-description: Cold launch and screenshot the map home screen.
+description: Cold launch and screenshot the map home screen across its load states.
 
 steps:
   - launch:
+  - screenshot:
+      label: "cold-launch"
+  - wait:
+      seconds: 2
+  - screenshot:
+      label: "permission-granted"
   - wait:
       seconds: 4
   - screenshot:
-      name: "01_home_map"
+      label: "map-loaded"
   - assertVisible:
       accessibilityId: "compass.map"

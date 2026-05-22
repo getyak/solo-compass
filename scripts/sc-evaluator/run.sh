@@ -22,6 +22,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 IOS_DIR="$REPO_ROOT/apps/ios"
 JOURNEYS_DIR="$SCRIPT_DIR/journeys"
 FINDINGS_DIR="$SCRIPT_DIR/findings"
+SCREENSHOTS_DIR="$SCRIPT_DIR/screenshots"
 BUNDLE_ID="com.solocompass.app"
 PREFERRED_DEVICE="iPhone 17 Pro"
 PREFERRED_OS="iOS 26.4"
@@ -90,7 +91,8 @@ fi
 RUN_ID="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
 FINDINGS_FILE="$FINDINGS_DIR/${RUN_ID}.md"
 ARTIFACTS_DIR="$FINDINGS_DIR/${RUN_ID}_artifacts"
-mkdir -p "$ARTIFACTS_DIR"
+RUN_SCREENSHOTS_DIR="$SCREENSHOTS_DIR/${RUN_ID}"
+mkdir -p "$ARTIFACTS_DIR" "$RUN_SCREENSHOTS_DIR"
 
 # Append-only safety: never overwrite an existing file.
 if [[ -e "$FINDINGS_FILE" ]]; then
@@ -112,6 +114,13 @@ cat > "$FINDINGS_FILE" <<EOF
 ## Steps
 EOF
 
+# Screenshot links are buffered to a sidecar file during the run and flushed
+# into a `## Screenshots` section right before the `## Summary` block. This
+# keeps `## Steps` contiguous in the findings file even though screenshot
+# steps and other steps interleave chronologically.
+SCREENSHOTS_BUFFER="$ARTIFACTS_DIR/.screenshots-buffer.md"
+: > "$SCREENSHOTS_BUFFER"
+
 emit_step() {
   # emit_step <status:PASS|FAIL> <step-name> <detail...>
   local status="$1"
@@ -126,9 +135,14 @@ emit_step() {
 }
 
 emit_screenshot() {
-  # emit_screenshot <relative-path-from-findings-dir>
-  local rel="$1"
-  printf -- "  - screenshot: [%s](./%s)\n" "$rel" "$rel" >> "$FINDINGS_FILE"
+  # emit_screenshot <label> <relative-path-from-findings-file>
+  #
+  # Buffers a Markdown image link for the eventual `## Screenshots` section.
+  # The buffer is flushed into the findings file at the end of the run so
+  # screenshot links stay grouped instead of being interleaved with steps.
+  local label="$1"
+  local rel="$2"
+  printf -- "![%s](%s)\n" "$label" "$rel" >> "$SCREENSHOTS_BUFFER"
 }
 
 emit_fix_anchor() {
@@ -231,14 +245,26 @@ export SC_BUNDLE_ID="$BUNDLE_ID"
 export SC_ARTIFACTS_DIR="$ARTIFACTS_DIR"
 export SC_RUN_ID="$RUN_ID"
 export SC_FINDINGS_FILE="$FINDINGS_FILE"
+export SC_RUN_SCREENSHOTS_DIR="$RUN_SCREENSHOTS_DIR"
+export SCREENSHOTS_BUFFER
 
 # Helper exported for journey scripts.
+#
+# Captures a PNG to scripts/sc-evaluator/screenshots/<run_id>/<NN>-<label>.png
+# via `xcrun simctl io`. Echoes the path relative to the active findings file
+# on success (suitable for emit_screenshot), empty string on failure.
+#
+# Args:
+#   $1 — 2-digit zero-padded step ordinal (NN)
+#   $2 — label (used verbatim in filename; callers sanitize if needed)
 sc_screenshot() {
-  local name="$1"
-  local path="$ARTIFACTS_DIR/${name}.png"
+  local nn="$1" label="$2"
+  local filename="${nn}-${label}.png"
+  local path="$RUN_SCREENSHOTS_DIR/${filename}"
   xcrun simctl io "$UDID" screenshot "$path" >/dev/null 2>&1 || return 1
-  # path relative to FINDINGS_DIR for markdown links
-  echo "${RUN_ID}_artifacts/${name}.png"
+  # Path relative to FINDINGS_FILE (which lives in findings/) so markdown
+  # links resolve when the findings file is viewed in place.
+  echo "../screenshots/${RUN_ID}/${filename}"
 }
 export -f sc_screenshot
 export -f emit_step
@@ -281,14 +307,16 @@ run_yml_journey() {
         emit_step PASS "step${idx}.wait" "slept ${secs}s"
         ;;
       screenshot)
-        local name rel
-        name="$(sc_json_field "$args" name)"
-        rel="$(sc_screenshot "$name")"
+        local label nn rel
+        label="$(sc_json_field "$args" label)"
+        # NN is the 2-digit zero-padded step ordinal so files sort in journey order.
+        nn="$(printf '%02d' "$idx")"
+        rel="$(sc_screenshot "$nn" "$label")"
         if [[ -n "$rel" ]]; then
-          emit_step PASS "step${idx}.screenshot" "captured $name"
-          emit_screenshot "$rel"
+          emit_step PASS "step${idx}.screenshot" "captured $label"
+          emit_screenshot "$label" "$rel"
         else
-          emit_step FAIL "step${idx}.screenshot" "simctl screenshot failed for $name"
+          emit_step FAIL "step${idx}.screenshot" "simctl screenshot failed for $label"
           emit_fix_anchor "scripts/sc-evaluator/run.sh:sc_screenshot" "check simulator boot state and disk space"
         fi
         ;;
@@ -315,6 +343,17 @@ else
   source "$JOURNEY_SCRIPT" || JOURNEY_EXIT=$?
 fi
 
+# ---------- flush screenshots section ----------
+# Append the `## Screenshots` block (with all buffered image links) before
+# the summary, so the findings file ordering is: Steps → Screenshots → Summary.
+if [[ -s "$SCREENSHOTS_BUFFER" ]]; then
+  {
+    printf "\n## Screenshots\n"
+    cat "$SCREENSHOTS_BUFFER"
+  } >> "$FINDINGS_FILE"
+fi
+rm -f "$SCREENSHOTS_BUFFER"
+
 # ---------- summary ----------
 TOTAL_STEPS=${#STEP_RESULTS[@]}
 PASS_STEPS=0
@@ -335,6 +374,20 @@ done
 } >> "$FINDINGS_FILE"
 
 echo "→ findings: $FINDINGS_FILE"
+
+# Screenshot retention: scripts/sc-evaluator/screenshots/ is git-ignored by
+# default (see .gitignore). When the developer wants to commit a run's
+# screenshots — e.g. to attach visual evidence to a PR — they set
+# SC_EVALUATOR_KEEP_SCREENSHOTS=1, and we force-add only this run's directory
+# to the index. We never touch capture behaviour: PNGs are written either way.
+if [[ "${SC_EVALUATOR_KEEP_SCREENSHOTS:-0}" == "1" ]]; then
+  if command -v git >/dev/null 2>&1 && [[ -d "$RUN_SCREENSHOTS_DIR" ]]; then
+    if git -C "$REPO_ROOT" add -f "$RUN_SCREENSHOTS_DIR" >/dev/null 2>&1; then
+      echo "→ screenshots staged (SC_EVALUATOR_KEEP_SCREENSHOTS=1): $RUN_SCREENSHOTS_DIR"
+    fi
+  fi
+fi
+
 if [[ "$FINDINGS_COUNT" -eq 0 && "$JOURNEY_EXIT" -eq 0 ]]; then
   exit 0
 else

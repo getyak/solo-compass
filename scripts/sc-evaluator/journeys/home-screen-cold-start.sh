@@ -7,12 +7,14 @@
 #
 # Available helpers (exported by run.sh):
 #   emit_step <PASS|FAIL> <name> <detail>
-#   emit_screenshot <relative-path>
+#   emit_screenshot <label> <relative-path>
 #   emit_fix_anchor <file:line> <hint>
-#   sc_screenshot <name>          -> echoes relative artifact path
+#   sc_screenshot <NN> <label>    -> echoes relative path to PNG under
+#                                    scripts/sc-evaluator/screenshots/<run_id>/
 #
 # Available env vars:
-#   SC_UDID, SC_BUNDLE_ID, SC_ARTIFACTS_DIR, SC_RUN_ID, SC_FINDINGS_FILE
+#   SC_UDID, SC_BUNDLE_ID, SC_ARTIFACTS_DIR, SC_RUN_ID, SC_FINDINGS_FILE,
+#   SC_RUN_SCREENSHOTS_DIR
 
 set +e  # let individual steps fail without aborting the journey
 
@@ -31,10 +33,11 @@ fi
 sleep 4
 
 # Step 2: home-screen screenshot.
-REL="$(sc_screenshot "01_home_map")"
+LABEL="home-map"
+REL="$(sc_screenshot "02" "$LABEL")"
 if [[ -n "$REL" ]]; then
-  emit_step PASS "home.screenshot" "captured home map"
-  emit_screenshot "$REL"
+  emit_step PASS "home.screenshot" "captured $LABEL"
+  emit_screenshot "$LABEL" "$REL"
 else
   emit_step FAIL "home.screenshot" "simctl screenshot failed"
   emit_fix_anchor "scripts/sc-evaluator/run.sh:sc_screenshot" "check simulator boot state and disk space"

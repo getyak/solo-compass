@@ -30,7 +30,7 @@ Steps that take no args may be written as `- launch:` (null body).
 | `launch`        | —                                          | —                        | Cold-launches `SC_BUNDLE_ID` on `SC_UDID`. |
 | `tap`           | `x`+`y` **or** `accessibilityId`           | —                        | Exactly one of the two forms — never both. |
 | `longPress`     | `x`+`y` **or** `accessibilityId`           | `duration` (default 1.0) | Same coordinate / id rule as `tap`. Duration is seconds. |
-| `screenshot`    | `name` (string)                            | —                        | Written to `<run>_artifacts/<name>.png`. |
+| `screenshot`    | `label` (string)                           | —                        | Written to `scripts/sc-evaluator/screenshots/<run_id>/<NN>-<label>.png` and linked from the findings file's `## Screenshots` section. `NN` is the 2-digit zero-padded step ordinal. Legacy `name` is still accepted as a synonym for `label`. |
 | `assertVisible` | `accessibilityId` (string)                 | —                        | Fails the step if the element cannot be located. |
 | `assertText`    | `text` (string)                            | `accessibilityId`        | If `accessibilityId` is given, only that element's text is checked. |
 | `wait`          | `seconds` (number > 0)                     | —                        | Sleeps the journey for `seconds`. |
@@ -69,7 +69,7 @@ origin). They can be integers or floats.
 - assertVisible:
     accessibilityId: "compass.map"
 - screenshot:
-    name: "01_home_map"
+    label: "home-map"
 ```
 
 ### Wait between actions
@@ -90,7 +90,8 @@ exits non-zero (exit code 2 — setup error) if:
 - any step is not a single-key mapping (or explicit `{kind: ...}` form)
 - a step name is not one of: `launch`, `tap`, `longPress`, `screenshot`,
   `assertVisible`, `assertText`, `wait`
-- a required arg is missing or has the wrong type
+- a required arg is missing or has the wrong type (in particular, `screenshot`
+  requires a non-empty `label` — `name` is accepted as a legacy synonym)
 - `tap` / `longPress` lack both `(x, y)` and `accessibilityId`, or provide both
 
 Errors are written to stderr in the form:
@@ -107,8 +108,10 @@ so the offending step index and name are always visible.
   moment we adjust layout, device size, or trait collection. Coordinates are
   only intended as an escape hatch when an element does not yet expose an
   accessibility identifier.
-- Screenshot names should be `<ordinal>_<surface>` (e.g. `01_home_map`) so the
-  artifact directory sorts in chronological order.
+- Screenshot labels should be short, kebab-case state descriptions
+  (e.g. `cold-launch`, `map-loaded`). The runtime prepends a 2-digit step
+  ordinal (`NN-<label>.png`) so the screenshots directory sorts in journey
+  order without callers having to repeat the index in the label.
 - Keep a `wait` after any state transition that triggers animation or network
   activity; the runtime never auto-waits.
 - Treat journeys as append-only documentation of a real user path. If a flow
@@ -121,5 +124,9 @@ scripts/sc-evaluator/run.sh home-screen-cold-start
 scripts/sc-evaluator/run.sh pro-chat-roundtrip --no-build
 ```
 
-Findings are written to `scripts/sc-evaluator/findings/<run-id>.md` with
-artifacts (screenshots, build logs) under `findings/<run-id>_artifacts/`.
+Findings are written to `scripts/sc-evaluator/findings/<run-id>.md`. Build
+logs and other run artifacts live under `findings/<run-id>_artifacts/`.
+Screenshots are written to `scripts/sc-evaluator/screenshots/<run-id>/` —
+this directory is git-ignored by default, but a run with
+`SC_EVALUATOR_KEEP_SCREENSHOTS=1` force-stages that run's directory so the
+PNGs can be committed alongside the findings file.

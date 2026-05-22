@@ -292,7 +292,7 @@
         "scripts/sc-evaluator/screenshots/ added to .gitignore by default; opt-in via env var SC_EVALUATOR_KEEP_SCREENSHOTS=1 (the env var only changes git behaviour, not capture behaviour)"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
