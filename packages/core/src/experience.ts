@@ -178,6 +178,10 @@ export interface Experience {
   readonly status: "candidate" | "active" | "stale" | "retired";
   readonly createdAt: string;
   readonly updatedAt: string;
+
+  /** User-defined free-form tags layered on top of the category enum.
+   *  Optional in JSON; absence is equivalent to an empty array. */
+  readonly userTags?: readonly string[];
 }
 
 /**

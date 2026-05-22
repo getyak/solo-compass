@@ -28,6 +28,7 @@
 		391D6B5C48997AD74F367C0C /* GeneratedSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5642EDC714993C8EE0ECDD83 /* GeneratedSecrets.swift */; };
 		397C20402788F9B63F06A01A /* City.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DFBC1C003B8745713588A23 /* City.swift */; };
 		3AA7B0463C3B8084D954C3AA /* ChatStateModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E9EE8B07B66490112B696A /* ChatStateModifier.swift */; };
+		3B2C16B114CAAADE0862AF7B /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99AF76F1B505EF8AF6EF2470 /* ShareSheet.swift */; };
 		42E436DB35CF90AD3E43083E /* DeviceIdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D63763EFB0BE589EA0470 /* DeviceIdentityService.swift */; };
 		45A4E8EED0300F00253EC049 /* MarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */; };
 		464746A44182622D4F617462 /* AIUsageRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */; };
@@ -41,6 +42,7 @@
 		56F3055416F4A5316100F9B2 /* ExperienceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363714672D8A0FA8F7C39887 /* ExperienceCardView.swift */; };
 		58B7C9B20945838F81081941 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A22A40550CF207AB36C18 /* SettingsView.swift */; };
 		5C05B87EA78458094612AC01 /* BottomInfoBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13350B81187FB64B252B8A46 /* BottomInfoBar.swift */; };
+		615FCA91C2260950BFE3E4F3 /* ShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30705AFFEB819044661EC871 /* ShareCardView.swift */; };
 		62BB74EC16B92899A9A6A44C /* ReverseGeocodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */; };
 		641D80BD116D6F255A9ED26A /* PendingSyncRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81A92E0AE1868C3A165F3E95 /* PendingSyncRecord.swift */; };
 		65E57E8B02E7889BD8EE8DD4 /* ContextManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1F5F43F42E03BA5F10FA2F /* ContextManager.swift */; };
@@ -53,6 +55,7 @@
 		86F4628473C2D520D4C2FFFB /* SoloScoreBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */; };
 		8B4F2A6E8F3C6EAD0F9A8E32 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EA0858036CFEA9774139AFD7 /* PrivacyInfo.xcprivacy */; };
 		953C7BD48AF4AF55608145A6 /* LanguageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87002BB6D344B384A3FDFBFD /* LanguageService.swift */; };
+		987A873E2C50C8064135E1EF /* ShareCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5895B058A34A2634E816A72F /* ShareCardModel.swift */; };
 		9C8CC563D33FDBB3DF57A841 /* RecentExploreRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9748B0A808BC06F6EDED3C3B /* RecentExploreRegion.swift */; };
 		9D81327AE55FA8142F9E5B8D /* ChatUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0709110B381DEDA32C3292AE /* ChatUIState.swift */; };
 		A217FA55BD40922DB3B8DEE6 /* SoloScoreRadarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */; };
@@ -77,6 +80,7 @@
 		C2CCD06DDA37BF2F81E735E5 /* MarkdownShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85591C678C692990339095E9 /* MarkdownShareSheet.swift */; };
 		C306F7501DA85110BE3C85B5 /* NavigationLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07ACA7C1A1574A244E73796 /* NavigationLauncher.swift */; };
 		C53DB60CA9E95907A2CBF2C0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C215AE07BA32182A887226F9 /* NotificationService.swift */; };
+		C72A178F41BDB482E0E02C39 /* ShareCardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E92D314B6B62ED3B6EA2AE /* ShareCardComponents.swift */; };
 		C735986DAC69807F27CC0E39 /* FeatureFlags.plist in Resources */ = {isa = PBXBuildFile; fileRef = 409FB4B0922C4A1D8AAEB1D1 /* FeatureFlags.plist */; };
 		C7F4A9BD252AC60BDBD74585 /* MicroSurveyRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23043E51C493093CF7244629 /* MicroSurveyRecord.swift */; };
 		C81007F6A39364D0872736B2 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C660F7996B1E4387C37720B3 /* OnboardingView.swift */; };
@@ -99,6 +103,7 @@
 		EDBD7B0E715165E71BC0C17D /* DiscoveredCityRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE05EF69960CBB73431A6F2F /* DiscoveredCityRecord.swift */; };
 		EF2003CC07F7787C25847BDF /* ReportIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 576B08910782A58C3597E596 /* ReportIssueSheet.swift */; };
 		F34C1A42668EF5151AFEE3C3 /* AISynthesisCacheRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E69F3EF6F0100CFA47DAFE /* AISynthesisCacheRecord.swift */; };
+		F3D0A3E30E7D7825805C2801 /* ShareCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D78BE6F7E5B4B82CEAC0A3 /* ShareCardRenderer.swift */; };
 		F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120FC7465285714C5FA8F96D /* VoiceService.swift */; };
 		F84389464D54A5F5BEB866D0 /* SkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEDD4F6238B484BB7C20904B /* SkeletonView.swift */; };
 		FA8584E1511404B374B57E66 /* ExploreProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0997D8150E77F70A4B8C64 /* ExploreProgressBar.swift */; };
@@ -134,6 +139,7 @@
 		23043E51C493093CF7244629 /* MicroSurveyRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroSurveyRecord.swift; sourceTree = "<group>"; };
 		2C7919EAFDE363B49C4B4C47 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		2DA6E405C780A5A12A9FC1D6 /* MicroSurveySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroSurveySheet.swift; sourceTree = "<group>"; };
+		30705AFFEB819044661EC871 /* ShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardView.swift; sourceTree = "<group>"; };
 		30E9EE8B07B66490112B696A /* ChatStateModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStateModifier.swift; sourceTree = "<group>"; };
 		33B8A80F048D74BEDB8C1132 /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
 		363714672D8A0FA8F7C39887 /* ExperienceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceCardView.swift; sourceTree = "<group>"; };
@@ -147,6 +153,7 @@
 		54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExporter.swift; sourceTree = "<group>"; };
 		5642EDC714993C8EE0ECDD83 /* GeneratedSecrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedSecrets.swift; sourceTree = "<group>"; };
 		576B08910782A58C3597E596 /* ReportIssueSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportIssueSheet.swift; sourceTree = "<group>"; };
+		5895B058A34A2634E816A72F /* ShareCardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardModel.swift; sourceTree = "<group>"; };
 		5933575E731D8AC09356AB9F /* GlassmorphismCapsule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassmorphismCapsule.swift; sourceTree = "<group>"; };
 		5AB8B58A4F608F9951CBDF3C /* ExploreConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreConsentSheet.swift; sourceTree = "<group>"; };
 		5C62D0EFA5859698D9C70B7D /* OfflineBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineBanner.swift; sourceTree = "<group>"; };
@@ -168,13 +175,16 @@
 		81A92E0AE1868C3A165F3E95 /* PendingSyncRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingSyncRecord.swift; sourceTree = "<group>"; };
 		8509E525DD268E88ED3AD4FD /* LocationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationCard.swift; sourceTree = "<group>"; };
 		85591C678C692990339095E9 /* MarkdownShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownShareSheet.swift; sourceTree = "<group>"; };
+		85D78BE6F7E5B4B82CEAC0A3 /* ShareCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardRenderer.swift; sourceTree = "<group>"; };
 		87002BB6D344B384A3FDFBFD /* LanguageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageService.swift; sourceTree = "<group>"; };
 		873ACB737A9B43254C17B238 /* CityPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityPickerSheet.swift; sourceTree = "<group>"; };
 		8D0CBFD5114CC6728D6AA876 /* VoiceWaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceWaveformView.swift; sourceTree = "<group>"; };
 		8FDFA5F3503B8ABC4B5CB086 /* SoloCompassTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SoloCompassTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		94EF0AA0049BDCC88E125164 /* VoiceAgentOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgentOrchestrator.swift; sourceTree = "<group>"; };
 		9748B0A808BC06F6EDED3C3B /* RecentExploreRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentExploreRegion.swift; sourceTree = "<group>"; };
+		97E92D314B6B62ED3B6EA2AE /* ShareCardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardComponents.swift; sourceTree = "<group>"; };
 		9945A4E03F4C75ED89674594 /* SoloCompass.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SoloCompass.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		99AF76F1B505EF8AF6EF2470 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		9A1B839F9F82AFDD50655AAE /* SystemTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTheme.swift; sourceTree = "<group>"; };
 		9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceButton.swift; sourceTree = "<group>"; };
 		A1F76E8EBB87A2F70FEA1BB0 /* ExploreCacheRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreCacheRecord.swift; sourceTree = "<group>"; };
@@ -261,6 +271,7 @@
 				85591C678C692990339095E9 /* MarkdownShareSheet.swift */,
 				2DA6E405C780A5A12A9FC1D6 /* MicroSurveySheet.swift */,
 				576B08910782A58C3597E596 /* ReportIssueSheet.swift */,
+				B99BC58510B4AF3E9B9E8377 /* Share */,
 			);
 			path = Experience;
 			sourceTree = "<group>";
@@ -523,6 +534,18 @@
 			path = Onboarding;
 			sourceTree = "<group>";
 		};
+		B99BC58510B4AF3E9B9E8377 /* Share */ = {
+			isa = PBXGroup;
+			children = (
+				97E92D314B6B62ED3B6EA2AE /* ShareCardComponents.swift */,
+				5895B058A34A2634E816A72F /* ShareCardModel.swift */,
+				85D78BE6F7E5B4B82CEAC0A3 /* ShareCardRenderer.swift */,
+				30705AFFEB819044661EC871 /* ShareCardView.swift */,
+				99AF76F1B505EF8AF6EF2470 /* ShareSheet.swift */,
+			);
+			path = Share;
+			sourceTree = "<group>";
+		};
 		F041AA40AC029B779843B5D4 /* Paywall */ = {
 			isa = PBXGroup;
 			children = (
@@ -737,6 +760,11 @@
 				ADD51496532A0B763048AF5B /* ReviewsService.swift in Sources */,
 				FBE9F5951D501A611EB19EEC /* SecretsRuntime.swift in Sources */,
 				58B7C9B20945838F81081941 /* SettingsView.swift in Sources */,
+				C72A178F41BDB482E0E02C39 /* ShareCardComponents.swift in Sources */,
+				987A873E2C50C8064135E1EF /* ShareCardModel.swift in Sources */,
+				F3D0A3E30E7D7825805C2801 /* ShareCardRenderer.swift in Sources */,
+				615FCA91C2260950BFE3E4F3 /* ShareCardView.swift in Sources */,
+				3B2C16B114CAAADE0862AF7B /* ShareSheet.swift in Sources */,
 				F84389464D54A5F5BEB866D0 /* SkeletonView.swift in Sources */,
 				E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */,
 				13E5AEAEE5194DDB79AE92AC /* SoloCompassModelContainer.swift in Sources */,
