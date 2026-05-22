@@ -9,3 +9,6 @@ Tool: claude
 [2026-05-22T04:52:42Z] Story #US-002: Add VoiceAgentOrchestrator.rebindContext(_:) to swap experience scope without re-allocating — FAILED (iteration 5)
 [2026-05-22T04:56:44Z] Story #US-002: Add VoiceAgentOrchestrator.rebindContext(_:) to swap experience scope without re-allocating — FAILED (iteration 6)
 [2026-05-22T05:00:42Z] Story #US-002: Add VoiceAgentOrchestrator.rebindContext(_:) to swap experience scope without re-allocating — PASSED
+[2026-05-22T05:04:11Z] Story #US-003: Inject <experience_context> block into orchestrator system prompt builder — FAILED (iteration 8)
+[2026-05-22T05:08:05Z] Story #US-003: Inject <experience_context> block into orchestrator system prompt builder — FAILED (iteration 9)
+[2026-05-22T05:17:10Z] Story #US-003: Inject <experience_context> block into orchestrator system prompt builder — PASSED

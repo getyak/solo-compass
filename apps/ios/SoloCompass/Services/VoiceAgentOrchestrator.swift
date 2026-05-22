@@ -97,7 +97,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         uiState = .listening
         thinkingStep = NSLocalizedString("agent.step.listening", comment: "Listening…")
         Task {
-            let prompt = await buildSystemPrompt()
+            let prompt = await buildSystemPrompt(experience: scopedExperience)
             currentSystemPrompt = prompt
             session.seedSystem(prompt)
             session.beginListening()
@@ -131,7 +131,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         // Re-seed the system prompt synchronously enough that callers can
         // observe `currentSystemPrompt` after this Task completes.
         Task {
-            let prompt = await buildSystemPrompt()
+            let prompt = await buildSystemPrompt(experience: scopedExperience)
             currentSystemPrompt = prompt
             session.reseedSystem(prompt)
             isSeeded = true
@@ -399,7 +399,13 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
     /// Builds the system prompt async, injecting the LLMContext JSON snapshot
     /// when a ContextManager is wired in (US-023).
-    private func buildSystemPrompt() async -> String {
+    ///
+    /// US-003: when `experience` is non-nil, an `<experience_context>` block
+    /// is emitted with title / category / cityCode / bestTimes summary /
+    /// confidence level / soloScore overall. Coordinates are intentionally
+    /// omitted — the model should anchor on identity and metadata, not on
+    /// raw lat/lon.
+    internal func buildSystemPrompt(experience: Experience?) async -> String {
         let visible = mapViewModel?.visibleExperiences.prefix(VoiceAgentSession.visibleExperiencesInjected) ?? []
         let visibleSummary = visible.isEmpty
             ? "No experiences currently visible on the map."
@@ -421,23 +427,12 @@ public final class VoiceAgentOrchestrator: Identifiable {
             }
         }
 
-        // US-002: when scoped to a specific experience (per-card chat),
-        // inject a focused block so the model anchors its answers to that
-        // place. When `scopedExperience` is `nil`, the chat is global.
-        var experienceBlock = ""
-        if let exp = scopedExperience {
-            let expCoord = exp.location.clCoordinate ?? MapViewModel.defaultCenter
-            experienceBlock = """
-
-            SCOPED EXPERIENCE (the user opened this card — focus answers here):
-              id: \(exp.id)
-              title: \(exp.title)
-              category: \(exp.category.rawValue)
-              one-liner: \(exp.oneLiner)
-              solo-score: \(String(format: "%.1f", exp.soloScore.overall))/10
-              coords: (\(String(format: "%.4f", expCoord.latitude)), \(String(format: "%.4f", expCoord.longitude)))
-            """
-        }
+        // US-002/US-003: when scoped to a specific experience (per-card chat),
+        // inject a focused <experience_context> block so the model anchors
+        // its answers to that place. When `experience` is `nil`, the chat
+        // is global and no block is emitted. Coordinates are NEVER included
+        // in the block — only identity + metadata.
+        let experienceBlock = experience.map { Self.renderExperienceContext($0) } ?? ""
 
         return """
         You are Solo Compass, a warm and knowledgeable travel companion for solo travelers.
@@ -468,5 +463,37 @@ public final class VoiceAgentOrchestrator: Identifiable {
         - Detect the user's language from their input and reply in the same language.
         - If the user's request is unclear, ask exactly ONE clarifying question.
         """
+    }
+
+    /// US-003: Render the `<experience_context>` XML block for a scoped
+    /// Experience. Includes identity + metadata only; coordinates are
+    /// deliberately omitted so they never leak into the prompt.
+    static func renderExperienceContext(_ exp: Experience) -> String {
+        let category = exp.category.rawValue
+        let confidence = exp.confidence.level
+        let score = String(format: "%.1f", exp.soloScore.overall)
+        let bestTimes = summarizeBestTimes(exp.bestTimes)
+        return """
+
+
+        <experience_context>
+          id: \(exp.id)
+          title: \(exp.title)
+          category: \(category)
+          cityCode: \(exp.location.cityCode)
+          bestTimes: \(bestTimes)
+          confidence.level: \(confidence)
+          soloScore.overall: \(score)
+        </experience_context>
+        """
+    }
+
+    /// Compact human-readable summary of `bestTimes` windows for the prompt.
+    /// Example: "07-10, 17-21" or "none" when empty.
+    static func summarizeBestTimes(_ windows: [TimeWindow]) -> String {
+        guard !windows.isEmpty else { return "none" }
+        return windows.map { w in
+            String(format: "%02d-%02d", w.startHour, w.endHour)
+        }.joined(separator: ", ")
     }
 }

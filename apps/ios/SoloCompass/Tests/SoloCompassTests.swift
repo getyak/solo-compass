@@ -4345,7 +4345,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
                 if let exp = exp {
                     promptMatches = orch.currentSystemPrompt.contains("id: \(exp.id)")
                 } else {
-                    promptMatches = !orch.currentSystemPrompt.contains("SCOPED EXPERIENCE")
+                    promptMatches = !orch.currentSystemPrompt.contains("<experience_context>")
                 }
                 if scopeMatches && promptHasContent && promptMatches { return }
                 try await Task.sleep(nanoseconds: 20_000_000) // 20 ms
@@ -4359,8 +4359,8 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         XCTAssertEqual(orch.id, originalId, "same orchestrator instance after rebind(nil)")
         XCTAssertNil(orch.scopedExperience, "scopedExperience must be nil after rebind(nil)")
         XCTAssertFalse(
-            orch.currentSystemPrompt.contains("SCOPED EXPERIENCE"),
-            "global chat prompt must not contain a SCOPED EXPERIENCE block"
+            orch.currentSystemPrompt.contains("<experience_context>"),
+            "global chat prompt must not contain an <experience_context> block"
         )
 
         // 2. Scope to experience A.
@@ -4386,5 +4386,103 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
             orch.currentSystemPrompt.contains("id: \(expA.id)"),
             "after rebinding to B, prompt must not still mention A's id"
         )
+    }
+
+    // MARK: - US-003 <experience_context> block contents + no coord leak
+
+    /// buildSystemPrompt(experience:) must emit an <experience_context> block
+    /// containing title, category rawValue, cityCode, a bestTimes summary,
+    /// confidence.level, and soloScore.overall — and MUST NOT include any
+    /// substring derived from Experience.location.coordinates.
+    @MainActor
+    func testBuildSystemPromptInjectsExperienceContextWithoutCoordinates() async throws {
+        let seeds = ExperienceService.hardcodedSeed
+        let exp = try XCTUnwrap(seeds.first, "need at least one seed experience")
+
+        let ai = AIService()
+        let voice = VoiceService()
+        let mapVM = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences()
+        )
+        let orch = VoiceAgentOrchestrator(
+            aiService: ai,
+            voiceService: voice,
+            mapViewModel: mapVM,
+            preferences: UserPreferences()
+        )
+
+        let prompt = await orch.buildSystemPrompt(experience: exp)
+
+        // Block delimiters present.
+        XCTAssertTrue(prompt.contains("<experience_context>"),
+                      "must contain opening <experience_context> tag")
+        XCTAssertTrue(prompt.contains("</experience_context>"),
+                      "must contain closing </experience_context> tag")
+
+        // Required fields present.
+        XCTAssertTrue(prompt.contains("id: \(exp.id)"))
+        XCTAssertTrue(prompt.contains("title: \(exp.title)"))
+        XCTAssertTrue(prompt.contains("category: \(exp.category.rawValue)"))
+        XCTAssertTrue(prompt.contains("cityCode: \(exp.location.cityCode)"))
+        XCTAssertTrue(prompt.contains("confidence.level: \(exp.confidence.level)"))
+        let scoreString = String(format: "%.1f", exp.soloScore.overall)
+        XCTAssertTrue(prompt.contains("soloScore.overall: \(scoreString)"),
+                      "must include soloScore.overall formatted to one decimal")
+
+        // bestTimes summary: either explicit windows or the "none" sentinel.
+        let bestTimesSummary = VoiceAgentOrchestrator.summarizeBestTimes(exp.bestTimes)
+        XCTAssertTrue(prompt.contains("bestTimes: \(bestTimesSummary)"))
+
+        // No coordinate substring may appear inside the <experience_context>
+        // block — neither raw GeoJSON [lon, lat] strings nor the
+        // 4-decimal "(lat, lon)" form previously used by the old
+        // SCOPED EXPERIENCE block.
+        let coords = exp.location.coordinates
+        if coords.count >= 2 {
+            let lon = coords[0]
+            let lat = coords[1]
+            let lon4 = String(format: "%.4f", lon)
+            let lat4 = String(format: "%.4f", lat)
+            // Extract the experience_context block and assert no coord text.
+            if let startRange = prompt.range(of: "<experience_context>"),
+               let endRange = prompt.range(of: "</experience_context>") {
+                let blockText = String(prompt[startRange.lowerBound..<endRange.upperBound])
+                XCTAssertFalse(blockText.contains(lon4),
+                               "<experience_context> must not leak longitude")
+                XCTAssertFalse(blockText.contains(lat4),
+                               "<experience_context> must not leak latitude")
+                XCTAssertFalse(blockText.lowercased().contains("coord"),
+                               "<experience_context> must not mention coordinates at all")
+            } else {
+                XCTFail("experience_context block boundaries not found")
+            }
+        }
+    }
+
+    /// Passing `nil` to buildSystemPrompt(experience:) must NOT emit any
+    /// <experience_context> block.
+    @MainActor
+    func testBuildSystemPromptOmitsExperienceContextWhenNil() async {
+        let ai = AIService()
+        let voice = VoiceService()
+        let mapVM = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences()
+        )
+        let orch = VoiceAgentOrchestrator(
+            aiService: ai,
+            voiceService: voice,
+            mapViewModel: mapVM,
+            preferences: UserPreferences()
+        )
+
+        let prompt = await orch.buildSystemPrompt(experience: nil)
+        XCTAssertFalse(prompt.contains("<experience_context>"),
+                       "global (nil) scope must not contain <experience_context>")
     }
 }
