@@ -175,6 +175,15 @@ public struct CompassMapView: View {
                         Spacer()
                     }
                     .animation(.easeInOut, value: networkMonitor.isConnected)
+                } else if viewModel.isFetchingPOIs {
+                    // POI loading banner (#134): only while online — offline
+                    // never fetches, and the offline pill already owns the slot.
+                    VStack {
+                        POILoadingBanner()
+                            .padding(.top, 8)
+                        Spacer()
+                    }
+                    .animation(.easeInOut, value: viewModel.isFetchingPOIs)
                 }
             } else {
                 ProgressView()

@@ -123,6 +123,7 @@
 "map.empty.stage.tryExplore" = "Explore farther";
 "map.empty.stage.browseCity" = "Browse %@";
 "map.loading" = "Loading map";
+"map.loadingPOIs" = "Finding nearby places…";
 
 /* City picker */
 "city.all" = "All Cities";

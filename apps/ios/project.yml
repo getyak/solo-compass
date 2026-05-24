@@ -133,6 +133,11 @@ schemes:
       config: Debug
     test:
       config: Debug
+      # StoreKit unit tests need the local .storekit config wired into the
+      # *test action* (the STOREKIT_CONFIGURATION build setting alone is not
+      # honored by the test runner), otherwise the bare simulator returns
+      # zero products and Code=3 (#134).
+      storeKitConfiguration: SoloCompass/Resources/Configuration.storekit
       targets:
         - SoloCompassTests
     profile:

@@ -60,6 +60,14 @@ public final class MapViewModel {
     /// distinctly (no AI spinner; no quota banner).
     public var isExploringFreeMode: Bool = false
 
+    /// Forwards `OverpassService.isFetching` so the map can show a loading
+    /// indicator while POIs are being fetched (#134). `OverpassService` is
+    /// `@Observable`, so reading it here keeps SwiftUI's dependency tracking
+    /// intact — the view re-renders when the fetch state flips.
+    public var isFetchingPOIs: Bool {
+        overpassService.isFetching
+    }
+
     // MARK: - Explore consent (US-034)
 
     /// Set to true the first time a user triggers an Explore action
