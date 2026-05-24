@@ -367,7 +367,11 @@ public final class MapViewModel {
         let center = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: center, radiusKm: radiusKm)
-        visibleExperiences = nearby
+        // Animate the marker set so filter changes fade pins in/out instead
+        // of flashing the whole layer.
+        withAnimation(.easeInOut(duration: 0.25)) {
+            visibleExperiences = nearby
+        }
         nearbySoloCount = computeNearbySoloCount(in: nearby)
         updateBottomInfo()
     }
@@ -552,10 +556,14 @@ public final class MapViewModel {
     /// reacting to user pan/zoom — that would create a feedback loop where
     /// every gesture resets the zoom level.
     public func recenter(on coordinate: CLLocationCoordinate2D) {
-        cameraPosition = .region(MKCoordinateRegion(
-            center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
-        ))
+        // Animate the camera so an explicit "locate me" glides into place
+        // instead of snapping, matching focusOnExperience's feel.
+        withAnimation(.smooth(duration: 0.35)) {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+            ))
+        }
         loadNearbyExperiences()
         updateBottomInfo()
     }
@@ -565,7 +573,9 @@ public final class MapViewModel {
     public func refreshForLocation(_ coordinate: CLLocationCoordinate2D) {
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: coordinate, radiusKm: radiusKm)
-        visibleExperiences = nearby
+        withAnimation(.easeInOut(duration: 0.25)) {
+            visibleExperiences = nearby
+        }
         nearbySoloCount = computeNearbySoloCount(in: nearby)
         updateBottomInfo()
     }

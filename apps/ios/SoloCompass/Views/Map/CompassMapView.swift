@@ -409,7 +409,8 @@ public struct CompassMapView: View {
                                     MarkerIconView(
                                         category: exp.category,
                                         state: viewModel.markerState(for: exp),
-                                        confidenceLevel: exp.confidence.level
+                                        confidenceLevel: exp.confidence.level,
+                                        isSelected: viewModel.selectedExperience?.id == exp.id
                                     )
                                     if case .footprinted = viewModel.markerState(for: exp) {
                                         Text("\(viewModel.footprintCount(for: exp))")
@@ -422,6 +423,7 @@ public struct CompassMapView: View {
                                 }
                             }
                             .buttonStyle(.plain)
+                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                 }
@@ -454,7 +456,7 @@ public struct CompassMapView: View {
                         repeat {
                             try? await Task.sleep(for: .milliseconds(100))
                             if Task.isCancelled { return }
-                        } while Date().timeIntervalSince(lastPanAt) < 1.5
+                        } while Date().timeIntervalSince(lastPanAt) < 0.8
                         if !Task.isCancelled {
                             isMapPanning = false
                         }
