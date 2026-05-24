@@ -103,15 +103,31 @@ public final class OverpassService {
         radiusMeters: Int = 3000,
         category: ExperienceCategory? = nil
     ) async throws -> [POI] {
-        let regionKey = Self.regionKey(
+        let centerKey = Self.regionKey(
             lat: coordinate.latitude,
             lon: coordinate.longitude,
             radiusMeters: radiusMeters,
             category: category
         )
 
-        if let cached = await loadCached(regionKey: regionKey) {
+        // Fast path: center geohash-6 cell already cached → return as-is.
+        if let cached = await loadCached(regionKey: centerKey) {
             return cached
+        }
+
+        // Slow-but-still-no-network path: try the 8 neighbor cells. If
+        // the user previously explored adjacent areas, we can satisfy
+        // this request by merging cached neighbor results without
+        // hitting Overpass at all. Only kicks in when at least one
+        // neighbor is cached — otherwise we fall straight through to
+        // the network path.
+        if let merged = await loadCrossBucket(
+            centerLat: coordinate.latitude,
+            centerLon: coordinate.longitude,
+            radiusMeters: radiusMeters,
+            category: category
+        ) {
+            return merged
         }
 
         guard let endpoint else { throw OverpassError.invalidURL }
@@ -133,7 +149,7 @@ public final class OverpassService {
         request.httpBody = "data=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")".data(using: .utf8)
 
         let (raw, pois) = try await fetchAndDecode(request)
-        await writeCache(regionKey: regionKey, raw: raw, poiCount: pois.count)
+        await writeCache(regionKey: centerKey, raw: raw, poiCount: pois.count)
         return pois
     }
 
@@ -165,19 +181,64 @@ public final class OverpassService {
         return result
     }
 
+    /// Schema version for the cache key. Bump when key format changes so
+    /// old rows stop matching and naturally TTL out instead of poisoning
+    /// reads. Current scheme:
+    ///   `v2:gh6:{geohash6}_r{radius}` or
+    ///   `v2:gh6:{geohash6}_r{radius}_{category}`
+    /// — switched from the legacy "0.01° rounded lat/lon" scheme (v1) to
+    /// proper geohash so cells form a deterministic grid that supports
+    /// neighbor lookups (see `regionKeys(forCenter:...)`).
+    public static let cacheSchemaVersion = "v2"
+
+    /// Geohash precision: 6 → ~1.2 km × 0.6 km equator cells, matching our
+    /// typical 1.5–4 km explore radius.
+    public static let cacheGeohashPrecision = 6
+
+    /// Cache key for a single geohash cell + radius (+ optional category).
+    ///
+    /// Two calls with center coords inside the same geohash-6 cell produce
+    /// the same key — so micro-pans hit the cache.
     public static func regionKey(
         lat: Double,
         lon: Double,
         radiusMeters: Int,
         category: ExperienceCategory? = nil
     ) -> String {
-        let roundedLat = (lat * 100).rounded() / 100
-        let roundedLon = (lon * 100).rounded() / 100
-        let base = String(format: "%.2f_%.2f_%d", roundedLat, roundedLon, radiusMeters)
+        let gh = Geohash.encode(latitude: lat, longitude: lon, precision: cacheGeohashPrecision)
+        return regionKey(geohash: gh, radiusMeters: radiusMeters, category: category)
+    }
+
+    /// Lower-level builder when the geohash is already known (used by the
+    /// cross-bucket path so we don't re-encode N times).
+    public static func regionKey(
+        geohash: String,
+        radiusMeters: Int,
+        category: ExperienceCategory? = nil
+    ) -> String {
+        let base = "\(cacheSchemaVersion):gh\(cacheGeohashPrecision):\(geohash)_r\(radiusMeters)"
         if let category {
             return "\(base)_\(category.rawValue)"
         }
         return base
+    }
+
+    /// Cache keys for the center cell + its 8 neighbors. Used by cross-
+    /// bucket cache lookups so a fetch whose radius spans an edge can
+    /// satisfy adjacent cells from cache.
+    ///
+    /// All 9 keys share the same `radiusMeters` and `category` — only the
+    /// geohash component varies. Center cell is always first.
+    public static func regionKeys(
+        forCenterLat lat: Double,
+        lon: Double,
+        radiusMeters: Int,
+        category: ExperienceCategory? = nil
+    ) -> [String] {
+        let center = Geohash.encode(latitude: lat, longitude: lon, precision: cacheGeohashPrecision)
+        return Geohash.centerAndNeighbors(of: center).map {
+            regionKey(geohash: $0, radiusMeters: radiusMeters, category: category)
+        }
     }
 
     // MARK: - HTTP
@@ -214,6 +275,47 @@ public final class OverpassService {
             guard let raw = repo.loadExploreCache(regionKey: key) else { return nil }
             return try? Self.decodePOIs(from: raw)
         }
+    }
+
+    /// Try to satisfy a fetch from the 8 neighbor cells of the center
+    /// geohash. Returns:
+    ///   * `nil` when **zero** neighbors are cached → caller falls
+    ///     through to the network path. We deliberately don't return a
+    ///     partial result built from "some" neighbors — a half-filled
+    ///     map is worse than waiting one round-trip.
+    ///   * A merged + deduplicated POI list when at least one neighbor
+    ///     hit, since adjacent caches already cover most of the same
+    ///     area at the radii we use (1.5–4 km vs 1.2 km × 0.6 km cells).
+    ///
+    /// Repository access is hopped to the main actor in one batched
+    /// `MainActor.run` to avoid 9 separate actor hops per call.
+    private func loadCrossBucket(
+        centerLat lat: Double,
+        centerLon lon: Double,
+        radiusMeters: Int,
+        category: ExperienceCategory?
+    ) async -> [POI]? {
+        let keys = Self.regionKeys(
+            forCenterLat: lat,
+            lon: lon,
+            radiusMeters: radiusMeters,
+            category: category
+        )
+        // Drop the first entry — center was already tried in the fast
+        // path. Looking it up again here would always miss (we only
+        // reach this method on center miss) and waste a fetch.
+        let neighborKeys = Array(keys.dropFirst())
+        guard !neighborKeys.isEmpty else { return nil }
+
+        let rawHits: [Data] = await MainActor.run { [weak self] in
+            guard let self, let repo = self.repository else { return [] }
+            return neighborKeys.compactMap { repo.loadExploreCache(regionKey: $0) }
+        }
+        guard !rawHits.isEmpty else { return nil }
+
+        let batches = rawHits.compactMap { try? Self.decodePOIs(from: $0) }
+        guard !batches.isEmpty else { return nil }
+        return Self.dedupe(across: batches)
     }
 
     private func writeCache(regionKey key: String, raw: Data, poiCount: Int) async {

@@ -1346,8 +1346,100 @@ final class SoloCompassTests: XCTestCase {
     // MARK: - US-011 Overpass cache 14-day TTL
 
     func testOverpassRegionKeyFormat() {
+        // v2 scheme: "v2:gh6:{geohash6}_r{radius}". Hanoi (21.0285,
+        // 105.8542) falls in a known geohash-6 cell; we re-derive the
+        // expected hash from the helper rather than hardcoding the
+        // base32 string so this test survives precision/alphabet tweaks
+        // if Geohash itself is ever revised.
         let key = OverpassService.regionKey(lat: 21.0285, lon: 105.8542, radiusMeters: 3000)
-        XCTAssertEqual(key, "21.03_105.85_3000", "rounding to 0.01° + radius suffix")
+        let gh = Geohash.encode(latitude: 21.0285, longitude: 105.8542, precision: 6)
+        XCTAssertEqual(key, "v2:gh6:\(gh)_r3000",
+                       "schema prefix + geohash-6 cell + radius suffix")
+    }
+
+    func testOverpassRegionKeyIncludesCategoryWhenProvided() {
+        let key = OverpassService.regionKey(
+            lat: 21.0285, lon: 105.8542, radiusMeters: 3000, category: .coffee
+        )
+        XCTAssertTrue(key.hasSuffix("_r3000_coffee"),
+                      "category suffix appended after radius")
+    }
+
+    func testOverpassRegionKeysReturnsCenterPlusNeighbors() {
+        // Center + 8 neighbors → 9 distinct keys for an interior cell.
+        // All share the same radius/category and only differ in geohash.
+        let keys = OverpassService.regionKeys(
+            forCenterLat: 21.0285,
+            lon: 105.8542,
+            radiusMeters: 3000,
+            category: .coffee
+        )
+        XCTAssertEqual(keys.count, 9, "center + 8 neighbors")
+        XCTAssertEqual(Set(keys).count, 9, "all keys distinct (no center/neighbor collision)")
+        for k in keys {
+            XCTAssertTrue(k.hasPrefix("v2:gh6:"), "schema prefix preserved on every neighbor key")
+            XCTAssertTrue(k.hasSuffix("_r3000_coffee"), "radius + category preserved on every neighbor key")
+        }
+    }
+
+    // MARK: - Geohash helper
+
+    func testGeohashEncodeIsDeterministic() {
+        let a = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let b = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        XCTAssertEqual(a, b)
+        XCTAssertEqual(a.count, 6, "precision controls hash length")
+    }
+
+    func testGeohashEncodeMicroPanStaysInSameCell() {
+        // A ~10 m pan must not change the geohash-6 cell — that's the
+        // whole point of bucketing: cache survives small map moves.
+        let base = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let panned = Geohash.encode(latitude: 35.68121, longitude: 139.76711, precision: 6)
+        XCTAssertEqual(base, panned, "tiny pan must stay in same bucket")
+    }
+
+    func testGeohashEncodeDistantCoordsDiffer() {
+        let tokyo = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let nyc = Geohash.encode(latitude: 40.7580, longitude: -73.9855, precision: 6)
+        XCTAssertNotEqual(tokyo, nyc)
+    }
+
+    func testGeohashNeighborsHaveSamePrecisionAndAreDistinct() {
+        let center = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let neighbors = Geohash.neighbors(of: center)
+        XCTAssertEqual(neighbors.count, 8, "interior cell has 8 neighbors")
+        XCTAssertEqual(Set(neighbors).count, 8, "all 8 neighbors are distinct")
+        XCTAssertFalse(neighbors.contains(center), "center not listed in its own neighbor set")
+        for n in neighbors {
+            XCTAssertEqual(n.count, center.count, "neighbors keep same precision")
+        }
+    }
+
+    func testGeohashCenterAndNeighborsPutsCenterFirst() {
+        let center = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let all = Geohash.centerAndNeighbors(of: center)
+        XCTAssertEqual(all.count, 9)
+        XCTAssertEqual(all.first, center, "center cell is always first")
+    }
+
+    func testGeohashDecodeRoundtripsToBoundingBoxThatContainsInput() {
+        let lat = 35.6812
+        let lon = 139.7671
+        let hash = Geohash.encode(latitude: lat, longitude: lon, precision: 6)
+        guard let bbox = Geohash.decode(hash) else {
+            return XCTFail("decode failed for valid hash \(hash)")
+        }
+        XCTAssertGreaterThanOrEqual(lat, bbox.latMin)
+        XCTAssertLessThanOrEqual(lat, bbox.latMax)
+        XCTAssertGreaterThanOrEqual(lon, bbox.lonMin)
+        XCTAssertLessThanOrEqual(lon, bbox.lonMax)
+    }
+
+    func testGeohashDecodeRejectsBadAlphabet() {
+        // 'a', 'i', 'l', 'o' are deliberately excluded from the alphabet.
+        XCTAssertNil(Geohash.decode("aaaaaa"))
+        XCTAssertNil(Geohash.decode("xxxxix"))
     }
 
     // MARK: - US-MR-02 cross-ring dedupe
@@ -2064,6 +2156,121 @@ final class SoloCompassTests: XCTestCase {
         service.clearExploreCache()
         _ = try await service.fetchPOIs(near: coord, radiusMeters: 3000)
         XCTAssertEqual(StubURLProtocol.requestCount, 2, "after clear, second call hits network again")
+    }
+
+    /// Cross-bucket fast path (B plan): two fetches with centers inside
+    /// the **same** geohash-6 cell must collapse to one HTTP call.
+    /// This is the baseline cache contract everything else builds on.
+    @MainActor
+    func testOverpassCacheHitWithinSameGeohashCellSkipsNetwork() async throws {
+        StubURLProtocol.handler = { _ in
+            let json = #"{"elements":[{"type":"node","id":42,"lat":35.6812,"lon":139.7671,"tags":{"name":"Tokyo Spot","leisure":"park"}}]}"#
+            return (HTTPURLResponse(
+                url: URL(string: "https://overpass-api.de/api/interpreter")!,
+                statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                json.data(using: .utf8)!)
+        }
+        StubURLProtocol.requestCount = 0
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: config)
+
+        let container = SoloCompassModelContainer.makeInMemory()
+        let context = ModelContext(container)
+        let repo = ExperienceRepository(context: context)
+        let service = OverpassService(session: session, maxResults: 30, repository: repo)
+
+        // Two coordinates ~10 m apart — definitely the same geohash-6 cell.
+        let c1 = CLLocationCoordinate2D(latitude: 35.68120, longitude: 139.76710)
+        let c2 = CLLocationCoordinate2D(latitude: 35.68121, longitude: 139.76711)
+
+        _ = try await service.fetchPOIs(near: c1, radiusMeters: 3000)
+        _ = try await service.fetchPOIs(near: c2, radiusMeters: 3000)
+
+        XCTAssertEqual(
+            StubURLProtocol.requestCount, 1,
+            "micro-pans inside one geohash cell must reuse the cache, not re-hit Overpass"
+        )
+    }
+
+    /// Cross-bucket slow path: when the center cell is cold but a
+    /// neighbor cell is already cached, the second fetch (from the cold
+    /// center) must satisfy itself from the neighbor without an HTTP
+    /// call. Verifies the `loadCrossBucket` branch added in B plan.
+    @MainActor
+    func testOverpassCrossBucketHitFromCachedNeighborSkipsNetwork() async throws {
+        StubURLProtocol.handler = { _ in
+            let json = #"{"elements":[{"type":"node","id":100,"lat":35.6812,"lon":139.7671,"tags":{"name":"Neighbor Spot","leisure":"park"}}]}"#
+            return (HTTPURLResponse(
+                url: URL(string: "https://overpass-api.de/api/interpreter")!,
+                statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                json.data(using: .utf8)!)
+        }
+        StubURLProtocol.requestCount = 0
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: config)
+
+        let container = SoloCompassModelContainer.makeInMemory()
+        let context = ModelContext(container)
+        let repo = ExperienceRepository(context: context)
+        let service = OverpassService(session: session, maxResults: 30, repository: repo)
+
+        // First fetch warms cache for cell A.
+        let centerA = CLLocationCoordinate2D(latitude: 35.6812, longitude: 139.7671)
+        _ = try await service.fetchPOIs(near: centerA, radiusMeters: 3000)
+        XCTAssertEqual(StubURLProtocol.requestCount, 1, "cold center fetches once")
+
+        // Now pick a coordinate inside one of A's 8 neighbor cells. We
+        // derive it from the cell's bounding box so the test stays
+        // correct independent of geohash internals.
+        let hashA = Geohash.encode(latitude: centerA.latitude, longitude: centerA.longitude, precision: 6)
+        let neighborHash = try XCTUnwrap(Geohash.neighbors(of: hashA).first,
+                                          "interior cell must have neighbors")
+        let neighborCenter = try XCTUnwrap(Geohash.center(neighborHash),
+                                            "decodable neighbor hash")
+        let centerB = CLLocationCoordinate2D(
+            latitude: neighborCenter.lat,
+            longitude: neighborCenter.lon
+        )
+
+        // Cell B is cold but its neighbor A is cached → cross-bucket
+        // path must satisfy this without a second HTTP.
+        let result = try await service.fetchPOIs(near: centerB, radiusMeters: 3000)
+        XCTAssertEqual(
+            StubURLProtocol.requestCount, 1,
+            "cold center with cached neighbor must reuse neighbor cache, not re-hit Overpass"
+        )
+        XCTAssertFalse(result.isEmpty, "cross-bucket result must include the neighbor's POIs")
+    }
+
+    /// Cache miss when nothing is cached anywhere near: must hit the
+    /// network. Guards against an over-eager cross-bucket path that
+    /// accidentally returns an empty result instead of fetching.
+    @MainActor
+    func testOverpassColdCenterAndColdNeighborsHitsNetwork() async throws {
+        StubURLProtocol.handler = { _ in
+            let json = #"{"elements":[{"type":"node","id":7,"lat":40.7580,"lon":-73.9855,"tags":{"name":"Times Sq","tourism":"attraction"}}]}"#
+            return (HTTPURLResponse(
+                url: URL(string: "https://overpass-api.de/api/interpreter")!,
+                statusCode: 200, httpVersion: nil, headerFields: nil)!,
+                json.data(using: .utf8)!)
+        }
+        StubURLProtocol.requestCount = 0
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: config)
+
+        let container = SoloCompassModelContainer.makeInMemory()
+        let context = ModelContext(container)
+        let repo = ExperienceRepository(context: context)
+        let service = OverpassService(session: session, maxResults: 30, repository: repo)
+
+        let coord = CLLocationCoordinate2D(latitude: 40.7580, longitude: -73.9855)
+        let result = try await service.fetchPOIs(near: coord, radiusMeters: 3000)
+
+        XCTAssertEqual(StubURLProtocol.requestCount, 1, "no cache → exactly one HTTP call")
+        XCTAssertEqual(result.count, 1)
     }
 
     // MARK: - US-022 KeychainStore round-trip
