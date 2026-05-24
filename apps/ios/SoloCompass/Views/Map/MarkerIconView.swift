@@ -12,6 +12,9 @@ public struct MarkerIconView: View {
     let category: ExperienceCategory
     let state: ExperienceMarkerState
     let confidenceLevel: Int
+    /// Whether this marker is the currently selected experience. Drives a
+    /// scale-up + accent ring so the user can see which pin they tapped.
+    let isSelected: Bool
 
     @Environment(\.themeService) private var themeService
     @State private var pulse = false
@@ -19,11 +22,13 @@ public struct MarkerIconView: View {
     public init(
         category: ExperienceCategory,
         state: ExperienceMarkerState,
-        confidenceLevel: Int = 5
+        confidenceLevel: Int = 5,
+        isSelected: Bool = false
     ) {
         self.category = category
         self.state = state
         self.confidenceLevel = confidenceLevel
+        self.isSelected = isSelected
     }
 
     /// True when this marker should render in "AI-generated, low
@@ -45,6 +50,16 @@ public struct MarkerIconView: View {
     @ViewBuilder
     private var defaultMarkerBody: some View {
         ZStack {
+            // Selection ring — a white-haloed accent circle behind the pin so
+            // the tapped marker reads as "active" without changing its color.
+            if isSelected {
+                Circle()
+                    .stroke(category.color, lineWidth: 3)
+                    .background(Circle().fill(.white.opacity(0.9)))
+                    .frame(width: 50, height: 50)
+                    .shadow(color: category.color.opacity(0.5), radius: 6)
+            }
+
             // Pulse ring for "best now" (suppress on low-confidence — we
             // don't want AI-guessed entries imitating verified excitement)
             if case .bestNow = state, !isLowConfidence {
@@ -72,6 +87,8 @@ public struct MarkerIconView: View {
             adornment
         }
         .frame(width: 44, height: 44)
+        .scaleEffect(isSelected ? 1.3 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
         .accessibilityLabel(Text(accessibilityLabel))
         .accessibilityIdentifier(accessibilityIdentifier)
     }
