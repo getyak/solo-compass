@@ -44,6 +44,7 @@
 		5C05B87EA78458094612AC01 /* BottomInfoBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13350B81187FB64B252B8A46 /* BottomInfoBar.swift */; };
 		615FCA91C2260950BFE3E4F3 /* ShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30705AFFEB819044661EC871 /* ShareCardView.swift */; };
 		62BB74EC16B92899A9A6A44C /* ReverseGeocodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */; };
+		63AC87E980EFFCFA0D628DF8 /* Geohash.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2289B2A2C8AFA32991B2348 /* Geohash.swift */; };
 		641D80BD116D6F255A9ED26A /* PendingSyncRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81A92E0AE1868C3A165F3E95 /* PendingSyncRecord.swift */; };
 		65E57E8B02E7889BD8EE8DD4 /* ContextManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1F5F43F42E03BA5F10FA2F /* ContextManager.swift */; };
 		6AA87132BC6ACDDDC6D98735 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF007DB5F72E30021CADA555 /* NetworkMonitor.swift */; };
@@ -193,6 +194,7 @@
 		9A1B839F9F82AFDD50655AAE /* SystemTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTheme.swift; sourceTree = "<group>"; };
 		9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceButton.swift; sourceTree = "<group>"; };
 		A1F76E8EBB87A2F70FEA1BB0 /* ExploreCacheRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreCacheRecord.swift; sourceTree = "<group>"; };
+		A2289B2A2C8AFA32991B2348 /* Geohash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geohash.swift; sourceTree = "<group>"; };
 		A250916F91C8EF0BE90DF763 /* ExperienceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceRepository.swift; sourceTree = "<group>"; };
 		A38E5736BF6DF5644D687637 /* AgentRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRouter.swift; sourceTree = "<group>"; };
 		A5435FBA9527C07A9FB07D46 /* SoloCompassModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassModelContainer.swift; sourceTree = "<group>"; };
@@ -424,6 +426,7 @@
 				20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */,
 				120FC7465285714C5FA8F96D /* VoiceService.swift */,
 				7A49D3BA616DE54B8E6F4B7C /* Agents */,
+				CD349A8744520E6EB084B41A /* Cache */,
 				4889864C3C5478D1001C73B3 /* Context */,
 				7E78DD425BF25E90036C6E0B /* Themes */,
 			);
@@ -553,6 +556,14 @@
 				99AF76F1B505EF8AF6EF2470 /* ShareSheet.swift */,
 			);
 			path = Share;
+			sourceTree = "<group>";
+		};
+		CD349A8744520E6EB084B41A /* Cache */ = {
+			isa = PBXGroup;
+			children = (
+				A2289B2A2C8AFA32991B2348 /* Geohash.swift */,
+			);
+			path = Cache;
 			sourceTree = "<group>";
 		};
 		F041AA40AC029B779843B5D4 /* Paywall */ = {
@@ -740,6 +751,7 @@
 				297541149234668D12EAF272 /* FilterBarView.swift in Sources */,
 				E611DCAFD85FC84D6BF6CADD /* FoursquareService.swift in Sources */,
 				391D6B5C48997AD74F367C0C /* GeneratedSecrets.swift in Sources */,
+				63AC87E980EFFCFA0D628DF8 /* Geohash.swift in Sources */,
 				73A99E8CB82341F557681FCF /* GlassmorphismCapsule.swift in Sources */,
 				FD3636FCB777A292C57B7B06 /* GuideAgent.swift in Sources */,
 				D28FA83853E30AF27C34876F /* IntentAgent.swift in Sources */,
