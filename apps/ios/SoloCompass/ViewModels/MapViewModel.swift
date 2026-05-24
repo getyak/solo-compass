@@ -212,6 +212,11 @@ public final class MapViewModel {
         return bestCode
     }
 
+    /// Single source of truth for camera glide timing, shared by every
+    /// programmatic camera move (recenter, focusOnExperience) so the feel
+    /// stays consistent and is tunable in one place (#132).
+    static let cameraAnimation: Animation = .smooth(duration: 0.35)
+
     // MARK: - Published state
     // @ObservationIgnored avoids @Observable macro expanding MapCameraPosition
     // into a synthetic file that lacks `import MapKit`, causing build errors.
@@ -533,7 +538,7 @@ public final class MapViewModel {
             longitude: coord.longitude
         )
         let newRegion = MKCoordinateRegion(center: newCenter, span: region.span)
-        withAnimation(.smooth(duration: 0.35)) {
+        withAnimation(Self.cameraAnimation) {
             cameraPosition = .region(newRegion)
         }
     }
@@ -560,10 +565,15 @@ public final class MapViewModel {
     /// reacting to user pan/zoom — that would create a feedback loop where
     /// every gesture resets the zoom level.
     public func recenter(on coordinate: CLLocationCoordinate2D) {
-        cameraPosition = .region(MKCoordinateRegion(
-            center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
-        ))
+        // Wrap in withAnimation so the camera glides in, matching
+        // focusOnExperience — a bare assignment snaps instantly and reads
+        // as janky (#132).
+        withAnimation(Self.cameraAnimation) {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+            ))
+        }
         loadNearbyExperiences()
         updateBottomInfo()
     }

@@ -2649,6 +2649,42 @@ final class SoloCompassTests: XCTestCase {
         )
     }
 
+    // MARK: - #132 recenter camera
+
+    @MainActor
+    func testRecenterMovesCameraToCoordinate() {
+        let viewModel = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+        let target = CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522) // Paris
+        viewModel.recenter(on: target)
+
+        let center = viewModel.cameraPosition.region?.center
+        XCTAssertNotNil(center, "recenter must set cameraPosition to a .region")
+        XCTAssertEqual(center?.latitude ?? 0, target.latitude, accuracy: 0.0001)
+        XCTAssertEqual(center?.longitude ?? 0, target.longitude, accuracy: 0.0001)
+    }
+
+    @MainActor
+    func testRefreshForLocationLeavesCameraUntouched() {
+        // refreshForLocation reacts to user pan/zoom and must NOT move the
+        // camera (that would fight the gesture) — contrast with recenter.
+        let viewModel = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+        let before = viewModel.cameraPosition.region?.center
+        viewModel.refreshForLocation(CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522))
+        let after = viewModel.cameraPosition.region?.center
+        XCTAssertEqual(before?.latitude ?? 0, after?.latitude ?? 0, accuracy: 0.0001)
+        XCTAssertEqual(before?.longitude ?? 0, after?.longitude ?? 0, accuracy: 0.0001)
+    }
+
     // MARK: - #131 marker selection visual
 
     func testMarkerIconViewSelectedIdentifierDiffersFromUnselected() {
