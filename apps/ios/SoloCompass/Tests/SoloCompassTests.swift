@@ -2606,6 +2606,46 @@ final class SoloCompassTests: XCTestCase {
         )
     }
 
+    // MARK: - #131 marker selection visual
+
+    func testMarkerIconViewSelectedIdentifierDiffersFromUnselected() {
+        let unselected = MarkerIconView(category: .food, state: .default, confidenceLevel: 4)
+        let selected = MarkerIconView(
+            category: .food, state: .default, confidenceLevel: 4, isSelected: true
+        )
+        XCTAssertNotEqual(
+            unselected.accessibilityIdentifier,
+            selected.accessibilityIdentifier,
+            "Selected and unselected markers must produce different accessibility identifiers"
+        )
+        XCTAssertFalse(
+            unselected.accessibilityIdentifier.hasSuffix(".selected"),
+            "Unselected marker identifier must not carry the '.selected' suffix, got: \(unselected.accessibilityIdentifier)"
+        )
+        XCTAssertTrue(
+            selected.accessibilityIdentifier.hasSuffix(".selected"),
+            "Selected marker identifier should end with '.selected', got: \(selected.accessibilityIdentifier)"
+        )
+    }
+
+    func testMarkerIconViewSelectionIsOrthogonalToState() {
+        // A completed pin can still be the selected one — selection rides on
+        // top of every state, not replacing it.
+        let completedSelected = MarkerIconView(
+            category: .food, state: .completed, confidenceLevel: 4, isSelected: true
+        )
+        XCTAssertTrue(completedSelected.accessibilityIdentifier.contains(".completed."))
+        XCTAssertTrue(completedSelected.accessibilityIdentifier.hasSuffix(".selected"))
+    }
+
+    func testMarkerIconViewDefaultsToUnselected() {
+        let marker = MarkerIconView(category: .food, state: .default)
+        XCTAssertFalse(
+            marker.accessibilityIdentifier.hasSuffix(".selected"),
+            "isSelected must default to false for source compatibility"
+        )
+    }
+
     // MARK: - US-020 aggregated solo score
 
     func testAggregatedSoloScoreReturnsNilWhenNoSurveys() {

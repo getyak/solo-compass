@@ -25,6 +25,13 @@ targets:
       - path: SoloCompass
         excludes:
           - Tests/**
+      # GeneratedSecrets.swift is .gitignored (emitted by the preBuildScript
+      # from .env), so xcodegen's directory scan skips it and leaves it out of
+      # Compile Sources — `Secrets` then fails to resolve on a clean build.
+      # Declare it explicitly with optional:true so it compiles even though it
+      # may not exist at project-generation time.
+      - path: SoloCompass/Config/GeneratedSecrets.swift
+        optional: true
     resources:
       - path: SoloCompass/Resources/Configuration.storekit
         buildPhase: resources

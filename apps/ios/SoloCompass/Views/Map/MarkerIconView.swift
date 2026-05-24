@@ -12,6 +12,11 @@ public struct MarkerIconView: View {
     let category: ExperienceCategory
     let state: ExperienceMarkerState
     let confidenceLevel: Int
+    /// Selection is orthogonal to marker state (a completed pin can still be
+    /// the selected one), so it lives outside `ExperienceMarkerState` as an
+    /// independent flag. Defaults to false to keep every existing call site
+    /// source-compatible.
+    let isSelected: Bool
 
     @Environment(\.themeService) private var themeService
     @State private var pulse = false
@@ -19,11 +24,13 @@ public struct MarkerIconView: View {
     public init(
         category: ExperienceCategory,
         state: ExperienceMarkerState,
-        confidenceLevel: Int = 5
+        confidenceLevel: Int = 5,
+        isSelected: Bool = false
     ) {
         self.category = category
         self.state = state
         self.confidenceLevel = confidenceLevel
+        self.isSelected = isSelected
     }
 
     /// True when this marker should render in "AI-generated, low
@@ -32,6 +39,19 @@ public struct MarkerIconView: View {
     var isLowConfidence: Bool { confidenceLevel <= 1 }
 
     public var body: some View {
+        markerContent
+            // Selection halo + lift, orthogonal to (and layered behind) the
+            // state adornments so any marker — completed, favorited, etc. —
+            // can read as "selected". Spring tuned for a snappy-but-soft tap
+            // confirmation (response 0.3 / damping 0.6, per issue #131).
+            .background(selectionRing)
+            .scaleEffect(isSelected ? 1.3 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private var markerContent: some View {
         if themeService.selectedOption == .obsidian {
             ObsidianDotGridMarker(accent: themeService.currentTheme.accent, state: state)
                 .frame(width: 44, height: 44)
@@ -39,6 +59,15 @@ public struct MarkerIconView: View {
                 .accessibilityIdentifier(accessibilityIdentifier)
         } else {
             defaultMarkerBody
+        }
+    }
+
+    @ViewBuilder
+    private var selectionRing: some View {
+        if isSelected {
+            Circle()
+                .strokeBorder(themeService.currentTheme.accent, lineWidth: 3)
+                .frame(width: 44, height: 44)
         }
     }
 
@@ -183,10 +212,13 @@ public struct MarkerIconView: View {
         return "\(categoryName)\(suffix)"
     }
 
-    /// Stable identifier encoding the confidence tier — used in unit tests to assert
-    /// that low-confidence and normal markers produce distinguishable views.
+    /// Stable identifier encoding the confidence tier and selection — used in
+    /// unit tests to assert that low-confidence, normal, and selected markers
+    /// produce distinguishable views.
     var accessibilityIdentifier: String {
-        "marker.\(category.rawValue).\(state.identifierFragment).\(isLowConfidence ? "low" : "normal")"
+        let confidence = isLowConfidence ? "low" : "normal"
+        let selection = isSelected ? ".selected" : ""
+        return "marker.\(category.rawValue).\(state.identifierFragment).\(confidence)\(selection)"
     }
 }
 
@@ -236,6 +268,12 @@ private struct ObsidianDotGridMarker: View {
                     ForEach(ExperienceCategory.allCases) { cat in
                         MarkerIconView(category: cat, state: state)
                     }
+                }
+            }
+            HStack(spacing: 16) {
+                Text("selected").frame(width: 120, alignment: .leading)
+                ForEach(ExperienceCategory.allCases) { cat in
+                    MarkerIconView(category: cat, state: .default, isSelected: true)
                 }
             }
         }

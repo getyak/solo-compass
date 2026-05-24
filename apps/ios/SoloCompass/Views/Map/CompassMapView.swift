@@ -409,7 +409,8 @@ public struct CompassMapView: View {
                                     MarkerIconView(
                                         category: exp.category,
                                         state: viewModel.markerState(for: exp),
-                                        confidenceLevel: exp.confidence.level
+                                        confidenceLevel: exp.confidence.level,
+                                        isSelected: viewModel.selectedExperience?.id == exp.id
                                     )
                                     if case .footprinted = viewModel.markerState(for: exp) {
                                         Text("\(viewModel.footprintCount(for: exp))")
@@ -431,7 +432,8 @@ public struct CompassMapView: View {
                             MarkerIconView(
                                 category: cand.category,
                                 state: .default,
-                                confidenceLevel: cand.confidence.level
+                                confidenceLevel: cand.confidence.level,
+                                isSelected: viewModel.selectedExperience?.id == cand.id
                             )
                             .accessibilityLabel(Text(String(
                                 format: NSLocalizedString("map.candidate.label", comment: "Candidate experience: %@"),
