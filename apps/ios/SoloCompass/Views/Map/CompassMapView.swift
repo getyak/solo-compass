@@ -48,11 +48,16 @@ public struct CompassMapView: View {
             .onAppear {
                 locationService.requestPermission()
                 if viewModel == nil {
+                    // Production-only: opt into the SwiftData-backed Overpass
+                    // cache so warm starts skip the network. Tests construct
+                    // MapViewModel directly and stay cache-isolated via the
+                    // default `OverpassService()` (repository: nil).
                     let vm = MapViewModel(
                         locationService: locationService,
                         experienceService: experienceService,
                         aiService: aiService,
-                        preferences: preferences
+                        preferences: preferences,
+                        overpassService: OverpassService(useSharedCache: true)
                     )
                     vm.attachSubscriptionService(subscriptionService)
                     viewModel = vm
