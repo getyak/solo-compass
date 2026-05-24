@@ -33,6 +33,10 @@ public struct CompassMapView: View {
 
     private let networkMonitor = NetworkMonitor.shared
 
+    /// Idle window after the last pan before POIs refresh. Lowered from 1.5s
+    /// to cut the "dragged the map, nothing happened" lag (#133).
+    private static let panRefreshDebounce: TimeInterval = 0.8
+
     enum ChatStartMode { case text, voice }
 
     public init() {}
@@ -430,6 +434,9 @@ public struct CompassMapView: View {
                                             .background(Capsule().fill(Color.gray.opacity(0.85)))
                                     }
                                 }
+                                // Fade+scale each pin as the visible set changes
+                                // so filter/pan refreshes don't flash (#133).
+                                .transition(.scale.combined(with: .opacity))
                             }
                             .buttonStyle(.plain)
                         }
@@ -465,7 +472,7 @@ public struct CompassMapView: View {
                         repeat {
                             try? await Task.sleep(for: .milliseconds(100))
                             if Task.isCancelled { return }
-                        } while Date().timeIntervalSince(lastPanAt) < 1.5
+                        } while Date().timeIntervalSince(lastPanAt) < Self.panRefreshDebounce
                         if !Task.isCancelled {
                             isMapPanning = false
                         }

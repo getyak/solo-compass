@@ -217,6 +217,11 @@ public final class MapViewModel {
     /// stays consistent and is tunable in one place (#132).
     static let cameraAnimation: Animation = .smooth(duration: 0.35)
 
+    /// Timing for annotation set changes (filter switch, pan refresh) so the
+    /// ForEach markers fade in/out instead of snapping — kills the full-redraw
+    /// flicker (#133). Paired with the per-marker .transition in CompassMapView.
+    static let markerSetAnimation: Animation = .easeInOut(duration: 0.25)
+
     // MARK: - Published state
     // @ObservationIgnored avoids @Observable macro expanding MapCameraPosition
     // into a synthetic file that lacks `import MapKit`, causing build errors.
@@ -380,7 +385,9 @@ public final class MapViewModel {
         let center = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: center, radiusKm: radiusKm)
-        visibleExperiences = nearby
+        withAnimation(Self.markerSetAnimation) {
+            visibleExperiences = nearby
+        }
         nearbySoloCount = computeNearbySoloCount(in: nearby)
         updateBottomInfo()
     }
@@ -583,7 +590,9 @@ public final class MapViewModel {
     public func refreshForLocation(_ coordinate: CLLocationCoordinate2D) {
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: coordinate, radiusKm: radiusKm)
-        visibleExperiences = nearby
+        withAnimation(Self.markerSetAnimation) {
+            visibleExperiences = nearby
+        }
         nearbySoloCount = computeNearbySoloCount(in: nearby)
         updateBottomInfo()
     }
