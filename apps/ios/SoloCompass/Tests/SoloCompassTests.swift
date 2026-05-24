@@ -4698,6 +4698,61 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         XCTAssertEqual(orch.uiState, .unconfigured, "second start() must not change state")
     }
 
+    /// handleTextInput must surface a `SendOutcome` so the chat UI can tell
+    /// the user *why* a message didn't go out. Specifically:
+    ///   * empty / whitespace input → `.empty`
+    ///   * unconfigured state → `.unconfigured` (chat is unusable)
+    ///   * before `start()` has flipped isRunning → `.notReady`
+    func testSendOutcomeReportsWhyMessageWasNotSent() {
+        Secrets.apiKeyResolver = EmptyAPIKeyResolver()
+        defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
+
+        let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        defer {
+            if let saved = savedOverride {
+                UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+            }
+        }
+        let hadEnvKey = getenv("DEEPSEEK_API_KEY") != nil
+        unsetenv("DEEPSEEK_API_KEY")
+        defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", "", 1) } }
+
+        let ai = AIService()
+        ai.isProTier = false
+
+        let orch = VoiceAgentOrchestrator(
+            aiService: ai,
+            voiceService: VoiceService(),
+            mapViewModel: MapViewModel(
+                locationService: LocationService(),
+                experienceService: ExperienceService(),
+                aiService: ai,
+                preferences: UserPreferences()
+            ),
+            preferences: UserPreferences()
+        )
+
+        // Before start(): not running and not unconfigured → .notReady.
+        XCTAssertEqual(orch.handleTextInput("hello"), .notReady,
+                       "send before start() should report .notReady, not silently drop")
+        XCTAssertEqual(orch.handleTextInput("   \n  "), .empty,
+                       "whitespace-only input should report .empty before any other check")
+
+        // After start() with empty key → .unconfigured.
+        orch.start()
+        XCTAssertEqual(orch.uiState, .unconfigured)
+        XCTAssertEqual(orch.handleTextInput("hello"), .unconfigured,
+                       "send in unconfigured state should report .unconfigured")
+
+        // restartIfNeeded must NOT pretend to recover from .unconfigured.
+        XCTAssertFalse(orch.restartIfNeeded(),
+                       "restartIfNeeded must return false while still unconfigured")
+        XCTAssertEqual(orch.uiState, .unconfigured)
+    }
+
     // MARK: - US-017 Prompt-injection sanitizer
 
     func testSanitizeUserInput_wrapsCleanTextInTags() {

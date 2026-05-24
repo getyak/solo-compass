@@ -438,6 +438,13 @@
 "chat.error.permission" = "Microphone permission required — enable it in Settings.";
 "chat.error.unknown" = "Something went wrong — please try again.";
 
+/* Send-rejected hints + unconfigured banner shown above the chat input bar */
+"chat.send.hint.notReady" = "Just a sec — waking Solo up. Tap send again.";
+"chat.send.hint.unconfigured" = "Add a DeepSeek key in Settings to start chatting.";
+"chat.send.hint.sessionEnded" = "Couldn't reconnect — check your network and try again.";
+"chat.unconfigured.title" = "Chat is not configured yet";
+"chat.unconfigured.subtitle" = "Open Settings to add a DeepSeek API key or sign in to Pro.";
+
 /* US-019: Bilingual city picker */
 "city.distanceAway" = "%.1f km away";
 "city.distanceAway.mi" = "%.1f mi away";

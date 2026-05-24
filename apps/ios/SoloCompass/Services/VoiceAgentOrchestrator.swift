@@ -142,12 +142,29 @@ public final class VoiceAgentOrchestrator: Identifiable {
         }
     }
 
-    /// Called when the user submits a text message (not voice).
-    public func handleTextInput(_ text: String) {
-        guard isRunning, isSeeded, !session.isEnded else { return }
+    /// Outcome of trying to enqueue user input on the orchestrator. Lets the
+    /// chat UI tell the user *why* a message didn't go out instead of failing
+    /// silently — the legacy Void-returning path swallowed every miss.
+    public enum SendOutcome: Equatable {
+        case accepted
+        case empty
+        case unconfigured
+        case notReady
+        case sessionEnded
+    }
+
+    /// Called when the user submits a text message (not voice). Returns a
+    /// `SendOutcome` so the caller can surface a localized hint when the
+    /// orchestrator wasn't ready (e.g. start() hasn't finished seeding yet).
+    @discardableResult
+    public func handleTextInput(_ text: String) -> SendOutcome {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty else { return .empty }
+        if case .unconfigured = uiState { return .unconfigured }
+        guard isRunning, isSeeded else { return .notReady }
+        guard !session.isEnded else { return .sessionEnded }
         runTurn(transcript: trimmed)
+        return .accepted
     }
 
     /// Called when voice transcription completes.
@@ -157,6 +174,19 @@ public final class VoiceAgentOrchestrator: Identifiable {
         guard !trimmed.isEmpty else { return }
         session.beginTranscribing()
         runTurn(transcript: trimmed)
+    }
+
+    /// Re-arm the orchestrator after an error or after the session ended.
+    /// Idempotent: safe to call when already running. Returns true when the
+    /// orchestrator is now in a state that can accept new turns.
+    @discardableResult
+    public func restartIfNeeded() -> Bool {
+        if case .unconfigured = uiState { return false }
+        if isRunning && isSeeded && !session.isEnded { return true }
+        stop()
+        start()
+        if case .unconfigured = uiState { return false }
+        return isRunning
     }
 
     /// Terminate the session.
