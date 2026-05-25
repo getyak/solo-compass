@@ -589,6 +589,9 @@ public struct ChatSheet: View {
     private func teardownVoiceStream() {
         voiceStreamTask?.cancel()
         voiceStreamTask = nil
+        sendHintTask?.cancel()
+        sendHintTask = nil
+        sendHint = nil
         if voiceService.isListening {
             voiceService.stopListening()
         }
