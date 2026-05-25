@@ -25,7 +25,7 @@ public struct CompassMapView: View {
     @State private var voiceOrchestrator: VoiceAgentOrchestrator? = nil
 
     // Single chat sheet (replaces former plus-menu + voice-overlay split).
-    @State private var isShowingChat: Bool = false
+    // Presentation is driven by `voiceOrchestrator` via `.sheet(item:)`.
     @State private var chatStartMode: ChatStartMode = .text
     @State private var isMapPanning: Bool = false
     @State private var lastPanAt: Date = .distantPast
@@ -97,15 +97,19 @@ public struct CompassMapView: View {
             .sheet(isPresented: detailSheetBinding) { detailSheetContent }
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
-            .sheet(isPresented: $isShowingChat, onDismiss: {
-                // US-004: explicitly unscope before tearing down so a future
-                // global "+" chat — even if we ever stop discarding the
-                // orchestrator on dismiss — never inherits an <experience_context>
-                // block from a per-card session.
-                voiceOrchestrator?.rebindContext(nil)
-                voiceOrchestrator?.stop()
-                voiceOrchestrator = nil
-            }) { chatSheetContent }
+            // Bind the chat sheet to the orchestrator itself instead of a
+            // separate Bool. With `.sheet(isPresented:)` the content closure
+            // could be evaluated in the same render pass that flips the flag —
+            // before the `@State` orchestrator write was observed — so `if let`
+            // saw `nil` and presented a blank sheet (the intermittent white
+            // page). `.sheet(item:)` only presents once the orchestrator is set
+            // and hands a non-nil value to the content closure, killing the
+            // race. The custom binding tears the orchestrator down on dismiss
+            // (swipe or "X") so a future global "+" chat never inherits a
+            // per-card <experience_context> block (US-004).
+            .sheet(item: chatOrchestratorBinding) { orch in
+                chatSheetContent(orch)
+            }
             .sheet(isPresented: paywallSheetBinding, onDismiss: { viewModel?.onPaywallUnlocked = nil }) { paywallSheetContent }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
@@ -143,9 +147,12 @@ public struct CompassMapView: View {
                         preferences: preferences,
                         voiceOrchestrator: $voiceOrchestrator,
                         onOpenChat: { mode in
-                            ensureOrchestrator(viewModel: viewModel)
+                            // Set the mode *before* creating the orchestrator:
+                            // assigning `voiceOrchestrator` is what presents the
+                            // `.sheet(item:)`, so `chatStartMode` must already be
+                            // correct when the sheet content is first evaluated.
                             chatStartMode = mode
-                            isShowingChat = true
+                            ensureOrchestrator(viewModel: viewModel)
                         }
                     )
                 }
@@ -312,10 +319,13 @@ public struct CompassMapView: View {
                     // <experience_context> system block.
                     onAskSolo: { experience in
                         viewModel?.dismissDetail()
+                        // Per-card chat stays text-first. Set mode before the
+                        // orchestrator assignment presents the sheet, then
+                        // rebind the experience scope (still synchronous, so it
+                        // lands before the sheet content is evaluated).
+                        chatStartMode = .text
                         ensureOrchestrator(viewModel: vm)
                         voiceOrchestrator?.rebindContext(experience)
-                        chatStartMode = .text
-                        isShowingChat = true
                     }
                 )
             }
@@ -378,27 +388,35 @@ public struct CompassMapView: View {
         voiceOrchestrator = orch
     }
 
-    @ViewBuilder
-    private var chatSheetContent: some View {
-        if let orch = voiceOrchestrator {
-            ChatSheet(
-                orchestrator: orch,
-                voiceService: voiceService,
-                startInVoiceMode: chatStartMode == .voice,
-                onDismiss: {
-                    // US-004: explicit unscope on close mirrors the .sheet
-                    // `onDismiss` path so the in-view "X" button is just as
-                    // safe as a swipe-down.
-                    orch.rebindContext(nil)
-                    orch.stop()
-                    voiceOrchestrator = nil
-                    isShowingChat = false
+    /// Drives the chat `.sheet(item:)`. Reading returns the live orchestrator;
+    /// setting it to `nil` (swipe-to-dismiss or the in-view "X") first unscopes
+    /// + stops the instance so it never leaks an `<experience_context>` block
+    /// into a later global chat (US-004).
+    private var chatOrchestratorBinding: Binding<VoiceAgentOrchestrator?> {
+        Binding(
+            get: { voiceOrchestrator },
+            set: { newValue in
+                if newValue == nil, let current = voiceOrchestrator {
+                    current.rebindContext(nil)
+                    current.stop()
                 }
-            )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        }
+                voiceOrchestrator = newValue
+            }
+        )
+    }
+
+    private func chatSheetContent(_ orch: VoiceAgentOrchestrator) -> some View {
+        ChatSheet(
+            orchestrator: orch,
+            voiceService: voiceService,
+            startInVoiceMode: chatStartMode == .voice,
+            // The in-view "X" routes through the same binding setter so its
+            // teardown matches swipe-to-dismiss exactly.
+            onDismiss: { chatOrchestratorBinding.wrappedValue = nil }
+        )
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
     @ViewBuilder
