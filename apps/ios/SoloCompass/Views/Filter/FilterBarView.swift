@@ -99,7 +99,7 @@ public struct FilterBarView: View {
 
     private func pill(label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
         Button {
-            UISelectionFeedbackGenerator().selectionChanged()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
         } label: {
             Text(label)
@@ -120,7 +120,7 @@ public struct FilterBarView: View {
 
     private func iconPill(category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            UISelectionFeedbackGenerator().selectionChanged()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
         } label: {
             Image(systemName: category.symbol)
@@ -144,7 +144,7 @@ public struct FilterBarView: View {
     /// it visually reads as part of the same filter row. US-008.
     private func customTagPill(tag: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            UISelectionFeedbackGenerator().selectionChanged()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
         } label: {
             Image(systemName: "tag.fill")
