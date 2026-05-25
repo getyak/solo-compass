@@ -77,6 +77,19 @@ public final class SubscriptionService {
         // entitlement fetch, so we never miss a renewal that arrives
         // mid-launch.
         startTransactionListener()
+
+        #if DEBUG
+        // Debug builds default to Pro so the simulator can exercise the
+        // AI-gated surfaces (Explore, AI Insight, voice) without a StoreKit
+        // sandbox. Set FF_DEBUG_FORCE_PRO=0 to test the free/paywall path.
+        // Stripped entirely from Release builds by the #if DEBUG guard.
+        // Sets the in-memory field directly (not setEntitlement) so we don't
+        // persist a fake Pro state to Keychain.
+        let env = ProcessInfo.processInfo.environment["FF_DEBUG_FORCE_PRO"]
+        if env != "0" && env?.lowercased() != "false" {
+            self.entitlement = .pro
+        }
+        #endif
     }
 
     deinit {
@@ -108,6 +121,17 @@ public final class SubscriptionService {
     /// Walk Transaction.currentEntitlements and pick the strongest
     /// entitlement. Updates `entitlement` and writes through to Keychain.
     public func refreshEntitlement() async {
+        #if DEBUG
+        // Honour the debug Pro override (set in init from FF_DEBUG_FORCE_PRO).
+        // Without this, the StoreKit walk below resolves .free on a simulator
+        // with no sandbox subscription and overwrites the forced .pro — which
+        // silently routes Explore through the free/skeleton path.
+        let env = ProcessInfo.processInfo.environment["FF_DEBUG_FORCE_PRO"]
+        if env != "0" && env?.lowercased() != "false" {
+            if entitlement != .pro { setEntitlement(.pro) }
+            return
+        }
+        #endif
         var resolved: Entitlement = .free
         var latestTransaction: Transaction?
         for await result in Transaction.currentEntitlements {

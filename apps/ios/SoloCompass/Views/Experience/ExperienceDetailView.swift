@@ -55,7 +55,12 @@ public struct ExperienceDetailView: View {
                 if !viewModel.experience.realInconveniences.isEmpty {
                     inconveniencesSection
                 }
-                soloScoreSection
+                // Skip the Solo Score for un-enriched OSM entries. Their score
+                // is a flat 7.0 placeholder from skeletonExperience, not a real
+                // estimate — showing it as "Solo Score (AI estimate)" misleads.
+                if !(viewModel.experience.isFromOpenStreetMap && !viewModel.experience.isAIEnriched) {
+                    soloScoreSection
+                }
                 if !viewModel.experience.sources.isEmpty {
                     sourcesSection
                 }
@@ -130,18 +135,21 @@ public struct ExperienceDetailView: View {
 
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if viewModel.experience.id.hasPrefix("exp_osm_") {
+            if viewModel.experience.isFromOpenStreetMap {
+                let enriched = viewModel.experience.isAIEnriched
+                let badgeKey = enriched ? "explore.aiBadge" : "explore.osmBadge"
+                let badgeText = NSLocalizedString(badgeKey, comment: "Provenance badge")
                 HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
+                    Image(systemName: enriched ? "sparkles" : "mappin.and.ellipse")
                         .font(.caption2)
-                    Text(NSLocalizedString("explore.aiBadge", comment: "AI-generated from OpenStreetMap"))
+                    Text(badgeText)
                         .font(.caption.weight(.medium))
                 }
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Capsule().fill(Color(.tertiarySystemFill)))
-                .accessibilityLabel(Text(NSLocalizedString("explore.aiBadge", comment: "AI-generated from OpenStreetMap")))
+                .accessibilityLabel(Text(badgeText))
             }
             HStack(spacing: 8) {
                 Image(systemName: viewModel.experience.category.symbol)

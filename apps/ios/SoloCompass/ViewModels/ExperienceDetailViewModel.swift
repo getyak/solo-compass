@@ -111,7 +111,16 @@ public final class ExperienceDetailViewModel {
             aiExplanation = NSLocalizedString("detail.aiInsight.gated", comment: "Subscribe to unlock AI Insight")
             return
         }
-        let isOSM = experience.id.hasPrefix("exp_osm_")
+        let isOSM = experience.isFromOpenStreetMap
+        // Skip AI for OSM entries that never went through synthesis (the
+        // skeleton fallback). They carry no real description, so asking the
+        // model to "explain" them only produced hallucinated landmarks. Show
+        // nothing rather than a fabricated AI Insight; the "why it matters"
+        // section keeps the honest "visit and tell us" prompt.
+        if isOSM && !experience.isAIEnriched {
+            aiExplanation = nil
+            return
+        }
         isLoadingAIExplanation = true
         if isOSM { isLoadingWhyItMatters = true }
         defer {
@@ -119,7 +128,7 @@ public final class ExperienceDetailViewModel {
             if isOSM { isLoadingWhyItMatters = false }
         }
         do {
-            aiExplanation = try await aiService.explainRecommendation(for: experience.id)
+            aiExplanation = try await aiService.explainRecommendation(for: experience)
         } catch {
             aiExplanation = nil
             #if DEBUG

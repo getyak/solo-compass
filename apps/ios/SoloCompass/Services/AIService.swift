@@ -164,10 +164,24 @@ public final class AIService {
         }
     }
 
-    public func explainRecommendation(for experienceId: String) async throws -> String {
+    public func explainRecommendation(for experience: Experience) async throws -> String {
+        // Feed the model the actual place — name, category, city, and
+        // coordinate. Passing only the opaque id (the previous behaviour)
+        // gave the model nothing to ground on, so it hallucinated
+        // unrelated landmarks (e.g. describing a SF plaza as the Alhambra).
+        let coord = experience.coordinate
+        let coordText = coord.map { String(format: "%.4f, %.4f", $0.latitude, $0.longitude) } ?? "unknown"
         let prompt = """
-        Explain in one warm, concrete sentence why a solo traveler would value the experience with id \"\(experienceId)\". \
-        Avoid superlatives. Focus on a sensory detail.
+        A real place from OpenStreetMap:
+        - Name: \(experience.title)
+        - Category: \(experience.category.rawValue)
+        - City code: \(experience.location.cityCode)
+        - Coordinate (lat, lon): \(coordText)
+
+        Explain in one warm, concrete sentence why a solo traveler would value visiting THIS specific place. \
+        Ground every detail in the name/category above — do NOT invent unrelated landmarks, history, or features. \
+        If you cannot say anything specific, describe what a solo traveler typically does at a place of this category. \
+        Avoid superlatives. Focus on a plausible sensory detail.
         """
         do {
             return try await sendMessage(prompt: prompt, kind: .explanation)
@@ -757,7 +771,12 @@ public final class AIService {
         } catch {
             // Skeleton fallback — never written to cache so a
             // transient network blip doesn't poison the cache for 30
-            // days.
+            // days. Log the cause: this catch used to swallow the error
+            // silently, which made "Explore only ever shows skeletons"
+            // impossible to diagnose from the outside.
+            #if DEBUG
+            print("[AIService] synthesis failed, falling back to skeleton: \(error)")
+            #endif
             return capped.map { Self.skeletonExperience(from: $0, cityCode: cityCode) }
         }
     }

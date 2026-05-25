@@ -398,6 +398,19 @@ public struct Experience: Codable, Hashable, Identifiable {
 
     public var coordinate: CLLocationCoordinate2D? { location.clCoordinate }
 
+    /// True when this entry was discovered via OpenStreetMap Explore
+    /// (vs. a curated seed entry). Used to surface provenance in the UI.
+    public var isFromOpenStreetMap: Bool { id.hasPrefix("exp_osm_") }
+
+    /// True only when the entry actually went through AI synthesis. The
+    /// `skeletonExperience` fallback (network/quota failure, missing key)
+    /// produces an OSM entry with no AI enrichment — its sources omit the
+    /// "+ AI" attribution. Distinguishing the two prevents the detail view
+    /// from labelling a raw, template-filled skeleton as "AI-generated".
+    public var isAIEnriched: Bool {
+        sources.contains { ($0.attribution ?? "").localizedCaseInsensitiveContains("AI") }
+    }
+
     /// Returns a new Experience with selected fields overridden. Use this when
     /// mutating tracked stats/status/etc. without rewriting all 18 init args.
     public func copy(
