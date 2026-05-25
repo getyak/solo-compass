@@ -439,6 +439,7 @@ public struct CompassMapView: View {
                                 .transition(.scale.combined(with: .opacity))
                             }
                             .buttonStyle(.plain)
+                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                 }

@@ -99,10 +99,10 @@ cd apps/ios
 xcodegen                 # regenerate SoloCompass.xcodeproj from project.yml
 xcodebuild build \
   -project SoloCompass.xcodeproj -scheme SoloCompass \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest'
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'
 xcodebuild test \
   -project SoloCompass.xcodeproj -scheme SoloCompass \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest'
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'
 
 # Ralph autonomous dev
 cd scripts/ralph && ./ralph.sh --tool claude 12
@@ -117,7 +117,7 @@ cd scripts/ralph && ./ralph.sh --tool claude 12
 
 ## Testing
 
-**iOS**: XCTest target `SoloCompassTests` (default sim: iPhone 16 Pro, iOS latest). Always start the Simulator in the background — never let it occupy the foreground terminal.
+**iOS**: XCTest target `SoloCompassTests` (default sim: iPhone 17 Pro, iOS latest). Always start the Simulator in the background — never let it occupy the foreground terminal.
 
 **TS**: per-package `pnpm test` via turbo.
 

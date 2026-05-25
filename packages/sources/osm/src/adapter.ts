@@ -102,7 +102,11 @@ function elementCoords(el: OverpassElement): readonly [number, number] | undefin
 }
 
 function elementTitle(tags: Record<string, string>): string {
-  return tags["name"] ?? tags["name:en"] ?? tags["ref"] ?? "";
+  // Prefer romanized/English so synthesized titles don't surface native
+  // scripts (the raw `name` tag is the country's local language, e.g. Lao).
+  return (
+    tags["name:en"] ?? tags["int_name"] ?? tags["name:en-Latn"] ?? tags["name"] ?? tags["ref"] ?? ""
+  );
 }
 
 function elementDescription(tags: Record<string, string>): string {

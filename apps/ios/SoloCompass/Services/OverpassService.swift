@@ -416,7 +416,9 @@ public final class OverpassService {
             return wrapper.elements.compactMap { el -> POI? in
                 guard let lat = el.lat, let lon = el.lon, let tags = el.tags else { return nil }
                 let nameEn = tags["name:en"]
-                let name = tags["name"] ?? nameEn ?? ""
+                // Prefer romanized/English so the UI doesn't mix scripts; the
+                // raw `name` tag is the country's native language (e.g. Lao).
+                let name = nameEn ?? tags["int_name"] ?? tags["name:en-Latn"] ?? tags["name"] ?? ""
                 guard !name.isEmpty else { return nil }
                 return POI(osmId: el.id, name: name, nameEn: nameEn, lat: lat, lon: lon, tags: tags)
             }
