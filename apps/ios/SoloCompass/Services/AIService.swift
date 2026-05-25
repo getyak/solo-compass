@@ -323,7 +323,7 @@ public final class AIService {
 
                     // Emit accumulated tool calls in index order
                     for idx in toolCallAccum.keys.sorted() {
-                        let call = toolCallAccum[idx]!
+                        guard let call = toolCallAccum[idx] else { continue }
                         continuation.yield(.toolCall(id: call.id, name: call.name, args: call.args))
                     }
 
