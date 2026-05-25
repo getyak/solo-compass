@@ -126,6 +126,7 @@ Solo Compass 是一款"地图为根、AI 为伴"的独行旅行 App。当前 iOS
 - **T-E-08**：用户拒绝 mic 权限 → `permissionDeniedBanner` 显示 + 跳转 Settings 链接
 - **T-E-09**：AI 不可用（无 API key）→ ChatSheet 显示 `unconfiguredCard`（钥匙图标 + Open Settings CTA）
   - ⚠️ 观察：`unconfiguredCard` 触发条件 `orchestrator.uiState == .unconfigured`——但 `VoiceAgentOrchestrator` 从未将 `uiState` 设为 `.unconfigured`（grep 全局只有这一处比较，无 setter）。**这段代码永远不会显示** = 死代码。
+  - ✅ RESOLVED in #126/#127/#137：`start()` 现已在 `Secrets.resolvedDeepSeekApiKey` 为空且非 Pro+Edge 时设 `.unconfigured`（`testMissingKeyYieldsUnconfiguredState`、`testProUserSkipsLocalKeyGuardWhenRoutingThroughEdge`）；#137 进一步把 unconfiguredBanner 提到输入框上方常驻可见，并新增 `SendOutcome.unconfigured` 让 send 反馈区分该状态。
 - **T-E-10**：AgentRouter 路径（FF_AGENT_ROUTER_ENABLED=true）vs 遗留 VoiceAgentOrchestrator 路径
   - ⚠️ 观察：`CompassMapView.ensureOrchestrator` 永远用 `VoiceAgentOrchestrator`——**AgentRouter 从未在生产被注入**（grep 全局：除 Tests 外无 `AgentRouter(`）。FeatureFlag 默认 true 但 UI 没接！**P0 集成缺失**
 - **T-E-11**：双语切换 → Agent system prompt 要求"detect user language and reply in the same language"
@@ -229,9 +230,9 @@ Solo Compass 是一款"地图为根、AI 为伴"的独行旅行 App。当前 iOS
 
 **Acceptance Criteria:**
 
-- [ ] 在 `VoiceAgentOrchestrator.start()` 中检测 `Secrets.resolvedDeepSeekApiKey` 为空时，设 `uiState = .unconfigured` 并跳过 `session.beginListening()`
-- [ ] Unit test：当 DeepSeek key 缺失时，open ChatSheet 应渲染 unconfiguredCard 而非 messageList
-- [ ] Verify in Simulator：删 Secrets.plist 中 key → 点 "+" → 看到钥匙引导卡
+- [x] 在 `VoiceAgentOrchestrator.start()` 中检测 `Secrets.resolvedDeepSeekApiKey` 为空时，设 `uiState = .unconfigured` 并跳过 `session.beginListening()`  ✅ #126/#127
+- [x] Unit test：当 DeepSeek key 缺失时，open ChatSheet 应渲染 unconfiguredCard 而非 messageList  ✅ `testMissingKeyYieldsUnconfiguredState`
+- [x] Verify in Simulator：删 Secrets.plist 中 key → 点 "+" → 看到钥匙引导卡  ✅ #137 将 unconfiguredBanner 提到输入框上方常驻显示
 
 #### US-005：ReviewsService 默认 URL 必须区分 dev/release
 
@@ -512,7 +513,7 @@ Solo Compass 是一款"地图为根、AI 为伴"的独行旅行 App。当前 iOS
 - `apps/ios/SoloCompass/Views/Onboarding/OnboardingView.swift:108,121` — 自动 consent
 - `apps/ios/SoloCompass/Views/Map/CompassMapView.swift:411-418` — pan reset task
 - `apps/ios/SoloCompass/Views/Map/CompassMapView.swift:747-751` — "+" 短/长按映射
-- `apps/ios/SoloCompass/Views/Chat/ChatSheet.swift:70` — `unconfigured` 永不触发
+- `apps/ios/SoloCompass/Views/Chat/ChatSheet.swift:70` — `unconfigured` 永不触发  ✅ RESOLVED in #126/#127/#137（start() 现在写 `.unconfigured`；ChatSheet 加 unconfiguredBanner 与 SendOutcome 反馈）
 - `apps/ios/SoloCompass/Views/Settings/SettingsView.swift:82,338` — appleIDRow 重复
 - `apps/ios/SoloCompass/Views/Paywall/PaywallView.swift` 全文 — 无 dismiss 按钮
 - `apps/ios/SoloCompass/ViewModels/MapViewModel.swift:328-349,446-467` — 重复 filter 链
