@@ -176,6 +176,8 @@ public struct CompassMapView: View {
                         preferences: preferences,
                         locationService: locationService
                     )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
                 }
 
                 // Offline banner (US-041): amber pill when network is unavailable
@@ -941,6 +943,8 @@ private struct EmptyStateOverlay: View {
     var preferences: UserPreferences
     var locationService: LocationService
 
+    @State private var isVisible = false
+
     private var nearestCityName: String? {
         let anchor = locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
         guard let code = viewModel.nearestSeededCity(to: anchor),
@@ -1028,8 +1032,13 @@ private struct EmptyStateOverlay: View {
         .padding(16)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal, 32)
+        .opacity(isVisible ? 1 : 0)
+        .offset(y: isVisible ? 0 : 16)
         .accessibilityElement(children: .combine)
-        .onAppear { viewModel.recordEmptyStateRender() }
+        .onAppear {
+            viewModel.recordEmptyStateRender()
+            withAnimation(.easeOut(duration: 0.35)) { isVisible = true }
+        }
         .onChange(of: viewModel.visibleExperiences.count) { _, _ in
             viewModel.recordEmptyStateRender()
         }
