@@ -22,13 +22,17 @@ public struct FavoritesListView: View {
             Group {
                 if sortedFavorites.isEmpty {
                     emptyState
+                        .transition(.opacity)
                 } else {
                     List(sortedFavorites) { exp in
                         favoriteRow(exp)
                     }
                     .listStyle(.plain)
+                    .animation(.easeInOut, value: sortedFavorites.count)
+                    .transition(.opacity)
                 }
             }
+            .animation(.easeInOut, value: sortedFavorites.isEmpty)
             .navigationTitle(NSLocalizedString("favorites.title", comment: "Favorites list title"))
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -88,7 +92,10 @@ public struct FavoritesListView: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
-                preferences.toggleFavorite(exp.id)
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                withAnimation(.easeInOut) {
+                    preferences.toggleFavorite(exp.id)
+                }
             } label: {
                 Label(NSLocalizedString("action.unfavorite", comment: "Remove from favorites"),
                       systemImage: "heart.slash")
