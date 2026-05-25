@@ -27,6 +27,11 @@ public struct ChatSheet: View {
     @State private var permissionDenied: Bool = false
     @State private var lastUserTranscript: String = ""
     @State private var didApplyStartMode: Bool = false
+    /// Transient hint shown above the input bar when a send was rejected
+    /// (orchestrator not yet seeded, session ended, unconfigured key, …).
+    /// Auto-clears on the next successful send or after a short delay.
+    @State private var sendHint: String? = nil
+    @State private var sendHintTask: Task<Void, Never>? = nil
 
     /// True while showing the dedicated voice surface (large mic + live agent
     /// state). Set on appear when `startInVoiceMode`; user can opt into the
@@ -70,7 +75,15 @@ public struct ChatSheet: View {
             voiceSurface
         } else {
             messageList
-            textInputBar
+            VStack(spacing: 0) {
+                if orchestrator.uiState == .unconfigured {
+                    unconfiguredBanner
+                }
+                if let hint = sendHint {
+                    sendHintBanner(hint)
+                }
+                textInputBar
+            }
         }
     }
 
@@ -84,6 +97,58 @@ public struct ChatSheet: View {
             onMicPress: handleMicPress,
             onRetry: handleRetry
         )
+    }
+
+    /// Inline amber card surfaced when the orchestrator started in the
+    /// `.unconfigured` state (no DeepSeek key and no Edge proxy). Without it
+    /// the user can type, hit send, and get no reaction at all.
+    private var unconfiguredBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "key.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(NSLocalizedString(
+                    "chat.unconfigured.title",
+                    comment: "Title shown when no AI key is configured"
+                ))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+                Text(NSLocalizedString(
+                    "chat.unconfigured.subtitle",
+                    comment: "Subtitle explaining the user needs to add a key"
+                ))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 12)
+        .padding(.bottom, 6)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// Slim transient banner used to surface non-fatal send failures (e.g.
+    /// the orchestrator is still seeding the system prompt). Pinned above
+    /// the input bar so the user sees it without losing the text field.
+    private func sendHintBanner(_ message: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(.tint)
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 12)
+        .padding(.bottom, 4)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     /// First real user/assistant message → drop the voice surface so the
@@ -363,7 +428,71 @@ public struct ChatSheet: View {
 
     private func handleSend(_ text: String) {
         lastUserTranscript = text
-        orchestrator.handleTextInput(text)
+        let outcome = orchestrator.handleTextInput(text)
+        switch outcome {
+        case .accepted:
+            clearSendHint()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        case .empty:
+            // The input bar already guards on empty; nothing to do.
+            break
+        case .unconfigured:
+            showSendHint(
+                NSLocalizedString(
+                    "chat.send.hint.unconfigured",
+                    comment: "Hint shown when the user tries to send but no API key is configured"
+                ),
+                restoreDraft: text
+            )
+        case .notReady:
+            // Orchestrator is mid-seed (start() is async). Restore the draft
+            // so the user doesn't lose it, and prompt them to try again.
+            showSendHint(
+                NSLocalizedString(
+                    "chat.send.hint.notReady",
+                    comment: "Hint shown when the user sends before the agent finished waking up"
+                ),
+                restoreDraft: text
+            )
+        case .sessionEnded:
+            // The previous turn ended (timeout/error). Soft-restart and
+            // re-submit transparently so the user sees their message land.
+            if orchestrator.restartIfNeeded(),
+               orchestrator.handleTextInput(text) == .accepted {
+                clearSendHint()
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } else {
+                showSendHint(
+                    NSLocalizedString(
+                        "chat.send.hint.sessionEnded",
+                        comment: "Hint shown when the chat session ended and a new turn couldn't be started"
+                    ),
+                    restoreDraft: text
+                )
+            }
+        }
+    }
+
+    private func showSendHint(_ message: String, restoreDraft: String? = nil) {
+        if let restoreDraft, draftText.isEmpty {
+            draftText = restoreDraft
+        }
+        sendHint = message
+        sendHintTask?.cancel()
+        sendHintTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3.5))
+            if !Task.isCancelled {
+                withAnimation(.easeOut(duration: 0.2)) { sendHint = nil }
+            }
+        }
+    }
+
+    private func clearSendHint() {
+        sendHintTask?.cancel()
+        sendHintTask = nil
+        if sendHint != nil {
+            withAnimation(.easeOut(duration: 0.2)) { sendHint = nil }
+        }
     }
 
     private func handleMicToggle(_ start: Bool) {
@@ -393,8 +522,11 @@ public struct ChatSheet: View {
 
     private func handleRetry() {
         guard !lastUserTranscript.isEmpty else { return }
-        // Orchestrator clears errorMessage on next successful run; nudge it.
-        orchestrator.handleTextInput(lastUserTranscript)
+        // The previous turn may have ended (timeout/network error). Re-arm
+        // the orchestrator first so the retry isn't silently dropped by the
+        // `session.isEnded` guard in handleTextInput.
+        _ = orchestrator.restartIfNeeded()
+        handleSend(lastUserTranscript)
     }
 
     private func closeSheet() {
@@ -457,6 +589,9 @@ public struct ChatSheet: View {
     private func teardownVoiceStream() {
         voiceStreamTask?.cancel()
         voiceStreamTask = nil
+        sendHintTask?.cancel()
+        sendHintTask = nil
+        sendHint = nil
         if voiceService.isListening {
             voiceService.stopListening()
         }

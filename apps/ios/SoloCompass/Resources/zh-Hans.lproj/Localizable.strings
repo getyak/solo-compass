@@ -373,6 +373,13 @@
 "chat.error.permission" = "需要麦克风权限 — 请在设置中启用。";
 "chat.error.unknown" = "出现错误 — 请重试。";
 
+/* Send-rejected hints + unconfigured banner shown above the chat input bar */
+"chat.send.hint.notReady" = "稍等片刻 — Solo 正在唤醒，请再次点击发送。";
+"chat.send.hint.unconfigured" = "请到设置里添加 DeepSeek 密钥以开始聊天。";
+"chat.send.hint.sessionEnded" = "重连失败 — 请检查网络后重试。";
+"chat.unconfigured.title" = "聊天尚未配置";
+"chat.unconfigured.subtitle" = "前往设置添加 DeepSeek API 密钥，或登录 Pro 账户。";
+
 /* "+" quick-action button — single chat entry point */
 "plus.button.a11y" = "和 Solo 聊天";
 "plus.button.hint" = "点击文字输入，长按语音说话";
