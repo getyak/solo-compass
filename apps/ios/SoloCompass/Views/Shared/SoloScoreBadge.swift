@@ -54,38 +54,10 @@ public struct SoloScoreBadge: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            VStack(spacing: 6) {
-                breakdownBar(label: NSLocalizedString("solo.seating", comment: ""), value: score.breakdown.seatingFriendly)
-                breakdownBar(label: NSLocalizedString("solo.patrons", comment: ""), value: score.breakdown.soloPatronRatio)
-                breakdownBar(label: NSLocalizedString("solo.staff", comment: ""), value: score.breakdown.staffPressure)
-                breakdownBar(label: NSLocalizedString("solo.portioning", comment: ""), value: score.breakdown.soloPortioning)
-                breakdownBar(label: NSLocalizedString("solo.ambiance", comment: ""), value: score.breakdown.ambianceFit)
-                breakdownBar(label: NSLocalizedString("solo.safety", comment: ""), value: score.breakdown.safety)
-            }
-            Text(String(format: NSLocalizedString("solo.basedOn", comment: ""), score.basedOnCount))
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    private func breakdownBar(label: String, value: Double) -> some View {
-        HStack(spacing: 8) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 96, alignment: .leading)
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.gray.opacity(0.2))
-                    Capsule()
-                        .fill(score.scoreColor)
-                        .frame(width: geo.size.width * (value / 10.0))
-                }
-            }
-            .frame(height: 6)
-            Text(formatted(value))
-                .font(.caption.monospacedDigit())
-                .frame(width: 32, alignment: .trailing)
+            // Per-dimension breakdown intentionally omitted: the detail view
+            // renders SoloScoreRadarChart directly below this badge, so a
+            // second bar list would duplicate it. This badge is the score
+            // header only (overall + hint).
         }
     }
 

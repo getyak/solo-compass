@@ -260,6 +260,7 @@
 /* Explore here */
 "explore.button" = "在这里探索";
 "explore.aiBadge" = "AI 生成 · 来自 OpenStreetMap";
+"explore.osmBadge" = "来自 OpenStreetMap · 未增强";
 "explore.error.nothingFound" = "附近没找到公共场所。试试拖动地图。";
 "explore.skeleton.oneLiner" = "一处来自 OpenStreetMap 的真实地点。";
 "explore.skeleton.why" = "我们还没有这个地方的精选故事。去看看,然后告诉我们你发现了什么。";

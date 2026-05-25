@@ -11,7 +11,11 @@ struct SoloCompassApp: App {
 
     @State private var locationService = LocationService.shared
     @State private var experienceService = ExperienceService()
-    @State private var aiService = AIService()
+    // Share the global SwiftData container so AIService's quota tracking
+    // (AIUsageRecord) and synthesis cache (AISynthesisCacheRecord) actually
+    // persist. A bare AIService() leaves modelContext nil, silently disabling
+    // both — which masks why Explore never escapes skeleton mode.
+    @State private var aiService = AIService(useSharedCache: true)
     @State private var preferences = UserPreferences()
     @State private var notificationService = NotificationService.shared
     @State private var subscriptionService = SubscriptionService()
