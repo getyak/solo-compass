@@ -20,6 +20,7 @@ public struct MarkerIconView: View {
 
     @Environment(\.themeService) private var themeService
     @State private var pulse = false
+    @State private var selectionPulse = false
 
     public init(
         category: ExperienceCategory,
@@ -68,6 +69,20 @@ public struct MarkerIconView: View {
             Circle()
                 .strokeBorder(themeService.currentTheme.accent, lineWidth: 3)
                 .frame(width: 44, height: 44)
+
+            // Outward pulse ring that fades as it expands, giving a gentle
+            // "selected" beacon effect without competing with bestNow's ring.
+            Circle()
+                .stroke(themeService.currentTheme.accent.opacity(0.5), lineWidth: 2)
+                .frame(width: 44, height: 44)
+                .scaleEffect(selectionPulse ? 1.6 : 1.0)
+                .opacity(selectionPulse ? 0.0 : 0.8)
+                .animation(
+                    .easeOut(duration: 1.4).repeatForever(autoreverses: false),
+                    value: selectionPulse
+                )
+                .onAppear { selectionPulse = true }
+                .onDisappear { selectionPulse = false }
         }
     }
 
