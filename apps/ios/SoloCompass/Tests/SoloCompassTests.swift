@@ -5019,6 +5019,14 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
             preferences: UserPreferences()
         )
 
+        // CI environments load ExperienceService seeds eagerly enough that
+        // `exp` (seeds.first) can already be in `mapVM.visibleExperiences`
+        // by the time buildSystemPrompt runs. The assertions below only care
+        // whether the `<experience_context>` block carries the title — clear
+        // the visible list so the CURRENT VISIBLE EXPERIENCES section can't
+        // leak the title and turn a clean rebind into a false failure.
+        mapVM.visibleExperiences = []
+
         func waitForPrompt(
             containing fragment: String,
             shouldContain: Bool,
