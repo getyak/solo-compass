@@ -60,6 +60,14 @@ public final class MapViewModel {
     /// distinctly (no AI spinner; no quota banner).
     public var isExploringFreeMode: Bool = false
 
+    /// Forwards `OverpassService.isFetching` so the map can show a loading
+    /// indicator while POIs are being fetched (#134). `OverpassService` is
+    /// `@Observable`, so reading it here keeps SwiftUI's dependency tracking
+    /// intact — the view re-renders when the fetch state flips.
+    public var isFetchingPOIs: Bool {
+        overpassService.isFetching
+    }
+
     // MARK: - Explore consent (US-034)
 
     /// Set to true the first time a user triggers an Explore action
@@ -203,6 +211,16 @@ public final class MapViewModel {
         }
         return bestCode
     }
+
+    /// Single source of truth for camera glide timing, shared by every
+    /// programmatic camera move (recenter, focusOnExperience) so the feel
+    /// stays consistent and is tunable in one place (#132).
+    static let cameraAnimation: Animation = .smooth(duration: 0.35)
+
+    /// Timing for annotation set changes (filter switch, pan refresh) so the
+    /// ForEach markers fade in/out instead of snapping — kills the full-redraw
+    /// flicker (#133). Paired with the per-marker .transition in CompassMapView.
+    static let markerSetAnimation: Animation = .easeInOut(duration: 0.25)
 
     // MARK: - Published state
     // @ObservationIgnored avoids @Observable macro expanding MapCameraPosition
@@ -367,9 +385,7 @@ public final class MapViewModel {
         let center = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: center, radiusKm: radiusKm)
-        // Animate the marker set so filter changes fade pins in/out instead
-        // of flashing the whole layer.
-        withAnimation(.easeInOut(duration: 0.25)) {
+        withAnimation(Self.markerSetAnimation) {
             visibleExperiences = nearby
         }
         nearbySoloCount = computeNearbySoloCount(in: nearby)
@@ -529,7 +545,7 @@ public final class MapViewModel {
             longitude: coord.longitude
         )
         let newRegion = MKCoordinateRegion(center: newCenter, span: region.span)
-        withAnimation(.smooth(duration: 0.35)) {
+        withAnimation(Self.cameraAnimation) {
             cameraPosition = .region(newRegion)
         }
     }
@@ -556,9 +572,10 @@ public final class MapViewModel {
     /// reacting to user pan/zoom — that would create a feedback loop where
     /// every gesture resets the zoom level.
     public func recenter(on coordinate: CLLocationCoordinate2D) {
-        // Animate the camera so an explicit "locate me" glides into place
-        // instead of snapping, matching focusOnExperience's feel.
-        withAnimation(.smooth(duration: 0.35)) {
+        // Wrap in withAnimation so the camera glides in, matching
+        // focusOnExperience — a bare assignment snaps instantly and reads
+        // as janky (#132).
+        withAnimation(Self.cameraAnimation) {
             cameraPosition = .region(MKCoordinateRegion(
                 center: coordinate,
                 span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
@@ -573,7 +590,7 @@ public final class MapViewModel {
     public func refreshForLocation(_ coordinate: CLLocationCoordinate2D) {
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: coordinate, radiusKm: radiusKm)
-        withAnimation(.easeInOut(duration: 0.25)) {
+        withAnimation(Self.markerSetAnimation) {
             visibleExperiences = nearby
         }
         nearbySoloCount = computeNearbySoloCount(in: nearby)

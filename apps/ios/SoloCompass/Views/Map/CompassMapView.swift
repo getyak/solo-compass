@@ -33,6 +33,10 @@ public struct CompassMapView: View {
 
     private let networkMonitor = NetworkMonitor.shared
 
+    /// Idle window after the last pan before POIs refresh. Lowered from 1.5s
+    /// to cut the "dragged the map, nothing happened" lag (#133).
+    private static let panRefreshDebounce: TimeInterval = 0.8
+
     enum ChatStartMode { case text, voice }
 
     public init() {}
@@ -175,6 +179,15 @@ public struct CompassMapView: View {
                         Spacer()
                     }
                     .animation(.easeInOut, value: networkMonitor.isConnected)
+                } else if viewModel.isFetchingPOIs {
+                    // POI loading banner (#134): only while online — offline
+                    // never fetches, and the offline pill already owns the slot.
+                    VStack {
+                        POILoadingBanner()
+                            .padding(.top, 8)
+                        Spacer()
+                    }
+                    .animation(.easeInOut, value: viewModel.isFetchingPOIs)
                 }
             } else {
                 ProgressView()
@@ -421,6 +434,9 @@ public struct CompassMapView: View {
                                             .background(Capsule().fill(Color.gray.opacity(0.85)))
                                     }
                                 }
+                                // Fade+scale each pin as the visible set changes
+                                // so filter/pan refreshes don't flash (#133).
+                                .transition(.scale.combined(with: .opacity))
                             }
                             .buttonStyle(.plain)
                             .transition(.scale.combined(with: .opacity))
@@ -433,7 +449,8 @@ public struct CompassMapView: View {
                             MarkerIconView(
                                 category: cand.category,
                                 state: .default,
-                                confidenceLevel: cand.confidence.level
+                                confidenceLevel: cand.confidence.level,
+                                isSelected: viewModel.selectedExperience?.id == cand.id
                             )
                             .accessibilityLabel(Text(String(
                                 format: NSLocalizedString("map.candidate.label", comment: "Candidate experience: %@"),
@@ -456,7 +473,7 @@ public struct CompassMapView: View {
                         repeat {
                             try? await Task.sleep(for: .milliseconds(100))
                             if Task.isCancelled { return }
-                        } while Date().timeIntervalSince(lastPanAt) < 0.8
+                        } while Date().timeIntervalSince(lastPanAt) < Self.panRefreshDebounce
                         if !Task.isCancelled {
                             isMapPanning = false
                         }

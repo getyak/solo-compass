@@ -115,6 +115,7 @@
 "map.empty.stage.tryExplore" = "搜索更远范围";
 "map.empty.stage.browseCity" = "浏览 %@";
 "map.loading" = "地图加载中";
+"map.loadingPOIs" = "正在查找附近地点…";
 
 /* City picker */
 "city.all" = "全部城市";
