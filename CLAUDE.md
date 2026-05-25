@@ -34,7 +34,7 @@ packages/
 
 | Layer        | Choice                                                       | Notes                                                                                                                                                |
 | ------------ | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Platform     | **iOS 17.0+**, Swift 5.10                                    | Single Xcode target `SoloCompass.app`, **zero third-party deps**                                                                                     |
+| Platform     | **iOS 17.0+**, Swift 5.10                                    | Single Xcode target `SoloCompass.app`. SwiftPM deps kept minimal: `supabase-swift` (sync backend), `sentry-cocoa` (crash & error tracking)           |
 | Project gen  | **xcodegen** from `apps/ios/project.yml`                     | Regenerate after editing the yml; don't hand-edit `.xcodeproj`                                                                                       |
 | UI           | SwiftUI + **MapKit**                                         | `CompassMapView` is the root — no tabs, no drawer                                                                                                    |
 | State        | `@Observable` + `@MainActor` services                        | `SWIFT_STRICT_CONCURRENCY: complete` is on                                                                                                           |
@@ -44,6 +44,7 @@ packages/
 | AI           | Anthropic Messages API direct                                | `AIService.swift`, model `claude-opus-4-7`, key from `Secrets.plist` or `ANTHROPIC_API_KEY` env. Falls back to Solo-Score ranking when key is absent |
 | Seed data    | `Resources/JSON/seed_experiences.json` (bundle)              | Falls back to `ExperienceService.hardcodedSeed` for previews/tests                                                                                   |
 | Localization | `NSLocalizedString` from day 1                               | All user strings in `Resources/en.lproj/Localizable.strings`                                                                                         |
+| Telemetry    | **sentry-cocoa** via SwiftPM                                 | `SentryService.bootstrap()` in `SoloCompassApp.init`; DSN from `Secrets.sentryDSN` (build-time inject); empty DSN → SDK never starts (no-op)         |
 
 ## Project Structure
 

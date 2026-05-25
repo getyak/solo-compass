@@ -99,6 +99,8 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
+      - package: Sentry
+        product: Sentry
 
   SoloCompassTests:
     type: bundle.unit-test
@@ -123,6 +125,9 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift
     from: 2.0.0
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    from: 8.36.0
 
 schemes:
   SoloCompass:

@@ -3,6 +3,12 @@ import SwiftData
 
 @main
 struct SoloCompassApp: App {
+    init() {
+        // Start Sentry as early as possible so we catch crashes during the
+        // rest of App init / first render. No-op when DSN is empty.
+        SentryService.bootstrap()
+    }
+
     @State private var locationService = LocationService.shared
     @State private var experienceService = ExperienceService()
     @State private var aiService = AIService()
