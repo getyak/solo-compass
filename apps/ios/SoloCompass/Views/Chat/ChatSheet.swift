@@ -256,6 +256,15 @@ public struct ChatSheet: View {
                             .opacity(0.6)
                         }
 
+                        if isAgentWorking {
+                            TypingIndicatorBubble(
+                                label: orchestrator.thinkingStep.isEmpty ? nil : orchestrator.thinkingStep
+                            )
+                            .id(Self.typingIndicatorID)
+                            .transition(.opacity)
+                            .animation(.easeInOut(duration: 0.2), value: isAgentWorking)
+                        }
+
                         Color.clear
                             .frame(height: 1)
                             .id(Self.bottomAnchorID)
@@ -271,6 +280,9 @@ public struct ChatSheet: View {
                     scrollToBottom(proxy: proxy)
                 }
                 .onChange(of: liveTranscript) { _, _ in
+                    scrollToBottom(proxy: proxy)
+                }
+                .onChange(of: orchestrator.session.state) { _, _ in
                     scrollToBottom(proxy: proxy)
                 }
                 .onAppear { scrollToBottom(proxy: proxy, animated: false) }
@@ -449,6 +461,22 @@ public struct ChatSheet: View {
     /// can see "Searched nearby" indicators inline with the conversation.
     private var visibleMessages: [VoiceAgentSession.Message] {
         orchestrator.session.messages.filter { $0.role != .system }
+    }
+
+    /// True while the agent is thinking or executing a tool but no streamed
+    /// text or live voice transcript has arrived yet.
+    private var isAgentWorking: Bool {
+        let state = orchestrator.session.state
+        let agentBusy: Bool
+        switch state {
+        case .thinking, .toolExecuting:
+            agentBusy = true
+        default:
+            agentBusy = orchestrator.isExecutingTool
+        }
+        return agentBusy
+            && orchestrator.streamingContent.isEmpty
+            && liveTranscript.isEmpty
     }
 
     private var micState: ChatInputBar.MicState {
@@ -645,6 +673,7 @@ public struct ChatSheet: View {
     private static let bottomAnchorID = "chat.bottom"
     private static let streamingBubbleID = "chat.streaming"
     private static let liveTranscriptID = "chat.liveTranscript"
+    private static let typingIndicatorID = "chat.typing"
 
     private func scrollToBottom(proxy: ScrollViewProxy, animated: Bool = true) {
         let anchor = Self.bottomAnchorID
