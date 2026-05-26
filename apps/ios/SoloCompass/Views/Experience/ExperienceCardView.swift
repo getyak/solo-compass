@@ -8,8 +8,9 @@ public struct ExperienceCardView: View {
     var onDismiss: () -> Void
 
     @GestureState private var dragTranslation: CGFloat = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var didFireThresholdHaptic = false
+    @State private var hapticState: HapticState = .idle
+
+    private enum HapticState { case idle, prepared, fired }
 
     // Pre-allocated so prepare() can be called once when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -31,6 +32,10 @@ public struct ExperienceCardView: View {
     /// Rubber-bands upward drags to 40% travel; downward dismissal drags follow 1:1.
     private func rubberBanded(_ t: CGFloat) -> CGFloat {
         t < 0 ? t * 0.4 : t
+    }
+
+    private var totalOffset: CGFloat {
+        rubberBanded(dragTranslation)
     }
 
     /// Fades in both directions: downward (dismiss) and upward (expand).
@@ -139,15 +144,13 @@ public struct ExperienceCardView: View {
                     state = value.translation.height
                 }
                 .onChanged { value in
-                    if state == 0 {
+                    if hapticState == .idle {
                         feedbackGenerator.prepare()
+                        hapticState = .prepared
                     }
-                    state = value.translation.height
-                }
-                .onChanged { value in
-                    if !didFireThresholdHaptic, abs(value.translation.height) > 60 {
+                    if hapticState == .prepared, abs(value.translation.height) > 60 {
                         feedbackGenerator.impactOccurred()
-                        didFireThresholdHaptic = true
+                        hapticState = .fired
                     }
                 }
                 .onEnded { value in
@@ -165,10 +168,7 @@ public struct ExperienceCardView: View {
                             dragOffset = 0
                         }
                     }
-                    withAnimation(.spring(response: 0.3)) {
-                        dragOffset = 0
-                        didFireThresholdHaptic = false
-                    }
+                    hapticState = .idle
                 }
         )
         .onTapGesture { onExpand() }
