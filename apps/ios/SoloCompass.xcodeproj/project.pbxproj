@@ -124,7 +124,6 @@
 		DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8800 /* LocationPickerState.swift */; };
 		DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8802 /* LocationSearchService.swift */; };
 		DD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8804 /* MapPinPickerView.swift */; };
-		DD55EE66FF77AA8807 /* SoloCompassSchemaV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8806 /* SoloCompassSchemaV2.swift */; };
 		DD55EE66FF77AA8809 /* EnrichmentAgentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8808 /* EnrichmentAgentTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -259,7 +258,6 @@
 		DD55EE66FF77AA8800 /* LocationPickerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerState.swift; sourceTree = "<group>"; };
 		DD55EE66FF77AA8802 /* LocationSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
 		DD55EE66FF77AA8804 /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
-		DD55EE66FF77AA8806 /* SoloCompassSchemaV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassSchemaV2.swift; sourceTree = "<group>"; };
 		DD55EE66FF77AA8808 /* EnrichmentAgentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrichmentAgentTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -496,7 +494,6 @@
 			children = (
 				A250916F91C8EF0BE90DF763 /* ExperienceRepository.swift */,
 				A5435FBA9527C07A9FB07D46 /* SoloCompassModelContainer.swift */,
-				DD55EE66FF77AA8806 /* SoloCompassSchemaV2.swift */,
 				52030ED9E37422E080A28183 /* Models */,
 			);
 			path = Persistence;
@@ -843,7 +840,6 @@
 				F84389464D54A5F5BEB866D0 /* SkeletonView.swift in Sources */,
 				E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */,
 				13E5AEAEE5194DDB79AE92AC /* SoloCompassModelContainer.swift in Sources */,
-				DD55EE66FF77AA8807 /* SoloCompassSchemaV2.swift in Sources */,
 				86F4628473C2D520D4C2FFFB /* SoloScoreBadge.swift in Sources */,
 				A217FA55BD40922DB3B8DEE6 /* SoloScoreRadarChart.swift in Sources */,
 				BCD734EA6E4D5CE922D0621D /* SubscriptionService.swift in Sources */,
