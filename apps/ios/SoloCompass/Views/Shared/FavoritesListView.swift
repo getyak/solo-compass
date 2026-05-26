@@ -49,6 +49,10 @@ public struct FavoritesListView: View {
             }
         }
         .animation(.easeInOut, value: lastUnfavorited != nil)
+        .onDisappear {
+            undoDismissTask?.cancel()
+            undoDismissTask = nil
+        }
     }
 
     private var emptyState: some View {
@@ -89,7 +93,6 @@ public struct FavoritesListView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, 16)
     }
 
     @ViewBuilder
@@ -129,17 +132,22 @@ public struct FavoritesListView: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                let generator = UINotificationFeedbackGenerator()
+                generator.prepare()
+                generator.notificationOccurred(.warning)
                 let savedDate = preferences.favoritedAt[exp.id] ?? Date()
                 let expId = exp.id
+                undoDismissTask?.cancel()
                 withAnimation(.easeInOut) {
                     preferences.toggleFavorite(expId)
+                    lastUnfavorited = (id: expId, date: savedDate)
                 }
-                lastUnfavorited = (id: expId, date: savedDate)
-                undoDismissTask?.cancel()
                 undoDismissTask = Task {
-                    try? await Task.sleep(for: .seconds(4))
-                    guard !Task.isCancelled else { return }
+                    do {
+                        try await Task.sleep(for: .seconds(4))
+                    } catch {
+                        return
+                    }
                     await MainActor.run {
                         withAnimation(.easeInOut) {
                             lastUnfavorited = nil
