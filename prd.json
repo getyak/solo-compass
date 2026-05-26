@@ -222,10 +222,10 @@
     },
     {
       "id": "US-015",
-      "title": "Show multi-source badge and real signals in detail view",
-      "description": "As a user, I want to see a 'verified by multiple sources' badge plus real rating/hours/price.",
+      "title": "Show multi-source indicator and real signals in detail view",
+      "description": "As a user, I want to see a 'verified by multiple sources' indicator plus real rating/hours/price.",
       "acceptanceCriteria": [
-        "Detail view shows a badge when basedOnCount>=2 (or >=2 sources)",
+        "Detail view shows an indicator when basedOnCount>=2 (or >=2 sources)",
         "Detail view renders rating, openingHours, priceLevel when present; hides the row when nil",
         "Localized strings in en + zh-Hans",
         "xcodebuild build succeeds",
