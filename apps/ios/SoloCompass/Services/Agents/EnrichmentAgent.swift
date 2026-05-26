@@ -30,6 +30,29 @@ public final class EnrichmentAgent {
     /// AI call cheap and the result set curated rather than overwhelming.
     public static let defaultTopN = 6
 
+    /// Progressive radius ladder in meters: start tight, expand when sparse.
+    public static let progressiveRadii: [Int] = [5_000, 10_000, 25_000, 100_000]
+
+    /// Minimum POI count considered "enough" at a given radius stage before
+    /// moving to the next rung of the ladder.
+    public static let enoughThreshold = 8
+
+    /// Keeps POIs whose distance from `center` falls in `[beyond, within)` meters.
+    /// Use `beyond = 0` for the innermost ring.
+    public static func ringFilter(
+        pois: [OverpassService.POI],
+        center: CLLocationCoordinate2D,
+        within: Double,
+        beyond: Double = 0
+    ) -> [OverpassService.POI] {
+        let centerLocation = CLLocation(latitude: center.latitude, longitude: center.longitude)
+        return pois.filter { poi in
+            let poiLocation = CLLocation(latitude: poi.lat, longitude: poi.lon)
+            let distance = centerLocation.distance(from: poiLocation)
+            return distance >= beyond && distance < within
+        }
+    }
+
     private let overpassService: OverpassService
     private let mapKitService: MapKitPOIService
     private let foursquareService: FoursquareService
