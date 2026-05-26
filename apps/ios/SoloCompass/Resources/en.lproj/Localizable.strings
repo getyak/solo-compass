@@ -43,6 +43,7 @@
 "solo.basedOn" = "Based on %d solo travelers";
 "solo.radar.a11y" = "Solo Score radar";
 "solo.radar.replayHint" = "Tap to replay the draw-in animation";
+"solo.radar.weakest" = "Weakest: %@ — expect it to be a tradeoff";
 "solo.basedOn.early" = "Based on %d early reports";
 "solo.estimate.pill" = "AI estimate";
 "solo.section.estimate" = "Solo Score (AI estimate)";
