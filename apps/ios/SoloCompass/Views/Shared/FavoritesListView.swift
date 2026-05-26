@@ -7,9 +7,10 @@ public struct FavoritesListView: View {
     @Environment(UserPreferences.self) private var preferences
     let onSelectExperience: (Experience) -> Void
 
-    @State private var lastUnfavorited: (id: String, date: Date)?
+    @State private var lastUnfavorited: (id: String, title: String, date: Date)?
     @State private var undoDismissTask: Task<Void, Never>?
     @State private var animatePulse = false
+    @State private var undoProgress: CGFloat = 1
 
     private var sortedFavorites: [Experience] {
         let ids = preferences.favoritedExperiences
@@ -88,29 +89,50 @@ private struct EmptyFavoritesView: View {
 private extension FavoritesListView {
 
     var undoBar: some View {
-        HStack {
-            Text(NSLocalizedString("favorites.undo", comment: "Removed — Undo banner"))
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-            Spacer()
-            Button {
-                guard let saved = lastUnfavorited else { return }
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                undoDismissTask?.cancel()
-                undoDismissTask = nil
-                withAnimation(.easeInOut) {
-                    preferences.toggleFavorite(saved.id, at: saved.date)
-                    lastUnfavorited = nil
+        ZStack(alignment: .bottom) {
+            HStack {
+                Text(String(format: NSLocalizedString("favorites.undo.named", comment: "Removed named experience undo banner"), lastUnfavorited?.title ?? ""))
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer()
+                Button {
+                    guard let saved = lastUnfavorited else { return }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    undoDismissTask?.cancel()
+                    undoDismissTask = nil
+                    undoProgress = 1
+                    withAnimation(.easeInOut) {
+                        preferences.toggleFavorite(saved.id, at: saved.date)
+                        lastUnfavorited = nil
+                    }
+                } label: {
+                    Text(NSLocalizedString("action.undo", comment: "Undo action"))
+                        .font(.subheadline.weight(.semibold))
                 }
-            } label: {
-                Text(NSLocalizedString("action.undo", comment: "Undo action"))
-                    .font(.subheadline.weight(.semibold))
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 14)
+
+            GeometryReader { geo in
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: geo.size.width * undoProgress, height: 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(height: 2)
+            .padding(.horizontal, 2)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 16)
+        .onAppear {
+            undoProgress = 1
+            withAnimation(.linear(duration: 4)) {
+                undoProgress = 0
+            }
+        }
     }
 
     @ViewBuilder
@@ -153,10 +175,12 @@ private extension FavoritesListView {
                 UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 let savedDate = preferences.favoritedAt[exp.id] ?? Date()
                 let expId = exp.id
+                let expTitle = exp.title
+                undoProgress = 1
                 withAnimation(.easeInOut) {
                     preferences.toggleFavorite(expId)
                 }
-                lastUnfavorited = (id: expId, date: savedDate)
+                lastUnfavorited = (id: expId, title: expTitle, date: savedDate)
                 undoDismissTask?.cancel()
                 undoDismissTask = Task {
                     try? await Task.sleep(for: .seconds(4))
