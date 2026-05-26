@@ -124,6 +124,7 @@
 		DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8800 /* LocationPickerState.swift */; };
 		DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8802 /* LocationSearchService.swift */; };
 		DD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8804 /* MapPinPickerView.swift */; };
+		C4F33A6A15EAABD3DE16F0EA /* CompletionCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5DB55204EA28049577D5C9 /* CompletionCelebrationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -137,6 +138,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5C5DB55204EA28049577D5C9 /* CompletionCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionCelebrationView.swift; sourceTree = "<group>"; };
 		AA11BB22CC33DD44EE55FF66 /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		BB22CC33DD44EE55FF6600AA /* AIProviderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderSettingsView.swift; sourceTree = "<group>"; };
 		001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIUsageRecord.swift; sourceTree = "<group>"; };
@@ -286,8 +288,9 @@
 				BEDD4F6238B484BB7C20904B /* SkeletonView.swift */,
 				EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */,
 				4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */,
-				9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */,
-				8D0CBFD5114CC6728D6AA876 /* VoiceWaveformView.swift */,
+			9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */,
+			8D0CBFD5114CC6728D6AA876 /* VoiceWaveformView.swift */,
+			5C5DB55204EA28049577D5C9 /* CompletionCelebrationView.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -853,6 +856,7 @@
 				BD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */,
 				F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */,
 				CA06289D4E0D0C24C2079B40 /* VoiceWaveformView.swift in Sources */,
+		C4F33A6A15EAABD3DE16F0EA /* CompletionCelebrationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
