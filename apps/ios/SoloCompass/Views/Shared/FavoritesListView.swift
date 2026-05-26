@@ -17,9 +17,12 @@ public struct FavoritesListView: View {
     @State private var animatePulse = false
     @State private var undoProgress: CGFloat = 1
     @State private var undoDragOffset: CGFloat = 0
+    @State private var undoDragOffset: CGFloat = 0
     @State private var undoDragCrossedThreshold = false
     @State private var searchText = ""
     @State private var sortMode: FavSort = .recent
+    @State private var showSwipeHint = false
+    @AppStorage("favorites.swipeHintSeen") private var swipeHintSeen = false
     private let undoSelectionFeedback = UISelectionFeedbackGenerator()
     private let undoImpactFeedback = UIImpactFeedbackGenerator(style: .soft)
 
@@ -28,7 +31,6 @@ public struct FavoritesListView: View {
         let d = locationService.distance(to: coord)
         return d < .greatestFiniteMagnitude ? d : nil
     }
-
     private var sortedFavorites: [Experience] {
         let ids = preferences.favoritedExperiences
         let experiences = ids.compactMap { experienceService.getExperience(id: $0) }
@@ -70,28 +72,58 @@ public struct FavoritesListView: View {
                     NoSearchResultsView(query: searchText)
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else {
-                    List {
-                        if locationService.currentLocation != nil {
-                            Section {
-                                Picker(NSLocalizedString("favorites.sort.label", comment: "Sort favorites"),
-                                       selection: $sortMode.animation(reduceMotion ? nil : .easeInOut)) {
-                                    Text(NSLocalizedString("favorites.sort.recent", comment: "Sort by recency"))
-                                        .tag(FavSort.recent)
-                                    Text(NSLocalizedString("favorites.sort.nearest", comment: "Sort by distance"))
-                                        .tag(FavSort.nearest)
+                    VStack(spacing: 0) {
+                        Text(String(
+                            format: NSLocalizedString("favorites.count", comment: "N saved"),
+                            sortedFavorites.count
+                        ))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+
+                        List {
+                            if locationService.currentLocation != nil {
+                                Section {
+                                    Picker(NSLocalizedString("favorites.sort.label", comment: "Sort favorites"),
+                                           selection: $sortMode.animation(reduceMotion ? nil : .easeInOut)) {
+                                        Text(NSLocalizedString("favorites.sort.recent", comment: "Sort by recency"))
+                                            .tag(FavSort.recent)
+                                        Text(NSLocalizedString("favorites.sort.nearest", comment: "Sort by distance"))
+                                            .tag(FavSort.nearest)
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                                 }
-                                .pickerStyle(.segmented)
-                                .listRowBackground(Color.clear)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            }
+                            ForEach(filteredFavorites) { exp in
+                                favoriteRow(exp)
                             }
                         }
-                        ForEach(filteredFavorites) { exp in
-                            favoriteRow(exp)
+                        .listStyle(.plain)
+                        .animation(.easeInOut, value: filteredFavorites.count)
+                        .animation(reduceMotion ? nil : .easeInOut, value: sortMode)
+                        .overlay(alignment: .top) {
+                            if showSwipeHint {
+                                swipeHintCapsule
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                                    .padding(.top, 8)
+                            }
+                        }
+                        .onAppear {
+                            guard !swipeHintSeen, !sortedFavorites.isEmpty else { return }
+                            withAnimation(.easeOut) { showSwipeHint = true }
+                            swipeHintSeen = true
+                            Task {
+                                try? await Task.sleep(for: .seconds(2.5))
+                                await MainActor.run {
+                                    withAnimation(.easeIn) { showSwipeHint = false }
+                                }
+                            }
                         }
                     }
-                    .listStyle(.plain)
-                    .animation(.easeInOut, value: filteredFavorites.count)
-                    .animation(reduceMotion ? nil : .easeInOut, value: sortMode)
                     .transition(.opacity)
                 }
             }
@@ -122,7 +154,6 @@ public struct FavoritesListView: View {
 
 }
 
-private struct EmptyFavoritesView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
 
@@ -170,9 +201,26 @@ private struct NoSearchResultsView: View {
     }
 }
 
+private struct SwipeHintCapsuleView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Label(
+            NSLocalizedString("favorites.swipe.hint", comment: "Swipe left to remove"),
+            systemImage: "hand.draw"
+        )
+        .font(.footnote.weight(.medium))
+        .foregroundStyle(.secondary)
+        .symbolEffect(.bounce, options: reduceMotion ? .default.speed(0) : .repeating.speed(0.6))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+    }
+}
+
 private extension FavoritesListView {
 
-    func distanceBadgeText(_ meters: CLLocationDistance) -> String {
         if Locale.current.measurementSystem == .us {
             let miles = meters / 1_609.344
             return String(format: NSLocalizedString("favorites.distance.mi", comment: "Distance in miles"), miles)
@@ -184,6 +232,10 @@ private extension FavoritesListView {
         return String(format: NSLocalizedString("favorites.distance.km", comment: "Distance in kilometres"), km)
     }
 
+    @ViewBuilder
+    var swipeHintCapsule: some View {
+        SwipeHintCapsuleView()
+    }
     var undoBar: some View {
         ZStack(alignment: .bottom) {
             HStack {
@@ -348,6 +400,7 @@ private extension FavoritesListView {
             }
         }
     }
+}
 }
 
 #Preview {
