@@ -17,6 +17,7 @@ public struct ExperienceDetailView: View {
     @State private var isShowingReport: Bool = false
     @State private var showingRadarTooltip: Bool = false
     @State private var exportMarkdown: String? = nil
+    @State private var heartPop = false
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -491,12 +492,23 @@ public struct ExperienceDetailView: View {
     private var actionBar: some View {
         HStack(spacing: 12) {
             Button {
-                viewModel.toggleFavorite()
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                let willFavorite = !viewModel.isFavorited
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
+                    viewModel.toggleFavorite()
+                    heartPop.toggle()
+                }
+                if willFavorite {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                } else {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
             } label: {
                 Image(systemName: viewModel.isFavorited ? "heart.fill" : "heart")
                     .font(.title3)
                     .foregroundStyle(viewModel.isFavorited ? .red : .primary)
+                    .symbolEffect(.bounce, value: viewModel.isFavorited)
+                    .scaleEffect(viewModel.isFavorited ? 1.12 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.45), value: viewModel.isFavorited)
                     .frame(width: 50, height: 50)
                     .background(Circle().fill(.regularMaterial))
             }
