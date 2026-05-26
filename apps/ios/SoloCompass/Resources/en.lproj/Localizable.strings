@@ -170,6 +170,15 @@
 "voice.error.permission" = "Microphone or speech recognition permission was denied. Please allow access in Settings.";
 "voice.error.unavailable" = "Speech recognition is unavailable on this device.";
 
+/* Journey progress card */
+"journey.progress.title" = "Experiences completed";
+"journey.progress.count" = "%d / %d";
+"journey.caption.start" = "Every journey starts with a single step.";
+"journey.caption.rolling" = "You're on a roll — keep exploring!";
+"journey.caption.seasoned" = "A seasoned solo traveler. Impressive.";
+"journey.milestone.reached" = "Milestone reached!";
+"journey.progress.a11y" = "Completed %d of %d experiences";
+
 /* Settings */
 "settings.title" = "Preferences";
 "settings.done" = "Done";

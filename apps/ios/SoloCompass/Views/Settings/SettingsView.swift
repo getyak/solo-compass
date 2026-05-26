@@ -403,8 +403,28 @@ public struct SettingsView: View {
 
     // MARK: - Stats
 
+    private static let milestones = [3, 10, 25, 50, 100]
+
+    private var nextMilestone: Int {
+        let count = preferences.completedExperiences.count
+        return Self.milestones.first { $0 > count } ?? 100
+    }
+
+    private var journeyCaption: String {
+        let count = preferences.completedExperiences.count
+        if count < 3 {
+            return NSLocalizedString("journey.caption.start", comment: "Journey caption just started")
+        } else if count < 25 {
+            return NSLocalizedString("journey.caption.rolling", comment: "Journey caption on a roll")
+        } else {
+            return NSLocalizedString("journey.caption.seasoned", comment: "Journey caption seasoned")
+        }
+    }
+
     private var statsSection: some View {
         Section {
+            journeyProgressCard
+
             Button {
                 onShowFavorites?()
                 onClose()
@@ -414,13 +434,17 @@ public struct SettingsView: View {
                                 value: "\(preferences.favoritedExperiences.count)")
             }
             .foregroundStyle(.primary)
-
-            settingsIconRow(icon: "checkmark.circle", color: .green,
-                            label: NSLocalizedString("settings.completed", comment: "Completed"),
-                            value: "\(preferences.completedExperiences.count)")
         } header: {
             settingsSectionHeader("trophy", label: NSLocalizedString("settings.stats", comment: "Your Journey"))
         }
+    }
+
+    private var journeyProgressCard: some View {
+        JourneyProgressCard(
+            completed: preferences.completedExperiences.count,
+            milestone: nextMilestone,
+            caption: journeyCaption
+        )
     }
 
     // MARK: - Data
@@ -750,6 +774,92 @@ extension UserPreferences.SoloTravelStyle {
     var localizedDescription: String {
         NSLocalizedString("style.\(rawValue).description", comment: "Travel style description")
     }
+}
+
+// MARK: - Journey Progress Card
+
+private struct JourneyProgressCard: View {
+    let completed: Int
+    let milestone: Int
+    let caption: String
+
+    @State private var animateProgress = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var progress: Double {
+        guard milestone > 0 else { return 1 }
+        return min(Double(completed) / Double(milestone), 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(NSLocalizedString("journey.progress.title", comment: "Journey progress title"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(
+                    String(
+                        format: NSLocalizedString("journey.progress.count", comment: "Journey progress count format"),
+                        completed,
+                        milestone
+                    )
+                )
+                .font(.title2.bold().monospacedDigit())
+                .foregroundStyle(.primary)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(uiColor: .secondarySystemFill))
+                        .frame(height: 8)
+                    Capsule()
+                        .fill(Color.green)
+                        .frame(
+                            width: geo.size.width * (animateProgress ? progress : 0),
+                            height: 8
+                        )
+                        .animation(
+                            reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8),
+                            value: animateProgress
+                        )
+                }
+            }
+            .frame(height: 8)
+
+            Text(caption)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            String(
+                format: NSLocalizedString("journey.progress.a11y", comment: "Journey progress accessibility label"),
+                completed,
+                milestone
+            )
+        )
+        .onAppear {
+            if reduceMotion {
+                animateProgress = true
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    animateProgress = true
+                }
+            }
+        }
+    }
+}
+
+#Preview("Journey Progress Card") {
+    List {
+        JourneyProgressCard(completed: 5, milestone: 10, caption: "You're on a roll!")
+        JourneyProgressCard(completed: 0, milestone: 3, caption: "Every journey starts here.")
+        JourneyProgressCard(completed: 25, milestone: 50, caption: "A seasoned solo traveler.")
+    }
+    .listStyle(.insetGrouped)
 }
 
 #Preview {
