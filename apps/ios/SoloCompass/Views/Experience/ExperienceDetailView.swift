@@ -19,6 +19,7 @@ public struct ExperienceDetailView: View {
     @State private var exportMarkdown: String? = nil
     @State private var heartPop = false
     @State private var celebrationTrigger = 0
+    @State private var isShowingNavPicker = false
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -660,6 +661,20 @@ public struct ExperienceDetailView: View {
                 ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
                 : NSLocalizedString("action.favorite", comment: "Add favorite")))
 
+            if viewModel.experience.location.clCoordinate != nil {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    isShowingNavPicker = true
+                } label: {
+                    Image(systemName: "arrow.triangle.turn.up.right.diagonal")
+                        .font(.title3)
+                        .foregroundStyle(.primary)
+                        .frame(width: 50, height: 50)
+                        .background(Circle().fill(.regularMaterial))
+                }
+                .accessibilityLabel(Text(NSLocalizedString("action.directions", comment: "Open directions picker")))
+            }
+
             Button {
                 let wasCompleted = viewModel.isCompleted
                 viewModel.toggleComplete()
@@ -699,6 +714,23 @@ public struct ExperienceDetailView: View {
                 .ignoresSafeArea(edges: .bottom)
                 .opacity(0.6)
         )
+        .confirmationDialog(
+            NSLocalizedString("location.navigate", comment: ""),
+            isPresented: $isShowingNavPicker,
+            titleVisibility: .visible
+        ) {
+            if let coord = viewModel.experience.location.clCoordinate {
+                let name = viewModel.experience.location.placeNameLocal
+                    ?? viewModel.experience.location.placeNameRomanized
+                    ?? viewModel.experience.title
+                ForEach(NavigationLauncher.availableApps()) { app in
+                    Button(app.displayName) {
+                        NavigationLauncher.open(app: app, coordinate: coord, name: name)
+                    }
+                }
+            }
+            Button(NSLocalizedString("action.cancel", comment: "Cancel picker"), role: .cancel) { }
+        }
 
         CompletionCelebrationView(trigger: celebrationTrigger)
             .frame(maxWidth: .infinity)

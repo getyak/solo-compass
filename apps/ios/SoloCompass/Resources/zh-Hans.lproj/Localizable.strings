@@ -127,6 +127,7 @@
 /* Action bar */
 "action.favorite" = "添加到收藏";
 "action.unfavorite" = "取消收藏";
+"action.directions" = "导航";
 "action.close" = "关闭";
 
 /* Dismiss */
