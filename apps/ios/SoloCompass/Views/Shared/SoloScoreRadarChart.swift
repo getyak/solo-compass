@@ -33,16 +33,39 @@ public struct SoloScoreRadarChart: View {
         return squaredDiffs.reduce(0, +) / Double(vals.count)
     }
 
+    private var weakestIndex: Int {
+        values.indices.min(by: { values[$0] < values[$1] }) ?? 0
+    }
+
+    // Amber accent matching the app's accentGold
+    private static let amberAccent = Color(red: 0xD4 / 255, green: 0xA8 / 255, blue: 0x43 / 255)
+
     public init(score: SoloScore) {
         self.score = score
     }
 
     public var body: some View {
-        Group {
-            if variance >= 0.5 {
-                radarChart
-            } else {
-                fallbackBars
+        VStack(spacing: 8) {
+            Group {
+                if variance >= 0.5 {
+                    radarChart
+                } else {
+                    fallbackBars
+                }
+            }
+
+            // Honest-tradeoff caption — only when there's a genuine weakness
+            if values[weakestIndex] < 6 {
+                let captionText = String(
+                    format: NSLocalizedString("solo.radar.weakest", comment: ""),
+                    Self.axes[weakestIndex].label
+                )
+                Label(captionText, systemImage: "exclamationmark.bubble")
+                    .font(.caption)
+                    .foregroundStyle(Self.amberAccent)
+                    .opacity(drawProgress >= 0.99 ? 1 : 0)
+                    .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: drawProgress >= 0.99)
+                    .accessibilityHidden(true)
             }
         }
         .onAppear {
@@ -104,14 +127,15 @@ public struct SoloScoreRadarChart: View {
                 // Vertex dots — one per dimension, grow in sync with drawProgress
                 ForEach(0..<axisCount, id: \.self) { i in
                     let angle = axisAngle(index: i, count: axisCount)
-                    let dotRadius = size * 0.018
+                    let isWeakest = i == weakestIndex
+                    let dotRadius = size * 0.018 * (isWeakest ? 1.3 : 1.0)
                     let dotPos = point(
                         center: center,
                         radius: radius * CGFloat(values[i] / 10.0) * CGFloat(drawProgress),
                         angle: angle
                     )
                     Circle()
-                        .fill(score.scoreColor)
+                        .fill(isWeakest ? Self.amberAccent : score.scoreColor)
                         .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
                         .frame(width: dotRadius * 2, height: dotRadius * 2)
                         .scaleEffect(drawProgress)
@@ -125,17 +149,18 @@ public struct SoloScoreRadarChart: View {
                     let labelRadius = radius + size * 0.14
                     let pos = point(center: center, radius: labelRadius, angle: angle)
                     let axis = Self.axes[i]
+                    let isWeakest = i == weakestIndex
                     let labelDelay = Double(i) * 0.06
                     let labelOpacity = max(0, min(1, (drawProgress - labelDelay) / (1.0 - labelDelay)))
 
                     VStack(spacing: 2) {
                         Image(systemName: axis.symbol)
                             .font(.system(size: size * 0.065))
-                            .foregroundStyle(score.scoreColor)
+                            .foregroundStyle(isWeakest ? Self.amberAccent : score.scoreColor)
                         // Always display final values — animation only affects opacity
                         Text(String(format: "%.0f", values[i]))
-                            .font(.system(size: size * 0.055, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.primary)
+                            .font(.system(size: size * 0.055, weight: isWeakest ? .bold : .semibold, design: .rounded))
+                            .foregroundStyle(isWeakest ? Self.amberAccent : Color.primary)
                     }
                     .opacity(labelOpacity)
                     .position(pos)
@@ -206,12 +231,13 @@ public struct SoloScoreRadarChart: View {
             ForEach(0..<Self.axes.count, id: \.self) { i in
                 let axis = Self.axes[i]
                 let val = values[i]
+                let isWeakest = i == weakestIndex
                 let barDelay = Double(i) * 0.06
                 let barProgress = max(0, min(1, (drawProgress - barDelay) / (1.0 - barDelay)))
                 HStack(spacing: 8) {
                     Image(systemName: axis.symbol)
                         .font(.caption)
-                        .foregroundStyle(score.scoreColor)
+                        .foregroundStyle(isWeakest ? Self.amberAccent : score.scoreColor)
                         .frame(width: 20)
                         .accessibilityHidden(true)
                     Text(axis.label)
@@ -232,6 +258,8 @@ public struct SoloScoreRadarChart: View {
                     .frame(height: 6)
                     Text(String(format: "%.0f", val))
                         .font(.caption.monospacedDigit())
+                        .foregroundStyle(isWeakest ? Self.amberAccent : Color.primary)
+                        .fontWeight(isWeakest ? .bold : .regular)
                         .frame(width: 24, alignment: .trailing)
                         .accessibilityHidden(true)
                 }
