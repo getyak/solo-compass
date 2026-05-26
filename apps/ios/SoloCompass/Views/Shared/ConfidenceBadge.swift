@@ -6,16 +6,29 @@ public struct ConfidenceBadge: View {
     var compact: Bool = true
 
     @State private var showSignals = false
+    @State private var isPulsing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(confidence: Confidence, compact: Bool = true) {
         self.confidence = confidence
         self.compact = compact
     }
 
+    private var shouldPulse: Bool {
+        compact && confidence.health != .healthy && !reduceMotion
+    }
+
     public var body: some View {
         Button { showSignals.toggle() } label: {
             HStack(spacing: 4) {
                 ZStack {
+                    if shouldPulse {
+                        Circle()
+                            .stroke(confidence.health.color, lineWidth: 1.5)
+                            .frame(width: 8, height: 8)
+                            .scaleEffect(isPulsing ? 1.8 : 1.0)
+                            .opacity(isPulsing ? 0.0 : 0.6)
+                    }
                     Circle()
                         .fill(confidence.health.color)
                         .frame(width: 8, height: 8)
@@ -39,6 +52,21 @@ public struct ConfidenceBadge: View {
             PopoverContent(confidence: confidence)
         }
         .accessibilityLabel(Text(confidence.health.localizedDescription))
+        .onAppear {
+            guard shouldPulse else { return }
+            withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                isPulsing = true
+            }
+        }
+        .onChange(of: reduceMotion) { _, reduced in
+            if reduced {
+                withAnimation(.default) { isPulsing = false }
+            } else if compact && confidence.health != .healthy {
+                withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                    isPulsing = true
+                }
+            }
+        }
     }
 }
 
@@ -165,6 +193,16 @@ private struct PopoverContent: View {
                 signals: .init(aiScrapeAgeDays: 90, passiveGpsHits30d: 0, activeReports30d: 0, trustedVerifications: 0)
             ),
             compact: false
+        )
+        // Compact dot with pulsing halo — questioned state
+        ConfidenceBadge(
+            confidence: Confidence(
+                level: 1,
+                lastVerifiedAt: Date().addingTimeInterval(-20 * 86_400),
+                reason: "Community reports conflict",
+                signals: .init(aiScrapeAgeDays: 20, passiveGpsHits30d: 2, activeReports30d: 3, trustedVerifications: 0)
+            ),
+            compact: true
         )
     }
     .padding()
