@@ -7,6 +7,9 @@ public struct SoloScoreBadge: View {
 
     public enum Style { case compact, full }
 
+    @State private var animatedScore: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     public init(score: SoloScore, style: Style = .compact) {
         self.score = score
         self.style = style
@@ -45,9 +48,15 @@ public struct SoloScoreBadge: View {
                 Text(NSLocalizedString("solo.scoreTitle", comment: "Solo Score"))
                     .font(.headline)
                 Spacer()
-                Text(formatted(score.overall))
+                Text(formatted(animatedScore))
                     .font(.system(.largeTitle, design: .rounded, weight: .bold))
                     .foregroundStyle(score.scoreColor)
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: animatedScore))
+                    .accessibilityLabel(Text(String(
+                        format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"),
+                        formatted(score.overall)
+                    )))
             }
             if let hint = score.hint {
                 Text(hint)
@@ -58,6 +67,15 @@ public struct SoloScoreBadge: View {
             // renders SoloScoreRadarChart directly below this badge, so a
             // second bar list would duplicate it. This badge is the score
             // header only (overall + hint).
+        }
+        .onAppear {
+            if reduceMotion {
+                animatedScore = score.overall
+            } else {
+                withAnimation(.easeOut(duration: 0.7)) {
+                    animatedScore = score.overall
+                }
+            }
         }
     }
 
