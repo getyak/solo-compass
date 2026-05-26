@@ -39,6 +39,7 @@ public enum SoloCompassSchemaV1: VersionedSchema {
 /// `asValue` treats a nil blob as the empty `[String]`, which satisfies the
 /// "userTags = [] for existing rows" acceptance criterion in mapping rather
 /// than at the storage layer.
+// swiftlint:disable:next type_name
 public enum SoloCompassSchemaV1_1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { .init(1, 1, 0) }
 
