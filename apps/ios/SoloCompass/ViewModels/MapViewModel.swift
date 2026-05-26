@@ -145,7 +145,40 @@ public final class MapViewModel {
     // MARK: - City selection
 
     /// Currently selected city code (e.g. "cmi"), nil = all cities.
+    /// Custom locations use the format `custom_{lat}_{lon}`.
     public var selectedCity: String?
+
+    /// Coordinate for a custom-pin location set via LocationPickerSheet.
+    /// Non-nil when `selectedCity` starts with "custom_".
+    public var customCoordinates: CLLocationCoordinate2D?
+
+    /// Display label for a custom location (resolved city name or raw coord string).
+    public var customLocationLabel: String?
+
+    /// True when the current selection is a custom coordinate (not a preset city).
+    public var isCustomLocation: Bool {
+        selectedCity?.hasPrefix("custom_") ?? false
+    }
+
+    /// Select a custom coordinate from the LocationPickerSheet.
+    /// Zooms the map, clears city filtering (custom pin has no cityCode),
+    /// and stores the resolved label for the city pill.
+    public func selectCustomLocation(
+        coordinate: CLLocationCoordinate2D,
+        label: String,
+        cityCode: String
+    ) {
+        customCoordinates = coordinate
+        customLocationLabel = label
+        selectedCity = cityCode
+        preferences.lastSelectedCity = nil  // don't persist custom pins across restarts
+        cameraPosition = .region(MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+        ))
+        loadNearbyExperiences()
+        updateBottomInfo()
+    }
 
     /// All cities the user can pick from: seed-derived ones (centroid of
     /// matching experiences) plus reverse-geocoded discoveries from
@@ -196,8 +229,11 @@ public final class MapViewModel {
         return city.center
     }
 
-    /// Selects a city, recenters the map, and reloads experiences.
+    /// Selects a preset city, recenters the map, and reloads experiences.
+    /// Clears any active custom-coordinate pin.
     public func selectCity(_ cityCode: String?) {
+        customCoordinates = nil
+        customLocationLabel = nil
         selectedCity = cityCode
         preferences.lastSelectedCity = cityCode
         let center = defaultCenterForSelectedCity
@@ -395,7 +431,9 @@ public final class MapViewModel {
     }
 
     public func loadNearbyExperiences() {
-        let center = locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+        let center = customCoordinates
+            ?? locationService.currentLocation?.coordinate
+            ?? defaultCenterForSelectedCity
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: center, radiusKm: radiusKm)
         withAnimation(Self.markerSetAnimation) {
@@ -407,7 +445,8 @@ public final class MapViewModel {
 
     private func applyFilters(near coordinate: CLLocationCoordinate2D, radiusKm: Double) -> [Experience] {
         var nearby = experienceService.getExperiences(near: coordinate, radiusKm: radiusKm)
-        if let cityCode = selectedCity {
+        // Custom locations have no matching cityCode — show all nearby experiences instead.
+        if let cityCode = selectedCity, !cityCode.hasPrefix("custom_") {
             nearby = nearby.filter { $0.location.cityCode == cityCode }
         }
         if let category = selectedCategory {
