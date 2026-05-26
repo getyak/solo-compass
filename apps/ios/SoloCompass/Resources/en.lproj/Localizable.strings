@@ -234,6 +234,7 @@
 /* Experience detail overflow */
 "detail.report" = "Report an issue";
 "detail.more" = "More options";
+"detail.source.openHint" = "Opens the original source";
 
 /* US-004: Ask Solo about this experience (Pro chat) */
 "experience.askSolo.cta" = "Ask Solo about this";
