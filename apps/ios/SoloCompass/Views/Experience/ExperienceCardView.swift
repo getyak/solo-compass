@@ -10,8 +10,9 @@ public struct ExperienceCardView: View {
     @GestureState private var dragTranslation: CGFloat = 0
     @State private var dragOffset: CGFloat = 0
     @State private var didCrossThreshold = false
+    @State private var hasPreparedFeedback = false
 
-    // Pre-allocated so prepare() can be called when the drag starts.
+    // Pre-allocated so prepare() can be called once when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
     @Environment(UserPreferences.self) private var preferences
 
@@ -30,13 +31,9 @@ public struct ExperienceCardView: View {
         t < 0 ? t * 0.4 : t
     }
 
-    private var totalOffset: CGFloat {
-        rubberBanded(dragTranslation) + dragOffset
-    }
-
     /// Fades in both directions: downward (dismiss) and upward (expand).
     private var dragOpacity: Double {
-        1 - min(0.4, abs(dragTranslation) / 300)
+        1 - min(0.4, abs(dragOffset) / 300)
     }
 
     private var isFavorited: Bool {
@@ -111,19 +108,22 @@ public struct ExperienceCardView: View {
                 .fill(.regularMaterial)
                 .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
         )
-        .offset(y: totalOffset)
-        .opacity(dragOpacity)
         .padding(.horizontal, 12)
+        .offset(y: dragOffset)
+        .opacity(dragOpacity)
         .gesture(
             DragGesture(minimumDistance: 20)
                 .updating($dragTranslation) { value, state, _ in
                     state = value.translation.height
-                    if !didCrossThreshold {
-                        feedbackGenerator.prepare()
-                    }
                 }
                 .onChanged { value in
                     let translation = value.translation.height
+                    // Commit live position to dragOffset so snap-back can animate from here.
+                    dragOffset = rubberBanded(translation)
+                    if !hasPreparedFeedback {
+                        hasPreparedFeedback = true
+                        feedbackGenerator.prepare()
+                    }
                     if !didCrossThreshold && abs(translation) > 60 {
                         didCrossThreshold = true
                         feedbackGenerator.impactOccurred()
@@ -131,9 +131,12 @@ public struct ExperienceCardView: View {
                 }
                 .onEnded { value in
                     didCrossThreshold = false
+                    hasPreparedFeedback = false
                     if value.translation.height > 60 {
+                        dragOffset = 0
                         onDismiss()
                     } else if value.translation.height < -60 {
+                        dragOffset = 0
                         onExpand()
                     } else {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
