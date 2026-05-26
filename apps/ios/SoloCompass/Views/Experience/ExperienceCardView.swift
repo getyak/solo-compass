@@ -9,6 +9,7 @@ public struct ExperienceCardView: View {
 
     @GestureState private var dragTranslation: CGFloat = 0
     @State private var dragOffset: CGFloat = 0
+    @State private var didCrossThreshold = false
 
     // Pre-allocated so prepare() can be called when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -110,14 +111,34 @@ public struct ExperienceCardView: View {
                 .fill(.regularMaterial)
                 .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
         )
+        .offset(y: totalOffset)
+        .opacity(dragOpacity)
         .padding(.horizontal, 12)
         .gesture(
             DragGesture(minimumDistance: 20)
+                .updating($dragTranslation) { value, state, _ in
+                    state = value.translation.height
+                    if !didCrossThreshold {
+                        feedbackGenerator.prepare()
+                    }
+                }
+                .onChanged { value in
+                    let translation = value.translation.height
+                    if !didCrossThreshold && abs(translation) > 60 {
+                        didCrossThreshold = true
+                        feedbackGenerator.impactOccurred()
+                    }
+                }
                 .onEnded { value in
+                    didCrossThreshold = false
                     if value.translation.height > 60 {
                         onDismiss()
                     } else if value.translation.height < -60 {
                         onExpand()
+                    } else {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            dragOffset = 0
+                        }
                     }
                 }
         )
