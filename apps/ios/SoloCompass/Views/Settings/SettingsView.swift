@@ -60,7 +60,9 @@ public struct SettingsView: View {
                 filterBarSection
                 // Section: Appearance (US-039)
                 appearanceSection
-                // Section: AI & Privacy
+                // Section: AI Provider
+                aiProviderSection
+                // Section: Language & Privacy
                 languageSection
                 notificationsSection
                 exportSection
@@ -578,6 +580,50 @@ public struct SettingsView: View {
         } else {
             preferences.dislikedCategories.append(category)
         }
+    }
+
+    // MARK: - AI Provider
+
+    private var aiProviderSection: some View {
+        Section {
+            NavigationLink {
+                AIProviderSettingsView()
+                    .environment(preferences)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(aiStatusColor, in: RoundedRectangle(cornerRadius: 7))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(NSLocalizedString("settings.aiProvider", comment: "AI Provider row label"))
+                            .font(.body)
+                        Text(aiStatusSubtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            settingsSectionHeader(
+                "brain",
+                label: NSLocalizedString("settings.aiProvider.header", comment: "AI Provider section header")
+            )
+        }
+    }
+
+    private var aiStatusColor: Color {
+        preferences.aiApiKey.isEmpty ? .orange : .green
+    }
+
+    private var aiStatusSubtitle: String {
+        preferences.aiApiKey.isEmpty
+            ? NSLocalizedString("settings.aiProvider.status.unconfigured", comment: "AI not configured subtitle")
+            : String(
+                format: NSLocalizedString("settings.aiProvider.status.configured", comment: "AI configured subtitle"),
+                preferences.aiProvider.displayName
+              )
     }
 
     // MARK: - Subscription section (Epic D US-025)
