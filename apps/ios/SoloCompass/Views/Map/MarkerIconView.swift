@@ -19,6 +19,7 @@ public struct MarkerIconView: View {
     let isSelected: Bool
 
     @Environment(\.themeService) private var themeService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
     @State private var selectionPulse = false
 
@@ -49,6 +50,12 @@ public struct MarkerIconView: View {
             .scaleEffect(isSelected ? 1.3 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .onChange(of: reduceMotion) { _, reduced in
+                if reduced {
+                    pulse = false
+                    selectionPulse = false
+                }
+            }
     }
 
     @ViewBuilder
@@ -72,17 +79,19 @@ public struct MarkerIconView: View {
 
             // Outward pulse ring that fades as it expands, giving a gentle
             // "selected" beacon effect without competing with bestNow's ring.
-            Circle()
-                .stroke(themeService.currentTheme.accent.opacity(0.5), lineWidth: 2)
-                .frame(width: 44, height: 44)
-                .scaleEffect(selectionPulse ? 1.6 : 1.0)
-                .opacity(selectionPulse ? 0.0 : 0.8)
-                .animation(
-                    .easeOut(duration: 1.4).repeatForever(autoreverses: false),
-                    value: selectionPulse
-                )
-                .onAppear { selectionPulse = true }
-                .onDisappear { selectionPulse = false }
+            if !reduceMotion {
+                Circle()
+                    .stroke(themeService.currentTheme.accent.opacity(0.5), lineWidth: 2)
+                    .frame(width: 44, height: 44)
+                    .scaleEffect(selectionPulse ? 1.6 : 1.0)
+                    .opacity(selectionPulse ? 0.0 : 0.8)
+                    .animation(
+                        .easeOut(duration: 1.4).repeatForever(autoreverses: false),
+                        value: selectionPulse
+                    )
+                    .onAppear { selectionPulse = true }
+                    .onDisappear { selectionPulse = false }
+            }
         }
     }
 
@@ -91,7 +100,7 @@ public struct MarkerIconView: View {
         ZStack {
             // Pulse ring for "best now" (suppress on low-confidence — we
             // don't want AI-guessed entries imitating verified excitement)
-            if case .bestNow = state, !isLowConfidence {
+            if case .bestNow = state, !isLowConfidence, !reduceMotion {
                 Circle()
                     .fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255).opacity(0.4))
                     .frame(width: 56, height: 56)
@@ -276,7 +285,8 @@ private struct ObsidianDotGridMarker: View {
         ("footprinted", .footprinted),
     ]
     return ScrollView {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Reduce Motion OFF").font(.caption.bold()).padding(.horizontal)
             ForEach(states, id: \.0) { name, state in
                 HStack(spacing: 16) {
                     Text(name).frame(width: 120, alignment: .leading)
@@ -289,6 +299,26 @@ private struct ObsidianDotGridMarker: View {
                 Text("selected").frame(width: 120, alignment: .leading)
                 ForEach(ExperienceCategory.allCases) { cat in
                     MarkerIconView(category: cat, state: .default, isSelected: true)
+                }
+            }
+
+            Divider().padding(.vertical, 4)
+
+            Text("Reduce Motion ON (static)").font(.caption.bold()).padding(.horizontal)
+            ForEach(states, id: \.0) { name, state in
+                HStack(spacing: 16) {
+                    Text(name).frame(width: 120, alignment: .leading)
+                    ForEach(ExperienceCategory.allCases) { cat in
+                        MarkerIconView(category: cat, state: state)
+                            .environment(\.accessibilityReduceMotion, true)
+                    }
+                }
+            }
+            HStack(spacing: 16) {
+                Text("selected").frame(width: 120, alignment: .leading)
+                ForEach(ExperienceCategory.allCases) { cat in
+                    MarkerIconView(category: cat, state: .default, isSelected: true)
+                        .environment(\.accessibilityReduceMotion, true)
                 }
             }
         }
