@@ -35,6 +35,8 @@ public struct ReportIssueSheet: View {
     @State private var selectedReason: ReportReason?
     @State private var detail: String = ""
     @FocusState private var detailFocused: Bool
+    @State private var didHitLimit = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let detailLimit = 200
 
@@ -72,6 +74,15 @@ public struct ReportIssueSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    // MARK: - Helpers
+
+    private var counterColor: Color {
+        let ratio = Double(detail.count) / Double(detailLimit)
+        if detail.count >= detailLimit { return .red }
+        if ratio >= 0.8 { return .orange }
+        return .secondary
     }
 
     // MARK: - Sections
@@ -118,16 +129,28 @@ public struct ReportIssueSheet: View {
                     .frame(minHeight: 80)
                     .onChange(of: detail) { _, new in
                         if new.count > detailLimit {
-                            detail = String(new.prefix(detailLimit))
+                            withAnimation {
+                                detail = String(new.prefix(detailLimit))
+                            }
+                            if !didHitLimit {
+                                didHitLimit = true
+                                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                            }
+                        } else {
+                            didHitLimit = false
                         }
                     }
             }
             HStack {
                 Spacer()
+                let atLimit = detail.count >= detailLimit
                 Text("\(detail.count)/\(detailLimit)")
                     .font(.caption2)
-                    .foregroundStyle(detail.count >= detailLimit ? .red : .secondary)
+                    .foregroundStyle(counterColor)
                     .monospacedDigit()
+                    .scaleEffect(atLimit && !reduceMotion ? 1.12 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: atLimit)
+                    .animation(.default, value: detail.count)
             }
         } header: {
             Text(NSLocalizedString("report.detail.header", comment: "Additional details (optional)"))
