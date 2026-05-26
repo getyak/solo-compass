@@ -11,6 +11,8 @@
 /* Filters */
 "filter.now" = "Now";
 "filter.all" = "All";
+"filter.matches.one" = "%d match";
+"filter.matches.other" = "%d matches";
 
 /* Health */
 "health.healthy" = "Fresh — multiply verified";

@@ -580,6 +580,10 @@ private struct MapOverlayView: View {
     @Binding var dismissedQuotaInfo: String?
     @Binding var isMapPanning: Bool
 
+    private var isFilterActive: Bool {
+        viewModel.selectedCategory != nil || viewModel.selectedCustomTag != nil || viewModel.isNowFilter
+    }
+
     var body: some View {
         VStack {
             HStack {
@@ -600,6 +604,14 @@ private struct MapOverlayView: View {
                 isMapPanning: $isMapPanning
             )
             .padding(.top, 4)
+
+            if isFilterActive && !viewModel.visibleExperiences.isEmpty {
+                filterResultBadge
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .opacity(isMapPanning ? 0.4 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isMapPanning)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.visibleExperiences.count)
+            }
 
             if let errorText = viewModel.lastAIError, errorText != dismissedAIError {
                 DismissibleBanner(
@@ -734,6 +746,39 @@ private struct MapOverlayView: View {
                 .animation(.spring(response: 0.4), value: viewModel.pendingCheckIn != nil)
             }
         }
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFilterActive)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.visibleExperiences.count)
+    }
+
+    @ViewBuilder
+    private var filterResultBadge: some View {
+        let count = viewModel.visibleExperiences.count
+        let dotColor: Color = {
+            if let cat = viewModel.selectedCategory { return cat.color }
+            if viewModel.isNowFilter { return Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255) }
+            return Color.accentColor
+        }()
+        let countText = count == 1
+            ? String(format: NSLocalizedString("filter.matches.one", comment: "1 match"), count)
+            : String(format: NSLocalizedString("filter.matches.other", comment: "%d matches"), count)
+
+        GlassmorphismCapsule(
+            horizontalPadding: 12,
+            verticalPadding: 6,
+            shadowRadius: 6,
+            shadowY: 3
+        ) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 8, height: 8)
+                Text(countText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.primary)
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
+        .accessibilityLabel(Text(countText))
     }
 
     @ViewBuilder
