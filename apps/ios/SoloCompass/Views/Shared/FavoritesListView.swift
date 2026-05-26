@@ -5,12 +5,17 @@ import SwiftUI
 public struct FavoritesListView: View {
     @Environment(ExperienceService.self) private var experienceService
     @Environment(UserPreferences.self) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onSelectExperience: (Experience) -> Void
 
     @State private var lastUnfavorited: (id: String, title: String, date: Date)?
     @State private var undoDismissTask: Task<Void, Never>?
     @State private var animatePulse = false
     @State private var undoProgress: CGFloat = 1
+    @State private var undoDragOffset: CGFloat = 0
+    @State private var undoDragCrossedThreshold = false
+    private let undoSelectionFeedback = UISelectionFeedbackGenerator()
+    private let undoImpactFeedback = UIImpactFeedbackGenerator(style: .soft)
 
     private var sortedFavorites: [Experience] {
         let ids = preferences.favoritedExperiences
@@ -51,11 +56,15 @@ public struct FavoritesListView: View {
             }
         }
         .animation(.easeInOut, value: lastUnfavorited != nil)
+        .onChange(of: lastUnfavorited == nil) { _, isNil in
+            if isNil { undoDragOffset = 0 }
+        }
     }
 
 }
 
 private struct EmptyFavoritesView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
 
     var body: some View {
@@ -80,7 +89,7 @@ private struct EmptyFavoritesView: View {
         }
         .padding(32)
         .onAppear {
-            guard !isBreathing else { return }
+            guard !isBreathing, !reduceMotion else { return }
             isBreathing = true
         }
     }
@@ -98,15 +107,7 @@ private extension FavoritesListView {
                     .truncationMode(.tail)
                 Spacer()
                 Button {
-                    guard let saved = lastUnfavorited else { return }
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    undoDismissTask?.cancel()
-                    undoDismissTask = nil
-                    undoProgress = 1
-                    withAnimation(.easeInOut) {
-                        preferences.toggleFavorite(saved.id, at: saved.date)
-                        lastUnfavorited = nil
-                    }
+                    performUndo()
                 } label: {
                     Text(NSLocalizedString("action.undo", comment: "Undo action"))
                         .font(.subheadline.weight(.semibold))
@@ -116,22 +117,74 @@ private extension FavoritesListView {
             .padding(.top, 12)
             .padding(.bottom, 14)
 
-            GeometryReader { geo in
-                Capsule()
-                    .fill(Color.accentColor)
-                    .frame(width: geo.size.width * undoProgress, height: 2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if !reduceMotion {
+                GeometryReader { geo in
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(width: geo.size.width * undoProgress, height: 2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(height: 2)
+                .padding(.horizontal, 2)
             }
-            .frame(height: 2)
-            .padding(.horizontal, 2)
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 16)
+        .offset(y: undoDragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    undoDragOffset = max(0, gesture.translation.height * 0.85)
+                    let overThreshold = gesture.translation.height > 80
+                    if overThreshold && !undoDragCrossedThreshold {
+                        undoDragCrossedThreshold = true
+                        undoSelectionFeedback.selectionChanged()
+                    } else if !overThreshold && undoDragCrossedThreshold {
+                        undoDragCrossedThreshold = false
+                    }
+                }
+                .onEnded { gesture in
+                    undoDragCrossedThreshold = false
+                    if gesture.translation.height > 80 {
+                        undoImpactFeedback.impactOccurred()
+                        withAnimation(.easeOut(duration: 0.2)) { undoDragOffset = 300 }
+                        undoDismissTask?.cancel()
+                        undoDismissTask = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            withAnimation(.easeInOut) { lastUnfavorited = nil }
+                            undoDragOffset = 0
+                        }
+                    } else {
+                        withAnimation(.spring(response: 0.3)) { undoDragOffset = 0 }
+                    }
+                }
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(String(format: NSLocalizedString("favorites.undo.named", comment: "Removed named experience undo banner"), lastUnfavorited?.title ?? "")))
+        .accessibilityHint(Text(NSLocalizedString("favorites.undo.swipeHint", comment: "Swipe down to dismiss undo bar")))
+        .accessibilityAction(named: Text(NSLocalizedString("action.undo", comment: "Undo action"))) {
+            performUndo()
+        }
         .onAppear {
             undoProgress = 1
-            withAnimation(.linear(duration: 4)) {
-                undoProgress = 0
+            undoDragOffset = 0
+            if !reduceMotion {
+                withAnimation(.linear(duration: 4)) {
+                    undoProgress = 0
+                }
             }
+        }
+    }
+
+    private func performUndo() {
+        guard let saved = lastUnfavorited else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        undoDismissTask?.cancel()
+        undoDismissTask = nil
+        undoProgress = 1
+        withAnimation(.easeInOut) {
+            preferences.toggleFavorite(saved.id, at: saved.date)
+            lastUnfavorited = nil
         }
     }
 

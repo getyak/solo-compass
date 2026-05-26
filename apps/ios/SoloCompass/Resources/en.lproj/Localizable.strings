@@ -272,6 +272,7 @@
 
 /* Generic actions */
 "action.undo" = "Undo";
+"favorites.undo.swipeHint" = "Swipe down to dismiss";
 
 /* Notifications */
 "settings.notifications" = "Notify me when I'm nearby";
