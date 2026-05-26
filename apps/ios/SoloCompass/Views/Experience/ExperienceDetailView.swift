@@ -440,19 +440,61 @@ public struct ExperienceDetailView: View {
         sectionContainer(title: NSLocalizedString("section.sources", comment: "")) {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(viewModel.experience.sources) { source in
-                    HStack {
-                        Image(systemName: "link")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(source.attribution ?? source.type.rawValue)
-                            .font(.caption)
-                        Spacer()
-                        Text(source.verifiedAt, style: .date)
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
+                    sourceRow(source)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func sourceRow(_ source: InformationSource) -> some View {
+        let label = source.attribution ?? source.type.rawValue
+        let iconName = symbol(for: source.type)
+        if let url = source.url {
+            Link(destination: url) {
+                HStack {
+                    Image(systemName: iconName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(label)
+                        .font(.caption)
+                    Spacer()
+                    Text(source.verifiedAt, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .simultaneousGesture(TapGesture().onEnded {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            })
+            .accessibilityAddTraits(.isLink)
+            .accessibilityHint(Text(NSLocalizedString("detail.source.openHint", comment: "Opens the original source")))
+        } else {
+            HStack {
+                Image(systemName: iconName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(label)
+                    .font(.caption)
+                Spacer()
+                Text(source.verifiedAt, style: .date)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private func symbol(for type: InformationSource.SourceType) -> String {
+        switch type {
+        case .wikivoyage, .wikipedia: return "book"
+        case .reddit:                 return "bubble.left.and.bubble.right"
+        case .blog:                   return "doc.text"
+        case .youtube:                return "play.rectangle"
+        case .user:                   return "person.crop.circle"
+        case .fieldVisit:             return "figure.walk"
         }
     }
 
