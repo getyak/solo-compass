@@ -2,11 +2,16 @@ import SwiftUI
 
 /// Radar chart visualising the six SoloScore dimensions.
 /// Falls back to highlighted progress bars when dimension variance < 0.5.
+/// Tap the chart to replay the draw-in animation (Reduce Motion: no replay, no haptic).
 public struct SoloScoreRadarChart: View {
     let score: SoloScore
 
     @State private var drawProgress: Double = 0
+    @State private var isReplaying: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let haptic = UIImpactFeedbackGenerator(style: .soft)
+    private static let springDuration: Double = 0.7
 
     private static let axes: [(label: String, symbol: String, keyPath: KeyPath<SoloScore.Breakdown, Double>)] = [
         (NSLocalizedString("solo.seating",    comment: ""), "chair",              \.seatingFriendly),
@@ -44,8 +49,12 @@ public struct SoloScoreRadarChart: View {
             if reduceMotion {
                 drawProgress = 1
             } else {
-                withAnimation(.spring(response: 0.7, dampingFraction: 0.75)) {
+                withAnimation(.spring(response: Self.springDuration, dampingFraction: 0.75)) {
                     drawProgress = 1
+                }
+                haptic.prepare()
+                DispatchQueue.main.asyncAfter(deadline: .now() + Self.springDuration) {
+                    haptic.impactOccurred()
                 }
             }
         }
@@ -92,6 +101,24 @@ public struct SoloScoreRadarChart: View {
                 radarPolygon(center: center, radius: radius, count: axisCount, values: animatedValues)
                     .stroke(score.scoreColor, lineWidth: 2)
 
+                // Vertex dots — one per dimension, grow in sync with drawProgress
+                ForEach(0..<axisCount, id: \.self) { i in
+                    let angle = axisAngle(index: i, count: axisCount)
+                    let dotRadius = size * 0.018
+                    let dotPos = point(
+                        center: center,
+                        radius: radius * CGFloat(values[i] / 10.0) * CGFloat(drawProgress),
+                        angle: angle
+                    )
+                    Circle()
+                        .fill(score.scoreColor)
+                        .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
+                        .frame(width: dotRadius * 2, height: dotRadius * 2)
+                        .scaleEffect(drawProgress)
+                        .position(dotPos)
+                        .accessibilityHidden(true)
+                }
+
                 // Axis labels with SF Symbol icons — stagger-fade per axis
                 ForEach(0..<axisCount, id: \.self) { i in
                     let angle = axisAngle(index: i, count: axisCount)
@@ -118,6 +145,20 @@ public struct SoloScoreRadarChart: View {
         }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityLabel(radarAccessibilityLabel)
+        .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "Tap to replay the draw-in animation")))
+        .onTapGesture {
+            guard !reduceMotion, !isReplaying else { return }
+            isReplaying = true
+            drawProgress = 0
+            withAnimation(.spring(response: Self.springDuration, dampingFraction: 0.75)) {
+                drawProgress = 1
+            }
+            haptic.prepare()
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.springDuration) {
+                haptic.impactOccurred()
+                isReplaying = false
+            }
+        }
     }
 
     private func radarPolygon(center: CGPoint, radius: CGFloat, count: Int, values: [Double]) -> Path {
@@ -201,8 +242,9 @@ public struct SoloScoreRadarChart: View {
         basedOnCount: 22
     )
     return VStack(spacing: 24) {
-        Text("Radar Chart (high variance)")
+        Text("Radar Chart (high variance) — tap to replay, dots at vertices")
             .font(.headline)
+            .multilineTextAlignment(.center)
         SoloScoreRadarChart(score: highVariance)
             .frame(width: 280, height: 280)
             .padding()
