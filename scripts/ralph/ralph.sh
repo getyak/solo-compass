@@ -123,11 +123,8 @@ $STORY_ACCEPT
 
 Implement ONLY this story. Do NOT touch unrelated code. Keep changes focused and preserve existing behavior.
 After implementing:
-1. For iOS stories: cd apps/ios && xcodegen if project.yml changes, then xcodebuild build -project SoloCompass.xcodeproj -scheme SoloCompass -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' when practical
-2. For TypeScript/scripts/docs stories: pnpm typecheck and relevant tests; run scripts/check-localization.ts when localization changes
-3. Run formatting according to existing project scripts when practical
-4. Print a summary of what you changed
-5. The acceptance criteria must be satisfied
+1. Print a summary of what you changed  
+2. The acceptance criteria must be satisfied
 
 If you run out of turns before finishing, end your final assistant message with a single line:
 NEXT_STEPS: <one short sentence describing exactly what the next iteration should do first>
