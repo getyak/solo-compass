@@ -23,10 +23,27 @@ public struct OnboardingView: View {
         .animation(.easeInOut(duration: 0.3), value: step)
     }
 
+    // MARK: - Step indicator
+
+    private var stepIndicator: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<2) { index in
+                Capsule()
+                    .fill(index == step ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .frame(width: index == step ? 20 : 6, height: 6)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: step)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
     // MARK: - Step 0: Welcome + location permission
 
     private var welcomeStep: some View {
         VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 24)
+
             Spacer()
 
             VStack(spacing: 24) {
@@ -79,6 +96,9 @@ public struct OnboardingView: View {
 
     private var styleStep: some View {
         VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 24)
+
             Spacer()
 
             VStack(spacing: 24) {
@@ -133,6 +153,7 @@ public struct OnboardingView: View {
     private func styleRow(_ style: UserPreferences.SoloTravelStyle) -> some View {
         let selected = preferences.soloTravelStyle == style
         Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             preferences.soloTravelStyle = style
         } label: {
             HStack(spacing: 14) {
@@ -171,6 +192,10 @@ public struct OnboardingView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(style.localizedTitle), \(style.localizedDescription)"))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func styleIcon(_ style: UserPreferences.SoloTravelStyle) -> String {
