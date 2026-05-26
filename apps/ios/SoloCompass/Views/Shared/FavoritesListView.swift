@@ -9,6 +9,7 @@ public struct FavoritesListView: View {
 
     @State private var lastUnfavorited: (id: String, date: Date)?
     @State private var undoDismissTask: Task<Void, Never>?
+    @State private var animatePulse = false
 
     private var sortedFavorites: [Experience] {
         let ids = preferences.favoritedExperiences
@@ -58,17 +59,17 @@ private struct EmptyFavoritesView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "heart")
-                .font(.system(size: 48))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tint)
-                .scaleEffect(isBreathing ? 1.08 : 0.94)
-                .opacity(isBreathing ? 1.0 : 0.7)
-                .onAppear {
-                    withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                        isBreathing = true
-                    }
-                }
+            ZStack {
+                Circle()
+                    .fill(Color.pink.opacity(0.12))
+                    .frame(width: 80, height: 80)
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(Color.pink.opacity(0.7))
+                    .scaleEffect(animatePulse ? 1.08 : 0.94)
+                    .opacity(animatePulse ? 1.0 : 0.7)
+                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: animatePulse)
+            }
             Text(NSLocalizedString("favorites.empty.title", comment: "No favorites yet"))
                 .font(.headline)
             Text(NSLocalizedString("favorites.empty.hint", comment: "Tap the heart on any experience"))
@@ -77,12 +78,10 @@ private struct EmptyFavoritesView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(32)
-        .transition(.scale(scale: 0.85).combined(with: .opacity))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            NSLocalizedString("favorites.empty.title", comment: "No favorites yet") + ". " +
-            NSLocalizedString("favorites.empty.hint", comment: "Tap the heart on any experience")
-        )
+        .onAppear {
+            guard !animatePulse else { return }
+            animatePulse = true
+        }
     }
 }
 
