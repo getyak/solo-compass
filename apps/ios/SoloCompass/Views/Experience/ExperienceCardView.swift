@@ -29,8 +29,18 @@ public struct ExperienceCardView: View {
     private var distanceMeters: Double? {
         guard let coord = experience.coordinate else { return nil }
         let d = locationService.distance(to: coord)
-        return d.isFinite ? d : nil
+        // greatestFiniteMagnitude is the sentinel returned when no fix is available;
+        // isFinite alone cannot distinguish it from a real reading.
+        return (d.isFinite && d < .greatestFiniteMagnitude) ? d : nil
     }
+
+    private static let distanceFormatter: MeasurementFormatter = {
+        let f = MeasurementFormatter()
+        f.unitOptions = .naturalScale
+        f.unitStyle = .abbreviated
+        f.numberFormatter.maximumFractionDigits = 1
+        return f
+    }()
 
     /// Formats a distance in meters into a human-readable walk-time or distance string.
     private static func formatDistance(_ meters: Double) -> String {
@@ -43,10 +53,7 @@ public struct ExperienceCardView: View {
             return String(format: NSLocalizedString("card.distance.walk", comment: "Distance in walk minutes"), minutes)
         }
         let measurement = Measurement(value: meters, unit: UnitLength.meters)
-        let formatter = MeasurementFormatter()
-        formatter.unitOptions = .naturalScale
-        formatter.numberFormatter.maximumFractionDigits = 1
-        return formatter.string(from: measurement)
+        return distanceFormatter.string(from: measurement)
     }
 
     public init(
