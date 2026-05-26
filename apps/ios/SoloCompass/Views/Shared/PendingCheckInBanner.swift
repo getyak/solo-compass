@@ -9,7 +9,10 @@ public struct PendingCheckInBanner: View {
     var onDismiss: () -> Void
 
     @State private var dragOffset: CGFloat = 0
+    @State private var crossedThreshold = false
     private let dismissThreshold: CGFloat = 80
+    private let selectionFeedback = UISelectionFeedbackGenerator()
+    private let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
 
     public init(
         experienceTitle: String,
@@ -19,6 +22,8 @@ public struct PendingCheckInBanner: View {
         self.experienceTitle = experienceTitle
         self.onConfirm = onConfirm
         self.onDismiss = onDismiss
+        selectionFeedback.prepare()
+        impactFeedback.prepare()
     }
 
     public var body: some View {
@@ -74,13 +79,23 @@ public struct PendingCheckInBanner: View {
         .gesture(
             DragGesture()
                 .onChanged { gesture in
-                    dragOffset = min(0, gesture.translation.height)
+                    dragOffset = min(0, gesture.translation.height * 0.85)
+                    let overThreshold = -gesture.translation.height > dismissThreshold
+                    if overThreshold && !crossedThreshold {
+                        crossedThreshold = true
+                        selectionFeedback.selectionChanged()
+                    } else if !overThreshold && crossedThreshold {
+                        crossedThreshold = false
+                    }
                 }
                 .onEnded { gesture in
                     if gesture.translation.height < -dismissThreshold {
+                        impactFeedback.impactOccurred()
+                        crossedThreshold = false
                         withAnimation(.easeOut(duration: 0.2)) { dragOffset = -200 }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { onDismiss() }
                     } else {
+                        crossedThreshold = false
                         withAnimation(.spring(response: 0.3)) { dragOffset = 0 }
                     }
                 }
