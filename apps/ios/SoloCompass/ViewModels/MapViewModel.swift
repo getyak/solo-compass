@@ -294,6 +294,9 @@ public final class MapViewModel {
     public var selectedCustomTag: String?
     public var visibleExperiences: [Experience] = []
 
+    /// Number of currently visible experiences that are at their best time right now.
+    public var nowCount: Int { visibleExperiences.filter { $0.isBestNow() }.count }
+
     // MARK: - Empty-state progression (US-012)
 
     /// Progressive escalation when `visibleExperiences` is empty. The

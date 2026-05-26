@@ -18,6 +18,8 @@ public struct FilterBarView: View {
     /// Number of experiences currently visible on the map. Used to render the
     /// count badge on the selected pill. Defaults to 0 for previews/back-compat.
     let resultCount: Int
+    /// How many visible experiences are currently at their best time.
+    let nowCount: Int
 
     /// Namespace for the shared gliding selection highlight.
     @Namespace private var pillHighlight
@@ -26,11 +28,14 @@ public struct FilterBarView: View {
     /// (US-006). Previews/tests that don't supply preferences get a freshly
     /// constructed `UserPreferences`, which defaults to all 8 categories.
     @Environment(UserPreferences.self) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isPulsing: Bool = false
 
     public init(
         selectedCategory: ExperienceCategory?,
         isNowSelected: Bool,
         selectedCustomTag: String? = nil,
+        nowCount: Int = 0,
         onSelectNow: @escaping () -> Void,
         onSelectAll: @escaping () -> Void,
         onSelectCategory: @escaping (ExperienceCategory) -> Void,
@@ -41,6 +46,7 @@ public struct FilterBarView: View {
         self.selectedCategory = selectedCategory
         self.isNowSelected = isNowSelected
         self.selectedCustomTag = selectedCustomTag
+        self.nowCount = nowCount
         self.onSelectNow = onSelectNow
         self.onSelectAll = onSelectAll
         self.onSelectCategory = onSelectCategory
@@ -73,13 +79,9 @@ public struct FilterBarView: View {
         GlassmorphismCapsule(horizontalPadding: 0, verticalPadding: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
+                    nowPill(isSelected: isNowSelected, action: onSelectNow)
                     pill(
-                        label: NSLocalizedString("filter.now", comment: "Now"),
-                        isSelected: isNowSelected,
-                        color: Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255),
-                        action: onSelectNow
-                    )
-                    pill(
+                        id: "all",
                         label: NSLocalizedString("filter.all", comment: "All"),
                         isSelected: !isNowSelected && selectedCategory == nil && selectedCustomTag == nil,
                         color: Color.primary,
@@ -112,7 +114,69 @@ public struct FilterBarView: View {
         .onTapGesture { isMapPanning = false }
     }
 
-    private func pill(label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
+    private static let accentGold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+
+    private func nowPill(isSelected: Bool, action: @escaping () -> Void) -> some View {
+        let label = NSLocalizedString("filter.now", comment: "Now")
+        let a11yLabel: String = nowCount > 0
+            ? String(format: NSLocalizedString("filter.now.a11y", comment: "Now, n experiences at their best"), nowCount)
+            : label
+
+        return Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        } label: {
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(isSelected ? Color.white : Self.accentGold)
+                    .frame(width: 6, height: 6)
+                    .scaleEffect(isPulsing ? 1.4 : 1.0)
+                    .opacity(isPulsing ? 0.5 : 1.0)
+
+                Text(label)
+                    .font(.subheadline.weight(.medium))
+
+                if nowCount > 0 {
+                    Text("\(nowCount)")
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule().fill(isSelected ? Color.white.opacity(0.3) : Self.accentGold.opacity(0.25))
+                        )
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundStyle(isSelected ? .white : .primary)
+            .background(
+                Capsule().fill(isSelected ? Self.accentGold : Color.clear)
+            )
+            .overlay(
+                Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(a11yLabel))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                isPulsing = true
+            }
+        }
+        .onChange(of: reduceMotion) { _, reduced in
+            if reduced {
+                withAnimation(.default) { isPulsing = false }
+            } else {
+                withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                    isPulsing = true
+                }
+            }
+        }
+    }
+
+    private func pill(id: String, label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
@@ -244,6 +308,7 @@ private struct PressableButtonStyle: ButtonStyle {
         FilterBarView(
             selectedCategory: .coffee,
             isNowSelected: false,
+            nowCount: 0,
             onSelectNow: {},
             onSelectAll: {},
             onSelectCategory: { _ in }
@@ -251,6 +316,15 @@ private struct PressableButtonStyle: ButtonStyle {
         FilterBarView(
             selectedCategory: nil,
             isNowSelected: true,
+            nowCount: 7,
+            onSelectNow: {},
+            onSelectAll: {},
+            onSelectCategory: { _ in }
+        )
+        FilterBarView(
+            selectedCategory: nil,
+            isNowSelected: false,
+            nowCount: 3,
             onSelectNow: {},
             onSelectAll: {},
             onSelectCategory: { _ in }
