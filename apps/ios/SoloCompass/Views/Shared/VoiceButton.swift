@@ -5,6 +5,8 @@ public struct VoiceButton: View {
     let voiceService: VoiceService
     let onTranscript: (String) -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var isRecording = false
     @State private var liveTranscript: String = ""
     @State private var showPermissionAlert = false
@@ -23,9 +25,12 @@ public struct VoiceButton: View {
                 Circle()
                     .stroke(Color.red.opacity(0.5), lineWidth: 4)
                     .frame(width: 72, height: 72)
-                    .scaleEffect(pulse ? 1.2 : 0.95)
-                    .opacity(pulse ? 0.0 : 0.8)
-                    .animation(.easeOut(duration: 1.0).repeatForever(autoreverses: false), value: pulse)
+                    .scaleEffect(reduceMotion ? 1.0 : (pulse ? 1.2 : 0.95))
+                    .opacity(reduceMotion ? 0.7 : (pulse ? 0.0 : 0.8))
+                    .animation(
+                        reduceMotion ? nil : .easeOut(duration: 1.0).repeatForever(autoreverses: false),
+                        value: pulse
+                    )
             }
 
             Circle()
@@ -84,7 +89,8 @@ public struct VoiceButton: View {
             }
             do {
                 isRecording = true
-                pulse = true
+                if !reduceMotion { pulse = true }
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 liveTranscript = ""
                 let stream = try voiceService.startListening()
                 streamTask = Task {
@@ -116,6 +122,7 @@ public struct VoiceButton: View {
         let final = liveTranscript
         streamTask?.cancel()
         streamTask = nil
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         if !final.isEmpty {
             onTranscript(final)
         }
