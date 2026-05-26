@@ -1121,10 +1121,14 @@ public final class MapViewModel {
     /// only appears for the Pro multi-ring schedule.
     public enum ExploreProgress: Equatable, Sendable {
         case idle
-        /// `ringsDone` increments as each ring's Overpass call resolves.
-        case scanning(ringsDone: Int, totalRings: Int)
+        /// `ringsDone` increments as each ring's Overpass call resolves (multi-ring concurrent path).
+        case multiRingScanning(ringsDone: Int, totalRings: Int)
         /// Single AI synthesis kicked off with `poiCount` deduped POIs.
         case synthesizing(poiCount: Int)
+        /// Progressive ladder is scanning the ring at `radiusKm` km.
+        case scanning(radiusKm: Int)
+        /// Progressive ladder is expanding to a larger ring at `toRadiusKm` km.
+        case expanding(toRadiusKm: Int)
     }
 
     public var exploreProgress: ExploreProgress = .idle
@@ -1191,7 +1195,7 @@ public final class MapViewModel {
         var failedRings = 0
 
         // US-MR-04: surface scanning progress for the UI capsule.
-        exploreProgress = .scanning(ringsDone: 0, totalRings: total)
+        exploreProgress = .multiRingScanning(ringsDone: 0, totalRings: total)
         // US-MR-05: reset analytics counter before this run.
         pendingFailedRings = 0
 
@@ -1213,7 +1217,7 @@ public final class MapViewModel {
                 batches[index] = pois
                 if pois.isEmpty { failedRings += 1 }
                 done += 1
-                exploreProgress = .scanning(ringsDone: done, totalRings: total)
+                exploreProgress = .multiRingScanning(ringsDone: done, totalRings: total)
                 // US-016: yield so SwiftUI can pick up each discrete
                 // scanning(N,4) update before the next ring completes.
                 await Task.yield()

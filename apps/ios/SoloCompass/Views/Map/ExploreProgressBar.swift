@@ -38,7 +38,7 @@ struct ExploreProgressBar: View {
         Color.gray.opacity(0.2).ignoresSafeArea()
         VStack {
             Spacer()
-            ExploreProgressBar(progress: .scanning(ringsDone: 2, totalRings: 4))
+            ExploreProgressBar(progress: .multiRingScanning(ringsDone: 2, totalRings: 4))
                 .padding(.bottom, 100)
         }
     }

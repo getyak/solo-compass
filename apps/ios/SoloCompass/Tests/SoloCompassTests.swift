@@ -1661,7 +1661,7 @@ final class SoloCompassTests: XCTestCase {
         let observeTask = Task { @MainActor in
             while !Task.isCancelled {
                 let p = vm.exploreProgress
-                if case .scanning = p, observedProgress.last != p {
+                if case .multiRingScanning = p, observedProgress.last != p {
                     observedProgress.append(p)
                 }
                 await Task.yield()
@@ -1676,7 +1676,7 @@ final class SoloCompassTests: XCTestCase {
 
         let total = MapViewModel.multiRingRadii.count
         let expected: [MapViewModel.ExploreProgress] = (0...total).map {
-            .scanning(ringsDone: $0, totalRings: total)
+            .multiRingScanning(ringsDone: $0, totalRings: total)
         }
         XCTAssertEqual(observedProgress, expected,
                        "exploreProgress must emit each discrete scanning(N,4) value including initial scanning(0,4)")

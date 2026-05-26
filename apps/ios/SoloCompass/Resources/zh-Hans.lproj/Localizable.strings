@@ -271,6 +271,8 @@
 "explore.toast.multiRing.added" = "%2$d km 范围内新增 %1$d 处地点";
 "explore.progress.scanning" = "正在扫描 · 第 %1$d/%2$d 环";
 "explore.progress.synthesizing" = "AI 正在整理 %d 处地点…";
+"explore.progress.progressiveScanning" = "正在扫描 %d km…";
+"explore.progress.expanding" = "附近较少 · 正在扩大到 %d km";
 "explore.offline.staleToast" = "正在显示 %@ 的离线缓存数据";
 "explore.toast.cachedFallback" = "正在显示缓存结果";
 

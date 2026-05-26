@@ -102,10 +102,10 @@ else:
   fi
 
   # Build the Claude Code prompt
-  PROMPT="You are implementing a SINGLE user story for the Solo Compass iOS UI/AI Deep Optimization PRD.
+  PROMPT="You are implementing a SINGLE user story for the Solo Compass Progressive Explore + Enrichment PRD.
 
 PROJECT: Solo Compass (独行罗盘) — map-first companion app for solo travelers.
-Current PRD: static-analysis-driven cleanup of Solo Compass iOS, sourced from tasks/prd-ui-ai-deep-optimization.md.
+Current PRD: Progressive Explore + cross-channel compilation + agent orchestration — small-radius-first ladder (5→10→25→100km) that auto-expands when sparse, incrementally drops map pins, cross-compiles each place across OSM/Foursquare/MapKit/web, and is drivable by natural-language chat/voice. Source: tasks/prd-progressive-explore-enrichment.md.
 Tech stack: pnpm monorepo; iOS app under apps/ios/SoloCompass (SwiftUI + MapKit, XcodeGen); web/bot/packages in TypeScript strict.
 Skim CLAUDE.md only if you need a convention you don't already know. Choose the relevant target from the story acceptance criteria.
 
@@ -123,11 +123,8 @@ $STORY_ACCEPT
 
 Implement ONLY this story. Do NOT touch unrelated code. Keep changes focused and preserve existing behavior.
 After implementing:
-1. For iOS stories: cd apps/ios && xcodegen if project.yml changes, then xcodebuild build -project SoloCompass.xcodeproj -scheme SoloCompass -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' when practical
-2. For TypeScript/scripts/docs stories: pnpm typecheck and relevant tests; run scripts/check-localization.ts when localization changes
-3. Run formatting according to existing project scripts when practical
-4. Print a summary of what you changed
-5. The acceptance criteria must be satisfied
+1. Print a summary of what you changed  
+2. The acceptance criteria must be satisfied
 
 If you run out of turns before finishing, end your final assistant message with a single line:
 NEXT_STEPS: <one short sentence describing exactly what the next iteration should do first>
