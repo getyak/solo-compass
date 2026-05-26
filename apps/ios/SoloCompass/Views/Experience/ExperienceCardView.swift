@@ -9,11 +9,7 @@ public struct ExperienceCardView: View {
 
     @GestureState private var dragTranslation: CGFloat = 0
     @State private var dragOffset: CGFloat = 0
-    @State private var didCrossThreshold = false
-    @State private var didPrepareHaptic = false
-    @State private var isPulsing = false
-    @State private var heartBounce = 0
-    @State private var heartBurst = false
+    @State private var didFireThresholdHaptic = false
 
     // Pre-allocated so prepare() can be called once when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -131,6 +127,9 @@ public struct ExperienceCardView: View {
                 .fill(.regularMaterial)
                 .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
         )
+        .offset(y: totalOffset)
+        .opacity(dragOpacity)
+        .animation(.interactiveSpring(), value: dragTranslation)
         .padding(.horizontal, 12)
         .offset(y: dragOffset)
         .opacity(dragOpacity)
@@ -140,21 +139,20 @@ public struct ExperienceCardView: View {
                     state = value.translation.height
                 }
                 .onChanged { value in
-                    let t = value.translation.height
-                    if !didPrepareHaptic {
+                    if state == 0 {
                         feedbackGenerator.prepare()
-                        didPrepareHaptic = true
                     }
-                    if !didCrossThreshold && abs(t) > 60 {
-                        didCrossThreshold = true
+                    state = value.translation.height
+                }
+                .onChanged { value in
+                    if !didFireThresholdHaptic, abs(value.translation.height) > 60 {
                         feedbackGenerator.impactOccurred()
+                        didFireThresholdHaptic = true
                     }
                 }
                 .onEnded { value in
                     // Capture live offset before @GestureState resets to 0.
                     let snappingFrom = rubberBanded(dragTranslation)
-                    didCrossThreshold = false
-                    didPrepareHaptic = false
                     if value.translation.height > 60 {
                         dragOffset = 0
                         onDismiss()
@@ -166,6 +164,10 @@ public struct ExperienceCardView: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             dragOffset = 0
                         }
+                    }
+                    withAnimation(.spring(response: 0.3)) {
+                        dragOffset = 0
+                        didFireThresholdHaptic = false
                     }
                 }
         )
