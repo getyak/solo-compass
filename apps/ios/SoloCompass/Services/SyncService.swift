@@ -293,7 +293,9 @@ public final class SyncService {
 
                 if remoteWins {
                     if remoteIsFavorited {
-                        local.favoritedAt = formatter.date(from: row.favorited_at!) ?? local.favoritedAt
+                        if let favAt = row.favorited_at {
+                            local.favoritedAt = formatter.date(from: favAt) ?? local.favoritedAt
+                        }
                     } else {
                         context.delete(local)
                     }

@@ -41,7 +41,7 @@ public final class ReviewsService {
             let envURL = ProcessInfo.processInfo.environment["SOLO_API_BASE_URL"]
                 .flatMap { URL(string: $0) }
 #if DEBUG
-            self.baseURL = envURL ?? URL(string: "http://localhost:8080")!
+            self.baseURL = envURL ?? URL(string: "http://localhost:8080") ?? URL(fileURLWithPath: "/dev/null")
             self.isUnconfigured = false
 #else
             if let url = envURL {
@@ -49,7 +49,7 @@ public final class ReviewsService {
                 self.isUnconfigured = false
             } else {
                 // No backend configured in Release — skip network entirely.
-                self.baseURL = URL(string: "about:blank")!
+                self.baseURL = URL(string: "about:blank") ?? URL(fileURLWithPath: "/dev/null")
                 self.isUnconfigured = true
             }
 #endif
