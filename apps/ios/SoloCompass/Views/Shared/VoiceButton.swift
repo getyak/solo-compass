@@ -14,8 +14,11 @@ public struct VoiceButton: View {
     @State private var pulse = false
     @State private var streamTask: Task<Void, Never>?
 
-    private let startFeedback = UIImpactFeedbackGenerator(style: .medium)
-    private let endFeedback = UIImpactFeedbackGenerator(style: .soft)
+    // Retained generators — prepare() pre-warms the Taptic Engine to eliminate first-fire latency.
+    private let recordStartGenerator = UIImpactFeedbackGenerator(style: .medium)
+    private let recordStopSuccessGenerator = UINotificationFeedbackGenerator()
+    private let recordStopEmptyGenerator = UIImpactFeedbackGenerator(style: .light)
+    private let permissionDeniedGenerator = UINotificationFeedbackGenerator()
 
     public init(voiceService: VoiceService, onTranscript: @escaping (String) -> Void) {
         self.voiceService = voiceService
@@ -48,13 +51,17 @@ public struct VoiceButton: View {
         }
         .gesture(
             LongPressGesture(minimumDuration: 0.2)
-                .onEnded { _ in
-                    startFeedback.prepare()
-                    startRecording()
-                }
+                .onEnded { _ in startRecording() }
         )
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    // Pre-warm all generators at first touch so impactOccurred() fires without latency.
+                    recordStartGenerator.prepare()
+                    recordStopSuccessGenerator.prepare()
+                    recordStopEmptyGenerator.prepare()
+                    permissionDeniedGenerator.prepare()
+                }
                 .onEnded { _ in
                     if isRecording { stopRecording() }
                 }
@@ -96,7 +103,7 @@ public struct VoiceButton: View {
         Task {
             let granted = await voiceService.requestPermission()
             guard granted else {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                permissionDeniedGenerator.notificationOccurred(.warning)
                 showPermissionAlert = true
                 return
             }
@@ -104,8 +111,7 @@ public struct VoiceButton: View {
                 isRecording = true
                 if !reduceMotion { pulse = true }
                 liveTranscript = ""
-                startFeedback.impactOccurred()
-                endFeedback.prepare()
+                recordStartGenerator.impactOccurred()
                 let stream = try voiceService.startListening()
                 streamTask = Task {
                     do {
@@ -138,12 +144,11 @@ public struct VoiceButton: View {
         let final = liveTranscript
         streamTask?.cancel()
         streamTask = nil
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         if !final.isEmpty {
-            endFeedback.impactOccurred()
+            recordStopSuccessGenerator.notificationOccurred(.success)
             onTranscript(final)
         } else {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            recordStopEmptyGenerator.impactOccurred()
         }
         liveTranscript = ""
     }
