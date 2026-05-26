@@ -63,6 +63,7 @@
 		9C8CC563D33FDBB3DF57A841 /* RecentExploreRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9748B0A808BC06F6EDED3C3B /* RecentExploreRegion.swift */; };
 		9D81327AE55FA8142F9E5B8D /* ChatUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0709110B381DEDA32C3292AE /* ChatUIState.swift */; };
 		A217FA55BD40922DB3B8DEE6 /* SoloScoreRadarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */; };
+		A75EEA586481D5A86B7FCFDA /* MapKitPOIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B7D586552E9F1EA44F5657 /* MapKitPOIService.swift */; };
 		A84320715E7CBDA91FC3F26F /* ExperienceDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE16BF3B189BB0F17E4CE92 /* ExperienceDetailViewModel.swift */; };
 		AA75B3147A29FDA55E61B24A /* PendingCheckInBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 130B51007552B26F3C1D1AE0 /* PendingCheckInBanner.swift */; };
 		ACBA4CEE6B78AA04DBD26709 /* PendingCheckInRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0BAEC05B72704552C0906 /* PendingCheckInRecord.swift */; };
@@ -109,6 +110,7 @@
 		EC5A75D4BC8E0C767D06C424 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E406C379247653B4AA5A3E0E /* SupabaseClient.swift */; };
 		EDBD7B0E715165E71BC0C17D /* DiscoveredCityRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE05EF69960CBB73431A6F2F /* DiscoveredCityRecord.swift */; };
 		EF2003CC07F7787C25847BDF /* ReportIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 576B08910782A58C3597E596 /* ReportIssueSheet.swift */; };
+		F11FDDDC600A1EF9C08E8193 /* EnrichmentAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC71659A5BF9CB1A547907B /* EnrichmentAgent.swift */; };
 		F34C1A42668EF5151AFEE3C3 /* AISynthesisCacheRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E69F3EF6F0100CFA47DAFE /* AISynthesisCacheRecord.swift */; };
 		F3D0A3E30E7D7825805C2801 /* ShareCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D78BE6F7E5B4B82CEAC0A3 /* ShareCardRenderer.swift */; };
 		F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120FC7465285714C5FA8F96D /* VoiceService.swift */; };
@@ -131,6 +133,7 @@
 /* Begin PBXFileReference section */
 		001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIUsageRecord.swift; sourceTree = "<group>"; };
 		06086F5F9463C18F486E5694 /* QueryAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryAgent.swift; sourceTree = "<group>"; };
+		06B7D586552E9F1EA44F5657 /* MapKitPOIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapKitPOIService.swift; sourceTree = "<group>"; };
 		0709110B381DEDA32C3292AE /* ChatUIState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatUIState.swift; sourceTree = "<group>"; };
 		086B3C207483BA0EBD27451F /* MessageBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubble.swift; sourceTree = "<group>"; };
 		0A0997D8150E77F70A4B8C64 /* ExploreProgressBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreProgressBar.swift; sourceTree = "<group>"; };
@@ -168,6 +171,7 @@
 		5C62D0EFA5859698D9C70B7D /* OfflineBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineBanner.swift; sourceTree = "<group>"; };
 		5CA0BAEC05B72704552C0906 /* PendingCheckInRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingCheckInRecord.swift; sourceTree = "<group>"; };
 		5CE16BF3B189BB0F17E4CE92 /* ExperienceDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceDetailViewModel.swift; sourceTree = "<group>"; };
+		5FC71659A5BF9CB1A547907B /* EnrichmentAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrichmentAgent.swift; sourceTree = "<group>"; };
 		6163572F4644BF852B35FDA4 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
 		61ED51ACFDCE6E0ED274BB60 /* seed_experiences.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = seed_experiences.json; sourceTree = "<group>"; };
 		64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReverseGeocodeService.swift; sourceTree = "<group>"; };
@@ -417,6 +421,7 @@
 				6556C23BF1B228BF686C5500 /* KeychainStore.swift */,
 				87002BB6D344B384A3FDFBFD /* LanguageService.swift */,
 				2C7919EAFDE363B49C4B4C47 /* LocationService.swift */,
+				06B7D586552E9F1EA44F5657 /* MapKitPOIService.swift */,
 				54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */,
 				D07ACA7C1A1574A244E73796 /* NavigationLauncher.swift */,
 				AF007DB5F72E30021CADA555 /* NetworkMonitor.swift */,
@@ -456,6 +461,7 @@
 			children = (
 				D5DCEFC3560FED53D0CB5D19 /* AgentMessage.swift */,
 				A38E5736BF6DF5644D687637 /* AgentRouter.swift */,
+				5FC71659A5BF9CB1A547907B /* EnrichmentAgent.swift */,
 				187534C119545F7D61CE693B /* GuideAgent.swift */,
 				3A7A57DAFF92B20BE0BAB1F4 /* IntentAgent.swift */,
 				06086F5F9463C18F486E5694 /* QueryAgent.swift */,
@@ -746,6 +752,7 @@
 				65E57E8B02E7889BD8EE8DD4 /* ContextManager.swift in Sources */,
 				42E436DB35CF90AD3E43083E /* DeviceIdentityService.swift in Sources */,
 				EDBD7B0E715165E71BC0C17D /* DiscoveredCityRecord.swift in Sources */,
+				F11FDDDC600A1EF9C08E8193 /* EnrichmentAgent.swift in Sources */,
 				0A830B26D4A18948D16F3A42 /* Experience.swift in Sources */,
 				56F3055416F4A5316100F9B2 /* ExperienceCardView.swift in Sources */,
 				CF8B2BDE6D707CE2537C8688 /* ExperienceDetailView.swift in Sources */,
@@ -769,6 +776,7 @@
 				953C7BD48AF4AF55608145A6 /* LanguageService.swift in Sources */,
 				23B40396E9D7B59CB71FBCD9 /* LocationCard.swift in Sources */,
 				31F9538643C362D7EEF64C6B /* LocationService.swift in Sources */,
+				A75EEA586481D5A86B7FCFDA /* MapKitPOIService.swift in Sources */,
 				CE1A6A1D5EB25B2BEA5B29DA /* MapViewModel.swift in Sources */,
 				45A4E8EED0300F00253EC049 /* MarkdownExporter.swift in Sources */,
 				C2CCD06DDA37BF2F81E735E5 /* MarkdownShareSheet.swift in Sources */,

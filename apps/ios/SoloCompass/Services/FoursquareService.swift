@@ -84,7 +84,11 @@ public final class FoursquareService {
             URLQueryItem(name: "ll", value: "\(coordinate.latitude),\(coordinate.longitude)"),
             URLQueryItem(name: "radius", value: String(radiusMeters)),
             URLQueryItem(name: "limit", value: String(maxResults)),
-            URLQueryItem(name: "sort", value: "DISTANCE")
+            URLQueryItem(name: "sort", value: "DISTANCE"),
+            // Request the enrichment fields the deep-dive pipeline cares about.
+            // Foursquare returns whatever the key's tier permits; missing fields
+            // simply decode as nil and the POI keeps its OSM-only signal set.
+            URLQueryItem(name: "fields", value: Self.requestedFields)
         ]
         if let category, let fsqCategories = Self.categoryToFoursquareIds[category] {
             items.append(URLQueryItem(name: "categories", value: fsqCategories))
@@ -108,6 +112,13 @@ public final class FoursquareService {
         }
         return try Self.decodePOIs(from: data)
     }
+
+    /// Comma-separated `fields` requested from `/places/search`. `fsq_id`,
+    /// `name`, `geocodes`, `categories` are the baseline; the rest are the
+    /// "hard signals" the deep-dive enrichment pipeline surfaces to the AI.
+    /// A free-tier key may silently omit `rating`/`hours`/`price` — those just
+    /// decode as nil, so requesting them is always safe.
+    static let requestedFields = "fsq_id,name,geocodes,categories,rating,hours,price,website,tel,popularity"
 
     // MARK: - Category mapping
 
@@ -139,6 +150,13 @@ public final class FoursquareService {
             let name: String?
             let geocodes: Geocodes?
             let categories: [Category]?
+            // Enrichment fields — all optional; a free-tier key omits them.
+            let rating: Double?       // 0–10
+            let hours: Hours?
+            let price: Int?           // 1–4
+            let website: String?
+            let tel: String?
+            let popularity: Double?   // 0–1
         }
         struct Geocodes: Decodable {
             let main: LatLon?
@@ -150,6 +168,10 @@ public final class FoursquareService {
         struct Category: Decodable {
             let id: Int?
             let name: String?
+        }
+        struct Hours: Decodable {
+            let display: String?      // human-readable, e.g. "Mon-Fri 8:00 AM-6:00 PM"
+            let open_now: Bool?
         }
 
         do {
@@ -163,6 +185,15 @@ public final class FoursquareService {
                 if let firstCat = row.categories?.first?.name {
                     tags["amenity"] = mapFoursquareCategoryToAmenity(firstCat)
                 }
+                // Hard signals — namespaced under fsq_ so downstream code (the
+                // enrichment merge + AI prompt builder) can distinguish them
+                // from raw OSM tags and cite them as real provider data.
+                if let rating = row.rating { tags["fsq_rating"] = String(rating) }
+                if let hours = row.hours?.display, !hours.isEmpty { tags["opening_hours"] = hours }
+                if let price = row.price { tags["fsq_price"] = String(price) }
+                if let website = row.website, !website.isEmpty { tags["website"] = website }
+                if let tel = row.tel, !tel.isEmpty { tags["phone"] = tel }
+                if let popularity = row.popularity { tags["fsq_popularity"] = String(popularity) }
                 let stableId = stableInt64Id(forFsqId: row.fsq_id)
                 return OverpassService.POI(
                     osmId: stableId,
@@ -239,5 +270,57 @@ public final class FoursquareService {
         let rLat = (lat * 10_000).rounded() / 10_000
         let rLon = (lon * 10_000).rounded() / 10_000
         return String(format: "%.4f_%.4f", rLat, rLon)
+    }
+
+    /// Enrichment merge used by the deep-dive pipeline. Unlike `merge` — which
+    /// keeps one POI per cell and discards the other — this folds the *signal*
+    /// tags from `enrichment` POIs INTO the matching `base` POI in the same
+    /// cell, so an OSM/MapKit place gains Foursquare's rating/hours/price
+    /// without losing its identity. Enrichment-only cells (no base match) are
+    /// appended as standalone POIs.
+    ///
+    /// Only the hard-signal keys are folded; `base`'s own tags win on any
+    /// key collision so we never overwrite a more authoritative source name.
+    static func enrichMerge(
+        base: [OverpassService.POI],
+        enrichment: [OverpassService.POI]
+    ) -> [OverpassService.POI] {
+        let signalKeys = ["fsq_rating", "opening_hours", "fsq_price", "website", "phone", "fsq_popularity", "addr"]
+        // Index enrichment POIs by cell for O(1) lookup.
+        var enrichmentByCell: [String: OverpassService.POI] = [:]
+        for poi in enrichment {
+            enrichmentByCell[cellKey(lat: poi.lat, lon: poi.lon), default: poi] = poi
+        }
+
+        var usedCells = Set<String>()
+        var result: [OverpassService.POI] = []
+        for poi in base {
+            let key = cellKey(lat: poi.lat, lon: poi.lon)
+            usedCells.insert(key)
+            guard let match = enrichmentByCell[key] else {
+                result.append(poi)
+                continue
+            }
+            var tags = poi.tags
+            for sk in signalKeys where tags[sk] == nil {
+                if let value = match.tags[sk] { tags[sk] = value }
+            }
+            result.append(OverpassService.POI(
+                osmId: poi.osmId,
+                name: poi.name,
+                nameEn: poi.nameEn,
+                lat: poi.lat,
+                lon: poi.lon,
+                tags: tags
+            ))
+        }
+        // Enrichment-only cells become standalone POIs.
+        for poi in enrichment {
+            let key = cellKey(lat: poi.lat, lon: poi.lon)
+            if usedCells.insert(key).inserted {
+                result.append(poi)
+            }
+        }
+        return result
     }
 }

@@ -61,6 +61,19 @@ public enum FeatureFlags {
         readBool("FF_PRO_MULTI_RING_EXPLORE", default: false)
     }
 
+    /// When true, `MapViewModel.exploreNearby` routes through `EnrichmentAgent`:
+    /// a small-radius, deep-dive pass that cross-references each place across
+    /// Overpass + Apple MapKit + Foursquare (real rating/hours/price) and
+    /// reverse-geocoded addresses before AI synthesis. Fewer, richer entries
+    /// instead of a wide ring of skeletons. When false, the legacy wide-ring
+    /// pipeline runs unchanged so we can fall back instantly.
+    ///
+    /// Default on — the deep-dive output is strictly richer; the flag exists
+    /// purely as a kill switch.
+    public static var deepDiveEnrichment: Bool {
+        readBool("FF_DEEP_DIVE_ENRICHMENT", default: true)
+    }
+
     // MARK: - Internals
 
     static func readBool(_ key: String, default fallback: Bool) -> Bool {

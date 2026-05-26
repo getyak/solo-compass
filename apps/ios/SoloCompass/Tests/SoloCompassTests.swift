@@ -2448,6 +2448,11 @@ final class SoloCompassTests: XCTestCase {
     /// DiscoveredCityRecord row exists with name "Hanoi".
     @MainActor
     func testExploreNearbyUsesReverseGeocodedCityCode() async throws {
+        // This test drives the legacy wide-ring pipeline via a stubbed Overpass
+        // session. Disable the deep-dive agent (which uses its own live channel
+        // services and bypasses the stub) so the assertions stay valid.
+        setenv("FF_DEEP_DIVE_ENRICHMENT", "0", 1)
+        defer { unsetenv("FF_DEEP_DIVE_ENRICHMENT") }
         // --- Overpass stub: returns one cafe near Hanoi ---
         let overpassJSON = #"""
         {"elements":[{"type":"node","id":7001,"lat":21.0280,"lon":105.8540,"tags":{"amenity":"cafe","name":"Hanoi Cafe"}}]}
@@ -2526,6 +2531,10 @@ final class SoloCompassTests: XCTestCase {
     /// and lastExploreToast contains "Hanoi".
     @MainActor
     func testExploreNearbyAutoSwitchesSelectedCityAndSetsToast() async throws {
+        // Legacy wide-ring pipeline test — disable the deep-dive agent so the
+        // stubbed Overpass session drives the assertions.
+        setenv("FF_DEEP_DIVE_ENRICHMENT", "0", 1)
+        defer { unsetenv("FF_DEEP_DIVE_ENRICHMENT") }
         let overpassJSON = #"""
         {"elements":[{"type":"node","id":8001,"lat":21.0280,"lon":105.8540,"tags":{"amenity":"cafe","name":"Pho Spot"}}]}
         """#
@@ -2780,6 +2789,10 @@ final class SoloCompassTests: XCTestCase {
     /// Successful exploreNearby → lastExploreToast is set (named variant).
     @MainActor
     func testExploreNearbySuccessSetToast() async throws {
+        // Legacy wide-ring pipeline test — disable the deep-dive agent so the
+        // stubbed Overpass session drives the assertions.
+        setenv("FF_DEEP_DIVE_ENRICHMENT", "0", 1)
+        defer { unsetenv("FF_DEEP_DIVE_ENRICHMENT") }
         let overpassJSON = #"""
         {"elements":[{"type":"node","id":9001,"lat":21.028,"lon":105.854,"tags":{"amenity":"cafe","name":"Test Cafe"}}]}
         """#
@@ -4651,6 +4664,10 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
     /// setting lastExploreError.
     @MainActor
     func testExploreNearbyUsesCacheWhenFetchReturnsEmpty() async throws {
+        // Legacy wide-ring pipeline test — disable the deep-dive agent so the
+        // stubbed empty Overpass session triggers the cache fallback path.
+        setenv("FF_DEEP_DIVE_ENRICHMENT", "0", 1)
+        defer { unsetenv("FF_DEEP_DIVE_ENRICHMENT") }
         // 1. Stub Overpass to return an empty elements array — no network error,
         //    just zero POIs found. exploreNearby reaches the `guard !pois.isEmpty`
         //    branch and should query the repo before setting lastExploreError.
@@ -4725,6 +4742,10 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
     /// should lastExploreError be set.
     @MainActor
     func testExploreNearbySetErrorWhenBothFetchAndCacheEmpty() async throws {
+        // Legacy wide-ring pipeline test — disable the deep-dive agent so the
+        // stubbed empty Overpass session reaches the error path.
+        setenv("FF_DEEP_DIVE_ENRICHMENT", "0", 1)
+        defer { unsetenv("FF_DEEP_DIVE_ENRICHMENT") }
         StubURLProtocol.requestCount = 0
         StubURLProtocol.handler = { request in
             let empty = #"{"elements":[]}"#
@@ -5620,5 +5641,104 @@ final class FoursquareServiceTests: XCTestCase {
 
         prefs.incrementFoursquareCallsToday(now: today, calendar: cal)
         XCTAssertEqual(prefs.foursquareCallsToday, 2, "subsequent same-day calls must increment")
+    }
+}
+
+// MARK: - Deep-dive enrichment (cross-channel signal folding)
+
+@MainActor
+final class EnrichmentPipelineTests: XCTestCase {
+
+    private func poi(
+        id: Int64, lat: Double, lon: Double, tags: [String: String]
+    ) -> OverpassService.POI {
+        OverpassService.POI(osmId: id, name: tags["name"] ?? "Place", nameEn: nil, lat: lat, lon: lon, tags: tags)
+    }
+
+    /// enrichMerge folds Foursquare hard signals INTO the matching base POI
+    /// (same coordinate cell) instead of discarding one source.
+    func testEnrichMergeFoldsSignalsIntoBasePOI() {
+        let base = poi(id: 7001, lat: 21.0280, lon: 105.8540, tags: ["amenity": "cafe", "name": "Hanoi Cafe"])
+        let enrichment = poi(id: 0x4000_0000_0000_0001, lat: 21.0280, lon: 105.8540,
+                             tags: ["name": "Hanoi Cafe", "fsq_rating": "8.6", "opening_hours": "Mon-Fri 8:00-18:00", "fsq_price": "2"])
+
+        let merged = FoursquareService.enrichMerge(base: [base], enrichment: [enrichment])
+
+        XCTAssertEqual(merged.count, 1, "same-cell POIs collapse to one entry")
+        let result = merged[0]
+        XCTAssertEqual(result.osmId, 7001, "base identity wins")
+        XCTAssertEqual(result.tags["fsq_rating"], "8.6", "rating folded in from enrichment")
+        XCTAssertEqual(result.tags["opening_hours"], "Mon-Fri 8:00-18:00")
+        XCTAssertEqual(result.tags["fsq_price"], "2")
+        XCTAssertEqual(result.tags["amenity"], "cafe", "base tags preserved")
+    }
+
+    /// enrichMerge keeps a base tag when both sources set the same key.
+    func testEnrichMergeBaseTagWinsOnCollision() {
+        let base = poi(id: 7002, lat: 1.0, lon: 1.0, tags: ["name": "A", "website": "https://base.example"])
+        let enrichment = poi(id: 0x4000_0000_0000_0002, lat: 1.0, lon: 1.0,
+                             tags: ["name": "A", "website": "https://fsq.example"])
+        let merged = FoursquareService.enrichMerge(base: [base], enrichment: [enrichment])
+        XCTAssertEqual(merged[0].tags["website"], "https://base.example", "base wins on key collision")
+    }
+
+    /// Enrichment-only cells (no base match) survive as standalone POIs.
+    func testEnrichMergeAppendsEnrichmentOnlyCells() {
+        let base = poi(id: 7003, lat: 10.0, lon: 10.0, tags: ["name": "Base"])
+        let enrichment = poi(id: 0x4000_0000_0000_0003, lat: 20.0, lon: 20.0, tags: ["name": "FsqOnly", "fsq_rating": "9.1"])
+        let merged = FoursquareService.enrichMerge(base: [base], enrichment: [enrichment])
+        XCTAssertEqual(merged.count, 2, "non-overlapping enrichment POI is appended")
+    }
+
+    /// signalScore ranks hard-signal POIs above bare ones.
+    func testSignalScoreRanksRichPOIsHigher() {
+        let rich = poi(id: 1, lat: 0, lon: 0,
+                       tags: ["amenity": "cafe", "fsq_rating": "8", "opening_hours": "x", "fsq_price": "2"])
+        let bare = poi(id: 2, lat: 0, lon: 0, tags: ["amenity": "cafe"])
+        XCTAssertGreaterThan(EnrichmentAgent.signalScore(rich), EnrichmentAgent.signalScore(bare))
+    }
+
+    /// enrichedLocation lifts tag-bag hard signals into typed location fields.
+    func testEnrichedLocationExtractsHardSignals() {
+        let p = poi(id: 1, lat: 21.03, lon: 105.85,
+                    tags: ["name": "Place", "fsq_rating": "8.4", "opening_hours": "Mon-Sun 9-21",
+                           "fsq_price": "3", "website": "https://x.example", "phone": "+84 1", "addr": "12 Pho St"])
+        let loc = AIService.enrichedLocation(from: p, cityCode: "vn-hanoi")
+        XCTAssertEqual(loc.rating, 8.4)
+        XCTAssertEqual(loc.openingHours, "Mon-Sun 9-21")
+        XCTAssertEqual(loc.priceLevel, 3)
+        XCTAssertEqual(loc.website, "https://x.example")
+        XCTAssertEqual(loc.phone, "+84 1")
+        XCTAssertEqual(loc.addressHint, "12 Pho St")
+        XCTAssertEqual(loc.cityCode, "vn-hanoi")
+    }
+
+    /// An OSM-only POI yields a location with all hard-signal fields nil.
+    func testEnrichedLocationNilWhenNoSignals() {
+        let p = poi(id: 1, lat: 0, lon: 0, tags: ["amenity": "cafe", "name": "Bare"])
+        let loc = AIService.enrichedLocation(from: p, cityCode: "cmi")
+        XCTAssertNil(loc.rating)
+        XCTAssertNil(loc.openingHours)
+        XCTAssertNil(loc.priceLevel)
+        XCTAssertFalse(AIService.hasHardSignals(p))
+    }
+
+    /// MapKit POI mapping produces an OSM-compatible tag the category resolver
+    /// understands, and a MapKit-range id distinct from OSM/Foursquare.
+    func testMapKitOSMTagMappingAndIdRange() {
+        guard let tag = MapKitPOIService.osmTag(for: .cafe) else {
+            return XCTFail("cafe should map to an OSM tag")
+        }
+        XCTAssertEqual(tag.key, "amenity")
+        XCTAssertEqual(tag.value, "cafe")
+
+        let id = MapKitPOIService.stableInt64Id(
+            forMapItem: MKMapItem(),
+            name: "Test Cafe",
+            coordinate: CLLocationCoordinate2D(latitude: 21.0, longitude: 105.0)
+        )
+        // MapKit marker bit is 0x2000…; must not collide with Foursquare's 0x4000…
+        XCTAssertEqual(id & 0x4000_0000_0000_0000, 0, "MapKit id must not carry the Foursquare marker bit")
+        XCTAssertNotEqual(id & 0x2000_0000_0000_0000, 0, "MapKit id must carry its own marker bit")
     }
 }

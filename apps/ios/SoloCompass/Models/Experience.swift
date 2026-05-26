@@ -84,6 +84,13 @@ public struct ExperienceLocation: Codable, Hashable {
     public let addressHint: String?
     public let placeNameLocal: String?
     public let placeNameRomanized: String?
+    // Cross-channel hard signals enriched from Foursquare / Apple MapKit.
+    // All optional; OSM-only places leave them nil. Mirrors the TS schema.
+    public let rating: Double?         // 0–10 normalized provider rating
+    public let openingHours: String?   // raw provider hours string
+    public let priceLevel: Double?     // 1–4 (1 = cheap, 4 = expensive)
+    public let website: String?
+    public let phone: String?
 
     public var clCoordinate: CLLocationCoordinate2D? {
         guard coordinates.count >= 2 else { return nil }
@@ -95,13 +102,23 @@ public struct ExperienceLocation: Codable, Hashable {
         cityCode: String,
         addressHint: String? = nil,
         placeNameLocal: String? = nil,
-        placeNameRomanized: String? = nil
+        placeNameRomanized: String? = nil,
+        rating: Double? = nil,
+        openingHours: String? = nil,
+        priceLevel: Double? = nil,
+        website: String? = nil,
+        phone: String? = nil
     ) {
         self.coordinates = coordinates
         self.cityCode = cityCode
         self.addressHint = addressHint
         self.placeNameLocal = placeNameLocal
         self.placeNameRomanized = placeNameRomanized
+        self.rating = rating
+        self.openingHours = openingHours
+        self.priceLevel = priceLevel
+        self.website = website
+        self.phone = phone
     }
 }
 

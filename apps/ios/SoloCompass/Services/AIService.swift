@@ -1091,6 +1091,44 @@ public final class AIService {
 
     // MARK: - Synthesize helpers
 
+    /// Pull the cross-channel hard signals a POI carries (from Foursquare /
+    /// MapKit enrichment) out of its tag bag and into the typed location
+    /// fields. OSM-only POIs simply have none of these keys, so everything
+    /// stays nil. `placeNameLocal`/`placeNameRomanized` keep the raw name pair.
+    static func enrichedLocation(
+        from poi: OverpassService.POI,
+        cityCode: String
+    ) -> ExperienceLocation {
+        // Foursquare rating is already 0–10. Clamp defensively.
+        let rating = poi.tags["fsq_rating"].flatMap(Double.init).map { max(0, min(10, $0)) }
+        let openingHours = poi.tags["opening_hours"]
+        let priceLevel = poi.tags["fsq_price"].flatMap(Double.init).map { max(1, min(4, $0)) }
+        let website = poi.tags["website"]
+        let phone = poi.tags["phone"]
+        let addr = poi.tags["addr"]
+        return ExperienceLocation(
+            coordinates: [poi.lon, poi.lat],
+            cityCode: cityCode,
+            addressHint: addr,
+            placeNameLocal: poi.name,
+            placeNameRomanized: poi.nameEn,
+            rating: rating,
+            openingHours: openingHours,
+            priceLevel: priceLevel,
+            website: website,
+            phone: phone
+        )
+    }
+
+    /// True when a POI carries at least one provider hard signal (rating /
+    /// hours / price). Used to decide whether the AI may cite real data for
+    /// this place rather than staying generic.
+    static func hasHardSignals(_ poi: OverpassService.POI) -> Bool {
+        poi.tags["fsq_rating"] != nil
+            || poi.tags["opening_hours"] != nil
+            || poi.tags["fsq_price"] != nil
+    }
+
     private static func synthesisPrompt(pois: [OverpassService.POI], cityCode: String, locale: Locale) -> String {
         let langTag = locale.language.languageCode?.identifier ?? "en"
         let lines = pois.map { poi -> String in
@@ -1100,18 +1138,27 @@ public final class AIService {
                 .map { "\($0.key)=\($0.value)" }
                 .sorted()
                 .joined(separator: ", ")
-            return "- osmId=\(poi.osmId) name=\"\(poi.name)\" nameEn=\"\(displayName)\" lat=\(poi.lat) lon=\(poi.lon) tags=[\(tagSummary)]"
+            // Real provider signals (Foursquare / MapKit) the model is ALLOWED
+            // to cite verbatim. Absent for OSM-only POIs.
+            var signals: [String] = []
+            if let r = poi.tags["fsq_rating"] { signals.append("rating=\(r)/10") }
+            if let p = poi.tags["fsq_price"] { signals.append("priceLevel=\(p)/4") }
+            if let pop = poi.tags["fsq_popularity"] { signals.append("popularity=\(pop)") }
+            if let addr = poi.tags["addr"] { signals.append("address=\"\(addr)\"") }
+            let signalSummary = signals.isEmpty ? "" : " realSignals=[\(signals.joined(separator: ", "))]"
+            return "- osmId=\(poi.osmId) name=\"\(poi.name)\" nameEn=\"\(displayName)\" lat=\(poi.lat) lon=\(poi.lon) tags=[\(tagSummary)]\(signalSummary)"
         }.joined(separator: "\n")
 
         return """
         You are writing solo-traveler-focused entries for real places sourced from OpenStreetMap.
 
         CRITICAL CONSTRAINTS — your output is read by users on the ground:
-        - Use ONLY the provided OSM tags. Do NOT invent menu items, interior details, hours, prices, owner backstories, dish names, or specific seating positions.
-        - If a field is not derivable from tags, write a generic safe value. Example: when no opening_hours tag is present, set bestStartHour to 9 and bestEndHour to 21 (a generic daytime window) rather than guessing a specific schedule.
-        - howTo must contain navigation/orientation steps only. Do NOT write "order the X", "try the X", "ask for X", "sit at the bar/window/back".
-        - Avoid the phrases: "menu", "specialty", "best seat", "the owner", "opens at", "closes at", "price", "order the", "try the".
-        - Solo Score should be a conservative 7.0–8.5 unless tags clearly indicate something exceptional (e.g. tourism=viewpoint with a name → up to 9.0).
+        - You have TWO kinds of input per POI: OSM `tags` (categorical, reliable) and an optional `realSignals` bag (rating/priceLevel/popularity/address sourced from Foursquare or Apple Maps — REAL provider data you MAY cite).
+        - You MAY reference anything in `realSignals` as fact: cite the rating, reflect the price level in your framing, use the address in orientation. These are real.
+        - You may NOT invent specifics NOT present in either bag: no menu items, dish names, owner backstories, or interior/seating details. If `realSignals` has no opening hours, do not state hours.
+        - When a POI has NO `realSignals`, fall back to generic-safe framing exactly as before: bestStartHour 9 / bestEndHour 21 when category gives no better hint.
+        - howTo must contain navigation/orientation steps only. Do NOT write "order the X", "try the X", "ask for X", "sit at the bar/window/back" — those are interior specifics you cannot verify.
+        - Solo Score: anchor on REAL signals when present. A high rating (>= 8/10) or strong popularity supports up to 9.0–9.5; a low/absent rating or sparse data should stay 6.5–8.0. With NO realSignals, keep it conservative 7.0–8.0. Make the six breakdown dimensions genuinely DIFFERENT from each other based on the place type (e.g. a library scores high on seatingFriendly + low staffPressure; a bar scores lower on soloPatronRatio) — do NOT output the same number across all six.
 
         DISTANCE AWARENESS: The POI list may span 0–12 km from the user (a Pro radial Explore covers 4 rings: 1.5/3/6/12 km). Infer approximate distance from each POI's lat/lon relative to the others; closer POIs should lean toward in-the-moment framings (walk-up, sidewalk), farther POIs toward half-day-out framings (worth a transit ride). Do NOT mention distances or rings explicitly in the output — just let the framing reflect the proximity.
 
@@ -1139,7 +1186,15 @@ public final class AIService {
           "durationMaxMinutes": <int>,
           "howTo": ["navigation step 1", "navigation step 2", "navigation step 3"],
           "soloHint": "<one short hint for solo visitors>",
-          "soloOverall": <number 6.0-9.5>
+          "soloOverall": <number 6.0-9.5>,
+          "soloBreakdown": {
+            "seatingFriendly": <0-10>,
+            "soloPatronRatio": <0-10>,
+            "staffPressure": <0-10>,
+            "soloPortioning": <0-10>,
+            "ambianceFit": <0-10>,
+            "safety": <0-10>
+          }
         }
 
         Output a JSON array containing one object per POI, in input order. No prose. No markdown fences.
@@ -1179,6 +1234,16 @@ public final class AIService {
             let howTo: [String]?
             let soloHint: String?
             let soloOverall: Double?
+            let soloBreakdown: Breakdown?
+
+            struct Breakdown: Decodable {
+                let seatingFriendly: Double?
+                let soloPatronRatio: Double?
+                let staffPressure: Double?
+                let soloPortioning: Double?
+                let ambianceFit: Double?
+                let safety: Double?
+            }
         }
         let items = try JSONDecoder().decode([Item].self, from: data)
         let poiById = Dictionary(uniqueKeysWithValues: pois.map { ($0.osmId, $0) })
@@ -1191,42 +1256,55 @@ public final class AIService {
             let endHour = item.bestEndHour.map { max(0, min(23, $0)) } ?? 21
             let dMin = item.durationMinMinutes ?? 30
             let dMax = max(dMin, item.durationMaxMinutes ?? 90)
-            let overall = max(6.0, min(9.5, item.soloOverall ?? 7.0))
+            // Wider clamp now that real signals can justify higher/lower scores;
+            // still bounded to a sane 5.0–9.8 to reject obvious model garbage.
+            let overall = max(5.0, min(9.8, item.soloOverall ?? 7.0))
+            // Prefer the model's per-dimension breakdown when it returned one;
+            // fall back to `overall` per dimension only when absent. Each dim
+            // independently clamped 0–10.
+            func dim(_ value: Double?) -> Double { max(0, min(10, value ?? overall)) }
             let breakdown = SoloScore.Breakdown(
-                seatingFriendly: overall, soloPatronRatio: overall, staffPressure: overall,
-                soloPortioning: overall, ambianceFit: overall, safety: overall
+                seatingFriendly: dim(item.soloBreakdown?.seatingFriendly),
+                soloPatronRatio: dim(item.soloBreakdown?.soloPatronRatio),
+                staffPressure: dim(item.soloBreakdown?.staffPressure),
+                soloPortioning: dim(item.soloBreakdown?.soloPortioning),
+                ambianceFit: dim(item.soloBreakdown?.ambianceFit),
+                safety: dim(item.soloBreakdown?.safety)
             )
             let howTo = (item.howTo ?? []).enumerated().map { HowToStep(order: $0.offset + 1, text: $0.element) }
+            // basedOnCount reflects whether this score is anchored on real
+            // provider signals (>0) or pure category inference (0).
+            let basedOnCount = hasHardSignals(poi) ? 1 : 0
             return Experience(
                 id: "exp_osm_\(poi.osmId)",
                 title: item.title,
                 oneLiner: item.oneLiner,
                 whyItMatters: item.whyItMatters,
                 category: category,
-                location: ExperienceLocation(
-                    coordinates: [poi.lon, poi.lat],
-                    cityCode: cityCode,
-                    addressHint: nil,
-                    placeNameLocal: poi.name,
-                    placeNameRomanized: poi.nameEn
-                ),
+                location: enrichedLocation(from: poi, cityCode: cityCode),
                 bestTimes: [TimeWindow(startHour: startHour, endHour: endHour)],
                 durationMinutes: .init(min: dMin, max: dMax),
                 howTo: howTo,
                 realInconveniences: [],
-                soloScore: SoloScore(overall: overall, breakdown: breakdown, hint: item.soloHint, basedOnCount: 0),
+                soloScore: SoloScore(overall: overall, breakdown: breakdown, hint: item.soloHint, basedOnCount: basedOnCount),
                 sources: [
                     InformationSource(
                         type: .user,
                         url: URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
-                        attribution: "© OpenStreetMap contributors + AI",
+                        attribution: basedOnCount > 0
+                            ? "© OpenStreetMap contributors + Foursquare/Apple Maps + AI"
+                            : "© OpenStreetMap contributors + AI",
                         verifiedAt: now
                     )
                 ],
                 confidence: Confidence(
-                    level: 1,
+                    // Real provider signals bump confidence one notch above the
+                    // pure-OSM baseline so the UI's confidence chip reflects it.
+                    level: basedOnCount > 0 ? 2 : 1,
                     lastVerifiedAt: now,
-                    reason: "AI-synthesized from OpenStreetMap, unverified",
+                    reason: basedOnCount > 0
+                        ? "AI-synthesized from OpenStreetMap + Foursquare/Apple Maps signals"
+                        : "AI-synthesized from OpenStreetMap, unverified",
                     signals: .init(aiScrapeAgeDays: 0, passiveGpsHits30d: 0, activeReports30d: 0, trustedVerifications: 0)
                 ),
                 nearbyExperienceIds: [],
@@ -1254,13 +1332,7 @@ public final class AIService {
             oneLiner: NSLocalizedString("explore.skeleton.oneLiner", comment: "Generic OSM POI tagline"),
             whyItMatters: NSLocalizedString("explore.skeleton.why", comment: "Generic OSM POI rationale"),
             category: category,
-            location: ExperienceLocation(
-                coordinates: [poi.lon, poi.lat],
-                cityCode: cityCode,
-                addressHint: nil,
-                placeNameLocal: poi.name,
-                placeNameRomanized: poi.nameEn
-            ),
+            location: enrichedLocation(from: poi, cityCode: cityCode),
             bestTimes: [TimeWindow(startHour: 9, endHour: 21)],
             durationMinutes: .init(min: 30, max: 90),
             howTo: [],

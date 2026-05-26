@@ -73,6 +73,15 @@ export interface ExperienceLocation {
   readonly addressHint?: string; // human-readable, NOT the source of truth
   readonly placeNameLocal?: string; // "วัดสวนดอก" — local language
   readonly placeNameRomanized?: string; // "Wat Suan Dok"
+  // Cross-channel "hard" signals enriched from Foursquare / Apple MapKit when
+  // available. All optional: OSM-only places leave them undefined. Surfaced to
+  // the AI synthesis prompt so generated copy can cite real data instead of
+  // generic placeholders, and shown in the detail view when present.
+  readonly rating?: number; // 0–10 normalized provider rating (Foursquare uses 0–10)
+  readonly openingHours?: string; // raw provider hours string, e.g. "Mon-Fri 8:00-18:00"
+  readonly priceLevel?: number; // 1–4 (1 = cheap, 4 = expensive)
+  readonly website?: string;
+  readonly phone?: string;
 }
 
 /**

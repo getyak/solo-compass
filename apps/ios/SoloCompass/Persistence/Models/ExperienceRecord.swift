@@ -34,6 +34,14 @@ public final class ExperienceRecord {
     public var placeNameLocal: String?
     public var placeNameRomanized: String?
 
+    // MARK: - Cross-channel hard signals (enriched from Foursquare / MapKit)
+    // All optional so rows migrated from earlier schema versions decode as nil.
+    public var rating: Double?
+    public var openingHours: String?
+    public var priceLevel: Double?
+    public var website: String?
+    public var phone: String?
+
     public var durationMin: Int
     public var durationMax: Int
 
@@ -84,6 +92,11 @@ public final class ExperienceRecord {
         addressHint: String?,
         placeNameLocal: String?,
         placeNameRomanized: String?,
+        rating: Double? = nil,
+        openingHours: String? = nil,
+        priceLevel: Double? = nil,
+        website: String? = nil,
+        phone: String? = nil,
         durationMin: Int,
         durationMax: Int,
         status: String,
@@ -110,6 +123,11 @@ public final class ExperienceRecord {
         self.addressHint = addressHint
         self.placeNameLocal = placeNameLocal
         self.placeNameRomanized = placeNameRomanized
+        self.rating = rating
+        self.openingHours = openingHours
+        self.priceLevel = priceLevel
+        self.website = website
+        self.phone = phone
         self.durationMin = durationMin
         self.durationMax = durationMax
         self.status = status
@@ -150,6 +168,11 @@ extension ExperienceRecord {
                 addressHint: experience.location.addressHint,
                 placeNameLocal: experience.location.placeNameLocal,
                 placeNameRomanized: experience.location.placeNameRomanized,
+                rating: experience.location.rating,
+                openingHours: experience.location.openingHours,
+                priceLevel: experience.location.priceLevel,
+                website: experience.location.website,
+                phone: experience.location.phone,
                 durationMin: experience.durationMinutes.min,
                 durationMax: experience.durationMinutes.max,
                 status: experience.status.rawValue,
@@ -187,7 +210,12 @@ extension ExperienceRecord {
                     cityCode: cityCode,
                     addressHint: addressHint,
                     placeNameLocal: placeNameLocal,
-                    placeNameRomanized: placeNameRomanized
+                    placeNameRomanized: placeNameRomanized,
+                    rating: rating,
+                    openingHours: openingHours,
+                    priceLevel: priceLevel,
+                    website: website,
+                    phone: phone
                 ),
                 bestTimes: try decoder.decode([TimeWindow].self, from: bestTimesBlob),
                 durationMinutes: .init(min: durationMin, max: durationMax),

@@ -132,6 +132,11 @@ public final class ExperienceRepository {
         record.addressHint = fresh.addressHint
         record.placeNameLocal = fresh.placeNameLocal
         record.placeNameRomanized = fresh.placeNameRomanized
+        record.rating = fresh.rating
+        record.openingHours = fresh.openingHours
+        record.priceLevel = fresh.priceLevel
+        record.website = fresh.website
+        record.phone = fresh.phone
         record.durationMin = fresh.durationMin
         record.durationMax = fresh.durationMax
         record.status = fresh.status

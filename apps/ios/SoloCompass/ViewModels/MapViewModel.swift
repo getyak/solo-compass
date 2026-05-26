@@ -26,6 +26,19 @@ public final class MapViewModel {
     private let foursquareService: FoursquareService
     private let geocodeService: any ReverseGeocoding
     private let preferences: UserPreferences
+
+    /// Lazily built deep-dive orchestrator. Reuses the existing channel
+    /// services and adds an Apple MapKit source. `@ObservationIgnored` so the
+    /// `@Observable` macro leaves it as a plain stored property (and permits
+    /// `lazy`); non-explore code paths and tests never pay for it.
+    @ObservationIgnored
+    private lazy var enrichmentAgent = EnrichmentAgent(
+        overpassService: overpassService,
+        mapKitService: MapKitPOIService(),
+        foursquareService: foursquareService,
+        geocodeService: geocodeService,
+        aiService: aiService
+    )
     /// Optional so existing tests / previews can construct without a
     /// real StoreKit-aware service. Production wires this from the
     /// environment in `CompassMapView` (Epic D US-024).
@@ -892,56 +905,8 @@ public final class MapViewModel {
         aiService.isProTier = isProUser
 
         do {
-            // US-MR-01: Pro multi-ring schedule (4 rings, dedup'd, single
-            // synthesis). Falls back to a 1-ring fetch when the flag is off
-            // or the user isn't on Pro. Returns the radius we should record
-            // for offline fallback (PRD §7: outermost ring only).
-            let (overpassPois, effectiveRadius) = try await fetchExplorePOIs(
-                near: coordinate,
-                singleRingRadius: radiusMeters,
-                category: category
-            )
-
-            // US-013: Foursquare fallback. Thin Overpass results (< 5) AND a
-            // configured key trigger ONE Foursquare call at the same radius +
-            // category. Merged via 4-decimal-cell dedupe; Overpass wins on
-            // collision. Counter increments for visibility — never enforced.
-            var pois = overpassPois
-            let fsqKey = Secrets.resolvedFoursquareKey
-            if overpassPois.count < Self.foursquareFallbackThreshold, !fsqKey.isEmpty {
-                do {
-                    let fsq = try await foursquareService.fetchPOIs(
-                        near: coordinate,
-                        radiusMeters: radiusMeters,
-                        category: category
-                    )
-                    preferences.incrementFoursquareCallsToday()
-                    pois = FoursquareService.merge(overpass: overpassPois, foursquare: fsq)
-                } catch {
-                    // Best-effort. A Foursquare miss still leaves Overpass
-                    // pois in place — never blocks the Explore flow.
-                    #if DEBUG
-                    print("[MapViewModel] Foursquare fallback failed: \(error)")
-                    #endif
-                }
-            }
-            guard !pois.isEmpty else {
-                if let region = experienceService.repo.closestRecentRegion(to: coordinate) {
-                    let cached = experienceService.repo.experiences(in: region)
-                    if !cached.isEmpty {
-                        visibleExperiences = cached
-                        nearbySoloCount = 0
-                        updateBottomInfo()
-                        lastExploreToast = NSLocalizedString("explore.toast.cachedFallback", comment: "Showing cached results")
-                        return
-                    }
-                }
-                lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
-                return
-            }
-
-            // US-016: try a real city name first; fall back to the
-            // synthetic osm_<lat>_<lon> only when the geocoder fails.
+            // US-016: resolve a real city name up front (both pipelines need
+            // it). Fall back to the synthetic osm_<lat>_<lon> on geocoder miss.
             let resolved = await geocodeService.resolve(coordinate: coordinate)
             let cityCode = resolved?.cityCode ?? Self.cityCode(for: coordinate)
 
@@ -956,18 +921,93 @@ public final class MapViewModel {
                 )
             }
 
-            // US-MR-04: switch the progress capsule to "synthesizing" once
-            // Overpass is done. In single-ring legacy mode this never
-            // triggers because exploreProgress stays `.idle` (no scanning
-            // phase was set).
-            if exploreProgress != .idle {
-                exploreProgress = .synthesizing(poiCount: pois.count)
+            let generated: [Experience]
+            let effectiveRadius: Int
+
+            if FeatureFlags.deepDiveEnrichment {
+                // Deep-dive: small radius, cross-channel enrichment, curated
+                // top-N, then synthesis. Returns synthesized Experiences
+                // directly. Empty result → cached/error fallback below.
+                if exploreProgress != .idle {
+                    exploreProgress = .synthesizing(poiCount: 0)
+                }
+                let enriched = try await enrichmentAgent.enrich(
+                    at: coordinate,
+                    radiusMeters: min(radiusMeters, EnrichmentAgent.defaultRadiusMeters),
+                    category: category,
+                    cityCode: cityCode,
+                    locale: LanguageService.shared.effectiveLocale
+                )
+                guard !enriched.isEmpty else {
+                    if let region = experienceService.repo.closestRecentRegion(to: coordinate),
+                       case let cached = experienceService.repo.experiences(in: region),
+                       !cached.isEmpty {
+                        visibleExperiences = cached
+                        nearbySoloCount = 0
+                        updateBottomInfo()
+                        lastExploreToast = NSLocalizedString("explore.toast.cachedFallback", comment: "Showing cached results")
+                        return
+                    }
+                    lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
+                    return
+                }
+                generated = enriched
+                effectiveRadius = min(radiusMeters, EnrichmentAgent.defaultRadiusMeters)
+            } else {
+                // Legacy wide-ring pipeline (kill-switch path).
+                // US-MR-01: Pro multi-ring schedule (4 rings, dedup'd, single
+                // synthesis). Falls back to a 1-ring fetch when the flag is off
+                // or the user isn't on Pro.
+                let (overpassPois, ringRadius) = try await fetchExplorePOIs(
+                    near: coordinate,
+                    singleRingRadius: radiusMeters,
+                    category: category
+                )
+
+                // US-013: Foursquare fallback when Overpass is thin.
+                var pois = overpassPois
+                let fsqKey = Secrets.resolvedFoursquareKey
+                if overpassPois.count < Self.foursquareFallbackThreshold, !fsqKey.isEmpty {
+                    do {
+                        let fsq = try await foursquareService.fetchPOIs(
+                            near: coordinate,
+                            radiusMeters: radiusMeters,
+                            category: category
+                        )
+                        preferences.incrementFoursquareCallsToday()
+                        pois = FoursquareService.merge(overpass: overpassPois, foursquare: fsq)
+                    } catch {
+                        #if DEBUG
+                        print("[MapViewModel] Foursquare fallback failed: \(error)")
+                        #endif
+                    }
+                }
+                guard !pois.isEmpty else {
+                    if let region = experienceService.repo.closestRecentRegion(to: coordinate) {
+                        let cached = experienceService.repo.experiences(in: region)
+                        if !cached.isEmpty {
+                            visibleExperiences = cached
+                            nearbySoloCount = 0
+                            updateBottomInfo()
+                            lastExploreToast = NSLocalizedString("explore.toast.cachedFallback", comment: "Showing cached results")
+                            return
+                        }
+                    }
+                    lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
+                    return
+                }
+
+                if exploreProgress != .idle {
+                    exploreProgress = .synthesizing(poiCount: pois.count)
+                }
+                generated = try await aiService.synthesizeExperiences(
+                    from: pois,
+                    cityCode: cityCode,
+                    locale: LanguageService.shared.effectiveLocale
+                )
+                effectiveRadius = ringRadius
             }
-            let generated = try await aiService.synthesizeExperiences(
-                from: pois,
-                cityCode: cityCode,
-                locale: LanguageService.shared.effectiveLocale
-            )
+
             let added = experienceService.appendGenerated(generated)
             lastExploreAddedCount = added
 
