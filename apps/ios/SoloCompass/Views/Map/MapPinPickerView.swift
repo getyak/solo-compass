@@ -37,7 +37,7 @@ struct MapPinPickerView: View {
                         .shadow(radius: 4)
                 }
             }
-            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .includingAll))
+            .mapStyle(.standard(elevation: .flat))
             .mapControls {
                 MapCompass()
             }
@@ -58,7 +58,7 @@ struct MapPinPickerView: View {
     /// Recenter the camera only when the pin is outside the visible region
     /// (text-field entry, search tap). Avoids fighting user's manual pan.
     private func recenterIfFarOff() {
-        guard case .region(let region) = cameraPosition else { return }
+        guard let region = cameraPosition.region else { return }
         let latDelta = abs(region.center.latitude - coordinate.latitude)
         let lonDelta = abs(region.center.longitude - coordinate.longitude)
         if latDelta > region.span.latitudeDelta * 0.4 || lonDelta > region.span.longitudeDelta * 0.4 {
