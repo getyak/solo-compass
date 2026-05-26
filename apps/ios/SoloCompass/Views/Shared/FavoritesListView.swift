@@ -1,10 +1,14 @@
 import SwiftUI
+import CoreLocation
+
+enum FavSort { case recent, nearest }
 
 /// List of favorited experiences sorted by most-recently-added.
 /// Presented as a sheet from SettingsView or via the map settings button.
 public struct FavoritesListView: View {
     @Environment(ExperienceService.self) private var experienceService
     @Environment(UserPreferences.self) private var preferences
+    @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onSelectExperience: (Experience) -> Void
 
@@ -15,16 +19,35 @@ public struct FavoritesListView: View {
     @State private var undoDragOffset: CGFloat = 0
     @State private var undoDragCrossedThreshold = false
     @State private var searchText = ""
+    @State private var sortMode: FavSort = .recent
     private let undoSelectionFeedback = UISelectionFeedbackGenerator()
     private let undoImpactFeedback = UIImpactFeedbackGenerator(style: .soft)
+
+    private func distanceMeters(for exp: Experience) -> CLLocationDistance? {
+        guard let coord = exp.coordinate, locationService.currentLocation != nil else { return nil }
+        let d = locationService.distance(to: coord)
+        return d < .greatestFiniteMagnitude ? d : nil
+    }
 
     private var sortedFavorites: [Experience] {
         let ids = preferences.favoritedExperiences
         let experiences = ids.compactMap { experienceService.getExperience(id: $0) }
-        return experiences.sorted { lhs, rhs in
-            let lDate = preferences.favoritedAt[lhs.id] ?? .distantPast
-            let rDate = preferences.favoritedAt[rhs.id] ?? .distantPast
-            return lDate > rDate
+        switch sortMode {
+        case .recent:
+            return experiences.sorted { lhs, rhs in
+                let lDate = preferences.favoritedAt[lhs.id] ?? .distantPast
+                let rDate = preferences.favoritedAt[rhs.id] ?? .distantPast
+                return lDate > rDate
+            }
+        case .nearest:
+            return experiences.sorted { lhs, rhs in
+                let lDist = distanceMeters(for: lhs) ?? .greatestFiniteMagnitude
+                let rDist = distanceMeters(for: rhs) ?? .greatestFiniteMagnitude
+                if lDist != rDist { return lDist < rDist }
+                let lDate = preferences.favoritedAt[lhs.id] ?? .distantPast
+                let rDate = preferences.favoritedAt[rhs.id] ?? .distantPast
+                return lDate > rDate
+            }
         }
     }
 
@@ -47,11 +70,28 @@ public struct FavoritesListView: View {
                     NoSearchResultsView(query: searchText)
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else {
-                    List(filteredFavorites) { exp in
-                        favoriteRow(exp)
+                    List {
+                        if locationService.currentLocation != nil {
+                            Section {
+                                Picker(NSLocalizedString("favorites.sort.label", comment: "Sort favorites"),
+                                       selection: $sortMode.animation(reduceMotion ? nil : .easeInOut)) {
+                                    Text(NSLocalizedString("favorites.sort.recent", comment: "Sort by recency"))
+                                        .tag(FavSort.recent)
+                                    Text(NSLocalizedString("favorites.sort.nearest", comment: "Sort by distance"))
+                                        .tag(FavSort.nearest)
+                                }
+                                .pickerStyle(.segmented)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            }
+                        }
+                        ForEach(filteredFavorites) { exp in
+                            favoriteRow(exp)
+                        }
                     }
                     .listStyle(.plain)
                     .animation(.easeInOut, value: filteredFavorites.count)
+                    .animation(reduceMotion ? nil : .easeInOut, value: sortMode)
                     .transition(.opacity)
                 }
             }
@@ -131,6 +171,18 @@ private struct NoSearchResultsView: View {
 }
 
 private extension FavoritesListView {
+
+    func distanceBadgeText(_ meters: CLLocationDistance) -> String {
+        if Locale.current.measurementSystem == .us {
+            let miles = meters / 1_609.344
+            return String(format: NSLocalizedString("favorites.distance.mi", comment: "Distance in miles"), miles)
+        }
+        if meters < 1_000 {
+            return String(format: NSLocalizedString("favorites.distance.m", comment: "Distance in metres"), Int(meters.rounded()))
+        }
+        let km = meters / 1_000
+        return String(format: NSLocalizedString("favorites.distance.km", comment: "Distance in kilometres"), km)
+    }
 
     var undoBar: some View {
         ZStack(alignment: .bottom) {
@@ -247,6 +299,17 @@ private extension FavoritesListView {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
+                    if let meters = distanceMeters(for: exp) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 9))
+                            Text(distanceBadgeText(meters))
+                                .font(.caption2)
+                                .monospacedDigit()
+                        }
+                        .foregroundStyle(.tertiary)
+                        .padding(.top, 1)
+                    }
                 }
 
                 Spacer()
@@ -291,4 +354,5 @@ private extension FavoritesListView {
     FavoritesListView(onSelectExperience: { _ in })
         .environment(ExperienceService())
         .environment(UserPreferences())
+        .environment(LocationService.shared)
 }

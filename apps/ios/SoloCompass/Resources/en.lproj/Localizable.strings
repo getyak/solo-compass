@@ -296,6 +296,12 @@
 "favorites.undo.named" = "Removed \"%@\"";
 "favorites.search.prompt" = "Search favorites";
 "favorites.search.noResults" = "No matches for \"%@\"";
+"favorites.sort.label" = "Sort";
+"favorites.sort.recent" = "Recent";
+"favorites.sort.nearest" = "Nearest";
+"favorites.distance.m" = "%d m";
+"favorites.distance.km" = "%.1f km";
+"favorites.distance.mi" = "%.1f mi";
 
 /* Generic actions */
 "action.undo" = "Undo";
