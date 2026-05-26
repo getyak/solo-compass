@@ -148,16 +148,7 @@ public struct SoloScoreRadarChart: View {
         .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "Tap to replay the draw-in animation")))
         .onTapGesture {
             guard !reduceMotion, !isReplaying else { return }
-            isReplaying = true
-            drawProgress = 0
-            withAnimation(.spring(response: Self.springDuration, dampingFraction: 0.75)) {
-                drawProgress = 1
-            }
-            haptic.prepare()
-            DispatchQueue.main.asyncAfter(deadline: .now() + Self.springDuration) {
-                haptic.impactOccurred()
-                isReplaying = false
-            }
+            replay()
         }
     }
 
@@ -193,6 +184,21 @@ public struct SoloScoreRadarChart: View {
         return Text(NSLocalizedString("solo.radar.a11y", comment: "") + ": " + descriptions)
     }
 
+    // MARK: - Replay
+
+    private func replay() {
+        isReplaying = true
+        drawProgress = 0
+        withAnimation(.spring(response: Self.springDuration, dampingFraction: 0.75)) {
+            drawProgress = 1
+        }
+        haptic.prepare()
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.springDuration) {
+            haptic.impactOccurred()
+            isReplaying = false
+        }
+    }
+
     // MARK: - Fallback bars
 
     private var fallbackBars: some View {
@@ -200,29 +206,43 @@ public struct SoloScoreRadarChart: View {
             ForEach(0..<Self.axes.count, id: \.self) { i in
                 let axis = Self.axes[i]
                 let val = values[i]
+                let barDelay = Double(i) * 0.06
+                let barProgress = max(0, min(1, (drawProgress - barDelay) / (1.0 - barDelay)))
                 HStack(spacing: 8) {
                     Image(systemName: axis.symbol)
                         .font(.caption)
                         .foregroundStyle(score.scoreColor)
                         .frame(width: 20)
+                        .accessibilityHidden(true)
                     Text(axis.label)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(width: 100, alignment: .leading)
+                        .accessibilityHidden(true)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Color.gray.opacity(0.15))
+                                .accessibilityHidden(true)
                             Capsule()
                                 .fill(score.scoreColor)
-                                .frame(width: geo.size.width * (val / 10.0) * drawProgress)
+                                .frame(width: geo.size.width * (val / 10.0) * barProgress)
+                                .accessibilityHidden(true)
                         }
                     }
                     .frame(height: 6)
                     Text(String(format: "%.0f", val))
                         .font(.caption.monospacedDigit())
                         .frame(width: 24, alignment: .trailing)
+                        .accessibilityHidden(true)
                 }
             }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(radarAccessibilityLabel)
+        .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "")))
+        .onTapGesture {
+            guard !reduceMotion, !isReplaying else { return }
+            replay()
         }
     }
 }
@@ -269,7 +289,7 @@ public struct SoloScoreRadarChart: View {
         basedOnCount: 14
     )
     return VStack(spacing: 24) {
-        Text("Fallback Bars (low variance)")
+        Text("Fallback Bars (low variance) — tap to replay")
             .font(.headline)
         SoloScoreRadarChart(score: lowVariance)
             .padding()
