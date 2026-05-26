@@ -416,7 +416,7 @@ public struct ExperienceDetailView: View {
                                 .foregroundStyle(tint)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 3)
-                                .background(Capsule().fill(tint.opacity(0.15)))
+                                .background(Capsule().fill(tint.opacity(severity.backgroundOpacity)))
                                 .accessibilityHidden(true)
                         }
                         Text(item.text)
@@ -905,5 +905,15 @@ private struct BestTimesTimeline: View {
         .environment(\.dynamicTypeSize, .accessibility3)
     } else {
         Text("No seed data")
+    }
+}
+
+private extension RealInconvenience.Severity {
+    var tintColor: Color {
+        switch self {
+        case .high:   return Color(.systemRed)
+        case .medium: return Color(.systemOrange)
+        case .low:    return Color(.systemGray)
+        }
     }
 }

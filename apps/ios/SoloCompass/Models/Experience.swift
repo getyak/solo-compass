@@ -141,14 +141,6 @@ public struct RealInconvenience: Codable, Hashable, Identifiable {
     public enum Severity {
         case high, medium, low
 
-        public var tintColor: Color {
-            switch self {
-            case .high:   return Color(.systemRed)
-            case .medium: return Color(.systemOrange)
-            case .low:    return Color(.systemGray)
-            }
-        }
-
         public var backgroundOpacity: Double {
             switch self {
             case .high:   return 0.10
