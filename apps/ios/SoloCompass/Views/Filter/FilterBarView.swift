@@ -83,14 +83,14 @@ public struct FilterBarView: View {
                     ForEach(visibleCategories) { category in
                         iconPill(
                             category: category,
-                            isSelected: selectedCategory == category,
+                            isSelected: selectionID == category.rawValue,
                             action: { onSelectCategory(category) }
                         )
                     }
                     ForEach(preferences.customTags, id: \.self) { tag in
                         customTagPill(
                             tag: tag,
-                            isSelected: selectedCustomTag == tag,
+                            isSelected: selectionID == "tag-\(tag)",
                             action: { onSelectCustomTag(tag) }
                         )
                     }
@@ -143,7 +143,7 @@ public struct FilterBarView: View {
                 .foregroundStyle(isSelected ? .white : category.color)
                 .background {
                     if isSelected {
-                        Capsule()
+                        Circle()
                             .fill(category.color)
                             .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
                     }
@@ -171,7 +171,7 @@ public struct FilterBarView: View {
                 .foregroundStyle(isSelected ? .white : Color.accentColor)
                 .background {
                     if isSelected {
-                        Capsule()
+                        Circle()
                             .fill(Color.accentColor)
                             .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
                     }
