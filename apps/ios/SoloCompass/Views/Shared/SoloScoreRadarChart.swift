@@ -61,7 +61,7 @@ public struct SoloScoreRadarChart: View {
             let radius = size * 0.38
 
             ZStack {
-                // Grid rings
+                // Grid rings (static scaffold)
                 ForEach([0.25, 0.5, 0.75, 1.0], id: \.self) { fraction in
                     radarPolygon(
                         center: center,
@@ -72,7 +72,7 @@ public struct SoloScoreRadarChart: View {
                     .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
                 }
 
-                // Axis spokes
+                // Axis spokes (static scaffold)
                 ForEach(0..<axisCount, id: \.self) { i in
                     let angle = axisAngle(index: i, count: axisCount)
                     let tip = point(center: center, radius: radius, angle: angle)
@@ -83,29 +83,36 @@ public struct SoloScoreRadarChart: View {
                     .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                 }
 
-                // Data polygon (scaled by drawProgress for entrance animation)
-                radarPolygon(center: center, radius: radius, count: axisCount, values: values.map { $0 / 10.0 * drawProgress })
+                // Data polygon — grows from center as drawProgress goes 0 → 1
+                let animatedValues = values.map { ($0 / 10.0) * drawProgress }
+
+                radarPolygon(center: center, radius: radius, count: axisCount, values: animatedValues)
                     .fill(score.scoreColor.opacity(0.15))
 
-                radarPolygon(center: center, radius: radius, count: axisCount, values: values.map { $0 / 10.0 * drawProgress })
+                radarPolygon(center: center, radius: radius, count: axisCount, values: animatedValues)
                     .stroke(score.scoreColor, lineWidth: 2)
 
-                // Axis labels with SF Symbol icons
+                // Axis labels with SF Symbol icons — stagger-fade per axis
                 ForEach(0..<axisCount, id: \.self) { i in
                     let angle = axisAngle(index: i, count: axisCount)
                     let labelRadius = radius + size * 0.14
                     let pos = point(center: center, radius: labelRadius, angle: angle)
                     let axis = Self.axes[i]
+                    let labelDelay = Double(i) * 0.06
+                    let labelOpacity = max(0, min(1, (drawProgress - labelDelay) / (1.0 - labelDelay)))
 
                     VStack(spacing: 2) {
                         Image(systemName: axis.symbol)
                             .font(.system(size: size * 0.065))
                             .foregroundStyle(score.scoreColor)
+                        // Always display final values — animation only affects opacity
                         Text(String(format: "%.0f", values[i]))
                             .font(.system(size: size * 0.055, weight: .semibold, design: .rounded))
                             .foregroundStyle(.primary)
                     }
+                    .opacity(labelOpacity)
                     .position(pos)
+                    .accessibilityHidden(true) // covered by radarAccessibilityLabel below
                 }
             }
         }
@@ -138,6 +145,7 @@ public struct SoloScoreRadarChart: View {
     }
 
     private var radarAccessibilityLabel: Text {
+        // Always reports final values regardless of animation state
         let descriptions = zip(Self.axes, values).map { axis, val in
             "\(axis.label): \(Int(val))"
         }.joined(separator: ", ")
