@@ -124,7 +124,8 @@
 		CC33DD44EE55FF6600AA11DD /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */; };
 		DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8800 /* LocationPickerState.swift */; };
 		DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8802 /* LocationSearchService.swift */; };
-		DD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8804 /* MapPinPickerView.swift */; };
+\t\tDD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8804 /* MapPinPickerView.swift */; };
+\t\tCC44DD55EE66FF77AA88BB01 /* CompletionCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC44DD55EE66FF77AA88BB00 /* CompletionCelebrationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -259,7 +260,8 @@
 		CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerSheet.swift; sourceTree = "<group>"; };
 		DD55EE66FF77AA8800 /* LocationPickerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerState.swift; sourceTree = "<group>"; };
 		DD55EE66FF77AA8802 /* LocationSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
-		DD55EE66FF77AA8804 /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
+\t\tDD55EE66FF77AA8804 /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
+\t\tCC44DD55EE66FF77AA88BB00 /* CompletionCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionCelebrationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -289,8 +291,9 @@
 				130B51007552B26F3C1D1AE0 /* PendingCheckInBanner.swift */,
 				BEDD4F6238B484BB7C20904B /* SkeletonView.swift */,
 				EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */,
-				4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */,
-				9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */,
+\t\t\t\t4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */,
+\t\t\t\tCC44DD55EE66FF77AA88BB00 /* CompletionCelebrationView.swift */,
+\t\t\t\t9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */,
 				8D0CBFD5114CC6728D6AA876 /* VoiceWaveformView.swift */,
 			);
 			path = Shared;
@@ -855,8 +858,9 @@
 				BB0BC19A9BE687E947C48034 /* VoiceAgentOrchestrator.swift in Sources */,
 				C220FEC091B645D82519465E /* VoiceAgentSession.swift in Sources */,
 				54952646C79E8F29AF89F4D6 /* VoiceAgentToolRouter.swift in Sources */,
-				BD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */,
-				F5677DCF081E506C7E32243F /* VoiceService.swift in Sources */,
+\t\t\t\tBD5BB6BD7FCBDB30282F28FA /* VoiceButton.swift in Sources */,
+\t\t\t\tCC44DD55EE66FF77AA88BB01 /* CompletionCelebrationView.swift in Sources */,
+\t\t\t\tF5677DCF081E506C7E32243F /* VoiceService.swift in Sources */,
 				CA06289D4E0D0C24C2079B40 /* VoiceWaveformView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
