@@ -58,6 +58,17 @@
 "bestTimes.now.pill" = "Good time now";
 "bestTimes.next.pill" = "Better at %@";
 
+/* Inconvenience categories */
+"inconvenience.category.scam" = "Scam risk";
+"inconvenience.category.crowds" = "Crowds";
+"inconvenience.category.logistics" = "Logistics";
+"inconvenience.category.weather" = "Weather";
+"inconvenience.category.etiquette" = "Etiquette";
+"inconvenience.category.safety" = "Safety";
+"inconvenience.category.other" = "Heads up";
+/* Accessibility label for each inconvenience row: "Heads up: <category> — <text>" */
+"inconvenience.a11y.prefix" = "Heads up: %@ — %@";
+
 /* Sections */
 "section.whyItMatters" = "Why it matters";
 "section.bestTimes" = "Best times";
