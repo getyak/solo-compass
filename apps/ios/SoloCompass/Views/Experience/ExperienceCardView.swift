@@ -10,6 +10,9 @@ public struct ExperienceCardView: View {
     @GestureState private var dragTranslation: CGFloat = 0
     @State private var dragOffset: CGFloat = 0
 
+    // Pre-allocated so prepare() can be called when the drag starts.
+    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
+
     public init(
         experience: Experience,
         onExpand: @escaping () -> Void,
@@ -29,8 +32,9 @@ public struct ExperienceCardView: View {
         rubberBanded(dragTranslation) + dragOffset
     }
 
+    /// Fades in both directions: downward (dismiss) and upward (expand).
     private var dragOpacity: Double {
-        1 - min(0.4, max(0, dragTranslation) / 300)
+        1 - min(0.4, abs(dragTranslation) / 300)
     }
 
     public var body: some View {
@@ -92,13 +96,21 @@ public struct ExperienceCardView: View {
                 .updating($dragTranslation) { value, state, _ in
                     state = value.translation.height
                 }
+                .onChanged { _ in
+                    feedbackGenerator.prepare()
+                }
                 .onEnded { value in
                     let t = value.translation.height
+                    // Commit the live visual position into dragOffset before
+                    // @GestureState resets dragTranslation to 0, so the card
+                    // stays at its dragged position rather than snapping back
+                    // before the exit transition runs.
+                    dragOffset = rubberBanded(t)
                     if t > 60 {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        feedbackGenerator.impactOccurred()
                         onDismiss()
                     } else if t < -60 {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        feedbackGenerator.impactOccurred()
                         onExpand()
                     } else {
                         withAnimation(.interactiveSpring()) {
