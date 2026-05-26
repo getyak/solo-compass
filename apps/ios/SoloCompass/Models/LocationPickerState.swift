@@ -14,7 +14,7 @@ final class LocationPickerState {
             switch self {
             case .cities: return NSLocalizedString("locationPicker.tab.cities", comment: "Cities tab")
             case .search: return NSLocalizedString("locationPicker.tab.search", comment: "Search tab")
-            case .map:    return NSLocalizedString("locationPicker.tab.map",    comment: "Map tab")
+            case .map:    return NSLocalizedString("locationPicker.tab.map", comment: "Map tab")
             }
         }
     }

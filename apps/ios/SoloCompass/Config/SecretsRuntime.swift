@@ -43,25 +43,48 @@ extension Secrets {
         /// US-013: per-process UserDefaults override for the Foursquare key.
         /// Lets devs / TestFlight users plug in a key without re-building.
         static let foursquareApiKey = "runtimeFoursquareKey"
+        // In-app AI provider settings (written by AIProviderSettingsView via UserPreferences).
+        // These shadow the build-time GeneratedSecrets values when non-empty.
+        static let aiApiKey = "runtimeAIApiKey"
+        static let aiBaseURL = "runtimeAIBaseURL"
+        static let aiModelName = "runtimeAIModelName"
+        static let aiProvider = "runtimeAIProvider"
     }
 
     /// Active resolver — swap in tests via `Secrets.apiKeyResolver = EmptyAPIKeyResolver()`
     /// and restore to `DefaultAPIKeyResolver()` afterwards.
     nonisolated(unsafe) static var apiKeyResolver: APIKeyResolver = DefaultAPIKeyResolver()
 
-    /// Effective DeepSeek API key. Reads through `apiKeyResolver`.
-    /// Returns "" when neither override nor baked key is set; callers map
-    /// empty → `AIError.missingAPIKey` / `.unconfigured`.
+    /// Effective AI API key. Resolution chain:
+    /// 1. In-app UserPreferences (set via AIProviderSettingsView)
+    /// 2. UserDefaults runtime override (dev/test injection)
+    /// 3. Build-time GeneratedSecrets (`.env` baked key)
     static var resolvedDeepSeekApiKey: String {
-        apiKeyResolver.resolveDeepSeekAPIKey()
+        let prefs = UserPreferences()
+        if !prefs.aiApiKey.isEmpty {
+            return prefs.aiApiKey
+        }
+        return apiKeyResolver.resolveDeepSeekAPIKey()
     }
 
+    /// Effective base URL. Prefers in-app setting, falls back to
+    /// build-time `deepSeekBaseURL`, then the DeepSeek default.
     static var resolvedDeepSeekBaseURL: String {
-        deepSeekBaseURL.isEmpty ? "https://api.deepseek.com/v1" : deepSeekBaseURL
+        let prefs = UserPreferences()
+        if !prefs.aiBaseURL.isEmpty {
+            return prefs.aiBaseURL
+        }
+        return deepSeekBaseURL.isEmpty ? AIProvider.deepseek.defaultBaseURL : deepSeekBaseURL
     }
 
+    /// Effective model name. Prefers in-app setting, falls back to
+    /// build-time `deepSeekModel`, then the DeepSeek default.
     static var resolvedDeepSeekModel: String {
-        deepSeekModel.isEmpty ? "deepseek-chat" : deepSeekModel
+        let prefs = UserPreferences()
+        if !prefs.aiModelName.isEmpty {
+            return prefs.aiModelName
+        }
+        return deepSeekModel.isEmpty ? AIProvider.deepseek.defaultModel : deepSeekModel
     }
 
     /// Effective Foursquare API key: UserDefaults override → build-time baked.

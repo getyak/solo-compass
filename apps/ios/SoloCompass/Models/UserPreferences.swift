@@ -46,6 +46,13 @@ public final class UserPreferences {
         var foursquareCallsToday: Int = 0
         var foursquareCallsTodayDate: Date?
 
+        // AI provider settings — stored here so SecretsRuntime can read them
+        // without a separate UserDefaults key namespace.
+        var aiProviderRaw: String = AIProvider.deepseek.rawValue
+        var aiApiKey: String = ""
+        var aiBaseURL: String = ""
+        var aiModelName: String = ""
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -55,6 +62,7 @@ public final class UserPreferences {
             case hasAcceptedExploreConsent, exploreConsentGivenAt, reviewPromptShown
             case includeMapInExport, visibleCategories, customTags
             case foursquareCallsToday, foursquareCallsTodayDate
+            case aiProviderRaw, aiApiKey, aiBaseURL, aiModelName
         }
 
         init() {}
@@ -83,7 +91,11 @@ public final class UserPreferences {
             visibleCategories: Set<ExperienceCategory>,
             customTags: [String],
             foursquareCallsToday: Int,
-            foursquareCallsTodayDate: Date?
+            foursquareCallsTodayDate: Date?,
+            aiProviderRaw: String,
+            aiApiKey: String,
+            aiBaseURL: String,
+            aiModelName: String
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -109,6 +121,10 @@ public final class UserPreferences {
             self.customTags = customTags
             self.foursquareCallsToday = foursquareCallsToday
             self.foursquareCallsTodayDate = foursquareCallsTodayDate
+            self.aiProviderRaw = aiProviderRaw
+            self.aiApiKey = aiApiKey
+            self.aiBaseURL = aiBaseURL
+            self.aiModelName = aiModelName
         }
 
         init(from decoder: Decoder) throws {
@@ -138,6 +154,10 @@ public final class UserPreferences {
             self.customTags = try container.decodeIfPresent([String].self, forKey: .customTags) ?? []
             self.foursquareCallsToday = try container.decodeIfPresent(Int.self, forKey: .foursquareCallsToday) ?? 0
             self.foursquareCallsTodayDate = try container.decodeIfPresent(Date.self, forKey: .foursquareCallsTodayDate)
+            self.aiProviderRaw = try container.decodeIfPresent(String.self, forKey: .aiProviderRaw) ?? AIProvider.deepseek.rawValue
+            self.aiApiKey = try container.decodeIfPresent(String.self, forKey: .aiApiKey) ?? ""
+            self.aiBaseURL = try container.decodeIfPresent(String.self, forKey: .aiBaseURL) ?? ""
+            self.aiModelName = try container.decodeIfPresent(String.self, forKey: .aiModelName) ?? ""
         }
     }
 
@@ -194,6 +214,26 @@ public final class UserPreferences {
     /// back to 1 instead of incrementing.
     public var foursquareCallsTodayDate: Date? { didSet { persist() } }
 
+    /// Raw string backing for `aiProvider`. Stored so the Codable blob
+    /// survives new provider cases being added in future releases.
+    public var aiProviderRaw: String { didSet { persist() } }
+    /// User-supplied API key for the selected AI provider. Stored encrypted
+    /// at-rest by iOS when the app uses Data Protection; transmitted only
+    /// to the configured provider endpoint.
+    public var aiApiKey: String { didSet { persist() } }
+    /// Base URL for the OpenAI-compatible completions endpoint.
+    /// Empty string means "use the provider default".
+    public var aiBaseURL: String { didSet { persist() } }
+    /// Model identifier (e.g. "deepseek-chat", "gpt-4o-mini").
+    /// Empty string means "use the provider default".
+    public var aiModelName: String { didSet { persist() } }
+
+    /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
+    public var aiProvider: AIProvider {
+        get { AIProvider(rawValue: aiProviderRaw) ?? .deepseek }
+        set { aiProviderRaw = newValue.rawValue }
+    }
+
     /// Optional repository handle used for double-writing user-action
     /// mutations into SwiftData. `attachRepository(_:)` wires this up
     /// once at app boot; tests usually leave it nil and rely on
@@ -230,6 +270,10 @@ public final class UserPreferences {
         self.customTags = snapshot.customTags
         self.foursquareCallsToday = snapshot.foursquareCallsToday
         self.foursquareCallsTodayDate = snapshot.foursquareCallsTodayDate
+        self.aiProviderRaw = snapshot.aiProviderRaw
+        self.aiApiKey = snapshot.aiApiKey
+        self.aiBaseURL = snapshot.aiBaseURL
+        self.aiModelName = snapshot.aiModelName
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -269,7 +313,11 @@ public final class UserPreferences {
             visibleCategories: visibleCategories,
             customTags: customTags,
             foursquareCallsToday: foursquareCallsToday,
-            foursquareCallsTodayDate: foursquareCallsTodayDate
+            foursquareCallsTodayDate: foursquareCallsTodayDate,
+            aiProviderRaw: aiProviderRaw,
+            aiApiKey: aiApiKey,
+            aiBaseURL: aiBaseURL,
+            aiModelName: aiModelName
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

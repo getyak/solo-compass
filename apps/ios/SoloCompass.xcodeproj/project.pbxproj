@@ -32,6 +32,8 @@
 		3B2C16B114CAAADE0862AF7B /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99AF76F1B505EF8AF6EF2470 /* ShareSheet.swift */; };
 		42E436DB35CF90AD3E43083E /* DeviceIdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D63763EFB0BE589EA0470 /* DeviceIdentityService.swift */; };
 		45A4E8EED0300F00253EC049 /* MarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */; };
+		AA11BB22CC33DD44EE55FF77 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF66 /* AIProvider.swift */; };
+		BB22CC33DD44EE55FF6600BB /* AIProviderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB22CC33DD44EE55FF6600AA /* AIProviderSettingsView.swift */; };
 		464746A44182622D4F617462 /* AIUsageRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */; };
 		48DF01972A1FB107BFFF0684 /* QueryAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06086F5F9463C18F486E5694 /* QueryAgent.swift */; };
 		48DF93F42CDDB1329B038865 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6556C23BF1B228BF686C5500 /* KeychainStore.swift */; };
@@ -118,10 +120,10 @@
 		FA8584E1511404B374B57E66 /* ExploreProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0997D8150E77F70A4B8C64 /* ExploreProgressBar.swift */; };
 		FBE9F5951D501A611EB19EEC /* SecretsRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA8C8BF234F3C74D0D8A9BD /* SecretsRuntime.swift */; };
 		FD3636FCB777A292C57B7B06 /* GuideAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187534C119545F7D61CE693B /* GuideAgent.swift */; };
-		BB11223344556677889900BB /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11223344556677889900AA /* LocationPickerState.swift */; };
-		DD11223344556677889900DD /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11223344556677889900CC /* LocationSearchService.swift */; };
-		FF11223344556677889900FF /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE11223344556677889900EE /* LocationPickerSheet.swift */; };
-		2233445566778899001122AB /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122334455667788990011AB /* MapPinPickerView.swift */; };
+		CC33DD44EE55FF6600AA11DD /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */; };
+		DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8800 /* LocationPickerState.swift */; };
+		DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8802 /* LocationSearchService.swift */; };
+		DD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8804 /* MapPinPickerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -135,6 +137,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AA11BB22CC33DD44EE55FF66 /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
+		BB22CC33DD44EE55FF6600AA /* AIProviderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderSettingsView.swift; sourceTree = "<group>"; };
 		001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIUsageRecord.swift; sourceTree = "<group>"; };
 		06086F5F9463C18F486E5694 /* QueryAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryAgent.swift; sourceTree = "<group>"; };
 		06B7D586552E9F1EA44F5657 /* MapKitPOIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapKitPOIService.swift; sourceTree = "<group>"; };
@@ -249,10 +253,10 @@
 		F7FB43528F45882868CCC203 /* NavigationLauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationLauncherTests.swift; sourceTree = "<group>"; };
 		F9263FC2737FA209F3CD4B5E /* ChatSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSheet.swift; sourceTree = "<group>"; };
 		FAFFA243BC698EF20C6BC1EF /* MapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModel.swift; sourceTree = "<group>"; };
-		AA11223344556677889900AA /* LocationPickerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerState.swift; sourceTree = "<group>"; };
-		CC11223344556677889900CC /* LocationSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
-		EE11223344556677889900EE /* LocationPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerSheet.swift; sourceTree = "<group>"; };
-		1122334455667788990011AB /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
+		CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerSheet.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8800 /* LocationPickerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerState.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8802 /* LocationSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8804 /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -309,9 +313,9 @@
 				BA6A3144D85CDAD01FA0FECB /* CompassMapView.swift */,
 				5AB8B58A4F608F9951CBDF3C /* ExploreConsentSheet.swift */,
 				0A0997D8150E77F70A4B8C64 /* ExploreProgressBar.swift */,
-				EE11223344556677889900EE /* LocationPickerSheet.swift */,
+				CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */,
+				DD55EE66FF77AA8804 /* MapPinPickerView.swift */,
 				0E0157D30FF53B21FF31D519 /* MarkerIconView.swift */,
-				1122334455667788990011AB /* MapPinPickerView.swift */,
 				1C23113554E651AA08FD2430 /* POILoadingBanner.swift */,
 			);
 			path = Map;
@@ -402,10 +406,11 @@
 		5B71CF70956BBC9E4305202E /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				AA11BB22CC33DD44EE55FF66 /* AIProvider.swift */,
 				0709110B381DEDA32C3292AE /* ChatUIState.swift */,
 				6DFBC1C003B8745713588A23 /* City.swift */,
 				C1C97F8159A6FA7953D28DAB /* Experience.swift */,
-				AA11223344556677889900AA /* LocationPickerState.swift */,
+				DD55EE66FF77AA8800 /* LocationPickerState.swift */,
 				F63FDD874A8F533F0717132A /* UserPreferences.swift */,
 			);
 			path = Models;
@@ -431,8 +436,8 @@
 				67DAE302128E657E150C4B0D /* FoursquareService.swift */,
 				6556C23BF1B228BF686C5500 /* KeychainStore.swift */,
 				87002BB6D344B384A3FDFBFD /* LanguageService.swift */,
+				DD55EE66FF77AA8802 /* LocationSearchService.swift */,
 				2C7919EAFDE363B49C4B4C47 /* LocationService.swift */,
-				CC11223344556677889900CC /* LocationSearchService.swift */,
 				06B7D586552E9F1EA44F5657 /* MapKitPOIService.swift */,
 				54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */,
 				D07ACA7C1A1574A244E73796 /* NavigationLauncher.swift */,
@@ -513,6 +518,7 @@
 		8FF93171FFB8E00CD1BDF550 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				BB22CC33DD44EE55FF6600AA /* AIProviderSettingsView.swift */,
 				C14A22A40550CF207AB36C18 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -745,6 +751,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA11BB22CC33DD44EE55FF77 /* AIProvider.swift in Sources */,
+				BB22CC33DD44EE55FF6600BB /* AIProviderSettingsView.swift in Sources */,
 				D699D4E3E20FE7A7C0ED7E66 /* AIService.swift in Sources */,
 				F34C1A42668EF5151AFEE3C3 /* AISynthesisCacheRecord.swift in Sources */,
 				464746A44182622D4F617462 /* AIUsageRecord.swift in Sources */,
@@ -787,15 +795,15 @@
 				48DF93F42CDDB1329B038865 /* KeychainStore.swift in Sources */,
 				953C7BD48AF4AF55608145A6 /* LanguageService.swift in Sources */,
 				23B40396E9D7B59CB71FBCD9 /* LocationCard.swift in Sources */,
+				CC33DD44EE55FF6600AA11DD /* LocationPickerSheet.swift in Sources */,
+				DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */,
+				DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */,
 				31F9538643C362D7EEF64C6B /* LocationService.swift in Sources */,
-				BB11223344556677889900BB /* LocationPickerState.swift in Sources */,
-				DD11223344556677889900DD /* LocationSearchService.swift in Sources */,
-				FF11223344556677889900FF /* LocationPickerSheet.swift in Sources */,
-				2233445566778899001122AB /* MapPinPickerView.swift in Sources */,
 				A75EEA586481D5A86B7FCFDA /* MapKitPOIService.swift in Sources */,
 				CE1A6A1D5EB25B2BEA5B29DA /* MapViewModel.swift in Sources */,
 				45A4E8EED0300F00253EC049 /* MarkdownExporter.swift in Sources */,
 				C2CCD06DDA37BF2F81E735E5 /* MarkdownShareSheet.swift in Sources */,
+				DD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */,
 				28E3EB1BFFB0A73A1C56FD54 /* MarkerIconView.swift in Sources */,
 				561418100F2F7D4D88DE1BC4 /* MessageBubble.swift in Sources */,
 				C7F4A9BD252AC60BDBD74585 /* MicroSurveyRecord.swift in Sources */,
