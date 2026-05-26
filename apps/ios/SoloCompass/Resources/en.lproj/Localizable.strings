@@ -148,6 +148,8 @@
 
 /* Experience card accessibility */
 "experience.card.hint" = "Double tap to view details";
+"card.favorite.add" = "Add to favorites";
+"card.favorite.remove" = "Remove from favorites";
 
 /* Voice recognition error alert */
 "voice.error.title" = "Voice recognition error";

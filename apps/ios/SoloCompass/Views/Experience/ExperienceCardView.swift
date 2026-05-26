@@ -116,33 +116,13 @@ public struct ExperienceCardView: View {
                 .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
         )
         .padding(.horizontal, 12)
-        .offset(y: totalOffset)
-        .opacity(dragOpacity)
         .gesture(
             DragGesture(minimumDistance: 20)
-                .updating($dragTranslation) { value, state, _ in
-                    state = value.translation.height
-                }
-                .onChanged { _ in
-                    feedbackGenerator.prepare()
-                }
                 .onEnded { value in
-                    let t = value.translation.height
-                    // Commit the live visual position into dragOffset before
-                    // @GestureState resets dragTranslation to 0, so the card
-                    // stays at its dragged position rather than snapping back
-                    // before the exit transition runs.
-                    dragOffset = rubberBanded(t)
-                    if t > 60 {
-                        feedbackGenerator.impactOccurred()
+                    if value.translation.height > 60 {
                         onDismiss()
-                    } else if t < -60 {
-                        feedbackGenerator.impactOccurred()
+                    } else if value.translation.height < -60 {
                         onExpand()
-                    } else {
-                        withAnimation(.interactiveSpring()) {
-                            dragOffset = 0
-                        }
                     }
                 }
         )
