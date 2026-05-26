@@ -14,6 +14,9 @@ public struct VoiceButton: View {
     @State private var pulse = false
     @State private var streamTask: Task<Void, Never>?
 
+    private let startFeedback = UIImpactFeedbackGenerator(style: .medium)
+    private let endFeedback = UIImpactFeedbackGenerator(style: .soft)
+
     public init(voiceService: VoiceService, onTranscript: @escaping (String) -> Void) {
         self.voiceService = voiceService
         self.onTranscript = onTranscript
@@ -92,6 +95,9 @@ public struct VoiceButton: View {
                 if !reduceMotion { pulse = true }
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 liveTranscript = ""
+                startFeedback.prepare()
+                startFeedback.impactOccurred()
+                endFeedback.prepare()
                 let stream = try voiceService.startListening()
                 streamTask = Task {
                     do {
@@ -124,6 +130,7 @@ public struct VoiceButton: View {
         streamTask = nil
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         if !final.isEmpty {
+            endFeedback.impactOccurred()
             onTranscript(final)
         }
         liveTranscript = ""
