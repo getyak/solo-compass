@@ -14,6 +14,7 @@ public struct FavoritesListView: View {
     @State private var undoProgress: CGFloat = 1
     @State private var undoDragOffset: CGFloat = 0
     @State private var undoDragCrossedThreshold = false
+    @State private var searchText = ""
     private let undoSelectionFeedback = UISelectionFeedbackGenerator()
     private let undoImpactFeedback = UIImpactFeedbackGenerator(style: .soft)
 
@@ -27,24 +28,42 @@ public struct FavoritesListView: View {
         }
     }
 
+    private var filteredFavorites: [Experience] {
+        let query = searchText.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return sortedFavorites }
+        return sortedFavorites.filter {
+            $0.title.localizedCaseInsensitiveContains(query) ||
+            $0.oneLiner.localizedCaseInsensitiveContains(query)
+        }
+    }
+
     public var body: some View {
         NavigationStack {
             Group {
                 if sortedFavorites.isEmpty && lastUnfavorited == nil {
                     EmptyFavoritesView()
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
+                } else if filteredFavorites.isEmpty {
+                    NoSearchResultsView(query: searchText)
+                        .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else {
-                    List(sortedFavorites) { exp in
+                    List(filteredFavorites) { exp in
                         favoriteRow(exp)
                     }
                     .listStyle(.plain)
-                    .animation(.easeInOut, value: sortedFavorites.count)
+                    .animation(.easeInOut, value: filteredFavorites.count)
                     .transition(.opacity)
                 }
             }
             .animation(.easeInOut, value: sortedFavorites.isEmpty)
+            .animation(.easeInOut, value: filteredFavorites.isEmpty)
             .navigationTitle(NSLocalizedString("favorites.title", comment: "Favorites list title"))
             .navigationBarTitleDisplayMode(.inline)
+            .searchable(
+                text: $searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: Text(NSLocalizedString("favorites.search.prompt", comment: "Search favorites"))
+            )
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -92,6 +111,22 @@ private struct EmptyFavoritesView: View {
             guard !isBreathing, !reduceMotion else { return }
             isBreathing = true
         }
+    }
+}
+
+private struct NoSearchResultsView: View {
+    let query: String
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text(String(format: NSLocalizedString("favorites.search.noResults", comment: "No matches for search query"), query))
+                .font(.headline)
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
     }
 }
 
