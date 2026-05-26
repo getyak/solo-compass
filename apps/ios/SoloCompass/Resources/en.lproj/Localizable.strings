@@ -447,6 +447,8 @@
 /* Location card + navigation picker */
 "location.navigate" = "Navigate";
 "location.copyCoords" = "Copy coordinates";
+"location.copied" = "Copied!";
+"location.copied.a11y" = "Coordinates copied";
 "location.openIn.apple" = "Apple Maps";
 "location.openIn.google" = "Google Maps";
 "location.openIn.amap" = "Amap";

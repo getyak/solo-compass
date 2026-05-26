@@ -10,6 +10,7 @@ struct LocationCard: View {
     let addressHint: String?
 
     @State private var isShowingPicker = false
+    @State private var didCopy = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -63,12 +64,30 @@ struct LocationCard: View {
                 Button {
                     UIPasteboard.general.string = "\(coordinate.latitude), \(coordinate.longitude)"
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        didCopy = true
+                    }
+                    Task {
+                        try? await Task.sleep(for: .seconds(1.5))
+                        withAnimation { didCopy = false }
+                    }
                 } label: {
-                    Image(systemName: "doc.on.doc")
-                        .frame(width: 44, height: 44)
-                        .foregroundStyle(.secondary)
+                    VStack(spacing: 2) {
+                        Image(systemName: didCopy ? "checkmark.circle.fill" : "doc.on.doc")
+                            .contentTransition(.symbolEffect(.replace))
+                            .foregroundStyle(didCopy ? Color.green : Color.secondary)
+                        if didCopy {
+                            Text(NSLocalizedString("location.copied", comment: "Coordinates copied confirmation"))
+                                .font(.caption2)
+                                .foregroundStyle(Color.green)
+                        }
+                    }
+                    .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel(Text(NSLocalizedString("location.copyCoords", comment: "Copy coordinates to clipboard")))
+                .accessibilityLabel(Text(didCopy
+                    ? NSLocalizedString("location.copied.a11y", comment: "VoiceOver: coordinates were copied")
+                    : NSLocalizedString("location.copyCoords", comment: "Copy coordinates to clipboard")
+                ))
             }
         }
         .padding(12)
