@@ -75,6 +75,7 @@ struct LocationPickerSheet: View {
     private func citiesContent(bs: Bindable<LocationPickerState>) -> some View {
         List {
             Button {
+                commitHaptic()
                 viewModel.selectCity(nil)
                 onDismiss()
             } label: {
@@ -93,6 +94,7 @@ struct LocationPickerSheet: View {
 
             ForEach(filteredCities, id: \.code) { city in
                 Button {
+                    commitHaptic()
                     viewModel.selectCity(city.code)
                     onDismiss()
                 } label: {
@@ -284,7 +286,10 @@ struct LocationPickerSheet: View {
 
     // MARK: - Actions
 
+    private func commitHaptic() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+
     private func selectSearchResult(_ item: MKMapItem) {
+        commitHaptic()
         let coord = item.placemark.coordinate
         let label = item.name
             ?? item.placemark.locality
@@ -299,6 +304,7 @@ struct LocationPickerSheet: View {
     }
 
     private func commitMapLocation() {
+        commitHaptic()
         let coord = state.pinCoordinate
         let label = state.resolvedCityName
             ?? String(format: "%.4f, %.4f", coord.latitude, coord.longitude)
