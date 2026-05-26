@@ -48,6 +48,11 @@
 "solo.section.estimate" = "Solo Score (AI estimate)";
 "solo.section.early" = "Solo Score (early)";
 
+/* Best times timeline */
+"timeline.now.good" = "Right now is a great time.";
+"timeline.now.off" = "Right now is not the ideal time.";
+"timeline.a11y" = "Best between %@. %@";
+
 /* Sections */
 "section.whyItMatters" = "Why it matters";
 "section.bestTimes" = "Best times";
