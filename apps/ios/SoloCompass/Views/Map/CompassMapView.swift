@@ -33,6 +33,10 @@ public struct CompassMapView: View {
 
     private let networkMonitor = NetworkMonitor.shared
 
+    private var isFilterActive: Bool {
+        (viewModel?.selectedCategory != nil) || (viewModel?.selectedCustomTag != nil) || (viewModel?.isNowFilter == true)
+    }
+
     /// Idle window after the last pan before POIs refresh. Lowered from 1.5s
     /// to cut the "dragged the map, nothing happened" lag (#133).
     private static let panRefreshDebounce: TimeInterval = 0.8
@@ -170,7 +174,7 @@ public struct CompassMapView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                if viewModel.visibleExperiences.isEmpty {
+                if viewModel.visibleExperiences.isEmpty && !isFilterActive {
                     EmptyStateOverlay(
                         viewModel: viewModel,
                         preferences: preferences,
@@ -607,7 +611,7 @@ private struct MapOverlayView: View {
             )
             .padding(.top, 4)
 
-            if isFilterActive && !viewModel.visibleExperiences.isEmpty {
+            if isFilterActive {
                 filterResultBadge
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .opacity(isMapPanning ? 0.4 : 1.0)
@@ -760,27 +764,72 @@ private struct MapOverlayView: View {
             if viewModel.isNowFilter { return Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255) }
             return Color.accentColor
         }()
-        let countText = count == 1
-            ? String(format: NSLocalizedString("filter.matches.one", comment: "1 match"), count)
-            : String(format: NSLocalizedString("filter.matches.other", comment: "%d matches"), count)
 
-        GlassmorphismCapsule(
-            horizontalPadding: 12,
-            verticalPadding: 6,
-            shadowRadius: 6,
-            shadowY: 3
-        ) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(dotColor)
-                    .frame(width: 8, height: 8)
-                Text(countText)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.primary)
+        if count == 0 {
+            let noMatchText = NSLocalizedString("filter.matches.none", comment: "No matches")
+            let clearText = NSLocalizedString("filter.clear", comment: "Clear filter")
+            let a11yLabel = "\(noMatchText) · \(clearText)"
+
+            GlassmorphismCapsule(
+                horizontalPadding: 12,
+                verticalPadding: 6,
+                shadowRadius: 6,
+                shadowY: 3
+            ) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 8, height: 8)
+                    Text(noMatchText)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.primary)
+                    Text("·")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        viewModel.clearFilters()
+                    } label: {
+                        Text(clearText)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(dotColor)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .contentTransition(.opacity)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(a11yLabel))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                viewModel.clearFilters()
+            }
+        } else {
+            let countText = count == 1
+                ? String(format: NSLocalizedString("filter.matches.one", comment: "1 match"), count)
+                : String(format: NSLocalizedString("filter.matches.other", comment: "%d matches"), count)
+
+            GlassmorphismCapsule(
+                horizontalPadding: 12,
+                verticalPadding: 6,
+                shadowRadius: 6,
+                shadowY: 3
+            ) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 8, height: 8)
+                    Text(countText)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.primary)
+                }
+            }
+            .contentTransition(.numericText())
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
+            .accessibilityLabel(Text(countText))
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
-        .accessibilityLabel(Text(countText))
     }
 
     @ViewBuilder

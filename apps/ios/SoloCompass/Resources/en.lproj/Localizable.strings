@@ -14,6 +14,8 @@
 "filter.now.a11y" = "Now, %d experiences at their best";
 "filter.matches.one" = "%d match";
 "filter.matches.other" = "%d matches";
+"filter.matches.none" = "No matches";
+"filter.clear" = "Clear filter";
 
 /* Health */
 "health.healthy" = "Fresh — multiply verified";
