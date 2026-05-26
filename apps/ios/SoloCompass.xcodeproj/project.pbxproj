@@ -121,6 +121,11 @@
 		FBE9F5951D501A611EB19EEC /* SecretsRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA8C8BF234F3C74D0D8A9BD /* SecretsRuntime.swift */; };
 		FD3636FCB777A292C57B7B06 /* GuideAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187534C119545F7D61CE693B /* GuideAgent.swift */; };
 		CC33DD44EE55FF6600AA11DD /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */; };
+		DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8800 /* LocationPickerState.swift */; };
+		DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8802 /* LocationSearchService.swift */; };
+		DD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8804 /* MapPinPickerView.swift */; };
+		DD55EE66FF77AA8807 /* SoloCompassSchemaV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8806 /* SoloCompassSchemaV2.swift */; };
+		DD55EE66FF77AA8809 /* EnrichmentAgentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8808 /* EnrichmentAgentTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -251,6 +256,11 @@
 		F9263FC2737FA209F3CD4B5E /* ChatSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSheet.swift; sourceTree = "<group>"; };
 		FAFFA243BC698EF20C6BC1EF /* MapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModel.swift; sourceTree = "<group>"; };
 		CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerSheet.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8800 /* LocationPickerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerState.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8802 /* LocationSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8804 /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8806 /* SoloCompassSchemaV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassSchemaV2.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8808 /* EnrichmentAgentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrichmentAgentTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -308,6 +318,7 @@
 				5AB8B58A4F608F9951CBDF3C /* ExploreConsentSheet.swift */,
 				0A0997D8150E77F70A4B8C64 /* ExploreProgressBar.swift */,
 				CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */,
+				DD55EE66FF77AA8804 /* MapPinPickerView.swift */,
 				0E0157D30FF53B21FF31D519 /* MarkerIconView.swift */,
 				1C23113554E651AA08FD2430 /* POILoadingBanner.swift */,
 			);
@@ -319,6 +330,7 @@
 			children = (
 				E5DB59261DB471FD587F4134 /* AgentTests.swift */,
 				308B7A34171C74B1CF2DE3F9 /* CityPillHitTargetTests.swift */,
+				DD55EE66FF77AA8808 /* EnrichmentAgentTests.swift */,
 				E1694A46513909CFE464D92E /* FilterBarViewTests.swift */,
 				F7FB43528F45882868CCC203 /* NavigationLauncherTests.swift */,
 				70AF2705AB2F24B69DE8CB4F /* PerformanceTests.swift */,
@@ -403,6 +415,7 @@
 				0709110B381DEDA32C3292AE /* ChatUIState.swift */,
 				6DFBC1C003B8745713588A23 /* City.swift */,
 				C1C97F8159A6FA7953D28DAB /* Experience.swift */,
+				DD55EE66FF77AA8800 /* LocationPickerState.swift */,
 				F63FDD874A8F533F0717132A /* UserPreferences.swift */,
 			);
 			path = Models;
@@ -428,6 +441,7 @@
 				67DAE302128E657E150C4B0D /* FoursquareService.swift */,
 				6556C23BF1B228BF686C5500 /* KeychainStore.swift */,
 				87002BB6D344B384A3FDFBFD /* LanguageService.swift */,
+				DD55EE66FF77AA8802 /* LocationSearchService.swift */,
 				2C7919EAFDE363B49C4B4C47 /* LocationService.swift */,
 				06B7D586552E9F1EA44F5657 /* MapKitPOIService.swift */,
 				54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */,
@@ -482,6 +496,7 @@
 			children = (
 				A250916F91C8EF0BE90DF763 /* ExperienceRepository.swift */,
 				A5435FBA9527C07A9FB07D46 /* SoloCompassModelContainer.swift */,
+				DD55EE66FF77AA8806 /* SoloCompassSchemaV2.swift */,
 				52030ED9E37422E080A28183 /* Models */,
 			);
 			path = Persistence;
@@ -730,6 +745,7 @@
 			files = (
 				8632F83028F07E07435FE075 /* AgentTests.swift in Sources */,
 				D2BCD302B16BBC174B71F84A /* CityPillHitTargetTests.swift in Sources */,
+				DD55EE66FF77AA8809 /* EnrichmentAgentTests.swift in Sources */,
 				8B118DFAAE23443EF7D90735 /* FilterBarViewTests.swift in Sources */,
 				D4193263CDA544D0995749B0 /* NavigationLauncherTests.swift in Sources */,
 				D7ABC99B7839B64FF014D344 /* PerformanceTests.swift in Sources */,
@@ -787,11 +803,14 @@
 				953C7BD48AF4AF55608145A6 /* LanguageService.swift in Sources */,
 				23B40396E9D7B59CB71FBCD9 /* LocationCard.swift in Sources */,
 				CC33DD44EE55FF6600AA11DD /* LocationPickerSheet.swift in Sources */,
+				DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */,
+				DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */,
 				31F9538643C362D7EEF64C6B /* LocationService.swift in Sources */,
 				A75EEA586481D5A86B7FCFDA /* MapKitPOIService.swift in Sources */,
 				CE1A6A1D5EB25B2BEA5B29DA /* MapViewModel.swift in Sources */,
 				45A4E8EED0300F00253EC049 /* MarkdownExporter.swift in Sources */,
 				C2CCD06DDA37BF2F81E735E5 /* MarkdownShareSheet.swift in Sources */,
+				DD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */,
 				28E3EB1BFFB0A73A1C56FD54 /* MarkerIconView.swift in Sources */,
 				561418100F2F7D4D88DE1BC4 /* MessageBubble.swift in Sources */,
 				C7F4A9BD252AC60BDBD74585 /* MicroSurveyRecord.swift in Sources */,
@@ -824,6 +843,7 @@
 				F84389464D54A5F5BEB866D0 /* SkeletonView.swift in Sources */,
 				E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */,
 				13E5AEAEE5194DDB79AE92AC /* SoloCompassModelContainer.swift in Sources */,
+				DD55EE66FF77AA8807 /* SoloCompassSchemaV2.swift in Sources */,
 				86F4628473C2D520D4C2FFFB /* SoloScoreBadge.swift in Sources */,
 				A217FA55BD40922DB3B8DEE6 /* SoloScoreRadarChart.swift in Sources */,
 				BCD734EA6E4D5CE922D0621D /* SubscriptionService.swift in Sources */,
