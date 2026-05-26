@@ -12,6 +12,8 @@ public struct ExperienceCardView: View {
 
     // Pre-allocated so prepare() can be called when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
+    @Environment(UserPreferences.self) private var preferences
+    @State private var heartScale: CGFloat = 1.0
 
     public init(
         experience: Experience,
@@ -37,6 +39,10 @@ public struct ExperienceCardView: View {
         1 - min(0.4, abs(dragTranslation) / 300)
     }
 
+    private var isFavorited: Bool {
+        preferences.favoritedExperiences.contains(experience.id)
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
@@ -55,6 +61,27 @@ public struct ExperienceCardView: View {
                         .lineLimit(1)
                 }
                 Spacer()
+                Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    preferences.toggleFavorite(experience.id)
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                        heartScale = 1.3
+                    }
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5).delay(0.1)) {
+                        heartScale = 1.0
+                    }
+                } label: {
+                    Image(systemName: isFavorited ? "heart.fill" : "heart")
+                        .foregroundStyle(isFavorited ? .red : .secondary)
+                        .symbolEffect(.bounce, value: isFavorited)
+                        .scaleEffect(heartScale)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(isFavorited
+                    ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
+                    : NSLocalizedString("action.favorite", comment: "Add favorite")))
                 ConfidenceBadge(confidence: experience.confidence, compact: true)
             }
 
@@ -131,6 +158,13 @@ public struct ExperienceCardView: View {
                    String(format: "%.1f", experience.soloScore.overall))
         ))
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
+        .accessibilityAction(
+            named: Text(isFavorited
+                ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
+                : NSLocalizedString("action.favorite", comment: "Add favorite"))
+        ) {
+            preferences.toggleFavorite(experience.id)
+        }
     }
 }
 
@@ -145,6 +179,7 @@ public struct ExperienceCardView: View {
             )
         }
         .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+        .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview")!))
     } else {
         Text("No seed data")
     }
