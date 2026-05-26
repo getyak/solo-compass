@@ -80,7 +80,7 @@ public struct VoiceButton: View {
                     .padding(.vertical, 6)
                     .background(.thinMaterial, in: Capsule())
                     .offset(y: -50)
-                    .transition(.opacity)
+                    .transition(reduceMotion ? .identity : .opacity)
                     .id(liveTranscript.isEmpty)
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: liveTranscript.isEmpty)
             }
@@ -99,19 +99,18 @@ public struct VoiceButton: View {
             do {
                 isRecording = true
                 if !reduceMotion { pulse = true }
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 liveTranscript = ""
-                startFeedback.prepare()
                 startFeedback.impactOccurred()
                 endFeedback.prepare()
                 let stream = try voiceService.startListening()
-                let noMotion = reduceMotion
                 streamTask = Task {
                     do {
                         for try await text in stream {
-                            await MainActor.run { withAnimation(noMotion ? nil : .easeOut(duration: 0.18)) { liveTranscript = text } }
+                            let animate = !reduceMotion
+                            await MainActor.run { withAnimation(animate ? .easeOut(duration: 0.18) : nil) { liveTranscript = text } }
                         }
                     } catch {
+                        guard !(error is CancellationError) else { return }
                         // Surface recognition errors to the user via alert.
                         await MainActor.run {
                             isRecording = false
@@ -183,13 +182,14 @@ private struct _ListeningPlaceholderPreview: View {
                 .padding(.vertical, 6)
                 .background(.thinMaterial, in: Capsule())
                 .offset(y: -50)
-                .transition(.opacity)
+                .transition(reduceMotion ? .identity : .opacity)
                 .id(liveTranscript.isEmpty)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: liveTranscript.isEmpty)
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation(.easeOut(duration: 0.18)) { liveTranscript = "quiet café nearby" }
+                let animate = !reduceMotion
+                withAnimation(animate ? .easeOut(duration: 0.18) : nil) { liveTranscript = "quiet café nearby" }
             }
         }
     }
