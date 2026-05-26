@@ -121,6 +121,8 @@
 "city.all" = "全部城市";
 "city.picker.title" = "选择城市";
 "city.experienceCount" = "%d 处体验";
+"city.empty.title" = "暂无城市";
+"city.empty.hint" = "探索地图时，城市会陆续出现在这里。";
 
 /* Action bar */
 "action.favorite" = "添加到收藏";
