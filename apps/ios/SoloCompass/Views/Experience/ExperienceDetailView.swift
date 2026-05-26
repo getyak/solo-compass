@@ -18,6 +18,7 @@ public struct ExperienceDetailView: View {
     @State private var showingRadarTooltip: Bool = false
     @State private var exportMarkdown: String? = nil
     @State private var heartPop = false
+    @State private var celebrationTrigger = 0
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -490,6 +491,7 @@ public struct ExperienceDetailView: View {
     // MARK: - Action bar
 
     private var actionBar: some View {
+        ZStack(alignment: .center) {
         HStack(spacing: 12) {
             Button {
                 let willFavorite = !viewModel.isFavorited
@@ -520,13 +522,14 @@ public struct ExperienceDetailView: View {
                 let wasCompleted = viewModel.isCompleted
                 viewModel.toggleComplete()
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                // Show micro-survey only when marking done (not when un-marking).
                 if !wasCompleted {
+                    celebrationTrigger += 1
                     onMarkDone?(viewModel.experience)
                 }
             } label: {
                 HStack {
                     Image(systemName: viewModel.isCompleted ? "checkmark.circle.fill" : "checkmark.circle")
+                        .symbolEffect(.bounce, value: viewModel.isCompleted)
                     Text(viewModel.isCompleted
                         ? NSLocalizedString("action.completed", comment: "")
                         : NSLocalizedString("action.markDone", comment: ""))
@@ -554,6 +557,11 @@ public struct ExperienceDetailView: View {
                 .ignoresSafeArea(edges: .bottom)
                 .opacity(0.6)
         )
+
+        CompletionCelebrationView(trigger: celebrationTrigger)
+            .frame(maxWidth: .infinity)
+            .offset(y: -28)
+        }
     }
 
     // MARK: - Helpers
