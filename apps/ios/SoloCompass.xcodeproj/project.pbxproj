@@ -124,7 +124,8 @@
 		CC33DD44EE55FF6600AA11DD /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */; };
 		DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8800 /* LocationPickerState.swift */; };
 		DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8802 /* LocationSearchService.swift */; };
-\t\tDD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8804 /* MapPinPickerView.swift */; };
+		DD55EE66FF77AA8805 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8804 /* MapPinPickerView.swift */; };
+		F1951F097CF64F0A90F2BF69 /* CompletionCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CBB5430693D4A01BFC85AF2 /* CompletionCelebrationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -259,7 +260,8 @@
 		CC33DD44EE55FF6600AA11CC /* LocationPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerSheet.swift; sourceTree = "<group>"; };
 		DD55EE66FF77AA8800 /* LocationPickerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerState.swift; sourceTree = "<group>"; };
 		DD55EE66FF77AA8802 /* LocationSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
-\t\tDD55EE66FF77AA8804 /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
+		DD55EE66FF77AA8804 /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
+		3CBB5430693D4A01BFC85AF2 /* CompletionCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionCelebrationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -281,6 +283,7 @@
 				A95DD95393E5BF9C89FB4977 /* BilingualCityRow.swift */,
 				13350B81187FB64B252B8A46 /* BottomInfoBar.swift */,
 				30E9EE8B07B66490112B696A /* ChatStateModifier.swift */,
+				3CBB5430693D4A01BFC85AF2 /* CompletionCelebrationView.swift */,
 				EC8F9EFD56A2C839428AA92D /* ConfidenceBadge.swift */,
 				C5C3BA25EFA9F149FB4FAAB3 /* FavoritesListView.swift */,
 				CC00AA11BB22CC33DD44EE55 /* CompletionCelebrationView.swift */,
@@ -764,6 +767,7 @@
 				371DDBAF4C385267248ABC83 /* AgentRouter.swift in Sources */,
 				1D8CCDA07285B75840FCF194 /* AppleSignInService.swift in Sources */,
 				8004F51AA0F117D38EC71610 /* BilingualCityRow.swift in Sources */,
+				F1951F097CF64F0A90F2BF69 /* CompletionCelebrationView.swift in Sources »,
 				5C05B87EA78458094612AC01 /* BottomInfoBar.swift in Sources */,
 				BA0DD7D5C46016E81A23B2B4 /* ChatInputBar.swift in Sources */,
 				B7366111257111EC98F4A0C4 /* ChatSheet.swift in Sources */,
