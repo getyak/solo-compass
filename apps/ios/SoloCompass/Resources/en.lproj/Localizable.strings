@@ -299,6 +299,7 @@
 "favorites.empty.hint" = "Tap the heart on any experience to save it here.";
 "favorites.undo" = "Removed — Undo";
 "favorites.undo.named" = "Removed \"%@\"";
+/* Plural forms handled by Localizable.stringsdict */
 "favorites.count" = "%d saved";
 "favorites.distance.km" = "%.1f km";
 "favorites.distance.m" = "%d m";

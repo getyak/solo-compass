@@ -22,6 +22,7 @@ public struct FavoritesListView: View {
     @State private var searchText = ""
     @State private var sortMode: FavSort = .recent
     @State private var showSwipeHint = false
+    @State private var hintDismissTask: Task<Void, Never>?
     @AppStorage("favorites.swipeHintSeen") private var swipeHintSeen = false
     private let undoSelectionFeedback = UISelectionFeedbackGenerator()
     private let undoImpactFeedback = UIImpactFeedbackGenerator(style: .soft)
@@ -73,15 +74,17 @@ public struct FavoritesListView: View {
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else {
                     VStack(spacing: 0) {
-                        Text(String(
-                            format: NSLocalizedString("favorites.count", comment: "N saved"),
-                            sortedFavorites.count
-                        ))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
+                        if sortedFavorites.count > 0 {
+                            Text(String(
+                                format: NSLocalizedString("favorites.count", comment: "N saved"),
+                                sortedFavorites.count
+                            ))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                        }
 
                         List {
                             if locationService.currentLocation != nil {
@@ -107,7 +110,7 @@ public struct FavoritesListView: View {
                         .animation(reduceMotion ? nil : .easeInOut, value: sortMode)
                         .overlay(alignment: .top) {
                             if showSwipeHint {
-                                swipeHintCapsule
+                                SwipeHintCapsuleView()
                                     .transition(.move(edge: .top).combined(with: .opacity))
                                     .padding(.top, 8)
                             }
@@ -116,12 +119,16 @@ public struct FavoritesListView: View {
                             guard !swipeHintSeen, !sortedFavorites.isEmpty else { return }
                             withAnimation(.easeOut) { showSwipeHint = true }
                             swipeHintSeen = true
-                            Task {
+                            hintDismissTask = Task {
                                 try? await Task.sleep(for: .seconds(2.5))
+                                guard !Task.isCancelled else { return }
                                 await MainActor.run {
                                     withAnimation(.easeIn) { showSwipeHint = false }
                                 }
                             }
+                        }
+                        .onDisappear {
+                            hintDismissTask?.cancel()
                         }
                     }
                     .transition(.opacity)
@@ -205,37 +212,31 @@ private struct SwipeHintCapsuleView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Label(
+        label
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.regularMaterial, in: Capsule())
+            .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+    }
+
+    @ViewBuilder
+    private var label: some View {
+        let base = Label(
             NSLocalizedString("favorites.swipe.hint", comment: "Swipe left to remove"),
             systemImage: "hand.draw"
         )
-        .font(.footnote.weight(.medium))
-        .foregroundStyle(.secondary)
-        .symbolEffect(.bounce, options: reduceMotion ? .default.speed(0) : .repeating.speed(0.6))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.regularMaterial, in: Capsule())
-        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+        if reduceMotion {
+            base
+        } else {
+            base.symbolEffect(.bounce, options: .repeating.speed(0.6))
+        }
     }
 }
 
 private extension FavoritesListView {
 
-        if Locale.current.measurementSystem == .us {
-            let miles = meters / 1_609.344
-            return String(format: NSLocalizedString("favorites.distance.mi", comment: "Distance in miles"), miles)
-        }
-        if meters < 1_000 {
-            return String(format: NSLocalizedString("favorites.distance.m", comment: "Distance in metres"), Int(meters.rounded()))
-        }
-        let km = meters / 1_000
-        return String(format: NSLocalizedString("favorites.distance.km", comment: "Distance in kilometres"), km)
-    }
-
-    @ViewBuilder
-    var swipeHintCapsule: some View {
-        SwipeHintCapsuleView()
-    }
     var undoBar: some View {
         ZStack(alignment: .bottom) {
             HStack {
