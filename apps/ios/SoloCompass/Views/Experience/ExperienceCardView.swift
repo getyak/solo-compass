@@ -158,6 +158,13 @@ public struct ExperienceCardView: View {
                    String(format: "%.1f", experience.soloScore.overall))
         ))
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
+        .accessibilityAction(
+            named: Text(isFavorited
+                ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
+                : NSLocalizedString("action.favorite", comment: "Add favorite"))
+        ) {
+            preferences.toggleFavorite(experience.id)
+        }
     }
 }
 
@@ -172,7 +179,7 @@ public struct ExperienceCardView: View {
             )
         }
         .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
-        .environment(UserPreferences())
+        .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview")!))
     } else {
         Text("No seed data")
     }
