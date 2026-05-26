@@ -134,23 +134,19 @@ public struct ExperienceCardView: View {
         )
         .offset(y: totalOffset)
         .opacity(dragOpacity)
-        .animation(.interactiveSpring(), value: dragTranslation)
         .padding(.horizontal, 12)
         .offset(y: dragOffset)
         .opacity(dragOpacity)
         .gesture(
-            DragGesture(minimumDistance: 20)
+            DragGesture(minimumDistance: 10)
                 .updating($dragTranslation) { value, state, _ in
-                    state = value.translation.height
-                }
-                .onChanged { value in
-                    if hapticState == .idle {
+                    let t = value.translation.height
+                    if state == 0 {
                         feedbackGenerator.prepare()
-                        hapticState = .prepared
                     }
-                    if hapticState == .prepared, abs(value.translation.height) > 60 {
+                    state = t
+                    if abs(t) > 60 {
                         feedbackGenerator.impactOccurred()
-                        hapticState = .fired
                     }
                 }
                 .onEnded { value in
@@ -163,10 +159,8 @@ public struct ExperienceCardView: View {
                         dragOffset = 0
                         onExpand()
                     } else {
-                        dragOffset = snappingFrom
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             dragOffset = 0
-                        }
                     }
                     hapticState = .idle
                 }
