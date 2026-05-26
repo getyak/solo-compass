@@ -30,6 +30,12 @@ public struct FilterBarView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPulsing: Bool = false
+    @State private var selectionFeedback = UISelectionFeedbackGenerator()
+
+    private func fireSelectionHaptic(alreadySelected: Bool) {
+        guard !alreadySelected else { return }
+        selectionFeedback.selectionChanged()
+    }
 
     public init(
         selectedCategory: ExperienceCategory?,
@@ -123,7 +129,7 @@ public struct FilterBarView: View {
             : label
 
         return Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            fireSelectionHaptic(alreadySelected: isSelected)
             action()
         } label: {
             HStack(spacing: 5) {
@@ -160,6 +166,7 @@ public struct FilterBarView: View {
         .accessibilityLabel(Text(a11yLabel))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .onAppear {
+            selectionFeedback.prepare()
             guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                 isPulsing = true
@@ -178,7 +185,7 @@ public struct FilterBarView: View {
 
     private func pill(id: String, label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
         Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            fireSelectionHaptic(alreadySelected: isSelected)
             action()
         } label: {
             Text(label)
@@ -212,7 +219,7 @@ public struct FilterBarView: View {
 
     private func iconPill(category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            fireSelectionHaptic(alreadySelected: isSelected)
             action()
         } label: {
             Image(systemName: category.symbol)
@@ -249,7 +256,7 @@ public struct FilterBarView: View {
     /// it visually reads as part of the same filter row. US-008.
     private func customTagPill(tag: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            fireSelectionHaptic(alreadySelected: isSelected)
             action()
         } label: {
             Image(systemName: "tag.fill")
