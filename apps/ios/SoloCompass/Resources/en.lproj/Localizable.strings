@@ -184,6 +184,10 @@
 "card.favorite.add" = "Add to favorites";
 "card.favorite.remove" = "Remove from favorites";
 
+/* Experience card distance pill */
+"card.distance.walk" = "%d min walk";
+"card.distance.walkSub1" = "<1 min walk";
+
 /* Voice recognition error alert */
 "voice.error.title" = "Voice recognition error";
 "voice.error.permission" = "Microphone or speech recognition permission was denied. Please allow access in Settings.";
