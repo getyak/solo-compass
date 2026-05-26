@@ -16,6 +16,8 @@ public struct FilterBarView: View {
     /// Driven by the parent when the map camera is moving; triggers fade+shrink.
     @Binding var isMapPanning: Bool
 
+    @State private var poppedPillID: String?
+
     /// User's chosen subset of categories. Injected via SwiftUI environment
     /// (US-006). Previews/tests that don't supply preferences get a freshly
     /// constructed `UserPreferences`, which defaults to all 8 categories.
@@ -58,12 +60,14 @@ public struct FilterBarView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     pill(
+                        id: "now",
                         label: NSLocalizedString("filter.now", comment: "Now"),
                         isSelected: isNowSelected,
                         color: Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255),
                         action: onSelectNow
                     )
                     pill(
+                        id: "all",
                         label: NSLocalizedString("filter.all", comment: "All"),
                         isSelected: !isNowSelected && selectedCategory == nil,
                         color: Color.primary,
@@ -71,6 +75,7 @@ public struct FilterBarView: View {
                     )
                     ForEach(visibleCategories) { category in
                         iconPill(
+                            id: category.rawValue,
                             category: category,
                             isSelected: selectedCategory == category,
                             action: { onSelectCategory(category) }
@@ -78,6 +83,7 @@ public struct FilterBarView: View {
                     }
                     ForEach(preferences.customTags, id: \.self) { tag in
                         customTagPill(
+                            id: "tag:\(tag)",
                             tag: tag,
                             isSelected: selectedCustomTag == tag,
                             action: { onSelectCustomTag(tag) }
@@ -97,9 +103,10 @@ public struct FilterBarView: View {
         .animation(.easeInOut(duration: 0.2), value: isNowSelected)
     }
 
-    private func pill(label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
+    private func pill(id: String, label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            pop(id: id)
             action()
         } label: {
             Text(label)
@@ -115,12 +122,15 @@ public struct FilterBarView: View {
                 )
         }
         .buttonStyle(.plain)
+        .scaleEffect(poppedPillID == id ? 1.18 : 1.0)
+        .animation(.spring(response: 0.28, dampingFraction: 0.45), value: poppedPillID)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func iconPill(category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func iconPill(id: String, category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            pop(id: id)
             action()
         } label: {
             Image(systemName: category.symbol)
@@ -135,6 +145,8 @@ public struct FilterBarView: View {
                 )
         }
         .buttonStyle(.plain)
+        .scaleEffect(poppedPillID == id ? 1.18 : 1.0)
+        .animation(.spring(response: 0.28, dampingFraction: 0.45), value: poppedPillID)
         .accessibilityLabel(Text(category.localizedTitle))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -142,9 +154,10 @@ public struct FilterBarView: View {
     /// Pill rendered for each entry in `UserPreferences.customTags`. Same
     /// shape as `iconPill` (36×36 circle, tag.fill glyph, accent color), so
     /// it visually reads as part of the same filter row. US-008.
-    private func customTagPill(tag: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func customTagPill(id: String, tag: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            pop(id: id)
             action()
         } label: {
             Image(systemName: "tag.fill")
@@ -159,8 +172,18 @@ public struct FilterBarView: View {
                 )
         }
         .buttonStyle(.plain)
+        .scaleEffect(poppedPillID == id ? 1.18 : 1.0)
+        .animation(.spring(response: 0.28, dampingFraction: 0.45), value: poppedPillID)
         .accessibilityLabel(Text(tag))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func pop(id: String) {
+        poppedPillID = id
+        Task {
+            try? await Task.sleep(for: .milliseconds(320))
+            poppedPillID = nil
+        }
     }
 }
 
