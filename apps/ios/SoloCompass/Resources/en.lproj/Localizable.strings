@@ -499,3 +499,34 @@
 
 /* Map preview in exports (US-020) */
 "settings.exportMapPreview" = "Include map preview in exports";
+
+/* AI Provider settings */
+"settings.aiProvider" = "AI Provider";
+"settings.aiProvider.header" = "Artificial Intelligence";
+"settings.aiProvider.status.unconfigured" = "Not configured — AI features disabled";
+"settings.aiProvider.status.configured" = "%@ — configured";
+
+/* AI Provider settings screen */
+"ai.provider.settings.title" = "AI Provider";
+"ai.provider.custom" = "Custom";
+
+"ai.provider.section.provider" = "Provider";
+"ai.provider.deepseek.description" = "DeepSeek offers fast, cost-effective models. Get your key at platform.deepseek.com.";
+"ai.provider.openai.description" = "OpenAI GPT models. Get your key at platform.openai.com.";
+"ai.provider.custom.description" = "Any OpenAI-compatible API. Enter your base URL and API key below.";
+
+"ai.provider.section.apiKey" = "API Key";
+"ai.provider.apiKey.placeholder" = "Paste your API key…";
+"ai.provider.apiKey.footer" = "Stored locally on your device. Never shared with Solo Compass servers.";
+
+"ai.provider.section.baseURL" = "Base URL";
+"ai.provider.baseURL.placeholder" = "https://api.example.com/v1";
+"ai.provider.baseURL.footer" = "The OpenAI-compatible endpoint root (e.g. https://api.openai.com/v1).";
+
+"ai.provider.section.model" = "Model";
+"ai.provider.model.placeholder.custom" = "Enter model name";
+"ai.provider.model.hint" = "Default: %@. Leave blank to use the provider default.";
+"ai.provider.model.hint.custom" = "Enter the model identifier for your custom provider.";
+
+"ai.provider.status.configured" = "AI is configured with %@";
+"ai.provider.status.unconfigured" = "AI features require an API key";
