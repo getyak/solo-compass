@@ -12,6 +12,8 @@ public struct ExperienceCardView: View {
     @State private var didCrossThreshold = false
     @State private var hasPreparedFeedback = false
     @State private var isPulsing = false
+    @State private var heartBounce = 0
+    @State private var heartBurst = false
 
     // Pre-allocated so prepare() can be called once when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -63,17 +65,37 @@ public struct ExperienceCardView: View {
                 }
                 Spacer()
                 Button {
+                    let wasFavorited = preferences.isFavorited(experience.id)
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     withAnimation(.spring(response: 0.3)) {
                         preferences.toggleFavorite(experience.id)
                     }
+                    if !wasFavorited {
+                        heartBounce += 1
+                        if !reduceMotion {
+                            heartBurst = true
+                            Task {
+                                try? await Task.sleep(nanoseconds: 450_000_000)
+                                heartBurst = false
+                            }
+                        }
+                    }
                 } label: {
                     let favorited = preferences.isFavorited(experience.id)
-                    Image(systemName: favorited ? "heart.fill" : "heart")
-                        .foregroundStyle(favorited ? Color.red : Color.secondary)
-                        .frame(width: 32, height: 32)
-                        .scaleEffect(favorited ? 1.15 : 1.0)
-                        .contentShape(Rectangle())
+                    ZStack {
+                        Circle()
+                            .stroke(Color.red.opacity(0.5), lineWidth: 2)
+                            .scaleEffect(heartBurst ? 1.8 : 0.4)
+                            .opacity(heartBurst ? 0 : 0.8)
+                            .animation(.easeOut(duration: 0.45), value: heartBurst)
+                            .allowsHitTesting(false)
+                        Image(systemName: favorited ? "heart.fill" : "heart")
+                            .foregroundStyle(favorited ? Color.red : Color.secondary)
+                            .scaleEffect(favorited ? 1.15 : 1.0)
+                            .symbolEffect(.bounce, value: heartBounce)
+                    }
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(preferences.isFavorited(experience.id)
