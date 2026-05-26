@@ -278,6 +278,8 @@ public struct ExperienceDetailView: View {
     private var bestTimesSection: some View {
         sectionContainer(title: NSLocalizedString("section.bestTimes", comment: "")) {
             VStack(alignment: .leading, spacing: 6) {
+                BestTimesTimeline(experience: viewModel.experience)
+                    .padding(.bottom, 4)
                 ForEach(viewModel.experience.bestTimes, id: \.self) { window in
                     HStack(spacing: 8) {
                         Image(systemName: "clock")
@@ -620,6 +622,128 @@ public struct ExperienceDetailView: View {
 
     private func format(window: TimeWindow) -> String {
         String(format: "%02d:00 – %02d:00", window.startHour, window.endHour)
+    }
+}
+
+// MARK: - Best Times Timeline
+
+private struct BestTimesTimeline: View {
+    let experience: Experience
+
+    @State private var animateFill = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let trackHeight: CGFloat = 10
+    private let nowMarkerWidth: CGFloat = 2
+    private let tickHours = [0, 6, 12, 18]
+
+    private var currentHour: Int {
+        Calendar.current.component(.hour, from: Date())
+    }
+
+    private var a11yLabel: String {
+        let windowLabels = experience.bestTimes.map { w in
+            String(format: "%02d:00 – %02d:00", w.startHour, w.endHour)
+        }.joined(separator: ", ")
+        let nowStatus = experience.isBestNow()
+            ? NSLocalizedString("timeline.now.good", comment: "")
+            : NSLocalizedString("timeline.now.off", comment: "")
+        return String(
+            format: NSLocalizedString("timeline.a11y", comment: ""),
+            windowLabels,
+            nowStatus
+        )
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let trackWidth = geo.size.width
+            ZStack(alignment: .topLeading) {
+                // Base track
+                Capsule()
+                    .fill(Color.secondary.opacity(0.12))
+                    .frame(height: trackHeight)
+
+                // Window segments
+                ForEach(segments(trackWidth: trackWidth), id: \.id) { seg in
+                    Capsule()
+                        .fill(experience.category.color.opacity(0.85))
+                        .frame(width: seg.width, height: trackHeight)
+                        .offset(x: seg.x)
+                        .scaleEffect(x: animateFill ? 1 : 0, anchor: .leading)
+                }
+
+                // 'Now' marker
+                let nowX = CGFloat(currentHour) / 24.0 * trackWidth
+                let isBest = experience.isBestNow()
+                VStack(spacing: 0) {
+                    Circle()
+                        .fill(isBest ? Color.yellow : Color.accentColor)
+                        .frame(width: 6, height: 6)
+                    Rectangle()
+                        .fill(isBest ? Color.yellow : Color.accentColor)
+                        .frame(width: nowMarkerWidth, height: trackHeight - 2)
+                }
+                .offset(x: nowX - 3, y: 0)
+            }
+            .frame(height: trackHeight)
+        }
+        .frame(height: trackHeight + 18) // extra room for tick labels below
+        .overlay(alignment: .bottom) {
+            // Hour tick labels
+            GeometryReader { geo in
+                let trackWidth = geo.size.width
+                ForEach(tickHours, id: \.self) { hour in
+                    let x = CGFloat(hour) / 24.0 * trackWidth
+                    Text("\(hour)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .offset(x: hour == 0 ? x : x - 8)
+                }
+            }
+            .frame(height: 14)
+        }
+        .onAppear {
+            if reduceMotion {
+                animateFill = true
+            } else {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    animateFill = true
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(a11yLabel))
+    }
+
+    private struct Segment: Identifiable {
+        let id: String
+        let x: CGFloat
+        let width: CGFloat
+    }
+
+    private func segments(trackWidth: CGFloat) -> [Segment] {
+        var result: [Segment] = []
+        for (i, window) in experience.bestTimes.enumerated() {
+            let start = window.startHour
+            let end = window.endHour
+            if start < end {
+                // Normal window (no midnight wrap)
+                let x = CGFloat(start) / 24.0 * trackWidth
+                let w = CGFloat(end - start) / 24.0 * trackWidth
+                result.append(Segment(id: "\(i)-a", x: x, width: max(w, 4)))
+            } else {
+                // Wrap-around: split into [start→24] + [0→end]
+                let xA = CGFloat(start) / 24.0 * trackWidth
+                let wA = CGFloat(24 - start) / 24.0 * trackWidth
+                result.append(Segment(id: "\(i)-a", x: xA, width: max(wA, 4)))
+                if end > 0 {
+                    let wB = CGFloat(end) / 24.0 * trackWidth
+                    result.append(Segment(id: "\(i)-b", x: 0, width: max(wB, 4)))
+                }
+            }
+        }
+        return result
     }
 }
 
