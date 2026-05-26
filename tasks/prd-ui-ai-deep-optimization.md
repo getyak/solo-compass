@@ -230,9 +230,9 @@ Solo Compass 是一款"地图为根、AI 为伴"的独行旅行 App。当前 iOS
 
 **Acceptance Criteria:**
 
-- [x] 在 `VoiceAgentOrchestrator.start()` 中检测 `Secrets.resolvedDeepSeekApiKey` 为空时，设 `uiState = .unconfigured` 并跳过 `session.beginListening()`  ✅ #126/#127
-- [x] Unit test：当 DeepSeek key 缺失时，open ChatSheet 应渲染 unconfiguredCard 而非 messageList  ✅ `testMissingKeyYieldsUnconfiguredState`
-- [x] Verify in Simulator：删 Secrets.plist 中 key → 点 "+" → 看到钥匙引导卡  ✅ #137 将 unconfiguredBanner 提到输入框上方常驻显示
+- [x] 在 `VoiceAgentOrchestrator.start()` 中检测 `Secrets.resolvedDeepSeekApiKey` 为空时，设 `uiState = .unconfigured` 并跳过 `session.beginListening()` ✅ #126/#127
+- [x] Unit test：当 DeepSeek key 缺失时，open ChatSheet 应渲染 unconfiguredCard 而非 messageList ✅ `testMissingKeyYieldsUnconfiguredState`
+- [x] Verify in Simulator：删 Secrets.plist 中 key → 点 "+" → 看到钥匙引导卡 ✅ #137 将 unconfiguredBanner 提到输入框上方常驻显示
 
 #### US-005：ReviewsService 默认 URL 必须区分 dev/release
 
@@ -513,7 +513,7 @@ Solo Compass 是一款"地图为根、AI 为伴"的独行旅行 App。当前 iOS
 - `apps/ios/SoloCompass/Views/Onboarding/OnboardingView.swift:108,121` — 自动 consent
 - `apps/ios/SoloCompass/Views/Map/CompassMapView.swift:411-418` — pan reset task
 - `apps/ios/SoloCompass/Views/Map/CompassMapView.swift:747-751` — "+" 短/长按映射
-- `apps/ios/SoloCompass/Views/Chat/ChatSheet.swift:70` — `unconfigured` 永不触发  ✅ RESOLVED in #126/#127/#137（start() 现在写 `.unconfigured`；ChatSheet 加 unconfiguredBanner 与 SendOutcome 反馈）
+- `apps/ios/SoloCompass/Views/Chat/ChatSheet.swift:70` — `unconfigured` 永不触发 ✅ RESOLVED in #126/#127/#137（start() 现在写 `.unconfigured`；ChatSheet 加 unconfiguredBanner 与 SendOutcome 反馈）
 - `apps/ios/SoloCompass/Views/Settings/SettingsView.swift:82,338` — appleIDRow 重复
 - `apps/ios/SoloCompass/Views/Paywall/PaywallView.swift` 全文 — 无 dismiss 按钮
 - `apps/ios/SoloCompass/ViewModels/MapViewModel.swift:328-349,446-467` — 重复 filter 链
