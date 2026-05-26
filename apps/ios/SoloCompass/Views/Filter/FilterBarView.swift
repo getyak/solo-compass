@@ -70,14 +70,12 @@ public struct FilterBarView: View {
                 HStack(spacing: 8) {
                     pill(
                         label: NSLocalizedString("filter.now", comment: "Now"),
-                        id: "now",
                         isSelected: isNowSelected,
                         color: Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255),
                         action: onSelectNow
                     )
                     pill(
                         label: NSLocalizedString("filter.all", comment: "All"),
-                        id: "all",
                         isSelected: !isNowSelected && selectedCategory == nil && selectedCustomTag == nil,
                         color: Color.primary,
                         action: onSelectAll
@@ -109,7 +107,7 @@ public struct FilterBarView: View {
         .onTapGesture { isMapPanning = false }
     }
 
-    private func pill(label: String, id: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
+    private func pill(label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             action()
@@ -145,7 +143,7 @@ public struct FilterBarView: View {
                 .foregroundStyle(isSelected ? .white : category.color)
                 .background {
                     if isSelected {
-                        Circle()
+                        Capsule()
                             .fill(category.color)
                             .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
                     }
@@ -173,7 +171,7 @@ public struct FilterBarView: View {
                 .foregroundStyle(isSelected ? .white : Color.accentColor)
                 .background {
                     if isSelected {
-                        Circle()
+                        Capsule()
                             .fill(Color.accentColor)
                             .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
                     }
