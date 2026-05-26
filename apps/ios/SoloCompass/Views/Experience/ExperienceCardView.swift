@@ -62,11 +62,11 @@ public struct ExperienceCardView: View {
                 }
                 Spacer()
                 Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    preferences.toggleFavorite(experience.id)
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                        preferences.toggleFavorite(experience.id)
                         heartScale = 1.3
                     }
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.5).delay(0.1)) {
                         heartScale = 1.0
                     }
