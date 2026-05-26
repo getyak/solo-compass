@@ -48,7 +48,10 @@ public struct VoiceButton: View {
         }
         .gesture(
             LongPressGesture(minimumDuration: 0.2)
-                .onEnded { _ in startRecording() }
+                .onEnded { _ in
+                    startFeedback.prepare()
+                    startRecording()
+                }
         )
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
@@ -93,6 +96,7 @@ public struct VoiceButton: View {
         Task {
             let granted = await voiceService.requestPermission()
             guard granted else {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 showPermissionAlert = true
                 return
             }
@@ -138,6 +142,8 @@ public struct VoiceButton: View {
         if !final.isEmpty {
             endFeedback.impactOccurred()
             onTranscript(final)
+        } else {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
         liveTranscript = ""
     }
