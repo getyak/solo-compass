@@ -5,7 +5,7 @@ public enum AIProvider: String, CaseIterable, Codable, Identifiable {
     case openai
     case custom
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
     var displayName: String {
         switch self {
