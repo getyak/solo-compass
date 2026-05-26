@@ -242,6 +242,7 @@
 "favorites.title" = "收藏";
 "favorites.empty.title" = "还没有收藏";
 "favorites.empty.hint" = "点击任意体验上的爱心即可保存到这里。";
+"favorites.undo.named" = "已移除\"%@\"";
 
 /* Notifications */
 "settings.notifications" = "靠近时提醒我";
