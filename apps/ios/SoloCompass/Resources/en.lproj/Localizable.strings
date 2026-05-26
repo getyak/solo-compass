@@ -26,6 +26,7 @@
 "confidence.gps" = "GPS hits (30d)";
 "confidence.reports" = "User reports (30d)";
 "confidence.trusted" = "Trusted verifications";
+"confidence.lastVerified" = "Verified %@";
 
 /* Solo Score */
 "solo.label" = "Solo";
