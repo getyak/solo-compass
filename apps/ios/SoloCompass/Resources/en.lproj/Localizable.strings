@@ -52,6 +52,8 @@
 "timeline.now.good" = "Right now is a great time.";
 "timeline.now.off" = "Right now is not the ideal time.";
 "timeline.a11y" = "Best between %@. %@";
+"bestTimes.now.pill" = "Good time now";
+"bestTimes.next.pill" = "Better at %@";
 
 /* Sections */
 "section.whyItMatters" = "Why it matters";
