@@ -597,6 +597,7 @@ private struct MapOverlayView: View {
                 selectedCategory: viewModel.selectedCategory,
                 isNowSelected: viewModel.isNowFilter,
                 selectedCustomTag: viewModel.selectedCustomTag,
+                nowCount: viewModel.nowCount,
                 onSelectNow: { viewModel.selectNowFilter() },
                 onSelectAll: { viewModel.clearFilters() },
                 onSelectCategory: { viewModel.selectCategory($0) },
