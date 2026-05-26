@@ -163,6 +163,81 @@ public struct MessageBubble: View {
     }
 }
 
+/// Animated three-dot 'typing' bubble shown while the agent is thinking or
+/// executing a tool and no streamed text has arrived yet.
+public struct TypingIndicatorBubble: View {
+    /// Optional localized step label (e.g. "🔍 Searching nearby…").
+    public let label: String?
+
+    public init(label: String? = nil) {
+        self.label = label
+    }
+
+    public var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            assistantAvatar
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 5) {
+                    ForEach(0..<3, id: \.self) { index in
+                        BouncingDot(delay: Double(index) * 0.18)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                if let label, !label.isEmpty {
+                    Text(label)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 4)
+                        .transition(.opacity)
+                }
+            }
+            Spacer(minLength: 48)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(NSLocalizedString(
+            "chat.typing.a11y",
+            comment: "VoiceOver label for the typing indicator — Solo Compass is thinking…"
+        )))
+    }
+
+    private var assistantAvatar: some View {
+        Circle()
+            .fill(Color.accentColor.opacity(0.15))
+            .frame(width: 28, height: 28)
+            .overlay {
+                Image(systemName: "location.north.line.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+/// Single dot in the typing indicator, bouncing with a staggered delay.
+private struct BouncingDot: View {
+    let delay: Double
+    @State private var bouncing = false
+
+    var body: some View {
+        Circle()
+            .fill(Color.secondary.opacity(0.6))
+            .frame(width: 7, height: 7)
+            .offset(y: bouncing ? -4 : 0)
+            .opacity(bouncing ? 1.0 : 0.5)
+            .animation(
+                .easeInOut(duration: 0.5)
+                    .repeatForever(autoreverses: true)
+                    .delay(delay),
+                value: bouncing
+            )
+            .onAppear { bouncing = true }
+            .accessibilityHidden(true)
+    }
+}
+
 /// Soft pulsing dot rendered on the trailing edge of a streaming bubble.
 /// Pure visual — has no semantic meaning for VoiceOver.
 private struct StreamingCursor: View {
@@ -180,6 +255,15 @@ private struct StreamingCursor: View {
             .onAppear { pulse = true }
             .accessibilityHidden(true)
     }
+}
+
+#Preview("Typing Indicator") {
+    VStack(alignment: .leading, spacing: 12) {
+        TypingIndicatorBubble()
+        TypingIndicatorBubble(label: "🔍 Searching nearby…")
+    }
+    .padding()
+    .frame(maxWidth: .infinity, alignment: .leading)
 }
 
 #Preview("Conversation") {

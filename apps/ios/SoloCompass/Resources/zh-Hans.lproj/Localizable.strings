@@ -409,6 +409,7 @@
 "chat.error.retry" = "重试";
 "chat.bubble.user.a11y" = "你说:%@";
 "chat.bubble.assistant.a11y" = "Solo 说:%@";
+"chat.typing.a11y" = "Solo Compass 正在思考…";
 "chat.tool.exploreNearby" = "搜索附近";
 "chat.tool.filter" = "筛选地图";
 "chat.tool.showDetails" = "打开地点";
