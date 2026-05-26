@@ -34,9 +34,11 @@
 ### M1 — 渐进半径阶梯
 
 #### US-PE-01: 半径阶梯引擎
+
 **Description:** 作为开发者，我需要一个阶梯式采集引擎，5→10→25→100km 逐阶扩展，每阶够了就停。
 
 **Acceptance Criteria:**
+
 - [ ] `EnrichmentAgent.exploreProgressively(center:filter:onBatch:)` 按 `[5_000,10_000,25_000,100_000]` 逐阶 collect
 - [ ] 每阶产出累计"可用 experience" ≥ `enoughThreshold`（默认 8）即停止，不再打更远阶
 - [ ] 每阶只采该阶新增环形（`prevRadius..<radius`），不重复内圈
@@ -47,9 +49,11 @@
 - [ ] `xcodebuild build` + 全测试通过
 
 #### US-PE-02: 渐进进度态与扩展提示 [UI]
+
 **Description:** 作为用户，当 app 往外扩范围时，我想知道它在做什么、扩到了多远。
 
 **Acceptance Criteria:**
+
 - [ ] `ExploreProgress` 新增 `scanning(radiusKm,channel)` / `expanding(toRadiusKm)`
 - [ ] 跨阶时进度胶囊显示"附近较少 · 正在扩大到 25km"
 - [ ] 5km 即满足时 toast **不**提扩展
@@ -58,9 +62,11 @@
 - [ ] Verify in simulator
 
 #### US-PE-03: 友好空态与城市切换 [UI]
+
 **Description:** 作为用户，100km 仍无数据时，我想看到一个有出路的提示而非冷冰冰的错误。
 
 **Acceptance Criteria:**
+
 - [ ] 100km 仍空 → 显示"这片区域我们还没有数据，换个城市试试？"
 - [ ] 空态含城市切换入口（复用现有 browse-city）
 - [ ] **不**出现技术性 error 文案
@@ -69,27 +75,33 @@
 ### M2 — 增量地图标记
 
 #### US-PE-04: 增量发布回调
+
 **Description:** 作为开发者，我需要 agent 每完成一批就回调，而不是全部跑完才返回。
 
 **Acceptance Criteria:**
+
 - [ ] `exploreProgressively` 通过 `onBatch: ([Experience]) -> Void` 在每个"类目×阶"synthesis 完成后回调
 - [ ] `MapViewModel` 在回调里增量 append 到 `visibleExperiences` 并去重
 - [ ] 任务取消（用户中途改意图）时停止后续回调，无脏数据
 - [ ] 单测：onBatch 被多次调用、累计集合与最终集合一致
 
 #### US-PE-05: 标记逐个浮现动画 [UI]
+
 **Description:** 作为用户，我想看到地图标记一个个淡入，而不是盯着转圈等到最后一次性出现。
 
 **Acceptance Criteria:**
+
 - [ ] 新增 annotation 用淡入 +（轻微）下落动画逐个出现（复用 `MarkerIconView`/annotation fade）
 - [ ] 首批可见时间早于全部完成时间
 - [ ] 已存在的标记不重绘/不闪烁
 - [ ] Verify in simulator
 
 #### US-PE-06: 半径圈可视化 overlay [UI]
+
 **Description:** 作为用户，扩展范围时我想在地图上看到"正在往外找"的空间感。
 
 **Acceptance Criteria:**
+
 - [ ] 扩展时在地图画渐隐半径圈（对应当前阶 5/10/25/100km）
 - [ ] 新点落在视野外时一次平滑 zoom-out 提示范围变大
 - [ ] 圈在 explore 结束后淡出
@@ -98,9 +110,11 @@
 ### M3 — 多渠道交叉编译
 
 #### US-PE-07: CompiledPlace 中间模型与合并
+
 **Description:** 作为开发者，我需要把同一地点在多源的碎片信息缝成一条带来源标签的记录。
 
 **Acceptance Criteria:**
+
 - [ ] 新增 `CompiledPlace`：聚合多源字段，每字段记录来源（osm/foursquare/mapkit/web）
 - [ ] 同 cell 多源记录合并为一条；字段冲突按可信度取值（坐标/名 OSM 优先；rating/hours/price 取 Foursquare>MapKit；地址取 MapKit 结构化>反查）
 - [ ] 缺失字段才向下个源要，不覆盖更权威源
@@ -108,18 +122,22 @@
 - [ ] 单测：冲突取值、缺失回填、来源标签正确
 
 #### US-PE-08: 多源置信度升级 [UI]
+
 **Description:** 作为用户，被多个来源印证过的地点我想一眼看出更可信。
 
 **Acceptance Criteria:**
+
 - [ ] 被 ≥2 源印证的地点 `Confidence.level` + `basedOnCount` 提升
 - [ ] 详情页显示"多来源印证"徽标 + 来源列表
 - [ ] 详情页展示真实 rating / 营业时间 / 价格（来自 §M3 数据）
 - [ ] Verify in simulator
 
 #### US-PE-09: dataSources schema（如需持久化展示）
+
 **Description:** 作为开发者，若要持久化并展示数据来源，需扩 schema 并保持 parity。
 
 **Acceptance Criteria:**
+
 - [ ] `ExperienceLocation` 加可选 `dataSources: [String]`（TS + Swift + SwiftData 同步）
 - [ ] `pnpm parity:check` 全绿
 - [ ] 旧行迁移安全（optional，轻量迁移）
@@ -127,9 +145,11 @@
 ### M4 — Web 搜索富集源
 
 #### US-PE-10: top-N 网络补充源
+
 **Description:** 作为用户，对排序靠前的好地方，我想看到一句网络上的真实补充（是否网红、是否适合独处）。
 
 **Acceptance Criteria:**
+
 - [ ] 新增 `WebSearchEnrichmentSource`，仅对排序后 top-N（默认 5）触发
 - [ ] 走现有 AI 通道或轻量搜索 API；无 key/配额耗尽静默跳过，不阻塞
 - [ ] 只补可交叉验证的客观信息，沿用反幻觉 prompt 边界（不编菜品/店主故事）
@@ -139,72 +159,88 @@
 ### M5 — Agent 调度（对话/语音驱动）
 
 #### US-PE-11: QueryAgent 质量与氛围维度
+
 **Description:** 作为用户，我想用"高分""环境好""安静""适合一个人""便宜"这类词来描述需求。
 
 **Acceptance Criteria:**
+
 - [ ] `ExperienceFilter` 新增 `ratingMin / ambianceMin / quietness / soloFriendly / priceMax`
 - [ ] 映射：环境好→`ambianceFit`；安静→高`seatingFriendly`+低`staffPressure`；适合一个人→高`soloPatronRatio`+高`soloPortioning`
 - [ ] QueryAgent prompt 补抽取示例，把形容词锚定到阈值
 - [ ] 单测：典型语句→正确 filter（"安静能工作的咖啡馆"→coffee+quietness）
 
 #### US-PE-12: explore 工具接质量维度 + 渐进
+
 **Description:** 作为开发者，语音/对话的 explore 工具要能带质量门槛并触发渐进采集。
 
 **Acceptance Criteria:**
+
 - [ ] `explore_nearby`/`search_places` schema 增 `categories[] / solo_score_min / rating_min / ambiance_min / progressive`
 - [ ] ToolRouter 把工具参数翻译为 `ExperienceFilter` 下发给 `exploreProgressively`
 - [ ] `progressive:true` 走阶梯；显式 radius 覆盖起始阶
 - [ ] 单测：工具参数→filter 映射正确
 
 #### US-PE-13: filter_visible 与 expand_radius 工具
+
 **Description:** 作为用户，我想说"把低于 8 分的去掉""再远一点"。
 
 **Acceptance Criteria:**
+
 - [ ] 新增 `filter_visible`：对已标记集合按质量维度瞬时过滤（不重采）
 - [ ] 新增 `expand_radius`：主动触发下一阶半径扩展（复用 M1 引擎单步）
 - [ ] `MapViewModel` 暴露 `applyQualityFilter(_:)` 与 `expandOneStage()` 落点
 - [ ] 单测：filter_visible 不触发网络；expand_radius 推进一阶
 
 #### US-PE-14: Agent 自主多步编排 [UI]
+
 **Description:** 作为用户，我说"找高分咖啡馆"，agent 应自主决定先过滤已有还是去采集、不够就扩或放宽，并解释。
 
 **Acceptance Criteria:**
+
 - [ ] 已有同类可见集 → 先 `filter_visible`，不足再 `explore_nearby(progressive)`
 - [ ] 满足条件太少 → agent 自主 `expand_radius` 或放宽阈值，GuideAgent 回复解释权衡
 - [ ] 调度过程进度胶囊显示当前动作（"只有 2 家，扩到 10km…"）
 - [ ] Verify in simulator（语音 + 文字两条路径）
 
 #### US-PE-15: 多轮对话上下文精炼 [UI]
+
 **Description:** 作为用户，我想说"刚才那些里最近的""再便宜点"，基于上一轮结果精炼而不重新采集。
 
 **Acceptance Criteria:**
+
 - [ ] 复用 `AgentMessage.history`，对上一轮结果集做排序/过滤而非重采
 - [ ] "最近的"按距离重排；"再便宜点"收紧 priceMax；"换成吃饭"覆盖意图重启
 - [ ] 指代消解："第二个""那家"映射到可见集对应项
 - [ ] Verify in simulator
 
 #### US-PE-16: 主动推荐与理由 [UI]
+
 **Description:** 作为用户，我希望 agent 主动给一条最佳推荐并说明为什么适合此刻的我。
 
 **Acceptance Criteria:**
+
 - [ ] GetRecommendation 意图下，agent 结合时间/位置/偏好选一条最佳，GuideAgent 给"为什么适合你"的一句话理由
 - [ ] 理由引用真实信号（rating/营业中/适合独处），不空泛
 - [ ] 被推荐项在地图上高亮
 - [ ] Verify in simulator
 
 #### US-PE-17: 行程 / 收藏编排 [UI]
+
 **Description:** 作为用户，我想说"把这几个排个下午的路线"，让 agent 排出可步行的顺序。
 
 **Acceptance Criteria:**
+
 - [ ] agent 把选中/收藏的多个地点按距离 + 营业时间排成有序序列
 - [ ] 地图上以连线/编号展示顺序
 - [ ] 序列冲突（如某点已打烊）时给出提示与替代
 - [ ] Verify in simulator
 
 #### US-PE-18: 实时营业 / 此刻可去 [UI]
+
 **Description:** 作为用户，我想说"现在还开着的"，只看此刻可去的地方。
 
 **Acceptance Criteria:**
+
 - [ ] 结合 `openingHours`（M3）+ 当前本地时间过滤"此刻营业"
 - [ ] 营业状态在卡片/详情显示（营业中 / 即将打烊 / 已关）
 - [ ] 营业时间缺失的地点标注"营业时间未知"而非假设开着
