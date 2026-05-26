@@ -111,7 +111,9 @@ public struct ExperienceCardView: View {
 
             HStack {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
-                if experience.isBestNow() {
+                if !experience.realInconveniences.isEmpty {
+                    inconveniencePill
+                } else if experience.isBestNow() {
                     bestNowBadge
                 } else if let hint = experience.bestTimeHint() {
                     bestTimeHintPill(hint)
@@ -181,6 +183,13 @@ public struct ExperienceCardView: View {
                     return ". " + String(format: NSLocalizedString("experience.bestTime.hint.a11y", comment: "Best time accessibility"), hint)
                 }
                 return ""
+            }() +
+            {
+                let count = experience.realInconveniences.count
+                if count > 0 {
+                    return ". " + String(format: NSLocalizedString("inconvenience.card.a11y", comment: "Heads up: N things to know"), count)
+                }
+                return ""
             }()
         ))
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
@@ -204,6 +213,34 @@ public struct ExperienceCardView: View {
         .padding(.vertical, 4)
         .foregroundStyle(Color.secondary)
         .background(Capsule().fill(Color.secondary.opacity(0.12)))
+    }
+
+    // Severity order: safety > scam > weather > crowds > logistics > etiquette > other
+    private static let inconvenienceSeverity: [RealInconvenience.Category] = [
+        .safety, .scam, .weather, .crowds, .logistics, .etiquette, .other
+    ]
+
+    private var mostSevereInconvenience: RealInconvenience.Category? {
+        let categories = Set(experience.realInconveniences.map(\.category))
+        return Self.inconvenienceSeverity.first { categories.contains($0) }
+    }
+
+    @ViewBuilder
+    private var inconveniencePill: some View {
+        if let category = mostSevereInconvenience {
+            let isHighSeverity = category == .safety || category == .scam
+            let tint = isHighSeverity ? Color.red : Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
+            let count = experience.realInconveniences.count
+            Label(
+                String(format: NSLocalizedString("inconvenience.card.count", comment: "Inconvenience count on card"), count),
+                systemImage: category.symbol
+            )
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(tint)
+            .background(Capsule().fill(tint.opacity(0.12)))
+        }
     }
 
     @ViewBuilder
