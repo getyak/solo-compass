@@ -5,6 +5,9 @@ import SwiftUI
 public struct SoloScoreRadarChart: View {
     let score: SoloScore
 
+    @State private var drawProgress: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private static let axes: [(label: String, symbol: String, keyPath: KeyPath<SoloScore.Breakdown, Double>)] = [
         (NSLocalizedString("solo.seating",    comment: ""), "chair",              \.seatingFriendly),
         (NSLocalizedString("solo.staff",      comment: ""), "person.crop.circle", \.staffPressure),
@@ -30,10 +33,21 @@ public struct SoloScoreRadarChart: View {
     }
 
     public var body: some View {
-        if variance >= 0.5 {
-            radarChart
-        } else {
-            fallbackBars
+        Group {
+            if variance >= 0.5 {
+                radarChart
+            } else {
+                fallbackBars
+            }
+        }
+        .onAppear {
+            if reduceMotion {
+                drawProgress = 1
+            } else {
+                withAnimation(.spring(response: 0.7, dampingFraction: 0.75)) {
+                    drawProgress = 1
+                }
+            }
         }
     }
 
@@ -69,11 +83,11 @@ public struct SoloScoreRadarChart: View {
                     .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                 }
 
-                // Data polygon
-                radarPolygon(center: center, radius: radius, count: axisCount, values: values.map { $0 / 10.0 })
+                // Data polygon (scaled by drawProgress for entrance animation)
+                radarPolygon(center: center, radius: radius, count: axisCount, values: values.map { $0 / 10.0 * drawProgress })
                     .fill(score.scoreColor.opacity(0.15))
 
-                radarPolygon(center: center, radius: radius, count: axisCount, values: values.map { $0 / 10.0 })
+                radarPolygon(center: center, radius: radius, count: axisCount, values: values.map { $0 / 10.0 * drawProgress })
                     .stroke(score.scoreColor, lineWidth: 2)
 
                 // Axis labels with SF Symbol icons
@@ -151,7 +165,7 @@ public struct SoloScoreRadarChart: View {
                             Capsule().fill(Color.gray.opacity(0.15))
                             Capsule()
                                 .fill(score.scoreColor)
-                                .frame(width: geo.size.width * (val / 10.0))
+                                .frame(width: geo.size.width * (val / 10.0) * drawProgress)
                         }
                     }
                     .frame(height: 6)
