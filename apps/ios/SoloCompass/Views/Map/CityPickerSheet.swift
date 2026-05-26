@@ -8,14 +8,26 @@ public struct CityPickerSheet: View {
     @Bindable var viewModel: MapViewModel
     let onDismiss: () -> Void
     @State private var userLocation: CLLocation?
+    @State private var justSelectedCode: String? = nil
+
+    private func selectCity(_ code: String?) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+            justSelectedCode = code ?? "all"
+            viewModel.selectCity(code)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(180))
+            onDismiss()
+        }
+    }
 
     public var body: some View {
         NavigationStack {
             List {
                 // "All Cities" option
                 Button {
-                    viewModel.selectCity(nil)
-                    onDismiss()
+                    selectCity(nil)
                 } label: {
                     HStack {
                         Text(NSLocalizedString("city.all", comment: "All cities option"))
@@ -26,6 +38,8 @@ public struct CityPickerSheet: View {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.tint)
                                 .font(.body.weight(.semibold))
+                                .scaleEffect(justSelectedCode == "all" ? 1.3 : 1.0)
+                                .symbolEffect(.bounce, value: justSelectedCode)
                         }
                     }
                 }
@@ -33,8 +47,7 @@ public struct CityPickerSheet: View {
                 // US-019: Sort by distance ascending, then alphabetical
                 ForEach(sortedCities, id: \.code) { city in
                     Button {
-                        viewModel.selectCity(city.code)
-                        onDismiss()
+                        selectCity(city.code)
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
@@ -54,6 +67,8 @@ public struct CityPickerSheet: View {
                                     Image(systemName: "checkmark")
                                         .foregroundStyle(.tint)
                                         .font(.body.weight(.semibold))
+                                        .scaleEffect(justSelectedCode == city.code ? 1.3 : 1.0)
+                                        .symbolEffect(.bounce, value: justSelectedCode)
                                 }
                                 Text(distanceLabel(for: city.center))
                                     .font(.caption)
