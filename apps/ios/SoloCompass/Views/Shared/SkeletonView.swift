@@ -33,6 +33,7 @@ public struct SkeletonView: View {
 private struct SkeletonLine: View {
     let widthFraction: CGFloat
     @State private var shimmerPhase: CGFloat = -1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GeometryReader { geo in
@@ -42,9 +43,20 @@ private struct SkeletonLine: View {
         }
         .frame(height: 14)
         .onAppear {
-            withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
-                shimmerPhase = 1.0
-            }
+            startShimmer()
+        }
+        .onChange(of: reduceMotion) { _, _ in
+            startShimmer()
+        }
+    }
+
+    private func startShimmer() {
+        guard !reduceMotion else {
+            shimmerPhase = 0
+            return
+        }
+        withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+            shimmerPhase = 1.0
         }
     }
 
@@ -79,6 +91,26 @@ extension View {
         )
         .opacity(isLoading ? 0 : 1)
     }
+}
+
+#Preview("Reduce Motion") {
+    VStack(alignment: .leading, spacing: 24) {
+        Text("Reduce Motion — static placeholders")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+        SkeletonView(lineCount: 3)
+
+        Divider()
+
+        Text("Custom widths — no sweep")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+        SkeletonView(lineCount: 4, widthFractions: [1.0, 0.85, 0.9, 0.5])
+    }
+    .padding()
+    .environment(\.accessibilityReduceMotion, true)
 }
 
 #Preview("3-line text skeleton") {
