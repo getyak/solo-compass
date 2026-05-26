@@ -337,7 +337,7 @@ public struct CompassMapView: View {
     @ViewBuilder
     private var cityPickerSheetContent: some View {
         if let vm = viewModel {
-            CityPickerSheet(viewModel: vm) {
+            LocationPickerSheet(viewModel: vm) {
                 isShowingCityPicker = false
             }
         }
@@ -739,6 +739,10 @@ private struct MapOverlayView: View {
     @ViewBuilder
     private var cityPill: some View {
         let cityName: String = {
+            // Custom location: use the resolved label stored by LocationPickerSheet.
+            if viewModel.isCustomLocation, let label = viewModel.customLocationLabel {
+                return label
+            }
             if let code = viewModel.selectedCity,
                let city = viewModel.availableCities.first(where: { $0.code == code }) {
                 return city.name

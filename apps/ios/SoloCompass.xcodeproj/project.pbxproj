@@ -118,6 +118,10 @@
 		FA8584E1511404B374B57E66 /* ExploreProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0997D8150E77F70A4B8C64 /* ExploreProgressBar.swift */; };
 		FBE9F5951D501A611EB19EEC /* SecretsRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA8C8BF234F3C74D0D8A9BD /* SecretsRuntime.swift */; };
 		FD3636FCB777A292C57B7B06 /* GuideAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187534C119545F7D61CE693B /* GuideAgent.swift */; };
+		BB11223344556677889900BB /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11223344556677889900AA /* LocationPickerState.swift */; };
+		DD11223344556677889900DD /* LocationSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11223344556677889900CC /* LocationSearchService.swift */; };
+		FF11223344556677889900FF /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE11223344556677889900EE /* LocationPickerSheet.swift */; };
+		2233445566778899001122AB /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122334455667788990011AB /* MapPinPickerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -245,6 +249,10 @@
 		F7FB43528F45882868CCC203 /* NavigationLauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationLauncherTests.swift; sourceTree = "<group>"; };
 		F9263FC2737FA209F3CD4B5E /* ChatSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSheet.swift; sourceTree = "<group>"; };
 		FAFFA243BC698EF20C6BC1EF /* MapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModel.swift; sourceTree = "<group>"; };
+		AA11223344556677889900AA /* LocationPickerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerState.swift; sourceTree = "<group>"; };
+		CC11223344556677889900CC /* LocationSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSearchService.swift; sourceTree = "<group>"; };
+		EE11223344556677889900EE /* LocationPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerSheet.swift; sourceTree = "<group>"; };
+		1122334455667788990011AB /* MapPinPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -301,7 +309,9 @@
 				BA6A3144D85CDAD01FA0FECB /* CompassMapView.swift */,
 				5AB8B58A4F608F9951CBDF3C /* ExploreConsentSheet.swift */,
 				0A0997D8150E77F70A4B8C64 /* ExploreProgressBar.swift */,
+				EE11223344556677889900EE /* LocationPickerSheet.swift */,
 				0E0157D30FF53B21FF31D519 /* MarkerIconView.swift */,
+				1122334455667788990011AB /* MapPinPickerView.swift */,
 				1C23113554E651AA08FD2430 /* POILoadingBanner.swift */,
 			);
 			path = Map;
@@ -395,6 +405,7 @@
 				0709110B381DEDA32C3292AE /* ChatUIState.swift */,
 				6DFBC1C003B8745713588A23 /* City.swift */,
 				C1C97F8159A6FA7953D28DAB /* Experience.swift */,
+				AA11223344556677889900AA /* LocationPickerState.swift */,
 				F63FDD874A8F533F0717132A /* UserPreferences.swift */,
 			);
 			path = Models;
@@ -421,6 +432,7 @@
 				6556C23BF1B228BF686C5500 /* KeychainStore.swift */,
 				87002BB6D344B384A3FDFBFD /* LanguageService.swift */,
 				2C7919EAFDE363B49C4B4C47 /* LocationService.swift */,
+				CC11223344556677889900CC /* LocationSearchService.swift */,
 				06B7D586552E9F1EA44F5657 /* MapKitPOIService.swift */,
 				54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */,
 				D07ACA7C1A1574A244E73796 /* NavigationLauncher.swift */,
@@ -776,6 +788,10 @@
 				953C7BD48AF4AF55608145A6 /* LanguageService.swift in Sources */,
 				23B40396E9D7B59CB71FBCD9 /* LocationCard.swift in Sources */,
 				31F9538643C362D7EEF64C6B /* LocationService.swift in Sources */,
+				BB11223344556677889900BB /* LocationPickerState.swift in Sources */,
+				DD11223344556677889900DD /* LocationSearchService.swift in Sources */,
+				FF11223344556677889900FF /* LocationPickerSheet.swift in Sources */,
+				2233445566778899001122AB /* MapPinPickerView.swift in Sources */,
 				A75EEA586481D5A86B7FCFDA /* MapKitPOIService.swift in Sources */,
 				CE1A6A1D5EB25B2BEA5B29DA /* MapViewModel.swift in Sources */,
 				45A4E8EED0300F00253EC049 /* MarkdownExporter.swift in Sources */,

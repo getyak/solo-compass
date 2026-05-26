@@ -458,6 +458,24 @@
 "city.distanceAway.mi" = "%.1f mi away";
 "city.distanceUnknown" = "Distance unknown";
 
+/* Location picker (LocationPickerSheet) */
+"locationPicker.title" = "Choose a location";
+"locationPicker.picker.a11y" = "Location type";
+"locationPicker.tab.cities" = "Cities";
+"locationPicker.tab.search" = "Search";
+"locationPicker.tab.map" = "Map";
+"locationPicker.cities.searchPrompt" = "Search cities…";
+"locationPicker.search.prompt" = "City, place, or address";
+"locationPicker.search.error.title" = "Search failed";
+"locationPicker.map.pin" = "Selected location";
+"locationPicker.map.lat" = "Latitude";
+"locationPicker.map.lon" = "Longitude";
+"locationPicker.map.applyCoords" = "Move pin to these coordinates";
+"locationPicker.map.resolving" = "Resolving location…";
+"locationPicker.map.resolved" = "Resolved: %@";
+"locationPicker.map.setLocation" = "Set Location";
+"locationPicker.custom.fallbackName" = "Custom location";
+
 
 /* AgentRouter fallback replies (US-034) */
 "router.fallback.find" = "I found some nearby spots — check the map!";
