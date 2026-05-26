@@ -37,6 +37,13 @@ public struct ChatSheet: View {
     /// state). Set on appear when `startInVoiceMode`; user can opt into the
     /// classic chat list with a single tap.
     @State private var showVoiceSurface: Bool = false
+    @State private var starterPromptsAppeared: Bool = false
+
+    private static let starterPrompts: [String] = [
+        NSLocalizedString("chat.empty.prompt.nearby",  comment: "Starter chip — what's good around me"),
+        NSLocalizedString("chat.empty.prompt.coffee",  comment: "Starter chip — find a quiet café"),
+        NSLocalizedString("chat.empty.prompt.evening", comment: "Starter chip — plan my evening"),
+    ]
 
     public init(
         orchestrator: VoiceAgentOrchestrator,
@@ -391,14 +398,49 @@ public struct ChatSheet: View {
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
-            Text(NSLocalizedString("chat.empty.subtitle", comment: "Try ‘what's good around me?’ or hold the mic to talk."))
+            Text(NSLocalizedString("chat.empty.subtitle", comment: "Try ‘what’s good around me?’ or hold the mic to talk."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
+            starterPromptChips
             Spacer()
         }
         .frame(maxWidth: .infinity)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.4).delay(0.15)) {
+                starterPromptsAppeared = true
+            }
+        }
+    }
+
+    private var starterPromptChips: some View {
+        VStack(spacing: 8) {
+            ForEach(Array(Self.starterPrompts.enumerated()), id: \.offset) { index, prompt in
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    handleSend(prompt)
+                } label: {
+                    Text(prompt)
+                        .font(.body)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(prompt)
+                .opacity(starterPromptsAppeared ? 1 : 0)
+                .offset(y: starterPromptsAppeared ? 0 : 8)
+                .animation(
+                    .easeOut(duration: 0.35).delay(Double(index) * 0.08),
+                    value: starterPromptsAppeared
+                )
+            }
+        }
+        .padding(.horizontal, 32)
+        .padding(.top, 4)
     }
 
     // MARK: - Derived state
