@@ -1,6 +1,6 @@
 import Foundation
 
-enum AIProvider: String, CaseIterable, Codable, Identifiable {
+public enum AIProvider: String, CaseIterable, Codable, Identifiable {
     case deepseek
     case openai
     case custom
