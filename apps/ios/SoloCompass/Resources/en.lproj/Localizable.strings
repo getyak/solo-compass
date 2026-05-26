@@ -65,6 +65,8 @@
 /* Experience */
 "experience.bestNow" = "Best now";
 "experience.viewDetails" = "View details →";
+"experience.bestTime.hint" = "Best %@";
+"experience.bestTime.hint.a11y" = "Best %@";
 
 /* Bottom info */
 "info.morning" = "Good morning. %d coffee spots nearby are at their best right now.";

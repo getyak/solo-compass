@@ -113,6 +113,8 @@ public struct ExperienceCardView: View {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
                 if experience.isBestNow() {
                     bestNowBadge
+                } else if let hint = experience.bestTimeHint() {
+                    bestTimeHintPill(hint)
                 }
                 Spacer()
                 Button(action: onExpand) {
@@ -173,7 +175,13 @@ public struct ExperienceCardView: View {
         .accessibilityLabel(Text(
             "\(experience.title). \(experience.oneLiner). " +
             String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"),
-                   String(format: "%.1f", experience.soloScore.overall))
+                   String(format: "%.1f", experience.soloScore.overall)) +
+            {
+                if let hint = experience.bestTimeHint() {
+                    return ". " + String(format: NSLocalizedString("experience.bestTime.hint.a11y", comment: "Best time accessibility"), hint)
+                }
+                return ""
+            }()
         ))
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
         .accessibilityAction(
@@ -183,6 +191,19 @@ public struct ExperienceCardView: View {
         ) {
             preferences.toggleFavorite(experience.id)
         }
+    }
+
+    @ViewBuilder
+    private func bestTimeHintPill(_ hint: String) -> some View {
+        Label(
+            String(format: NSLocalizedString("experience.bestTime.hint", comment: "Best time hint"), hint),
+            systemImage: "clock"
+        )
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .foregroundStyle(Color.secondary)
+        .background(Capsule().fill(Color.secondary.opacity(0.12)))
     }
 
     @ViewBuilder
