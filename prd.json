@@ -1,7 +1,7 @@
 {
   "project": "Solo Compass",
   "branchName": "ralph/progressive-explore-enrichment",
-  "description": "Progressive Explore + cross-channel compilation + agent orchestration — small-radius-first ladder (5→10→25→100km) that auto-expands when sparse, incrementally drops map pins, cross-compiles each place across OSM/Foursquare/MapKit/web, and is drivable by natural-language chat/voice. Source: tasks/prd-progressive-explore-enrichment.md.",
+  "description": "Progressive Explore + cross-channel compilation + agent orchestration \u2014 small-radius-first ladder (5\u219210\u219225\u2192100km) that auto-expands when sparse, incrementally drops map pins, cross-compiles each place across OSM/Foursquare/MapKit/web, and is drivable by natural-language chat/voice. Source: tasks/prd-progressive-explore-enrichment.md.",
   "userStories": [
     {
       "id": "US-001",
@@ -16,7 +16,7 @@
         "Tests pass"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -73,8 +73,8 @@
       "title": "Show progressive scanning/expanding text in the progress capsule",
       "description": "As a user, I want to see which radius is being searched and when the app expands outward.",
       "acceptanceCriteria": [
-        "CompassMapView.progressText renders scanning(radiusKm) as 'Searching within Nkm…'",
-        "expanding(toRadiusKm) renders 'Few nearby · expanding to Nkm'",
+        "CompassMapView.progressText renders scanning(radiusKm) as 'Searching within Nkm\u2026'",
+        "expanding(toRadiusKm) renders 'Few nearby \u00b7 expanding to Nkm'",
         "Localized in en.lproj and zh-Hans.lproj Localizable.strings",
         "5km-sufficient run shows no expansion text",
         "xcodebuild build succeeds",
@@ -89,7 +89,7 @@
       "title": "Add expansion radius to the success toast",
       "description": "As a user, after an auto-expansion I want the toast to tell me the final radius.",
       "acceptanceCriteria": [
-        "When the run expanded past 5km, toast includes the final radius (e.g. 'Expanded to 25km · found N')",
+        "When the run expanded past 5km, toast includes the final radius (e.g. 'Expanded to 25km \u00b7 found N')",
         "5km-only runs keep existing toast wording (no radius mention)",
         "New strings localized in en + zh-Hans",
         "xcodebuild build succeeds",

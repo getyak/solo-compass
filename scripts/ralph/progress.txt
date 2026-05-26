@@ -3,3 +3,4 @@ Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 Target: ralph/progressive-explore-enrichment
 Tool: claude
 ---
+[2026-05-26T06:39:20Z] Story #US-001: Add radius ladder constants and ringFilter to EnrichmentAgent — PASSED
