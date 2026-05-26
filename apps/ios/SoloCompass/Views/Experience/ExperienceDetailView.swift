@@ -407,9 +407,22 @@ public struct ExperienceDetailView: View {
                             .foregroundStyle(.orange)
                             .frame(width: 20)
                             .accessibilityHidden(true)
-                        Text(item.text)
-                            .font(.subheadline)
-                            .fixedSize(horizontal: false, vertical: true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(inconvenienceCategoryName(item.category).uppercased())
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.orange)
+                                .tracking(0.5)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.orange.opacity(0.15))
+                                )
+                                .accessibilityHidden(true)
+                            Text(item.text)
+                                .font(.subheadline)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
