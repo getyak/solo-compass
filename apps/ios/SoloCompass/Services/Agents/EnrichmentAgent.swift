@@ -146,6 +146,7 @@ public final class EnrichmentAgent {
         categories: [ExperienceCategory] = [],
         cityCode: String,
         locale: Locale = .current,
+        onProgress: @MainActor @Sendable (MapViewModel.ExploreProgress) async -> Void = { _ in },
         onBatch: @MainActor @Sendable ([Experience]) async -> Void = { _ in }
     ) async -> [Experience] {
         var accumulated: [Experience] = []
@@ -160,6 +161,14 @@ public final class EnrichmentAgent {
         for radius in Self.progressiveRadii {
             // Short-circuit: already enough novel POIs from inner rings.
             if novelPoiCount >= Self.enoughThreshold { break }
+
+            let radiusKm = radius / 1_000
+            // Emit expanding state when advancing beyond the first ring.
+            if prevRadius > 0 {
+                await onProgress(.expanding(toRadiusKm: radiusKm))
+            }
+            // Emit scanning state at the start of each stage.
+            await onProgress(.scanning(radiusKm: radiusKm))
 
             // Fetch the full disk at this radius; then keep only the new annulus.
             let category = categories.first  // OverpassService takes one category

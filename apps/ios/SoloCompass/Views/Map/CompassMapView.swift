@@ -524,7 +524,7 @@ public struct CompassMapView: View {
         switch progress {
         case .idle:
             return nil
-        case .scanning(let done, let total):
+        case .multiRingScanning(let done, let total):
             return String(
                 format: NSLocalizedString("explore.progress.scanning", comment: "ring m of n"),
                 done, total
@@ -533,6 +533,16 @@ public struct CompassMapView: View {
             return String(
                 format: NSLocalizedString("explore.progress.synthesizing", comment: "n places"),
                 count
+            )
+        case .scanning(let radiusKm):
+            return String(
+                format: NSLocalizedString("explore.progress.progressiveScanning", comment: "scanning radius km"),
+                radiusKm
+            )
+        case .expanding(let toRadiusKm):
+            return String(
+                format: NSLocalizedString("explore.progress.expanding", comment: "expanding to radius km"),
+                toRadiusKm
             )
         }
     }

@@ -289,6 +289,8 @@
 "explore.toast.multiRing.added" = "%1$d places added across %2$d km";
 "explore.progress.scanning" = "Scanning area · ring %1$d of %2$d";
 "explore.progress.synthesizing" = "Synthesizing %d places…";
+"explore.progress.progressiveScanning" = "Scanning %d km…";
+"explore.progress.expanding" = "Nearby sparse · expanding to %d km";
 "explore.offline.staleToast" = "Showing offline data from %@";
 "explore.toast.cachedFallback" = "Showing cached results";
 
