@@ -275,9 +275,49 @@ public struct ExperienceDetailView: View {
         }
     }
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var bestTimeStatusPill: some View {
+        let isNow = viewModel.experience.isBestNow()
+        let hint = viewModel.experience.bestTimeHint()
+        let label: String
+        let symbol: String
+        let background: Color
+        if isNow {
+            label = NSLocalizedString("bestTimes.now.pill", comment: "Good time now pill")
+            symbol = "clock.badge.checkmark"
+            background = Color.green.opacity(0.15)
+        } else if let hint {
+            label = String(format: NSLocalizedString("bestTimes.next.pill", comment: "Better at time pill"), hint)
+            symbol = "clock"
+            background = Color(.tertiarySystemFill)
+        } else {
+            return AnyView(EmptyView())
+        }
+        let a11yLabel = isNow
+            ? NSLocalizedString("timeline.now.good", comment: "")
+            : NSLocalizedString("timeline.now.off", comment: "")
+        return AnyView(
+            HStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.caption2.weight(.semibold))
+                    .symbolEffect(.pulse, isActive: isNow && !reduceMotion)
+                Text(label)
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(isNow ? Color.green : Color.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(background))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(a11yLabel))
+        )
+    }
+
     private var bestTimesSection: some View {
         sectionContainer(title: NSLocalizedString("section.bestTimes", comment: "")) {
             VStack(alignment: .leading, spacing: 6) {
+                HStack { Spacer(); bestTimeStatusPill }
                 BestTimesTimeline(experience: viewModel.experience)
                     .padding(.bottom, 4)
                 ForEach(viewModel.experience.bestTimes, id: \.self) { window in
