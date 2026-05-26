@@ -131,6 +131,138 @@ public final class EnrichmentAgent {
         )
     }
 
+    // MARK: - Progressive Explore
+
+    /// Loops over `progressiveRadii`, collecting only the new ring at each stage,
+    /// dedupes across stages, and stops once `enoughThreshold` results accumulate.
+    /// Each batch of synthesized Experiences is delivered via `onBatch` before the
+    /// next ring is attempted, so callers can drop pins incrementally.
+    ///
+    /// Never throws: MapKit/Foursquare failures degrade silently per-stage;
+    /// Overpass failures skip the stage rather than aborting the loop.
+    /// Returns the full accumulated `[Experience]` when done.
+    public func exploreProgressively(
+        at coordinate: CLLocationCoordinate2D,
+        categories: [ExperienceCategory] = [],
+        cityCode: String,
+        locale: Locale = .current,
+        onBatch: @MainActor @Sendable ([Experience]) async -> Void = { _ in }
+    ) async -> [Experience] {
+        var accumulated: [Experience] = []
+        // Coordinate-cell key: round lat/lon to 4 decimal places (~11 m precision).
+        var seenCells: Set<String> = []
+        var seenOsmIds: Set<Int64> = []
+        // Total novel POIs collected so far across stages (used for short-circuit).
+        var novelPoiCount = 0
+
+        var prevRadius = 0
+
+        for radius in Self.progressiveRadii {
+            // Short-circuit: already enough novel POIs from inner rings.
+            if novelPoiCount >= Self.enoughThreshold { break }
+
+            // Fetch the full disk at this radius; then keep only the new annulus.
+            let category = categories.first  // OverpassService takes one category
+            let allPois: [OverpassService.POI]
+            do {
+                async let overpassTask = overpassService.fetchPOIs(
+                    near: coordinate, radiusMeters: radius, category: category
+                )
+                async let mapKitTask = mapKitPOIsBestEffort(
+                    near: coordinate, radiusMeters: radius, category: category
+                )
+                let rawOverpass = try await overpassTask
+                let rawMapKit = await mapKitTask
+                allPois = FoursquareService.enrichMerge(base: rawOverpass, enrichment: rawMapKit)
+            } catch {
+                #if DEBUG
+                print("[EnrichmentAgent] Stage \(radius)m Overpass fetch failed: \(error)")
+                #endif
+                prevRadius = radius
+                continue
+            }
+
+            // Keep only the new ring introduced by this radius step.
+            let stageInner = Double(prevRadius)
+            let ringPois = Self.ringFilter(
+                pois: allPois,
+                center: coordinate,
+                within: Double(radius),
+                beyond: stageInner
+            )
+            prevRadius = radius
+
+            guard !ringPois.isEmpty else { continue }
+
+            // Optional Foursquare enrichment of ring POIs.
+            var stagePois = ringPois
+            if !Secrets.resolvedFoursquareKey.isEmpty {
+                do {
+                    let fsq = try await foursquareService.fetchPOIs(
+                        near: coordinate, radiusMeters: radius, category: category
+                    )
+                    let ringFsq = Self.ringFilter(
+                        pois: fsq,
+                        center: coordinate,
+                        within: Double(radius),
+                        beyond: stageInner
+                    )
+                    stagePois = FoursquareService.enrichMerge(base: stagePois, enrichment: ringFsq)
+                } catch {
+                    #if DEBUG
+                    print("[EnrichmentAgent] Stage \(radius)m Foursquare enrichment failed: \(error)")
+                    #endif
+                }
+            }
+
+            // Dedupe: skip any POI whose osmId or coord cell we've already seen.
+            let novel = stagePois.filter { poi in
+                let cell = coordCell(lat: poi.lat, lon: poi.lon)
+                guard !seenOsmIds.contains(poi.osmId) && !seenCells.contains(cell) else {
+                    return false
+                }
+                return true
+            }
+            for poi in novel {
+                seenOsmIds.insert(poi.osmId)
+                seenCells.insert(coordCell(lat: poi.lat, lon: poi.lon))
+            }
+            novelPoiCount += novel.count
+
+            guard !novel.isEmpty else { continue }
+
+            // Rank and synthesize only the novel POIs for this ring.
+            let ranked = Array(
+                novel.sorted { Self.signalScore($0) > Self.signalScore($1) }.prefix(Self.defaultTopN)
+            )
+            let enriched = await backfillAddresses(ranked)
+
+            let batch: [Experience]
+            do {
+                batch = try await aiService.synthesizeExperiences(
+                    from: enriched, cityCode: cityCode, locale: locale
+                )
+            } catch {
+                #if DEBUG
+                print("[EnrichmentAgent] Stage \(radius)m synthesis failed: \(error)")
+                #endif
+                continue
+            }
+
+            accumulated.append(contentsOf: batch)
+            await onBatch(batch)
+        }
+
+        return accumulated
+    }
+
+    /// Rounds lat/lon to 4 decimal places to form a deduplication cell key.
+    private func coordCell(lat: Double, lon: Double) -> String {
+        let roundedLat = (lat * 10_000).rounded() / 10_000
+        let roundedLon = (lon * 10_000).rounded() / 10_000
+        return "\(roundedLat),\(roundedLon)"
+    }
+
     // MARK: - Helpers
 
     private func mapKitPOIsBestEffort(
