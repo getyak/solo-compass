@@ -8,10 +8,10 @@ public struct BottomInfoBar: View {
     let nearbySoloCount: Int
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    // Tracks whether the footprint pill has been shown at least once (one-shot bounce guard).
-    @State private var appeared = false
-    // Drives the insertion animation; toggled whenever count crosses into positive.
+    // Drives the insertion/removal transition — set via onChange so withAnimation wraps the flip.
     @State private var footprintVisible = false
+    // Prevents the bounce from firing more than once across the view's lifetime.
+    @State private var hasBouncedOnce = false
 
     public init(text: String, nearbySoloCount: Int) {
         self.text = text
@@ -28,16 +28,16 @@ public struct BottomInfoBar: View {
                 .transition(.opacity)
                 .animation(.easeInOut(duration: 0.4), value: text)
 
-            if nearbySoloCount > 0 {
+            if footprintVisible {
                 Spacer(minLength: 8)
                 HStack(spacing: 3) {
                     Image(systemName: "figure.walk")
                         .font(.caption2)
-                        // One-shot bounce when a fellow solo traveler is first detected.
-                        .symbolEffect(.bounce, value: appeared && !reduceMotion ? nearbySoloCount > 0 : false)
+                        // Bounce once on first detection; subsequent zero-crossings are silent.
+                        .symbolEffect(.bounce, value: reduceMotion ? false : hasBouncedOnce)
                     Text("\(nearbySoloCount)")
                         .font(.caption.monospacedDigit())
-                        // Roll the digit up on count changes; skip the roll with Reduce Motion.
+                        // Roll the digit on count changes while the pill is already visible.
                         .contentTransition(reduceMotion ? .identity : .numericText(value: Double(nearbySoloCount)))
                         .animation(.snappy, value: nearbySoloCount)
                 }
@@ -58,13 +58,15 @@ public struct BottomInfoBar: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal, 12)
         .onAppear {
-            // Mark appeared so the bounce symbolEffect key is active from here on.
-            appeared = true
+            footprintVisible = nearbySoloCount > 0
         }
         .onChange(of: nearbySoloCount) { _, newCount in
             let entering = newCount > 0
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                 footprintVisible = entering
+            }
+            if entering && !hasBouncedOnce {
+                hasBouncedOnce = true
             }
         }
     }
