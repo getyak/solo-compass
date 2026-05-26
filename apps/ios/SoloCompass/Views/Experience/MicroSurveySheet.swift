@@ -96,6 +96,8 @@ public struct MicroSurveySheet: View {
             Text(comfortLabel(comfort))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .id(comfort)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
     }
 
@@ -108,6 +110,8 @@ public struct MicroSurveySheet: View {
             Text(pressureLabel(staffPressure))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .id(staffPressure)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
     }
 
@@ -196,16 +200,26 @@ private struct StarRatingRow: View {
     @Binding var value: Int
     let max: Int
 
+    @State private var poppedStar: Int?
+
     var body: some View {
         HStack(spacing: 8) {
             ForEach(1...max, id: \.self) { star in
                 Button {
-                    value = star
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        value = star
+                    }
                     UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                    poppedStar = star
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        poppedStar = nil
+                    }
                 } label: {
                     Image(systemName: star <= value ? "star.fill" : "star")
                         .font(.title3)
                         .foregroundStyle(starColor(star))
+                        .scaleEffect(poppedStar == star ? 1.3 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: poppedStar)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("\(star) " + NSLocalizedString("survey.stars", comment: "stars")))
