@@ -10,7 +10,7 @@ public struct ExperienceCardView: View {
     @GestureState private var dragTranslation: CGFloat = 0
     @State private var dragOffset: CGFloat = 0
     @State private var didCrossThreshold = false
-    @State private var hasPreparedFeedback = false
+    @State private var didPrepareHaptic = false
     @State private var isPulsing = false
     @State private var heartBounce = 0
     @State private var heartBurst = false
@@ -140,21 +140,21 @@ public struct ExperienceCardView: View {
                     state = value.translation.height
                 }
                 .onChanged { value in
-                    let translation = value.translation.height
-                    // Commit live position to dragOffset so snap-back can animate from here.
-                    dragOffset = rubberBanded(translation)
-                    if !hasPreparedFeedback {
-                        hasPreparedFeedback = true
+                    let t = value.translation.height
+                    if !didPrepareHaptic {
                         feedbackGenerator.prepare()
+                        didPrepareHaptic = true
                     }
-                    if !didCrossThreshold && abs(translation) > 60 {
+                    if !didCrossThreshold && abs(t) > 60 {
                         didCrossThreshold = true
                         feedbackGenerator.impactOccurred()
                     }
                 }
                 .onEnded { value in
+                    // Capture live offset before @GestureState resets to 0.
+                    let snappingFrom = rubberBanded(dragTranslation)
                     didCrossThreshold = false
-                    hasPreparedFeedback = false
+                    didPrepareHaptic = false
                     if value.translation.height > 60 {
                         dragOffset = 0
                         onDismiss()
@@ -162,7 +162,8 @@ public struct ExperienceCardView: View {
                         dragOffset = 0
                         onExpand()
                     } else {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        dragOffset = snappingFrom
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                             dragOffset = 0
                         }
                     }
