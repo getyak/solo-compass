@@ -7,6 +7,9 @@ public struct ExperienceCardView: View {
     var onExpand: () -> Void
     var onDismiss: () -> Void
 
+    @GestureState private var dragTranslation: CGFloat = 0
+    @State private var dragOffset: CGFloat = 0
+
     public init(
         experience: Experience,
         onExpand: @escaping () -> Void,
@@ -15,6 +18,19 @@ public struct ExperienceCardView: View {
         self.experience = experience
         self.onExpand = onExpand
         self.onDismiss = onDismiss
+    }
+
+    /// Rubber-bands upward drags to 40% travel; downward dismissal drags follow 1:1.
+    private func rubberBanded(_ t: CGFloat) -> CGFloat {
+        t < 0 ? t * 0.4 : t
+    }
+
+    private var totalOffset: CGFloat {
+        rubberBanded(dragTranslation) + dragOffset
+    }
+
+    private var dragOpacity: Double {
+        1 - min(0.4, max(0, dragTranslation) / 300)
     }
 
     public var body: some View {
@@ -69,13 +85,25 @@ public struct ExperienceCardView: View {
                 .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
         )
         .padding(.horizontal, 12)
+        .offset(y: totalOffset)
+        .opacity(dragOpacity)
         .gesture(
             DragGesture(minimumDistance: 20)
+                .updating($dragTranslation) { value, state, _ in
+                    state = value.translation.height
+                }
                 .onEnded { value in
-                    if value.translation.height > 60 {
+                    let t = value.translation.height
+                    if t > 60 {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         onDismiss()
-                    } else if value.translation.height < -60 {
+                    } else if t < -60 {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         onExpand()
+                    } else {
+                        withAnimation(.interactiveSpring()) {
+                            dragOffset = 0
+                        }
                     }
                 }
         )
