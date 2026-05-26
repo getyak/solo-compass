@@ -12,6 +12,8 @@ public struct FavoritesListView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onSelectExperience: (Experience) -> Void
 
+    private var locationService: LocationService { LocationService.shared }
+
     @State private var lastUnfavorited: (id: String, title: String, date: Date)?
     @State private var undoDismissTask: Task<Void, Never>?
     @State private var animatePulse = false
@@ -51,6 +53,28 @@ public struct FavoritesListView: View {
                 let rDate = preferences.favoritedAt[rhs.id] ?? .distantPast
                 return lDate > rDate
             }
+        }
+    }
+
+    private func distanceString(for experience: Experience) -> String? {
+        guard let userLocation = locationService.currentLocation,
+              let coord = experience.coordinate else { return nil }
+        let meters = userLocation.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
+        if meters < 1000 {
+            let rounded = (meters / 50).rounded() * 50
+            let measurement = Measurement(value: max(50, rounded), unit: UnitLength.meters)
+            let formatter = MeasurementFormatter()
+            formatter.unitOptions = .providedUnit
+            formatter.numberFormatter.maximumFractionDigits = 0
+            return formatter.string(from: measurement)
+        } else {
+            let km = meters / 1000
+            let measurement = Measurement(value: km, unit: UnitLength.kilometers)
+            let formatter = MeasurementFormatter()
+            formatter.unitOptions = .providedUnit
+            formatter.numberFormatter.maximumFractionDigits = 1
+            formatter.numberFormatter.minimumFractionDigits = 1
+            return formatter.string(from: measurement)
         }
     }
 
@@ -330,6 +354,7 @@ private extension FavoritesListView {
 
     @ViewBuilder
     func favoriteRow(_ exp: Experience) -> some View {
+        let distStr = distanceString(for: exp)
         Button {
             onSelectExperience(exp)
         } label: {
@@ -374,6 +399,13 @@ private extension FavoritesListView {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel({
+            if let distStr {
+                let awayFmt = NSLocalizedString("favorites.row.distance.a11y", comment: "Distance away accessibility label")
+                return Text("\(exp.title), \(exp.oneLiner), \(String(format: awayFmt, distStr))")
+            }
+            return Text("\(exp.title), \(exp.oneLiner)")
+        }())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 UINotificationFeedbackGenerator().notificationOccurred(.warning)

@@ -310,6 +310,7 @@
 "favorites.sort.nearest" = "Nearest";
 "favorites.sort.recent" = "Recent";
 "favorites.swipe.hint" = "Swipe left to remove";
+"favorites.row.distance.a11y" = "%@ away";
 
 /* Generic actions */
 "action.undo" = "Undo";
