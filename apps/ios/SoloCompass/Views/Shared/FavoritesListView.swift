@@ -66,9 +66,9 @@ private struct EmptyFavoritesView: View {
                 Image(systemName: "heart.fill")
                     .font(.system(size: 48))
                     .foregroundStyle(Color.pink.opacity(0.7))
-                    .scaleEffect(animatePulse ? 1.08 : 0.94)
-                    .opacity(animatePulse ? 1.0 : 0.7)
-                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: animatePulse)
+                    .scaleEffect(isBreathing ? 1.08 : 0.94)
+                    .opacity(isBreathing ? 1.0 : 0.7)
+                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)
             }
             Text(NSLocalizedString("favorites.empty.title", comment: "No favorites yet"))
                 .font(.headline)
@@ -79,8 +79,8 @@ private struct EmptyFavoritesView: View {
         }
         .padding(32)
         .onAppear {
-            guard !animatePulse else { return }
-            animatePulse = true
+            guard !isBreathing else { return }
+            isBreathing = true
         }
     }
 }
