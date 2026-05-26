@@ -250,6 +250,10 @@
 "favorites.title" = "Favorites";
 "favorites.empty.title" = "No favorites yet";
 "favorites.empty.hint" = "Tap the heart on any experience to save it here.";
+"favorites.undo" = "Removed — Undo";
+
+/* Generic actions */
+"action.undo" = "Undo";
 
 /* Notifications */
 "settings.notifications" = "Notify me when I'm nearby";

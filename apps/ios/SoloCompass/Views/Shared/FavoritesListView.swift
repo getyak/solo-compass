@@ -7,6 +7,9 @@ public struct FavoritesListView: View {
     @Environment(UserPreferences.self) private var preferences
     let onSelectExperience: (Experience) -> Void
 
+    @State private var lastUnfavorited: (id: String, date: Date)?
+    @State private var undoDismissTask: Task<Void, Never>?
+
     private var sortedFavorites: [Experience] {
         let ids = preferences.favoritedExperiences
         let experiences = ids.compactMap { experienceService.getExperience(id: $0) }
@@ -20,7 +23,7 @@ public struct FavoritesListView: View {
     public var body: some View {
         NavigationStack {
             Group {
-                if sortedFavorites.isEmpty {
+                if sortedFavorites.isEmpty && lastUnfavorited == nil {
                     emptyState
                         .transition(.opacity)
                 } else {
@@ -38,6 +41,14 @@ public struct FavoritesListView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .overlay(alignment: .bottom) {
+            if lastUnfavorited != nil {
+                undoBar
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 16)
+            }
+        }
+        .animation(.easeInOut, value: lastUnfavorited != nil)
     }
 
     private var emptyState: some View {
@@ -53,6 +64,32 @@ public struct FavoritesListView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(32)
+    }
+
+    private var undoBar: some View {
+        HStack {
+            Text(NSLocalizedString("favorites.undo", comment: "Removed — Undo banner"))
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+            Spacer()
+            Button {
+                guard let saved = lastUnfavorited else { return }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                undoDismissTask?.cancel()
+                undoDismissTask = nil
+                withAnimation(.easeInOut) {
+                    preferences.toggleFavorite(saved.id, at: saved.date)
+                    lastUnfavorited = nil
+                }
+            } label: {
+                Text(NSLocalizedString("action.undo", comment: "Undo action"))
+                    .font(.subheadline.weight(.semibold))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
     }
 
     @ViewBuilder
@@ -92,9 +129,22 @@ public struct FavoritesListView: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                let savedDate = preferences.favoritedAt[exp.id] ?? Date()
+                let expId = exp.id
                 withAnimation(.easeInOut) {
-                    preferences.toggleFavorite(exp.id)
+                    preferences.toggleFavorite(expId)
+                }
+                lastUnfavorited = (id: expId, date: savedDate)
+                undoDismissTask?.cancel()
+                undoDismissTask = Task {
+                    try? await Task.sleep(for: .seconds(4))
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        withAnimation(.easeInOut) {
+                            lastUnfavorited = nil
+                        }
+                    }
                 }
             } label: {
                 Label(NSLocalizedString("action.unfavorite", comment: "Remove from favorites"),
