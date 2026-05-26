@@ -24,8 +24,8 @@ public struct FavoritesListView: View {
         NavigationStack {
             Group {
                 if sortedFavorites.isEmpty && lastUnfavorited == nil {
-                    emptyState
-                        .transition(.opacity)
+                    EmptyFavoritesView()
+                        .transition(.scale(scale: 0.85).combined(with: .opacity))
                 } else {
                     List(sortedFavorites) { exp in
                         favoriteRow(exp)
@@ -51,11 +51,24 @@ public struct FavoritesListView: View {
         .animation(.easeInOut, value: lastUnfavorited != nil)
     }
 
-    private var emptyState: some View {
+}
+
+private struct EmptyFavoritesView: View {
+    @State private var isBreathing = false
+
+    var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "heart.slash")
+            Image(systemName: "heart")
                 .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.tint)
+                .scaleEffect(isBreathing ? 1.08 : 0.94)
+                .opacity(isBreathing ? 1.0 : 0.7)
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                        isBreathing = true
+                    }
+                }
             Text(NSLocalizedString("favorites.empty.title", comment: "No favorites yet"))
                 .font(.headline)
             Text(NSLocalizedString("favorites.empty.hint", comment: "Tap the heart on any experience"))
@@ -64,9 +77,18 @@ public struct FavoritesListView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(32)
+        .transition(.scale(scale: 0.85).combined(with: .opacity))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            NSLocalizedString("favorites.empty.title", comment: "No favorites yet") + ". " +
+            NSLocalizedString("favorites.empty.hint", comment: "Tap the heart on any experience")
+        )
     }
+}
 
-    private var undoBar: some View {
+private extension FavoritesListView {
+
+    var undoBar: some View {
         HStack {
             Text(NSLocalizedString("favorites.undo", comment: "Removed — Undo banner"))
                 .font(.subheadline)
@@ -93,7 +115,7 @@ public struct FavoritesListView: View {
     }
 
     @ViewBuilder
-    private func favoriteRow(_ exp: Experience) -> some View {
+    func favoriteRow(_ exp: Experience) -> some View {
         Button {
             onSelectExperience(exp)
         } label: {
