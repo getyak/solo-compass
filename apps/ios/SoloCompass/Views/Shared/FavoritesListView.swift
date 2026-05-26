@@ -12,8 +12,6 @@ public struct FavoritesListView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onSelectExperience: (Experience) -> Void
 
-    private var locationService: LocationService { LocationService.shared }
-
     @State private var lastUnfavorited: (id: String, title: String, date: Date)?
     @State private var undoDismissTask: Task<Void, Never>?
     @State private var animatePulse = false
@@ -56,25 +54,32 @@ public struct FavoritesListView: View {
         }
     }
 
+    private static let metersFormatter: MeasurementFormatter = {
+        let f = MeasurementFormatter()
+        f.unitOptions = .providedUnit
+        f.numberFormatter.maximumFractionDigits = 0
+        return f
+    }()
+
+    private static let kilometersFormatter: MeasurementFormatter = {
+        let f = MeasurementFormatter()
+        f.unitOptions = .providedUnit
+        f.numberFormatter.maximumFractionDigits = 1
+        f.numberFormatter.minimumFractionDigits = 1
+        return f
+    }()
+
     private func distanceString(for experience: Experience) -> String? {
-        guard let userLocation = locationService.currentLocation,
+        guard let userLocation = LocationService.shared.currentLocation,
               let coord = experience.coordinate else { return nil }
         let meters = userLocation.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
         if meters < 1000 {
             let rounded = (meters / 50).rounded() * 50
             let measurement = Measurement(value: max(50, rounded), unit: UnitLength.meters)
-            let formatter = MeasurementFormatter()
-            formatter.unitOptions = .providedUnit
-            formatter.numberFormatter.maximumFractionDigits = 0
-            return formatter.string(from: measurement)
+            return Self.metersFormatter.string(from: measurement)
         } else {
-            let km = meters / 1000
-            let measurement = Measurement(value: km, unit: UnitLength.kilometers)
-            let formatter = MeasurementFormatter()
-            formatter.unitOptions = .providedUnit
-            formatter.numberFormatter.maximumFractionDigits = 1
-            formatter.numberFormatter.minimumFractionDigits = 1
-            return formatter.string(from: measurement)
+            let measurement = Measurement(value: meters / 1000, unit: UnitLength.kilometers)
+            return Self.kilometersFormatter.string(from: measurement)
         }
     }
 
