@@ -360,6 +360,11 @@ public struct ExperienceDetailView: View {
         }
     }
 
+    private func inconvenienceCategoryName(_ category: RealInconvenience.Category) -> String {
+        let key = "inconvenience.category.\(category.rawValue)"
+        return NSLocalizedString(key, comment: "Inconvenience category display name")
+    }
+
     private var inconveniencesSection: some View {
         sectionContainer(title: NSLocalizedString("section.inconveniences", comment: "")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -368,6 +373,7 @@ public struct ExperienceDetailView: View {
                         Image(systemName: item.category.symbol)
                             .foregroundStyle(.orange)
                             .frame(width: 20)
+                            .accessibilityHidden(true)
                         Text(item.text)
                             .font(.subheadline)
                             .fixedSize(horizontal: false, vertical: true)
@@ -378,6 +384,12 @@ public struct ExperienceDetailView: View {
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Color.orange.opacity(0.08))
                     )
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(String(
+                        format: NSLocalizedString("inconvenience.a11y.prefix", comment: "Heads up: <category> — <text>"),
+                        inconvenienceCategoryName(item.category),
+                        item.text
+                    )))
                 }
             }
         }
