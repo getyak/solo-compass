@@ -16,7 +16,8 @@ public struct FilterBarView: View {
     /// Driven by the parent when the map camera is moving; triggers fade+shrink.
     @Binding var isMapPanning: Bool
 
-    @State private var poppedPillID: String?
+    /// Namespace for the shared gliding selection highlight.
+    @Namespace private var pillHighlight
 
     /// User's chosen subset of categories. Injected via SwiftUI environment
     /// (US-006). Previews/tests that don't supply preferences get a freshly
@@ -43,6 +44,14 @@ public struct FilterBarView: View {
         self._isMapPanning = isMapPanning
     }
 
+    /// Stable string ID for the currently selected pill — drives matchedGeometryEffect.
+    private var selectionID: String {
+        if isNowSelected { return "now" }
+        if let tag = selectedCustomTag { return "tag-\(tag)" }
+        if let cat = selectedCategory { return cat.rawValue }
+        return "all"
+    }
+
     /// Iterate `allCases` (not the `Set`) so pill order stays stable and
     /// matches enum declaration order.
     private var visibleCategories: [ExperienceCategory] {
@@ -60,22 +69,21 @@ public struct FilterBarView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     pill(
-                        id: "now",
                         label: NSLocalizedString("filter.now", comment: "Now"),
+                        id: "now",
                         isSelected: isNowSelected,
                         color: Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255),
                         action: onSelectNow
                     )
                     pill(
-                        id: "all",
                         label: NSLocalizedString("filter.all", comment: "All"),
-                        isSelected: !isNowSelected && selectedCategory == nil,
+                        id: "all",
+                        isSelected: !isNowSelected && selectedCategory == nil && selectedCustomTag == nil,
                         color: Color.primary,
                         action: onSelectAll
                     )
                     ForEach(visibleCategories) { category in
                         iconPill(
-                            id: category.rawValue,
                             category: category,
                             isSelected: selectedCategory == category,
                             action: { onSelectCategory(category) }
@@ -83,7 +91,6 @@ public struct FilterBarView: View {
                     }
                     ForEach(preferences.customTags, id: \.self) { tag in
                         customTagPill(
-                            id: "tag:\(tag)",
                             tag: tag,
                             isSelected: selectedCustomTag == tag,
                             action: { onSelectCustomTag(tag) }
@@ -92,6 +99,7 @@ public struct FilterBarView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
+                .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectionID)
             }
         }
         .padding(.horizontal, 16)
@@ -99,14 +107,11 @@ public struct FilterBarView: View {
         .scaleEffect(isMapPanning ? 0.85 : 1.0)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isMapPanning)
         .onTapGesture { isMapPanning = false }
-        .animation(.easeInOut(duration: 0.2), value: selectedCategory)
-        .animation(.easeInOut(duration: 0.2), value: isNowSelected)
     }
 
-    private func pill(id: String, label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
+    private func pill(label: String, id: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            pop(id: id)
             action()
         } label: {
             Text(label)
@@ -114,39 +119,42 @@ public struct FilterBarView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .foregroundStyle(isSelected ? .white : .primary)
-                .background(
-                    Capsule().fill(isSelected ? color : Color.clear)
-                )
+                .background {
+                    if isSelected {
+                        Capsule()
+                            .fill(color)
+                            .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
+                    }
+                }
                 .overlay(
                     Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
                 )
         }
-        .buttonStyle(.plain)
-        .scaleEffect(poppedPillID == id ? 1.18 : 1.0)
-        .animation(.spring(response: 0.28, dampingFraction: 0.45), value: poppedPillID)
+        .buttonStyle(PressableButtonStyle())
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func iconPill(id: String, category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func iconPill(category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            pop(id: id)
             action()
         } label: {
             Image(systemName: category.symbol)
                 .font(.body.weight(.semibold))
                 .frame(width: 36, height: 36)
                 .foregroundStyle(isSelected ? .white : category.color)
-                .background(
-                    Circle().fill(isSelected ? category.color : Color.clear)
-                )
+                .background {
+                    if isSelected {
+                        Circle()
+                            .fill(category.color)
+                            .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
+                    }
+                }
                 .overlay(
                     Circle().stroke(isSelected ? Color.clear : category.color.opacity(0.4), lineWidth: 1)
                 )
         }
-        .buttonStyle(.plain)
-        .scaleEffect(poppedPillID == id ? 1.18 : 1.0)
-        .animation(.spring(response: 0.28, dampingFraction: 0.45), value: poppedPillID)
+        .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(Text(category.localizedTitle))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -154,36 +162,40 @@ public struct FilterBarView: View {
     /// Pill rendered for each entry in `UserPreferences.customTags`. Same
     /// shape as `iconPill` (36×36 circle, tag.fill glyph, accent color), so
     /// it visually reads as part of the same filter row. US-008.
-    private func customTagPill(id: String, tag: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func customTagPill(tag: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            pop(id: id)
             action()
         } label: {
             Image(systemName: "tag.fill")
                 .font(.body.weight(.semibold))
                 .frame(width: 36, height: 36)
                 .foregroundStyle(isSelected ? .white : Color.accentColor)
-                .background(
-                    Circle().fill(isSelected ? Color.accentColor : Color.clear)
-                )
+                .background {
+                    if isSelected {
+                        Circle()
+                            .fill(Color.accentColor)
+                            .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
+                    }
+                }
                 .overlay(
                     Circle().stroke(isSelected ? Color.clear : Color.accentColor.opacity(0.4), lineWidth: 1)
                 )
         }
-        .buttonStyle(.plain)
-        .scaleEffect(poppedPillID == id ? 1.18 : 1.0)
-        .animation(.spring(response: 0.28, dampingFraction: 0.45), value: poppedPillID)
+        .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(Text(tag))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
+}
 
-    private func pop(id: String) {
-        poppedPillID = id
-        Task {
-            try? await Task.sleep(for: .milliseconds(320))
-            poppedPillID = nil
-        }
+// MARK: - PressableButtonStyle
+
+/// Scales down ~8% on press and springs back, giving pills a physical feel.
+private struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
