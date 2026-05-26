@@ -68,6 +68,10 @@
 "inconvenience.category.other" = "Heads up";
 /* Accessibility label for each inconvenience row: "Heads up: <category> — <text>" */
 "inconvenience.a11y.prefix" = "Heads up: %@ — %@";
+/* Inconvenience pill on floating card: visible count label */
+"inconvenience.card.count" = "%d";
+/* VoiceOver suffix appended to the card's accessibilityLabel when inconveniences exist */
+"inconvenience.card.a11y" = "Heads up: %d things to know";
 
 /* Sections */
 "section.whyItMatters" = "Why it matters";
