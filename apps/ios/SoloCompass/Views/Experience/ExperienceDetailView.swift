@@ -48,7 +48,9 @@ public struct ExperienceDetailView: View {
                 }
                 whyItMattersSection
                 aiInsightSection
-                if !viewModel.experience.bestTimes.isEmpty {
+                let hasOpeningHours = viewModel.experience.location.openingHours
+                    .map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
+                if !viewModel.experience.bestTimes.isEmpty || hasOpeningHours {
                     bestTimesSection
                 }
                 if !viewModel.experience.howTo.isEmpty {
@@ -314,29 +316,60 @@ public struct ExperienceDetailView: View {
         )
     }
 
+    @ViewBuilder
+    private var openingHoursRow: some View {
+        if let raw = viewModel.experience.location.openingHours {
+            let hours = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !hours.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "building.2")
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
+                        Text(NSLocalizedString("location.openingHours", comment: "Posted hours label"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Text(hours)
+                            .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(Text(String(
+                        format: NSLocalizedString("location.openingHours.a11y", comment: "Posted hours accessibility label"),
+                        hours
+                    )))
+                    Divider()
+                }
+            }
+        }
+    }
+
     private var bestTimesSection: some View {
         sectionContainer(title: NSLocalizedString("section.bestTimes", comment: "")) {
             VStack(alignment: .leading, spacing: 6) {
-                HStack { Spacer(); bestTimeStatusPill }
-                BestTimesTimeline(experience: viewModel.experience)
-                    .padding(.bottom, 4)
-                ForEach(viewModel.experience.bestTimes, id: \.self) { window in
-                    HStack(spacing: 8) {
-                        Image(systemName: "clock")
-                            .foregroundStyle(.secondary)
-                        Text(format(window: window))
-                            .font(.subheadline)
-                        if let note = window.note {
-                            Text(note)
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                openingHoursRow
+                if !viewModel.experience.bestTimes.isEmpty {
+                    HStack { Spacer(); bestTimeStatusPill }
+                    BestTimesTimeline(experience: viewModel.experience)
+                        .padding(.bottom, 4)
+                    ForEach(viewModel.experience.bestTimes, id: \.self) { window in
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock")
+                                .foregroundStyle(.secondary)
+                            Text(format(window: window))
+                                .font(.subheadline)
+                            if let note = window.note {
+                                Text(note)
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
+                    let range = viewModel.experience.durationMinutes
+                    Text(String(format: NSLocalizedString("section.duration", comment: ""), range.min, range.max))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
-                let range = viewModel.experience.durationMinutes
-                Text(String(format: NSLocalizedString("section.duration", comment: ""), range.min, range.max))
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
             }
         }
     }
