@@ -7,6 +7,12 @@ public struct ExperienceCardView: View {
     var onExpand: () -> Void
     var onDismiss: () -> Void
 
+    @GestureState private var dragTranslation: CGFloat = 0
+    @State private var dragOffset: CGFloat = 0
+
+    // Pre-allocated so prepare() can be called when the drag starts.
+    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
+
     public init(
         experience: Experience,
         onExpand: @escaping () -> Void,
@@ -15,6 +21,20 @@ public struct ExperienceCardView: View {
         self.experience = experience
         self.onExpand = onExpand
         self.onDismiss = onDismiss
+    }
+
+    /// Rubber-bands upward drags to 40% travel; downward dismissal drags follow 1:1.
+    private func rubberBanded(_ t: CGFloat) -> CGFloat {
+        t < 0 ? t * 0.4 : t
+    }
+
+    private var totalOffset: CGFloat {
+        rubberBanded(dragTranslation) + dragOffset
+    }
+
+    /// Fades in both directions: downward (dismiss) and upward (expand).
+    private var dragOpacity: Double {
+        1 - min(0.4, abs(dragTranslation) / 300)
     }
 
     public var body: some View {
@@ -69,13 +89,33 @@ public struct ExperienceCardView: View {
                 .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
         )
         .padding(.horizontal, 12)
+        .offset(y: totalOffset)
+        .opacity(dragOpacity)
         .gesture(
             DragGesture(minimumDistance: 20)
+                .updating($dragTranslation) { value, state, _ in
+                    state = value.translation.height
+                }
+                .onChanged { _ in
+                    feedbackGenerator.prepare()
+                }
                 .onEnded { value in
-                    if value.translation.height > 60 {
+                    let t = value.translation.height
+                    // Commit the live visual position into dragOffset before
+                    // @GestureState resets dragTranslation to 0, so the card
+                    // stays at its dragged position rather than snapping back
+                    // before the exit transition runs.
+                    dragOffset = rubberBanded(t)
+                    if t > 60 {
+                        feedbackGenerator.impactOccurred()
                         onDismiss()
-                    } else if value.translation.height < -60 {
+                    } else if t < -60 {
+                        feedbackGenerator.impactOccurred()
                         onExpand()
+                    } else {
+                        withAnimation(.interactiveSpring()) {
+                            dragOffset = 0
+                        }
                     }
                 }
         )
