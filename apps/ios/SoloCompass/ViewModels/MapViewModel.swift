@@ -441,8 +441,8 @@ public final class MapViewModel {
         let nearby = applyFilters(near: center, radiusKm: radiusKm)
         withAnimation(Self.markerSetAnimation) {
             visibleExperiences = nearby
+            nearbySoloCount = computeNearbySoloCount(in: nearby)
         }
-        nearbySoloCount = computeNearbySoloCount(in: nearby)
         updateBottomInfo()
     }
 
@@ -647,8 +647,8 @@ public final class MapViewModel {
         let nearby = applyFilters(near: coordinate, radiusKm: radiusKm)
         withAnimation(Self.markerSetAnimation) {
             visibleExperiences = nearby
+            nearbySoloCount = computeNearbySoloCount(in: nearby)
         }
-        nearbySoloCount = computeNearbySoloCount(in: nearby)
         updateBottomInfo()
     }
 
@@ -984,8 +984,10 @@ public final class MapViewModel {
                     if let region = experienceService.repo.closestRecentRegion(to: coordinate),
                        case let cached = experienceService.repo.experiences(in: region),
                        !cached.isEmpty {
-                        visibleExperiences = cached
-                        nearbySoloCount = 0
+                        withAnimation(Self.markerSetAnimation) {
+                            visibleExperiences = cached
+                            nearbySoloCount = 0
+                        }
                         updateBottomInfo()
                         lastExploreToast = NSLocalizedString("explore.toast.cachedFallback", comment: "Showing cached results")
                         return
@@ -1028,8 +1030,10 @@ public final class MapViewModel {
                     if let region = experienceService.repo.closestRecentRegion(to: coordinate) {
                         let cached = experienceService.repo.experiences(in: region)
                         if !cached.isEmpty {
-                            visibleExperiences = cached
-                            nearbySoloCount = 0
+                            withAnimation(Self.markerSetAnimation) {
+                                visibleExperiences = cached
+                                nearbySoloCount = 0
+                            }
                             updateBottomInfo()
                             lastExploreToast = NSLocalizedString("explore.toast.cachedFallback", comment: "Showing cached results")
                             return
@@ -1123,8 +1127,10 @@ public final class MapViewModel {
             if let region = experienceService.repo.closestRecentRegion(to: coordinate) {
                 let offline = experienceService.repo.experiences(in: region)
                 if !offline.isEmpty {
-                    visibleExperiences = offline
-                    nearbySoloCount = 0
+                    withAnimation(Self.markerSetAnimation) {
+                        visibleExperiences = offline
+                        nearbySoloCount = 0
+                    }
                     updateBottomInfo()
 
                     let formatter = RelativeDateTimeFormatter()
