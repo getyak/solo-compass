@@ -134,6 +134,8 @@
 "city.all" = "All Cities";
 "city.picker.title" = "Choose a city";
 "city.experienceCount" = "%d experiences";
+"city.empty.title" = "No cities yet";
+"city.empty.hint" = "Cities appear here as you explore the map.";
 
 /* Action bar */
 "action.favorite" = "Add to favorites";
