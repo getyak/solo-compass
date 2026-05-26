@@ -120,7 +120,6 @@ public struct CompletionCelebrationView: View {
                     Button("Fire (no particles)") { trigger += 1 }
                         .buttonStyle(.borderedProminent)
                     CompletionCelebrationView(trigger: trigger)
-                        .environment(\.accessibilityReduceMotion, true)
                 }
             }
         }
