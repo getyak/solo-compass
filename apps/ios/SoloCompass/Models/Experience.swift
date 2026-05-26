@@ -462,6 +462,81 @@ public struct Experience: Codable, Hashable, Identifiable {
     }
 }
 
+// MARK: - Best Time Hint
+
+extension Experience {
+    /// Returns a localized short time range (e.g. "7–9am", "6pm") for the soonest
+    /// applicable bestTimes window when the experience is NOT currently at its best.
+    /// Returns nil when isBestNow() is true or when bestTimes is empty.
+    public func bestTimeHint(at date: Date = Date()) -> String? {
+        guard !isBestNow(at: date) else { return nil }
+        guard !bestTimes.isEmpty else { return nil }
+
+        let cal = Calendar.current
+        let weekday = cal.component(.weekday, from: date) - 1 // Sun=0
+        let month = cal.component(.month, from: date)
+        let currentHour = cal.component(.hour, from: date)
+
+        let applicable = bestTimes.filter { window in
+            if let days = window.dayOfWeek, !days.isEmpty, !days.contains(weekday) { return false }
+            if let seasons = window.season, !seasons.isEmpty, !seasons.contains(month) { return false }
+            return true
+        }
+
+        let pool = applicable.isEmpty ? bestTimes : applicable
+
+        // Prefer windows whose start is still ahead today; fall back to earliest overall.
+        let upcoming = pool.filter { $0.startHour > currentHour }
+        let chosen = upcoming.min(by: { $0.startHour < $1.startHour }) ?? pool.min(by: { $0.startHour < $1.startHour })
+
+        guard let window = chosen else { return nil }
+        return Self.formatTimeRange(startHour: window.startHour, endHour: window.endHour)
+    }
+
+    private static func formatTimeRange(startHour: Int, endHour: Int) -> String {
+        let cal = Calendar.current
+        var start = cal.startOfDay(for: Date())
+        start = cal.date(byAdding: .hour, value: startHour, to: start) ?? start
+        var end = cal.startOfDay(for: Date())
+        end = cal.date(byAdding: .hour, value: endHour, to: end) ?? end
+
+        let fmt = DateFormatter()
+        fmt.locale = Locale.current
+        fmt.dateFormat = Locale.current.uses24HourClock ? "H" : "ha"
+        fmt.amSymbol = "am"
+        fmt.pmSymbol = "pm"
+
+        let startStr = fmt.string(from: start)
+        let endStr = fmt.string(from: end)
+
+        // Collapse suffix when both share the same am/pm period (12h only)
+        if !Locale.current.uses24HourClock {
+            let startPeriod = startHour < 12 ? "am" : "pm"
+            let endPeriod = endHour < 12 ? "am" : "pm"
+            if startPeriod == endPeriod {
+                // e.g. "7–9am"
+                let shortFmt = DateFormatter()
+                shortFmt.locale = Locale.current
+                shortFmt.dateFormat = "h"
+                let shortStart = shortFmt.string(from: start)
+                return "\(shortStart)–\(endStr)"
+            }
+        }
+        return "\(startStr)–\(endStr)"
+    }
+}
+
+private extension Locale {
+    var uses24HourClock: Bool {
+        let fmt = DateFormatter()
+        fmt.locale = self
+        fmt.dateStyle = .none
+        fmt.timeStyle = .short
+        let sample = fmt.string(from: Date())
+        return !sample.contains(fmt.amSymbol) && !sample.contains(fmt.pmSymbol)
+    }
+}
+
 // MARK: - Marker State
 
 public enum ExperienceMarkerState: Hashable {
