@@ -485,6 +485,8 @@
 "common.settings" = "Settings";
 
 /* Location card + navigation picker */
+"location.openingHours" = "Posted hours";
+"location.openingHours.a11y" = "Posted hours: %@";
 "location.navigate" = "Navigate";
 "location.copyCoords" = "Copy coordinates";
 "location.copied" = "Copied!";
