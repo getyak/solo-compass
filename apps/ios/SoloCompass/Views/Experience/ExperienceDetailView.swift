@@ -399,6 +399,13 @@ public struct ExperienceDetailView: View {
         return NSLocalizedString(key, comment: "Inconvenience category display name")
     }
 
+    private func inconvenienceTint(_ category: RealInconvenience.Category) -> Color {
+        switch category {
+        case .safety, .scam: return .red
+        default:             return .orange
+        }
+    }
+
     private var inconveniencesSection: some View {
         sectionContainer(title: NSLocalizedString("section.inconveniences", comment: "")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -428,6 +435,11 @@ public struct ExperienceDetailView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 10)
                             .fill(tint.opacity(severity.backgroundOpacity))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(tint.opacity(0.25), lineWidth: 1)
+>>>>>>> c27bf69 (auto: Surface inconvenience category labels as visible severity-colored tags in the detail view)
                     )
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(String(
