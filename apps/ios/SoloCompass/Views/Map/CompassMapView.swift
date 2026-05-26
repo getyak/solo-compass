@@ -601,7 +601,8 @@ private struct MapOverlayView: View {
                 onSelectAll: { viewModel.clearFilters() },
                 onSelectCategory: { viewModel.selectCategory($0) },
                 onSelectCustomTag: { viewModel.selectCustomTag($0) },
-                isMapPanning: $isMapPanning
+                isMapPanning: $isMapPanning,
+                resultCount: viewModel.visibleExperiences.count
             )
             .padding(.top, 4)
 

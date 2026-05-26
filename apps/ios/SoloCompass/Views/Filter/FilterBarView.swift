@@ -15,6 +15,9 @@ public struct FilterBarView: View {
     let onSelectCustomTag: (String) -> Void
     /// Driven by the parent when the map camera is moving; triggers fade+shrink.
     @Binding var isMapPanning: Bool
+    /// Number of experiences currently visible on the map. Used to render the
+    /// count badge on the selected pill. Defaults to 0 for previews/back-compat.
+    let resultCount: Int
 
     /// Namespace for the shared gliding selection highlight.
     @Namespace private var pillHighlight
@@ -32,7 +35,8 @@ public struct FilterBarView: View {
         onSelectAll: @escaping () -> Void,
         onSelectCategory: @escaping (ExperienceCategory) -> Void,
         onSelectCustomTag: @escaping (String) -> Void = { _ in },
-        isMapPanning: Binding<Bool> = .constant(false)
+        isMapPanning: Binding<Bool> = .constant(false),
+        resultCount: Int = 0
     ) {
         self.selectedCategory = selectedCategory
         self.isNowSelected = isNowSelected
@@ -42,6 +46,7 @@ public struct FilterBarView: View {
         self.onSelectCategory = onSelectCategory
         self.onSelectCustomTag = onSelectCustomTag
         self._isMapPanning = isMapPanning
+        self.resultCount = resultCount
     }
 
     /// Stable string ID for the currently selected pill — drives matchedGeometryEffect.
@@ -127,9 +132,18 @@ public struct FilterBarView: View {
                 .overlay(
                     Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
                 )
+                .overlay(alignment: .topTrailing) {
+                    if isSelected && resultCount > 0 {
+                        countBadge(count: resultCount, tint: color)
+                            .offset(x: 6, y: -6)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
     }
 
     private func iconPill(category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -151,10 +165,19 @@ public struct FilterBarView: View {
                 .overlay(
                     Circle().stroke(isSelected ? Color.clear : category.color.opacity(0.4), lineWidth: 1)
                 )
+                .overlay(alignment: .topTrailing) {
+                    if isSelected && resultCount > 0 {
+                        countBadge(count: resultCount, tint: category.color)
+                            .offset(x: 6, y: -6)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(Text(category.localizedTitle))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
     }
 
     /// Pill rendered for each entry in `UserPreferences.customTags`. Same
@@ -179,10 +202,29 @@ public struct FilterBarView: View {
                 .overlay(
                     Circle().stroke(isSelected ? Color.clear : Color.accentColor.opacity(0.4), lineWidth: 1)
                 )
+                .overlay(alignment: .topTrailing) {
+                    if isSelected && resultCount > 0 {
+                        countBadge(count: resultCount, tint: .accentColor)
+                            .offset(x: 6, y: -6)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(Text(tag))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
+    }
+
+    @ViewBuilder
+    private func countBadge(count: Int, tint: Color) -> some View {
+        Text("\(count)")
+            .font(.caption2.weight(.semibold).monospacedDigit())
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .frame(minWidth: 16, minHeight: 16)
+            .background(Capsule().fill(tint))
     }
 }
 
