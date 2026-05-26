@@ -405,6 +405,11 @@
 "chat.title" = "Solo Compass";
 "chat.empty.title" = "Ask me anything about places near you";
 "chat.empty.subtitle" = "Try 'what's good around me?' or hold the mic to talk.";
+
+/* Chat starter prompts */
+"chat.empty.prompt.nearby" = "What's good around me?";
+"chat.empty.prompt.coffee" = "Find me a quiet café";
+"chat.empty.prompt.evening" = "Plan my evening";
 "chat.input.placeholder" = "Type a message…";
 "chat.input.send.a11y" = "Send";
 "chat.input.mic.a11y" = "Voice";
