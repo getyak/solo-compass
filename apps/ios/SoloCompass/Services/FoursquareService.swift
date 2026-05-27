@@ -120,6 +120,74 @@ public final class FoursquareService {
     /// decode as nil, so requesting them is always safe.
     static let requestedFields = "fsq_id,name,geocodes,categories,rating,hours,price,website,tel,popularity"
 
+    // MARK: - LiteVenue
+
+    /// A lightweight, typed representation of a Foursquare venue used by
+    /// `CompiledPlace.merge` for cross-source merging. Carries only the fields
+    /// the merge logic cares about; the full POI tag bag stays in
+    /// `OverpassService.POI` for downstream synthesis.
+    public struct LiteVenue: Hashable {
+        public let fsqId: String
+        public let name: String
+        public let lat: Double
+        public let lon: Double
+        public let rating: Double?      // 0–10
+        public let price: Int?          // 1–4
+        public let hours: String?
+        public let website: String?
+        public let phone: String?
+    }
+
+    /// Decode Foursquare search JSON into `LiteVenue` rows. Used by
+    /// `CompiledPlace.merge` when the caller has raw Foursquare data.
+    public static func decodeLiteVenues(from data: Data) throws -> [LiteVenue] {
+        struct Wrapper: Decodable {
+            let results: [Row]
+        }
+        struct Row: Decodable {
+            let fsq_id: String
+            let name: String?
+            let geocodes: Geocodes?
+            let rating: Double?
+            let hours: Hours?
+            let price: Int?
+            let website: String?
+            let tel: String?
+        }
+        struct Geocodes: Decodable {
+            let main: LatLon?
+        }
+        struct LatLon: Decodable {
+            let latitude: Double
+            let longitude: Double
+        }
+        struct Hours: Decodable {
+            let display: String?
+        }
+        do {
+            let wrapper = try JSONDecoder().decode(Wrapper.self, from: data)
+            return wrapper.results.compactMap { row -> LiteVenue? in
+                guard
+                    let name = row.name, !name.isEmpty,
+                    let coord = row.geocodes?.main
+                else { return nil }
+                return LiteVenue(
+                    fsqId: row.fsq_id,
+                    name: name,
+                    lat: coord.latitude,
+                    lon: coord.longitude,
+                    rating: row.rating,
+                    price: row.price,
+                    hours: row.hours?.display,
+                    website: row.website,
+                    phone: row.tel
+                )
+            }
+        } catch {
+            throw FoursquareError.decodingFailed(String(describing: error))
+        }
+    }
+
     // MARK: - Category mapping
 
     /// Maps a Solo Compass category to a comma-separated list of Foursquare v3
