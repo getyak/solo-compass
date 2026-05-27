@@ -461,7 +461,6 @@ public final class CompanionService {
         case .failure(let err): return .failure(err)
         }
     }
-}
 
     // MARK: - US-018: Expiry and cleanup
 
