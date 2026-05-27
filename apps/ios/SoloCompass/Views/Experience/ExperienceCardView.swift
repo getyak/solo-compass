@@ -45,18 +45,24 @@ public struct ExperienceCardView: View {
         return f
     }()
 
-    /// Formats a distance in meters into a human-readable walk-time or distance string.
-    private static func formatDistance(_ meters: Double) -> String {
-        let walkMetersPerMin = 80.0
-        if meters < 1000 {
+    private static let walkThresholdMeters = 1500.0
+    private static let walkMetersPerMin = 80.0
+
+    /// Returns a (text, SF Symbol name) pair for the distance pill.
+    /// Under 1 500 m → walk-minutes + figure.walk; otherwise → formatted distance + location.fill.
+    private static func formatDistance(_ meters: Double) -> (text: String, symbol: String) {
+        if meters < walkThresholdMeters {
             let minutes = Int((meters / walkMetersPerMin).rounded(.up))
+            let label: String
             if minutes < 1 {
-                return NSLocalizedString("card.distance.walkSub1", comment: "Distance less than 1 min walk")
+                label = NSLocalizedString("card.distance.walkSub1", comment: "Distance less than 1 min walk")
+            } else {
+                label = String(format: NSLocalizedString("card.distance.walk", comment: "Distance in walk minutes"), minutes)
             }
-            return String(format: NSLocalizedString("card.distance.walk", comment: "Distance in walk minutes"), minutes)
+            return (label, "figure.walk")
         }
         let measurement = Measurement(value: meters, unit: UnitLength.meters)
-        return distanceFormatter.string(from: measurement)
+        return (distanceFormatter.string(from: measurement), "location.fill")
     }
 
     public init(
@@ -157,7 +163,8 @@ public struct ExperienceCardView: View {
             HStack {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
                 if let meters = distanceMeters {
-                    distancePill(Self.formatDistance(meters))
+                    let dl = Self.formatDistance(meters)
+                    distancePill(dl.text, symbol: dl.symbol)
                 }
                 if !experience.realInconveniences.isEmpty {
                     inconveniencePill
@@ -229,7 +236,7 @@ public struct ExperienceCardView: View {
             {
                 var parts = ""
                 if let meters = distanceMeters {
-                    parts += ". " + Self.formatDistance(meters)
+                    parts += ". " + Self.formatDistance(meters).text
                 }
                 let count = experience.realInconveniences.count
                 if count > 0 {
@@ -259,8 +266,8 @@ public struct ExperienceCardView: View {
     }
 
     @ViewBuilder
-    private func distancePill(_ label: String) -> some View {
-        Label(label, systemImage: "figure.walk")
+    private func distancePill(_ label: String, symbol: String) -> some View {
+        Label(label, systemImage: symbol)
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
