@@ -399,6 +399,14 @@ public struct ExperienceDetailView: View {
         return NSLocalizedString(key, comment: "Inconvenience category display name")
     }
 
+    private func inconvenienceTint(_ category: RealInconvenience.Category) -> Color {
+        switch category {
+        case .safety, .scam:                            return .red
+        case .crowds, .logistics, .weather,
+             .etiquette, .other:                        return .orange
+        }
+    }
+
     private var inconveniencesSection: some View {
         sectionContainer(title: NSLocalizedString("section.inconveniences", comment: "")) {
             VStack(alignment: .leading, spacing: 10) {
@@ -428,6 +436,10 @@ public struct ExperienceDetailView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 10)
                             .fill(tint.opacity(severity.backgroundOpacity))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(tint.opacity(0.25), lineWidth: 1)
                     )
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(String(
@@ -915,5 +927,46 @@ private extension RealInconvenience.Severity {
         case .medium: return Color(.systemOrange)
         case .low:    return Color(.systemGray)
         }
+    }
+}
+
+#Preview("Severity tints") {
+    if let base = ExperienceService.hardcodedSeed.first {
+        let now = Date()
+        let exp = Experience(
+            id: "preview_severity",
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: [
+                RealInconvenience(category: .safety, text: "Pre-dawn route is unlit. Use a torch."),
+                RealInconvenience(category: .scam, text: "Tuk-tuks near the gate charge 3× the metered rate."),
+                RealInconvenience(category: .logistics, text: "Cash only at the entrance booth."),
+            ],
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds,
+            stats: base.stats,
+            status: base.status,
+            createdAt: now,
+            updatedAt: now
+        )
+        let vm = ExperienceDetailViewModel(
+            experience: exp,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+        NavigationStack {
+            ExperienceDetailView(viewModel: vm) {}
+        }
+    } else {
+        Text("No seed data")
     }
 }
