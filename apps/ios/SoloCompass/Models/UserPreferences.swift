@@ -539,6 +539,14 @@ public final class UserPreferences {
         exploreConsentGivenAt = nil
     }
 
+    /// Mark the companion safety consent sheet as accepted (US-020). Idempotent.
+    public func acceptCompanionConsent() {
+        hasAcceptedCompanionConsent = true
+        if companionConsentGivenAt == nil {
+            companionConsentGivenAt = Date()
+        }
+    }
+
     /// US-013: bump the Foursquare-fallback usage counter. Rolls the counter
     /// back to 1 (not 0 — we're recording *this* call) when the stored day
     /// stamp differs from the local-calendar start-of-day for `now`.

@@ -27,13 +27,13 @@ public struct CompanionProfileView: View {
     public init() {}
 
     public var body: some View {
-        var prefs = preferences
+        @Bindable var prefs = preferences
         NavigationStack {
             Form {
-                avatarSection(prefs: prefs)
-                bioSection(prefs: prefs)
-                languagesSection(prefs: prefs)
-                visibilitySection(prefs: prefs)
+                avatarSection(prefs: $prefs)
+                bioSection(prefs: $prefs)
+                languagesSection(prefs: $prefs)
+                visibilitySection(prefs: $prefs)
             }
             .navigationTitle(NSLocalizedString("companion.profile.title", comment: "Companion Profile nav title"))
             .navigationBarTitleDisplayMode(.large)

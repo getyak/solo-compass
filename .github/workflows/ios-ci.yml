@@ -56,6 +56,18 @@ jobs:
           sudo xcode-select -s "$XCODE_PATH"
           xcodebuild -version
 
+      # Regenerate the project from project.yml so CI compiles the exact same
+      # source set TestFlight does. The committed .xcodeproj drifts out of sync
+      # (xcodegen owns it — see CLAUDE.md), which previously let new files with
+      # compile errors pass CI while failing the TestFlight archive.
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate .xcodeproj
+        run: |
+          cd apps/ios
+          xcodegen generate --spec project.yml
+
       - name: Build iOS App
         run: |
           cd apps/ios
