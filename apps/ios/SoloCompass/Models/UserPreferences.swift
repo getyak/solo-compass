@@ -347,6 +347,8 @@ public final class UserPreferences {
         self.companionLanguages = snapshot.companionLanguages
         self.companionVisibilityRaw = snapshot.companionVisibilityRaw
         self.activeCompanionPosts = snapshot.activeCompanionPosts
+        self.hasAcceptedCompanionConsent = snapshot.hasAcceptedCompanionConsent
+        self.companionConsentGivenAt = snapshot.companionConsentGivenAt
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
