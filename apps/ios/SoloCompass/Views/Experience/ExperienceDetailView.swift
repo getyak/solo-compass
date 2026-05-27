@@ -866,9 +866,9 @@ public struct ExperienceDetailView: View {
                     heartPop.toggle()
                 }
                 if willFavorite {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Haptics.notify(.success)
                 } else {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                 }
             } label: {
                 Image(systemName: viewModel.isFavorited ? "heart.fill" : "heart")
@@ -886,7 +886,7 @@ public struct ExperienceDetailView: View {
 
             if viewModel.experience.location.clCoordinate != nil {
                 Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                     isShowingNavPicker = true
                 } label: {
                     Image(systemName: "arrow.triangle.turn.up.right.diagonal")
@@ -899,7 +899,7 @@ public struct ExperienceDetailView: View {
             }
 
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
                 isShowingAddToItinerary = true
             } label: {
                 Image(systemName: "calendar.badge.plus")
@@ -916,6 +916,8 @@ public struct ExperienceDetailView: View {
                 if !wasCompleted {
                     celebrationTrigger += 1
                     onMarkDone?(viewModel.experience)
+                } else {
+                    Haptics.impact(.light)
                 }
             } label: {
                 HStack {

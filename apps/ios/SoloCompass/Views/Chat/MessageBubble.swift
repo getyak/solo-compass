@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// One conversational row inside `ChatSheet`. Renders user, assistant, and
 /// tool messages with Messenger-style alignment. Tool rows collapse to a
@@ -59,6 +62,21 @@ public struct MessageBubble: View {
                     format: NSLocalizedString("chat.bubble.user.a11y", comment: "You said: %@"),
                     text
                 )))
+                .accessibilityAction(named: Text(NSLocalizedString("chat.bubble.copy", comment: "Copy bubble text"))) {
+                    copyText()
+                }
+                .contextMenu {
+                    if !text.isEmpty && !isStreaming {
+                        Button {
+                            copyText()
+                        } label: {
+                            Label(
+                                NSLocalizedString("chat.bubble.copy", comment: "Copy bubble text"),
+                                systemImage: "doc.on.doc"
+                            )
+                        }
+                    }
+                }
         }
     }
 
@@ -78,6 +96,18 @@ public struct MessageBubble: View {
                                 .padding(.trailing, 10)
                         }
                     }
+                    .contextMenu {
+                        if !text.isEmpty && !isStreaming {
+                            Button {
+                                copyText()
+                            } label: {
+                                Label(
+                                    NSLocalizedString("chat.bubble.copy", comment: "Copy bubble text"),
+                                    systemImage: "doc.on.doc"
+                                )
+                            }
+                        }
+                    }
             }
             Spacer(minLength: 48)
         }
@@ -85,6 +115,9 @@ public struct MessageBubble: View {
             format: NSLocalizedString("chat.bubble.assistant.a11y", comment: "Solo said: %@"),
             text
         )))
+        .accessibilityAction(named: Text(NSLocalizedString("chat.bubble.copy", comment: "Copy bubble text"))) {
+            copyText()
+        }
     }
 
     private var assistantAvatar: some View {
@@ -118,6 +151,16 @@ public struct MessageBubble: View {
 
     private var bubbleShape: some Shape {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
+    }
+
+    // MARK: - Actions
+
+    private func copyText() {
+        guard !text.isEmpty, !isStreaming else { return }
+        #if canImport(UIKit)
+        UIPasteboard.general.string = text
+        Haptics.notify(.success)
+        #endif
     }
 
     // MARK: - Tool helpers
