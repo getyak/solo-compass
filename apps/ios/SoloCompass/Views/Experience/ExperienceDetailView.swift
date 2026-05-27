@@ -228,10 +228,71 @@ public struct ExperienceDetailView: View {
 
             if let local = viewModel.experience.location.placeNameLocal, !local.isEmpty {
                 let romanized = viewModel.experience.location.placeNameRomanized
-                Text(romanized?.isEmpty == false ? "\(local) · \(romanized ?? "")" : local)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                HStack(spacing: 8) {
+                    Text(romanized?.isEmpty == false ? "\(local) · \(romanized ?? "")" : local)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    distancePill
+                }
+            } else {
+                distancePill
             }
+        }
+    }
+
+    @ViewBuilder
+    private var distancePill: some View {
+        if locationService.currentLocation != nil,
+           let coord = viewModel.experience.location.clCoordinate {
+            let meters = locationService.distance(to: coord)
+            if meters < .greatestFiniteMagnitude {
+                let distStr = Self.formatDistance(meters)
+                let awayStr = String(
+                    format: NSLocalizedString("detail.distance.away", comment: "Distance away pill"),
+                    distStr
+                )
+                HStack(spacing: 3) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 9))
+                    Text(awayStr)
+                        .font(.caption2.monospacedDigit())
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Color(.tertiarySystemFill)))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(String(
+                    format: NSLocalizedString("detail.distance.a11y", comment: "Distance accessibility label"),
+                    distStr
+                )))
+            }
+        }
+    }
+
+    private static let metersFormatter: MeasurementFormatter = {
+        let f = MeasurementFormatter()
+        f.unitOptions = .providedUnit
+        f.numberFormatter.maximumFractionDigits = 0
+        return f
+    }()
+
+    private static let kilometersFormatter: MeasurementFormatter = {
+        let f = MeasurementFormatter()
+        f.unitOptions = .providedUnit
+        f.numberFormatter.maximumFractionDigits = 1
+        f.numberFormatter.minimumFractionDigits = 1
+        return f
+    }()
+
+    private static func formatDistance(_ meters: Double) -> String {
+        if meters < 1000 {
+            let rounded = (meters / 50).rounded() * 50
+            let measurement = Measurement(value: max(50, rounded), unit: UnitLength.meters)
+            return metersFormatter.string(from: measurement)
+        } else {
+            let measurement = Measurement(value: meters / 1000, unit: UnitLength.kilometers)
+            return kilometersFormatter.string(from: measurement)
         }
     }
 

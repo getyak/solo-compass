@@ -655,6 +655,10 @@
 "locationPicker.map.saveAndSet" = "Save & Set Location";
 "locationPicker.map.saveCity.confirmed" = "Location saved!";
 
+/* Distance pill in experience detail hero */
+"detail.distance.away" = "%@ away";
+"detail.distance.a11y" = "%@ away";
+
 /* US-015: Multi-source indicator and real signals in detail view */
 "detail.multiSource.indicator" = "Verified by multiple sources";
 "detail.multiSource.indicator.a11y" = "This place was verified by multiple data sources";
