@@ -640,8 +640,8 @@ public struct ExperienceDetailView: View {
             let dims: [(String, String, Double)] = [
                 (NSLocalizedString("solo.seating", comment: ""), "chair", b.seatingFriendly),
                 (NSLocalizedString("solo.staff", comment: ""), "person.crop.circle", b.staffPressure),
-                (NSLocalizedString("solo.wifi", comment: ""), "wifi", b.soloPatronRatio),
-                (NSLocalizedString("solo.noise", comment: ""), "speaker.slash", b.ambianceFit),
+                (NSLocalizedString("solo.patrons", comment: ""), "person.2", b.soloPatronRatio),
+                (NSLocalizedString("solo.ambiance", comment: ""), "sparkles", b.ambianceFit),
                 (NSLocalizedString("solo.safety", comment: ""), "shield", b.safety),
                 (NSLocalizedString("solo.portioning", comment: ""), "fork.knife", b.soloPortioning),
             ]

@@ -43,8 +43,6 @@
 "solo.portioning" = "Portioning";
 "solo.ambiance" = "Ambiance";
 "solo.safety" = "Safety";
-"solo.wifi" = "WiFi";
-"solo.noise" = "Noise";
 "solo.basedOn" = "Based on %d solo travelers";
 "solo.radar.a11y" = "Solo Score radar";
 "solo.radar.replayHint" = "Tap to replay the draw-in animation";
