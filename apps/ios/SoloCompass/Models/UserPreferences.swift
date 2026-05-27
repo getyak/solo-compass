@@ -347,6 +347,8 @@ public final class UserPreferences {
         self.companionLanguages = snapshot.companionLanguages
         self.companionVisibilityRaw = snapshot.companionVisibilityRaw
         self.activeCompanionPosts = snapshot.activeCompanionPosts
+        self.hasAcceptedCompanionConsent = snapshot.hasAcceptedCompanionConsent
+        self.companionConsentGivenAt = snapshot.companionConsentGivenAt
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -537,6 +539,14 @@ public final class UserPreferences {
     public func revokeExploreConsent() {
         hasAcceptedExploreConsent = false
         exploreConsentGivenAt = nil
+    }
+
+    /// Mark the companion safety consent sheet as accepted (US-020). Idempotent.
+    public func acceptCompanionConsent() {
+        hasAcceptedCompanionConsent = true
+        if companionConsentGivenAt == nil {
+            companionConsentGivenAt = Date()
+        }
     }
 
     /// US-013: bump the Foursquare-fallback usage counter. Rolls the counter

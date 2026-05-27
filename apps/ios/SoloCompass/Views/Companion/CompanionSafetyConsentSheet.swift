@@ -170,7 +170,7 @@ public struct CompanionSafetyConsentSheet: View {
 
     private var consentButton: some View {
         Button {
-            preferences.isSafetyConsentAccepted = true
+            preferences.acceptCompanionConsent()
             onAccepted()
             dismiss()
         } label: {
