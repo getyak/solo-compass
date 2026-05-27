@@ -1104,7 +1104,7 @@ public final class AIService {
     /// Apply `CompiledPlace` provenance metadata to a synthesized Experience.
     /// When a place was assembled from ≥2 distinct sources, this bumps the
     /// confidence level and enriches the `sources` list with per-source entries
-    /// so the detail view can surface the "verified by multiple sources" badge.
+    /// so the detail view can surface the "verified by multiple sources" indicator.
     ///
     /// Call this after `synthesizeExperiences` to upgrade the raw synthesis
     /// with accurate cross-source attribution.

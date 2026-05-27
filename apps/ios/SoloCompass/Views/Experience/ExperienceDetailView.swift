@@ -549,15 +549,15 @@ public struct ExperienceDetailView: View {
 
     // MARK: - US-015: Multi-source indicator
 
-    /// Badge shown when the experience was assembled from ≥2 distinct sources.
+    /// Multi-source indicator shown when the experience was assembled from ≥2 distinct sources.
     @ViewBuilder
-    private var multiSourceBadge: some View {
+    private var multiSourceIndicator: some View {
         if viewModel.experience.sources.count >= 2 {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.caption2)
                     .foregroundStyle(.green)
-                Text(NSLocalizedString("detail.multiSource.badge", comment: "Verified by multiple sources badge"))
+                Text(NSLocalizedString("detail.multiSource.indicator", comment: "Verified by multiple sources indicator"))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
             }
@@ -565,7 +565,7 @@ public struct ExperienceDetailView: View {
             .padding(.vertical, 4)
             .background(Capsule().fill(Color.green.opacity(0.08)))
             .accessibilityElement(children: .combine)
-            .accessibilityLabel(Text(NSLocalizedString("detail.multiSource.badge.a11y", comment: "Verified by multiple sources accessibility label")))
+            .accessibilityLabel(Text(NSLocalizedString("detail.multiSource.indicator.a11y", comment: "Verified by multiple sources accessibility label")))
         }
     }
 
@@ -621,7 +621,7 @@ public struct ExperienceDetailView: View {
     private var sourcesSection: some View {
         sectionContainer(title: NSLocalizedString("section.sources", comment: "")) {
             VStack(alignment: .leading, spacing: 6) {
-                multiSourceBadge
+                multiSourceIndicator
                 ratingRow
                 priceLevelRow
                 ForEach(viewModel.experience.sources) { source in

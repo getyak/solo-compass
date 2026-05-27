@@ -51,8 +51,8 @@
 "section.duration" = "通常:%d–%d 分钟";
 
 /* US-015: Multi-source indicator and real signals in detail view */
-"detail.multiSource.badge" = "已多来源验证";
-"detail.multiSource.badge.a11y" = "该地点已经过多个数据来源核实";
+"detail.multiSource.indicator" = "已多来源验证";
+"detail.multiSource.indicator.a11y" = "该地点已经过多个数据来源核实";
 "detail.rating" = "评分";
 "detail.rating.a11y" = "评分：%@ / 10";
 "detail.priceLevel" = "价格等级";
