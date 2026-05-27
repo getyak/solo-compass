@@ -40,6 +40,14 @@
 "solo.section.estimate" = "独行评分(AI 推断)";
 "solo.section.early" = "独行评分(早期)";
 
+/* Best times timeline */
+"timeline.now.good" = "现在是最佳时段。";
+"timeline.now.off" = "现在不是最佳时段。";
+"timeline.a11y" = "最佳时段：%@。%@";
+"timeline.now.tick" = "现在";
+"bestTimes.now.pill" = "此刻最佳";
+"bestTimes.next.pill" = "%@ 更好";
+
 /* Sections */
 "section.whyItMatters" = "为什么值得";
 "section.bestTimes" = "最佳时段";

@@ -981,81 +981,122 @@ private struct BestTimesTimeline: View {
     private let nowMarkerWidth: CGFloat = 2
     private let tickHours = [0, 6, 12, 18]
 
-    private var nowFraction: CGFloat {
-        let comps = Calendar.current.dateComponents([.hour, .minute], from: Date())
+    private func nowFraction(for date: Date) -> CGFloat {
+        let comps = Calendar.current.dateComponents([.hour, .minute], from: date)
         return (CGFloat(comps.hour ?? 0) + CGFloat(comps.minute ?? 0) / 60) / 24
     }
 
-    private var a11yLabel: String {
+    private static let nowTickFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    private func a11yLabel(for date: Date) -> String {
         let windowLabels = experience.bestTimes.map { w in
             String(format: "%02d:00 – %02d:00", w.startHour, w.endHour)
         }.joined(separator: ", ")
-        let nowStatus = experience.isBestNow()
+        let nowStatus = experience.isBestNow(at: date)
             ? NSLocalizedString("timeline.now.good", comment: "")
             : NSLocalizedString("timeline.now.off", comment: "")
+        let timeStr = Self.nowTickFormatter.string(from: date)
         return String(
             format: NSLocalizedString("timeline.a11y", comment: ""),
             windowLabels,
-            nowStatus
+            "\(nowStatus) \(timeStr)"
         )
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let trackWidth = geo.size.width
-            ZStack(alignment: .topLeading) {
-                // Base track
-                Capsule()
-                    .fill(Color.secondary.opacity(0.12))
-                    .frame(height: trackHeight)
-
-                // Window segments
-                ForEach(segments(trackWidth: trackWidth), id: \.id) { seg in
-                    Capsule()
-                        .fill(experience.category.color.opacity(0.85))
-                        .frame(width: seg.width, height: trackHeight)
-                        .offset(x: seg.x)
-                        .scaleEffect(x: animateFill ? 1 : 0, anchor: .leading)
-                }
-
-                // 'Now' marker
-                let nowX = nowFraction * trackWidth
-                let isBest = experience.isBestNow()
-                ZStack {
-                    if isBest && !reduceMotion {
-                        Circle()
-                            .stroke(Color.yellow, lineWidth: 1.5)
-                            .frame(width: 6, height: 6)
-                            .scaleEffect(nowPulse ? 2.4 : 1)
-                            .opacity(nowPulse ? 0 : 0.7)
-                    }
-                    VStack(spacing: 0) {
-                        Circle()
-                            .fill(isBest ? Color.yellow : Color.accentColor)
-                            .frame(width: 6, height: 6)
-                        Rectangle()
-                            .fill(isBest ? Color.yellow : Color.accentColor)
-                            .frame(width: nowMarkerWidth, height: trackHeight - 2)
-                    }
-                }
-                .offset(x: nowX - 3, y: 0)
-            }
-            .frame(height: trackHeight)
-        }
-        .frame(height: trackHeight + 18) // extra room for tick labels below
-        .overlay(alignment: .bottom) {
-            // Hour tick labels
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            let liveDate = context.date
             GeometryReader { geo in
                 let trackWidth = geo.size.width
-                ForEach(tickHours, id: \.self) { hour in
-                    let x = CGFloat(hour) / 24.0 * trackWidth
-                    Text("\(hour)")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .offset(x: hour == 0 ? x : x - 8)
+                let fraction = nowFraction(for: liveDate)
+                let nowX = fraction * trackWidth
+                let isBest = experience.isBestNow(at: liveDate)
+                ZStack(alignment: .topLeading) {
+                    // Base track
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.12))
+                        .frame(height: trackHeight)
+
+                    // Window segments
+                    ForEach(segments(trackWidth: trackWidth), id: \.id) { seg in
+                        Capsule()
+                            .fill(experience.category.color.opacity(0.85))
+                            .frame(width: seg.width, height: trackHeight)
+                            .offset(x: seg.x)
+                            .scaleEffect(x: animateFill ? 1 : 0, anchor: .leading)
+                    }
+
+                    // 'Now' marker
+                    ZStack {
+                        if isBest && !reduceMotion {
+                            Circle()
+                                .stroke(Color.yellow, lineWidth: 1.5)
+                                .frame(width: 6, height: 6)
+                                .scaleEffect(nowPulse ? 2.4 : 1)
+                                .opacity(nowPulse ? 0 : 0.7)
+                        }
+                        VStack(spacing: 0) {
+                            Circle()
+                                .fill(isBest ? Color.yellow : Color.accentColor)
+                                .frame(width: 6, height: 6)
+                            Rectangle()
+                                .fill(isBest ? Color.yellow : Color.accentColor)
+                                .frame(width: nowMarkerWidth, height: trackHeight - 2)
+                        }
+                    }
+                    .offset(x: nowX - 3, y: 0)
+                }
+                .frame(height: trackHeight)
+                // 'Now' tick label + fixed hour labels below the track
+                .overlay(alignment: .bottom) {
+                    ZStack(alignment: .topLeading) {
+                        // Fixed 0 / 6 / 12 / 18 labels
+                        ForEach(tickHours, id: \.self) { hour in
+                            let x = CGFloat(hour) / 24.0 * trackWidth
+                            Text("\(hour)")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .offset(x: hour == 0 ? x : x - 8)
+                        }
+                        // 'now HH:mm' label — clamped to track bounds, hidden
+                        // when it would land within 16pt of a fixed tick label.
+                        let tickPositions: [CGFloat] = tickHours.map { CGFloat($0) / 24.0 * trackWidth }
+                        let rawLabelX = nowX - 14
+                        let clampedX = min(max(rawLabelX, 0), trackWidth - 28)
+                        let tooClose = tickPositions.contains { abs($0 - nowX) < 20 }
+                        if !tooClose {
+                            let nowLabel = NSLocalizedString("timeline.now.tick", comment: "Now tick label under the timeline marker")
+                            let timeStr = Self.nowTickFormatter.string(from: liveDate)
+                            Text("\(nowLabel) \(timeStr)")
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(isBest ? Color.yellow : Color.accentColor)
+                                .offset(x: clampedX)
+                        }
+                    }
+                    .frame(height: 14)
+                    .offset(y: 18)
                 }
             }
-            .frame(height: 14)
+            .frame(height: trackHeight + 18 + 14)
+            .onChange(of: experience.isBestNow(at: liveDate)) { _, isBest in
+                guard !reduceMotion else { return }
+                if isBest {
+                    nowPulse = false
+                    withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                        nowPulse = true
+                    }
+                } else {
+                    withAnimation(nil) {
+                        nowPulse = false
+                    }
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(a11yLabel(for: liveDate)))
         }
         .onAppear {
             if reduceMotion {
@@ -1071,21 +1112,6 @@ private struct BestTimesTimeline: View {
                 }
             }
         }
-        .onChange(of: experience.isBestNow()) { _, isBest in
-            guard !reduceMotion else { return }
-            if isBest {
-                nowPulse = false
-                withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
-                    nowPulse = true
-                }
-            } else {
-                withAnimation(nil) {
-                    nowPulse = false
-                }
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(a11yLabel))
     }
 
     private struct Segment: Identifiable {
