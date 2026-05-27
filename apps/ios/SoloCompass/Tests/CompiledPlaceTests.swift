@@ -53,7 +53,7 @@ final class CompiledPlaceTests: XCTestCase {
 
     // MARK: - US-013: cross-source merge conflict resolution
 
-    func testMergePreferOsmForCoordinateAndName() {
+    func testMergePreferOsmForCoordinateAndName() throws {
         let osmPoi = OverpassService.POI(
             osmId: 1001,
             name: "OSM Cafe",
@@ -81,7 +81,7 @@ final class CompiledPlaceTests: XCTestCase {
         XCTAssertEqual(unwrappedPlace.coordinate.latitude, 21.034, accuracy: 0.0001)
     }
 
-    func testMergePrefersFoursquareForRatingHoursPrice() {
+    func testMergePrefersFoursquareForRatingHoursPrice() throws {
         let osmPoi = OverpassService.POI(
             osmId: 1002,
             name: "Place",
@@ -103,11 +103,11 @@ final class CompiledPlaceTests: XCTestCase {
         )
         let place = CompiledPlace.merge(pois: [osmPoi], venues: [fsqVenue], mapItems: [])
         let place2 = try XCTUnwrap(place)
-        XCTAssertEqual(place2.rating?.value, 9.0, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(place2.rating?.value), 9.0, accuracy: 0.01)
         XCTAssertEqual(place?.rating?.source, .foursquare)
         XCTAssertEqual(place?.openingHours?.value, "FSQ hours", "Foursquare hours win over OSM")
         XCTAssertEqual(place?.openingHours?.source, .foursquare)
-        XCTAssertEqual(place2.priceLevel?.value, 3.0, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(place2.priceLevel?.value), 3.0, accuracy: 0.01)
     }
 
     func testMergeMissingFoursquareFallsBackToOsmForHours() {
