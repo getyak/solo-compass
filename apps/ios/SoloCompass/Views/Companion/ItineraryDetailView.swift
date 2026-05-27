@@ -310,6 +310,56 @@ public struct ItineraryDetailView: View {
         try? store.reorderExperiences(ids, in: itinerary.id)
     }
 
+    @ViewBuilder
+    private func experienceRow(for expId: String) -> some View {
+        if let exp = experienceService.getExperience(id: expId) {
+            HStack(spacing: 10) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Circle()
+                    .fill(exp.category.color.opacity(0.15))
+                    .frame(width: 32, height: 32)
+                    .overlay {
+                        Image(systemName: exp.category.symbol)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(exp.category.color)
+                    }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(exp.title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                    Text(exp.oneLiner)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(exp.title). \(exp.oneLiner)")
+        } else {
+            HStack(spacing: 8) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Image(systemName: "mappin.circle.fill")
+                    .foregroundStyle(.secondary)
+                Text(String(
+                    format: NSLocalizedString("itinerary.detail.experiences.unknown", comment: "Unknown experience fallback with truncated id"),
+                    String(expId.prefix(12))
+                ))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(String(
+                format: NSLocalizedString("itinerary.detail.experiences.unknown", comment: "Unknown experience fallback with truncated id"),
+                String(expId.prefix(12))
+            ))
+        }
+    }
+
     private func importFavorites() {
         let favIds = preferences.favoritedExperiences
         guard let count = try? store.importFavorites(favIds, into: itinerary.id), count > 0 else { return }
