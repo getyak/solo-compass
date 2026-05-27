@@ -239,6 +239,97 @@ final class CompiledPlaceTests: XCTestCase {
                              "≥2 sources must produce a higher confidence level than 1 source")
     }
 
+    func testApplyMultiSourceAttributionBumpsConfidenceAndSources() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let singleSourceExp = Experience(
+            id: "us014-test",
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: SoloScore(overall: 7.5, breakdown: base.soloScore.breakdown, basedOnCount: 1),
+            sources: [
+                InformationSource(
+                    type: .user,
+                    url: nil,
+                    attribution: "© OpenStreetMap contributors + AI",
+                    verifiedAt: Date()
+                )
+            ],
+            confidence: Confidence(
+                level: 1,
+                lastVerifiedAt: Date(),
+                reason: "single source",
+                signals: .init(aiScrapeAgeDays: 0, passiveGpsHits30d: 0, activeReports30d: 0, trustedVerifications: 0)
+            ),
+            nearbyExperienceIds: [],
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt
+        )
+
+        let multiSourcePlace = CompiledPlace(
+            coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+            name: TaggedField(value: "Multi", source: .osm),
+            rating: TaggedField(value: 8.5, source: .foursquare),
+            sourcesCount: 2
+        )
+
+        let enriched = AIService.applyMultiSourceAttribution(
+            to: singleSourceExp,
+            compiledPlace: multiSourcePlace
+        )
+
+        XCTAssertGreaterThan(enriched.confidence.level, singleSourceExp.confidence.level,
+                             "Confidence level must be bumped for multi-source place")
+        XCTAssertGreaterThan(enriched.soloScore.basedOnCount, 1,
+                             "basedOnCount must be bumped to reflect multi-source count")
+        XCTAssertGreaterThan(enriched.sources.count, singleSourceExp.sources.count,
+                             "sources list must include additional per-source entries")
+    }
+
+    func testApplyMultiSourceAttributionIsNoOpForSingleSource() throws {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let exp = Experience(
+            id: "us014-single",
+            title: base.title,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: [],
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt
+        )
+
+        let singleSourcePlace = CompiledPlace(
+            coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+            name: TaggedField(value: "Single", source: .osm),
+            sourcesCount: 1
+        )
+
+        let result = AIService.applyMultiSourceAttribution(to: exp, compiledPlace: singleSourcePlace)
+        XCTAssertEqual(result.confidence.level, exp.confidence.level,
+                       "No-op for single-source: confidence must not change")
+        XCTAssertEqual(result.soloScore.basedOnCount, exp.soloScore.basedOnCount,
+                       "No-op for single-source: basedOnCount must not change")
+    }
+
     func testThreeSourcesReturnsHigherConfidenceThanTwo() {
         let two = CompiledPlace(
             coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0),
