@@ -45,10 +45,17 @@ public struct ExperienceCardView: View {
         return (d.isFinite && d < .greatestFiniteMagnitude) ? d : nil
     }
 
-    /// Bearing in degrees (0 = N, clockwise) from the user to this experience, or nil when no GPS fix.
-    private var bearingDegrees: Double? {
+    /// Absolute bearing in degrees (0 = N, clockwise) — used only for VoiceOver cardinal direction.
+    private var absoluteBearingDegrees: Double? {
         guard let coord = experience.coordinate else { return nil }
         return locationService.bearing(to: coord)
+    }
+
+    /// Heading-corrected bearing: 0 = straight ahead. Falls back to absolute bearing
+    /// when the device has no compass or heading accuracy is invalid.
+    private var relativeBearingDegrees: Double? {
+        guard let coord = experience.coordinate else { return nil }
+        return locationService.relativeBearing(to: coord)
     }
 
     /// Maps a bearing in degrees to a localized compass direction string (8 sectors).
@@ -310,16 +317,17 @@ public struct ExperienceCardView: View {
 
     @ViewBuilder
     private func distancePill(_ label: String, symbol: String) -> some View {
-        let bearing = bearingDegrees
+        let relBearing = relativeBearingDegrees
+        let absBearing = absoluteBearingDegrees
         HStack(spacing: 4) {
-            if let bearing {
+            if let relBearing {
                 Image(systemName: "location.north.fill")
                     .font(.caption2)
                     .foregroundStyle(Color.secondary)
-                    .rotationEffect(.degrees(bearing))
+                    .rotationEffect(.degrees(relBearing))
                     .animation(
                         reduceMotion ? nil : .easeInOut(duration: 0.25),
-                        value: bearing
+                        value: relBearing
                     )
                     .accessibilityHidden(true)
             }
@@ -332,8 +340,8 @@ public struct ExperienceCardView: View {
         .background(Capsule().fill(Color.secondary.opacity(0.12)))
         .accessibilityLabel({
             var text = label
-            if let bearing {
-                let direction = Self.compassDirection(for: bearing)
+            if let absBearing {
+                let direction = Self.compassDirection(for: absBearing)
                 text += ". " + String(format: NSLocalizedString("card.distance.bearing.a11y", comment: "Bearing direction accessibility"), direction)
             }
             return text
