@@ -1,410 +1,364 @@
 {
   "project": "Solo Compass",
-  "branchName": "feat/progressive-explore-enrichment-final",
-  "description": "Progressive Explore + cross-channel compilation + agent orchestration \u2014 small-radius-first ladder (5\u219210\u219225\u2192100km) that auto-expands when sparse, incrementally drops map pins, cross-compiles each place across OSM/Foursquare/MapKit/web, and is drivable by natural-language chat/voice. Source: tasks/prd-progressive-explore-enrichment.md.",
+  "branchName": "ralph/companion-mode",
+  "description": "Companion Mode — privacy-first nearby travel-buddy matching and multi-itinerary planning, layered on top of a strictly local, no-social-graph solo app. Three phases: (1) local multi-itinerary planning, (2) async itinerary-based companion discovery + double-opt-in handshake + in-app realtime chat, (3) foreground-only geohash6-blurred nearby presence. Default-off, location always blurred, exact coordinates never leave the device. Source: tasks/prd-companion-mode.md.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add radius ladder constants and ringFilter to EnrichmentAgent",
-      "description": "As a developer, I need the progressive radius ladder and stop-threshold defined so later stories can iterate stages.",
+      "title": "Define Itinerary data model in TS core",
+      "description": "As a developer, I want a typed Itinerary schema in core so itineraries pass consistently across the three layers.",
       "acceptanceCriteria": [
-        "Add `static let progressiveRadii: [Int] = [5_000, 10_000, 25_000, 100_000]` to EnrichmentAgent",
-        "Add `static let enoughThreshold = 8`",
-        "Add a `ringFilter(pois:within:beyond:)` helper keeping POIs whose distance from center is in [beyond, within) meters",
-        "Unit test: ringFilter keeps in-range, drops out-of-range POIs",
-        "xcodebuild build succeeds",
+        "Create packages/core/src/companion.ts exporting Itinerary and ItineraryId (branded type)",
+        "Itinerary fields: id, ownerId, title, cityCode, startDate (ISO date), endDate (ISO date), experienceIds (ordered ExperienceId[]), note?, openToCompanions, createdAt (ISO 8601 UTC), updatedAt",
+        "Export from packages/core/src/index.ts",
+        "Dates use ISO day-granularity; timestamps use ISO 8601 UTC per project convention",
+        "Typecheck passes",
         "Tests pass"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Add exploreProgressively stage loop with cross-stage dedupe and short-circuit",
-      "description": "As a developer, I need a stage loop that collects each ring, dedupes across stages, and stops once enough results accumulate.",
+      "title": "Mirror Itinerary in Swift and pass parity check",
+      "description": "As a developer, I want Itinerary.swift mirroring the TS type so the parity guard passes.",
       "acceptanceCriteria": [
-        "Add `EnrichmentAgent.exploreProgressively(at:categories:cityCode:locale:onBatch:)` looping progressiveRadii",
-        "Each stage collects only the new ring (prevRadius..<radius) via ringFilter",
-        "Dedupe across stages by 4-decimal coordinate cell AND osmId",
-        "Stop expanding once accumulated experience count >= enoughThreshold",
-        "Returns the accumulated [Experience]; never throws on MapKit/Foursquare failure (best-effort)",
-        "Unit test: enough at 5km does not call further stages; sparse 5km expands; dedupe removes overlaps",
+        "Create apps/ios/SoloCompass/Models/Itinerary.swift with fields aligned to the TS Itinerary",
+        "ItineraryId is a strongly-typed Swift wrapper (struct wrapper or validated typealias), not a plain String",
+        "Provide a sample factory for #Preview usage",
+        "pnpm parity:check passes",
         "xcodebuild build succeeds",
-        "Tests pass"
+        "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Extend ExploreProgress enum with scanning and expanding cases",
-      "description": "As a developer, I need progress states for per-radius scanning and cross-stage expansion so the UI can show them.",
+      "title": "Itinerary local persistence (SwiftData)",
+      "description": "As a user, I want my itineraries saved locally so closing the app does not lose them.",
       "acceptanceCriteria": [
-        "Add `case scanning(radiusKm: Int)` and `case expanding(toRadiusKm: Int)` to MapViewModel.ExploreProgress",
-        "Enum stays Equatable & Sendable",
-        "exploreProgressively sets scanning at each stage start and expanding when moving to a larger ring",
-        "xcodebuild build succeeds",
+        "Add a SwiftData model + ItineraryStore (or extend the existing persistence layer) implementing create/read/update/delete",
+        "New itineraries default to openToCompanions = false",
+        "Unit tests cover CRUD in apps/ios/SoloCompass/Tests/",
+        "xcodebuild test passes",
+        "Typecheck passes",
         "Tests pass"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Route exploreNearby through exploreProgressively behind the feature flag",
-      "description": "As a developer, I need exploreNearby to drive the progressive engine when deep-dive is enabled, preserving paywall/consent/quota gates.",
+      "title": "Itinerary list and detail UI",
+      "description": "As a user, I want to see all my itineraries and open one so I can manage multiple travel plans.",
       "acceptanceCriteria": [
-        "When FeatureFlags.deepDiveEnrichment is on, exploreNearby calls exploreProgressively starting at 5km",
-        "Paywall, explore-consent, quota, city-resolution, recordRecentExploreRegion logic preserved",
-        "Legacy wide-ring path still runs when the flag is off (kill switch intact)",
-        "Existing explore tests still pass (they disable the flag)",
+        "Add Views/Companion/ItineraryListView.swift and ItineraryDetailView.swift",
+        "List shows title / city / date range / experience count per itinerary",
+        "Empty state has guidance copy via NSLocalizedString",
+        "Each view has a #Preview",
         "xcodebuild build succeeds",
-        "Tests pass"
+        "Typecheck passes",
+        "Verify in iOS Simulator (iPhone 17 Pro): create / view / delete itinerary looks and behaves correctly"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Show progressive scanning/expanding text in the progress capsule",
-      "description": "As a user, I want to see which radius is being searched and when the app expands outward.",
+      "title": "Create / edit itinerary form",
+      "description": "As a user, I want to create an itinerary with title/city/dates so I can start planning.",
       "acceptanceCriteria": [
-        "CompassMapView.progressText renders scanning(radiusKm) as 'Searching within Nkm\u2026'",
-        "expanding(toRadiusKm) renders 'Few nearby \u00b7 expanding to Nkm'",
-        "Localized in en.lproj and zh-Hans.lproj Localizable.strings",
-        "5km-sufficient run shows no expansion text",
+        "Create form with title, cityCode (chosen from existing cities), startDate, endDate",
+        "Form validation: endDate must not be earlier than startDate",
+        "After save the itinerary appears immediately in the list",
+        "All copy via NSLocalizedString",
         "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
+        "Typecheck passes",
+        "Verify in iOS Simulator: create and edit flows work"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Add expansion radius to the success toast",
-      "description": "As a user, after an auto-expansion I want the toast to tell me the final radius.",
+      "title": "Add experiences to an itinerary / migrate from favorites",
+      "description": "As a user, I want to add an Experience to an itinerary and group existing favorites into itineraries so favorites are no longer one unstructured pile.",
       "acceptanceCriteria": [
-        "When the run expanded past 5km, toast includes the final radius (e.g. 'Expanded to 25km \u00b7 found N')",
-        "5km-only runs keep existing toast wording (no radius mention)",
-        "New strings localized in en + zh-Hans",
+        "Experience detail view has an 'Add to itinerary' entry (pick existing or create new)",
+        "Itinerary detail view can reorder experienceIds via drag",
+        "Provide an 'Import from favorites' action moving selected favoritedExperiences into a chosen itinerary",
+        "Existing favoritedExperiences behavior is not broken (itinerary is additive, not a replacement)",
         "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
+        "Typecheck passes",
+        "Verify in iOS Simulator: add / reorder / import"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-007",
-      "title": "Friendly empty state with city switch when 100km still empty",
-      "description": "As a user, when nothing is found even at 100km I want a helpful prompt, not an error.",
+      "title": "Sync itineraries to Supabase via outbox",
+      "description": "As a user, I want itineraries to sync across devices so switching devices does not lose them.",
       "acceptanceCriteria": [
-        "After all stages empty AND no cache, set a friendly empty message (not lastExploreError)",
-        "Empty state surfaces the existing browse-city entry point",
-        "No technical error string shown in this path",
-        "New strings localized in en + zh-Hans",
-        "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
+        "Create infra/supabase/migrations/0003_companion.sql containing the itineraries table (this table only for now) with its indexes and RLS (self-all + read-open)",
+        "Reuse SyncService.enqueue outbox pattern, adding itinerary sync handling",
+        "last-write-wins merge aligned with existing updated_at + device_id tiebreak logic",
+        "When FF_COMPANION flag is off, only record to outbox and do NOT flush (aligned with existing FF_BACKEND_SYNC pattern)",
+        "Unit tests cover enqueue + merge",
+        "xcodebuild test passes",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 7,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-008",
-      "title": "Add onBatch incremental callback to exploreProgressively",
-      "description": "As a developer, I need the engine to emit each completed batch so the map can update before the whole run finishes.",
+      "title": "Complete companion data models (TS + Swift + migration)",
+      "description": "As a developer, I want CompanionPost / CompanionRequest / CompanionProfile / Conversation / ChatMessage / CompanionReport landed across all three layers.",
       "acceptanceCriteria": [
-        "exploreProgressively invokes `onBatch: ([Experience]) -> Void` after each per-category/per-stage synthesis completes",
-        "Respects Task cancellation: stops emitting once cancelled",
-        "Unit test: onBatch called multiple times; union of batches equals final returned set",
-        "xcodebuild build succeeds",
-        "Tests pass"
+        "companion.ts adds the above types + branded IDs (CompanionPostId, CompanionRequestId, ConversationId, MessageId), plus CompanionMode and CompanionRequestStatus unions",
+        "Add CompanionProfile to packages/core/src/user.ts (all-optional, does not break existing User)",
+        "Create the corresponding Swift models and pass parity:check",
+        "Extend 0003_companion.sql with all remaining tables (companion_profiles, companion_posts, companion_requests, conversations, chat_messages, companion_reports, companion_blocks) + their indexes + reverse RLS policies + updated_at triggers",
+        "pnpm typecheck + pnpm parity:check + xcodebuild build all pass",
+        "Typecheck passes"
       ],
       "priority": 8,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-009",
-      "title": "Incrementally append onBatch results to visibleExperiences",
-      "description": "As a user, I want map pins to appear progressively as places are found.",
+      "title": "Companion profile settings + visibility switch (default off)",
+      "description": "As a user, I want to set my companion profile (emoji/bio/languages) and visibility so I control who can see me.",
       "acceptanceCriteria": [
-        "MapViewModel onBatch handler appends new experiences to visibleExperiences, deduped by id",
-        "appendGenerated persistence still runs for the batch",
-        "Existing markers are not removed or duplicated when a new batch arrives",
+        "Add Views/Companion/CompanionProfileView.swift",
+        "visibility has three levels: off (default) / itinerary_only / nearby_and_itinerary",
+        "When off, the user does not appear in any discovery list (enforced by both RLS and the Edge Function)",
+        "No real-photo upload — emoji / generated avatar only",
+        "All copy via NSLocalizedString",
         "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
+        "Typecheck passes",
+        "Verify in iOS Simulator: profile saves and visibility toggles work"
       ],
       "priority": 9,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-010",
-      "title": "Fade-in animation for newly dropped annotations",
-      "description": "As a user, I want new pins to fade in one by one instead of popping all at once.",
+      "title": "Mark an itinerary as 'open to companions'",
+      "description": "As a user, I want to open an itinerary to companions so same-city same-period people can find me.",
       "acceptanceCriteria": [
-        "New annotations animate with an opacity (and slight scale/drop) transition via existing MarkerIconView/annotation fade",
-        "Pins already on the map do not re-animate when a new batch arrives",
+        "Itinerary detail view has an 'open to companions' switch writing openToCompanions",
+        "Enabling prompts for blurb + categories and generates a CompanionPost(mode=itinerary)",
+        "Disabling immediately takes down that itinerary's post (delete or set expired)",
+        "When visibility=off, enabling is blocked with a prompt to turn on visibility first",
+        "All copy via NSLocalizedString",
         "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
+        "Typecheck passes",
+        "Verify in iOS Simulator: open/close and prompts"
       ],
       "priority": 10,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-011",
-      "title": "Fading radius-ring overlay during expansion",
-      "description": "As a user, I want a visual ring showing the current search radius while expanding.",
+      "title": "Companion discovery list via Edge Function",
+      "description": "As a user, I want to see same-city open itineraries filtered by date/category so I can find suitable travel buddies.",
       "acceptanceCriteria": [
-        "Draw a MapCircle overlay at the current stage radius (5/10/25/100km) during explore",
-        "Overlay fades out when explore returns to idle",
-        "Overlay does not block marker taps",
+        "Create Edge Function companion-discover: inputs city_code / mode / dates / categories; filter with service role + exclude blocked pairs; return only de-identified fields (handle / emoji / blurb / blurred distance bucket) — never exact coordinates",
+        "Create CompanionService.swift calling the function",
+        "Add Views/Companion/DiscoverListView.swift; cards show handle/emoji/blurb/dates/categories",
+        "List returns no exact coordinates",
+        "Empty-state copy + cold-start prompt ('No one in this city is open to companions yet')",
+        "All copy via NSLocalizedString",
         "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
+        "Typecheck passes",
+        "Verify in iOS Simulator: discovery list renders and filters"
       ],
       "priority": 11,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-012",
-      "title": "Add CompiledPlace model with per-field source tags",
-      "description": "As a developer, I need a model that aggregates one place's fields across sources, tracking each field's origin.",
+      "title": "Send / accept / decline companion requests (double opt-in)",
+      "description": "As a user, I want to request a companion post and only connect after they accept so contact requires mutual consent.",
       "acceptanceCriteria": [
-        "Add `CompiledPlace` struct: coordinate, name, optional rating/openingHours/priceLevel/website/phone/address, each with a source tag (osm|foursquare|mapkit|web)",
-        "Conversion from CompiledPlace into OverpassService.POI tags so it feeds existing synthesis",
-        "Unit test: field-level source tags preserved through conversion",
+        "Discovery card can 'send request' (with ice-breaker message <=200 chars) writing CompanionRequest(pending)",
+        "Add RequestInboxView.swift showing received pending requests with accept/decline",
+        "When both sides are accepted, the backend creates a Conversation (via Edge Function or DB trigger for consistency)",
+        "After decline / withdraw no conversation is created and the two no longer disturb each other",
         "xcodebuild build succeeds",
-        "Tests pass"
+        "Typecheck passes",
+        "Verify in iOS Simulator with two anonymous accounts: full handshake (test DB + two devices acceptable)"
       ],
       "priority": 12,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-013",
-      "title": "Cross-source merge by trust order into CompiledPlace",
-      "description": "As a developer, I need same-cell records from multiple sources merged by credibility, only filling missing fields.",
+      "title": "In-app lightweight realtime chat (Supabase Realtime)",
+      "description": "As a user, I want to text an accepted travel buddy inside the app so we can arrange to meet.",
       "acceptanceCriteria": [
-        "Merge same-cell records: coordinate/name prefer OSM; rating/hours/price prefer Foursquare>MapKit; address prefer MapKit-structured>reverse-geocode",
-        "A field is taken from a lower-priority source only when higher-priority is missing",
-        "Track how many distinct sources contributed (for confidence)",
-        "Unit test: conflict resolution and missing-field backfill correct",
+        "ChatService.swift subscribes to the chat_messages Realtime channel by conversation_id",
+        "Views/Companion/ChatView.swift: text input, message bubbles, ordered by sent_at",
+        "Only conversation participants can read/write (RLS enforces; client double-checks)",
+        "Messages <=1000 chars; plain text only (no images/attachments)",
+        "After reconnect, fetch messages missed while offline (sent_at > lastSeen)",
         "xcodebuild build succeeds",
-        "Tests pass"
+        "Typecheck passes",
+        "Verify in iOS Simulator: bidirectional realtime send/receive"
       ],
       "priority": 13,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-014",
-      "title": "Bump confidence and attribution for multi-source places",
-      "description": "As a user, places confirmed by 2+ sources should read as more trustworthy.",
+      "title": "Report and block",
+      "description": "As a user, I want to report or block someone so I can protect myself from harassment.",
       "acceptanceCriteria": [
-        "Places with >=2 contributing sources get higher Confidence.level and basedOnCount in synthesis parse",
-        "InformationSource attribution lists the contributing sources",
-        "Unit test: 2-source place gets a bumped level vs single-source",
+        "Report can be started from any post / request / message / profile (pick reason + optional detail)",
+        "After blocking: the other person disappears from all my discovery lists, cannot send me requests, and any existing conversation is frozen",
+        "Reports write to companion_reports (a user cannot read others' reports)",
+        "Blocks write to companion_blocks; the discovery Edge Function excludes blocked pairs bidirectionally",
         "xcodebuild build succeeds",
-        "Tests pass"
+        "Typecheck passes",
+        "Verify in iOS Simulator: report submission and block takes effect"
       ],
       "priority": 14,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-015",
-      "title": "Show multi-source indicator and real signals in detail view",
-      "description": "As a user, I want to see a 'verified by multiple sources' indicator plus real rating/hours/price.",
+      "title": "PresenceService — foreground-only, manual switch, geohash6 broadcast",
+      "description": "As a user, I want to manually enable 'nearby companions' broadcasting only a blurred location in the foreground so I can find nearby people with controlled privacy.",
       "acceptanceCriteria": [
-        "Detail view shows an indicator when basedOnCount>=2 (or >=2 sources)",
-        "Detail view renders rating, openingHours, priceLevel when present; hides the row when nil",
-        "Localized strings in en + zh-Hans",
-        "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
+        "Create PresenceService.swift that starts only when the user actively enables it in the UI",
+        "Subscribe to LocationService.currentLocation, convert to geohash6 (~600m), and report a CompanionPost(mode=nearby, geohash6) every N minutes",
+        "When the app enters background OR the user turns the switch off, immediately stop reporting and take down the nearby post",
+        "Exact coordinates never leave the device (compute geohash6 locally then discard the precise value)",
+        "Do not request Always authorization; WhenInUse is sufficient",
+        "Unit tests: switch toggling, background stop, coordinate->geohash6 conversion correct",
+        "xcodebuild test passes",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 15,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-016",
-      "title": "Add WebSearchEnrichmentSource for top-N places",
-      "description": "As a developer, I need an optional web-search source that enriches only the top-ranked places, degrading silently.",
+      "title": "LocationService coarse geohash seam",
+      "description": "As a developer, I want LocationService to expose a coarse (geohash6) read seam so PresenceService never touches precise GPS management.",
       "acceptanceCriteria": [
-        "Add WebSearchEnrichmentSource invoked only for top-N (default 5) ranked places",
-        "Uses the existing AI channel; returns empty/skips silently when no key or quota exceeded",
-        "Anti-hallucination boundary: only cross-verifiable objective info (no invented menu/owner)",
-        "Gated by a FeatureFlag (default per quota policy)",
-        "Unit test: no-key path returns input unchanged; top-N truncation correct",
-        "xcodebuild build succeeds",
+        "LocationService adds a coarseGeohash6 computed property / publisher derived from the existing currentLocation",
+        "Existing precise-location and geofencing logic is unchanged (regression-test existing region behavior)",
+        "geohash6 encoding has unit tests (known coordinate -> known hash)",
+        "xcodebuild test passes",
+        "Typecheck passes",
         "Tests pass"
       ],
       "priority": 16,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-017",
-      "title": "Extend ExperienceFilter with quality and ambiance dimensions",
-      "description": "As a user, I want to describe needs like high-rated, good-ambiance, quiet, solo-friendly, cheap.",
+      "title": "Map companion layer (default off)",
+      "description": "As a user, I want to see the nearby companion grid on the map so I can intuitively discover people around me.",
       "acceptanceCriteria": [
-        "Add ratingMin / ambianceMin / quietness / soloFriendly / priceMax to QueryAgent.ExperienceFilter",
-        "Mapping: ambiance->ambianceFit; quiet->high seatingFriendly + low staffPressure; solo->high soloPatronRatio + high soloPortioning",
-        "Add a pure `matches(_ experience:)` predicate applying the active dimensions",
-        "Unit test: predicate filters by each dimension correctly",
+        "CompassMapView adds an optional 'companion layer' switch (default off)",
+        "When on, call companion-discover(mode=nearby) and render as geohash6 grid centers + 'within ~600m' blur — never draw exact points",
+        "Turning the layer off returns the map to its current state with no companion elements",
+        "When visibility=off or Presence is not enabled, the layer entry is disabled with an explanation",
         "xcodebuild build succeeds",
-        "Tests pass"
+        "Typecheck passes",
+        "Verify in iOS Simulator: layer toggle and blurred-grid rendering"
       ],
       "priority": 17,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-018",
-      "title": "Teach QueryAgent to extract quality dimensions from language",
-      "description": "As a user, I want phrases like 'quiet cafe to work' parsed into structured filters.",
+      "title": "Auto-expiry and cleanup",
+      "description": "As a system, I want to auto-clean expired nearby posts and stale data so lists do not show ghost users.",
       "acceptanceCriteria": [
-        "QueryAgent prompt includes extraction examples mapping adjectives to the new filter fields",
-        "Test: 'quiet cafe to work' -> category coffee + quietness; 'highly rated coffee' -> ratingMin set",
-        "xcodebuild build succeeds",
+        "nearby post expires_at <= 2h; discovery query filters expires_at > now() (RLS already includes this)",
+        "Scheduled cleanup (Supabase scheduled function or query-time filter) removes expired posts",
+        "pending requests that time out (e.g. 7 days) auto-set to expired",
+        "Unit/integration test verifies expired items do not appear in discovery results",
+        "Typecheck passes",
         "Tests pass"
       ],
       "priority": 18,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-019",
-      "title": "Add quality params and progressive flag to explore tools",
-      "description": "As a developer, the voice/chat explore tools must accept quality thresholds and trigger progressive collection.",
+      "title": "reporterWeight downranking + discovery sort",
+      "description": "As a system, I want to use the existing trust score to sort companion discovery and downrank low-score users so abusers are harder to find.",
       "acceptanceCriteria": [
-        "explore_nearby and search_places tool schemas add categories[], solo_score_min, rating_min, ambiance_min, progressive",
-        "VoiceAgentToolRouter maps these args into an ExperienceFilter and calls exploreProgressively when progressive=true",
-        "Explicit radius_meters overrides the starting stage",
-        "Unit test: tool args -> ExperienceFilter mapping correct",
-        "xcodebuild build succeeds",
+        "Edge Function discovery results are weighted-sorted by reporter_weight descending",
+        "Repeated reports trigger a reporter_weight decrease (rule documented)",
+        "Users below a threshold do not appear in the discovery list",
+        "Unit tests cover the sort and the threshold",
+        "Typecheck passes",
         "Tests pass"
       ],
       "priority": 19,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-020",
-      "title": "Add filter_visible tool and applyQualityFilter",
-      "description": "As a user, I want to say 'drop the ones below 8' to filter what's on the map without re-fetching.",
+      "title": "Safety copy, minor protection, and emergency clauses",
+      "description": "As a product, I want safety guidance and a disclaimer/report channel shown at companion entry and before meeting so we meet compliance and the user-safety baseline.",
       "acceptanceCriteria": [
-        "Add filter_visible tool (quality dimensions) to VoiceAgentToolRouter",
-        "MapViewModel.applyQualityFilter(_ filter:) filters visibleExperiences in place, no network",
-        "Returns count remaining for the agent reply",
-        "Unit test: filter_visible triggers no network and trims the set correctly",
+        "First-time companion opt-in shows safety notice + consent terms (no precise location before meeting, meet in public, report entry point)",
+        "Minor-protection statement / age confirmation",
+        "Update App Store privacy manifest (PrivacyInfo): purposes for location, user content, contact info",
+        "UGC (blurb/bio/messages) has basic min-length / sensitive-word filtering",
+        "Legal terms marked as a human-confirmation open item (not decided by development)",
+        "All copy via NSLocalizedString",
         "xcodebuild build succeeds",
-        "Tests pass"
+        "Typecheck passes"
       ],
       "priority": 20,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-021",
-      "title": "Add expand_radius tool and expandOneStage",
-      "description": "As a user, I want to say 'a bit farther' to expand the search one stage.",
+      "title": "One-tap full off / data deletion",
+      "description": "As a user, I want to turn off all companion features and delete my companion data in one tap so I can fully exit the social layer.",
       "acceptanceCriteria": [
-        "Add expand_radius tool to VoiceAgentToolRouter",
-        "MapViewModel.expandOneStage() advances exploreProgressively by one ring from the last center",
-        "No-op with a clear reply when already at 100km",
-        "Unit test: expandOneStage advances exactly one stage",
+        "Settings item 'Turn off companions and delete my companion data': set visibility=off, take down all posts, delete profile / itinerary open flags",
+        "After turning off, the app experience is identical to never having enabled companions",
+        "Deletion cascades (profile/posts/requests/conversations associated cleanup)",
         "xcodebuild build succeeds",
-        "Tests pass"
+        "Typecheck passes",
+        "Verify in iOS Simulator: no companion traces remain after turning off"
       ],
       "priority": 21,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-022",
-      "title": "Agent autonomous multi-step orchestration with explanation",
-      "description": "As a user, 'find a high-rated cafe' should make the agent filter-then-fetch-then-expand as needed and explain what it did.",
-      "acceptanceCriteria": [
-        "When a matching visible set exists, agent calls filter_visible first; if too few, calls explore_nearby(progressive)",
-        "When still too few, agent calls expand_radius or relaxes the threshold and GuideAgent explains the tradeoff",
-        "Progress capsule reflects the current action during orchestration",
-        "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
-      ],
-      "priority": 22,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-023",
-      "title": "Multi-turn refinement over the previous result set",
-      "description": "As a user, I want 'the closest of those' / 'cheaper' to refine the last results without re-fetching.",
-      "acceptanceCriteria": [
-        "Using AgentMessage.history, refine the previous result set by sort/filter instead of re-collecting",
-        "'closest' re-sorts by distance; 'cheaper' tightens priceMax; switching category restarts intent",
-        "Ordinal reference ('the second one') resolves to the matching visible item",
-        "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
-      ],
-      "priority": 23,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-024",
-      "title": "Proactive single best recommendation with real reason",
-      "description": "As a user, I want the agent to proactively suggest one best place and say why it fits right now.",
-      "acceptanceCriteria": [
-        "On GetRecommendation intent, agent picks one best place using time/location/preferences",
-        "GuideAgent reply cites real signals (rating, open-now, solo-friendly), not vague praise",
-        "The recommended item is highlighted on the map",
-        "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
-      ],
-      "priority": 24,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-025",
-      "title": "Open-now filtering using openingHours and local time",
-      "description": "As a user, I want to say 'open now' to only see places I can go to this moment.",
-      "acceptanceCriteria": [
-        "Add an open-now predicate using openingHours + current local time",
-        "Card/detail show status: Open / Closing soon / Closed",
-        "Places with missing hours show 'Hours unknown' and are NOT assumed open",
-        "Unit test: open-now predicate handles open, closed, and unknown cases",
-        "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
-      ],
-      "priority": 25,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-026",
-      "title": "Itinerary ordering of selected/favorite places",
-      "description": "As a user, I want to say 'route these for the afternoon' and get a walkable ordered sequence.",
-      "acceptanceCriteria": [
-        "Order selected/favorite places by distance + opening hours into a sequence",
-        "Map shows the order via numbered pins and a connecting polyline",
-        "If a stop is closed at its slot, surface a warning with an alternative",
-        "Unit test: ordering respects distance and skips closed stops",
-        "xcodebuild build succeeds",
-        "Verify in iOS Simulator"
-      ],
-      "priority": 26,
-      "passes": true,
+      "passes": false,
       "notes": ""
     }
   ]
