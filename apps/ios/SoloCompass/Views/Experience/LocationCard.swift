@@ -11,6 +11,32 @@ struct LocationCard: View {
 
     @State private var isShowingPicker = false
     @State private var didCopy = false
+    @Environment(LocationService.self) private var locationService
+
+    private var distanceMeters: Double? {
+        let d = locationService.distance(to: coordinate)
+        return (d.isFinite && d < .greatestFiniteMagnitude) ? d : nil
+    }
+
+    private static let distanceFormatter: MeasurementFormatter = {
+        let f = MeasurementFormatter()
+        f.unitOptions = .naturalScale
+        f.unitStyle = .short
+        f.numberFormatter.maximumFractionDigits = 1
+        return f
+    }()
+
+    private static func formatDistance(_ meters: Double) -> (text: String, symbol: String) {
+        if meters < 1500 {
+            let minutes = Int((meters / 80.0).rounded(.up))
+            let label = minutes < 1
+                ? NSLocalizedString("card.distance.walkSub1", comment: "Distance less than 1 min walk")
+                : String(format: NSLocalizedString("card.distance.walk", comment: "Distance in walk minutes"), minutes)
+            return (label, "figure.walk")
+        }
+        let measurement = Measurement(value: meters, unit: UnitLength.meters)
+        return (Self.distanceFormatter.string(from: measurement), "location.fill")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -33,6 +59,17 @@ struct LocationCard: View {
                         .foregroundStyle(.tertiary)
                 }
                 Spacer(minLength: 0)
+            }
+
+            if let meters = distanceMeters {
+                let dl = Self.formatDistance(meters)
+                Label(dl.text, systemImage: dl.symbol)
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .foregroundStyle(Color.secondary)
+                    .background(Capsule().fill(Color.secondary.opacity(0.12)))
+                    .accessibilityLabel(String(format: NSLocalizedString("favorites.row.distance.a11y", comment: "Distance away"), dl.text))
             }
 
             HStack(spacing: 10) {
@@ -107,11 +144,25 @@ struct LocationCard: View {
     }
 }
 
-#Preview("LocationCard") {
+#Preview("LocationCard — with distance") {
+    let coord = CLLocationCoordinate2D(latitude: 35.7148, longitude: 139.7967)
+    let locationService = LocationService()
+    locationService.simulate(location: CLLocation(latitude: coord.latitude + 0.004, longitude: coord.longitude))
+    return LocationCard(
+        coordinate: coord,
+        displayName: "浅草寺 Sensō-ji",
+        addressHint: "2-3-1 Asakusa, Taito City, Tokyo"
+    )
+    .padding()
+    .environment(locationService)
+}
+
+#Preview("LocationCard — no location") {
     LocationCard(
         coordinate: CLLocationCoordinate2D(latitude: 35.7148, longitude: 139.7967),
         displayName: "浅草寺 Sensō-ji",
         addressHint: "2-3-1 Asakusa, Taito City, Tokyo"
     )
     .padding()
+    .environment(LocationService())
 }
