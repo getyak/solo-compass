@@ -5742,3 +5742,56 @@ final class EnrichmentPipelineTests: XCTestCase {
         XCTAssertNotEqual(id & 0x2000_0000_0000_0000, 0, "MapKit id must carry its own marker bit")
     }
 }
+
+// MARK: - US-019: VoiceAgentToolRouter quality args → ExperienceFilter mapping
+
+@MainActor
+final class ToolRouterQualityArgsTests: XCTestCase {
+
+    private func makeFilter(
+        categories: [String]? = nil,
+        soloScoreMin: Double? = nil,
+        ratingMin: Double? = nil,
+        ambianceMin: Double? = nil
+    ) -> ExperienceFilter {
+        ExperienceFilter(
+            category: categories?.compactMap(ExperienceCategory.init(rawValue:)).first?.rawValue,
+            soloScoreMin: soloScoreMin,
+            ratingMin: ratingMin,
+            ambianceMin: ambianceMin
+        )
+    }
+
+    func testCategoryArgMappedToFilter() {
+        let filter = makeFilter(categories: ["coffee"])
+        XCTAssertEqual(filter.category, "coffee")
+    }
+
+    func testUnknownCategoryYieldsNilCategory() {
+        let filter = makeFilter(categories: ["unknown_cat"])
+        XCTAssertNil(filter.category)
+    }
+
+    func testSoloScoreMinMapped() {
+        let filter = makeFilter(soloScoreMin: 7.5)
+        XCTAssertEqual(filter.soloScoreMin, 7.5)
+    }
+
+    func testRatingMinMapped() {
+        let filter = makeFilter(ratingMin: 8.0)
+        XCTAssertEqual(filter.ratingMin, 8.0)
+    }
+
+    func testAmbianceMinMapped() {
+        let filter = makeFilter(ambianceMin: 6.5)
+        XCTAssertEqual(filter.ambianceMin, 6.5)
+    }
+
+    func testEmptyArgsMapsToEmptyFilter() {
+        let filter = makeFilter()
+        XCTAssertNil(filter.category)
+        XCTAssertNil(filter.soloScoreMin)
+        XCTAssertNil(filter.ratingMin)
+        XCTAssertNil(filter.ambianceMin)
+    }
+}

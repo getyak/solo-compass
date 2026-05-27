@@ -1,6 +1,15 @@
 import Foundation
 import CoreLocation
 
+/// Shared protocol so ExploreNearbyArgs / SearchPlacesArgs can reuse the same
+/// filter-building helper without duplicating field access. (US-019)
+private protocol QualityArgsProvider {
+    var categories: [String]? { get }
+    var solo_score_min: Double? { get }
+    var rating_min: Double? { get }
+    var ambiance_min: Double? { get }
+}
+
 /// Maps DeepSeek `tool_calls` to concrete app actions.
 ///
 /// US-VA-03: 5 tools defined in docs/PRD/voice-agent.md §4 — explore_nearby,
@@ -57,7 +66,12 @@ public final class VoiceAgentToolRouter {
               "properties": {
                 "latitude":  {"type": "number"},
                 "longitude": {"type": "number"},
-                "radius_meters": {"type": "integer", "minimum": 500, "maximum": 8000, "default": 3000}
+                "radius_meters": {"type": "integer", "minimum": 500, "maximum": 100000, "description": "Overrides the progressive starting ring when provided"},
+                "categories": {"type": "array", "items": {"type": "string", "enum": ["culture","nature","food","coffee","work","wellness","nightlife","hidden"]}, "description": "Optional category filter list"},
+                "solo_score_min": {"type": "number", "minimum": 0, "maximum": 10, "description": "Minimum solo-traveler score"},
+                "rating_min":     {"type": "number", "minimum": 0, "maximum": 10, "description": "Minimum provider rating"},
+                "ambiance_min":   {"type": "number", "minimum": 0, "maximum": 10, "description": "Minimum ambiance fit score"},
+                "progressive":    {"type": "boolean", "default": true, "description": "When true, use progressive multi-ring explore (recommended)"}
               }
             }
             """#
@@ -128,7 +142,12 @@ public final class VoiceAgentToolRouter {
                 "query": {"type": "string", "description": "Name or category to search for, e.g. 'ramen', 'convenience store', 'rooftop bar'"},
                 "latitude":  {"type": "number"},
                 "longitude": {"type": "number"},
-                "radius_meters": {"type": "integer", "minimum": 500, "maximum": 5000, "default": 2000}
+                "radius_meters": {"type": "integer", "minimum": 500, "maximum": 100000, "description": "Overrides the progressive starting ring when provided"},
+                "categories": {"type": "array", "items": {"type": "string", "enum": ["culture","nature","food","coffee","work","wellness","nightlife","hidden"]}, "description": "Optional category filter list"},
+                "solo_score_min": {"type": "number", "minimum": 0, "maximum": 10, "description": "Minimum solo-traveler score"},
+                "rating_min":     {"type": "number", "minimum": 0, "maximum": 10, "description": "Minimum provider rating"},
+                "ambiance_min":   {"type": "number", "minimum": 0, "maximum": 10, "description": "Minimum ambiance fit score"},
+                "progressive":    {"type": "boolean", "default": true, "description": "When true, use progressive multi-ring explore (recommended)"}
               }
             }
             """#
@@ -181,10 +200,15 @@ public final class VoiceAgentToolRouter {
 
     // MARK: - Per-tool handlers
 
-    private struct ExploreNearbyArgs: Decodable {
+    private struct ExploreNearbyArgs: Decodable, QualityArgsProvider {
         let latitude: Double?
         let longitude: Double?
         let radius_meters: Int?
+        let categories: [String]?
+        let solo_score_min: Double?
+        let rating_min: Double?
+        let ambiance_min: Double?
+        let progressive: Bool?
     }
 
     private func executeExploreNearby(args: String) async throws -> String {
@@ -192,17 +216,28 @@ public final class VoiceAgentToolRouter {
         guard let vm = mapViewModel else {
             throw RouterError.underlying("map view model deallocated")
         }
-        // Fall back to the default center when the model omits coords —
-        // matches the PRD's "Omit to use the user's current GPS location".
         let coord = CLLocationCoordinate2D(
             latitude: parsed.latitude ?? MapViewModel.defaultCenter.latitude,
             longitude: parsed.longitude ?? MapViewModel.defaultCenter.longitude
         )
+        let useProgressive = parsed.progressive ?? true
+        // Explicit radius_meters overrides the progressive starting ring.
         let radius = parsed.radius_meters ?? 3000
-        await vm.exploreNearby(at: coord, radiusMeters: radius)
+        let category = parsed.categories?.compactMap(ExperienceCategory.init(rawValue:)).first
+        if useProgressive {
+            await vm.exploreProgressively(
+                at: coord,
+                startingRadiusMeters: parsed.radius_meters,
+                category: category,
+                filter: Self.buildFilter(from: parsed)
+            )
+        } else {
+            await vm.exploreNearby(at: coord, radiusMeters: radius, category: category)
+        }
         return Self.successJSON([
             "added_count": vm.lastExploreAddedCount,
             "radius_meters": radius,
+            "progressive": useProgressive,
         ])
     }
 
@@ -271,11 +306,16 @@ public final class VoiceAgentToolRouter {
         ])
     }
 
-    private struct SearchPlacesArgs: Decodable {
+    private struct SearchPlacesArgs: Decodable, QualityArgsProvider {
         let query: String
         let latitude: Double?
         let longitude: Double?
         let radius_meters: Int?
+        let categories: [String]?
+        let solo_score_min: Double?
+        let rating_min: Double?
+        let ambiance_min: Double?
+        let progressive: Bool?
     }
 
     private func executeSearchPlaces(args: String) async throws -> String {
@@ -287,14 +327,24 @@ public final class VoiceAgentToolRouter {
             latitude: parsed.latitude ?? MapViewModel.defaultCenter.latitude,
             longitude: parsed.longitude ?? MapViewModel.defaultCenter.longitude
         )
+        let useProgressive = parsed.progressive ?? true
         let radius = parsed.radius_meters ?? 2000
-        // Reuse the explore path — it fetches OSM POIs near the coord and
-        // lets AIService synthesise + append them to the visible set.
-        await vm.exploreNearby(at: coord, radiusMeters: radius)
+        let category = parsed.categories?.compactMap(ExperienceCategory.init(rawValue:)).first
+        if useProgressive {
+            await vm.exploreProgressively(
+                at: coord,
+                startingRadiusMeters: parsed.radius_meters,
+                category: category,
+                filter: Self.buildFilter(from: parsed)
+            )
+        } else {
+            await vm.exploreNearby(at: coord, radiusMeters: radius, category: category)
+        }
         return Self.successJSON([
             "query": parsed.query,
             "added_count": vm.lastExploreAddedCount,
             "radius_meters": radius,
+            "progressive": useProgressive,
         ])
     }
 
@@ -312,6 +362,17 @@ public final class VoiceAgentToolRouter {
         // Open Apple Maps by default — NavigationLauncher picks the best available app.
         NavigationLauncher.open(app: .appleMaps, coordinate: coord, name: exp.title)
         return Self.successJSON(["experience_id": exp.id, "title": exp.title])
+    }
+
+    // MARK: - Shared filter builder (US-019)
+
+    private static func buildFilter<T>(from args: T) -> ExperienceFilter where T: QualityArgsProvider {
+        ExperienceFilter(
+            category: args.categories?.compactMap(ExperienceCategory.init(rawValue:)).first?.rawValue,
+            soloScoreMin: args.solo_score_min,
+            ratingMin: args.rating_min,
+            ambianceMin: args.ambiance_min
+        )
     }
 
     // MARK: - Codec helpers

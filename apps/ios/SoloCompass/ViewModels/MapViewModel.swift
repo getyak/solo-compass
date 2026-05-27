@@ -895,6 +895,32 @@ public final class MapViewModel {
 
     // MARK: - Explore Here
 
+    /// US-019: Voice-tool entry point for progressive multi-ring explore.
+    /// Delegates to `exploreNearby` (which uses `FeatureFlags.deepDiveEnrichment`
+    /// for the progressive path internally). `startingRadiusMeters`, when set,
+    /// overrides the initial stage of the progressive ladder.
+    /// After the explore completes, applies `filter` to trim the visible set
+    /// in-place so quality-dimension args from the voice tool take effect
+    /// without an extra network call.
+    public func exploreProgressively(
+        at coordinate: CLLocationCoordinate2D,
+        startingRadiusMeters: Int? = nil,
+        category: ExperienceCategory? = nil,
+        filter: ExperienceFilter? = nil
+    ) async {
+        let radius = startingRadiusMeters ?? 3000
+        await exploreNearby(at: coordinate, radiusMeters: radius, category: category)
+        if let filter {
+            let trimmed = visibleExperiences.filter { filter.matches($0) }
+            if trimmed.count != visibleExperiences.count {
+                withAnimation(Self.markerSetAnimation) {
+                    visibleExperiences = trimmed
+                    nearbySoloCount = computeNearbySoloCount(in: trimmed)
+                }
+            }
+        }
+    }
+
     /// Pull real OSM POIs near `coordinate`, hand them to AIService for
     /// solo-traveler enrichment, append the generated Experiences to the
     /// store, and refresh the visible set. No-op if already exploring.
