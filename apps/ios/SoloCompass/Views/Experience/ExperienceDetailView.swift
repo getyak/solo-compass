@@ -347,8 +347,6 @@ public struct ExperienceDetailView: View {
 
     // MARK: - Sections
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     @ViewBuilder
     private var whyItMattersSection: some View {
         let content = viewModel.experience.whyItMatters.trimmingCharacters(in: .whitespacesAndNewlines)
