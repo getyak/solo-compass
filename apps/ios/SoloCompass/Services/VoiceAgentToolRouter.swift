@@ -183,6 +183,16 @@ public final class VoiceAgentToolRouter {
             }
             """#
         ),
+        .init(
+            name: "expand_radius",
+            description: "Advance the explore ring by one step outward from the last explore center (5 km → 10 km → 25 km → 100 km). Use when the user says 'show more', 'expand', or 'widen the search'. No-op if already at 100 km.",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {}
+            }
+            """#
+        ),
     ]
 
     // MARK: - Execution
@@ -210,6 +220,8 @@ public final class VoiceAgentToolRouter {
                 return try executeNavigateTo(args: call.argumentsJSON)
             case "filter_visible":
                 return try executeFilterVisible(args: call.argumentsJSON)
+            case "expand_radius":
+                return await executeExpandRadius()
             default:
                 throw RouterError.unknownTool(call.name)
             }
@@ -413,6 +425,24 @@ public final class VoiceAgentToolRouter {
         let remaining = vm.applyQualityFilter(filter)
         return Self.successJSON([
             "remaining_count": remaining,
+        ])
+    }
+
+    // MARK: - expand_radius (US-021)
+
+    private func executeExpandRadius() async -> String {
+        guard let vm = mapViewModel else {
+            return Self.errorJSON(RouterError.underlying("map view model deallocated"))
+        }
+        if let noopReason = await vm.expandOneStage() {
+            return Self.successJSON([
+                "expanded": false,
+                "reason": noopReason,
+            ])
+        }
+        return Self.successJSON([
+            "expanded": true,
+            "added_count": vm.lastExploreAddedCount,
         ])
     }
 

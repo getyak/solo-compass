@@ -360,6 +360,7 @@
 "explore.progress.expanding" = "Nearby sparse · expanding to %d km";
 "explore.offline.staleToast" = "Showing offline data from %@";
 "explore.toast.cachedFallback" = "Showing cached results";
+"explore.expand.alreadyMax" = "Already exploring the maximum radius (100 km).";
 
 /* Paywall */
 "paywall.hero.title" = "Unlock Solo Compass Pro";

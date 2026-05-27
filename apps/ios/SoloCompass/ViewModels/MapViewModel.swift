@@ -893,6 +893,44 @@ public final class MapViewModel {
         experienceService.allExperiences.filter { $0.location.cityCode == cityCode }.count
     }
 
+    // MARK: - Expand radius (US-021)
+
+    /// Center used by the most recent progressive explore (or explicit radius override).
+    /// Stored so `expandOneStage` can advance the same ring ladder from the same anchor.
+    public private(set) var lastExploreCenter: CLLocationCoordinate2D?
+
+    /// Index into `EnrichmentAgent.progressiveRadii` for the ring that was last
+    /// scanned. `expandOneStage` advances this by one and reruns from that radius.
+    public private(set) var lastProgressiveRadiusIndex: Int = 0
+
+    /// Advance the progressive ring ladder by exactly one step from the last
+    /// explore center. Returns `nil` when a new explore was successfully
+    /// launched, or a human-readable no-op reason string when already at the
+    /// max radius (100 km).
+    @discardableResult
+    public func expandOneStage() async -> String? {
+        let radii = EnrichmentAgent.progressiveRadii
+        let maxRadius = radii.last ?? 100_000
+        guard progressiveScratchRadiusMeters < maxRadius else {
+            return NSLocalizedString(
+                "explore.expand.alreadyMax",
+                comment: "Already at maximum explore radius"
+            )
+        }
+        let center = lastExploreCenter ?? exploreAnchorCoordinate
+        // Advance to the next ring beyond the current scratch radius.
+        let nextRadius: Int
+        if let nextIndex = radii.firstIndex(where: { $0 > progressiveScratchRadiusMeters }) {
+            nextRadius = radii[nextIndex]
+            lastProgressiveRadiusIndex = nextIndex
+        } else {
+            nextRadius = maxRadius
+            lastProgressiveRadiusIndex = radii.count - 1
+        }
+        await exploreProgressively(at: center, startingRadiusMeters: nextRadius)
+        return nil
+    }
+
     // MARK: - Quality filter (US-020)
 
     /// Apply a quality-dimension filter to `visibleExperiences` in place,
@@ -925,6 +963,7 @@ public final class MapViewModel {
         category: ExperienceCategory? = nil,
         filter: ExperienceFilter? = nil
     ) async {
+        lastExploreCenter = coordinate
         let radius = startingRadiusMeters ?? 3000
         await exploreNearby(at: coordinate, radiusMeters: radius, category: category)
         if let filter {
@@ -949,6 +988,8 @@ public final class MapViewModel {
         category: ExperienceCategory? = nil
     ) async {
         guard !isExploring else { return }
+        // Track center so expandOneStage can reuse it (US-021).
+        lastExploreCenter = coordinate
 
         // US-024: free-tier gate. Park the original action so the
         // paywall's onUnlocked can resume it after purchase, then bail.
@@ -1322,7 +1363,9 @@ public final class MapViewModel {
     /// Scratch vars used by the progressive explore path to accumulate
     /// state across `onProgress`/`onBatch` closures without capturing
     /// mutable locals (Swift 6 strict-concurrency restriction).
-    private var progressiveScratchRadiusMeters: Int = 0
+    /// `internal` (not private) so unit tests can seed the current radius
+    /// for `expandOneStage` assertions without triggering a full explore run.
+    var progressiveScratchRadiusMeters: Int = 0
     private var progressiveScratchAddedCount: Int = 0
 
     /// Pull OSM POIs for `exploreNearby`. When the Pro multi-ring flag is

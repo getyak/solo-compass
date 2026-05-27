@@ -5805,7 +5805,7 @@ final class ApplyQualityFilterTests: XCTestCase {
         MapViewModel(
             locationService: LocationService(),
             experienceService: ExperienceService(),
-            aiService: AIService(preferences: UserPreferences()),
+            aiService: AIService(),
             preferences: UserPreferences()
         )
     }
@@ -5877,5 +5877,48 @@ final class ApplyQualityFilterTests: XCTestCase {
         ]
         let remaining = vm.applyQualityFilter(ExperienceFilter(category: "coffee"))
         XCTAssertEqual(remaining, 2)
+    }
+}
+
+// MARK: - US-021: expandOneStage advances exactly one ring, no-op at 100km
+
+@MainActor
+final class ExpandOneStageTests: XCTestCase {
+
+    private func makeVM(acceptConsent: Bool = false) -> MapViewModel {
+        let prefs = UserPreferences()
+        if acceptConsent { prefs.acceptExploreConsent() }
+        return MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+    }
+
+    func testNoOpAtMaxRadius() async {
+        let vm = makeVM()
+        let maxRadius = EnrichmentAgent.progressiveRadii.last ?? 100_000
+        vm.progressiveScratchRadiusMeters = maxRadius
+        let reason = await vm.expandOneStage()
+        XCTAssertNotNil(reason, "Should return a no-op reason string at max radius")
+    }
+
+    func testAdvancesExactlyOneStageFromFirstRing() async {
+        let vm = makeVM(acceptConsent: true)
+        let radii = EnrichmentAgent.progressiveRadii
+        // Seed at ring 0 (5 km). expandOneStage should try ring 1 (10 km).
+        vm.progressiveScratchRadiusMeters = radii[0]
+        // Run expandOneStage; network will fail in tests but index must advance.
+        _ = await vm.expandOneStage()
+        XCTAssertEqual(vm.lastProgressiveRadiusIndex, 1)
+    }
+
+    func testNoOpReturnsClearMessage() async {
+        let vm = makeVM()
+        vm.progressiveScratchRadiusMeters = 100_000
+        let msg = await vm.expandOneStage()
+        XCTAssertNotNil(msg)
+        XCTAssertFalse(msg?.isEmpty ?? true, "No-op message should not be empty")
     }
 }
