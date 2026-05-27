@@ -84,7 +84,7 @@
         "xcodebuild build passes"
       ],
       "priority": 6,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-007",
@@ -99,7 +99,7 @@
         "xcodebuild test passes"
       ],
       "priority": 7,
-      "passes": false
+      "passes": true
     }
   ]
 }
