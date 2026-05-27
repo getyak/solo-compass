@@ -250,43 +250,55 @@ public struct ExperienceDetailView: View {
 
     // MARK: - Sections
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @ViewBuilder
     private var whyItMattersSection: some View {
         let content = viewModel.experience.whyItMatters.trimmingCharacters(in: .whitespacesAndNewlines)
-        if viewModel.isLoadingWhyItMatters {
+        let isLoading = viewModel.isLoadingWhyItMatters
+        if isLoading || !content.isEmpty {
             sectionContainer(title: NSLocalizedString("section.whyItMatters", comment: "")) {
-                SkeletonView(lineCount: 3)
+                if isLoading {
+                    SkeletonView(lineCount: 3)
+                        .id("whyItMatters-skeleton")
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+                } else {
+                    Text(content)
+                        .font(.body)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .id("whyItMatters-content")
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+                }
             }
-        } else if !content.isEmpty {
-            sectionContainer(title: NSLocalizedString("section.whyItMatters", comment: "")) {
-                Text(content)
-                    .font(.body)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: isLoading)
         }
     }
 
     @ViewBuilder
     private var aiInsightSection: some View {
-        if viewModel.isLoadingAIExplanation {
+        let isLoading = viewModel.isLoadingAIExplanation
+        if isLoading || viewModel.aiExplanation != nil {
             sectionContainer(title: NSLocalizedString("ai.explanation.title", comment: "AI Insight section title")) {
-                HStack(spacing: 8) {
-                    ProgressView()
-                    Text(NSLocalizedString("ai.explanation.loading", comment: "AI insight loading indicator"))
+                if isLoading {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text(NSLocalizedString("ai.explanation.loading", comment: "AI insight loading indicator"))
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+                    .id("aiInsight-skeleton")
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+                } else if let explanation = viewModel.aiExplanation {
+                    Text(explanation)
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .id("aiInsight-content")
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
                 }
             }
-        } else if let explanation = viewModel.aiExplanation {
-            sectionContainer(title: NSLocalizedString("ai.explanation.title", comment: "AI Insight section title")) {
-                Text(explanation)
-                    .font(.body)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: isLoading)
         }
     }
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var bestTimeStatusPill: some View {
         let isNow = viewModel.experience.isBestNow()
