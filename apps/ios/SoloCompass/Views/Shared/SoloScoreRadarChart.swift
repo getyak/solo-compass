@@ -289,7 +289,7 @@ public struct SoloScoreRadarChart: View {
         hint: "Great seating and safety, but noisy and few solo patrons.",
         basedOnCount: 22
     )
-    return VStack(spacing: 24) {
+    VStack(spacing: 24) {
         Text("Radar Chart (high variance) — tap to replay, dots at vertices")
             .font(.headline)
             .multilineTextAlignment(.center)
@@ -316,7 +316,7 @@ public struct SoloScoreRadarChart: View {
         hint: "Consistently excellent across all dimensions.",
         basedOnCount: 14
     )
-    return VStack(spacing: 24) {
+    VStack(spacing: 24) {
         Text("Fallback Bars (low variance) — tap to replay")
             .font(.headline)
         SoloScoreRadarChart(score: lowVariance)

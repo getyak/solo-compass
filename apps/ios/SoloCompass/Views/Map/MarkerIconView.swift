@@ -284,7 +284,7 @@ private struct ObsidianDotGridMarker: View {
         ("upcoming 47", .upcoming(minutes: 47)),
         ("footprinted", .footprinted),
     ]
-    return ScrollView {
+    ScrollView {
         VStack(alignment: .leading, spacing: 16) {
             Text("Reduce Motion OFF").font(.caption.bold()).padding(.horizontal)
             ForEach(states, id: \.0) { name, state in
@@ -310,7 +310,6 @@ private struct ObsidianDotGridMarker: View {
                     Text(name).frame(width: 120, alignment: .leading)
                     ForEach(ExperienceCategory.allCases) { cat in
                         MarkerIconView(category: cat, state: state)
-                            .environment(\.accessibilityReduceMotion, true)
                     }
                 }
             }
@@ -318,7 +317,6 @@ private struct ObsidianDotGridMarker: View {
                 Text("selected").frame(width: 120, alignment: .leading)
                 ForEach(ExperienceCategory.allCases) { cat in
                     MarkerIconView(category: cat, state: .default, isSelected: true)
-                        .environment(\.accessibilityReduceMotion, true)
                 }
             }
         }

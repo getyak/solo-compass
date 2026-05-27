@@ -15,6 +15,8 @@ public struct ExperienceCardView: View {
 
     @GestureState private var dragState = DragState()
     @State private var dragOffset: CGFloat = 0
+    @State private var heartBounce = 0
+    @State private var heartBurst = false
 
     private enum HapticState { case idle, prepared, fired }
 
@@ -37,7 +39,7 @@ public struct ExperienceCardView: View {
     private static let distanceFormatter: MeasurementFormatter = {
         let f = MeasurementFormatter()
         f.unitOptions = .naturalScale
-        f.unitStyle = .abbreviated
+        f.unitStyle = .short
         f.numberFormatter.maximumFractionDigits = 1
         return f
     }()
@@ -155,7 +157,7 @@ public struct ExperienceCardView: View {
                 if !experience.realInconveniences.isEmpty {
                     inconveniencePill
                 } else if experience.isBestNow() {
-                    bestNowBadge
+                    BestNowBadge()
                 } else if let hint = experience.bestTimeHint() {
                     bestTimeHintPill(hint)
                 }
@@ -202,6 +204,7 @@ public struct ExperienceCardView: View {
                     } else {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             dragOffset = 0
+                        }
                     }
                 }
         )
@@ -289,8 +292,7 @@ public struct ExperienceCardView: View {
             .background(Capsule().fill(tint.opacity(0.12)))
         }
     }
-
-    }
+}
 
 // MARK: - BestNowBadge
 

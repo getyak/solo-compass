@@ -610,7 +610,7 @@ private struct CityRow: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundStyle(experienceCount != nil ? .tint : .indigo)
+                .foregroundStyle(experienceCount != nil ? Color.accentColor : Color.indigo)
                 .frame(width: 18)
 
             VStack(alignment: .leading, spacing: 2) {

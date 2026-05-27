@@ -91,7 +91,7 @@ public struct SoloScoreBadge: View {
         hint: "Order at the bar, sit upstairs.",
         basedOnCount: 14
     )
-    return VStack(spacing: 24) {
+    VStack(spacing: 24) {
         SoloScoreBadge(score: score, style: .compact)
         SoloScoreBadge(score: score, style: .full)
             .padding()

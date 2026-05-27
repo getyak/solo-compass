@@ -56,5 +56,4 @@ struct OfflineBanner: View {
         OfflineBanner()
             .padding(.top, 60)
     }
-    .environment(\.accessibilityReduceMotion, true)
 }
