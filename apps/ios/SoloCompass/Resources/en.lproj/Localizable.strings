@@ -343,6 +343,9 @@
 "favorites.sort.recent" = "Recent";
 "favorites.swipe.hint" = "Swipe left to remove";
 "favorites.row.distance.a11y" = "%@ away";
+"favorites.proximity.near" = "walkable";
+"favorites.proximity.mid" = "short ride";
+"favorites.proximity.far" = "far";
 
 /* Generic actions */
 "action.undo" = "Undo";
