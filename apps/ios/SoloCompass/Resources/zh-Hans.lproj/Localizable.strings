@@ -255,6 +255,9 @@
 "favorites.empty.hint" = "点击任意体验上的爱心即可保存到这里。";
 "favorites.undo.named" = "已移除\"%@\"";
 
+/* Generic actions */
+"action.undo" = "撤销";
+
 /* Notifications */
 "settings.notifications" = "靠近时提醒我";
 "settings.notifications.header" = "通知";
