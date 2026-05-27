@@ -397,7 +397,9 @@ public final class UserPreferences {
             companionBio: companionBio,
             companionLanguages: companionLanguages,
             companionVisibilityRaw: companionVisibilityRaw,
-            activeCompanionPosts: activeCompanionPosts
+            activeCompanionPosts: activeCompanionPosts,
+            hasAcceptedCompanionConsent: hasAcceptedCompanionConsent,
+            companionConsentGivenAt: companionConsentGivenAt
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
