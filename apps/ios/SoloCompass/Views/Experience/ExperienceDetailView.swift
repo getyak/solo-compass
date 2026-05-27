@@ -468,17 +468,22 @@ public struct ExperienceDetailView: View {
                     HStack { Spacer(); bestTimeStatusPill }
                     BestTimesTimeline(experience: viewModel.experience)
                         .padding(.bottom, 4)
-                    ForEach(viewModel.experience.bestTimes, id: \.self) { window in
-                        HStack(spacing: 8) {
-                            Image(systemName: "clock")
-                                .foregroundStyle(.secondary)
-                            Text(format(window: window))
-                                .font(.subheadline)
-                            if let note = window.note {
-                                Text(note)
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                            }
+                    TimelineView(.periodic(from: .now, by: 60)) { context in
+                        let currentHour = Calendar.current.component(.hour, from: context.date)
+                        ForEach(viewModel.experience.bestTimes, id: \.self) { window in
+                            let isActiveNow: Bool = {
+                                let s = window.startHour, e = window.endHour
+                                return s <= e
+                                    ? currentHour >= s && currentHour < e
+                                    : currentHour >= s || currentHour < e
+                            }()
+                            BestTimeWindowRow(
+                                window: window,
+                                isActiveNow: isActiveNow,
+                                categoryColor: viewModel.experience.category.color,
+                                formatWindow: format(window:),
+                                reduceMotion: reduceMotion
+                            )
                         }
                     }
                     let range = viewModel.experience.durationMinutes
@@ -981,6 +986,68 @@ public struct ExperienceDetailView: View {
 
     private func format(window: TimeWindow) -> String {
         String(format: "%02d:00 – %02d:00", window.startHour, window.endHour)
+    }
+}
+
+// MARK: - Best Time Window Row
+
+private struct BestTimeWindowRow: View {
+    let window: TimeWindow
+    let isActiveNow: Bool
+    let categoryColor: Color
+    let formatWindow: (TimeWindow) -> String
+    let reduceMotion: Bool
+
+    @State private var nowDotPulse = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "clock")
+                .foregroundStyle(isActiveNow ? categoryColor : .secondary)
+            Text(formatWindow(window))
+                .font(isActiveNow ? .subheadline.weight(.semibold) : .subheadline)
+            if let note = window.note {
+                Text(note)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            if isActiveNow {
+                Spacer()
+                Circle()
+                    .fill(categoryColor)
+                    .frame(width: 6, height: 6)
+                    .scaleEffect(nowDotPulse ? 1.6 : 1.0)
+                    .opacity(nowDotPulse ? 0.4 : 1.0)
+            }
+        }
+        .padding(.horizontal, isActiveNow ? 10 : 0)
+        .padding(.vertical, isActiveNow ? 6 : 0)
+        .background(
+            isActiveNow
+                ? AnyView(RoundedRectangle(cornerRadius: 8).fill(categoryColor.opacity(0.12)))
+                : AnyView(Color.clear)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(isActiveNow
+            ? "\(formatWindow(window)), \(NSLocalizedString("bestTimes.window.active.a11y", comment: "Happening now accessibility suffix"))"
+            : formatWindow(window)
+        ))
+        .onAppear { startPulseIfNeeded() }
+        .onChange(of: isActiveNow) { _, active in
+            if active {
+                startPulseIfNeeded()
+            } else {
+                withAnimation(nil) { nowDotPulse = false }
+            }
+        }
+    }
+
+    private func startPulseIfNeeded() {
+        guard isActiveNow && !reduceMotion else { return }
+        nowDotPulse = false
+        withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+            nowDotPulse = true
+        }
     }
 }
 
