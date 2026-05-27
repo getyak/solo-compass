@@ -803,7 +803,11 @@ private struct JourneyProgressCard: View {
                 endPoint: .trailing
             ))
         } else if isAlmostThere {
-            return AnyShapeStyle(Color.green.mix(with: .yellow, by: 0.25))
+            if #available(iOS 18.0, *) {
+                return AnyShapeStyle(Color.green.mix(with: .yellow, by: 0.25))
+            } else {
+                return AnyShapeStyle(Color.green)
+            }
         } else {
             return AnyShapeStyle(Color.green)
         }
