@@ -3861,6 +3861,11 @@ final class MockSupabaseClient: SupabaseClientProtocol {
         return .failure(.missingConfig)
     }
 
+    func delete(table: String, id: String) async -> Result<Void, SupabaseClient.SupabaseError> {
+        if disabled { return .failure(.backendDisabled) }
+        return .success(())
+    }
+
     var isAnonymous: Bool {
         get async { false }
     }
@@ -6376,6 +6381,10 @@ final class MockSupabaseClientWithData: SupabaseClientProtocol {
 
     func linkAppleIdentity(identityToken: String, nonce: String) async -> Result<SupabaseClient.Session, SupabaseClient.SupabaseError> {
         .failure(.missingConfig)
+    }
+
+    func delete(table: String, id: String) async -> Result<Void, SupabaseClient.SupabaseError> {
+        .success(())
     }
 
     var isAnonymous: Bool {
