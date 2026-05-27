@@ -1,5 +1,14 @@
 import SwiftUI
 
+// Reports the hero title's minY in the named coordinate space so the scroll
+// view can decide whether the title has scrolled out of view.
+private struct HeroTitleOffsetKey: PreferenceKey {
+    static let defaultValue: CGFloat = .infinity
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = min(value, nextValue())
+    }
+}
+
 /// Full-screen scrollable detail. Renders every field of the Experience model
 /// the user might want before going. Real Inconveniences are surfaced as
 /// prominently as the recommendation — that is the product's brand.
@@ -21,6 +30,7 @@ public struct ExperienceDetailView: View {
     @State private var celebrationTrigger = 0
     @State private var isShowingNavPicker = false
     @State private var isShowingAddToItinerary = false
+    @State private var heroTitleVisible: Bool = true
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -33,6 +43,8 @@ public struct ExperienceDetailView: View {
         self.onMarkDone = onMarkDone
         self.onAskSolo = onAskSolo
     }
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public var body: some View {
         ScrollView {
@@ -79,9 +91,21 @@ public struct ExperienceDetailView: View {
             .padding(.top, 16)
             .padding(.bottom, 80) // room for floating action bar
         }
+        .coordinateSpace(name: "detailScroll")
+        .onPreferenceChange(HeroTitleOffsetKey.self) { offset in
+            let visible = offset > 0
+            guard visible != heroTitleVisible else { return }
+            if reduceMotion {
+                heroTitleVisible = visible
+            } else {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    heroTitleVisible = visible
+                }
+            }
+        }
         .background(themeService.currentTheme.background)
         .overlay(alignment: .bottom) { actionBar }
-        .navigationTitle("")
+        .navigationTitle(heroTitleVisible ? "" : viewModel.experience.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -185,6 +209,16 @@ public struct ExperienceDetailView: View {
                 .lineLimit(nil)
                 .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: HeroTitleOffsetKey.self,
+                            value: geo.frame(in: .named("detailScroll")).minY
+                        )
+                    }
+                )
+                // VoiceOver: avoid double-announcing when the nav bar title mirrors this
+                .accessibilityHidden(!heroTitleVisible)
 
             Text(viewModel.experience.oneLiner)
                 .font(.body)
@@ -285,8 +319,6 @@ public struct ExperienceDetailView: View {
             }
         }
     }
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var bestTimeStatusPill: some View {
         let isNow = viewModel.experience.isBestNow()
