@@ -17,6 +17,9 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
     /// ISO 8601 UTC expiry timestamp. Posts with expires_at ≤ now are stale
     /// and must not be shown (US-018).
     public let expiresAt: String?
+    /// US-019: trust weight of the post's author (0.0–1.0).
+    /// Default 1.0 when absent (pre-migration data / backwards compat).
+    public let reporterWeight: Double
 
     public init(
         id: String,
@@ -28,7 +31,8 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
         activeFrom: String?,
         activeTo: String?,
         geohash6: String? = nil,
-        expiresAt: String? = nil
+        expiresAt: String? = nil,
+        reporterWeight: Double = 1.0
     ) {
         self.id = id
         self.handle = handle
@@ -40,6 +44,7 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
         self.activeTo = activeTo
         self.geohash6 = geohash6
         self.expiresAt = expiresAt
+        self.reporterWeight = reporterWeight
     }
 
     enum CodingKeys: String, CodingKey {
@@ -49,6 +54,7 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
         case activeTo = "active_to"
         case geohash6 = "geohash6"
         case expiresAt = "expires_at"
+        case reporterWeight = "reporter_weight"
     }
 
     /// US-018: true when the post has an expires_at in the past.
@@ -60,6 +66,24 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
             return date <= Date()
         }
         return false
+    }
+}
+
+// MARK: - US-019: reporter_weight helpers
+
+/// Minimum reporter_weight for a user to appear in companion discovery.
+public let companionReporterWeightThreshold: Double = 0.3
+
+public extension Array where Element == DiscoverPost {
+    /// Exclude posts from authors whose reporter_weight is below the discovery threshold.
+    func aboveReporterWeightThreshold() -> [DiscoverPost] {
+        filter { $0.reporterWeight >= companionReporterWeightThreshold }
+    }
+
+    /// Sort posts by author reporter_weight descending (highest-trust first).
+    /// Uses stable sort so equal-weight items keep their relative order.
+    func sortedByReporterWeight() -> [DiscoverPost] {
+        sorted { $0.reporterWeight > $1.reporterWeight }
     }
 }
 
@@ -178,10 +202,12 @@ public final class CompanionService {
                 let posts: [DiscoverPost]
             }
             let decoded = try JSONDecoder().decode(DiscoverResponse.self, from: data)
-            // US-018: filter out locally any posts whose expires_at has already
-            // passed. The RLS policy filters server-side too, but the client
-            // should never display stale posts even if they slip through.
-            discoverPosts = decoded.posts.filter { !$0.isExpired }
+            // US-018: filter expired posts client-side (server filters too).
+            // US-019: filter below-threshold authors and sort by reporter_weight.
+            discoverPosts = decoded.posts
+                .filter { !$0.isExpired }
+                .aboveReporterWeightThreshold()
+                .sortedByReporterWeight()
         } catch {
             lastError = error.localizedDescription
         }

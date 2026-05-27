@@ -828,6 +828,9 @@
 "companion.layer.hint.inactive" = "Enable presence broadcasting to use the companion layer";
 "companion.nearby.label" = "~600m away";
 
+/* Companion — reporter weight (US-019) */
+"companion.discover.trust.low" = "This user has received multiple reports and may have limited visibility.";
+
 /* Shared actions */
 "action.ok" = "OK";
 "action.cancel" = "Cancel";
