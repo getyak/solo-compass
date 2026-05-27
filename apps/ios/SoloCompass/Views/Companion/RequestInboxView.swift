@@ -18,8 +18,9 @@ public struct RequestInboxView: View {
     public var body: some View {
         Group {
             if service.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ScrollView {
+                    CompanionSkeletonList(rows: 5)
+                }
             } else if service.inboxRequests.isEmpty {
                 emptyStateView
             } else {
@@ -210,5 +211,15 @@ private struct RequestRow: View {
 #Preview("Empty inbox") {
     NavigationStack {
         RequestInboxView()
+    }
+}
+
+#Preview("Loading skeleton") {
+    NavigationStack {
+        ScrollView {
+            CompanionSkeletonList(rows: 5)
+        }
+        .navigationTitle(NSLocalizedString("companion.inbox.title", comment: "Inbox nav title"))
+        .navigationBarTitleDisplayMode(.large)
     }
 }

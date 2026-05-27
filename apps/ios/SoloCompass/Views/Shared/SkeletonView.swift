@@ -76,6 +76,52 @@ private struct SkeletonLine: View {
     }
 }
 
+// MARK: - Companion row skeleton
+
+/// Single skeleton row matching the emoji-handle + blurb layout of companion list rows.
+public struct CompanionRowSkeleton: View {
+    public init() {}
+
+    public var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(Color(uiColor: .systemGray5))
+                .frame(width: 36, height: 36)
+                .accessibilityHidden(true)
+
+            SkeletonView(lineCount: 2, widthFractions: [1.0, 0.5])
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+    }
+}
+
+/// A non-interactive list of `CompanionRowSkeleton` rows with `.insetGrouped` spacing.
+public struct CompanionSkeletonList: View {
+    let rows: Int
+
+    public init(rows: Int = 5) {
+        self.rows = max(1, rows)
+    }
+
+    public var body: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<rows, id: \.self) { _ in
+                CompanionRowSkeleton()
+                Divider().padding(.leading, 64)
+            }
+        }
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(NSLocalizedString("skeleton.loading", comment: "Loading")))
+        .accessibilityAddTraits(.updatesFrequently)
+        .allowsHitTesting(false)
+    }
+}
+
 // MARK: - .redacted integration
 
 extension View {
@@ -110,6 +156,21 @@ extension View {
         SkeletonView(lineCount: 4, widthFractions: [1.0, 0.85, 0.9, 0.5])
     }
     .padding()
+}
+
+#Preview("Companion row skeleton") {
+    ScrollView {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Loading state (5 rows)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+
+            CompanionSkeletonList(rows: 5)
+        }
+    }
+    .background(Color(uiColor: .systemGroupedBackground))
 }
 
 #Preview("3-line text skeleton") {
