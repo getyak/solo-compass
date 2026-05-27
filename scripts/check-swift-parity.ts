@@ -36,6 +36,7 @@ const TS_GLOBS = [
   "packages/core/src/solo-score.ts",
   "packages/core/src/geo.ts",
   "packages/core/src/llm-context.ts",
+  "packages/core/src/companion.ts",
 ];
 
 // ---------------------------------------------------------------------------

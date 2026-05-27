@@ -100,6 +100,7 @@ export const SCHEMA_INTERFACES = new Set([
   "InformationSource",
   "SoloScore",
   "Confidence",
+  "Itinerary",
 ]);
 
 /**

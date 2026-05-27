@@ -95,6 +95,8 @@ const DIRECT: Record<string, string[]> = {
  */
 const NAMED_ALIASES: Record<string, string> = {
   ExperienceId: "String",
+  UserId: "String",
+  ItineraryId: "String",
   Coordinates: "[Double]",
   ConfidenceLevel: "Int",
   HealthStatus: "HealthStatus",
