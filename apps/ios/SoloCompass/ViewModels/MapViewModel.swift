@@ -1054,7 +1054,7 @@ public final class MapViewModel {
             let generated: [Experience]
             let effectiveRadius: Int
             // Track the final radius reached during progressive explore (US-006).
-            var progressiveFinalRadiusKm: Int? = nil
+            var progressiveFinalRadiusKm: Int?
 
             if FeatureFlags.deepDiveEnrichment {
                 // Progressive explore: small radius (5km) first, expand outward
@@ -1338,7 +1338,7 @@ public final class MapViewModel {
 
     /// US-011: Current stage radius overlay during progressive explore.
     /// Non-nil while a stage is actively scanning; nil at idle/complete.
-    public var exploreRadiusOverlay: (center: CLLocationCoordinate2D, radiusMeters: Double)? = nil
+    public var exploreRadiusOverlay: (center: CLLocationCoordinate2D, radiusMeters: Double)?
 
     /// Telemetry from the most recent multi-ring Explore. Populated only
     /// when the Pro multi-ring schedule runs; nil after a single-ring

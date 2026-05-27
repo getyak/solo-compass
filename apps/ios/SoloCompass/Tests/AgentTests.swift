@@ -489,7 +489,9 @@ final class ExperienceFilterPredicateTests: XCTestCase {
         )
         let score = SoloScore(overall: soloScoreOverall, breakdown: breakdown, basedOnCount: 10)
         let confidence = Confidence(
-            score: 0.8,
+            level: 2,
+            lastVerifiedAt: Date(),
+            reason: "data-driven",
             signals: Confidence.Signals(
                 aiScrapeAgeDays: 5,
                 passiveGpsHits30d: 20,
@@ -595,6 +597,7 @@ final class ExperienceFilterPredicateTests: XCTestCase {
 
 // MARK: - US-016: WebSearchEnrichmentSource tests
 
+@MainActor
 final class WebSearchEnrichmentSourceTests: XCTestCase {
 
     // MARK: Helpers
@@ -619,7 +622,9 @@ final class WebSearchEnrichmentSourceTests: XCTestCase {
         )
         let score = SoloScore(overall: 8.0, breakdown: breakdown, basedOnCount: 1)
         let confidence = Confidence(
-            score: 0.8,
+            level: 2,
+            lastVerifiedAt: Date(),
+            reason: "data-driven",
             signals: Confidence.Signals(
                 aiScrapeAgeDays: 5,
                 passiveGpsHits30d: 10,
