@@ -630,6 +630,14 @@
 "locationPicker.map.saveAndSet" = "Save & Set Location";
 "locationPicker.map.saveCity.confirmed" = "Location saved!";
 
+/* US-015: Multi-source indicator and real signals in detail view */
+"detail.multiSource.badge" = "Verified by multiple sources";
+"detail.multiSource.badge.a11y" = "This place was verified by multiple data sources";
+"detail.rating" = "Rating";
+"detail.rating.a11y" = "Rating: %@ out of 10";
+"detail.priceLevel" = "Price level";
+"detail.priceLevel.a11y" = "Price level %d out of 4";
+
 /* Location picker — general UI */
 "locationPicker.picker.a11y" = "Location type";
 "locationPicker.title" = "Choose Location";
