@@ -11,6 +11,8 @@
 /* Filters */
 "filter.now" = "此刻";
 "filter.all" = "全部";
+"filter.a11y.resultsAnnounce" = "%1$@：找到 %2$d 个";
+"filter.a11y.noResultsAnnounce" = "%@：无匹配结果";
 
 /* Health */
 "health.healthy" = "状态新鲜 — 多重验证";
