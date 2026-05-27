@@ -35,9 +35,11 @@ public struct SoloScoreBadge: View {
             Text(NSLocalizedString("solo.label", comment: "Solo"))
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.9))
-            Text(formatted(score.overall))
+            Text(formatted(animatedScore))
                 .font(.caption.bold())
                 .foregroundStyle(.white)
+                .monospacedDigit()
+                .contentTransition(.numericText(value: animatedScore))
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -61,6 +63,11 @@ public struct SoloScoreBadge: View {
                     + ", " + NSLocalizedString("solo.excellent.a11y", comment: "Excellent for solo travelers")
                 : String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"), formatted(score.overall))
         ))
+        .onChange(of: score.overall) { _, _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                appeared = true
+            }
+        }
     }
 
     private var fullView: some View {
@@ -98,6 +105,17 @@ public struct SoloScoreBadge: View {
                 }
             }
         }
+        .onChange(of: score.overall) { triggerAnimation() }
+    }
+
+    private func triggerAnimation() {
+        if reduceMotion {
+            animatedScore = score.overall
+        } else {
+            withAnimation(.easeOut(duration: 0.5)) {
+                animatedScore = score.overall
+            }
+        }
     }
 
     private func formatted(_ value: Double) -> String {
@@ -126,4 +144,30 @@ public struct SoloScoreBadge: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
     .padding()
+}
+
+#Preview("Compact count-up") {
+    struct CompactCountUpPreview: View {
+        @State private var score = SoloScore(
+            overall: 5.0,
+            breakdown: .init(seatingFriendly: 5, soloPatronRatio: 5, staffPressure: 5, soloPortioning: 5, ambianceFit: 5, safety: 5),
+            basedOnCount: 4
+        )
+
+        var body: some View {
+            VStack(spacing: 20) {
+                SoloScoreBadge(score: score, style: .compact)
+                Button(NSLocalizedString("preview.raiseScore", comment: "Raise Score")) {
+                    score = SoloScore(
+                        overall: 9.2,
+                        breakdown: .init(seatingFriendly: 9, soloPatronRatio: 9, staffPressure: 9, soloPortioning: 9, ambianceFit: 10, safety: 9),
+                        basedOnCount: 20
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+        }
+    }
+    return CompactCountUpPreview()
 }
