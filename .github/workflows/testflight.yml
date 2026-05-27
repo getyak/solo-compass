@@ -240,11 +240,40 @@ jobs:
       - name: Setup match SSH key
         env:
           MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
+          MATCH_GIT_URL_RAW: ${{ secrets.MATCH_GIT_URL }}
         run: |
+          set -euo pipefail
+
+          # Fail fast with a clear message if the deploy key secret is missing
+          # or blank — otherwise `match` fails later with an opaque
+          # "Permission denied (publickey)" that hides the real cause.
+          if [ -z "${MATCH_DEPLOY_KEY//[[:space:]]/}" ]; then
+            echo "::error::MATCH_DEPLOY_KEY secret is empty. Add the certs-repo deploy key (private half) as a repo secret, and its public half to getyak/solo-compass-certs → Settings → Deploy keys."
+            exit 1
+          fi
+
           mkdir -p ~/.ssh
           echo "$MATCH_DEPLOY_KEY" > ~/.ssh/solo_compass_match
           chmod 600 ~/.ssh/solo_compass_match
-          printf 'Host github-solo-compass-certs\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/solo_compass_match\n  IdentitiesOnly yes\n  StrictHostKeyChecking no\n' >> ~/.ssh/config
+
+          # Pin GitHub's host key (safer than StrictHostKeyChecking=no).
+          ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Bind the certs deploy key to a dedicated host alias. The Fastfile's
+          # default git_url uses this alias.
+          printf 'Host github-solo-compass-certs\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/solo_compass_match\n  IdentitiesOnly yes\n' >> ~/.ssh/config
+
+          # Normalize MATCH_GIT_URL so it always routes through the alias above.
+          # A common misconfiguration is setting the secret to a plain
+          # git@github.com:.../certs.git URL, which bypasses the dedicated key
+          # and fails with "git@github.com: Permission denied (publickey)".
+          # Rewrite that host to the alias so the right key is always used.
+          DEFAULT_URL="git@github-solo-compass-certs:getyak/solo-compass-certs.git"
+          URL="${MATCH_GIT_URL_RAW:-$DEFAULT_URL}"
+          URL="${URL/git@github.com:/git@github-solo-compass-certs:}"
+          URL="${URL/ssh:\/\/git@github.com\//ssh://git@github-solo-compass-certs/}"
+          echo "MATCH_GIT_URL=$URL" >> "$GITHUB_ENV"
+          echo "Using certs repo via alias host: $URL"
 
       # ── 8. Write App Store Connect API Key ───────────────────────────────
       - name: Write App Store Connect API key
@@ -262,7 +291,10 @@ jobs:
           APP_STORE_CONNECT_API_KEY_CONTENT:    ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
           MATCH_PASSWORD:                       ${{ secrets.MATCH_PASSWORD }}
           MATCH_KEYCHAIN_PASSWORD:              ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
-          MATCH_GIT_URL:                        ${{ secrets.MATCH_GIT_URL }}
+          # MATCH_GIT_URL is exported (normalized to the alias host) into
+          # $GITHUB_ENV by the "Setup match SSH key" step. Do NOT re-declare it
+          # here — a step-level env would override the normalized value with the
+          # raw secret and reintroduce the github.com Permission-denied failure.
           MATCH_GIT_BRANCH:                     ${{ secrets.MATCH_GIT_BRANCH }}
           FASTLANE_USER:                        ${{ secrets.FASTLANE_USER }}
           GH_TOKEN:                             ${{ secrets.GITHUB_TOKEN }}
