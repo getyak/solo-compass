@@ -11,6 +11,7 @@ public struct ItineraryDetailView: View {
     let itinerary: Itinerary
 
     @Environment(UserPreferences.self) private var preferences
+    @Environment(ExperienceService.self) private var experienceService
 
     private let store: ItineraryStore
     @State private var experienceIds: [String]
@@ -90,17 +91,7 @@ public struct ItineraryDetailView: View {
                         .italic()
                 } else {
                     ForEach(experienceIds, id: \.self) { expId in
-                        HStack(spacing: 8) {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                            Image(systemName: "mappin.circle.fill")
-                                .foregroundStyle(Color.accentColor)
-                            Text(expId)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
+                        experienceRow(expId)
                     }
                     .onMove(perform: moveExperience)
                 }
@@ -165,6 +156,51 @@ public struct ItineraryDetailView: View {
                 importedToast(count: count)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .padding(.bottom, 16)
+            }
+        }
+    }
+
+    // MARK: - Experience row
+
+    @ViewBuilder
+    private func experienceRow(_ expId: String) -> some View {
+        if let exp = experienceService.getExperience(id: expId) {
+            HStack(spacing: 12) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                ZStack {
+                    Circle()
+                        .fill(exp.category.color.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: exp.category.symbol)
+                        .font(.footnote)
+                        .foregroundStyle(exp.category.color)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(exp.title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Text(exp.oneLiner)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text("\(exp.title), \(exp.oneLiner)"))
+        } else {
+            HStack(spacing: 12) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Image(systemName: "mappin.circle.fill")
+                    .foregroundStyle(.secondary)
+                Text(NSLocalizedString("itinerary.detail.experience.unavailable", comment: "Unavailable experience fallback"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
     }
@@ -436,7 +472,7 @@ private func iso8601Date(_ string: String) -> Date? {
             cityCode: "TYO",
             startDate: "2026-04-01",
             endDate: "2026-04-10",
-            experienceIds: ["exp_001", "exp_002", "exp_003"],
+            experienceIds: ["exp_cmi_suan_dok_sunset", "exp_cmi_nimman_coffee", "exp_cmi_bookstore_work"],
             note: "Focus on cherry blossom spots and quiet cafes.",
             openToCompanions: true,
             createdAt: "2026-01-15T09:00:00Z",
@@ -444,6 +480,7 @@ private func iso8601Date(_ string: String) -> Date? {
         ))
     }
     .environment(UserPreferences())
+    .environment(ExperienceService(seed: ExperienceService.hardcodedSeed))
 }
 
 #Preview("Open to companions, no experiences") {
@@ -463,6 +500,7 @@ private func iso8601Date(_ string: String) -> Date? {
         ))
     }
     .environment(UserPreferences())
+    .environment(ExperienceService(seed: ExperienceService.hardcodedSeed))
 }
 
 #Preview("Visibility off — toggle blocked") {
@@ -484,4 +522,5 @@ private func iso8601Date(_ string: String) -> Date? {
         ))
     }
     .environment(prefs)
+    .environment(ExperienceService(seed: ExperienceService.hardcodedSeed))
 }

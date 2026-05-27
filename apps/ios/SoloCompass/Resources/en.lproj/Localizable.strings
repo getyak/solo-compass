@@ -703,6 +703,7 @@
 "itinerary.detail.companion.solo" = "Going solo";
 "itinerary.detail.experiences.header" = "%d experiences";
 "itinerary.detail.experiences.empty" = "No experiences pinned yet.";
+"itinerary.detail.experience.unavailable" = "Unavailable experience";
 
 /* Itinerary — Add to Itinerary sheet (US-006) */
 "action.addToItinerary" = "Add to Itinerary";
