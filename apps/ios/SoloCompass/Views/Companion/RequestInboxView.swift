@@ -23,6 +23,8 @@ public struct RequestInboxView: View {
                 ScrollView {
                     CompanionSkeletonList(rows: 5)
                 }
+            } else if let error = service.lastError {
+                errorView(message: error)
             } else if service.inboxRequests.isEmpty {
                 EmptyInboxView()
                     .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
@@ -80,6 +82,29 @@ public struct RequestInboxView: View {
     }
 
     // MARK: - Subviews
+
+    private func errorView(message: String) -> some View {
+        ContentUnavailableView {
+            Label(
+                NSLocalizedString("companion.inbox.error.title", comment: "Inbox error title"),
+                systemImage: "exclamationmark.triangle"
+            )
+        } description: {
+            Text(message)
+        } actions: {
+            Button {
+                Haptics.impact(.light)
+                Task { await service.fetchInbox() }
+            } label: {
+                Label(
+                    NSLocalizedString("companion.inbox.error.retry", comment: "Retry button"),
+                    systemImage: "arrow.clockwise"
+                )
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityHint(NSLocalizedString("companion.inbox.error.retry.hint", comment: "Retry accessibility hint"))
+        }
+    }
 
     private var requestList: some View {
         List(service.inboxRequests) { request in
@@ -284,5 +309,13 @@ private struct RequestRow: View {
         }
         .navigationTitle(NSLocalizedString("companion.inbox.title", comment: "Inbox nav title"))
         .navigationBarTitleDisplayMode(.large)
+    }
+}
+
+#Preview("Load error") {
+    let service = CompanionService()
+    service.lastError = NSLocalizedString("companion.inbox.error.load", comment: "Inbox load error")
+    return NavigationStack {
+        RequestInboxView(service: service)
     }
 }

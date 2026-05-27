@@ -262,6 +262,8 @@ public final class CompanionService {
             return
         }
 
+        lastError = nil
+
         guard let userId = client.currentSession?.userId else { return }
 
         let result = await client.get(
@@ -273,10 +275,16 @@ public final class CompanionService {
             ]
         )
 
-        if case .success(let data) = result, !data.isEmpty {
-            if let requests = try? JSONDecoder.iso8601Decoder.decode([CompanionRequest].self, from: data) {
+        switch result {
+        case .success(let data):
+            if !data.isEmpty,
+               let requests = try? JSONDecoder.iso8601Decoder.decode([CompanionRequest].self, from: data) {
                 inboxRequests = requests
+            } else if data.isEmpty {
+                inboxRequests = []
             }
+        case .failure:
+            lastError = NSLocalizedString("companion.inbox.error.load", comment: "Inbox load error")
         }
     }
 

@@ -819,6 +819,10 @@
 "companion.inbox.request.from" = "From";
 "companion.inbox.accepted.title" = "You're connected!";
 "companion.inbox.accepted.message" = "Request accepted. You can now message each other.";
+"companion.inbox.error.load" = "Couldn't load requests. Check your connection and try again.";
+"companion.inbox.error.title" = "Could not load inbox";
+"companion.inbox.error.retry" = "Try again";
+"companion.inbox.error.retry.hint" = "Reloads the inbox";
 
 /* Companion — chat (US-013) */
 "companion.chat.title" = "Chat";
