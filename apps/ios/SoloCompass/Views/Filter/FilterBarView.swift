@@ -155,16 +155,29 @@ public struct FilterBarView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .foregroundStyle(isSelected ? .white : .primary)
-            .background(
-                Capsule().fill(isSelected ? Self.accentGold : Color.clear)
-            )
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(Self.accentGold)
+                        .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
+                }
+            }
             .overlay(
                 Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
             )
+            .overlay(alignment: .topTrailing) {
+                if isSelected && resultCount > 0 {
+                    countBadge(count: resultCount, tint: Self.accentGold)
+                        .offset(x: 6, y: -6)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(Text(a11yLabel))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
         .onAppear {
             selectionFeedback.prepare()
             guard !reduceMotion else { return }
