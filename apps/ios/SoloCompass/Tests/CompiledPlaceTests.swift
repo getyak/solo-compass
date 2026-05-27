@@ -167,6 +167,58 @@ final class CompiledPlaceTests: XCTestCase {
         XCTAssertEqual(place?.sourcesCount, 1)
     }
 
+    // MARK: - US-013: additional merge edge cases
+
+    func testMergeOsmOnlyNoFoursquareNoMapKit() {
+        let osmPoi = OverpassService.POI(
+            osmId: 2001,
+            name: "OSM Only",
+            nameEn: nil,
+            lat: 13.0,
+            lon: 100.0,
+            tags: ["amenity": "cafe", "website": "https://osm-site.com", "phone": "+66-999"]
+        )
+        let place = CompiledPlace.merge(pois: [osmPoi], venues: [], mapItems: [])
+        XCTAssertNotNil(place)
+        XCTAssertEqual(place?.name.source, .osm)
+        XCTAssertEqual(place?.website?.value, "https://osm-site.com")
+        XCTAssertEqual(place?.phone?.value, "+66-999")
+        XCTAssertEqual(place?.sourcesCount, 1)
+    }
+
+    func testMergeFoursquareRatingAbsentWhenNoVenue() {
+        let osmPoi = OverpassService.POI(
+            osmId: 2002,
+            name: "No Rating",
+            nameEn: nil,
+            lat: 13.0,
+            lon: 100.0,
+            tags: [:]
+        )
+        let place = CompiledPlace.merge(pois: [osmPoi], venues: [], mapItems: [])
+        XCTAssertNil(place?.rating, "rating must be nil when no Foursquare venue supplied")
+        XCTAssertNil(place?.priceLevel, "price must be nil when no Foursquare venue supplied")
+    }
+
+    func testMergeFoursquareOnlyFallback() {
+        let fsqVenue = FoursquareService.LiteVenue(
+            fsqId: "fsq-only",
+            name: "FSQ Only Place",
+            lat: 2.0,
+            lon: 103.0,
+            rating: 6.0,
+            price: 1,
+            hours: "All day",
+            website: "https://fsq.com",
+            phone: nil
+        )
+        let place = CompiledPlace.merge(pois: [], venues: [fsqVenue], mapItems: [])
+        XCTAssertNotNil(place)
+        XCTAssertEqual(place?.name.value, "FSQ Only Place")
+        XCTAssertEqual(place?.name.source, .foursquare)
+        XCTAssertEqual(place?.rating?.source, .foursquare)
+    }
+
     // MARK: - US-014: multi-source confidence bump
 
     func testSingleSourceConfidenceLevelIsLower() {
