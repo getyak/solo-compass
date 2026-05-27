@@ -29,6 +29,7 @@ public enum SoloCompassSchemaV1: VersionedSchema {
             RecentExploreRegion.self,
             AIUsageRecord.self,
             PendingSyncRecord.self,
+            ItineraryRecord.self,
         ]
     }
 }
@@ -56,6 +57,7 @@ public enum SoloCompassSchemaV1_1: VersionedSchema {
             RecentExploreRegion.self,
             AIUsageRecord.self,
             PendingSyncRecord.self,
+            ItineraryRecord.self,
         ]
     }
 }
@@ -112,6 +114,7 @@ public enum SoloCompassModelContainer {
                 RecentExploreRegion.self,
                 AIUsageRecord.self,
                 PendingSyncRecord.self,
+                ItineraryRecord.self,
                 configurations: config
             )
         } catch {
@@ -141,6 +144,7 @@ public enum SoloCompassModelContainer {
                 RecentExploreRegion.self,
                 AIUsageRecord.self,
                 PendingSyncRecord.self,
+                ItineraryRecord.self,
                 configurations: config
             )
         } catch {

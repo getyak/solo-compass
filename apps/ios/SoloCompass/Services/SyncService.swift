@@ -155,6 +155,28 @@ public final class SyncService {
         return sent
     }
 
+    // MARK: - Itinerary sync payload (US-007)
+
+    /// Outbound payload for the `itineraries` table. Mirrors the Supabase
+    /// column set defined in `0003_companion.sql`. `is_deleted` acts as a
+    /// soft-delete tombstone so the row can be pulled back on other devices.
+    public struct SyncItineraryPayload: Encodable {
+        public let id: String
+        public let user_id: String
+        public let owner_id: String
+        public let title: String
+        public let city_code: String
+        public let start_date: String
+        public let end_date: String
+        public let experience_ids: [String]
+        public let note: String?
+        public let open_to_companions: Bool
+        public let is_deleted: Bool
+        public let device_id: String
+        public let created_at: String
+        public let updated_at: String
+    }
+
     // MARK: - Pull (inbound)
 
     /// Pull rows updated since `lastPulledAt` from Supabase and merge
@@ -186,6 +208,14 @@ public final class SyncService {
             deviceID: myDeviceID,
             merge: mergeFavorite
         )
+        if FeatureFlags.companion {
+            await pullTable(
+                "itineraries",
+                context: ctx,
+                deviceID: myDeviceID,
+                merge: mergeItinerary
+            )
+        }
         await pullAggregatedSoloScores(context: ctx)
     }
 
@@ -308,6 +338,85 @@ public final class SyncService {
                 )
             }
             // Remote says unfavorited and we have no local row — already in sync.
+        }
+        try? context.save()
+    }
+
+    // MARK: - Itinerary LWW merge (US-007)
+
+    private func mergeItinerary(_ data: Data, _ context: ModelContext, _ myDeviceID: String) {
+        struct RemoteItinerary: Decodable {
+            let id: String
+            let owner_id: String
+            let title: String
+            let city_code: String
+            let start_date: String
+            let end_date: String
+            let experience_ids: [String]
+            let note: String?
+            let open_to_companions: Bool
+            let is_deleted: Bool
+            let device_id: String?
+            let created_at: String
+            let updated_at: String
+        }
+
+        guard let rows = try? JSONDecoder().decode([RemoteItinerary].self, from: data) else { return }
+        let formatter = ISO8601DateFormatter()
+
+        for row in rows {
+            guard let remoteUpdatedAt = formatter.date(from: row.updated_at) else { continue }
+            let rowId = row.id
+            let descriptor = FetchDescriptor<ItineraryRecord>(
+                predicate: #Predicate { $0.id == rowId }
+            )
+            let existing = (try? context.fetch(descriptor)) ?? []
+            let remoteDeviceID = row.device_id ?? ""
+
+            if let local = existing.first {
+                // LWW: compare updated_at. On tie, lex device_id decides.
+                guard let localUpdatedAt = formatter.date(from: local.updatedAt) else { continue }
+                let remoteWins: Bool
+                if remoteUpdatedAt > localUpdatedAt {
+                    remoteWins = true
+                } else if remoteUpdatedAt == localUpdatedAt {
+                    remoteWins = remoteDeviceID > myDeviceID
+                } else {
+                    remoteWins = false
+                }
+
+                if remoteWins {
+                    if row.is_deleted {
+                        context.delete(local)
+                    } else {
+                        local.title = row.title
+                        local.cityCode = row.city_code
+                        local.startDate = row.start_date
+                        local.endDate = row.end_date
+                        local.experienceIdsBlob = (try? JSONEncoder().encode(row.experience_ids))
+                            ?? local.experienceIdsBlob
+                        local.note = row.note
+                        local.openToCompanions = row.open_to_companions
+                        local.updatedAt = row.updated_at
+                    }
+                }
+            } else if !row.is_deleted {
+                // No local record and remote is not a tombstone — insert.
+                let blob = (try? JSONEncoder().encode(row.experience_ids)) ?? Data()
+                context.insert(ItineraryRecord(
+                    id: row.id,
+                    ownerId: row.owner_id,
+                    title: row.title,
+                    cityCode: row.city_code,
+                    startDate: row.start_date,
+                    endDate: row.end_date,
+                    experienceIdsBlob: blob,
+                    note: row.note,
+                    openToCompanions: row.open_to_companions,
+                    createdAt: row.created_at,
+                    updatedAt: row.updated_at
+                ))
+            }
         }
         try? context.save()
     }
