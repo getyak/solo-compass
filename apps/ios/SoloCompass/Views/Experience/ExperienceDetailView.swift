@@ -974,14 +974,16 @@ private struct BestTimesTimeline: View {
     let experience: Experience
 
     @State private var animateFill = false
+    @State private var nowPulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let trackHeight: CGFloat = 10
     private let nowMarkerWidth: CGFloat = 2
     private let tickHours = [0, 6, 12, 18]
 
-    private var currentHour: Int {
-        Calendar.current.component(.hour, from: Date())
+    private var nowFraction: CGFloat {
+        let comps = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        return (CGFloat(comps.hour ?? 0) + CGFloat(comps.minute ?? 0) / 60) / 24
     }
 
     private var a11yLabel: String {
@@ -1017,15 +1019,24 @@ private struct BestTimesTimeline: View {
                 }
 
                 // 'Now' marker
-                let nowX = CGFloat(currentHour) / 24.0 * trackWidth
+                let nowX = nowFraction * trackWidth
                 let isBest = experience.isBestNow()
-                VStack(spacing: 0) {
-                    Circle()
-                        .fill(isBest ? Color.yellow : Color.accentColor)
-                        .frame(width: 6, height: 6)
-                    Rectangle()
-                        .fill(isBest ? Color.yellow : Color.accentColor)
-                        .frame(width: nowMarkerWidth, height: trackHeight - 2)
+                ZStack {
+                    if isBest && !reduceMotion {
+                        Circle()
+                            .stroke(Color.yellow, lineWidth: 1.5)
+                            .frame(width: 6, height: 6)
+                            .scaleEffect(nowPulse ? 2.4 : 1)
+                            .opacity(nowPulse ? 0 : 0.7)
+                    }
+                    VStack(spacing: 0) {
+                        Circle()
+                            .fill(isBest ? Color.yellow : Color.accentColor)
+                            .frame(width: 6, height: 6)
+                        Rectangle()
+                            .fill(isBest ? Color.yellow : Color.accentColor)
+                            .frame(width: nowMarkerWidth, height: trackHeight - 2)
+                    }
                 }
                 .offset(x: nowX - 3, y: 0)
             }
@@ -1052,6 +1063,24 @@ private struct BestTimesTimeline: View {
             } else {
                 withAnimation(.easeOut(duration: 0.5)) {
                     animateFill = true
+                }
+                if experience.isBestNow() {
+                    withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                        nowPulse = true
+                    }
+                }
+            }
+        }
+        .onChange(of: experience.isBestNow()) { _, isBest in
+            guard !reduceMotion else { return }
+            if isBest {
+                nowPulse = false
+                withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                    nowPulse = true
+                }
+            } else {
+                withAnimation(nil) {
+                    nowPulse = false
                 }
             }
         }
