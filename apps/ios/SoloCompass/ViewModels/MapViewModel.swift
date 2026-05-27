@@ -684,6 +684,30 @@ public final class MapViewModel {
         return upcomingStarts.min()
     }
 
+    /// The soonest experience (across all loaded experiences in the current city)
+    /// that is not yet at its best but starts within 180 minutes.
+    /// Used by the "Now" filter empty state to offer a one-tap next action.
+    public var nextBestExperience: (experience: Experience, minutesUntil: Int)? {
+        let now = Date()
+        let cityCode = selectedCity
+        let candidates = experienceService.allExperiences.filter { exp in
+            guard !exp.isBestNow(at: now) else { return false }
+            if let code = cityCode, !code.hasPrefix("custom_") {
+                return exp.location.cityCode == code
+            }
+            return true
+        }
+        var best: (experience: Experience, minutesUntil: Int)?
+        for exp in candidates {
+            guard let mins = minutesUntilBestTime(for: exp, from: now),
+                  mins > 0, mins <= 180 else { continue }
+            if best == nil || mins < best!.minutesUntil {
+                best = (exp, mins)
+            }
+        }
+        return best
+    }
+
     // MARK: - Bottom info bar
 
     public func updateBottomInfo() {
