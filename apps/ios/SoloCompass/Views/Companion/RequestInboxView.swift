@@ -10,6 +10,7 @@ public struct RequestInboxView: View {
     @State private var acceptedConversation: Conversation?
     @State private var showingAcceptedConfirm = false
     @State private var reportTarget: CompanionRequest?
+    @State private var errorMessage: String?
 
     public init(service: CompanionService = .shared) {
         _service = State(initialValue: service)
@@ -48,6 +49,24 @@ public struct RequestInboxView: View {
         } message: {
             Text(NSLocalizedString("companion.inbox.accepted.message", comment: "Request accepted alert message"))
         }
+        .overlay(alignment: .bottom) {
+            if let msg = errorMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                    Text(msg)
+                        .font(.subheadline)
+                        .lineLimit(2)
+                }
+                .foregroundStyle(.red)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.regularMaterial, in: Capsule())
+                .padding(.bottom, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .accessibilityLabel(msg)
+            }
+        }
+        .animation(.easeInOut, value: errorMessage)
         .sheet(item: $reportTarget) { request in
             ReportBlockSheet(
                 targetUserId: request.requesterId,
@@ -90,10 +109,18 @@ public struct RequestInboxView: View {
 
     private func acceptRequest(_ request: CompanionRequest) async {
         let result = await service.acceptRequest(request)
-        if case .success(let conversation) = result {
+        switch result {
+        case .success(let conversation):
             acceptedConversation = conversation
             showingAcceptedConfirm = true
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case .failure(let err):
+            errorMessage = err.localizedDescription
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                errorMessage = nil
+            }
         }
     }
 }

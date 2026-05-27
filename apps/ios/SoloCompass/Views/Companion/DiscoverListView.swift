@@ -14,6 +14,7 @@ public struct DiscoverListView: View {
     @State private var selectedPost: DiscoverPost?
     @State private var requestSentPostId: String?
     @State private var reportTarget: DiscoverPost?
+    @State private var errorMessage: String?
 
     public init(cityCode: String, service: CompanionService = .shared) {
         self.cityCode = cityCode
@@ -45,6 +46,24 @@ public struct DiscoverListView: View {
             }
         }
         .task { await loadPosts() }
+        .overlay(alignment: .bottom) {
+            if let msg = errorMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                    Text(msg)
+                        .font(.subheadline)
+                        .lineLimit(2)
+                }
+                .foregroundStyle(.red)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.regularMaterial, in: Capsule())
+                .padding(.bottom, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .accessibilityLabel(msg)
+            }
+        }
+        .animation(.easeInOut, value: errorMessage)
         .sheet(item: $selectedPost) { post in
             SendRequestSheet(post: post) { note in
                 Task { await sendRequest(to: post, note: note) }
@@ -123,8 +142,16 @@ public struct DiscoverListView: View {
             recipientId: post.id, // placeholder — resolved server-side
             note: note
         )
-        if case .success = result {
+        switch result {
+        case .success:
             requestSentPostId = post.id
+        case .failure(let err):
+            errorMessage = err.localizedDescription
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                errorMessage = nil
+            }
         }
     }
 }

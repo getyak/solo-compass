@@ -772,6 +772,8 @@
 "companion.request.accept" = "Accept";
 "companion.request.decline" = "Decline";
 "companion.request.withdraw" = "Withdraw";
+"companion.request.send.error" = "Couldn't send request. Please try again.";
+"companion.request.accept.error" = "Couldn't accept request. Please try again.";
 
 /* Companion — inbox (US-012) */
 "companion.inbox.title" = "Requests";
