@@ -30,12 +30,28 @@ final class LocationPickerState {
     var isSearching: Bool = false
     var searchError: String?
 
+    /// Item pending the "save as city?" confirmation.
+    var pendingSaveItem: MKMapItem?
+    /// True while the save-name alert for a search result is shown.
+    var isShowingSaveSearchAlert: Bool = false
+    /// Editable name field inside the save alert.
+    var saveNameText: String = ""
+    /// Ephemeral success confirmation (checkmark animation).
+    var searchSaveConfirmed: Bool = false
+
     // MARK: Map tab
     var pinCoordinate: CLLocationCoordinate2D
     var manualLatText: String = ""
     var manualLonText: String = ""
     var resolvedCityName: String?
     var isResolving: Bool = false
+
+    /// True while the save-name alert for the map pin is shown.
+    var isShowingSaveMapAlert: Bool = false
+    /// Editable name for saving the map location.
+    var mapSaveNameText: String = ""
+    /// Ephemeral success confirmation after saving from map tab.
+    var mapSaveConfirmed: Bool = false
 
     init(initialCoordinate: CLLocationCoordinate2D) {
         self.pinCoordinate = initialCoordinate
@@ -49,6 +65,7 @@ final class LocationPickerState {
         manualLatText = String(format: "%.4f", coordinate.latitude)
         manualLonText = String(format: "%.4f", coordinate.longitude)
         resolvedCityName = nil
+        mapSaveConfirmed = false
     }
 
     /// Parse text fields → coordinate. Returns nil if either field is invalid.

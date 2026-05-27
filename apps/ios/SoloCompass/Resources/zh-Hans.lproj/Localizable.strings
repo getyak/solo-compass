@@ -470,3 +470,42 @@
 
 /* Map preview in exports (US-020) */
 "settings.exportMapPreview" = "导出时包含地图预览";
+
+/* Location picker — custom cities */
+"locationPicker.cities.addCity" = "添加自定义城市";
+"locationPicker.cities.section.places" = "有体验的地点";
+"locationPicker.cities.section.saved" = "已保存的位置";
+"locationPicker.cities.saved.subtitle" = "已保存的位置";
+
+/* Location picker — search tab save flow */
+"locationPicker.search.saveCity.title" = "保存为自定义城市";
+"locationPicker.search.saveCity.message" = "该城市将出现在您的已保存位置列表中。";
+"locationPicker.search.saveCity.namePlaceholder" = "城市名称";
+"locationPicker.search.saveCity.save" = "保存";
+"locationPicker.search.saveCity.swipe" = "保存城市";
+"locationPicker.search.saveCity.confirmed" = "城市已保存！";
+
+/* Location picker — map tab save flow */
+"locationPicker.map.saveCity.title" = "命名此位置";
+"locationPicker.map.saveCity.message" = "已保存的位置将出现在您的城市列表中，方便快速访问。";
+"locationPicker.map.saveCity.namePlaceholder" = "位置名称";
+"locationPicker.map.saveCity.save" = "保存并设置";
+"locationPicker.map.saveAndSet" = "保存并设置位置";
+"locationPicker.map.saveCity.confirmed" = "位置已保存！";
+
+/* Location picker — general UI */
+"locationPicker.picker.a11y" = "位置类型";
+"locationPicker.title" = "选择位置";
+"locationPicker.tab.cities" = "城市";
+"locationPicker.tab.search" = "搜索";
+"locationPicker.tab.map" = "地图";
+"locationPicker.cities.searchPrompt" = "搜索城市";
+"locationPicker.search.prompt" = "城市、地点或地址";
+"locationPicker.search.error.title" = "搜索失败";
+"locationPicker.map.lat" = "纬度";
+"locationPicker.map.lon" = "经度";
+"locationPicker.map.applyCoords" = "将图钉移到这些坐标";
+"locationPicker.map.resolving" = "正在解析…";
+"locationPicker.map.resolved" = "已解析：%@";
+"locationPicker.map.setLocation" = "不保存直接使用";
+"locationPicker.custom.fallbackName" = "自定义位置";

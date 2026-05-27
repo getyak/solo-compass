@@ -3,18 +3,18 @@ import MapKit
 import CoreLocation
 
 /// Rich location picker that replaces `CityPickerSheet`.
-/// Three tabs: Cities (browse / search preset cities), Search (forward
-/// geocoding via MKLocalSearch), Map (drag-a-pin or type coordinates).
+/// Three tabs: Cities (browse / search preset + custom cities), Search
+/// (forward geocoding via MKLocalSearch + save-as-city flow), Map
+/// (drag-a-pin or type coordinates + save-as-city flow).
 struct LocationPickerSheet: View {
     @Bindable var viewModel: MapViewModel
     let onDismiss: () -> Void
 
-    /// `@State` holds the `@Observable` state object.
-    /// Bindings to its properties are created via `@Bindable` inside body.
     @State private var state: LocationPickerState
     @State private var searchService = LocationSearchService()
     @State private var searchDebounceTask: Task<Void, Never>? = nil
     @State private var userLocation: CLLocation?
+    @State private var customCityStore = CustomCityStore.shared
 
     init(viewModel: MapViewModel, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -24,7 +24,6 @@ struct LocationPickerSheet: View {
     }
 
     var body: some View {
-        // @Bindable gives us `$bs.*` bindings into the @Observable state object.
         @Bindable var bs = state
         NavigationStack {
             VStack(spacing: 0) {
@@ -51,6 +50,16 @@ struct LocationPickerSheet: View {
             .navigationTitle(NSLocalizedString("locationPicker.title", comment: "Location picker title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if state.selectedTab == .cities {
+                        Button {
+                            state.selectedTab = .search
+                        } label: {
+                            Image(systemName: "plus")
+                                .accessibilityLabel(NSLocalizedString("locationPicker.cities.addCity", comment: "Add custom city"))
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(NSLocalizedString("common.cancel", comment: "Cancel")) {
                         onDismiss()
@@ -67,6 +76,40 @@ struct LocationPickerSheet: View {
             searchService.cancelAll()
             searchDebounceTask?.cancel()
         }
+        // Save-city alert for Search tab
+        .alert(
+            NSLocalizedString("locationPicker.search.saveCity.title", comment: "Save as custom city"),
+            isPresented: $bs.isShowingSaveSearchAlert
+        ) {
+            TextField(
+                NSLocalizedString("locationPicker.search.saveCity.namePlaceholder", comment: "City name"),
+                text: $bs.saveNameText
+            )
+            Button(NSLocalizedString("locationPicker.search.saveCity.save", comment: "Save")) {
+                confirmSaveSearchResult()
+            }
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {
+                state.pendingSaveItem = nil
+            }
+        } message: {
+            Text(NSLocalizedString("locationPicker.search.saveCity.message", comment: "This city will appear in your Cities list."))
+        }
+        // Save-city alert for Map tab
+        .alert(
+            NSLocalizedString("locationPicker.map.saveCity.title", comment: "Name this location"),
+            isPresented: $bs.isShowingSaveMapAlert
+        ) {
+            TextField(
+                NSLocalizedString("locationPicker.map.saveCity.namePlaceholder", comment: "Location name"),
+                text: $bs.mapSaveNameText
+            )
+            Button(NSLocalizedString("locationPicker.map.saveCity.save", comment: "Save & Set")) {
+                confirmSaveMapLocation()
+            }
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(NSLocalizedString("locationPicker.map.saveCity.message", comment: "Saved cities appear in your Cities list for quick access."))
+        }
     }
 
     // MARK: - Cities Tab
@@ -74,6 +117,7 @@ struct LocationPickerSheet: View {
     @ViewBuilder
     private func citiesContent(bs: Bindable<LocationPickerState>) -> some View {
         List {
+            // "All Cities" row
             Button {
                 commitHaptic()
                 viewModel.selectCity(nil)
@@ -92,27 +136,65 @@ struct LocationPickerSheet: View {
                 }
             }
 
-            ForEach(filteredCities, id: \.code) { city in
-                Button {
-                    commitHaptic()
-                    viewModel.selectCity(city.code)
-                    onDismiss()
-                } label: {
-                    CityRow(
-                        name: city.name,
-                        experienceCount: viewModel.experienceCount(for: city.code),
-                        distanceLabel: distanceLabel(for: city.center),
-                        isSelected: viewModel.selectedCity == city.code
-                    )
+            // Seed-derived cities
+            let seed = filteredCities
+            if !seed.isEmpty {
+                Section(NSLocalizedString("locationPicker.cities.section.places", comment: "Places with experiences")) {
+                    ForEach(seed, id: \.code) { city in
+                        Button {
+                            commitHaptic()
+                            viewModel.selectCity(city.code)
+                            onDismiss()
+                        } label: {
+                            CityRow(
+                                name: city.name,
+                                icon: "mappin",
+                                experienceCount: viewModel.experienceCount(for: city.code),
+                                distanceLabel: distanceLabel(for: city.center),
+                                isSelected: viewModel.selectedCity == city.code
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Custom saved cities
+            let custom = filteredCustomCities
+            if !custom.isEmpty {
+                Section(NSLocalizedString("locationPicker.cities.section.saved", comment: "Saved locations")) {
+                    ForEach(custom) { saved in
+                        Button {
+                            commitHaptic()
+                            viewModel.selectCustomLocation(
+                                coordinate: saved.coordinate,
+                                label: saved.name,
+                                cityCode: saved.id
+                            )
+                            onDismiss()
+                        } label: {
+                            CityRow(
+                                name: saved.name,
+                                icon: "pin.fill",
+                                experienceCount: nil,
+                                distanceLabel: distanceLabel(for: saved.coordinate),
+                                isSelected: viewModel.selectedCity == saved.id
+                            )
+                        }
+                    }
+                    .onDelete { offsets in
+                        let idsToDelete = offsets.map { custom[$0].id }
+                        for id in idsToDelete { customCityStore.remove(id: id) }
+                    }
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyle(.insetGrouped)
         .searchable(
             text: bs.citySearchQuery,
             placement: .navigationBarDrawer(displayMode: .always),
             prompt: NSLocalizedString("locationPicker.cities.searchPrompt", comment: "Search cities")
         )
+        .animation(.easeInOut(duration: 0.2), value: customCityStore.cities.count)
     }
 
     private var filteredCities: [(code: String, name: String, center: CLLocationCoordinate2D)] {
@@ -120,6 +202,13 @@ struct LocationPickerSheet: View {
         guard !state.citySearchQuery.isEmpty else { return cities }
         let query = state.citySearchQuery.lowercased()
         return cities.filter { $0.name.lowercased().contains(query) }
+    }
+
+    private var filteredCustomCities: [SavedCity] {
+        let all = customCityStore.cities
+        guard !state.citySearchQuery.isEmpty else { return all }
+        let query = state.citySearchQuery.lowercased()
+        return all.filter { $0.name.lowercased().contains(query) }
     }
 
     private var sortedCities: [(code: String, name: String, center: CLLocationCoordinate2D)] {
@@ -173,6 +262,18 @@ struct LocationPickerSheet: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
 
+            if state.searchSaveConfirmed {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text(NSLocalizedString("locationPicker.search.saveCity.confirmed", comment: "City saved!"))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.green)
+                }
+                .padding(.vertical, 6)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             Divider()
 
             if let error = state.searchError {
@@ -192,10 +293,22 @@ struct LocationPickerSheet: View {
                     } label: {
                         SearchResultRow(item: item)
                     }
+                    .swipeActions(edge: .trailing) {
+                        Button {
+                            promptSaveSearchResult(item)
+                        } label: {
+                            Label(
+                                NSLocalizedString("locationPicker.search.saveCity.swipe", comment: "Save city"),
+                                systemImage: "pin.fill"
+                            )
+                        }
+                        .tint(.indigo)
+                    }
                 }
                 .listStyle(.plain)
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: state.searchSaveConfirmed)
     }
 
     // MARK: - Map Tab
@@ -250,6 +363,17 @@ struct LocationPickerSheet: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                    } else if state.mapSaveConfirmed {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.title3)
+                                .symbolEffect(.bounce, value: state.mapSaveConfirmed)
+                            Text(NSLocalizedString("locationPicker.map.saveCity.confirmed", comment: "Location saved!"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.green)
+                        }
+                        .transition(.scale.combined(with: .opacity))
                     } else if let name = state.resolvedCityName {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
@@ -266,18 +390,37 @@ struct LocationPickerSheet: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
+                .animation(.easeInOut(duration: 0.3), value: state.mapSaveConfirmed)
 
-                Button {
-                    commitMapLocation()
-                } label: {
-                    Text(NSLocalizedString("locationPicker.map.setLocation", comment: "Set this location on the map"))
+                VStack(spacing: 10) {
+                    // Primary: save + set
+                    Button {
+                        promptSaveMapLocation()
+                    } label: {
+                        Label(
+                            NSLocalizedString("locationPicker.map.saveAndSet", comment: "Save & set this location"),
+                            systemImage: "pin.fill"
+                        )
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .padding(.horizontal, 16)
+
+                    // Secondary: just use it without saving
+                    Button {
+                        commitMapLocation()
+                    } label: {
+                        Text(NSLocalizedString("locationPicker.map.setLocation", comment: "Use without saving"))
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .padding(.horizontal, 16)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             .padding(.top, 12)
@@ -287,6 +430,7 @@ struct LocationPickerSheet: View {
     // MARK: - Actions
 
     private func commitHaptic() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+    private func successHaptic() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
 
     private func selectSearchResult(_ item: MKMapItem) {
         commitHaptic()
@@ -301,6 +445,73 @@ struct LocationPickerSheet: View {
             cityCode: customCode(for: coord)
         )
         onDismiss()
+    }
+
+    private func promptSaveSearchResult(_ item: MKMapItem) {
+        let name = item.name
+            ?? item.placemark.locality
+            ?? item.placemark.administrativeArea
+            ?? ""
+        state.pendingSaveItem = item
+        state.saveNameText = name
+        state.isShowingSaveSearchAlert = true
+    }
+
+    private func confirmSaveSearchResult() {
+        guard let item = state.pendingSaveItem else { return }
+        let name = state.saveNameText.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+
+        let coord = item.placemark.coordinate
+        let city = SavedCity(
+            id: "custom_\(UUID().uuidString)",
+            name: name,
+            latitude: coord.latitude,
+            longitude: coord.longitude,
+            countryCode: item.placemark.countryCode,
+            dateAdded: Date()
+        )
+        customCityStore.add(city)
+        state.pendingSaveItem = nil
+        successHaptic()
+
+        withAnimation { state.searchSaveConfirmed = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation { state.searchSaveConfirmed = false }
+        }
+    }
+
+    private func promptSaveMapLocation() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let name = state.resolvedCityName
+            ?? String(format: "%.4f, %.4f", state.pinCoordinate.latitude, state.pinCoordinate.longitude)
+        state.mapSaveNameText = name
+        state.isShowingSaveMapAlert = true
+    }
+
+    private func confirmSaveMapLocation() {
+        let name = state.mapSaveNameText.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+
+        let coord = state.pinCoordinate
+        let city = SavedCity(
+            id: "custom_\(UUID().uuidString)",
+            name: name,
+            latitude: coord.latitude,
+            longitude: coord.longitude,
+            countryCode: nil,
+            dateAdded: Date()
+        )
+        customCityStore.add(city)
+        successHaptic()
+
+        withAnimation { state.mapSaveConfirmed = true }
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            viewModel.selectCustomLocation(coordinate: coord, label: name, cityCode: city.id)
+            onDismiss()
+        }
     }
 
     private func commitMapLocation() {
@@ -390,22 +601,34 @@ struct LocationPickerSheet: View {
 
 private struct CityRow: View {
     let name: String
-    let experienceCount: Int
+    let icon: String
+    let experienceCount: Int?
     let distanceLabel: String
     let isSelected: Bool
 
     var body: some View {
-        HStack {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(experienceCount != nil ? .tint : .indigo)
+                .frame(width: 18)
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.headline)
                     .foregroundStyle(.primary)
-                Text(String(
-                    format: NSLocalizedString("city.experienceCount", comment: "Experience count in city"),
-                    experienceCount
-                ))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                if let count = experienceCount {
+                    Text(String(
+                        format: NSLocalizedString("city.experienceCount", comment: "Experience count in city"),
+                        count
+                    ))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                } else {
+                    Text(NSLocalizedString("locationPicker.cities.saved.subtitle", comment: "Saved location"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
