@@ -133,7 +133,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -151,7 +151,7 @@
         "Verify in iOS Simulator: profile saves and visibility toggles work"
       ],
       "priority": 9,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -169,7 +169,7 @@
         "Verify in iOS Simulator: open/close and prompts"
       ],
       "priority": 10,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -188,7 +188,7 @@
         "Verify in iOS Simulator: discovery list renders and filters"
       ],
       "priority": 11,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -205,7 +205,7 @@
         "Verify in iOS Simulator with two anonymous accounts: full handshake (test DB + two devices acceptable)"
       ],
       "priority": 12,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -223,7 +223,7 @@
         "Verify in iOS Simulator: bidirectional realtime send/receive"
       ],
       "priority": 13,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -240,7 +240,7 @@
         "Verify in iOS Simulator: report submission and block takes effect"
       ],
       "priority": 14,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -259,7 +259,7 @@
         "Tests pass"
       ],
       "priority": 15,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -275,7 +275,7 @@
         "Tests pass"
       ],
       "priority": 16,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -292,7 +292,7 @@
         "Verify in iOS Simulator: layer toggle and blurred-grid rendering"
       ],
       "priority": 17,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -308,7 +308,7 @@
         "Tests pass"
       ],
       "priority": 18,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -324,7 +324,7 @@
         "Tests pass"
       ],
       "priority": 19,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -342,7 +342,7 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -358,7 +358,7 @@
         "Verify in iOS Simulator: no companion traces remain after turning off"
       ],
       "priority": 21,
-      "passes": true,
+      "passes": false,
       "notes": ""
     }
   ]
