@@ -22,7 +22,6 @@ public struct ExperienceCardView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private static let accentGold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
 
     public init(
         experience: Experience,
@@ -117,12 +116,8 @@ public struct ExperienceCardView: View {
 
             HStack {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
-                if !experience.realInconveniences.isEmpty {
-                    inconveniencePill
-                } else if experience.isBestNow() {
-                    bestNowBadge
-                } else if let hint = experience.bestTimeHint() {
-                    bestTimeHintPill(hint)
+                if experience.isBestNow() {
+                    BestNowBadge()
                 }
                 Spacer()
                 Button(action: onExpand) {
@@ -245,39 +240,29 @@ public struct ExperienceCardView: View {
         }
     }
 
-    @ViewBuilder
-    private var bestNowBadge: some View {
+    }
+
+// MARK: - BestNowBadge
+
+private struct BestNowBadge: View {
+    private static let gold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+
+    @State private var pulse = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
         Label(NSLocalizedString("experience.bestNow", comment: ""), systemImage: "sparkle")
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .foregroundStyle(Self.accentGold)
-            .background(
-                ZStack {
-                    Capsule()
-                        .fill(Self.accentGold.opacity(0.25))
-                        .scaleEffect(isPulsing ? 1.12 : 1.0)
-                        .opacity(isPulsing ? 0.0 : 0.5)
-                        .blur(radius: 4)
-                    Capsule()
-                        .fill(Self.accentGold.opacity(0.2))
-                }
-            )
-            .opacity(isPulsing ? 0.75 : 1.0)
-            .scaleEffect(isPulsing ? 0.97 : 1.0)
+            .background(Capsule().fill(Self.gold.opacity(0.2)))
+            .foregroundStyle(Self.gold)
+            .scaleEffect(pulse ? 1.06 : 1.0)
+            .shadow(color: Self.gold.opacity(pulse ? 0.55 : 0.0), radius: pulse ? 8 : 0)
             .onAppear {
                 guard !reduceMotion else { return }
-                withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                    isPulsing = true
-                }
-            }
-            .onChange(of: reduceMotion) { _, reduced in
-                if reduced {
-                    withAnimation(.default) { isPulsing = false }
-                } else {
-                    withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                        isPulsing = true
-                    }
+                withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                    pulse = true
                 }
             }
     }
