@@ -37,6 +37,10 @@ public struct CompassMapView: View {
     @State private var lastPanAt: Date = .distantPast
     @State private var panDebounceTask: Task<Void, Never>? = nil
 
+    // Tracks whether we've seen a disconnect so the success haptic only fires
+    // after a real offline→online transition, never on cold launch.
+    @State private var hasDisconnected: Bool = false
+
     private let networkMonitor = NetworkMonitor.shared
 
     private var isFilterActive: Bool {
@@ -87,6 +91,14 @@ public struct CompassMapView: View {
             }
             .onChange(of: preferences.pendingCheckIns) { _, _ in
                 viewModel?.checkForPendingCheckIns()
+            }
+            .onChange(of: networkMonitor.isConnected) { _, connected in
+                if !connected {
+                    hasDisconnected = true
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                } else if hasDisconnected {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
             }
             .sheet(isPresented: settingsSheetBinding) { settingsSheetContent }
             .sheet(item: $surveyExperience) { exp in surveySheetContent(exp: exp) }
