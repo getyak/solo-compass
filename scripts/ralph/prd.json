@@ -249,7 +249,7 @@
         "Tests pass"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -342,7 +342,7 @@
         "Verify in iOS Simulator"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -357,7 +357,7 @@
         "Verify in iOS Simulator"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -372,7 +372,7 @@
         "Verify in iOS Simulator"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -388,7 +388,7 @@
         "Verify in iOS Simulator"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -404,7 +404,7 @@
         "Verify in iOS Simulator"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
