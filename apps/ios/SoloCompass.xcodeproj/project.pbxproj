@@ -34,6 +34,7 @@
 		42E436DB35CF90AD3E43083E /* DeviceIdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D63763EFB0BE589EA0470 /* DeviceIdentityService.swift */; };
 		45A4E8EED0300F00253EC049 /* MarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */; };
 		AA11BB22CC33DD44EE55FF77 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF66 /* AIProvider.swift */; };
+		DD55EE66FF77AA8807 /* SavedCity.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8806 /* SavedCity.swift */; };
 		BB22CC33DD44EE55FF6600BB /* AIProviderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB22CC33DD44EE55FF6600AA /* AIProviderSettingsView.swift */; };
 		464746A44182622D4F617462 /* AIUsageRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */; };
 		48DF01972A1FB107BFFF0684 /* QueryAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06086F5F9463C18F486E5694 /* QueryAgent.swift */; };
@@ -130,6 +131,7 @@
 
 /* Begin PBXContainerItemProxy section */
 		2C6D32C9538461241D786D7D /* PBXContainerItemProxy */ = {
+		DD55EE66FF77AA8809 /* CustomCityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD55EE66FF77AA8808 /* CustomCityStore.swift */; };
 			isa = PBXContainerItemProxy;
 			containerPortal = 75685F3A029520F918427CD0 /* Project object */;
 			proxyType = 1;
@@ -264,6 +266,8 @@
 		3CBB5430693D4A01BFC85AF2 /* CompletionCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionCelebrationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+			DD55EE66FF77AA8806 /* SavedCity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCity.swift; sourceTree = "<group>"; };
+			DD55EE66FF77AA8808 /* CustomCityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCityStore.swift; sourceTree = "<group>"; };
 /* Begin PBXFrameworksBuildPhase section */
 		760FFA2394573B6BC3FB8434 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -420,6 +424,7 @@
 				DD55EE66FF77AA8800 /* LocationPickerState.swift */,
 				F63FDD874A8F533F0717132A /* UserPreferences.swift */,
 			);
+				DD55EE66FF77AA8806 /* SavedCity.swift */,
 			path = Models;
 			sourceTree = "<group>";
 		};
@@ -463,6 +468,7 @@
 				20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */,
 				120FC7465285714C5FA8F96D /* VoiceService.swift */,
 				7A49D3BA616DE54B8E6F4B7C /* Agents */,
+				DD55EE66FF77AA8808 /* CustomCityStore.swift */,
 				CD349A8744520E6EB084B41A /* Cache */,
 				4889864C3C5478D1001C73B3 /* Context */,
 				7E78DD425BF25E90036C6E0B /* Themes */,
@@ -774,6 +780,7 @@
 				3AA7B0463C3B8084D954C3AA /* ChatStateModifier.swift in Sources */,
 				9D81327AE55FA8142F9E5B8D /* ChatUIState.swift in Sources */,
 				397C20402788F9B63F06A01A /* City.swift in Sources */,
+				DD55EE66FF77AA8807 /* SavedCity.swift in Sources */,
 				7D2B6DE6C27E0307CA998A5F /* CityPickerSheet.swift in Sources */,
 				C21906307DCC96E5B2583BFE /* CompassMapView.swift in Sources */,
 				CC00AA11BB22CC33DD44EE66 /* CompletionCelebrationView.swift in Sources */,
@@ -807,6 +814,7 @@
 				CC33DD44EE55FF6600AA11DD /* LocationPickerSheet.swift in Sources */,
 				DD55EE66FF77AA8801 /* LocationPickerState.swift in Sources */,
 				DD55EE66FF77AA8803 /* LocationSearchService.swift in Sources */,
+				DD55EE66FF77AA8809 /* CustomCityStore.swift in Sources */,
 				31F9538643C362D7EEF64C6B /* LocationService.swift in Sources */,
 				A75EEA586481D5A86B7FCFDA /* MapKitPOIService.swift in Sources */,
 				CE1A6A1D5EB25B2BEA5B29DA /* MapViewModel.swift in Sources */,

@@ -605,3 +605,42 @@
 
 "ai.provider.status.configured" = "AI is configured with %@";
 "ai.provider.status.unconfigured" = "AI features require an API key";
+
+/* Location picker — custom cities */
+"locationPicker.cities.addCity" = "Add custom city";
+"locationPicker.cities.section.places" = "Places with Experiences";
+"locationPicker.cities.section.saved" = "Saved Locations";
+"locationPicker.cities.saved.subtitle" = "Saved location";
+
+/* Location picker — search tab save flow */
+"locationPicker.search.saveCity.title" = "Save as Custom City";
+"locationPicker.search.saveCity.message" = "This city will appear in your Saved Locations list.";
+"locationPicker.search.saveCity.namePlaceholder" = "City name";
+"locationPicker.search.saveCity.save" = "Save";
+"locationPicker.search.saveCity.swipe" = "Save City";
+"locationPicker.search.saveCity.confirmed" = "City saved!";
+
+/* Location picker — map tab save flow */
+"locationPicker.map.saveCity.title" = "Name This Location";
+"locationPicker.map.saveCity.message" = "Saved locations appear in your Cities list for quick access.";
+"locationPicker.map.saveCity.namePlaceholder" = "Location name";
+"locationPicker.map.saveCity.save" = "Save & Set";
+"locationPicker.map.saveAndSet" = "Save & Set Location";
+"locationPicker.map.saveCity.confirmed" = "Location saved!";
+
+/* Location picker — general UI */
+"locationPicker.picker.a11y" = "Location type";
+"locationPicker.title" = "Choose Location";
+"locationPicker.tab.cities" = "Cities";
+"locationPicker.tab.search" = "Search";
+"locationPicker.tab.map" = "Map";
+"locationPicker.cities.searchPrompt" = "Search cities";
+"locationPicker.search.prompt" = "City, place, or address";
+"locationPicker.search.error.title" = "Search failed";
+"locationPicker.map.lat" = "Latitude";
+"locationPicker.map.lon" = "Longitude";
+"locationPicker.map.applyCoords" = "Move pin to these coordinates";
+"locationPicker.map.resolving" = "Resolving…";
+"locationPicker.map.resolved" = "Resolved: %@";
+"locationPicker.map.setLocation" = "Use without saving";
+"locationPicker.custom.fallbackName" = "Custom location";
