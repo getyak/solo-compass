@@ -477,7 +477,6 @@ private struct BestNowBadge: View {
             if reduceMotion {
                 badgeLabel(at: Date())
                     .accessibilityLabel(a11yText(at: Date()))
-                    .onAppear { pulse = true }
             } else {
                 TimelineView(.periodic(from: Date(), by: 60)) { context in
                     badgeLabel(at: context.date)
