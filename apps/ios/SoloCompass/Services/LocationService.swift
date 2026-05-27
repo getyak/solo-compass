@@ -120,6 +120,19 @@ public final class LocationService: NSObject {
         return here.distance(from: target)
     }
 
+    /// Initial great-circle bearing in degrees (0 = N, clockwise) from the current
+    /// location to `coordinate`. Returns nil when no GPS fix is available.
+    public func bearing(to coordinate: CLLocationCoordinate2D) -> Double? {
+        guard let here = currentLocation else { return nil }
+        let lat1 = here.coordinate.latitude * .pi / 180
+        let lat2 = coordinate.latitude * .pi / 180
+        let dLon = (coordinate.longitude - here.coordinate.longitude) * .pi / 180
+        let y = sin(dLon) * cos(lat2)
+        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+        let bearing = atan2(y, x) * 180 / .pi
+        return (bearing + 360).truncatingRemainder(dividingBy: 360)
+    }
+
     /// Test-only: inject a simulated location. Bypasses CLLocationManager so
     /// tests can exercise ViewModel logic synchronously without real GPS.
     /// Not called in production code — harmless to ship.

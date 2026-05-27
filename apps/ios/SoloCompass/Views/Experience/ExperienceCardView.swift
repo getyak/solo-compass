@@ -45,6 +45,28 @@ public struct ExperienceCardView: View {
         return (d.isFinite && d < .greatestFiniteMagnitude) ? d : nil
     }
 
+    /// Bearing in degrees (0 = N, clockwise) from the user to this experience, or nil when no GPS fix.
+    private var bearingDegrees: Double? {
+        guard let coord = experience.coordinate else { return nil }
+        return locationService.bearing(to: coord)
+    }
+
+    /// Maps a bearing in degrees to a localized compass direction string (8 sectors).
+    private static func compassDirection(for degrees: Double) -> String {
+        let directions = [
+            NSLocalizedString("compass.N", comment: "North"),
+            NSLocalizedString("compass.NE", comment: "Northeast"),
+            NSLocalizedString("compass.E", comment: "East"),
+            NSLocalizedString("compass.SE", comment: "Southeast"),
+            NSLocalizedString("compass.S", comment: "South"),
+            NSLocalizedString("compass.SW", comment: "Southwest"),
+            NSLocalizedString("compass.W", comment: "West"),
+            NSLocalizedString("compass.NW", comment: "Northwest"),
+        ]
+        let index = Int((degrees / 45.0).rounded()) % 8
+        return directions[index]
+    }
+
     private static let distanceFormatter: MeasurementFormatter = {
         let f = MeasurementFormatter()
         f.unitOptions = .naturalScale
@@ -288,12 +310,34 @@ public struct ExperienceCardView: View {
 
     @ViewBuilder
     private func distancePill(_ label: String, symbol: String) -> some View {
-        Label(label, systemImage: symbol)
-            .font(.caption)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .foregroundStyle(Color.secondary)
-            .background(Capsule().fill(Color.secondary.opacity(0.12)))
+        let bearing = bearingDegrees
+        HStack(spacing: 4) {
+            if let bearing {
+                Image(systemName: "location.north.fill")
+                    .font(.caption2)
+                    .foregroundStyle(Color.secondary)
+                    .rotationEffect(.degrees(bearing))
+                    .animation(
+                        reduceMotion ? nil : .easeInOut(duration: 0.25),
+                        value: bearing
+                    )
+                    .accessibilityHidden(true)
+            }
+            Label(label, systemImage: symbol)
+                .font(.caption)
+                .foregroundStyle(Color.secondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(Color.secondary.opacity(0.12)))
+        .accessibilityLabel({
+            var text = label
+            if let bearing {
+                let direction = Self.compassDirection(for: bearing)
+                text += ". " + String(format: NSLocalizedString("card.distance.bearing.a11y", comment: "Bearing direction accessibility"), direction)
+            }
+            return text
+        }())
     }
 
     @ViewBuilder
@@ -431,7 +475,7 @@ private struct BestNowBadge: View {
 #Preview {
     if let exp = ExperienceService.hardcodedSeed.first {
         let locationService = LocationService()
-        // Simulate a location ~30 m from the seed experience so the arrived pill is visible in preview.
+        // Simulate a location ~30 m south of the seed experience so the arrived pill is visible; the bearing arrow points north toward the target.
         if let coord = exp.coordinate {
             let offset = CLLocation(latitude: coord.latitude + 0.00027, longitude: coord.longitude)
             locationService.simulate(location: offset)

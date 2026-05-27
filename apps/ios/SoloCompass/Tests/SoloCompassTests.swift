@@ -173,6 +173,34 @@ final class SoloCompassTests: XCTestCase {
         )
     }
 
+    // MARK: - Bearing
+
+    func testBearingDueNorth() {
+        // Target is directly north of the origin → bearing ≈ 0°.
+        let service = LocationService()
+        let origin = CLLocation(latitude: 0.0, longitude: 0.0)
+        service.simulate(location: origin)
+        let north = CLLocationCoordinate2D(latitude: 1.0, longitude: 0.0)
+        let result = try XCTUnwrap(service.bearing(to: north))
+        XCTAssertEqual(result, 0.0, accuracy: 0.5)
+    }
+
+    func testBearingDueEast() {
+        // Target is directly east of the origin → bearing ≈ 90°.
+        let service = LocationService()
+        let origin = CLLocation(latitude: 0.0, longitude: 0.0)
+        service.simulate(location: origin)
+        let east = CLLocationCoordinate2D(latitude: 0.0, longitude: 1.0)
+        let result = try XCTUnwrap(service.bearing(to: east))
+        XCTAssertEqual(result, 90.0, accuracy: 0.5)
+    }
+
+    func testBearingNilWithoutFix() {
+        let service = LocationService()
+        // No simulated fix → bearing must be nil.
+        XCTAssertNil(service.bearing(to: CLLocationCoordinate2D(latitude: 1.0, longitude: 0.0)))
+    }
+
     // MARK: - Distance
 
     func testCLLocationDistanceBetweenChiangMaiPoints() {

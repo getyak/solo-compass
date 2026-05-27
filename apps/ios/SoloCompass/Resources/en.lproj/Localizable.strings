@@ -189,6 +189,17 @@
 "card.distance.walkSub1" = "<1 min walk";
 "card.distance.arrived" = "You're here";
 "card.distance.arrived.a11y" = "You're here";
+"card.distance.bearing.a11y" = "toward the %@";
+
+/* Compass directions (8 sectors) for bearing arrow accessibility */
+"compass.N" = "north";
+"compass.NE" = "northeast";
+"compass.E" = "east";
+"compass.SE" = "southeast";
+"compass.S" = "south";
+"compass.SW" = "southwest";
+"compass.W" = "west";
+"compass.NW" = "northwest";
 
 /* Voice recognition error alert */
 "voice.error.title" = "Voice recognition error";
