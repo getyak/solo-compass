@@ -22,6 +22,7 @@ public struct ExperienceCardView: View {
 
     // Pre-allocated so prepare() can be called once when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
+    private let lightFeedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     @Environment(UserPreferences.self) private var preferences
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -84,6 +85,10 @@ public struct ExperienceCardView: View {
 
     private var isFavorited: Bool {
         preferences.favoritedExperiences.contains(experience.id)
+    }
+
+    private var availableNavigationApps: [NavigationApp] {
+        NavigationLauncher.availableApps()
     }
 
     public var body: some View {
@@ -232,7 +237,7 @@ public struct ExperienceCardView: View {
                 } else if let hint = experience.bestTimeHint() {
                     parts += ". " + String(format: NSLocalizedString("experience.bestTime.hint.a11y", comment: "Best time accessibility"), hint)
                 }
-                if experience.coordinate != nil {
+                if experience.coordinate != nil && !availableNavigationApps.isEmpty {
                     parts += ". " + NSLocalizedString("action.directions", comment: "Directions accessibility action")
                 }
                 return parts
@@ -248,7 +253,7 @@ public struct ExperienceCardView: View {
         }
         .accessibilityAction(named: Text(NSLocalizedString("action.directions", comment: "Directions accessibility action"))) {
             guard let coord = experience.coordinate,
-                  let app = NavigationLauncher.availableApps().first else { return }
+                  let app = availableNavigationApps.first else { return }
             NavigationLauncher.open(app: app, coordinate: coord, name: experience.title)
         }
     }
@@ -265,7 +270,7 @@ public struct ExperienceCardView: View {
 
     @ViewBuilder
     private func directionsControl(coordinate: CLLocationCoordinate2D) -> some View {
-        let apps = NavigationLauncher.availableApps()
+        let apps = availableNavigationApps
         let name = experience.title
         if !apps.isEmpty {
             let pillLabel = Label(
@@ -280,7 +285,7 @@ public struct ExperienceCardView: View {
 
             if apps.count == 1, let app = apps.first {
                 Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    lightFeedbackGenerator.impactOccurred()
                     NavigationLauncher.open(app: app, coordinate: coordinate, name: name)
                 } label: {
                     pillLabel
@@ -291,7 +296,7 @@ public struct ExperienceCardView: View {
                 Menu {
                     ForEach(apps) { app in
                         Button(app.displayName) {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            lightFeedbackGenerator.impactOccurred()
                             NavigationLauncher.open(app: app, coordinate: coordinate, name: name)
                         }
                     }
