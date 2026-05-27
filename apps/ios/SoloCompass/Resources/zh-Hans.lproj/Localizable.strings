@@ -255,6 +255,9 @@
 "favorites.empty.hint" = "点击任意体验上的爱心即可保存到这里。";
 "favorites.undo.named" = "已移除\"%@\"";
 
+/* Generic actions */
+"action.undo" = "撤销";
+
 /* Notifications */
 "settings.notifications" = "靠近时提醒我";
 "settings.notifications.header" = "通知";
@@ -527,6 +530,8 @@
 "itinerary.experienceCount" = "%d 个体验";
 "itinerary.action.create.a11y" = "新建行程";
 "itinerary.action.delete" = "删除";
+"itinerary.undo.named" = "已移除\"%@\"";
+"itinerary.undo.named.a11y" = "已移除行程\"%@\"。点击撤销可恢复。";
 
 /* Itinerary detail (US-004) */
 "itinerary.detail.city" = "城市";

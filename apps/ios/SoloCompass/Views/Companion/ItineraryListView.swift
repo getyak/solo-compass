@@ -9,6 +9,8 @@ public struct ItineraryListView: View {
 
     @State private var itineraries: [Itinerary] = []
     @State private var showingCreateForm = false
+    @State private var lastDeleted: Itinerary?
+    @State private var undoDismissTask: Task<Void, Never>?
 
     /// Production init using the shared on-disk container.
     public init() {
@@ -66,6 +68,14 @@ public struct ItineraryListView: View {
             }
         }
         .onAppear(perform: loadItineraries)
+        .overlay(alignment: .bottom) {
+            if lastDeleted != nil {
+                undoBar
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 16)
+            }
+        }
+        .animation(reduceMotion ? nil : .easeInOut, value: lastDeleted != nil)
     }
 
     private func loadItineraries() {
@@ -73,9 +83,66 @@ public struct ItineraryListView: View {
     }
 
     private func delete(_ itinerary: Itinerary) {
+        let captured = itinerary
         try? store.delete(id: itinerary.id)
-        withAnimation(.easeInOut) {
+        withAnimation(reduceMotion ? nil : .easeInOut) {
             itineraries.removeAll { $0.id == itinerary.id }
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        lastDeleted = captured
+        undoDismissTask?.cancel()
+        undoDismissTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(reduceMotion ? nil : .easeInOut) {
+                    lastDeleted = nil
+                }
+            }
+        }
+    }
+
+    private func performUndo() {
+        guard let saved = lastDeleted else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        undoDismissTask?.cancel()
+        undoDismissTask = nil
+        try? store.save(saved)
+        withAnimation(reduceMotion ? nil : .easeInOut) {
+            lastDeleted = nil
+        }
+        loadItineraries()
+    }
+
+    private var undoBar: some View {
+        HStack {
+            Text(String(
+                format: NSLocalizedString("itinerary.undo.named", comment: "Removed named itinerary undo banner"),
+                lastDeleted?.title ?? ""
+            ))
+            .font(.subheadline)
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            Spacer()
+            Button {
+                performUndo()
+            } label: {
+                Text(NSLocalizedString("action.undo", comment: "Undo action"))
+                    .font(.subheadline.weight(.semibold))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(String(
+            format: NSLocalizedString("itinerary.undo.named.a11y", comment: "Accessibility label for itinerary undo banner"),
+            lastDeleted?.title ?? ""
+        )))
+        .accessibilityAction(named: Text(NSLocalizedString("action.undo", comment: "Undo action"))) {
+            performUndo()
         }
     }
 }

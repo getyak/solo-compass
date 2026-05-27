@@ -668,6 +668,8 @@
 "itinerary.experienceCount" = "%d experiences";
 "itinerary.action.create.a11y" = "Create new itinerary";
 "itinerary.action.delete" = "Delete";
+"itinerary.undo.named" = "Removed \"%@\"";
+"itinerary.undo.named.a11y" = "Removed itinerary \"%@\". Tap Undo to restore.";
 
 /* Itinerary detail (US-004) */
 "itinerary.detail.city" = "City";
