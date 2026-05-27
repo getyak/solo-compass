@@ -480,6 +480,39 @@ public struct Experience: Codable, Hashable, Identifiable {
             return window.contains(hour: hour)
         }
     }
+
+    /// Minutes remaining in the currently-active bestTimes window, or nil when not best now.
+    /// Handles windows that wrap past midnight (endHour < startHour).
+    public func minutesLeftInBestWindow(at date: Date = Date()) -> Int? {
+        let cal = Calendar.current
+        let hour = cal.component(.hour, from: date)
+        let weekday = cal.component(.weekday, from: date) - 1 // Sun=0
+        let month = cal.component(.month, from: date)
+
+        let activeWindow = bestTimes.first { window in
+            if let days = window.dayOfWeek, !days.isEmpty, !days.contains(weekday) { return false }
+            if let seasons = window.season, !seasons.isEmpty, !seasons.contains(month) { return false }
+            return window.contains(hour: hour)
+        }
+
+        guard let window = activeWindow else { return nil }
+
+        // Build the next wall-clock occurrence of endHour from `date`.
+        var components = cal.dateComponents([.year, .month, .day], from: date)
+        components.hour = window.endHour
+        components.minute = 0
+        components.second = 0
+        guard var end = cal.date(from: components) else { return nil }
+
+        // If endHour <= startHour the window crosses midnight; advance by one day
+        // so that `end` is always in the future relative to `date`.
+        if window.endHour <= window.startHour || end <= date {
+            end = cal.date(byAdding: .day, value: 1, to: end) ?? end
+        }
+
+        let minutes = Int(end.timeIntervalSince(date) / 60)
+        return max(1, minutes)
+    }
 }
 
 // MARK: - Best Time Hint
