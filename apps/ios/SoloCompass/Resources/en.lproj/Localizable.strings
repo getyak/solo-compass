@@ -96,6 +96,8 @@
 
 /* Experience */
 "experience.bestNow" = "Best now";
+"experience.bestNow.countdown" = "Best now · %dm left";
+"experience.bestNow.countdown.a11y" = "Best now, %d minutes left";
 "experience.viewDetails" = "View details →";
 "experience.bestTime.hint" = "Best %@";
 "experience.bestTime.hint.a11y" = "Best %@";

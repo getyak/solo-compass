@@ -207,7 +207,7 @@ public struct ExperienceCardView: View {
                 if !experience.realInconveniences.isEmpty {
                     inconveniencePill
                 } else if experience.isBestNow() {
-                    BestNowBadge()
+                    BestNowBadge(experience: experience)
                 } else if let hint = experience.bestTimeHint() {
                     bestTimeHintPill(hint)
                 }
@@ -449,13 +449,51 @@ public struct ExperienceCardView: View {
 // MARK: - BestNowBadge
 
 private struct BestNowBadge: View {
+    /// The experience to query for live countdown; passed so the badge can call
+    /// minutesLeftInBestWindow() on each TimelineView tick.
+    var experience: Experience
+
     private static let gold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
 
     @State private var pulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private func labelText(at date: Date) -> String {
+        if let minutes = experience.minutesLeftInBestWindow(at: date) {
+            return String(format: NSLocalizedString("experience.bestNow.countdown", comment: "Best now with countdown"), minutes)
+        }
+        return NSLocalizedString("experience.bestNow", comment: "Best now label")
+    }
+
+    private func a11yText(at date: Date) -> String {
+        if let minutes = experience.minutesLeftInBestWindow(at: date) {
+            return String(format: NSLocalizedString("experience.bestNow.countdown.a11y", comment: "Best now accessibility with countdown"), minutes)
+        }
+        return NSLocalizedString("experience.bestNow", comment: "Best now label")
+    }
+
     var body: some View {
-        Label(NSLocalizedString("experience.bestNow", comment: ""), systemImage: "sparkle")
+        Group {
+            if reduceMotion {
+                badgeLabel(at: Date())
+                    .accessibilityLabel(a11yText(at: Date()))
+                    .onAppear { pulse = true }
+            } else {
+                TimelineView(.periodic(from: Date(), by: 60)) { context in
+                    badgeLabel(at: context.date)
+                        .accessibilityLabel(a11yText(at: context.date))
+                }
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                        pulse = true
+                    }
+                }
+            }
+        }
+    }
+
+    private func badgeLabel(at date: Date) -> some View {
+        Label(labelText(at: date), systemImage: "sparkle")
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -463,12 +501,7 @@ private struct BestNowBadge: View {
             .foregroundStyle(Self.gold)
             .scaleEffect(pulse ? 1.06 : 1.0)
             .shadow(color: Self.gold.opacity(pulse ? 0.55 : 0.0), radius: pulse ? 8 : 0)
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
-                    pulse = true
-                }
-            }
+            .contentTransition(.numericText())
     }
 }
 

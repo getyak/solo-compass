@@ -6504,3 +6504,78 @@ final class MockSupabaseClientWithData: SupabaseClientProtocol {
         get async { false }
     }
 }
+
+// MARK: - minutesLeftInBestWindow
+
+final class MinutesLeftInBestWindowTests: XCTestCase {
+
+    private func makeExperience(bestTimes: [TimeWindow]) -> Experience {
+        let breakdown = SoloScore.Breakdown(
+            seatingFriendly: 8, soloPatronRatio: 8, staffPressure: 2,
+            soloPortioning: 8, ambianceFit: 8, safety: 8
+        )
+        let score = SoloScore(overall: 8, breakdown: breakdown, basedOnCount: 1)
+        let confidence = Confidence(
+            level: 3, lastVerifiedAt: Date(), reason: "test",
+            signals: Confidence.Signals(aiScrapeAgeDays: 1, passiveGpsHits30d: 1, activeReports30d: 0, trustedVerifications: 0)
+        )
+        return Experience(
+            id: "test", title: "T", oneLiner: "t", whyItMatters: "t",
+            category: .coffee,
+            location: ExperienceLocation(coordinates: [105.0, 21.0], cityCode: "test"),
+            bestTimes: bestTimes,
+            durationMinutes: Experience.DurationRange(min: 30, max: 60),
+            howTo: [], realInconveniences: [], soloScore: score,
+            sources: [], confidence: confidence, nearbyExperienceIds: [],
+            stats: Experience.Stats(completionCount: 0, averageRating: 0),
+            status: .active, createdAt: Date(), updatedAt: Date()
+        )
+    }
+
+    private func date(hour: Int, minute: Int = 0) -> Date {
+        var c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        c.hour = hour
+        c.minute = minute
+        c.second = 0
+        return Calendar.current.date(from: c)!
+    }
+
+    /// Normal window (start < end): returns positive minutes when inside.
+    func testNormalWindowReturnsMinutesLeft() {
+        // window 9–17; test at 09:30 → 7h30m = 450 minutes left
+        let exp = makeExperience(bestTimes: [TimeWindow(startHour: 9, endHour: 17)])
+        let at = date(hour: 9, minute: 30)
+        let result = exp.minutesLeftInBestWindow(at: at)
+        XCTAssertNotNil(result)
+        // 17:00 - 09:30 = 450 minutes
+        XCTAssertEqual(result, 450)
+    }
+
+    /// When not in any best window, returns nil.
+    func testNotBestNowReturnsNil() {
+        let exp = makeExperience(bestTimes: [TimeWindow(startHour: 9, endHour: 11)])
+        let at = date(hour: 14, minute: 0) // outside window
+        XCTAssertNil(exp.minutesLeftInBestWindow(at: at))
+    }
+
+    /// Midnight-wrap window (endHour < startHour): correctly counts across midnight.
+    func testMidnightWrapWindowReturnsMinutesLeft() {
+        // window 22–02; test at 23:00 → end is 02:00 next day = 3 hours = 180 min
+        let exp = makeExperience(bestTimes: [TimeWindow(startHour: 22, endHour: 2)])
+        let at = date(hour: 23, minute: 0)
+        let result = exp.minutesLeftInBestWindow(at: at)
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result, 180)
+    }
+
+    /// Returns at least 1 even when the window ends in less than 60 seconds.
+    func testReturnsAtLeastOne() {
+        // window 9–10; test at 09:59:45 → ~15s remaining → clamps to 1
+        let exp = makeExperience(bestTimes: [TimeWindow(startHour: 9, endHour: 10)])
+        var c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        c.hour = 9; c.minute = 59; c.second = 45
+        let at = Calendar.current.date(from: c)!
+        let result = exp.minutesLeftInBestWindow(at: at)
+        XCTAssertEqual(result, 1)
+    }
+}
