@@ -223,7 +223,7 @@
         "Verify in iOS Simulator: bidirectional realtime send/receive"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -240,7 +240,7 @@
         "Verify in iOS Simulator: report submission and block takes effect"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
