@@ -187,6 +187,8 @@
 /* Experience card distance pill */
 "card.distance.walk" = "%d min walk";
 "card.distance.walkSub1" = "<1 min walk";
+"card.distance.arrived" = "You're here";
+"card.distance.arrived.a11y" = "You're here";
 
 /* Voice recognition error alert */
 "voice.error.title" = "Voice recognition error";
