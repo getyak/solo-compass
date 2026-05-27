@@ -98,7 +98,7 @@ public struct FavoritesListView: View {
                     EmptyFavoritesView()
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
                 } else if filteredFavorites.isEmpty {
-                    NoSearchResultsView(query: searchText)
+                    NoSearchResultsView(query: searchText, onClear: { searchText = "" })
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else {
                     VStack(spacing: 0) {
@@ -222,17 +222,46 @@ private struct EmptyFavoritesView: View {
 
 private struct NoSearchResultsView: View {
     let query: String
+    let onClear: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
 
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             Text(String(format: NSLocalizedString("favorites.search.noResults", comment: "No matches for search query"), query))
                 .font(.headline)
                 .multilineTextAlignment(.center)
+            Text(NSLocalizedString("favorites.search.noResults.hint", comment: "Hint to try different word or clear search"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button {
+                UISelectionFeedbackGenerator().selectionChanged()
+                withAnimation { onClear() }
+            } label: {
+                Label(NSLocalizedString("favorites.search.clear", comment: "Clear search button"), systemImage: "xmark.circle")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .accessibilityHint(NSLocalizedString("favorites.search.clear.hint", comment: "Clears the search field and shows all favorites"))
         }
         .padding(32)
+        .scaleEffect(appeared ? 1 : 0.85)
+        .opacity(appeared ? 1 : 0)
+        .onAppear {
+            guard !reduceMotion else {
+                appeared = true
+                return
+            }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                appeared = true
+            }
+        }
     }
 }
 

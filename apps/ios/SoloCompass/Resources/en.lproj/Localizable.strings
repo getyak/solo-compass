@@ -309,6 +309,9 @@
 "favorites.distance.m" = "%d m";
 "favorites.distance.mi" = "%.1f mi";
 "favorites.search.noResults" = "No matches for \"%@\"";
+"favorites.search.noResults.hint" = "Try a different word, or clear your search.";
+"favorites.search.clear" = "Clear search";
+"favorites.search.clear.hint" = "Clears the search field and shows all favorites";
 "favorites.search.prompt" = "Search favorites";
 "favorites.sort.label" = "Sort";
 "favorites.sort.nearest" = "Nearest";
