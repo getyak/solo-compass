@@ -20,6 +20,7 @@ public struct ExperienceDetailView: View {
     @State private var heartPop = false
     @State private var celebrationTrigger = 0
     @State private var isShowingNavPicker = false
+    @State private var isShowingAddToItinerary = false
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -129,6 +130,13 @@ public struct ExperienceDetailView: View {
                 markdown: payload.markdown,
                 notionURL: MarkdownExporter.notionWebClipperURL(title: viewModel.experience.title)
             )
+        }
+        .sheet(isPresented: $isShowingAddToItinerary) {
+            AddToItinerarySheet(
+                experienceId: viewModel.experience.id,
+                experienceTitle: viewModel.experience.title
+            )
+            .environment(viewModel.experienceService)
         }
         .task {
             await viewModel.loadAIExplanation()
@@ -758,6 +766,18 @@ public struct ExperienceDetailView: View {
                 }
                 .accessibilityLabel(Text(NSLocalizedString("action.directions", comment: "Open directions picker")))
             }
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                isShowingAddToItinerary = true
+            } label: {
+                Image(systemName: "calendar.badge.plus")
+                    .font(.title3)
+                    .foregroundStyle(.primary)
+                    .frame(width: 50, height: 50)
+                    .background(Circle().fill(.regularMaterial))
+            }
+            .accessibilityLabel(Text(NSLocalizedString("action.addToItinerary", comment: "Add to itinerary")))
 
             Button {
                 let wasCompleted = viewModel.isCompleted

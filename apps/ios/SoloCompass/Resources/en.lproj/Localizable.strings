@@ -675,6 +675,23 @@
 "itinerary.detail.experiences.header" = "%d experiences";
 "itinerary.detail.experiences.empty" = "No experiences pinned yet.";
 
+/* Itinerary — Add to Itinerary sheet (US-006) */
+"action.addToItinerary" = "Add to Itinerary";
+"itinerary.addTo.title" = "Add to Itinerary";
+"itinerary.addTo.createNew" = "Create New Itinerary…";
+"itinerary.addTo.createFirst" = "Create Your First Itinerary";
+"itinerary.addTo.noItineraries" = "No Itineraries Yet";
+"itinerary.addTo.noItineraries.hint" = "Create an itinerary to start pinning experiences.";
+"itinerary.addTo.alreadyAdded" = "Already in %@";
+"itinerary.addTo.addToNamed" = "Add to %@";
+
+/* Itinerary detail — Import from favorites (US-006) */
+"itinerary.detail.importFavorites" = "Import Favorites";
+"itinerary.detail.importFavorites.confirm.title" = "Import Favorites?";
+"itinerary.detail.importFavorites.confirm.action" = "Import";
+"itinerary.detail.importFavorites.confirm.message" = "Add your %d favorited experiences to this itinerary. Already pinned ones are skipped.";
+"itinerary.detail.importFavorites.toast" = "%d experiences added";
+
 /* Itinerary form (US-005) */
 "itinerary.form.create.title" = "New Itinerary";
 "itinerary.form.edit.title" = "Edit Itinerary";

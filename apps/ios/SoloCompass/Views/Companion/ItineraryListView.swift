@@ -29,7 +29,7 @@ public struct ItineraryListView: View {
                 } else {
                     List(itineraries) { itinerary in
                         NavigationLink(
-                            destination: ItineraryDetailView(itinerary: itinerary)
+                            destination: ItineraryDetailView(itinerary: itinerary, store: store)
                         ) {
                             ItineraryRow(itinerary: itinerary)
                         }
@@ -211,9 +211,11 @@ private func iso8601Date(_ string: String) -> Date? {
     ))
     return ItineraryListView(store: store)
         .environment(ExperienceService(seed: []))
+        .environment(UserPreferences())
 }
 
 #Preview("Empty state") {
     ItineraryListView(store: ItineraryStore(context: ModelContext(SoloCompassModelContainer.makeInMemory())))
         .environment(ExperienceService(seed: []))
+        .environment(UserPreferences())
 }

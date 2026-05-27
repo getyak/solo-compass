@@ -66,6 +66,50 @@ public final class ItineraryStore {
         try context.save()
     }
 
+    /// Append `experienceId` to the itinerary's list (idempotent — skips if already present).
+    /// Returns the updated `Itinerary` value, or nil if the itinerary was not found.
+    @discardableResult
+    public func addExperience(_ experienceId: String, to itineraryId: ItineraryId) throws -> Itinerary? {
+        guard let record = record(for: itineraryId.rawValue) else { return nil }
+        var ids = (try? JSONDecoder().decode([String].self, from: record.experienceIdsBlob)) ?? []
+        guard !ids.contains(experienceId) else {
+            return record.asValue
+        }
+        ids.append(experienceId)
+        record.experienceIdsBlob = (try? JSONEncoder().encode(ids)) ?? record.experienceIdsBlob
+        record.updatedAt = ISO8601DateFormatter().string(from: Date())
+        try context.save()
+        return record.asValue
+    }
+
+    /// Replace `experienceIds` with a reordered list. No-op if the itinerary is not found
+    /// or the set of IDs differs from the current set (prevents accidental drops).
+    public func reorderExperiences(_ orderedIds: [String], in itineraryId: ItineraryId) throws {
+        guard let record = record(for: itineraryId.rawValue) else { return }
+        let current = Set((try? JSONDecoder().decode([String].self, from: record.experienceIdsBlob)) ?? [])
+        guard Set(orderedIds) == current else { return }
+        record.experienceIdsBlob = (try? JSONEncoder().encode(orderedIds)) ?? record.experienceIdsBlob
+        record.updatedAt = ISO8601DateFormatter().string(from: Date())
+        try context.save()
+    }
+
+    /// Import a set of favorited experience IDs into an itinerary, skipping duplicates.
+    /// Returns the number of IDs actually added.
+    @discardableResult
+    public func importFavorites(_ favoriteIds: Set<String>, into itineraryId: ItineraryId) throws -> Int {
+        guard let record = record(for: itineraryId.rawValue) else { return 0 }
+        var ids = (try? JSONDecoder().decode([String].self, from: record.experienceIdsBlob)) ?? []
+        let existing = Set(ids)
+        let toAdd = favoriteIds.filter { !existing.contains($0) }.sorted()
+        ids.append(contentsOf: toAdd)
+        if !toAdd.isEmpty {
+            record.experienceIdsBlob = (try? JSONEncoder().encode(ids)) ?? record.experienceIdsBlob
+            record.updatedAt = ISO8601DateFormatter().string(from: Date())
+            try context.save()
+        }
+        return toAdd.count
+    }
+
     // MARK: - Private helpers
 
     private func record(for id: String) -> ItineraryRecord? {

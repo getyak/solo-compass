@@ -19,7 +19,7 @@ public final class ExperienceDetailViewModel {
     public var visitCount: Int
     var remoteSoloScore: SoloScore?
 
-    private let experienceService: ExperienceService
+    public let experienceService: ExperienceService
     public let aiService: AIService
     private let preferences: UserPreferences
     private let reviewsService: ReviewsService
