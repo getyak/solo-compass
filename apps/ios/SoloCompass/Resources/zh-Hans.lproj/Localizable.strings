@@ -519,3 +519,41 @@
 "locationPicker.map.resolved" = "已解析：%@";
 "locationPicker.map.setLocation" = "不保存直接使用";
 "locationPicker.custom.fallbackName" = "自定义位置";
+
+/* Itinerary list (US-004) */
+"itinerary.list.title" = "我的行程";
+"itinerary.empty.title" = "还没有行程";
+"itinerary.empty.hint" = "点击 + 规划你的第一次旅行。";
+"itinerary.experienceCount" = "%d 个体验";
+"itinerary.action.create.a11y" = "新建行程";
+"itinerary.action.delete" = "删除";
+
+/* Itinerary detail (US-004) */
+"itinerary.detail.city" = "城市";
+"itinerary.detail.startDate" = "开始";
+"itinerary.detail.endDate" = "结束";
+"itinerary.detail.note.header" = "备注";
+"itinerary.detail.companion.header" = "旅行方式";
+"itinerary.detail.companion.open" = "欢迎同伴加入";
+"itinerary.detail.companion.solo" = "独自旅行";
+"itinerary.detail.experiences.header" = "%d 个体验";
+"itinerary.detail.experiences.empty" = "暂无固定体验。";
+
+/* Itinerary form (US-005) */
+"itinerary.form.create.title" = "新建行程";
+"itinerary.form.edit.title" = "编辑行程";
+"itinerary.form.section.basics" = "行程信息";
+"itinerary.form.section.dates" = "日期";
+"itinerary.form.section.companion" = "同伴模式";
+"itinerary.form.field.title" = "标题";
+"itinerary.form.field.title.placeholder" = "例如：东京春游";
+"itinerary.form.field.city" = "城市";
+"itinerary.form.field.startDate" = "开始日期";
+"itinerary.form.field.endDate" = "结束日期";
+"itinerary.form.field.openToCompanions" = "欢迎同伴加入";
+"itinerary.form.field.note" = "备注";
+"itinerary.form.field.note.placeholder" = "可选的旅行备注…";
+"itinerary.form.validation.endBeforeStart" = "结束日期不能早于开始日期。";
+"itinerary.form.action.save" = "保存";
+"itinerary.form.action.cancel" = "取消";
+"itinerary.form.city.picker.title" = "选择城市";

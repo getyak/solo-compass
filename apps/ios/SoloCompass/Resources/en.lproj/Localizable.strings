@@ -655,3 +655,41 @@
 "locationPicker.map.resolved" = "Resolved: %@";
 "locationPicker.map.setLocation" = "Use without saving";
 "locationPicker.custom.fallbackName" = "Custom location";
+
+/* Itinerary list (US-004) */
+"itinerary.list.title" = "My Itineraries";
+"itinerary.empty.title" = "No itineraries yet";
+"itinerary.empty.hint" = "Tap + to plan your first trip.";
+"itinerary.experienceCount" = "%d experiences";
+"itinerary.action.create.a11y" = "Create new itinerary";
+"itinerary.action.delete" = "Delete";
+
+/* Itinerary detail (US-004) */
+"itinerary.detail.city" = "City";
+"itinerary.detail.startDate" = "Start";
+"itinerary.detail.endDate" = "End";
+"itinerary.detail.note.header" = "Notes";
+"itinerary.detail.companion.header" = "Travel style";
+"itinerary.detail.companion.open" = "Open to companions";
+"itinerary.detail.companion.solo" = "Going solo";
+"itinerary.detail.experiences.header" = "%d experiences";
+"itinerary.detail.experiences.empty" = "No experiences pinned yet.";
+
+/* Itinerary form (US-005) */
+"itinerary.form.create.title" = "New Itinerary";
+"itinerary.form.edit.title" = "Edit Itinerary";
+"itinerary.form.section.basics" = "Trip details";
+"itinerary.form.section.dates" = "Dates";
+"itinerary.form.section.companion" = "Companion mode";
+"itinerary.form.field.title" = "Title";
+"itinerary.form.field.title.placeholder" = "e.g. Tokyo Spring";
+"itinerary.form.field.city" = "City";
+"itinerary.form.field.startDate" = "Start date";
+"itinerary.form.field.endDate" = "End date";
+"itinerary.form.field.openToCompanions" = "Open to companions";
+"itinerary.form.field.note" = "Notes";
+"itinerary.form.field.note.placeholder" = "Optional notes for this trip…";
+"itinerary.form.validation.endBeforeStart" = "End date must be on or after the start date.";
+"itinerary.form.action.save" = "Save";
+"itinerary.form.action.cancel" = "Cancel";
+"itinerary.form.city.picker.title" = "Choose City";
