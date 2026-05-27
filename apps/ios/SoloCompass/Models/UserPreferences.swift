@@ -64,6 +64,10 @@ public final class UserPreferences {
         // (backed by SwiftData + Supabase sync) will supersede this in a later story.
         var activeCompanionPosts: [String: CompanionPost] = [:]
 
+        // US-020: companion safety consent
+        var hasAcceptedCompanionConsent: Bool = false
+        var companionConsentGivenAt: Date?
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -76,6 +80,7 @@ public final class UserPreferences {
             case aiProviderRaw, aiApiKey, aiBaseURL, aiModelName
             case companionAvatarEmoji, companionBio, companionLanguages, companionVisibilityRaw
             case activeCompanionPosts
+            case hasAcceptedCompanionConsent, companionConsentGivenAt
         }
 
         init() {}
@@ -113,7 +118,9 @@ public final class UserPreferences {
             companionBio: String,
             companionLanguages: [String],
             companionVisibilityRaw: String,
-            activeCompanionPosts: [String: CompanionPost]
+            activeCompanionPosts: [String: CompanionPost],
+            hasAcceptedCompanionConsent: Bool = false,
+            companionConsentGivenAt: Date? = nil
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -148,6 +155,8 @@ public final class UserPreferences {
             self.companionLanguages = companionLanguages
             self.companionVisibilityRaw = companionVisibilityRaw
             self.activeCompanionPosts = activeCompanionPosts
+            self.hasAcceptedCompanionConsent = hasAcceptedCompanionConsent
+            self.companionConsentGivenAt = companionConsentGivenAt
         }
 
         init(from decoder: Decoder) throws {
@@ -186,6 +195,8 @@ public final class UserPreferences {
             self.companionLanguages = try container.decodeIfPresent([String].self, forKey: .companionLanguages) ?? []
             self.companionVisibilityRaw = try container.decodeIfPresent(String.self, forKey: .companionVisibilityRaw) ?? CompanionVisibility.off.rawValue
             self.activeCompanionPosts = try container.decodeIfPresent([String: CompanionPost].self, forKey: .activeCompanionPosts) ?? [:]
+            self.hasAcceptedCompanionConsent = try container.decodeIfPresent(Bool.self, forKey: .hasAcceptedCompanionConsent) ?? false
+            self.companionConsentGivenAt = try container.decodeIfPresent(Date.self, forKey: .companionConsentGivenAt)
         }
     }
 
@@ -276,6 +287,14 @@ public final class UserPreferences {
     /// Active CompanionPosts keyed by ItineraryId.rawValue (US-010).
     /// A full CompanionPostStore (SwiftData + Supabase sync) will supersede this in a later story.
     public var activeCompanionPosts: [String: CompanionPost] { didSet { persist() } }
+
+    // US-020: companion safety consent
+
+    /// True once the user has accepted the companion safety disclaimer + age confirmation.
+    /// Gates changing visibility from `.off` — the sheet must be shown first.
+    public var hasAcceptedCompanionConsent: Bool { didSet { persist() } }
+    /// Date the user first accepted the companion safety consent (US-020).
+    public var companionConsentGivenAt: Date? { didSet { persist() } }
 
     /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
     public var aiProvider: AIProvider {
