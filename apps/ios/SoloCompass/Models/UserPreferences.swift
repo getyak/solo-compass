@@ -53,6 +53,21 @@ public final class UserPreferences {
         var aiBaseURL: String = ""
         var aiModelName: String = ""
 
+        // Companion profile (US-009)
+        var companionAvatarEmoji: String = "🧭"
+        var companionBio: String = ""
+        var companionLanguages: [String] = []
+        var companionVisibilityRaw: String = CompanionVisibility.off.rawValue
+
+        // Companion posts keyed by ItineraryId.rawValue (US-010)
+        // Stored as a simple [itinId: CompanionPost] blob. A full CompanionPostStore
+        // (backed by SwiftData + Supabase sync) will supersede this in a later story.
+        var activeCompanionPosts: [String: CompanionPost] = [:]
+
+        // US-020: companion safety consent
+        var hasAcceptedCompanionConsent: Bool = false
+        var companionConsentGivenAt: Date?
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -63,6 +78,9 @@ public final class UserPreferences {
             case includeMapInExport, visibleCategories, customTags
             case foursquareCallsToday, foursquareCallsTodayDate
             case aiProviderRaw, aiApiKey, aiBaseURL, aiModelName
+            case companionAvatarEmoji, companionBio, companionLanguages, companionVisibilityRaw
+            case activeCompanionPosts
+            case hasAcceptedCompanionConsent, companionConsentGivenAt
         }
 
         init() {}
@@ -95,7 +113,14 @@ public final class UserPreferences {
             aiProviderRaw: String,
             aiApiKey: String,
             aiBaseURL: String,
-            aiModelName: String
+            aiModelName: String,
+            companionAvatarEmoji: String,
+            companionBio: String,
+            companionLanguages: [String],
+            companionVisibilityRaw: String,
+            activeCompanionPosts: [String: CompanionPost],
+            hasAcceptedCompanionConsent: Bool = false,
+            companionConsentGivenAt: Date? = nil
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -125,6 +150,13 @@ public final class UserPreferences {
             self.aiApiKey = aiApiKey
             self.aiBaseURL = aiBaseURL
             self.aiModelName = aiModelName
+            self.companionAvatarEmoji = companionAvatarEmoji
+            self.companionBio = companionBio
+            self.companionLanguages = companionLanguages
+            self.companionVisibilityRaw = companionVisibilityRaw
+            self.activeCompanionPosts = activeCompanionPosts
+            self.hasAcceptedCompanionConsent = hasAcceptedCompanionConsent
+            self.companionConsentGivenAt = companionConsentGivenAt
         }
 
         init(from decoder: Decoder) throws {
@@ -158,6 +190,13 @@ public final class UserPreferences {
             self.aiApiKey = try container.decodeIfPresent(String.self, forKey: .aiApiKey) ?? ""
             self.aiBaseURL = try container.decodeIfPresent(String.self, forKey: .aiBaseURL) ?? ""
             self.aiModelName = try container.decodeIfPresent(String.self, forKey: .aiModelName) ?? ""
+            self.companionAvatarEmoji = try container.decodeIfPresent(String.self, forKey: .companionAvatarEmoji) ?? "🧭"
+            self.companionBio = try container.decodeIfPresent(String.self, forKey: .companionBio) ?? ""
+            self.companionLanguages = try container.decodeIfPresent([String].self, forKey: .companionLanguages) ?? []
+            self.companionVisibilityRaw = try container.decodeIfPresent(String.self, forKey: .companionVisibilityRaw) ?? CompanionVisibility.off.rawValue
+            self.activeCompanionPosts = try container.decodeIfPresent([String: CompanionPost].self, forKey: .activeCompanionPosts) ?? [:]
+            self.hasAcceptedCompanionConsent = try container.decodeIfPresent(Bool.self, forKey: .hasAcceptedCompanionConsent) ?? false
+            self.companionConsentGivenAt = try container.decodeIfPresent(Date.self, forKey: .companionConsentGivenAt)
         }
     }
 
@@ -228,6 +267,35 @@ public final class UserPreferences {
     /// Empty string means "use the provider default".
     public var aiModelName: String { didSet { persist() } }
 
+    // Companion profile (US-009)
+
+    /// Emoji avatar for the companion profile. No real photo.
+    public var companionAvatarEmoji: String { didSet { persist() } }
+    /// Short bio shown to other users in companion discovery.
+    public var companionBio: String { didSet { persist() } }
+    /// ISO language codes the user speaks (e.g. ["en", "zh"]).
+    public var companionLanguages: [String] { didSet { persist() } }
+    /// Raw string backing for `companionVisibility`. Default: "off".
+    public var companionVisibilityRaw: String { didSet { persist() } }
+
+    /// Typed access to companion visibility. Reads/writes `companionVisibilityRaw`.
+    public var companionVisibility: CompanionVisibility {
+        get { CompanionVisibility(rawValue: companionVisibilityRaw) ?? .off }
+        set { companionVisibilityRaw = newValue.rawValue }
+    }
+
+    /// Active CompanionPosts keyed by ItineraryId.rawValue (US-010).
+    /// A full CompanionPostStore (SwiftData + Supabase sync) will supersede this in a later story.
+    public var activeCompanionPosts: [String: CompanionPost] { didSet { persist() } }
+
+    // US-020: companion safety consent
+
+    /// True once the user has accepted the companion safety disclaimer + age confirmation.
+    /// Gates changing visibility from `.off` — the sheet must be shown first.
+    public var hasAcceptedCompanionConsent: Bool { didSet { persist() } }
+    /// Date the user first accepted the companion safety consent (US-020).
+    public var companionConsentGivenAt: Date? { didSet { persist() } }
+
     /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
     public var aiProvider: AIProvider {
         get { AIProvider(rawValue: aiProviderRaw) ?? .deepseek }
@@ -274,6 +342,11 @@ public final class UserPreferences {
         self.aiApiKey = snapshot.aiApiKey
         self.aiBaseURL = snapshot.aiBaseURL
         self.aiModelName = snapshot.aiModelName
+        self.companionAvatarEmoji = snapshot.companionAvatarEmoji
+        self.companionBio = snapshot.companionBio
+        self.companionLanguages = snapshot.companionLanguages
+        self.companionVisibilityRaw = snapshot.companionVisibilityRaw
+        self.activeCompanionPosts = snapshot.activeCompanionPosts
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -317,7 +390,12 @@ public final class UserPreferences {
             aiProviderRaw: aiProviderRaw,
             aiApiKey: aiApiKey,
             aiBaseURL: aiBaseURL,
-            aiModelName: aiModelName
+            aiModelName: aiModelName,
+            companionAvatarEmoji: companionAvatarEmoji,
+            companionBio: companionBio,
+            companionLanguages: companionLanguages,
+            companionVisibilityRaw: companionVisibilityRaw,
+            activeCompanionPosts: activeCompanionPosts
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

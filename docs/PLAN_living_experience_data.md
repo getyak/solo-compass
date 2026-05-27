@@ -10,11 +10,13 @@
 ## 0. 现状关键事实(经交叉验证)
 
 ### 三套并行后端
+
 - **A. `infra/supabase` 简单版(活的)**:`osm_pois`(元数据)+ `synthesized_experiences`(编译维基,payload JSONB)。**覆盖式、无版本、无 job 入口。** iOS 实际连这套。
 - **B. `packages/db` Drizzle 高级版(建好未接通)**:`experiences`(status 生命周期 candidate/active/stale/retired + `last_compiled_at`)、`experience_revisions`(版本史)、`compilation_jobs`(编译队列)、`editor_queue`、`sources`(多源溯源 + verified_at + weight)、`user_signals`、`audit_log`。**几乎是照用户蓝图设计的,但从没被写过/读过。**
 - **C. `apps/api` Go 服务**:OSM reviews 抓取 + AI 提取,独立。
 
 ### 三条 AI 合成路径(重要)
+
 1. **Edge Function 路径** `AIService.synthesizeViaEdge` (786-894) → `synthesize-experiences/index.ts`。**退化版**:只传 OSM tag;六维 breakdown 用同一个 overall 填充;无多源。
 2. **本地直连 Anthropic 路径** `parseSynthesizedExperiences` (~1260-1316)。**完整版**:有 `hasHardSignals(poi)` 判断 Foursquare/Apple 信号、`soloBreakdown` 六维独立、attribution 区分 "+ Foursquare/Apple Maps + AI"。
 3. **skeleton 降级** `skeletonExperience` (1321+):AI 不可用时的空壳,固定 7.0 分 + `explore.skeleton.why` 文案("We don't have a curated story for this place yet")。
@@ -22,15 +24,16 @@
 > **核心洞察**:多源富化 + 细粒度评分**已经在 iOS 本地路径跑通**。工作的本质不是"从零造能力",而是"把本地路径的能力搬到 Edge Function,落到 B schema,并加版本化 + 增量编译 + 按钮"。
 
 ### 关键文件清单
-| 关注点 | 文件 |
-|---|---|
-| Edge Function(待升级) | `infra/supabase/functions/synthesize-experiences/index.ts` |
-| iOS 合成入口 | `apps/ios/SoloCompass/Services/AIService.swift` (717 起) |
-| iOS Supabase 封装 | `apps/ios/SoloCompass/Services/SupabaseClient.swift` |
-| B schema(目标) | `packages/db/src/schema/{experiences,revisions,jobs,sources}.ts` |
-| B migrations | `packages/db/migrations/000{0,1,3}_*.sql` |
-| skeleton 文案 | `apps/ios/SoloCompass/Resources/en.lproj/Localizable.strings` (`explore.skeleton.*`) |
-| FeatureFlags | `routeAIThroughEdge` / `backendSync` |
+
+| 关注点                | 文件                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| Edge Function(待升级) | `infra/supabase/functions/synthesize-experiences/index.ts`                           |
+| iOS 合成入口          | `apps/ios/SoloCompass/Services/AIService.swift` (717 起)                             |
+| iOS Supabase 封装     | `apps/ios/SoloCompass/Services/SupabaseClient.swift`                                 |
+| B schema(目标)        | `packages/db/src/schema/{experiences,revisions,jobs,sources}.ts`                     |
+| B migrations          | `packages/db/migrations/000{0,1,3}_*.sql`                                            |
+| skeleton 文案         | `apps/ios/SoloCompass/Resources/en.lproj/Localizable.strings` (`explore.skeleton.*`) |
+| FeatureFlags          | `routeAIThroughEdge` / `backendSync`                                                 |
 
 ---
 
@@ -115,4 +118,5 @@
 ---
 
 ## 一句话总结
+
 你要的"两层 + 可重编译 + 可验证补充"在 `packages/db` 已建好骨架、在 iOS 本地路径已跑通能力——这套方案的本质是**接通 + 版本化 + 加触发入口**,而非从零搭建。

@@ -3,6 +3,10 @@ import SwiftUI
 /// Detail view for a single itinerary.
 /// Shows all fields: title, city, dates, note, companion toggle, and pinned experiences.
 /// Supports drag-to-reorder and "Import from Favorites".
+///
+/// US-010: the companion toggle is interactive — enabling it prompts for a blurb
+/// and categories, then creates a CompanionPost. Disabling it removes the post.
+/// When the user's companion visibility is .off, the toggle is blocked with guidance.
 public struct ItineraryDetailView: View {
     let itinerary: Itinerary
 
@@ -10,8 +14,14 @@ public struct ItineraryDetailView: View {
 
     private let store: ItineraryStore
     @State private var experienceIds: [String]
+    @State private var openToCompanions: Bool
     @State private var showingImportConfirm = false
     @State private var importedCount: Int?
+
+    // Companion post flow (US-010)
+    @State private var showingCompanionPostSheet = false
+    @State private var showingVisibilityOffAlert = false
+    @State private var showingRemovePostConfirm = false
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -24,6 +34,7 @@ public struct ItineraryDetailView: View {
         self.itinerary = itinerary
         self.store = store
         _experienceIds = State(initialValue: itinerary.experienceIds)
+        _openToCompanions = State(initialValue: itinerary.openToCompanions)
     }
 
     private var formattedStart: String {
@@ -34,6 +45,10 @@ public struct ItineraryDetailView: View {
     private var formattedEnd: String {
         guard let d = iso8601Date(itinerary.endDate) else { return itinerary.endDate }
         return Self.dateFormatter.string(from: d)
+    }
+
+    private var activePost: CompanionPost? {
+        preferences.activeCompanionPosts[itinerary.id.rawValue]
     }
 
     public var body: some View {
@@ -63,21 +78,8 @@ public struct ItineraryDetailView: View {
                 }
             }
 
-            // MARK: Companion section
-            Section(NSLocalizedString("itinerary.detail.companion.header", comment: "Companions section header")) {
-                HStack {
-                    Image(systemName: itinerary.openToCompanions ? "person.2.fill" : "person.fill")
-                        .foregroundStyle(itinerary.openToCompanions ? Color.accentColor : .secondary)
-                        .frame(width: 24)
-                    Text(
-                        itinerary.openToCompanions
-                        ? NSLocalizedString("itinerary.detail.companion.open", comment: "Open to companions")
-                        : NSLocalizedString("itinerary.detail.companion.solo", comment: "Going solo")
-                    )
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                }
-            }
+            // MARK: Companion section (US-010)
+            companionSection
 
             // MARK: Experiences section (drag-to-reorder)
             Section {
@@ -141,6 +143,23 @@ public struct ItineraryDetailView: View {
                 preferences.favoritedExperiences.count
             ))
         }
+        .alert(
+            NSLocalizedString("companion.post.visibilityOff.title", comment: "Visibility off alert title"),
+            isPresented: $showingVisibilityOffAlert
+        ) {
+            Button(NSLocalizedString("companion.post.visibilityOff.action", comment: "Open profile settings")) {
+                // In a full navigation stack this would push CompanionProfileView.
+                // For Phase 2 the user can navigate there from Settings.
+            }
+            Button(NSLocalizedString("action.cancel", comment: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(NSLocalizedString("companion.post.visibilityOff.message", comment: "Visibility off alert message"))
+        }
+        .sheet(isPresented: $showingCompanionPostSheet) {
+            CompanionPostCreationSheet(itinerary: itinerary) { post in
+                activateCompanionPost(post)
+            }
+        }
         .overlay(alignment: .bottom) {
             if let count = importedCount {
                 importedToast(count: count)
@@ -150,7 +169,103 @@ public struct ItineraryDetailView: View {
         }
     }
 
+    // MARK: - Companion section
+
+    @ViewBuilder
+    private var companionSection: some View {
+        Section(NSLocalizedString("itinerary.detail.companion.header", comment: "Companions section header")) {
+            // Interactive toggle (US-010)
+            Toggle(
+                NSLocalizedString("companion.post.openToCompanions", comment: "Open to companions toggle"),
+                isOn: openToCompanionsBinding
+            )
+            .tint(.accentColor)
+
+            // Show post blurb when active
+            if let post = activePost {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(post.blurb)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    if !post.categories.isEmpty {
+                        Text(post.categories.map(\.rawValue).joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        } footer: {
+            if openToCompanions {
+                Text(NSLocalizedString("companion.post.openToCompanions.footer", comment: "Open to companions footer"))
+                    .font(.caption)
+            }
+        }
+    }
+
+    private var openToCompanionsBinding: Binding<Bool> {
+        Binding(
+            get: { openToCompanions },
+            set: { newValue in
+                if newValue {
+                    // Block if visibility is off
+                    guard preferences.companionVisibility != .off else {
+                        showingVisibilityOffAlert = true
+                        return
+                    }
+                    // Show blurb+categories sheet
+                    showingCompanionPostSheet = true
+                } else {
+                    removeCompanionPost()
+                }
+            }
+        )
+    }
+
     // MARK: - Actions
+
+    private func activateCompanionPost(_ post: CompanionPost) {
+        openToCompanions = true
+        preferences.activeCompanionPosts[itinerary.id.rawValue] = post
+        // Persist openToCompanions on the itinerary value
+        let now = ISO8601DateFormatter().string(from: Date())
+        let updated = Itinerary(
+            id: itinerary.id,
+            ownerId: itinerary.ownerId,
+            title: itinerary.title,
+            cityCode: itinerary.cityCode,
+            startDate: itinerary.startDate,
+            endDate: itinerary.endDate,
+            experienceIds: itinerary.experienceIds,
+            note: itinerary.note,
+            openToCompanions: true,
+            createdAt: itinerary.createdAt,
+            updatedAt: now
+        )
+        try? store.update(updated)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func removeCompanionPost() {
+        openToCompanions = false
+        preferences.activeCompanionPosts.removeValue(forKey: itinerary.id.rawValue)
+        let now = ISO8601DateFormatter().string(from: Date())
+        let updated = Itinerary(
+            id: itinerary.id,
+            ownerId: itinerary.ownerId,
+            title: itinerary.title,
+            cityCode: itinerary.cityCode,
+            startDate: itinerary.startDate,
+            endDate: itinerary.endDate,
+            experienceIds: itinerary.experienceIds,
+            note: itinerary.note,
+            openToCompanions: false,
+            createdAt: itinerary.createdAt,
+            updatedAt: now
+        )
+        try? store.update(updated)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
 
     private func moveExperience(from source: IndexSet, to destination: Int) {
         var ids = experienceIds
@@ -181,6 +296,103 @@ public struct ItineraryDetailView: View {
         .padding(.vertical, 10)
         .background(Capsule().fill(Color(.systemBackground)).shadow(radius: 4))
         .foregroundStyle(.primary)
+    }
+}
+
+// MARK: - Companion post creation sheet (US-010)
+
+/// Sheet for entering blurb + categories before enabling the companion post.
+private struct CompanionPostCreationSheet: View {
+    let itinerary: Itinerary
+    let onConfirm: (CompanionPost) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var blurb = ""
+    @State private var selectedCategories: Set<ExperienceCategory> = []
+
+    private var isValid: Bool { !blurb.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(
+                        NSLocalizedString("companion.post.blurb.placeholder", comment: "Blurb placeholder"),
+                        text: $blurb,
+                        axis: .vertical
+                    )
+                    .lineLimit(2...4)
+                    .onChange(of: blurb) { _, new in
+                        if new.count > 280 { blurb = String(new.prefix(280)) }
+                    }
+                } header: {
+                    Text(NSLocalizedString("companion.post.blurb.header", comment: "Blurb section header"))
+                }
+
+                Section {
+                    ForEach(ExperienceCategory.allCases, id: \.self) { cat in
+                        Button {
+                            if selectedCategories.contains(cat) {
+                                selectedCategories.remove(cat)
+                            } else {
+                                selectedCategories.insert(cat)
+                            }
+                        } label: {
+                            HStack {
+                                Text(cat.rawValue.capitalized)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if selectedCategories.contains(cat) {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(Color.accentColor)
+                                        .font(.footnote.weight(.semibold))
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text(NSLocalizedString("companion.post.categories.header", comment: "Categories section header"))
+                }
+            }
+            .navigationTitle(NSLocalizedString("companion.post.openToCompanions", comment: "Sheet nav title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(NSLocalizedString("action.cancel", comment: "Cancel")) {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(NSLocalizedString("itinerary.form.action.save", comment: "Save")) {
+                        confirm()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(!isValid)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func confirm() {
+        let now = ISO8601DateFormatter().string(from: Date())
+        let post = CompanionPost(
+            id: CompanionPostId(rawValue: UUID().uuidString),
+            authorId: "local",
+            mode: .itinerary,
+            itineraryId: itinerary.id,
+            blurb: blurb.trimmingCharacters(in: .whitespaces),
+            categories: Array(selectedCategories),
+            cityCode: itinerary.cityCode,
+            activeFrom: itinerary.startDate,
+            activeTo: itinerary.endDate,
+            createdAt: now,
+            updatedAt: now
+        )
+        onConfirm(post)
+        dismiss()
     }
 }
 
@@ -251,4 +463,25 @@ private func iso8601Date(_ string: String) -> Date? {
         ))
     }
     .environment(UserPreferences())
+}
+
+#Preview("Visibility off — toggle blocked") {
+    let prefs = UserPreferences()
+    prefs.companionVisibility = .off
+    return NavigationStack {
+        ItineraryDetailView(itinerary: Itinerary(
+            id: ItineraryId(rawValue: "itin_preview_c"),
+            ownerId: "user_preview",
+            title: "Seoul Week",
+            cityCode: "SEL",
+            startDate: "2026-09-01",
+            endDate: "2026-09-07",
+            experienceIds: [],
+            note: nil,
+            openToCompanions: false,
+            createdAt: "2026-05-01T09:00:00Z",
+            updatedAt: "2026-05-01T09:00:00Z"
+        ))
+    }
+    .environment(prefs)
 }

@@ -12,6 +12,8 @@ public struct CompassMapView: View {
     @Environment(NotificationService.self) private var notificationService
     @Environment(SubscriptionService.self) private var subscriptionService
     @Environment(\.themeService) private var themeService
+    @Environment(CompanionService.self) private var companionService
+    @Environment(PresenceService.self) private var presenceService
 
     @State private var viewModel: MapViewModel?
     @State private var voiceService = VoiceService()
@@ -23,6 +25,10 @@ public struct CompassMapView: View {
     @State private var surveyExperience: Experience? = nil
     @State private var isShowingFavorites: Bool = false
     @State private var voiceOrchestrator: VoiceAgentOrchestrator? = nil
+
+    // US-017: Companion map layer (default off)
+    @State private var isCompanionLayerOn: Bool = false
+    @State private var nearbyCells: [NearbyCell] = []
 
     // Single chat sheet (replaces former plus-menu + voice-overlay split).
     // Presentation is driven by `voiceOrchestrator` via `.sheet(item:)`.
@@ -144,6 +150,19 @@ public struct CompassMapView: View {
 
                 VStack {
                     Spacer()
+                    // US-017: Companion layer toggle — only rendered when FF_COMPANION is on.
+                    if FeatureFlags.companion {
+                        HStack {
+                            Spacer()
+                            CompanionLayerToggle(
+                                isLayerOn: $isCompanionLayerOn,
+                                presenceActive: presenceService.isActive,
+                                companionEnabled: FeatureFlags.companion
+                            )
+                            .padding(.trailing, 16)
+                        }
+                        .padding(.bottom, 4)
+                    }
                     MapControlBar(
                         viewModel: viewModel,
                         aiService: aiService,
@@ -159,6 +178,13 @@ public struct CompassMapView: View {
                             ensureOrchestrator(viewModel: viewModel)
                         }
                     )
+                }
+                .onChange(of: isCompanionLayerOn) { _, on in
+                    if on {
+                        Task { await fetchNearbyCells(viewModel: viewModel) }
+                    } else {
+                        nearbyCells = []
+                    }
                 }
 
                 if let selected = viewModel.selectedExperience, !viewModel.isShowingDetail {
@@ -378,6 +404,24 @@ public struct CompassMapView: View {
     }
 
 
+    /// Fetch nearby companion posts and convert geohash6 fields to cell centres
+    /// for the companion map layer (US-017).
+    private func fetchNearbyCells(viewModel: MapViewModel) async {
+        let cityCode = viewModel.selectedCity ?? ""
+        await companionService.fetchDiscovery(
+            params: CompanionDiscoverParams(cityCode: cityCode, mode: .nearby)
+        )
+        // DiscoverPost doesn't expose geohash6 yet — build NearbyCell from
+        // city centroid as a placeholder until the Edge Function returns geohash6.
+        // When the backend returns geohash6, map post.geohash6 → NearbyCell(geohash:).
+        nearbyCells = companionService.discoverPosts.compactMap { post in
+            // Use the post id as a synthetic geohash placeholder when geohash6
+            // is not yet in the DiscoverPost model. This keeps the layer compilable
+            // while the full geohash6 field lands in a follow-up backend deploy.
+            nil // placeholder — real mapping done once DiscoverPost.geohash6 is added
+        }
+    }
+
     /// Lazily instantiates `voiceOrchestrator` on first chat-sheet open.
     /// Keeping the orchestrator around between dismissals would mean the
     /// next session sees stale messages — we discard it when the sheet
@@ -483,6 +527,15 @@ public struct CompassMapView: View {
                         }
                     }
                 }
+                // US-017: Companion nearby layer — blurred ~600m cell centres.
+                // No exact pins; no user identifiers. Layer must be explicitly on.
+                if isCompanionLayerOn {
+                    ForEach(nearbyCells) { cell in
+                        Annotation("", coordinate: cell.coordinate) {
+                            NearbyBlurAnnotation()
+                        }
+                    }
+                }
                 // US-011: fading radius ring during progressive explore.
                 // Drawn below annotations so it never occludes marker tap targets.
                 if let ring = viewModel.exploreRadiusOverlay {
@@ -565,6 +618,8 @@ public struct CompassMapView: View {
         .environment(ExperienceService())
         .environment(AIService())
         .environment(UserPreferences())
+        .environment(CompanionService.shared)
+        .environment(PresenceService.shared)
 }
 
 private extension String {

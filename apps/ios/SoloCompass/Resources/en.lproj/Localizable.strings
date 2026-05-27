@@ -710,3 +710,127 @@
 "itinerary.form.action.save" = "Save";
 "itinerary.form.action.cancel" = "Cancel";
 "itinerary.form.city.picker.title" = "Choose City";
+
+/* Companion profile settings (US-009) */
+"companion.profile.title" = "Companion Profile";
+"companion.profile.avatar.header" = "Your Avatar";
+"companion.profile.avatar.footer" = "Tap to pick an emoji — no real photos required.";
+"companion.profile.avatar.a11y" = "Change avatar emoji";
+"companion.profile.bio.header" = "About You";
+"companion.profile.bio.placeholder" = "A line or two about how you travel solo…";
+"companion.profile.bio.footer" = "%d / %d characters";
+"companion.profile.languages.header" = "Languages";
+"companion.profile.languages.footer" = "Other travelers see this before sending a request.";
+"companion.profile.visibility.header" = "Who Can Find You";
+"companion.profile.visibility.off.footer" = "You are hidden. Enable a visibility option above to appear in companion discovery.";
+
+/* Companion visibility options */
+"companion.visibility.off.title" = "Hidden (default)";
+"companion.visibility.off.description" = "You never appear in any companion list.";
+"companion.visibility.itinerary_only.title" = "Itinerary matches only";
+"companion.visibility.itinerary_only.description" = "Only visible to travelers whose itinerary overlaps with yours.";
+"companion.visibility.nearby_and_itinerary.title" = "Nearby & itinerary";
+"companion.visibility.nearby_and_itinerary.description" = "Visible to overlapping itineraries and travelers nearby right now.";
+
+/* Companion — open to companions toggle (US-010) */
+"companion.post.openToCompanions" = "Open to companions";
+"companion.post.openToCompanions.footer" = "Creates a discoverable post so travelers on similar dates can find you.";
+"companion.post.blurb.header" = "Your intro blurb";
+"companion.post.blurb.placeholder" = "Describe your vibe or what you're looking for…";
+"companion.post.categories.header" = "Activity interests";
+"companion.post.visibilityOff.title" = "Companion profile is hidden";
+"companion.post.visibilityOff.message" = "Turn on visibility in your companion profile before opening a trip to companions.";
+"companion.post.visibilityOff.action" = "Open Profile Settings";
+"companion.post.removed" = "Companion post removed";
+
+/* Companion — discovery list (US-011) */
+"companion.discover.title" = "Find Companions";
+"companion.discover.loading" = "Looking for travelers…";
+"companion.discover.refresh.a11y" = "Refresh companion list";
+"companion.discover.error.title" = "Could not load companions";
+"companion.discover.error.config" = "App configuration is missing. Please reinstall.";
+"companion.discover.error.auth" = "Sign in to discover companions.";
+"companion.discover.error.server" = "Server error. Try again later.";
+"companion.discover.empty.title" = "No companions found";
+"companion.discover.empty.description" = "No one is open to companions in this city right now.";
+"companion.discover.coldstart.tip" = "Be the first — open your itinerary to companions and others will find you.";
+
+/* Companion — send request (US-012) */
+"companion.request.send" = "Send request";
+"companion.request.sent" = "Request sent";
+"companion.request.send.action" = "Send";
+"companion.request.sheet.title" = "Send Companion Request";
+"companion.request.post.header" = "Traveling with";
+"companion.request.note.header" = "Icebreaker (optional)";
+"companion.request.note.placeholder" = "Say hi or share what you're hoping to do together…";
+"companion.request.note.footer" = "%d / %d characters";
+"companion.request.accept" = "Accept";
+"companion.request.decline" = "Decline";
+"companion.request.withdraw" = "Withdraw";
+
+/* Companion — inbox (US-012) */
+"companion.inbox.title" = "Requests";
+"companion.inbox.refresh.a11y" = "Refresh inbox";
+"companion.inbox.empty.title" = "No pending requests";
+"companion.inbox.empty.description" = "When someone sends you a companion request, it will appear here.";
+"companion.inbox.request.from" = "From";
+"companion.inbox.accepted.title" = "You're connected!";
+"companion.inbox.accepted.message" = "Request accepted. You can now message each other.";
+
+/* Companion — chat (US-013) */
+"companion.chat.title" = "Chat";
+"companion.chat.input.placeholder" = "Message…";
+"companion.chat.input.a11y" = "Type a message";
+"companion.chat.send.a11y" = "Send message";
+"companion.chat.error.title" = "Message error";
+"companion.chat.error.auth" = "Sign in to send messages.";
+"companion.chat.error.encode" = "Could not send message. Try again.";
+"companion.chat.bubble.me.a11y" = "You: %@, sent at %@";
+"companion.chat.bubble.them.a11y" = "Companion: %@, sent at %@";
+
+/* Companion — report & block (US-014) */
+"companion.report.title" = "Report";
+"companion.report.reason.header" = "What's the problem?";
+"companion.report.details.header" = "Additional details (optional)";
+"companion.report.details.placeholder" = "Tell us more…";
+"companion.report.submit" = "Submit Report";
+"companion.report.submitting" = "Submitting…";
+"companion.report.success.title" = "Report submitted";
+"companion.report.success.message" = "Thank you. We'll review this and take action if needed.";
+"companion.report.error.title" = "Report failed";
+"companion.report.reason.spam" = "Spam";
+"companion.report.reason.harassment" = "Harassment";
+"companion.report.reason.inappropriate_content" = "Inappropriate content";
+"companion.report.reason.fake_profile" = "Fake profile";
+"companion.report.reason.other" = "Other";
+"companion.block.title" = "Block user";
+"companion.block.confirm.title" = "Block this user?";
+"companion.block.confirm.message" = "They won't be able to contact you and will disappear from discovery. This cannot be undone.";
+"companion.block.confirm.action" = "Block";
+"companion.block.success" = "User blocked";
+"companion.block.error.title" = "Block failed";
+"companion.report.block.menu" = "Report or Block";
+"companion.report.menu.report" = "Report";
+"companion.report.menu.block" = "Block User";
+
+/* Companion — presence broadcasting (US-015) */
+"companion.presence.enable" = "Share presence";
+"companion.presence.disable" = "Stop sharing";
+"companion.presence.active" = "Sharing your area (~600m)";
+"companion.presence.stopped" = "Presence off";
+
+/* Companion — map layer toggle (US-017) */
+"companion.layer.on" = "Nearby";
+"companion.layer.off" = "Nearby";
+"companion.layer.on.a11y" = "Companion nearby layer enabled";
+"companion.layer.off.a11y" = "Companion nearby layer disabled";
+"companion.layer.hint.active" = "Toggle companion nearby view";
+"companion.layer.hint.inactive" = "Enable presence broadcasting to use the companion layer";
+"companion.nearby.label" = "~600m away";
+
+/* Companion — reporter weight (US-019) */
+"companion.discover.trust.low" = "This user has received multiple reports and may have limited visibility.";
+
+/* Shared actions */
+"action.ok" = "OK";
+"action.cancel" = "Cancel";
