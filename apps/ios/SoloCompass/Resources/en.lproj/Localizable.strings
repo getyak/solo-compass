@@ -710,3 +710,35 @@
 "itinerary.form.action.save" = "Save";
 "itinerary.form.action.cancel" = "Cancel";
 "itinerary.form.city.picker.title" = "Choose City";
+
+/* Companion profile settings (US-009) */
+"companion.profile.title" = "Companion Profile";
+"companion.profile.avatar.header" = "Your Avatar";
+"companion.profile.avatar.footer" = "Tap to pick an emoji — no real photos required.";
+"companion.profile.avatar.a11y" = "Change avatar emoji";
+"companion.profile.bio.header" = "About You";
+"companion.profile.bio.placeholder" = "A line or two about how you travel solo…";
+"companion.profile.bio.footer" = "%d / %d characters";
+"companion.profile.languages.header" = "Languages";
+"companion.profile.languages.footer" = "Other travelers see this before sending a request.";
+"companion.profile.visibility.header" = "Who Can Find You";
+"companion.profile.visibility.off.footer" = "You are hidden. Enable a visibility option above to appear in companion discovery.";
+
+/* Companion visibility options */
+"companion.visibility.off.title" = "Hidden (default)";
+"companion.visibility.off.description" = "You never appear in any companion list.";
+"companion.visibility.itinerary_only.title" = "Itinerary matches only";
+"companion.visibility.itinerary_only.description" = "Only visible to travelers whose itinerary overlaps with yours.";
+"companion.visibility.nearby_and_itinerary.title" = "Nearby & itinerary";
+"companion.visibility.nearby_and_itinerary.description" = "Visible to overlapping itineraries and travelers nearby right now.";
+
+/* Companion — open to companions toggle (US-010) */
+"companion.post.openToCompanions" = "Open to companions";
+"companion.post.openToCompanions.footer" = "Creates a discoverable post so travelers on similar dates can find you.";
+"companion.post.blurb.header" = "Your intro blurb";
+"companion.post.blurb.placeholder" = "Describe your vibe or what you're looking for…";
+"companion.post.categories.header" = "Activity interests";
+"companion.post.visibilityOff.title" = "Companion profile is hidden";
+"companion.post.visibilityOff.message" = "Turn on visibility in your companion profile before opening a trip to companions.";
+"companion.post.visibilityOff.action" = "Open Profile Settings";
+"companion.post.removed" = "Companion post removed";

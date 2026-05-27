@@ -53,6 +53,12 @@ public final class UserPreferences {
         var aiBaseURL: String = ""
         var aiModelName: String = ""
 
+        // Companion profile (US-009)
+        var companionAvatarEmoji: String = "🧭"
+        var companionBio: String = ""
+        var companionLanguages: [String] = []
+        var companionVisibilityRaw: String = CompanionVisibility.off.rawValue
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -63,6 +69,7 @@ public final class UserPreferences {
             case includeMapInExport, visibleCategories, customTags
             case foursquareCallsToday, foursquareCallsTodayDate
             case aiProviderRaw, aiApiKey, aiBaseURL, aiModelName
+            case companionAvatarEmoji, companionBio, companionLanguages, companionVisibilityRaw
         }
 
         init() {}
@@ -95,7 +102,11 @@ public final class UserPreferences {
             aiProviderRaw: String,
             aiApiKey: String,
             aiBaseURL: String,
-            aiModelName: String
+            aiModelName: String,
+            companionAvatarEmoji: String,
+            companionBio: String,
+            companionLanguages: [String],
+            companionVisibilityRaw: String
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -125,6 +136,10 @@ public final class UserPreferences {
             self.aiApiKey = aiApiKey
             self.aiBaseURL = aiBaseURL
             self.aiModelName = aiModelName
+            self.companionAvatarEmoji = companionAvatarEmoji
+            self.companionBio = companionBio
+            self.companionLanguages = companionLanguages
+            self.companionVisibilityRaw = companionVisibilityRaw
         }
 
         init(from decoder: Decoder) throws {
@@ -158,6 +173,10 @@ public final class UserPreferences {
             self.aiApiKey = try container.decodeIfPresent(String.self, forKey: .aiApiKey) ?? ""
             self.aiBaseURL = try container.decodeIfPresent(String.self, forKey: .aiBaseURL) ?? ""
             self.aiModelName = try container.decodeIfPresent(String.self, forKey: .aiModelName) ?? ""
+            self.companionAvatarEmoji = try container.decodeIfPresent(String.self, forKey: .companionAvatarEmoji) ?? "🧭"
+            self.companionBio = try container.decodeIfPresent(String.self, forKey: .companionBio) ?? ""
+            self.companionLanguages = try container.decodeIfPresent([String].self, forKey: .companionLanguages) ?? []
+            self.companionVisibilityRaw = try container.decodeIfPresent(String.self, forKey: .companionVisibilityRaw) ?? CompanionVisibility.off.rawValue
         }
     }
 
@@ -228,6 +247,23 @@ public final class UserPreferences {
     /// Empty string means "use the provider default".
     public var aiModelName: String { didSet { persist() } }
 
+    // Companion profile (US-009)
+
+    /// Emoji avatar for the companion profile. No real photo.
+    public var companionAvatarEmoji: String { didSet { persist() } }
+    /// Short bio shown to other users in companion discovery.
+    public var companionBio: String { didSet { persist() } }
+    /// ISO language codes the user speaks (e.g. ["en", "zh"]).
+    public var companionLanguages: [String] { didSet { persist() } }
+    /// Raw string backing for `companionVisibility`. Default: "off".
+    public var companionVisibilityRaw: String { didSet { persist() } }
+
+    /// Typed access to companion visibility. Reads/writes `companionVisibilityRaw`.
+    public var companionVisibility: CompanionVisibility {
+        get { CompanionVisibility(rawValue: companionVisibilityRaw) ?? .off }
+        set { companionVisibilityRaw = newValue.rawValue }
+    }
+
     /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
     public var aiProvider: AIProvider {
         get { AIProvider(rawValue: aiProviderRaw) ?? .deepseek }
@@ -274,6 +310,10 @@ public final class UserPreferences {
         self.aiApiKey = snapshot.aiApiKey
         self.aiBaseURL = snapshot.aiBaseURL
         self.aiModelName = snapshot.aiModelName
+        self.companionAvatarEmoji = snapshot.companionAvatarEmoji
+        self.companionBio = snapshot.companionBio
+        self.companionLanguages = snapshot.companionLanguages
+        self.companionVisibilityRaw = snapshot.companionVisibilityRaw
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -317,7 +357,11 @@ public final class UserPreferences {
             aiProviderRaw: aiProviderRaw,
             aiApiKey: aiApiKey,
             aiBaseURL: aiBaseURL,
-            aiModelName: aiModelName
+            aiModelName: aiModelName,
+            companionAvatarEmoji: companionAvatarEmoji,
+            companionBio: companionBio,
+            companionLanguages: companionLanguages,
+            companionVisibilityRaw: companionVisibilityRaw
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

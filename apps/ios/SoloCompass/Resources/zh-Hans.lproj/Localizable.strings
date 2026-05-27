@@ -557,3 +557,35 @@
 "itinerary.form.action.save" = "保存";
 "itinerary.form.action.cancel" = "取消";
 "itinerary.form.city.picker.title" = "选择城市";
+
+/* Companion profile settings (US-009) */
+"companion.profile.title" = "同伴档案";
+"companion.profile.avatar.header" = "你的头像";
+"companion.profile.avatar.footer" = "点击选择一个表情符号 — 无需上传真实照片。";
+"companion.profile.avatar.a11y" = "更换表情符号头像";
+"companion.profile.bio.header" = "关于你";
+"companion.profile.bio.placeholder" = "简单介绍你的独行旅行风格…";
+"companion.profile.bio.footer" = "%d / %d 字符";
+"companion.profile.languages.header" = "语言";
+"companion.profile.languages.footer" = "其他旅行者在发送请求前会看到这些信息。";
+"companion.profile.visibility.header" = "谁可以找到你";
+"companion.profile.visibility.off.footer" = "你已隐藏。在上方启用可见性选项以出现在同伴发现列表中。";
+
+/* Companion visibility options */
+"companion.visibility.off.title" = "隐藏（默认）";
+"companion.visibility.off.description" = "你不会出现在任何同伴列表中。";
+"companion.visibility.itinerary_only.title" = "仅限行程匹配";
+"companion.visibility.itinerary_only.description" = "仅对行程时间与你重叠的旅行者可见。";
+"companion.visibility.nearby_and_itinerary.title" = "附近及行程匹配";
+"companion.visibility.nearby_and_itinerary.description" = "对行程重叠及当前在附近的旅行者可见。";
+
+/* Companion — open to companions toggle (US-010) */
+"companion.post.openToCompanions" = "欢迎同伴加入";
+"companion.post.openToCompanions.footer" = "创建一个可发现的帖子，让日期相近的旅行者找到你。";
+"companion.post.blurb.header" = "简短自我介绍";
+"companion.post.blurb.placeholder" = "描述你的风格或你在寻找什么…";
+"companion.post.categories.header" = "感兴趣的活动";
+"companion.post.visibilityOff.title" = "同伴档案已隐藏";
+"companion.post.visibilityOff.message" = "请先在同伴档案中开启可见性，再将此行程对同伴开放。";
+"companion.post.visibilityOff.action" = "打开档案设置";
+"companion.post.removed" = "同伴帖子已移除";
