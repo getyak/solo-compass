@@ -12,6 +12,14 @@ public final class LocationService: NSObject {
     public private(set) var authorizationStatus: CLAuthorizationStatus
     public private(set) var lastError: Error?
 
+    /// Geohash precision-6 (~600m×600m) of `currentLocation`. Nil when
+    /// no location is known. Precise coordinates are never exposed — only
+    /// the coarse cell string computed locally on device.
+    public var coarseGeohash6: String? {
+        guard let loc = currentLocation else { return nil }
+        return Geohash.encode(loc.coordinate, precision: 6)
+    }
+
     /// Optional preferences sink — when set, geofence enter events record
     /// pending check-ins so the app can prompt the user later.
     public weak var preferences: UserPreferences?
