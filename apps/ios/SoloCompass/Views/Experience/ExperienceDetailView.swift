@@ -347,8 +347,6 @@ public struct ExperienceDetailView: View {
 
     // MARK: - Sections
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     @ViewBuilder
     private var whyItMattersSection: some View {
         let content = viewModel.experience.whyItMatters.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -993,7 +991,6 @@ private struct BestTimesTimeline: View {
 
     @State private var animateFill = false
     @State private var nowPulse = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let trackHeight: CGFloat = 10
     private let nowMarkerWidth: CGFloat = 2
