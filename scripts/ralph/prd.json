@@ -169,7 +169,7 @@
         "Verify in iOS Simulator: open/close and prompts"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -188,7 +188,7 @@
         "Verify in iOS Simulator: discovery list renders and filters"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -205,7 +205,7 @@
         "Verify in iOS Simulator with two anonymous accounts: full handshake (test DB + two devices acceptable)"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
