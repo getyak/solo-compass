@@ -62,6 +62,14 @@ public struct AddToItinerarySheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .onAppear(perform: reload)
+        .alert(
+            NSLocalizedString("itinerary.addTo.error.title", comment: "Error alert title when pinning fails"),
+            isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+        ) {
+            Button(NSLocalizedString("common.ok", comment: "OK")) { errorMessage = nil }
+        } message: {
+            if let msg = errorMessage { Text(msg) }
+        }
     }
 
     // MARK: - Rows
@@ -176,6 +184,7 @@ public struct AddToItinerarySheet: View {
             reload()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { dismiss() }
         } catch {
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
             errorMessage = error.localizedDescription
         }
     }
