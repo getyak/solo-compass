@@ -1224,8 +1224,6 @@ private struct EmptyStateOverlay: View {
 private struct FilteredEmptyOverlay: View {
     var viewModel: MapViewModel
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     private var activeFilterName: String {
         if let category = viewModel.selectedCategory {
             return category.localizedTitle

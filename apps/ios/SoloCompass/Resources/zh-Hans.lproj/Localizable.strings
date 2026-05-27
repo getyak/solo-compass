@@ -118,7 +118,6 @@
 "map.empty.browse" = "浏览 %@";
 "map.empty.clearFilters" = "清除筛选";
 "map.filtered.empty.title" = "没有符合此筛选的体验";
-"map.filtered.empty.hint" = "试试换一个筛选条件或拖动地图。";
 "map.filtered.empty.subtitle" = "此区域内没有匹配"%@"的体验。";
 
 /* Map empty-state stage machine (US-012) */

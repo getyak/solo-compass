@@ -150,7 +150,6 @@
 "map.empty.browse" = "Browse %@";
 "map.empty.clearFilters" = "Clear filters";
 "map.filtered.empty.title" = "Nothing matches this filter";
-"map.filtered.empty.hint" = "Try a different filter or move the map.";
 "map.filtered.empty.subtitle" = "No experiences match \"%@\" in this area.";
 
 /* Map empty-state stage machine (US-012). Three distinct labels — no shared "no results" string. */
