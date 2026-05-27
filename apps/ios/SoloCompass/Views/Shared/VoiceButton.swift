@@ -69,14 +69,20 @@ public struct VoiceButton: View {
             Text(recognitionError ?? "")
         }
         .overlay(alignment: .top) {
-            if isRecording, !liveTranscript.isEmpty {
-                Text(liveTranscript)
+            if isRecording {
+                let displayText = liveTranscript.isEmpty
+                    ? NSLocalizedString("chat.voice.listening", comment: "Listening placeholder")
+                    : liveTranscript
+                Text(displayText)
                     .font(.caption)
+                    .foregroundStyle(liveTranscript.isEmpty ? .secondary : .primary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(.thinMaterial, in: Capsule())
                     .offset(y: -50)
-                    .transition(.opacity)
+                    .transition(reduceMotion ? .identity : .opacity)
+                    .id(liveTranscript.isEmpty)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: liveTranscript.isEmpty)
             }
         }
     }
@@ -93,18 +99,18 @@ public struct VoiceButton: View {
             do {
                 isRecording = true
                 if !reduceMotion { pulse = true }
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 liveTranscript = ""
-                startFeedback.prepare()
                 startFeedback.impactOccurred()
                 endFeedback.prepare()
                 let stream = try voiceService.startListening()
                 streamTask = Task {
                     do {
                         for try await text in stream {
-                            await MainActor.run { liveTranscript = text }
+                            let animate = !reduceMotion
+                            await MainActor.run { withAnimation(animate ? .easeOut(duration: 0.18) : nil) { liveTranscript = text } }
                         }
                     } catch {
+                        guard !(error is CancellationError) else { return }
                         // Surface recognition errors to the user via alert.
                         await MainActor.run {
                             isRecording = false
@@ -137,9 +143,54 @@ public struct VoiceButton: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     VoiceButton(voiceService: VoiceService()) { transcript in
         print("Got: \(transcript)")
     }
     .padding()
+}
+
+#Preview("Listening placeholder") {
+    // Simulates the recording state before any speech is recognized.
+    _ListeningPlaceholderPreview()
+        .padding()
+}
+
+private struct _ListeningPlaceholderPreview: View {
+    @State private var isRecording = true
+    @State private var liveTranscript = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 56, height: 56)
+                .shadow(radius: 10)
+            Image(systemName: "waveform")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+        }
+        .overlay(alignment: .top) {
+            let displayText = liveTranscript.isEmpty
+                ? NSLocalizedString("chat.voice.listening", comment: "Listening placeholder")
+                : liveTranscript
+            Text(displayText)
+                .font(.caption)
+                .foregroundStyle(liveTranscript.isEmpty ? .secondary : .primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.thinMaterial, in: Capsule())
+                .offset(y: -50)
+                .transition(reduceMotion ? .identity : .opacity)
+                .id(liveTranscript.isEmpty)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: liveTranscript.isEmpty)
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                let animate = !reduceMotion
+                withAnimation(animate ? .easeOut(duration: 0.18) : nil) { liveTranscript = "quiet café nearby" }
+            }
+        }
+    }
 }
