@@ -73,11 +73,7 @@ export interface CompanionPost {
   readonly updatedAt: string;
 }
 
-export type CompanionRequestStatus =
-  | "pending"
-  | "accepted"
-  | "declined"
-  | "withdrawn";
+export type CompanionRequestStatus = "pending" | "accepted" | "declined" | "withdrawn";
 
 export interface CompanionRequest {
   readonly id: CompanionRequestId;

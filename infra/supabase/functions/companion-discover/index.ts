@@ -32,7 +32,7 @@ const REPORTER_WEIGHT_THRESHOLD = 0.3;
 
 interface DiscoverPost {
   id: string;
-  handle: string;     // avatarEmoji only — no real name
+  handle: string; // avatarEmoji only — no real name
   blurb: string;
   categories: string[];
   city_code: string;
@@ -46,7 +46,10 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization, Content-Type" },
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+      },
     });
   }
   if (req.method !== "GET") {
@@ -66,7 +69,10 @@ Deno.serve(async (req: Request) => {
     global: { headers: { Authorization: `Bearer ${jwt}` } },
     auth: { persistSession: false },
   });
-  const { data: { user }, error: authError } = await userClient.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await userClient.auth.getUser();
   if (authError || !user) return json({ error: "unauthorized" }, 401);
 
   const callerId = user.id;
@@ -76,9 +82,9 @@ Deno.serve(async (req: Request) => {
   const cityCode = url.searchParams.get("city_code");
   if (!cityCode) return json({ error: "city_code is required" }, 400);
 
-  const mode = url.searchParams.get("mode");        // optional
-  const dateFrom = url.searchParams.get("date_from");  // optional
-  const dateTo = url.searchParams.get("date_to");      // optional
+  const mode = url.searchParams.get("mode"); // optional
+  const dateFrom = url.searchParams.get("date_from"); // optional
+  const dateTo = url.searchParams.get("date_to"); // optional
   const categoriesParam = url.searchParams.get("categories"); // optional, comma-sep
 
   // 3. Service-role client for cross-user queries
@@ -114,24 +120,28 @@ Deno.serve(async (req: Request) => {
 
   const eligibleProfiles = (visibleProfiles ?? []).filter(
     (p: { user_id: string; avatar_emoji: string; reporter_weight: number }) =>
-      p.user_id !== callerId && !blockedIds.has(p.user_id)
+      p.user_id !== callerId && !blockedIds.has(p.user_id),
   );
 
-  const visibleUserIds = eligibleProfiles.map(
-    (p: { user_id: string }) => p.user_id
-  );
+  const visibleUserIds = eligibleProfiles.map((p: { user_id: string }) => p.user_id);
 
   if (visibleUserIds.length === 0) {
     return json({ posts: [] }, 200);
   }
 
   const emojiByUserId = Object.fromEntries(
-    eligibleProfiles.map((p: { user_id: string; avatar_emoji: string }) => [p.user_id, p.avatar_emoji])
+    eligibleProfiles.map((p: { user_id: string; avatar_emoji: string }) => [
+      p.user_id,
+      p.avatar_emoji,
+    ]),
   );
 
   // US-019: build weight map for post-sort.
   const weightByUserId = Object.fromEntries(
-    eligibleProfiles.map((p: { user_id: string; reporter_weight: number }) => [p.user_id, p.reporter_weight])
+    eligibleProfiles.map((p: { user_id: string; reporter_weight: number }) => [
+      p.user_id,
+      p.reporter_weight,
+    ]),
   );
 
   // 6. Query companion_posts
@@ -147,7 +157,10 @@ Deno.serve(async (req: Request) => {
   if (dateTo) query = query.lte("active_to", dateTo);
 
   if (categoriesParam) {
-    const cats = categoriesParam.split(",").map((c) => c.trim()).filter(Boolean);
+    const cats = categoriesParam
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
     if (cats.length > 0) {
       // Filter posts where categories array overlaps with requested categories
       query = query.overlaps("categories", cats);
@@ -162,30 +175,32 @@ Deno.serve(async (req: Request) => {
 
   // 7. Build anonymized response — no user_id, no coordinates.
   //    US-019: sort by author reporter_weight DESC (higher-trust authors first).
-  const unsorted: Array<DiscoverPost & { _weight: number }> = (posts ?? []).map((p: {
-    id: string;
-    author_id: string;
-    blurb: string;
-    categories: string[];
-    city_code: string;
-    mode: string;
-    active_from: string | null;
-    active_to: string | null;
-  }) => {
-    const weight = weightByUserId[p.author_id] ?? 1.0;
-    return {
-      id: p.id,
-      handle: emojiByUserId[p.author_id] ?? "🧭",
-      blurb: p.blurb,
-      categories: p.categories ?? [],
-      city_code: p.city_code,
-      mode: p.mode,
-      active_from: p.active_from ?? null,
-      active_to: p.active_to ?? null,
-      reporter_weight: weight,
-      _weight: weight,
-    };
-  });
+  const unsorted: Array<DiscoverPost & { _weight: number }> = (posts ?? []).map(
+    (p: {
+      id: string;
+      author_id: string;
+      blurb: string;
+      categories: string[];
+      city_code: string;
+      mode: string;
+      active_from: string | null;
+      active_to: string | null;
+    }) => {
+      const weight = weightByUserId[p.author_id] ?? 1.0;
+      return {
+        id: p.id,
+        handle: emojiByUserId[p.author_id] ?? "🧭",
+        blurb: p.blurb,
+        categories: p.categories ?? [],
+        city_code: p.city_code,
+        mode: p.mode,
+        active_from: p.active_from ?? null,
+        active_to: p.active_to ?? null,
+        reporter_weight: weight,
+        _weight: weight,
+      };
+    },
+  );
 
   unsorted.sort((a, b) => b._weight - a._weight);
 
