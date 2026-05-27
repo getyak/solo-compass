@@ -110,7 +110,6 @@ extension View {
         SkeletonView(lineCount: 4, widthFractions: [1.0, 0.85, 0.9, 0.5])
     }
     .padding()
-    .environment(\.accessibilityReduceMotion, true)
 }
 
 #Preview("3-line text skeleton") {

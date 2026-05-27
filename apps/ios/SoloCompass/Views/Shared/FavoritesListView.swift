@@ -17,7 +17,6 @@ public struct FavoritesListView: View {
     @State private var animatePulse = false
     @State private var undoProgress: CGFloat = 1
     @State private var undoDragOffset: CGFloat = 0
-    @State private var undoDragOffset: CGFloat = 0
     @State private var undoDragCrossedThreshold = false
     @State private var searchText = ""
     @State private var sortMode: FavSort = .recent
@@ -187,9 +186,9 @@ public struct FavoritesListView: View {
             if isNil { undoDragOffset = 0 }
         }
     }
-
 }
 
+private struct EmptyFavoritesView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
 
@@ -382,11 +381,11 @@ private extension FavoritesListView {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
-                    if let meters = distanceMeters(for: exp) {
+                    if let distStr {
                         HStack(spacing: 3) {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 9))
-                            Text(distanceBadgeText(meters))
+                            Text(distStr)
                                 .font(.caption2)
                                 .monospacedDigit()
                         }
@@ -438,7 +437,6 @@ private extension FavoritesListView {
             }
         }
     }
-}
 }
 
 #Preview {
