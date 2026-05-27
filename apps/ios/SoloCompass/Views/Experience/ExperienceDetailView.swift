@@ -910,7 +910,6 @@ public struct ExperienceDetailView: View {
             Button {
                 let wasCompleted = viewModel.isCompleted
                 viewModel.toggleComplete()
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
                 if !wasCompleted {
                     celebrationTrigger += 1
                     onMarkDone?(viewModel.experience)

@@ -69,6 +69,9 @@ public struct CompletionCelebrationView: View {
         }
     }
 
+    // This view owns the completion haptic: success notification immediately,
+    // soft impact ~0.12s later synced to the checkmark pop. Haptics.notify/impact
+    // guard on Reduce Motion, so nothing fires when particles are also suppressed.
     private func fire() {
         let count = 14
         particles = (0..<count).map { i in
@@ -92,6 +95,9 @@ public struct CompletionCelebrationView: View {
 
         withAnimation(.spring(response: 0.15, dampingFraction: 0.6)) {
             checkmarkPop = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            Haptics.impact(.soft)
         }
 
         if !reduceMotion {
