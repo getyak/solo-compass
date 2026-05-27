@@ -103,15 +103,23 @@ public struct FavoritesListView: View {
                 } else {
                     VStack(spacing: 0) {
                         if sortedFavorites.count > 0 {
-                            Text(String(
-                                format: NSLocalizedString("favorites.count", comment: "N saved"),
-                                sortedFavorites.count
-                            ))
+                            // Footer reflects the active search filter when one is present.
+                            let countLabel: String = {
+                                let query = searchText.trimmingCharacters(in: .whitespaces)
+                                if query.isEmpty {
+                                    return String(format: NSLocalizedString("favorites.count", comment: "N saved"), sortedFavorites.count)
+                                } else {
+                                    return String(format: NSLocalizedString("favorites.count.matching", comment: "M of N matching"), filteredFavorites.count, sortedFavorites.count)
+                                }
+                            }()
+                            Text(countLabel)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 6)
+                            .animation(.easeInOut, value: filteredFavorites.count)
+                            .contentTransition(.numericText())
                         }
 
                         List {
