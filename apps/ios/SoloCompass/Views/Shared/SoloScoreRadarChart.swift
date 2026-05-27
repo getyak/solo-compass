@@ -16,8 +16,8 @@ public struct SoloScoreRadarChart: View {
     private static let axes: [(label: String, symbol: String, keyPath: KeyPath<SoloScore.Breakdown, Double>)] = [
         (NSLocalizedString("solo.seating",    comment: ""), "chair",              \.seatingFriendly),
         (NSLocalizedString("solo.staff",      comment: ""), "person.crop.circle", \.staffPressure),
-        (NSLocalizedString("solo.wifi",       comment: ""), "wifi",               \.soloPatronRatio),
-        (NSLocalizedString("solo.noise",      comment: ""), "speaker.slash",      \.ambianceFit),
+        (NSLocalizedString("solo.patrons",    comment: ""), "person.2",           \.soloPatronRatio),
+        (NSLocalizedString("solo.ambiance",   comment: ""), "sparkles",           \.ambianceFit),
         (NSLocalizedString("solo.safety",     comment: ""), "shield",             \.safety),
         (NSLocalizedString("solo.portioning", comment: ""), "fork.knife",         \.soloPortioning),
     ]
