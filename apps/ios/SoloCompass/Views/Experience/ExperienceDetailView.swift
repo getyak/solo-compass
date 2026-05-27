@@ -23,6 +23,7 @@ public struct ExperienceDetailView: View {
     var onAskSolo: ((_ experience: Experience) -> Void)?
 
     @Environment(\.themeService) private var themeService
+    @Environment(LocationService.self) private var locationService
     @State private var isShowingReport: Bool = false
     @State private var showingRadarTooltip: Bool = false
     @State private var exportMarkdown: String? = nil
@@ -59,6 +60,7 @@ public struct ExperienceDetailView: View {
                             ?? viewModel.experience.title,
                         addressHint: viewModel.experience.location.addressHint
                     )
+                    .environment(locationService)
                 }
                 whyItMattersSection
                 aiInsightSection
@@ -1038,6 +1040,7 @@ private struct BestTimesTimeline: View {
         NavigationStack {
             ExperienceDetailView(viewModel: vm) {}
         }
+        .environment(LocationService())
     } else {
         Text("No seed data")
     }
@@ -1054,6 +1057,7 @@ private struct BestTimesTimeline: View {
         NavigationStack {
             ExperienceDetailView(viewModel: vm) {}
         }
+        .environment(LocationService())
         .environment(\.dynamicTypeSize, .accessibility3)
     } else {
         Text("No seed data")
@@ -1106,6 +1110,7 @@ private extension RealInconvenience.Severity {
         NavigationStack {
             ExperienceDetailView(viewModel: vm) {}
         }
+        .environment(LocationService())
     } else {
         Text("No seed data")
     }
