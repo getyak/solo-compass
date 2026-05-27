@@ -403,33 +403,31 @@ public struct ExperienceDetailView: View {
         sectionContainer(title: NSLocalizedString("section.inconveniences", comment: "")) {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(viewModel.experience.realInconveniences) { item in
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: item.category.symbol)
-                            .foregroundStyle(.orange)
-                            .frame(width: 20)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(inconvenienceCategoryName(item.category).uppercased())
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.orange)
-                                .tracking(0.5)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.orange.opacity(0.15))
-                                )
+                    let severity = item.category.severity
+                    let tint = severity.tintColor
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: item.category.symbol)
+                                .foregroundStyle(tint)
+                                .frame(width: 20)
                                 .accessibilityHidden(true)
-                            Text(item.text)
-                                .font(.subheadline)
-                                .fixedSize(horizontal: false, vertical: true)
+                            Text(inconvenienceCategoryName(item.category))
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(tint)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(tint.opacity(severity.backgroundOpacity)))
+                                .accessibilityHidden(true)
                         }
+                        Text(item.text)
+                            .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.orange.opacity(0.08))
+                            .fill(tint.opacity(severity.backgroundOpacity))
                     )
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(String(
@@ -907,5 +905,15 @@ private struct BestTimesTimeline: View {
         .environment(\.dynamicTypeSize, .accessibility3)
     } else {
         Text("No seed data")
+    }
+}
+
+private extension RealInconvenience.Severity {
+    var tintColor: Color {
+        switch self {
+        case .high:   return Color(.systemRed)
+        case .medium: return Color(.systemOrange)
+        case .low:    return Color(.systemGray)
+        }
     }
 }

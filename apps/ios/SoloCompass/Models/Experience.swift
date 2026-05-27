@@ -138,6 +138,18 @@ public struct HowToStep: Codable, Hashable, Identifiable {
 // MARK: - Real inconvenience
 
 public struct RealInconvenience: Codable, Hashable, Identifiable {
+    public enum Severity {
+        case high, medium, low
+
+        public var backgroundOpacity: Double {
+            switch self {
+            case .high:   return 0.10
+            case .medium: return 0.08
+            case .low:    return 0.06
+            }
+        }
+    }
+
     public enum Category: String, Codable, Hashable {
         case scam, crowds, logistics, weather, etiquette, safety, other
 
@@ -150,6 +162,14 @@ public struct RealInconvenience: Codable, Hashable, Identifiable {
             case .etiquette: return "hand.raised"
             case .safety:    return "shield.lefthalf.filled"
             case .other:     return "info.circle"
+            }
+        }
+
+        public var severity: Severity {
+            switch self {
+            case .scam, .safety:                       return .high
+            case .crowds, .weather, .logistics, .etiquette: return .medium
+            case .other:                               return .low
             }
         }
     }
