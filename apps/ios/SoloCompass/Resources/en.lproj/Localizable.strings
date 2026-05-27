@@ -153,6 +153,8 @@
 "map.empty.expand" = "Expand to 25km";
 "map.empty.browse" = "Browse %@";
 "map.empty.clearFilters" = "Clear filters";
+"map.filtered.empty.title" = "Nothing matches this filter";
+"map.filtered.empty.subtitle" = "No experiences match \"%@\" in this area.";
 
 /* Map empty-state stage machine (US-012). Three distinct labels — no shared "no results" string. */
 "map.empty.stage.tryExpand" = "Expand to 25 km";
