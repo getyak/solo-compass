@@ -167,6 +167,7 @@
 /* Action bar */
 "action.favorite" = "Add to favorites";
 "action.unfavorite" = "Remove from favorites";
+"action.directions" = "Directions";
 "action.close" = "Close";
 
 /* Dismiss */
