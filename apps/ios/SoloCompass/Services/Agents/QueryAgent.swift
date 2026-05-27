@@ -4,22 +4,78 @@ import CoreLocation
 // MARK: - ExperienceFilter
 
 /// Structured filter extracted from natural language by QueryAgent.
+///
+/// Quality dimensions (US-017):
+/// - ratingMin: minimum provider rating (0–10) from location.rating
+/// - ambianceMin: minimum ambianceFit breakdown score (0–10)
+/// - quietness: true = high seatingFriendly + low staffPressure
+/// - soloFriendly: true = high soloPatronRatio + high soloPortioning
+/// - priceMax: maximum price level (1–4)
 public struct ExperienceFilter: Sendable, Equatable {
     public let category: String?
     public let maxDistanceMeters: Double?
     public let openNow: Bool
     public let soloScoreMin: Double?
+    // US-017: quality and ambiance dimensions
+    public let ratingMin: Double?
+    public let ambianceMin: Double?
+    public let quietness: Bool
+    public let soloFriendly: Bool
+    public let priceMax: Double?
 
     public init(
         category: String? = nil,
         maxDistanceMeters: Double? = nil,
         openNow: Bool = false,
-        soloScoreMin: Double? = nil
+        soloScoreMin: Double? = nil,
+        ratingMin: Double? = nil,
+        ambianceMin: Double? = nil,
+        quietness: Bool = false,
+        soloFriendly: Bool = false,
+        priceMax: Double? = nil
     ) {
         self.category = category
         self.maxDistanceMeters = maxDistanceMeters
         self.openNow = openNow
         self.soloScoreMin = soloScoreMin
+        self.ratingMin = ratingMin
+        self.ambianceMin = ambianceMin
+        self.quietness = quietness
+        self.soloFriendly = soloFriendly
+        self.priceMax = priceMax
+    }
+
+    // MARK: - Predicate (US-017)
+
+    /// Returns true when `experience` satisfies all active filter dimensions.
+    /// Dimensions with nil / false values are skipped (inactive).
+    public func matches(_ experience: Experience) -> Bool {
+        if let cat = category, !cat.isEmpty {
+            guard experience.category.rawValue == cat else { return false }
+        }
+        if let rMin = ratingMin, let rating = experience.location.rating {
+            guard rating >= rMin else { return false }
+        }
+        if let priceMax, let price = experience.location.priceLevel {
+            guard price <= priceMax else { return false }
+        }
+        if let score = soloScoreMin {
+            guard experience.soloScore.overall >= score else { return false }
+        }
+        if let ambMin = ambianceMin {
+            guard experience.soloScore.breakdown.ambianceFit >= ambMin else { return false }
+        }
+        // quietness: seatingFriendly ≥ 7 AND staffPressure ≤ 3
+        if quietness {
+            let bd = experience.soloScore.breakdown
+            guard bd.seatingFriendly >= 7.0 && bd.staffPressure <= 3.0 else { return false }
+        }
+        // soloFriendly: soloPatronRatio ≥ 7 AND soloPortioning ≥ 7
+        if soloFriendly {
+            let bd = experience.soloScore.breakdown
+            guard bd.soloPatronRatio >= 7.0 && bd.soloPortioning >= 7.0 else { return false }
+        }
+        return true
     }
 }
 
@@ -137,7 +193,12 @@ public final class QueryAgent: Agent, @unchecked Sendable {
             category: input["category"] as? String,
             maxDistanceMeters: input["max_distance_m"] as? Double,
             openNow: (input["open_now"] as? Bool) ?? false,
-            soloScoreMin: input["solo_score_min"] as? Double
+            soloScoreMin: input["solo_score_min"] as? Double,
+            ratingMin: input["rating_min"] as? Double,
+            ambianceMin: input["ambiance_min"] as? Double,
+            quietness: (input["quietness"] as? Bool) ?? false,
+            soloFriendly: (input["solo_friendly"] as? Bool) ?? false,
+            priceMax: input["price_max"] as? Double
         )
     }
 
@@ -175,11 +236,28 @@ public final class QueryAgent: Agent, @unchecked Sendable {
             soloScoreMin = 7.0
         }
 
+        var ratingMin: Double?
+        if lower.contains("highly rated") || lower.contains("high rating") || lower.contains("well rated") {
+            ratingMin = 7.0
+        }
+
+        let quietness = lower.contains("quiet") || lower.contains("peaceful") || lower.contains("calm")
+        let soloFriendly = lower.contains("solo friendly") || lower.contains("solo-friendly")
+
+        var priceMax: Double?
+        if lower.contains("cheap") || lower.contains("budget") || lower.contains("affordable") {
+            priceMax = 2.0
+        }
+
         return ExperienceFilter(
             category: category,
             maxDistanceMeters: maxDistance,
             openNow: openNow,
-            soloScoreMin: soloScoreMin
+            soloScoreMin: soloScoreMin,
+            ratingMin: ratingMin,
+            quietness: quietness,
+            soloFriendly: soloFriendly,
+            priceMax: priceMax
         )
     }
 }

@@ -390,3 +390,138 @@ final class AgentStreamStubProtocol: URLProtocol {
 
     override func stopLoading() {}
 }
+
+// MARK: - US-017: ExperienceFilter quality dimension predicate tests
+
+final class ExperienceFilterPredicateTests: XCTestCase {
+
+    private func makeExperience(
+        category: ExperienceCategory = .coffee,
+        rating: Double? = nil,
+        priceLevel: Double? = nil,
+        soloScoreOverall: Double = 8.0,
+        ambianceFit: Double = 8.0,
+        seatingFriendly: Double = 8.0,
+        staffPressure: Double = 2.0,
+        soloPatronRatio: Double = 8.0,
+        soloPortioning: Double = 8.0
+    ) -> Experience {
+        let location = ExperienceLocation(
+            coordinates: [98.99, 18.79],
+            cityCode: "cmi",
+            rating: rating,
+            priceLevel: priceLevel
+        )
+        let breakdown = SoloScore.Breakdown(
+            seatingFriendly: seatingFriendly,
+            soloPatronRatio: soloPatronRatio,
+            staffPressure: staffPressure,
+            soloPortioning: soloPortioning,
+            ambianceFit: ambianceFit,
+            safety: 8.0
+        )
+        let score = SoloScore(overall: soloScoreOverall, breakdown: breakdown, basedOnCount: 10)
+        let confidence = Confidence(
+            score: 0.8,
+            signals: Confidence.Signals(
+                aiScrapeAgeDays: 5,
+                passiveGpsHits30d: 20,
+                activeReports30d: 2,
+                trustedVerifications: 1
+            )
+        )
+        return Experience(
+            id: UUID().uuidString,
+            title: "Test Place",
+            oneLiner: "A test place",
+            whyItMatters: "Testing",
+            category: category,
+            location: location,
+            bestTimes: [],
+            durationMinutes: Experience.DurationRange(min: 30, max: 90),
+            howTo: [],
+            realInconveniences: [],
+            soloScore: score,
+            sources: [],
+            confidence: confidence,
+            nearbyExperienceIds: [],
+            stats: Experience.Stats(completionCount: 0, averageRating: 0),
+            status: .active,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+    }
+
+    func testMatchesByCategory() {
+        let exp = makeExperience(category: .coffee)
+        XCTAssertTrue(ExperienceFilter(category: "coffee").matches(exp))
+        XCTAssertFalse(ExperienceFilter(category: "food").matches(exp))
+    }
+
+    func testMatchesByRatingMin() {
+        let exp = makeExperience(rating: 7.5)
+        XCTAssertTrue(ExperienceFilter(ratingMin: 7.0).matches(exp))
+        XCTAssertFalse(ExperienceFilter(ratingMin: 8.0).matches(exp))
+    }
+
+    func testMatchesSkipsRatingWhenNil() {
+        let exp = makeExperience(rating: nil)
+        XCTAssertFalse(ExperienceFilter(ratingMin: 7.0).matches(exp))
+    }
+
+    func testMatchesByAmbianceMin() {
+        let exp = makeExperience(ambianceFit: 7.5)
+        XCTAssertTrue(ExperienceFilter(ambianceMin: 7.0).matches(exp))
+        XCTAssertFalse(ExperienceFilter(ambianceMin: 8.0).matches(exp))
+    }
+
+    func testMatchesByQuietnessTrue() {
+        let quietExp = makeExperience(seatingFriendly: 8.0, staffPressure: 2.0)
+        let noisyExp  = makeExperience(seatingFriendly: 5.0, staffPressure: 7.0)
+        XCTAssertTrue(ExperienceFilter(quietness: true).matches(quietExp))
+        XCTAssertFalse(ExperienceFilter(quietness: true).matches(noisyExp))
+    }
+
+    func testMatchesBySoloFriendlyTrue() {
+        let soloExp    = makeExperience(soloPatronRatio: 8.0, soloPortioning: 8.0)
+        let nonSoloExp = makeExperience(soloPatronRatio: 5.0, soloPortioning: 5.0)
+        XCTAssertTrue(ExperienceFilter(soloFriendly: true).matches(soloExp))
+        XCTAssertFalse(ExperienceFilter(soloFriendly: true).matches(nonSoloExp))
+    }
+
+    func testMatchesByPriceMax() {
+        let cheapExp  = makeExperience(priceLevel: 2.0)
+        let priceyExp = makeExperience(priceLevel: 3.5)
+        XCTAssertTrue(ExperienceFilter(priceMax: 2.0).matches(cheapExp))
+        XCTAssertFalse(ExperienceFilter(priceMax: 2.0).matches(priceyExp))
+    }
+
+    func testMatchesByAllDimensions() {
+        let exp = makeExperience(
+            category: .coffee,
+            rating: 8.0,
+            priceLevel: 2.0,
+            soloScoreOverall: 8.5,
+            ambianceFit: 8.0,
+            seatingFriendly: 8.0,
+            staffPressure: 2.0,
+            soloPatronRatio: 8.0,
+            soloPortioning: 8.0
+        )
+        let filter = ExperienceFilter(
+            category: "coffee",
+            soloScoreMin: 8.0,
+            ratingMin: 7.5,
+            ambianceMin: 7.5,
+            quietness: true,
+            soloFriendly: true,
+            priceMax: 3.0
+        )
+        XCTAssertTrue(filter.matches(exp))
+    }
+
+    func testEmptyFilterMatchesAll() {
+        let exp = makeExperience()
+        XCTAssertTrue(ExperienceFilter().matches(exp))
+    }
+}
