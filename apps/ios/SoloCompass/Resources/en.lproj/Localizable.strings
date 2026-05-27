@@ -141,6 +141,7 @@
 
 /* Solo score accessibility */
 "solo.a11y" = "Solo Score %@ of 10";
+"solo.excellent.a11y" = "Excellent for solo travelers";
 
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";
