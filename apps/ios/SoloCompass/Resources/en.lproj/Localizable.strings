@@ -352,6 +352,8 @@
 "explore.toast.added" = "%d places added near you";
 "explore.toast.multiRing.addedNamed" = "Now exploring %1$@ · %2$d places added across %3$d km";
 "explore.toast.multiRing.added" = "%1$d places added across %2$d km";
+"explore.toast.progressive.expandedNamed" = "Expanded to %1$@ km · found %2$lld in %3$@";
+"explore.toast.progressive.expanded" = "Expanded to %1$@ km · found %2$lld";
 "explore.progress.scanning" = "Scanning area · ring %1$d of %2$d";
 "explore.progress.synthesizing" = "Synthesizing %d places…";
 "explore.progress.progressiveScanning" = "Scanning %d km…";

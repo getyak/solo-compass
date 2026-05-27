@@ -483,6 +483,13 @@ public struct CompassMapView: View {
                         }
                     }
                 }
+                // US-011: fading radius ring during progressive explore.
+                // Drawn below annotations so it never occludes marker tap targets.
+                if let ring = viewModel.exploreRadiusOverlay {
+                    MapCircle(center: ring.center, radius: ring.radiusMeters)
+                        .foregroundStyle(Color.accentColor.opacity(0.08))
+                        .stroke(Color.accentColor.opacity(0.35), lineWidth: 1.5)
+                }
             }
             .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
             .mapControls {
