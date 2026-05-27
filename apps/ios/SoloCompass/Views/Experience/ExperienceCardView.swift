@@ -17,6 +17,9 @@ public struct ExperienceCardView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var heartBounce = 0
     @State private var heartBurst = false
+    @State private var arrivedPulse = false
+
+    private static let arrivedThresholdMeters = 75.0
 
     private enum HapticState { case idle, prepared, fired }
 
@@ -27,6 +30,10 @@ public struct ExperienceCardView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+
+    private var isArrived: Bool {
+        (distanceMeters ?? .greatestFiniteMagnitude) <= Self.arrivedThresholdMeters
+    }
 
     /// Finite distance in meters, or nil when location is unknown.
     private var distanceMeters: Double? {
@@ -162,7 +169,9 @@ public struct ExperienceCardView: View {
 
             HStack {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
-                if let meters = distanceMeters {
+                if isArrived {
+                    arrivedPill
+                } else if let meters = distanceMeters {
                     let dl = Self.formatDistance(meters)
                     distancePill(dl.text, symbol: dl.symbol)
                 }
@@ -235,7 +244,9 @@ public struct ExperienceCardView: View {
                    String(format: "%.1f", experience.soloScore.overall)) +
             {
                 var parts = ""
-                if let meters = distanceMeters {
+                if isArrived {
+                    parts += ". " + NSLocalizedString("card.distance.arrived.a11y", comment: "You're here accessibility label")
+                } else if let meters = distanceMeters {
                     parts += ". " + Self.formatDistance(meters).text
                 }
                 let count = experience.realInconveniences.count
@@ -273,6 +284,29 @@ public struct ExperienceCardView: View {
             .padding(.vertical, 4)
             .foregroundStyle(Color.secondary)
             .background(Capsule().fill(Color.secondary.opacity(0.12)))
+    }
+
+    @ViewBuilder
+    private var arrivedPill: some View {
+        Label(
+            NSLocalizedString("card.distance.arrived", comment: "You're here pill label"),
+            systemImage: "location.fill"
+        )
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .foregroundStyle(Color.green)
+        .background(Capsule().fill(Color.green.opacity(0.15)))
+        .scaleEffect(arrivedPulse ? 1.0 : 0.85)
+        .onAppear {
+            if reduceMotion {
+                arrivedPulse = true
+            } else {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                    arrivedPulse = true
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -387,9 +421,9 @@ private struct BestNowBadge: View {
 #Preview {
     if let exp = ExperienceService.hardcodedSeed.first {
         let locationService = LocationService()
-        // Simulate a location ~450 m from the seed experience so the pill is visible in preview.
+        // Simulate a location ~30 m from the seed experience so the arrived pill is visible in preview.
         if let coord = exp.coordinate {
-            let offset = CLLocation(latitude: coord.latitude + 0.004, longitude: coord.longitude)
+            let offset = CLLocation(latitude: coord.latitude + 0.00027, longitude: coord.longitude)
             locationService.simulate(location: offset)
         }
         return AnyView(VStack {
