@@ -11,20 +11,6 @@ public struct PendingCheckInBanner: View {
     @State private var dragOffset: CGFloat = 0
     @State private var crossedThreshold = false
     private let dismissThreshold: CGFloat = 80
-    private let selectionFeedback = UISelectionFeedbackGenerator()
-    private let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-
-    public init(
-        experienceTitle: String,
-        onConfirm: @escaping () -> Void,
-        onDismiss: @escaping () -> Void
-    ) {
-        self.experienceTitle = experienceTitle
-        self.onConfirm = onConfirm
-        self.onDismiss = onDismiss
-        selectionFeedback.prepare()
-        impactFeedback.prepare()
-    }
 
     public var body: some View {
         HStack(spacing: 12) {
@@ -85,14 +71,18 @@ public struct PendingCheckInBanner: View {
                     let overThreshold = -gesture.translation.height > dismissThreshold
                     if overThreshold && !crossedThreshold {
                         crossedThreshold = true
-                        selectionFeedback.selectionChanged()
+                        #if canImport(UIKit)
+                        Haptics.selection()
+                        #endif
                     } else if !overThreshold && crossedThreshold {
                         crossedThreshold = false
                     }
                 }
                 .onEnded { gesture in
                     if gesture.translation.height < -dismissThreshold {
-                        impactFeedback.impactOccurred()
+                        #if canImport(UIKit)
+                        Haptics.impact(.soft)
+                        #endif
                         crossedThreshold = false
                         withAnimation(.easeOut(duration: 0.2)) { dragOffset = -200 }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { onDismiss() }
