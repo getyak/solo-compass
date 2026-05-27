@@ -813,6 +813,21 @@
 "companion.report.menu.report" = "Report";
 "companion.report.menu.block" = "Block User";
 
+/* Companion — presence broadcasting (US-015) */
+"companion.presence.enable" = "Share presence";
+"companion.presence.disable" = "Stop sharing";
+"companion.presence.active" = "Sharing your area (~600m)";
+"companion.presence.stopped" = "Presence off";
+
+/* Companion — map layer toggle (US-017) */
+"companion.layer.on" = "Nearby";
+"companion.layer.off" = "Nearby";
+"companion.layer.on.a11y" = "Companion nearby layer enabled";
+"companion.layer.off.a11y" = "Companion nearby layer disabled";
+"companion.layer.hint.active" = "Toggle companion nearby view";
+"companion.layer.hint.inactive" = "Enable presence broadcasting to use the companion layer";
+"companion.nearby.label" = "~600m away";
+
 /* Shared actions */
 "action.ok" = "OK";
 "action.cancel" = "Cancel";

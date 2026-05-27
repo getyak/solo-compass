@@ -20,6 +20,8 @@ struct SoloCompassApp: App {
     @State private var notificationService = NotificationService.shared
     @State private var subscriptionService = SubscriptionService()
     @State private var languageService = LanguageService.shared
+    @State private var companionService = CompanionService.shared
+    @State private var presenceService = PresenceService.shared
     private let supabaseClient = SupabaseClient.shared
     private let themeService = ThemeService.shared
 
@@ -33,6 +35,8 @@ struct SoloCompassApp: App {
                 .environment(notificationService)
                 .environment(subscriptionService)
                 .environment(languageService)
+                .environment(companionService)
+                .environment(presenceService)
                 .environment(supabaseClient)
                 .environment(\.themeService, themeService)
                 .onAppear {
