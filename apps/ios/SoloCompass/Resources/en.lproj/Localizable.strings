@@ -90,6 +90,9 @@
 "section.nearby" = "Nearby experiences";
 "section.duration" = "Typical: %d–%d minutes";
 
+/* Celebration */
+"celebration.complete.a11y" = "Experience completed";
+
 /* Actions */
 "action.markDone" = "Mark done";
 "action.completed" = "Completed";

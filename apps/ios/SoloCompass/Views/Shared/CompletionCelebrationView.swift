@@ -91,6 +91,13 @@ public struct CompletionCelebrationView: View {
 
         #if canImport(UIKit)
         Haptics.notify(.success)
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: NSAttributedString(
+                string: NSLocalizedString("celebration.complete.a11y", comment: "Experience completed celebration announcement"),
+                attributes: [.accessibilitySpeechQueueAnnouncement: true]
+            )
+        )
         #endif
 
         withAnimation(.spring(response: 0.15, dampingFraction: 0.6)) {
