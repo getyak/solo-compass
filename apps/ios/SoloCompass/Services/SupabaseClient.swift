@@ -11,6 +11,8 @@ public protocol SupabaseClientProtocol: AnyObject {
     func post(table: String, body: Data) async -> Result<Data, SupabaseClient.SupabaseError>
     func get(table: String, query: [URLQueryItem]) async -> Result<Data, SupabaseClient.SupabaseError>
     func invoke(function: String, body: Data) async -> Result<Data, SupabaseClient.SupabaseError>
+    /// DELETE a single row by primary key `id` from a PostgREST table.
+    func delete(table: String, id: String) async -> Result<Void, SupabaseClient.SupabaseError>
     /// Link an anonymous account to an Apple ID using the credential from
     /// ASAuthorizationAppleIDCredential. Returns the updated session whose
     /// userId is now the permanent (non-anonymous) Supabase user id.
@@ -376,6 +378,32 @@ public final class SupabaseClient: SupabaseClientProtocol {
         req.httpBody = body
 
         return await sendREST(req)
+    }
+
+    /// Delete a single row by primary-key `id` from a PostgREST table.
+    /// Returns `.success(())` when FF_BACKEND_SYNC is off.
+    public func delete(table: String, id: String) async -> Result<Void, SupabaseError> {
+        guard FeatureFlags.backendSync else { return .success(()) }
+        guard let cfg = Self.loadConfig() else { return .failure(.missingConfig) }
+        guard let token = currentSession?.accessToken else { return .failure(.notSignedIn) }
+
+        var components = URLComponents(
+            url: cfg.url.appendingPathComponent("/rest/v1/\(table)"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "id", value: "eq.\(id)")]
+        guard let url = components?.url else { return .failure(.missingConfig) }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "DELETE"
+        req.setValue(cfg.anonKey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let result = await sendREST(req)
+        switch result {
+        case .success: return .success(())
+        case .failure(let err): return .failure(err)
+        }
     }
 
     /// Build a signed `URLRequest` for an Edge Function so the caller can
