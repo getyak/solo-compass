@@ -454,6 +454,8 @@
 /* Solo score */
 "solo.radar.a11y" = "独行评分雷达图";
 "solo.radar.replayHint" = "轻点以重播绘制动画";
+"solo.radar.weakest" = "最弱项：%@ — 预期会是一个权衡点";
+"solo.radar.weakest.a11y" = "注意：%@ 是最弱的维度 — 预期会是一个权衡点。";
 "solo.wifi" = "WiFi";
 "solo.noise" = "噪音";
 
