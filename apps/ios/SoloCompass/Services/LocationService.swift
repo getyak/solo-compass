@@ -11,6 +11,7 @@ public final class LocationService: NSObject {
     public private(set) var currentLocation: CLLocation?
     public private(set) var authorizationStatus: CLAuthorizationStatus
     public private(set) var lastError: Error?
+    public private(set) var heading: CLHeading?
 
     /// Geohash precision-6 (~600m×600m) of `currentLocation`. Nil when
     /// no location is known. Precise coordinates are never exposed — only
@@ -65,6 +66,9 @@ public final class LocationService: NSObject {
             return
         }
         manager.startUpdatingLocation()
+        if CLLocationManager.headingAvailable() {
+            manager.startUpdatingHeading()
+        }
     }
 
     private func enableBackgroundUpdates() {
@@ -74,6 +78,9 @@ public final class LocationService: NSObject {
 
     public func stopUpdating() {
         manager.stopUpdatingLocation()
+        if CLLocationManager.headingAvailable() {
+            manager.stopUpdatingHeading()
+        }
     }
 
     /// Register CLCircularRegions (200m radius) for each experience so the OS
@@ -133,11 +140,27 @@ public final class LocationService: NSObject {
         return (bearing + 360).truncatingRemainder(dividingBy: 360)
     }
 
+    /// Bearing relative to the device's current heading (0 = straight ahead).
+    /// When a valid heading is available, subtracts `trueHeading` from the
+    /// great-circle bearing so the arrow points where the user should walk.
+    /// Falls back to the absolute bearing when heading is nil or has negative
+    /// accuracy (invalid), so behavior is unchanged on devices without a compass.
+    public func relativeBearing(to coordinate: CLLocationCoordinate2D) -> Double? {
+        guard let absolute = bearing(to: coordinate) else { return nil }
+        guard let h = heading, h.headingAccuracy >= 0 else { return absolute }
+        return (absolute - h.trueHeading + 360).truncatingRemainder(dividingBy: 360)
+    }
+
     /// Test-only: inject a simulated location. Bypasses CLLocationManager so
     /// tests can exercise ViewModel logic synchronously without real GPS.
     /// Not called in production code — harmless to ship.
     public func simulate(location: CLLocation) {
         self.currentLocation = location
+    }
+
+    /// Test-only: inject a simulated heading.
+    public func simulate(heading: CLHeading) {
+        self.heading = heading
     }
 }
 
@@ -168,6 +191,13 @@ extension LocationService: CLLocationManagerDelegate {
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
             self.lastError = error
+        }
+    }
+
+    public func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        guard newHeading.headingAccuracy >= 0 else { return }
+        Task { @MainActor in
+            self.heading = newHeading
         }
     }
 
