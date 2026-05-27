@@ -47,6 +47,17 @@ public struct CompassMapView: View {
         (viewModel?.selectedCategory != nil) || (viewModel?.selectedCustomTag != nil) || (viewModel?.isNowFilter == true)
     }
 
+    private var activeFilterName: String {
+        if let category = viewModel?.selectedCategory {
+            return category.localizedTitle
+        } else if let tag = viewModel?.selectedCustomTag {
+            return tag
+        } else if viewModel?.isNowFilter == true {
+            return NSLocalizedString("filter.now", comment: "Now filter label")
+        }
+        return ""
+    }
+
     /// Idle window after the last pan before POIs refresh. Lowered from 1.5s
     /// to cut the "dragged the map, nothing happened" lag (#133).
     private static let panRefreshDebounce: TimeInterval = 0.8
@@ -91,6 +102,30 @@ public struct CompassMapView: View {
             }
             .onChange(of: preferences.pendingCheckIns) { _, _ in
                 viewModel?.checkForPendingCheckIns()
+            }
+            .onChange(of: viewModel?.visibleExperiences.count) { _, count in
+                guard isFilterActive, UIAccessibility.isVoiceOverRunning,
+                      let count, let filterName = viewModel.map({ _ in activeFilterName })
+                else { return }
+                let argument: NSAttributedString
+                if count == 0 {
+                    argument = NSAttributedString(
+                        string: String(
+                            format: NSLocalizedString("filter.a11y.noResultsAnnounce", comment: "VoiceOver: filter active, no results"),
+                            filterName
+                        ),
+                        attributes: [.accessibilitySpeechQueueAnnouncement: true]
+                    )
+                } else {
+                    argument = NSAttributedString(
+                        string: String(
+                            format: NSLocalizedString("filter.a11y.resultsAnnounce", comment: "VoiceOver: filter active, results count"),
+                            filterName, count
+                        ),
+                        attributes: [.accessibilitySpeechQueueAnnouncement: true]
+                    )
+                }
+                UIAccessibility.post(notification: .announcement, argument: argument)
             }
             .onChange(of: networkMonitor.isConnected) { _, connected in
                 if !connected {

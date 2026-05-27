@@ -19,6 +19,8 @@
 "filter.now.empty.idle" = "Nothing's at its best now";
 "filter.now.empty.upcoming" = "%@ in %dm";
 "filter.now.empty.a11y" = "Nothing's at its best now. %@ starts in %d minutes. Tap to jump there.";
+"filter.a11y.resultsAnnounce" = "%1$@: %2$d found";
+"filter.a11y.noResultsAnnounce" = "%@: nothing matches";
 
 /* Health */
 "health.healthy" = "Fresh — multiply verified";
