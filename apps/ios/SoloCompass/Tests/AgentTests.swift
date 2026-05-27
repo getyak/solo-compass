@@ -391,6 +391,73 @@ final class AgentStreamStubProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
+// MARK: - US-018: QueryAgent quality dimension extraction tests
+
+final class QueryAgentQualityExtractionTests: XCTestCase {
+
+    private var agent: QueryAgent!
+
+    override func setUp() {
+        super.setUp()
+        agent = QueryAgent(apiKey: nil, apiURL: nil)
+    }
+
+    func testQuietCafeToWork() async throws {
+        let filter = try await agent.extractFilter(from: "quiet cafe to work")
+        XCTAssertEqual(filter.category, "coffee")
+        XCTAssertTrue(filter.quietness, "quietness should be set for 'quiet'")
+    }
+
+    func testHighlyRatedCoffee() async throws {
+        let filter = try await agent.extractFilter(from: "highly rated coffee nearby")
+        XCTAssertEqual(filter.category, "coffee")
+        XCTAssertNotNil(filter.ratingMin, "ratingMin should be set for 'highly rated'")
+        let rMin = try XCTUnwrap(filter.ratingMin)
+        XCTAssertGreaterThanOrEqual(rMin, 7.0)
+    }
+
+    func testPeacefulNatureSpot() async throws {
+        let filter = try await agent.extractFilter(from: "peaceful nature spot")
+        XCTAssertEqual(filter.category, "nature")
+        XCTAssertTrue(filter.quietness)
+    }
+
+    func testCheapEats() async throws {
+        let filter = try await agent.extractFilter(from: "cheap eats nearby")
+        XCTAssertEqual(filter.category, "food")
+        XCTAssertNotNil(filter.priceMax)
+        let pMax = try XCTUnwrap(filter.priceMax)
+        XCTAssertLessThanOrEqual(pMax, 2.0)
+    }
+
+    func testMockedLLMQuietCafe() async throws {
+        AgentStubProtocol.responseBody = """
+        {"content":[{"type":"tool_use","name":"extract_experience_filter","input":{"category":"coffee","quietness":true}}]}
+        """
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [AgentStubProtocol.self]
+        let session = URLSession(configuration: config)
+        let mockAgent = QueryAgent(session: session, apiKey: "key", apiURL: URL(string: "https://stub.test/v1/messages")!)
+        let filter = try await mockAgent.extractFilter(from: "quiet cafe to work")
+        XCTAssertEqual(filter.category, "coffee")
+        XCTAssertTrue(filter.quietness)
+    }
+
+    func testMockedLLMHighlyRatedCoffee() async throws {
+        AgentStubProtocol.responseBody = """
+        {"content":[{"type":"tool_use","name":"extract_experience_filter","input":{"category":"coffee","rating_min":7.0}}]}
+        """
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [AgentStubProtocol.self]
+        let session = URLSession(configuration: config)
+        let mockAgent = QueryAgent(session: session, apiKey: "key", apiURL: URL(string: "https://stub.test/v1/messages")!)
+        let filter = try await mockAgent.extractFilter(from: "highly rated coffee")
+        XCTAssertEqual(filter.category, "coffee")
+        let rMin = try XCTUnwrap(filter.ratingMin)
+        XCTAssertGreaterThanOrEqual(rMin, 7.0)
+    }
+}
+
 // MARK: - US-017: ExperienceFilter quality dimension predicate tests
 
 final class ExperienceFilterPredicateTests: XCTestCase {

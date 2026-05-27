@@ -111,6 +111,11 @@ public final class QueryAgent: Agent, @unchecked Sendable {
         if let dist = filter.maxDistanceMeters { meta["maxDistanceMeters"] = String(dist) }
         meta["openNow"] = filter.openNow ? "true" : "false"
         if let score = filter.soloScoreMin { meta["soloScoreMin"] = String(score) }
+        if let rMin = filter.ratingMin { meta["ratingMin"] = String(rMin) }
+        if let aMin = filter.ambianceMin { meta["ambianceMin"] = String(aMin) }
+        if filter.quietness { meta["quietness"] = "true" }
+        if filter.soloFriendly { meta["soloFriendly"] = "true" }
+        if let pMax = filter.priceMax { meta["priceMax"] = String(pMax) }
         return AgentResponse(text: nil, metadata: meta)
     }
 
@@ -139,7 +144,17 @@ public final class QueryAgent: Agent, @unchecked Sendable {
 
         let tool: [String: Any] = [
             "name": "extract_experience_filter",
-            "description": "Extract structured search filters from a natural language query about places or experiences.",
+            "description": """
+            Extract structured search filters from a natural language query about places or experiences.
+
+            Extraction examples (US-018):
+            - "quiet cafe to work" → category=coffee, quietness=true
+            - "highly rated coffee shop" → category=coffee, rating_min=7.0
+            - "solo-friendly restaurant" → category=food, solo_friendly=true
+            - "cheap eats nearby" → category=food, price_max=2.0
+            - "best ambiance bar tonight" → category=nightlife, ambiance_min=7.0, open_now=true
+            - "peaceful nature spot with high solo score" → category=nature, quietness=true, solo_score_min=7.0
+            """,
             "input_schema": [
                 "type": "object",
                 "properties": [
@@ -158,16 +173,49 @@ public final class QueryAgent: Agent, @unchecked Sendable {
                     ],
                     "solo_score_min": [
                         "type": "number",
-                        "description": "Minimum solo-traveler score (0-10)"
+                        "description": "Minimum solo-traveler score (0-10). Set when user says best, top, highly-rated solo place."
+                    ],
+                    "rating_min": [
+                        "type": "number",
+                        "description": "Minimum provider rating (0-10). Set when user says highly rated, well reviewed, good reviews."
+                    ],
+                    "ambiance_min": [
+                        "type": "number",
+                        "description": "Minimum ambiance fit score (0-10). Set when user mentions ambiance, atmosphere, vibe."
+                    ],
+                    "quietness": [
+                        "type": "boolean",
+                        "description": "True when user says quiet, peaceful, calm, not noisy, low noise, easy to concentrate."
+                    ],
+                    "solo_friendly": [
+                        "type": "boolean",
+                        "description": "True when user says solo-friendly, good for solo travelers, solo dining, single portions."
+                    ],
+                    "price_max": [
+                        "type": "number",
+                        "description": "Maximum price level 1-4 (1=cheap, 4=expensive). Set when user says cheap, budget, affordable (→2), mid-range (→3)."
                     ]
                 ]
             ] as [String: Any]
         ]
 
+        let systemPrompt = """
+        You extract structured search filters from natural language queries about places to visit.
+        Map user adjectives to filter fields:
+        - quiet/peaceful/calm → quietness=true
+        - highly rated/well reviewed → rating_min=7.0
+        - solo friendly/solo dining → solo_friendly=true
+        - cheap/budget/affordable → price_max=2.0
+        - great ambiance/nice atmosphere/good vibe → ambiance_min=7.0
+        - best/top/excellent solo score → solo_score_min=7.0
+        Only set a field when the query clearly implies it.
+        """
+
         let body: [String: Any] = [
             "model": modelName,
             "max_tokens": 256,
             "temperature": 0,
+            "system": systemPrompt,
             "tools": [tool],
             "tool_choice": ["type": "auto"],
             "messages": [["role": "user", "content": "Extract search filters from: \"\(text)\""]]
