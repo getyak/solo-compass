@@ -821,13 +821,64 @@ private struct MapOverlayView: View {
     @ViewBuilder
     private var filterResultBadge: some View {
         let count = viewModel.visibleExperiences.count
+        let accentGold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
         let dotColor: Color = {
             if let cat = viewModel.selectedCategory { return cat.color }
-            if viewModel.isNowFilter { return Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255) }
+            if viewModel.isNowFilter { return accentGold }
             return Color.accentColor
         }()
 
         if count == 0 {
+            if viewModel.isNowFilter, let next = viewModel.nextBestExperience {
+                // "Now" filter is active, nothing is at its best, but something
+                // is coming up soon — offer a one-tap jump to it.
+                let idleText = NSLocalizedString("filter.now.empty.idle", comment: "Nothing's at its best now")
+                let upcomingText = String(
+                    format: NSLocalizedString("filter.now.empty.upcoming", comment: "%@ in %dm"),
+                    next.experience.title, next.minutesUntil
+                )
+                let a11yText = String(
+                    format: NSLocalizedString("filter.now.empty.a11y", comment: ""),
+                    next.experience.title, next.minutesUntil
+                )
+
+                GlassmorphismCapsule(
+                    horizontalPadding: 12,
+                    verticalPadding: 6,
+                    shadowRadius: 6,
+                    shadowY: 3
+                ) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(accentGold)
+                            .frame(width: 8, height: 8)
+                        Text(idleText)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.primary)
+                        Text("·")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(upcomingText)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(accentGold)
+                    }
+                }
+                .contentTransition(.opacity)
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(a11yText))
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    viewModel.focusOnExperience(next.experience)
+                    viewModel.selectExperience(next.experience)
+                }
+                .onTapGesture {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    viewModel.focusOnExperience(next.experience)
+                    viewModel.selectExperience(next.experience)
+                }
+            } else {
             let noMatchText = NSLocalizedString("filter.matches.none", comment: "No matches")
             let clearText = NSLocalizedString("filter.clear", comment: "Clear filter")
             let a11yLabel = "\(noMatchText) · \(clearText)"
@@ -867,6 +918,7 @@ private struct MapOverlayView: View {
             .accessibilityAction {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.clearFilters()
+            }
             }
         } else {
             let countText = count == 1
