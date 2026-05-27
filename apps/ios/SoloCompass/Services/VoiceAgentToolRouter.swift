@@ -165,6 +165,24 @@ public final class VoiceAgentToolRouter {
             }
             """#
         ),
+        .init(
+            name: "filter_visible",
+            description: "Filter the currently visible experiences in place using quality dimensions — no network call. Use when the user wants to narrow the existing set by score, rating, ambiance, quietness, etc. Returns the count remaining after filtering.",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "category":       {"type": "string", "enum": ["culture","nature","food","coffee","work","wellness","nightlife","hidden"]},
+                "solo_score_min": {"type": "number", "minimum": 0, "maximum": 10},
+                "rating_min":     {"type": "number", "minimum": 0, "maximum": 10},
+                "ambiance_min":   {"type": "number", "minimum": 0, "maximum": 10},
+                "quietness":      {"type": "boolean"},
+                "solo_friendly":  {"type": "boolean"},
+                "price_max":      {"type": "number", "minimum": 1, "maximum": 4}
+              }
+            }
+            """#
+        ),
     ]
 
     // MARK: - Execution
@@ -190,6 +208,8 @@ public final class VoiceAgentToolRouter {
                 return try await executeSearchPlaces(args: call.argumentsJSON)
             case "navigate_to":
                 return try executeNavigateTo(args: call.argumentsJSON)
+            case "filter_visible":
+                return try executeFilterVisible(args: call.argumentsJSON)
             default:
                 throw RouterError.unknownTool(call.name)
             }
@@ -362,6 +382,38 @@ public final class VoiceAgentToolRouter {
         // Open Apple Maps by default — NavigationLauncher picks the best available app.
         NavigationLauncher.open(app: .appleMaps, coordinate: coord, name: exp.title)
         return Self.successJSON(["experience_id": exp.id, "title": exp.title])
+    }
+
+    // MARK: - filter_visible (US-020)
+
+    private struct FilterVisibleArgs: Decodable {
+        let category: String?
+        let solo_score_min: Double?
+        let rating_min: Double?
+        let ambiance_min: Double?
+        let quietness: Bool?
+        let solo_friendly: Bool?
+        let price_max: Double?
+    }
+
+    private func executeFilterVisible(args: String) throws -> String {
+        let parsed: FilterVisibleArgs = try Self.decode(args, tool: "filter_visible")
+        guard let vm = mapViewModel else {
+            throw RouterError.underlying("map view model deallocated")
+        }
+        let filter = ExperienceFilter(
+            category: parsed.category,
+            soloScoreMin: parsed.solo_score_min,
+            ratingMin: parsed.rating_min,
+            ambianceMin: parsed.ambiance_min,
+            quietness: parsed.quietness ?? false,
+            soloFriendly: parsed.solo_friendly ?? false,
+            priceMax: parsed.price_max
+        )
+        let remaining = vm.applyQualityFilter(filter)
+        return Self.successJSON([
+            "remaining_count": remaining,
+        ])
     }
 
     // MARK: - Shared filter builder (US-019)

@@ -5795,3 +5795,87 @@ final class ToolRouterQualityArgsTests: XCTestCase {
         XCTAssertNil(filter.ambianceMin)
     }
 }
+
+// MARK: - US-020: applyQualityFilter — no network, trims visible set
+
+@MainActor
+final class ApplyQualityFilterTests: XCTestCase {
+
+    private func makeVM() -> MapViewModel {
+        MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: AIService(preferences: UserPreferences()),
+            preferences: UserPreferences()
+        )
+    }
+
+    private func makeExperience(id: String, category: ExperienceCategory, soloScore: Double) -> Experience {
+        let breakdown = SoloScore.Breakdown(
+            seatingFriendly: 8.0,
+            soloPatronRatio: 8.0,
+            staffPressure: 2.0,
+            soloPortioning: 8.0,
+            ambianceFit: 8.0,
+            safety: 8.0
+        )
+        let score = SoloScore(overall: soloScore, breakdown: breakdown, basedOnCount: 5)
+        let confidence = Confidence(
+            score: 0.7,
+            signals: Confidence.Signals(aiScrapeAgeDays: 3, passiveGpsHits30d: 5, activeReports30d: 0, trustedVerifications: 0)
+        )
+        let location = ExperienceLocation(coordinates: [98.99, 18.79], cityCode: "cmi")
+        return Experience(
+            id: id,
+            title: "Place \(id)",
+            oneLiner: "test",
+            whyItMatters: "test",
+            category: category,
+            location: location,
+            bestTimes: [],
+            durationMinutes: Experience.DurationRange(min: 30, max: 60),
+            howTo: [],
+            realInconveniences: [],
+            soloScore: score,
+            sources: [],
+            confidence: confidence,
+            nearbyExperienceIds: [],
+            stats: Experience.Stats(completionCount: 0, averageRating: 0),
+            status: .active,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+    }
+
+    func testApplyQualityFilterTrimsVisibleSet() {
+        let vm = makeVM()
+        let highScore = makeExperience(id: "a", category: .coffee, soloScore: 8.5)
+        let lowScore  = makeExperience(id: "b", category: .coffee, soloScore: 5.0)
+        vm.visibleExperiences = [highScore, lowScore]
+        let remaining = vm.applyQualityFilter(ExperienceFilter(soloScoreMin: 8.0))
+        XCTAssertEqual(remaining, 1)
+        XCTAssertEqual(vm.visibleExperiences.count, 1)
+        XCTAssertEqual(vm.visibleExperiences.first?.id, "a")
+    }
+
+    func testApplyQualityFilterMakesNoNetworkCall() {
+        // Verify applyQualityFilter is synchronous (no async, no network).
+        // If it were async this would not compile as a direct call.
+        let vm = makeVM()
+        let exp = makeExperience(id: "x", category: .food, soloScore: 9.0)
+        vm.visibleExperiences = [exp]
+        let count: Int = vm.applyQualityFilter(ExperienceFilter(category: "food"))
+        XCTAssertEqual(count, 1) // sync return proves no network
+    }
+
+    func testApplyQualityFilterReturnsCorrectCount() {
+        let vm = makeVM()
+        vm.visibleExperiences = [
+            makeExperience(id: "1", category: .coffee, soloScore: 9.0),
+            makeExperience(id: "2", category: .coffee, soloScore: 7.0),
+            makeExperience(id: "3", category: .food,   soloScore: 9.0),
+        ]
+        let remaining = vm.applyQualityFilter(ExperienceFilter(category: "coffee"))
+        XCTAssertEqual(remaining, 2)
+    }
+}

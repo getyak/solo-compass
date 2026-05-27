@@ -893,6 +893,23 @@ public final class MapViewModel {
         experienceService.allExperiences.filter { $0.location.cityCode == cityCode }.count
     }
 
+    // MARK: - Quality filter (US-020)
+
+    /// Apply a quality-dimension filter to `visibleExperiences` in place,
+    /// without making any network calls. Returns the count of experiences
+    /// remaining after the filter is applied, for the agent reply.
+    @discardableResult
+    public func applyQualityFilter(_ filter: ExperienceFilter) -> Int {
+        let trimmed = visibleExperiences.filter { filter.matches($0) }
+        if trimmed.count != visibleExperiences.count {
+            withAnimation(Self.markerSetAnimation) {
+                visibleExperiences = trimmed
+                nearbySoloCount = computeNearbySoloCount(in: trimmed)
+            }
+        }
+        return trimmed.count
+    }
+
     // MARK: - Explore Here
 
     /// US-019: Voice-tool entry point for progressive multi-ring explore.
