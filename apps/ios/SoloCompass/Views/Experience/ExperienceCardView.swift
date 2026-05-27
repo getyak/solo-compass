@@ -8,12 +8,9 @@ public struct ExperienceCardView: View {
     var onDismiss: () -> Void
 
     @GestureState private var dragTranslation: CGFloat = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var didCrossThreshold = false
-    @State private var didPrepareHaptic = false
-    @State private var isPulsing = false
-    @State private var heartBounce = 0
-    @State private var heartBurst = false
+    @State private var hapticState: HapticState = .idle
+
+    private enum HapticState { case idle, prepared, fired }
 
     // Pre-allocated so prepare() can be called once when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -35,6 +32,10 @@ public struct ExperienceCardView: View {
     /// Rubber-bands upward drags to 40% travel; downward dismissal drags follow 1:1.
     private func rubberBanded(_ t: CGFloat) -> CGFloat {
         t < 0 ? t * 0.4 : t
+    }
+
+    private var totalOffset: CGFloat {
+        rubberBanded(dragTranslation)
     }
 
     /// Fades in both directions: downward (dismiss) and upward (expand).
@@ -131,6 +132,9 @@ public struct ExperienceCardView: View {
                 .fill(.regularMaterial)
                 .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
         )
+        .offset(y: totalOffset)
+        .opacity(dragOpacity)
+        .animation(.interactiveSpring(), value: dragTranslation)
         .padding(.horizontal, 12)
         .offset(y: dragOffset)
         .opacity(dragOpacity)
@@ -140,21 +144,18 @@ public struct ExperienceCardView: View {
                     state = value.translation.height
                 }
                 .onChanged { value in
-                    let t = value.translation.height
-                    if !didPrepareHaptic {
+                    if hapticState == .idle {
                         feedbackGenerator.prepare()
-                        didPrepareHaptic = true
+                        hapticState = .prepared
                     }
-                    if !didCrossThreshold && abs(t) > 60 {
-                        didCrossThreshold = true
+                    if hapticState == .prepared, abs(value.translation.height) > 60 {
                         feedbackGenerator.impactOccurred()
+                        hapticState = .fired
                     }
                 }
                 .onEnded { value in
                     // Capture live offset before @GestureState resets to 0.
                     let snappingFrom = rubberBanded(dragTranslation)
-                    didCrossThreshold = false
-                    didPrepareHaptic = false
                     if value.translation.height > 60 {
                         dragOffset = 0
                         onDismiss()
@@ -167,6 +168,7 @@ public struct ExperienceCardView: View {
                             dragOffset = 0
                         }
                     }
+                    hapticState = .idle
                 }
         )
         .onTapGesture { onExpand() }
