@@ -622,9 +622,28 @@ public struct ExperienceDetailView: View {
                 SoloScoreRadarChart(score: score)
                     .padding(.horizontal, 16)
                     .opacity(isEstimate ? 0.7 : 1.0)
-                    .onTapGesture {
-                        showingRadarTooltip.toggle()
+                Button {
+                    Haptics.selection()
+                    showingRadarTooltip.toggle()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .rotationEffect(reduceMotion ? .zero : (showingRadarTooltip ? .degrees(90) : .degrees(0)))
+                            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: showingRadarTooltip)
+                        Text(NSLocalizedString("solo.breakdown.toggle", comment: "Per-dimension scores disclosure toggle"))
+                            .font(.subheadline)
                     }
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityValue(Text(showingRadarTooltip
+                    ? NSLocalizedString("solo.breakdown.expanded", comment: "Expanded accessibility value")
+                    : NSLocalizedString("solo.breakdown.collapsed", comment: "Collapsed accessibility value")))
+                .accessibilityHint(Text(NSLocalizedString("solo.breakdown.expand.hint", comment: "Accessibility hint for breakdown toggle")))
                 if showingRadarTooltip {
                     radarDimensionBreakdown(score: score)
                         .transition(.opacity.combined(with: .move(edge: .top)))
