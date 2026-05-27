@@ -11,6 +11,7 @@ public struct RequestInboxView: View {
     @State private var showingAcceptedConfirm = false
     @State private var reportTarget: CompanionRequest?
     @State private var errorMessage: String?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(service: CompanionService = .shared) {
         _service = State(initialValue: service)
@@ -23,7 +24,8 @@ public struct RequestInboxView: View {
                     CompanionSkeletonList(rows: 5)
                 }
             } else if service.inboxRequests.isEmpty {
-                emptyStateView
+                EmptyInboxView()
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
             } else {
                 requestList
             }
@@ -79,14 +81,6 @@ public struct RequestInboxView: View {
 
     // MARK: - Subviews
 
-    private var emptyStateView: some View {
-        ContentUnavailableView(
-            NSLocalizedString("companion.inbox.empty.title", comment: "Empty inbox title"),
-            systemImage: "tray",
-            description: Text(NSLocalizedString("companion.inbox.empty.description", comment: "Empty inbox description"))
-        )
-    }
-
     private var requestList: some View {
         List(service.inboxRequests) { request in
             RequestRow(
@@ -103,6 +97,9 @@ public struct RequestInboxView: View {
             )
         }
         .listStyle(.insetGrouped)
+        .refreshable {
+            await service.fetchInbox()
+        }
     }
 
     // MARK: - Actions
@@ -121,6 +118,43 @@ public struct RequestInboxView: View {
                 try? await Task.sleep(for: .seconds(3))
                 errorMessage = nil
             }
+        }
+    }
+}
+
+// MARK: - EmptyInboxView
+
+private struct EmptyInboxView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isBreathing = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(0.12))
+                    .frame(width: 80, height: 80)
+                Image(systemName: "tray")
+                    .font(.system(size: 40))
+                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                    .scaleEffect(isBreathing ? 1.08 : 0.94)
+                    .opacity(isBreathing ? 1.0 : 0.7)
+                    .animation(
+                        reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
+                        value: isBreathing
+                    )
+            }
+            Text(NSLocalizedString("companion.inbox.empty.title", comment: "Empty inbox title"))
+                .font(.headline)
+            Text(NSLocalizedString("companion.inbox.empty.description", comment: "Empty inbox description"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
+        .onAppear {
+            guard !isBreathing, !reduceMotion else { return }
+            isBreathing = true
         }
     }
 }
@@ -236,8 +270,10 @@ private struct RequestRow: View {
 }
 
 #Preview("Empty inbox") {
-    NavigationStack {
-        RequestInboxView()
+    let service = CompanionService()
+    service.inboxRequests = []
+    return NavigationStack {
+        RequestInboxView(service: service)
     }
 }
 
