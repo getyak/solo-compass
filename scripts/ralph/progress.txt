@@ -1,10 +1,5 @@
 # Solo Compass — Ralph Progress Log
 Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-Target: ralph/progressive-explore-enrichment
+Target: ralph/companion-mode
 Tool: claude
 ---
-[2026-05-26T06:39:20Z] Story #US-001: Add radius ladder constants and ringFilter to EnrichmentAgent — PASSED
-[2026-05-26T06:47:36Z] Story #US-002: Add exploreProgressively stage loop with cross-stage dedupe and short-circuit — FAILED (iteration 2)
-    └─ NEXT_STEPS: (auto) prior run ended (max_turns) Reached maximum number of turns (60)
-[2026-05-26T07:00:00Z] Story #US-002: Add exploreProgressively stage loop with cross-stage dedupe and short-circuit — PASSED (iteration 3)
-[2026-05-26T06:50:08Z] Story #US-002: Add exploreProgressively stage loop with cross-stage dedupe and short-circuit — PASSED

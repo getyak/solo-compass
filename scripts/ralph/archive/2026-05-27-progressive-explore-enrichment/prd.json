@@ -1,0 +1,411 @@
+{
+  "project": "Solo Compass",
+  "branchName": "ralph/progressive-explore-enrichment",
+  "description": "Progressive Explore + cross-channel compilation + agent orchestration — small-radius-first ladder (5→10→25→100km) that auto-expands when sparse, incrementally drops map pins, cross-compiles each place across OSM/Foursquare/MapKit/web, and is drivable by natural-language chat/voice. Source: tasks/prd-progressive-explore-enrichment.md.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add radius ladder constants and ringFilter to EnrichmentAgent",
+      "description": "As a developer, I need the progressive radius ladder and stop-threshold defined so later stories can iterate stages.",
+      "acceptanceCriteria": [
+        "Add `static let progressiveRadii: [Int] = [5_000, 10_000, 25_000, 100_000]` to EnrichmentAgent",
+        "Add `static let enoughThreshold = 8`",
+        "Add a `ringFilter(pois:within:beyond:)` helper keeping POIs whose distance from center is in [beyond, within) meters",
+        "Unit test: ringFilter keeps in-range, drops out-of-range POIs",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add exploreProgressively stage loop with cross-stage dedupe and short-circuit",
+      "description": "As a developer, I need a stage loop that collects each ring, dedupes across stages, and stops once enough results accumulate.",
+      "acceptanceCriteria": [
+        "Add `EnrichmentAgent.exploreProgressively(at:categories:cityCode:locale:onBatch:)` looping progressiveRadii",
+        "Each stage collects only the new ring (prevRadius..<radius) via ringFilter",
+        "Dedupe across stages by 4-decimal coordinate cell AND osmId",
+        "Stop expanding once accumulated experience count >= enoughThreshold",
+        "Returns the accumulated [Experience]; never throws on MapKit/Foursquare failure (best-effort)",
+        "Unit test: enough at 5km does not call further stages; sparse 5km expands; dedupe removes overlaps",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Extend ExploreProgress enum with scanning and expanding cases",
+      "description": "As a developer, I need progress states for per-radius scanning and cross-stage expansion so the UI can show them.",
+      "acceptanceCriteria": [
+        "Add `case scanning(radiusKm: Int)` and `case expanding(toRadiusKm: Int)` to MapViewModel.ExploreProgress",
+        "Enum stays Equatable & Sendable",
+        "exploreProgressively sets scanning at each stage start and expanding when moving to a larger ring",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Route exploreNearby through exploreProgressively behind the feature flag",
+      "description": "As a developer, I need exploreNearby to drive the progressive engine when deep-dive is enabled, preserving paywall/consent/quota gates.",
+      "acceptanceCriteria": [
+        "When FeatureFlags.deepDiveEnrichment is on, exploreNearby calls exploreProgressively starting at 5km",
+        "Paywall, explore-consent, quota, city-resolution, recordRecentExploreRegion logic preserved",
+        "Legacy wide-ring path still runs when the flag is off (kill switch intact)",
+        "Existing explore tests still pass (they disable the flag)",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Show progressive scanning/expanding text in the progress capsule",
+      "description": "As a user, I want to see which radius is being searched and when the app expands outward.",
+      "acceptanceCriteria": [
+        "CompassMapView.progressText renders scanning(radiusKm) as 'Searching within Nkm…'",
+        "expanding(toRadiusKm) renders 'Few nearby · expanding to Nkm'",
+        "Localized in en.lproj and zh-Hans.lproj Localizable.strings",
+        "5km-sufficient run shows no expansion text",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add expansion radius to the success toast",
+      "description": "As a user, after an auto-expansion I want the toast to tell me the final radius.",
+      "acceptanceCriteria": [
+        "When the run expanded past 5km, toast includes the final radius (e.g. 'Expanded to 25km · found N')",
+        "5km-only runs keep existing toast wording (no radius mention)",
+        "New strings localized in en + zh-Hans",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Friendly empty state with city switch when 100km still empty",
+      "description": "As a user, when nothing is found even at 100km I want a helpful prompt, not an error.",
+      "acceptanceCriteria": [
+        "After all stages empty AND no cache, set a friendly empty message (not lastExploreError)",
+        "Empty state surfaces the existing browse-city entry point",
+        "No technical error string shown in this path",
+        "New strings localized in en + zh-Hans",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Add onBatch incremental callback to exploreProgressively",
+      "description": "As a developer, I need the engine to emit each completed batch so the map can update before the whole run finishes.",
+      "acceptanceCriteria": [
+        "exploreProgressively invokes `onBatch: ([Experience]) -> Void` after each per-category/per-stage synthesis completes",
+        "Respects Task cancellation: stops emitting once cancelled",
+        "Unit test: onBatch called multiple times; union of batches equals final returned set",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Incrementally append onBatch results to visibleExperiences",
+      "description": "As a user, I want map pins to appear progressively as places are found.",
+      "acceptanceCriteria": [
+        "MapViewModel onBatch handler appends new experiences to visibleExperiences, deduped by id",
+        "appendGenerated persistence still runs for the batch",
+        "Existing markers are not removed or duplicated when a new batch arrives",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Fade-in animation for newly dropped annotations",
+      "description": "As a user, I want new pins to fade in one by one instead of popping all at once.",
+      "acceptanceCriteria": [
+        "New annotations animate with an opacity (and slight scale/drop) transition via existing MarkerIconView/annotation fade",
+        "Pins already on the map do not re-animate when a new batch arrives",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Fading radius-ring overlay during expansion",
+      "description": "As a user, I want a visual ring showing the current search radius while expanding.",
+      "acceptanceCriteria": [
+        "Draw a MapCircle overlay at the current stage radius (5/10/25/100km) during explore",
+        "Overlay fades out when explore returns to idle",
+        "Overlay does not block marker taps",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Add CompiledPlace model with per-field source tags",
+      "description": "As a developer, I need a model that aggregates one place's fields across sources, tracking each field's origin.",
+      "acceptanceCriteria": [
+        "Add `CompiledPlace` struct: coordinate, name, optional rating/openingHours/priceLevel/website/phone/address, each with a source tag (osm|foursquare|mapkit|web)",
+        "Conversion from CompiledPlace into OverpassService.POI tags so it feeds existing synthesis",
+        "Unit test: field-level source tags preserved through conversion",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Cross-source merge by trust order into CompiledPlace",
+      "description": "As a developer, I need same-cell records from multiple sources merged by credibility, only filling missing fields.",
+      "acceptanceCriteria": [
+        "Merge same-cell records: coordinate/name prefer OSM; rating/hours/price prefer Foursquare>MapKit; address prefer MapKit-structured>reverse-geocode",
+        "A field is taken from a lower-priority source only when higher-priority is missing",
+        "Track how many distinct sources contributed (for confidence)",
+        "Unit test: conflict resolution and missing-field backfill correct",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Bump confidence and attribution for multi-source places",
+      "description": "As a user, places confirmed by 2+ sources should read as more trustworthy.",
+      "acceptanceCriteria": [
+        "Places with >=2 contributing sources get higher Confidence.level and basedOnCount in synthesis parse",
+        "InformationSource attribution lists the contributing sources",
+        "Unit test: 2-source place gets a bumped level vs single-source",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Show multi-source badge and real signals in detail view",
+      "description": "As a user, I want to see a 'verified by multiple sources' badge plus real rating/hours/price.",
+      "acceptanceCriteria": [
+        "Detail view shows a badge when basedOnCount>=2 (or >=2 sources)",
+        "Detail view renders rating, openingHours, priceLevel when present; hides the row when nil",
+        "Localized strings in en + zh-Hans",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Add WebSearchEnrichmentSource for top-N places",
+      "description": "As a developer, I need an optional web-search source that enriches only the top-ranked places, degrading silently.",
+      "acceptanceCriteria": [
+        "Add WebSearchEnrichmentSource invoked only for top-N (default 5) ranked places",
+        "Uses the existing AI channel; returns empty/skips silently when no key or quota exceeded",
+        "Anti-hallucination boundary: only cross-verifiable objective info (no invented menu/owner)",
+        "Gated by a FeatureFlag (default per quota policy)",
+        "Unit test: no-key path returns input unchanged; top-N truncation correct",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Extend ExperienceFilter with quality and ambiance dimensions",
+      "description": "As a user, I want to describe needs like high-rated, good-ambiance, quiet, solo-friendly, cheap.",
+      "acceptanceCriteria": [
+        "Add ratingMin / ambianceMin / quietness / soloFriendly / priceMax to QueryAgent.ExperienceFilter",
+        "Mapping: ambiance->ambianceFit; quiet->high seatingFriendly + low staffPressure; solo->high soloPatronRatio + high soloPortioning",
+        "Add a pure `matches(_ experience:)` predicate applying the active dimensions",
+        "Unit test: predicate filters by each dimension correctly",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Teach QueryAgent to extract quality dimensions from language",
+      "description": "As a user, I want phrases like 'quiet cafe to work' parsed into structured filters.",
+      "acceptanceCriteria": [
+        "QueryAgent prompt includes extraction examples mapping adjectives to the new filter fields",
+        "Test: 'quiet cafe to work' -> category coffee + quietness; 'highly rated coffee' -> ratingMin set",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Add quality params and progressive flag to explore tools",
+      "description": "As a developer, the voice/chat explore tools must accept quality thresholds and trigger progressive collection.",
+      "acceptanceCriteria": [
+        "explore_nearby and search_places tool schemas add categories[], solo_score_min, rating_min, ambiance_min, progressive",
+        "VoiceAgentToolRouter maps these args into an ExperienceFilter and calls exploreProgressively when progressive=true",
+        "Explicit radius_meters overrides the starting stage",
+        "Unit test: tool args -> ExperienceFilter mapping correct",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Add filter_visible tool and applyQualityFilter",
+      "description": "As a user, I want to say 'drop the ones below 8' to filter what's on the map without re-fetching.",
+      "acceptanceCriteria": [
+        "Add filter_visible tool (quality dimensions) to VoiceAgentToolRouter",
+        "MapViewModel.applyQualityFilter(_ filter:) filters visibleExperiences in place, no network",
+        "Returns count remaining for the agent reply",
+        "Unit test: filter_visible triggers no network and trims the set correctly",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Add expand_radius tool and expandOneStage",
+      "description": "As a user, I want to say 'a bit farther' to expand the search one stage.",
+      "acceptanceCriteria": [
+        "Add expand_radius tool to VoiceAgentToolRouter",
+        "MapViewModel.expandOneStage() advances exploreProgressively by one ring from the last center",
+        "No-op with a clear reply when already at 100km",
+        "Unit test: expandOneStage advances exactly one stage",
+        "xcodebuild build succeeds",
+        "Tests pass"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Agent autonomous multi-step orchestration with explanation",
+      "description": "As a user, 'find a high-rated cafe' should make the agent filter-then-fetch-then-expand as needed and explain what it did.",
+      "acceptanceCriteria": [
+        "When a matching visible set exists, agent calls filter_visible first; if too few, calls explore_nearby(progressive)",
+        "When still too few, agent calls expand_radius or relaxes the threshold and GuideAgent explains the tradeoff",
+        "Progress capsule reflects the current action during orchestration",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Multi-turn refinement over the previous result set",
+      "description": "As a user, I want 'the closest of those' / 'cheaper' to refine the last results without re-fetching.",
+      "acceptanceCriteria": [
+        "Using AgentMessage.history, refine the previous result set by sort/filter instead of re-collecting",
+        "'closest' re-sorts by distance; 'cheaper' tightens priceMax; switching category restarts intent",
+        "Ordinal reference ('the second one') resolves to the matching visible item",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Proactive single best recommendation with real reason",
+      "description": "As a user, I want the agent to proactively suggest one best place and say why it fits right now.",
+      "acceptanceCriteria": [
+        "On GetRecommendation intent, agent picks one best place using time/location/preferences",
+        "GuideAgent reply cites real signals (rating, open-now, solo-friendly), not vague praise",
+        "The recommended item is highlighted on the map",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Open-now filtering using openingHours and local time",
+      "description": "As a user, I want to say 'open now' to only see places I can go to this moment.",
+      "acceptanceCriteria": [
+        "Add an open-now predicate using openingHours + current local time",
+        "Card/detail show status: Open / Closing soon / Closed",
+        "Places with missing hours show 'Hours unknown' and are NOT assumed open",
+        "Unit test: open-now predicate handles open, closed, and unknown cases",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Itinerary ordering of selected/favorite places",
+      "description": "As a user, I want to say 'route these for the afternoon' and get a walkable ordered sequence.",
+      "acceptanceCriteria": [
+        "Order selected/favorite places by distance + opening hours into a sequence",
+        "Map shows the order via numbered pins and a connecting polyline",
+        "If a stop is closed at its slot, surface a warning with an alternative",
+        "Unit test: ordering respects distance and skips closed stops",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
