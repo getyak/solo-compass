@@ -1,6 +1,6 @@
 {
   "project": "Solo Compass",
-  "branchName": "ralph/progressive-explore-enrichment",
+  "branchName": "feat/progressive-explore-enrichment-final",
   "description": "Progressive Explore + cross-channel compilation + agent orchestration \u2014 small-radius-first ladder (5\u219210\u219225\u2192100km) that auto-expands when sparse, incrementally drops map pins, cross-compiles each place across OSM/Foursquare/MapKit/web, and is drivable by natural-language chat/voice. Source: tasks/prd-progressive-explore-enrichment.md.",
   "userStories": [
     {
@@ -112,7 +112,7 @@
         "Verify in iOS Simulator"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -127,7 +127,7 @@
         "Tests pass"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -156,7 +156,7 @@
         "Verify in iOS Simulator"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
