@@ -991,6 +991,7 @@ private struct BestTimesTimeline: View {
 
     @State private var animateFill = false
     @State private var nowPulse = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let trackHeight: CGFloat = 10
     private let nowMarkerWidth: CGFloat = 2
