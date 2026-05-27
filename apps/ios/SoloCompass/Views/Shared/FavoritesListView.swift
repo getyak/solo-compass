@@ -24,10 +24,41 @@ public struct FavoritesListView: View {
     @State private var hintDismissTask: Task<Void, Never>?
     @AppStorage("favorites.swipeHintSeen") private var swipeHintSeen = false
 
+    private enum Proximity {
+        case near, mid, far
+
+        static func from(meters: CLLocationDistance) -> Proximity {
+            if meters <= 1000 { return .near }
+            if meters <= 5000 { return .mid }
+            return .far
+        }
+
+        var color: Color {
+            switch self {
+            case .near: return .green
+            case .mid: return .orange
+            case .far: return Color(.tertiaryLabel)
+            }
+        }
+
+        var a11yWord: String {
+            switch self {
+            case .near: return NSLocalizedString("favorites.proximity.near", comment: "Proximity: walkable")
+            case .mid: return NSLocalizedString("favorites.proximity.mid", comment: "Proximity: short ride")
+            case .far: return NSLocalizedString("favorites.proximity.far", comment: "Proximity: far away")
+            }
+        }
+    }
+
     private func distanceMeters(for exp: Experience) -> CLLocationDistance? {
         guard let coord = exp.coordinate, locationService.currentLocation != nil else { return nil }
         let d = locationService.distance(to: coord)
         return d < .greatestFiniteMagnitude ? d : nil
+    }
+
+    private func proximity(for exp: Experience) -> Proximity? {
+        guard let meters = distanceMeters(for: exp) else { return nil }
+        return Proximity.from(meters: meters)
     }
     private var sortedFavorites: [Experience] {
         let ids = preferences.favoritedExperiences
@@ -394,6 +425,7 @@ private extension FavoritesListView {
     @ViewBuilder
     func favoriteRow(_ exp: Experience) -> some View {
         let distStr = distanceString(for: exp)
+        let prox = proximity(for: exp)
         Button {
             onSelectExperience(exp)
         } label: {
@@ -418,8 +450,12 @@ private extension FavoritesListView {
                         .lineLimit(2)
                     if let distStr {
                         HStack(spacing: 3) {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 9))
+                            if let prox {
+                                Circle()
+                                    .fill(prox.color)
+                                    .frame(width: 7, height: 7)
+                                    .accessibilityHidden(true)
+                            }
                             Text(distStr)
                                 .font(.caption2)
                                 .monospacedDigit()
@@ -441,7 +477,11 @@ private extension FavoritesListView {
         .accessibilityLabel({
             if let distStr {
                 let awayFmt = NSLocalizedString("favorites.row.distance.a11y", comment: "Distance away accessibility label")
-                return Text("\(exp.title), \(exp.oneLiner), \(String(format: awayFmt, distStr))")
+                let distLabel = String(format: awayFmt, distStr)
+                if let prox {
+                    return Text("\(exp.title), \(exp.oneLiner), \(distLabel), \(prox.a11yWord)")
+                }
+                return Text("\(exp.title), \(exp.oneLiner), \(distLabel)")
             }
             return Text("\(exp.title), \(exp.oneLiner)")
         }())
