@@ -527,6 +527,8 @@
 "itinerary.experienceCount" = "%d 个体验";
 "itinerary.action.create.a11y" = "新建行程";
 "itinerary.action.delete" = "删除";
+"itinerary.undo.named" = "已移除\"%@\"";
+"itinerary.undo.named.a11y" = "已移除行程\"%@\"。点击撤销可恢复。";
 
 /* Itinerary detail (US-004) */
 "itinerary.detail.city" = "城市";
