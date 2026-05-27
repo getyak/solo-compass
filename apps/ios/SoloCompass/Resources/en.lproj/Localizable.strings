@@ -334,6 +334,8 @@
 "favorites.undo.named" = "Removed \"%@\"";
 /* Plural forms handled by Localizable.stringsdict */
 "favorites.count" = "%d saved";
+/* Shown in the footer when a search query is active: "<matched> of <total> matching" */
+"favorites.count.matching" = "%1$d of %2$d matching";
 "favorites.distance.km" = "%.1f km";
 "favorites.distance.m" = "%d m";
 "favorites.distance.mi" = "%.1f mi";
