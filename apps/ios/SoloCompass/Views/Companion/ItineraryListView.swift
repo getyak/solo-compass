@@ -11,6 +11,9 @@ public struct ItineraryListView: View {
     @State private var showingCreateForm = false
     @State private var lastDeleted: Itinerary?
     @State private var undoDismissTask: Task<Void, Never>?
+    @State private var undoProgress: CGFloat = 1
+    @State private var undoDragOffset: CGFloat = 0
+    @State private var undoDragCrossedThreshold = false
 
     /// Production init using the shared on-disk container.
     public init() {
@@ -80,7 +83,7 @@ public struct ItineraryListView: View {
     }
 
     private func loadItineraries() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
         itineraries = store.loadAll()
     }
 
@@ -90,7 +93,9 @@ public struct ItineraryListView: View {
         withAnimation(reduceMotion ? nil : .easeInOut) {
             itineraries.removeAll { $0.id == itinerary.id }
         }
-        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        Haptics.notify(.warning)
+        undoProgress = 1
+        undoDragOffset = 0
         lastDeleted = captured
         undoDismissTask?.cancel()
         undoDismissTask = Task {

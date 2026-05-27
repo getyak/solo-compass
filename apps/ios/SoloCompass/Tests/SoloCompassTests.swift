@@ -5142,6 +5142,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         // Default Dynamic Type size.
         let defaultHost = UIHostingController(
             rootView: ExperienceDetailView(viewModel: vm) {}
+                .environment(LocationService())
         )
         let defaultWindow = UIWindow(frame: UIScreen.main.bounds)
         defaultWindow.rootViewController = defaultHost
@@ -5153,6 +5154,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         // Accessibility3 — the largest Dynamic Type size.
         let a3Host = UIHostingController(
             rootView: ExperienceDetailView(viewModel: vm) {}
+                .environment(LocationService())
                 .environment(\.dynamicTypeSize, .accessibility3)
         )
         let a3Window = UIWindow(frame: UIScreen.main.bounds)
@@ -5407,6 +5409,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
             onMarkDone: nil,
             onAskSolo: { _ in } // non-nil so askSoloSection renders
         )
+        .environment(LocationService())
 
         let host = UIHostingController(rootView: detail)
         host.overrideUserInterfaceStyle = .light

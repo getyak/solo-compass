@@ -63,7 +63,9 @@ final class LocationServiceTests: XCTestCase {
 
         let relative = try XCTUnwrap(svc.relativeBearing(to: target))
         // bearing ≈ 90°, heading = 90° → relative ≈ 0°
-        XCTAssertEqual(relative, 0, accuracy: 1.0)
+        // Use normalized comparison to handle floating-point wrap-around (e.g. 359.97° ≅ 0°)
+        let diff = min(abs(relative), abs(relative - 360))
+        XCTAssertLessThanOrEqual(diff, 1.0)
     }
 
     // MARK: - Wrap-around past 360°
