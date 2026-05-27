@@ -139,11 +139,13 @@ public struct DiscoverListView: View {
             )
         }
         .listStyle(.insetGrouped)
+        .refreshable { await loadPosts() }
     }
 
     // MARK: - Actions
 
     private func loadPosts() async {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         let params = CompanionDiscoverParams(cityCode: cityCode)
         await service.fetchDiscovery(params: params)
     }

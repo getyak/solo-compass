@@ -48,6 +48,7 @@ public struct ItineraryListView: View {
                     }
                     .listStyle(.plain)
                     .animation(.easeInOut, value: itineraries.count)
+                    .refreshable { await MainActor.run { loadItineraries() } }
                 }
             }
             .animation(.easeInOut, value: itineraries.isEmpty)
@@ -79,6 +80,7 @@ public struct ItineraryListView: View {
     }
 
     private func loadItineraries() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         itineraries = store.loadAll()
     }
 
