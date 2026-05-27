@@ -52,6 +52,10 @@
 "solo.estimate.pill" = "AI estimate";
 "solo.section.estimate" = "Solo Score (AI estimate)";
 "solo.section.early" = "Solo Score (early)";
+"solo.breakdown.toggle" = "Per-dimension scores";
+"solo.breakdown.expand.hint" = "Expands or collapses the six-dimension score breakdown";
+"solo.breakdown.expanded" = "expanded";
+"solo.breakdown.collapsed" = "collapsed";
 
 /* Best times timeline */
 "timeline.now.good" = "Right now is a great time.";
