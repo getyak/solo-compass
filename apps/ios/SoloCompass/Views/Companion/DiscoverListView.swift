@@ -64,13 +64,9 @@ public struct DiscoverListView: View {
     // MARK: - Subviews
 
     private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-            Text(NSLocalizedString("companion.discover.loading", comment: "Loading discover posts"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        ScrollView {
+            CompanionSkeletonList(rows: 5)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func errorView(message: String) -> some View {
@@ -249,6 +245,17 @@ private struct DiscoverPostRow: View {
 #Preview("Empty state") {
     NavigationStack {
         DiscoverListView(cityCode: "DPS")
+    }
+    .environment(UserPreferences())
+}
+
+#Preview("Loading skeleton") {
+    NavigationStack {
+        ScrollView {
+            CompanionSkeletonList(rows: 5)
+        }
+        .navigationTitle(NSLocalizedString("companion.discover.title", comment: "Discover nav title"))
+        .navigationBarTitleDisplayMode(.large)
     }
     .environment(UserPreferences())
 }
