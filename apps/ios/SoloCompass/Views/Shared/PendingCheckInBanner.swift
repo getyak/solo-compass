@@ -45,6 +45,9 @@ public struct PendingCheckInBanner: View {
 
             HStack(spacing: 8) {
                 Button {
+                    #if canImport(UIKit)
+                    Haptics.notify(.success)
+                    #endif
                     onConfirm()
                 } label: {
                     Text(NSLocalizedString("checkin.banner.yes", comment: "Yes!"))
