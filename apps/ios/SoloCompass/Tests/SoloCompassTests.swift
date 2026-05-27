@@ -175,7 +175,7 @@ final class SoloCompassTests: XCTestCase {
 
     // MARK: - Bearing
 
-    func testBearingDueNorth() {
+    func testBearingDueNorth() throws {
         // Target is directly north of the origin → bearing ≈ 0°.
         let service = LocationService()
         let origin = CLLocation(latitude: 0.0, longitude: 0.0)
@@ -185,7 +185,7 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(result, 0.0, accuracy: 0.5)
     }
 
-    func testBearingDueEast() {
+    func testBearingDueEast() throws {
         // Target is directly east of the origin → bearing ≈ 90°.
         let service = LocationService()
         let origin = CLLocation(latitude: 0.0, longitude: 0.0)

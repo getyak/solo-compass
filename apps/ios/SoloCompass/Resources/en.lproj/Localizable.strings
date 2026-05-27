@@ -524,6 +524,7 @@
 "chat.error.retry" = "Retry";
 "chat.bubble.user.a11y" = "You said: %@";
 "chat.bubble.assistant.a11y" = "Solo said: %@";
+"chat.bubble.copy" = "Copy";
 "chat.typing.a11y" = "Solo Compass is thinking…";
 "chat.tool.exploreNearby" = "Searched nearby";
 "chat.tool.filter" = "Filtered the map";
