@@ -27,7 +27,7 @@ public struct CompanionProfileView: View {
     public init() {}
 
     public var body: some View {
-        @Bindable var prefs = preferences
+        var prefs = preferences
         NavigationStack {
             Form {
                 avatarSection(prefs: prefs)

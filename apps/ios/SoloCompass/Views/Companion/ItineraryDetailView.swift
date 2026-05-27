@@ -173,7 +173,7 @@ public struct ItineraryDetailView: View {
 
     @ViewBuilder
     private var companionSection: some View {
-        Section(NSLocalizedString("itinerary.detail.companion.header", comment: "Companions section header")) {
+        Section {
             // Interactive toggle (US-010)
             Toggle(
                 NSLocalizedString("companion.post.openToCompanions", comment: "Open to companions toggle"),

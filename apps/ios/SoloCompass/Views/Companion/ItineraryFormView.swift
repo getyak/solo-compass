@@ -34,7 +34,7 @@ public struct ItineraryFormView: View {
         _title = State(initialValue: editing?.title ?? "")
         _selectedCityCode = State(initialValue: editing?.cityCode ?? "")
         _startDate = State(initialValue: start ?? Date())
-        _endDate = State(initialValue: end)
+        _endDate = State(initialValue: end ?? Date())
         _note = State(initialValue: editing?.note ?? "")
         _openToCompanions = State(initialValue: editing?.openToCompanions ?? false)
     }

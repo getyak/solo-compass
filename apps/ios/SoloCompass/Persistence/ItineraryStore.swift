@@ -41,7 +41,7 @@ public final class ItineraryStore {
         var descriptor = FetchDescriptor<ItineraryRecord>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
-        descriptor.propertiesToFetch = nil
+        descriptor.propertiesToFetch = []
         return (try? context.fetch(descriptor))?.map(\.asValue) ?? []
     }
 

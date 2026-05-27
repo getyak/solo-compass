@@ -93,7 +93,7 @@ public struct ChatView: View {
             ScrollView {
                 LazyVStack(spacing: 2) {
                     ForEach(service.messages) { msg in
-                        MessageBubble(
+                        ChatMessageRow(
                             message: msg,
                             isFromMe: msg.senderId == currentUserId
                         )
@@ -159,9 +159,9 @@ public struct ChatView: View {
     }
 }
 
-// MARK: - MessageBubble
+// MARK: - ChatMessageRow
 
-private struct MessageBubble: View {
+private struct ChatMessageRow: View {
     let message: ChatMessage
     let isFromMe: Bool
 
