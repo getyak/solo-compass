@@ -64,6 +64,7 @@
 "timeline.now.tick" = "now";
 "bestTimes.now.pill" = "Good time now";
 "bestTimes.next.pill" = "Better at %@";
+"bestTimes.window.active.a11y" = "happening now";
 
 /* Inconvenience categories */
 "inconvenience.category.scam" = "Scam risk";
