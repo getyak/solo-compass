@@ -45,7 +45,6 @@ public struct PendingCheckInBanner: View {
 
             HStack(spacing: 8) {
                 Button {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     onConfirm()
                 } label: {
                     Text(NSLocalizedString("checkin.banner.yes", comment: "Yes!"))

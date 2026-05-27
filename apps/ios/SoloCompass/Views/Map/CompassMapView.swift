@@ -646,6 +646,8 @@ private struct MapOverlayView: View {
     @Binding var dismissedQuotaInfo: String?
     @Binding var isMapPanning: Bool
 
+    @State private var checkInCelebrationTrigger = 0
+
     private var isFilterActive: Bool {
         viewModel.selectedCategory != nil || viewModel.selectedCustomTag != nil || viewModel.isNowFilter
     }
@@ -805,11 +807,19 @@ private struct MapOverlayView: View {
                 .padding(.bottom, 8)
 
             if let pending = viewModel.pendingCheckIn {
-                PendingCheckInBanner(
-                    experienceTitle: pending.title,
-                    onConfirm: { viewModel.confirmCheckIn() },
-                    onDismiss: { viewModel.dismissCheckIn() }
-                )
+                ZStack(alignment: .top) {
+                    PendingCheckInBanner(
+                        experienceTitle: pending.title,
+                        onConfirm: {
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            checkInCelebrationTrigger += 1
+                            viewModel.confirmCheckIn()
+                        },
+                        onDismiss: { viewModel.dismissCheckIn() }
+                    )
+                    CompletionCelebrationView(trigger: checkInCelebrationTrigger)
+                        .offset(y: -120)
+                }
                 .padding(.bottom, 4)
                 .animation(.spring(response: 0.4), value: viewModel.pendingCheckIn != nil)
             }
