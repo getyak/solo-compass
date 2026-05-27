@@ -340,6 +340,76 @@ public final class CompanionService {
         else { return nil }
         return plist[key] as? String
     }
+
+    // MARK: - US-014: Report
+
+    /// File a safety report against a user. The report is write-only for the
+    /// reporter — RLS forbids reading other users' reports. `details` is
+    /// optional free-text; `reason` must be a valid `CompanionReportReason`.
+    @discardableResult
+    public func reportUser(
+        targetUserId: String,
+        reason: CompanionReportReason,
+        details: String?
+    ) async -> Result<Void, Error> {
+        guard FeatureFlags.companion else {
+            return .failure(CompanionServiceError.featureDisabled)
+        }
+        guard let reporterId = client.currentSession?.userId else {
+            return .failure(CompanionServiceError.notSignedIn)
+        }
+
+        let now = ISO8601DateFormatter().string(from: Date())
+        let report = CompanionReport(
+            id: CompanionReportId(rawValue: UUID().uuidString),
+            reporterId: reporterId,
+            targetUserId: targetUserId,
+            reason: reason,
+            details: details.flatMap { $0.isEmpty ? nil : String($0.prefix(500)) },
+            createdAt: now
+        )
+
+        guard let data = try? JSONEncoder.iso8601Encoder.encode(report) else {
+            return .failure(CompanionServiceError.encodingFailed)
+        }
+
+        let result = await client.post(table: "companion_reports", body: data)
+        switch result {
+        case .success: return .success(())
+        case .failure(let err): return .failure(err)
+        }
+    }
+
+    // MARK: - US-014: Block
+
+    /// Block a user. After blocking:
+    /// - The blocked user disappears from all discovery results (Edge Function
+    ///   excludes both sides).
+    /// - Existing conversations are effectively frozen (both sides can no longer
+    ///   find each other in discovery; new requests are blocked by the Edge
+    ///   Function).
+    @discardableResult
+    public func blockUser(blockedId: String) async -> Result<Void, Error> {
+        guard FeatureFlags.companion else {
+            return .failure(CompanionServiceError.featureDisabled)
+        }
+        guard let blockerId = client.currentSession?.userId else {
+            return .failure(CompanionServiceError.notSignedIn)
+        }
+
+        let now = ISO8601DateFormatter().string(from: Date())
+        let block = CompanionBlock(blockerId: blockerId, blockedId: blockedId, createdAt: now)
+
+        guard let data = try? JSONEncoder.iso8601Encoder.encode(block) else {
+            return .failure(CompanionServiceError.encodingFailed)
+        }
+
+        let result = await client.post(table: "companion_blocks", body: data)
+        switch result {
+        case .success: return .success(())
+        case .failure(let err): return .failure(err)
+        }
+    }
 }
 
 // MARK: - Errors

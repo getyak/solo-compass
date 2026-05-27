@@ -13,6 +13,7 @@ public struct DiscoverListView: View {
     @State private var service: CompanionService
     @State private var selectedPost: DiscoverPost?
     @State private var requestSentPostId: String?
+    @State private var reportTarget: DiscoverPost?
 
     public init(cityCode: String, service: CompanionService = .shared) {
         self.cityCode = cityCode
@@ -47,6 +48,15 @@ public struct DiscoverListView: View {
         .sheet(item: $selectedPost) { post in
             SendRequestSheet(post: post) { note in
                 Task { await sendRequest(to: post, note: note) }
+            }
+        }
+        .sheet(item: $reportTarget) { post in
+            ReportBlockSheet(
+                targetUserId: post.id,
+                targetLabel: post.handle
+            ) {
+                // Remove blocked post from the list immediately.
+                service.discoverPosts.removeAll { $0.id == post.id }
             }
         }
     }
@@ -93,10 +103,10 @@ public struct DiscoverListView: View {
         List(service.discoverPosts) { post in
             DiscoverPostRow(
                 post: post,
-                hasSentRequest: requestSentPostId == post.id
-            ) {
-                selectedPost = post
-            }
+                hasSentRequest: requestSentPostId == post.id,
+                onSendRequest: { selectedPost = post },
+                onReport: { reportTarget = post }
+            )
         }
         .listStyle(.insetGrouped)
     }
@@ -129,6 +139,7 @@ private struct DiscoverPostRow: View {
     let post: DiscoverPost
     let hasSentRequest: Bool
     let onSendRequest: () -> Void
+    let onReport: () -> Void
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -165,6 +176,16 @@ private struct DiscoverPostRow: View {
             sendButton
         }
         .padding(.vertical, 4)
+        .contextMenu {
+            Button(role: .destructive) {
+                onReport()
+            } label: {
+                Label(
+                    NSLocalizedString("companion.report.block.menu", comment: "Report or block menu item"),
+                    systemImage: "flag"
+                )
+            }
+        }
     }
 
     private var categoryPills: some View {

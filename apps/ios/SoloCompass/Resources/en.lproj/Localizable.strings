@@ -777,5 +777,42 @@
 "companion.inbox.accepted.title" = "You're connected!";
 "companion.inbox.accepted.message" = "Request accepted. You can now message each other.";
 
+/* Companion — chat (US-013) */
+"companion.chat.title" = "Chat";
+"companion.chat.input.placeholder" = "Message…";
+"companion.chat.input.a11y" = "Type a message";
+"companion.chat.send.a11y" = "Send message";
+"companion.chat.error.title" = "Message error";
+"companion.chat.error.auth" = "Sign in to send messages.";
+"companion.chat.error.encode" = "Could not send message. Try again.";
+"companion.chat.bubble.me.a11y" = "You: %@, sent at %@";
+"companion.chat.bubble.them.a11y" = "Companion: %@, sent at %@";
+
+/* Companion — report & block (US-014) */
+"companion.report.title" = "Report";
+"companion.report.reason.header" = "What's the problem?";
+"companion.report.details.header" = "Additional details (optional)";
+"companion.report.details.placeholder" = "Tell us more…";
+"companion.report.submit" = "Submit Report";
+"companion.report.submitting" = "Submitting…";
+"companion.report.success.title" = "Report submitted";
+"companion.report.success.message" = "Thank you. We'll review this and take action if needed.";
+"companion.report.error.title" = "Report failed";
+"companion.report.reason.spam" = "Spam";
+"companion.report.reason.harassment" = "Harassment";
+"companion.report.reason.inappropriate_content" = "Inappropriate content";
+"companion.report.reason.fake_profile" = "Fake profile";
+"companion.report.reason.other" = "Other";
+"companion.block.title" = "Block user";
+"companion.block.confirm.title" = "Block this user?";
+"companion.block.confirm.message" = "They won't be able to contact you and will disappear from discovery. This cannot be undone.";
+"companion.block.confirm.action" = "Block";
+"companion.block.success" = "User blocked";
+"companion.block.error.title" = "Block failed";
+"companion.report.block.menu" = "Report or Block";
+"companion.report.menu.report" = "Report";
+"companion.report.menu.block" = "Block User";
+
 /* Shared actions */
 "action.ok" = "OK";
+"action.cancel" = "Cancel";

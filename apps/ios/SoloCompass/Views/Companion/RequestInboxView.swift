@@ -9,6 +9,7 @@ public struct RequestInboxView: View {
     @State private var service: CompanionService
     @State private var acceptedConversation: Conversation?
     @State private var showingAcceptedConfirm = false
+    @State private var reportTarget: CompanionRequest?
 
     public init(service: CompanionService = .shared) {
         _service = State(initialValue: service)
@@ -46,6 +47,14 @@ public struct RequestInboxView: View {
         } message: {
             Text(NSLocalizedString("companion.inbox.accepted.message", comment: "Request accepted alert message"))
         }
+        .sheet(item: $reportTarget) { request in
+            ReportBlockSheet(
+                targetUserId: request.requesterId,
+                targetLabel: request.requesterId
+            ) {
+                service.inboxRequests.removeAll { $0.requesterId == request.requesterId }
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -67,6 +76,9 @@ public struct RequestInboxView: View {
                 },
                 onDecline: {
                     Task { await service.declineRequest(request) }
+                },
+                onReport: {
+                    reportTarget = request
                 }
             )
         }
@@ -91,6 +103,7 @@ private struct RequestRow: View {
     let request: CompanionRequest
     let onAccept: () -> Void
     let onDecline: () -> Void
+    let onReport: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -141,6 +154,16 @@ private struct RequestRow: View {
             }
         }
         .padding(.vertical, 4)
+        .contextMenu {
+            Button(role: .destructive) {
+                onReport()
+            } label: {
+                Label(
+                    NSLocalizedString("companion.report.block.menu", comment: "Report or block"),
+                    systemImage: "flag"
+                )
+            }
+        }
     }
 
     private func formattedDate(_ iso: String) -> String {
