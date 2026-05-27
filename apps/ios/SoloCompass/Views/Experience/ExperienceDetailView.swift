@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 // Reports the hero title's minY in the named coordinate space so the scroll
 // view can decide whether the title has scrolled out of view.
@@ -240,6 +241,29 @@ public struct ExperienceDetailView: View {
         }
     }
 
+    private func absoluteBearing(to coord: CLLocationCoordinate2D) -> Double? {
+        locationService.bearing(to: coord)
+    }
+
+    private func relativeBearing(to coord: CLLocationCoordinate2D) -> Double? {
+        locationService.relativeBearing(to: coord)
+    }
+
+    private static func compassDirection(for degrees: Double) -> String {
+        let directions = [
+            NSLocalizedString("compass.N", comment: "North"),
+            NSLocalizedString("compass.NE", comment: "Northeast"),
+            NSLocalizedString("compass.E", comment: "East"),
+            NSLocalizedString("compass.SE", comment: "Southeast"),
+            NSLocalizedString("compass.S", comment: "South"),
+            NSLocalizedString("compass.SW", comment: "Southwest"),
+            NSLocalizedString("compass.W", comment: "West"),
+            NSLocalizedString("compass.NW", comment: "Northwest"),
+        ]
+        let index = Int((degrees / 45.0).rounded()) % 8
+        return directions[index]
+    }
+
     @ViewBuilder
     private var distancePill: some View {
         if locationService.currentLocation != nil,
@@ -251,7 +275,19 @@ public struct ExperienceDetailView: View {
                     format: NSLocalizedString("detail.distance.away", comment: "Distance away pill"),
                     distStr
                 )
+                let relBearing = relativeBearing(to: coord)
+                let absBearing = absoluteBearing(to: coord)
                 HStack(spacing: 3) {
+                    if let relBearing {
+                        Image(systemName: "location.north.fill")
+                            .font(.system(size: 9))
+                            .rotationEffect(.degrees(relBearing))
+                            .animation(
+                                reduceMotion ? nil : .easeInOut(duration: 0.25),
+                                value: relBearing
+                            )
+                            .accessibilityHidden(true)
+                    }
                     Image(systemName: "location.fill")
                         .font(.system(size: 9))
                     Text(awayStr)
@@ -262,10 +298,20 @@ public struct ExperienceDetailView: View {
                 .padding(.vertical, 3)
                 .background(Capsule().fill(Color(.tertiarySystemFill)))
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(String(
-                    format: NSLocalizedString("detail.distance.a11y", comment: "Distance accessibility label"),
-                    distStr
-                )))
+                .accessibilityLabel(Text({
+                    var label = String(
+                        format: NSLocalizedString("detail.distance.a11y", comment: "Distance accessibility label"),
+                        distStr
+                    )
+                    if let absBearing {
+                        let direction = Self.compassDirection(for: absBearing)
+                        label += ". " + String(
+                            format: NSLocalizedString("card.distance.bearing.a11y", comment: "Bearing direction accessibility"),
+                            direction
+                        )
+                    }
+                    return label
+                }()))
             }
         }
     }
