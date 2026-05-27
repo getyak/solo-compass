@@ -704,6 +704,7 @@
 "itinerary.detail.experiences.header" = "%d experiences";
 "itinerary.detail.experiences.empty" = "No experiences pinned yet.";
 "itinerary.detail.experience.unavailable" = "Unavailable experience";
+"itinerary.detail.experiences.unknown" = "Unknown experience (%@)";
 
 /* Itinerary — Add to Itinerary sheet error alert */
 "itinerary.addTo.error.title" = "Couldn't add to itinerary";
