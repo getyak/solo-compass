@@ -86,6 +86,10 @@ public struct CompletionCelebrationView: View {
         animated = false
         checkmarkPop = false
 
+        #if canImport(UIKit)
+        Haptics.notify(.success)
+        #endif
+
         withAnimation(.spring(response: 0.15, dampingFraction: 0.6)) {
             checkmarkPop = true
         }
