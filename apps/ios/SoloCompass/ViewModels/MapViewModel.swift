@@ -671,7 +671,7 @@ public final class MapViewModel {
         experience.confidence.signals.passiveGpsHits30d
     }
 
-    func minutesUntilBestTime(for experience: Experience, from date: Date) -> Int? {
+    private func minutesUntilBestTime(for experience: Experience, from date: Date) -> Int? {
         let cal = Calendar.current
         let hour = cal.component(.hour, from: date)
         let minute = cal.component(.minute, from: date)

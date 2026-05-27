@@ -879,46 +879,46 @@ private struct MapOverlayView: View {
                     viewModel.selectExperience(next.experience)
                 }
             } else {
-            let noMatchText = NSLocalizedString("filter.matches.none", comment: "No matches")
-            let clearText = NSLocalizedString("filter.clear", comment: "Clear filter")
-            let a11yLabel = "\(noMatchText) · \(clearText)"
+                let noMatchText = NSLocalizedString("filter.matches.none", comment: "No matches")
+                let clearText = NSLocalizedString("filter.clear", comment: "Clear filter")
+                let a11yLabel = "\(noMatchText) · \(clearText)"
 
-            GlassmorphismCapsule(
-                horizontalPadding: 12,
-                verticalPadding: 6,
-                shadowRadius: 6,
-                shadowY: 3
-            ) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(dotColor)
-                        .frame(width: 8, height: 8)
-                    Text(noMatchText)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.primary)
-                    Text("·")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        viewModel.clearFilters()
-                    } label: {
-                        Text(clearText)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(dotColor)
+                GlassmorphismCapsule(
+                    horizontalPadding: 12,
+                    verticalPadding: 6,
+                    shadowRadius: 6,
+                    shadowY: 3
+                ) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(dotColor)
+                            .frame(width: 8, height: 8)
+                        Text(noMatchText)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.primary)
+                        Text("·")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            viewModel.clearFilters()
+                        } label: {
+                            Text(clearText)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(dotColor)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
-            }
-            .contentTransition(.opacity)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(a11yLabel))
-            .accessibilityAddTraits(.isButton)
-            .accessibilityAction {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                viewModel.clearFilters()
-            }
+                .contentTransition(.opacity)
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(a11yLabel))
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    viewModel.clearFilters()
+                }
             }
         } else {
             let countText = count == 1

@@ -3714,6 +3714,89 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(pressCount, 1, "duplicate pressing=true must not call onPress twice")
         XCTAssertEqual(releaseCount, 1, "onRelease fires once on the single release")
     }
+
+    // MARK: - nextBestExperience
+
+    private func makeExperience(id: String, bestTimes: [TimeWindow]) throws -> Experience {
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        return Experience(
+            id: id,
+            title: id,
+            oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters,
+            category: base.category,
+            location: base.location,
+            bestTimes: bestTimes,
+            durationMinutes: base.durationMinutes,
+            howTo: base.howTo,
+            realInconveniences: base.realInconveniences,
+            soloScore: base.soloScore,
+            sources: base.sources,
+            confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds,
+            stats: base.stats,
+            status: base.status,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt
+        )
+    }
+
+    /// `nextBestExperience` returns nil when no experience starts within 180 min.
+    func testNextBestExperienceNilWhenNothingUpcomingSoon() throws {
+        let cal = Calendar.current
+        let now = Date()
+        let currentHour = cal.component(.hour, from: now)
+        // Pick a bestTimes window that starts more than 180 min from now.
+        // If we're before hour 21, place the window at 23:00 (≥ 120 min away
+        // at hour 20 or earlier). If already past 21, skip — not enough room.
+        guard currentHour <= 20 else { return }
+        let exp = try makeExperience(id: "far-future", bestTimes: [TimeWindow(startHour: 23, endHour: 24)])
+        let service = ExperienceService(seed: [exp])
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: service,
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+        // At hour ≤ 20 the window is at least 3 h away, beyond the 180-min cap.
+        XCTAssertNil(vm.nextBestExperience)
+    }
+
+    /// `nextBestExperience` returns the soonest experience within 180 min.
+    func testNextBestExperiencePicksClosestUpcoming() throws {
+        // Two experiences: one starts in 30 min, one in 90 min (both within cap).
+        let cal = Calendar.current
+        let now = Date()
+        let currentHour = cal.component(.hour, from: now)
+        let currentMinute = cal.component(.minute, from: now)
+        let nowMinutes = currentHour * 60 + currentMinute
+
+        // Only set up test if there's room for both windows before midnight.
+        guard nowMinutes + 90 < 24 * 60 else { return }
+
+        let startHour30 = (nowMinutes + 30) / 60
+        let startHour90 = (nowMinutes + 90) / 60
+
+        let expSoon = try makeExperience(
+            id: "soon",
+            bestTimes: [TimeWindow(startHour: startHour30, endHour: startHour30 + 1)]
+        )
+        let expLater = try makeExperience(
+            id: "later",
+            bestTimes: [TimeWindow(startHour: startHour90, endHour: startHour90 + 1)]
+        )
+        let service = ExperienceService(seed: [expLater, expSoon]) // reversed order intentionally
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: service,
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+        let next = vm.nextBestExperience
+        XCTAssertNotNil(next)
+        XCTAssertEqual(next?.experience.id, "soon", "must pick the soonest, not the first in array")
+        XCTAssertLessThanOrEqual(next?.minutesUntil ?? Int.max, 180)
+    }
 }
 
 // MARK: - URLProtocol stub for HTTP-mocked tests
