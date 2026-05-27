@@ -155,6 +155,17 @@
 "voice.error.permission" = "麦克风或语音识别权限被拒绝。请在「设置」中允许。";
 "voice.error.unavailable" = "此设备不支持语音识别。";
 
+/* Journey progress card */
+"journey.progress.title" = "已完成的体验";
+"journey.progress.count" = "%d / %d";
+"journey.caption.start" = "每段旅程都从第一步开始。";
+"journey.caption.rolling" = "势头很好 — 继续探索！";
+"journey.caption.seasoned" = "资深独行旅人，令人印象深刻。";
+"journey.milestone.reached" = "里程碑达成！";
+"journey.milestone.almost" = "快到了！";
+"journey.progress.milestone.a11y" = "已完成 %d / %d 个体验。里程碑达成！";
+"journey.progress.a11y" = "已完成 %d / %d 个体验";
+
 /* Settings */
 "settings.title" = "偏好";
 "settings.done" = "完成";

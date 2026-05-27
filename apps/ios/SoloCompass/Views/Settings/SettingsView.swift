@@ -784,11 +784,43 @@ private struct JourneyProgressCard: View {
     let caption: String
 
     @State private var animateProgress = false
+    @State private var shimmerOffset: CGFloat = -1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var progress: Double {
         guard milestone > 0 else { return 1 }
         return min(Double(completed) / Double(milestone), 1)
+    }
+
+    private var isAtMilestone: Bool { completed >= milestone }
+    private var isAlmostThere: Bool { (milestone - completed) == 1 && !isAtMilestone }
+
+    private var barFill: AnyShapeStyle {
+        if isAtMilestone {
+            return AnyShapeStyle(LinearGradient(
+                colors: [Color(hex: 0xD4A843), Color(hex: 0xD9B85C)],
+                startPoint: .leading,
+                endPoint: .trailing
+            ))
+        } else if isAlmostThere {
+            return AnyShapeStyle(Color.green.mix(with: .yellow, by: 0.25))
+        } else {
+            return AnyShapeStyle(Color.green)
+        }
+    }
+
+    private var a11yLabel: String {
+        let base = String(
+            format: NSLocalizedString("journey.progress.a11y", comment: "Journey progress accessibility label"),
+            completed,
+            milestone
+        )
+        if isAtMilestone {
+            return base + ". " + NSLocalizedString("journey.milestone.reached", comment: "Milestone reached")
+        } else if isAlmostThere {
+            return base + ". " + NSLocalizedString("journey.milestone.almost", comment: "Almost there")
+        }
+        return base
     }
 
     var body: some View {
@@ -807,6 +839,17 @@ private struct JourneyProgressCard: View {
                 )
                 .font(.title2.bold().monospacedDigit())
                 .foregroundStyle(.primary)
+
+                if isAtMilestone || isAlmostThere {
+                    let label = isAtMilestone
+                        ? NSLocalizedString("journey.milestone.reached", comment: "Milestone reached")
+                        : NSLocalizedString("journey.milestone.almost", comment: "Almost there")
+                    Label(label, systemImage: "sparkles")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(isAtMilestone ? Color(hex: 0xD4A843) : .green)
+                        .symbolEffect(.bounce, value: animateProgress && !reduceMotion)
+                        .transition(.scale.combined(with: .opacity))
+                }
             }
 
             GeometryReader { geo in
@@ -815,7 +858,7 @@ private struct JourneyProgressCard: View {
                         .fill(Color(uiColor: .secondarySystemFill))
                         .frame(height: 8)
                     Capsule()
-                        .fill(Color.green)
+                        .fill(barFill)
                         .frame(
                             width: geo.size.width * (animateProgress ? progress : 0),
                             height: 8
@@ -824,6 +867,18 @@ private struct JourneyProgressCard: View {
                             reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8),
                             value: animateProgress
                         )
+                        .overlay {
+                            if isAtMilestone && !reduceMotion {
+                                LinearGradient(
+                                    colors: [.clear, .white.opacity(0.55), .clear],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                                .offset(x: shimmerOffset * geo.size.width)
+                                .clipShape(Capsule())
+                                .allowsHitTesting(false)
+                            }
+                        }
                 }
             }
             .frame(height: 8)
@@ -834,27 +889,38 @@ private struct JourneyProgressCard: View {
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            String(
-                format: NSLocalizedString("journey.progress.a11y", comment: "Journey progress accessibility label"),
-                completed,
-                milestone
-            )
-        )
+        .accessibilityLabel(a11yLabel)
         .onAppear {
             if reduceMotion {
                 animateProgress = true
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     animateProgress = true
+                    if isAtMilestone {
+                        shimmerOffset = -1
+                        withAnimation(.easeInOut(duration: 0.8).delay(0.5)) {
+                            shimmerOffset = 2
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+private extension Color {
+    init(hex: UInt32) {
+        let r = Double((hex >> 16) & 0xFF) / 255
+        let g = Double((hex >> 8) & 0xFF) / 255
+        let b = Double(hex & 0xFF) / 255
+        self.init(red: r, green: g, blue: b)
+    }
+}
+
 #Preview("Journey Progress Card") {
     List {
+        JourneyProgressCard(completed: 3, milestone: 3, caption: "First milestone — gold!")
+        JourneyProgressCard(completed: 2, milestone: 3, caption: "Almost there!")
         JourneyProgressCard(completed: 5, milestone: 10, caption: "You're on a roll!")
         JourneyProgressCard(completed: 0, milestone: 3, caption: "Every journey starts here.")
         JourneyProgressCard(completed: 25, milestone: 50, caption: "A seasoned solo traveler.")

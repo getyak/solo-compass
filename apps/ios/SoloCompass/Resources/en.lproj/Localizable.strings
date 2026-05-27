@@ -214,6 +214,8 @@
 "journey.caption.rolling" = "You're on a roll — keep exploring!";
 "journey.caption.seasoned" = "A seasoned solo traveler. Impressive.";
 "journey.milestone.reached" = "Milestone reached!";
+"journey.milestone.almost" = "Almost there!";
+"journey.progress.milestone.a11y" = "Completed %d of %d experiences. Milestone reached!";
 "journey.progress.a11y" = "Completed %d of %d experiences";
 
 /* Settings */
