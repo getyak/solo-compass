@@ -23,8 +23,6 @@ public struct FavoritesListView: View {
     @State private var showSwipeHint = false
     @State private var hintDismissTask: Task<Void, Never>?
     @AppStorage("favorites.swipeHintSeen") private var swipeHintSeen = false
-    private let undoSelectionFeedback = UISelectionFeedbackGenerator()
-    private let undoImpactFeedback = UIImpactFeedbackGenerator(style: .soft)
 
     private func distanceMeters(for exp: Experience) -> CLLocationDistance? {
         guard let coord = exp.coordinate, locationService.currentLocation != nil else { return nil }
@@ -241,7 +239,7 @@ private struct NoSearchResultsView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button {
-                UISelectionFeedbackGenerator().selectionChanged()
+                Haptics.selection()
                 withAnimation { onClear() }
             } label: {
                 Label(NSLocalizedString("favorites.search.clear", comment: "Clear search button"), systemImage: "xmark.circle")
@@ -335,7 +333,7 @@ private extension FavoritesListView {
                     let overThreshold = gesture.translation.height > 80
                     if overThreshold && !undoDragCrossedThreshold {
                         undoDragCrossedThreshold = true
-                        undoSelectionFeedback.selectionChanged()
+                        Haptics.selection()
                     } else if !overThreshold && undoDragCrossedThreshold {
                         undoDragCrossedThreshold = false
                     }
@@ -343,7 +341,7 @@ private extension FavoritesListView {
                 .onEnded { gesture in
                     undoDragCrossedThreshold = false
                     if gesture.translation.height > 80 {
-                        undoImpactFeedback.impactOccurred()
+                        Haptics.impact(.soft)
                         withAnimation(.easeOut(duration: 0.2)) { undoDragOffset = 300 }
                         undoDismissTask?.cancel()
                         undoDismissTask = nil
@@ -375,7 +373,7 @@ private extension FavoritesListView {
 
     private func performUndo() {
         guard let saved = lastUnfavorited else { return }
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
         undoDismissTask?.cancel()
         undoDismissTask = nil
         undoProgress = 1
@@ -441,7 +439,7 @@ private extension FavoritesListView {
         }())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                Haptics.notify(.warning)
                 let savedDate = preferences.favoritedAt[exp.id] ?? Date()
                 let expId = exp.id
                 let expTitle = exp.title
