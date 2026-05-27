@@ -18,6 +18,7 @@ public struct ExperienceCardView: View {
     @State private var heartBounce = 0
     @State private var heartBurst = false
     @State private var arrivedPulse = false
+    @State private var didFireArrival = false
 
     private static let arrivedThresholdMeters = 75.0
 
@@ -169,12 +170,16 @@ public struct ExperienceCardView: View {
 
             HStack {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
-                if isArrived {
-                    arrivedPill
-                } else if let meters = distanceMeters {
-                    let dl = Self.formatDistance(meters)
-                    distancePill(dl.text, symbol: dl.symbol)
+                Group {
+                    if isArrived {
+                        arrivedPill
+                    } else if let meters = distanceMeters {
+                        let dl = Self.formatDistance(meters)
+                        distancePill(dl.text, symbol: dl.symbol)
+                    }
                 }
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.4), value: distanceMeters)
                 if !experience.realInconveniences.isEmpty {
                     inconveniencePill
                 } else if experience.isBestNow() {
@@ -233,6 +238,11 @@ public struct ExperienceCardView: View {
                 }
         )
         .onTapGesture { onExpand() }
+        .onChange(of: isArrived) { _, arrived in
+            guard arrived, !didFireArrival else { return }
+            didFireArrival = true
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
         .onAppear {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
