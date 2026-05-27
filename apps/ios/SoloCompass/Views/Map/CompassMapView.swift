@@ -208,6 +208,10 @@ public struct CompassMapView: View {
                     )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
+                } else if viewModel.visibleExperiences.isEmpty && isFilterActive && viewModel.selectedExperience == nil {
+                    FilteredEmptyOverlay(viewModel: viewModel)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
                 }
 
                 // Offline banner (US-041): amber pill when network is unavailable
@@ -1216,3 +1220,66 @@ private struct EmptyStateOverlay: View {
         }
     }
 }
+
+private struct FilteredEmptyOverlay: View {
+    var viewModel: MapViewModel
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var activeFilterName: String {
+        if let category = viewModel.selectedCategory {
+            return category.localizedTitle
+        } else if let tag = viewModel.selectedCustomTag {
+            return tag
+        } else if viewModel.isNowFilter {
+            return NSLocalizedString("filter.now", comment: "Now filter label")
+        }
+        return ""
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+            Text(NSLocalizedString("map.filtered.empty.title", comment: "Nothing matches this filter"))
+                .font(.subheadline.weight(.medium))
+            Text(String(
+                format: NSLocalizedString("map.filtered.empty.subtitle", comment: "Filter name subtitle"),
+                activeFilterName
+            ))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            Button {
+                let feedback = UISelectionFeedbackGenerator()
+                feedback.selectionChanged()
+                viewModel.clearFilters()
+            } label: {
+                Text(NSLocalizedString("map.empty.clearFilters", comment: "Clear all filters"))
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.regular)
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 32)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+#if DEBUG
+#Preview("FilteredEmptyOverlay") {
+    let vm = MapViewModel(
+        locationService: LocationService(),
+        experienceService: ExperienceService(),
+        aiService: AIService(),
+        preferences: UserPreferences()
+    )
+    vm.selectedCategory = .coffee
+    return FilteredEmptyOverlay(viewModel: vm)
+        .padding()
+}
+#endif
