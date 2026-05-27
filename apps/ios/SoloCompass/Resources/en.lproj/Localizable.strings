@@ -742,3 +742,40 @@
 "companion.post.visibilityOff.message" = "Turn on visibility in your companion profile before opening a trip to companions.";
 "companion.post.visibilityOff.action" = "Open Profile Settings";
 "companion.post.removed" = "Companion post removed";
+
+/* Companion — discovery list (US-011) */
+"companion.discover.title" = "Find Companions";
+"companion.discover.loading" = "Looking for travelers…";
+"companion.discover.refresh.a11y" = "Refresh companion list";
+"companion.discover.error.title" = "Could not load companions";
+"companion.discover.error.config" = "App configuration is missing. Please reinstall.";
+"companion.discover.error.auth" = "Sign in to discover companions.";
+"companion.discover.error.server" = "Server error. Try again later.";
+"companion.discover.empty.title" = "No companions found";
+"companion.discover.empty.description" = "No one is open to companions in this city right now.";
+"companion.discover.coldstart.tip" = "Be the first — open your itinerary to companions and others will find you.";
+
+/* Companion — send request (US-012) */
+"companion.request.send" = "Send request";
+"companion.request.sent" = "Request sent";
+"companion.request.send.action" = "Send";
+"companion.request.sheet.title" = "Send Companion Request";
+"companion.request.post.header" = "Traveling with";
+"companion.request.note.header" = "Icebreaker (optional)";
+"companion.request.note.placeholder" = "Say hi or share what you're hoping to do together…";
+"companion.request.note.footer" = "%d / %d characters";
+"companion.request.accept" = "Accept";
+"companion.request.decline" = "Decline";
+"companion.request.withdraw" = "Withdraw";
+
+/* Companion — inbox (US-012) */
+"companion.inbox.title" = "Requests";
+"companion.inbox.refresh.a11y" = "Refresh inbox";
+"companion.inbox.empty.title" = "No pending requests";
+"companion.inbox.empty.description" = "When someone sends you a companion request, it will appear here.";
+"companion.inbox.request.from" = "From";
+"companion.inbox.accepted.title" = "You're connected!";
+"companion.inbox.accepted.message" = "Request accepted. You can now message each other.";
+
+/* Shared actions */
+"action.ok" = "OK";
