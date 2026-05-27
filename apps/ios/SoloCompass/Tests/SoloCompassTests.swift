@@ -1352,7 +1352,7 @@ final class SoloCompassTests: XCTestCase {
         // base32 string so this test survives precision/alphabet tweaks
         // if Geohash itself is ever revised.
         let key = OverpassService.regionKey(lat: 21.0285, lon: 105.8542, radiusMeters: 3000)
-        let gh = Geohash.encode(latitude: 21.0285, longitude: 105.8542, precision: 6)
+        let gh = GeohashUtils.encode(latitude: 21.0285, longitude: 105.8542, precision: 6)
         XCTAssertEqual(key, "v2:gh6:\(gh)_r3000",
                        "schema prefix + geohash-6 cell + radius suffix")
     }
@@ -1385,8 +1385,8 @@ final class SoloCompassTests: XCTestCase {
     // MARK: - Geohash helper
 
     func testGeohashEncodeIsDeterministic() {
-        let a = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
-        let b = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let a = GeohashUtils.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let b = GeohashUtils.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
         XCTAssertEqual(a, b)
         XCTAssertEqual(a.count, 6, "precision controls hash length")
     }
@@ -1394,20 +1394,20 @@ final class SoloCompassTests: XCTestCase {
     func testGeohashEncodeMicroPanStaysInSameCell() {
         // A ~10 m pan must not change the geohash-6 cell — that's the
         // whole point of bucketing: cache survives small map moves.
-        let base = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
-        let panned = Geohash.encode(latitude: 35.68121, longitude: 139.76711, precision: 6)
+        let base = GeohashUtils.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let panned = GeohashUtils.encode(latitude: 35.68121, longitude: 139.76711, precision: 6)
         XCTAssertEqual(base, panned, "tiny pan must stay in same bucket")
     }
 
     func testGeohashEncodeDistantCoordsDiffer() {
-        let tokyo = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
-        let nyc = Geohash.encode(latitude: 40.7580, longitude: -73.9855, precision: 6)
+        let tokyo = GeohashUtils.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let nyc = GeohashUtils.encode(latitude: 40.7580, longitude: -73.9855, precision: 6)
         XCTAssertNotEqual(tokyo, nyc)
     }
 
     func testGeohashNeighborsHaveSamePrecisionAndAreDistinct() {
-        let center = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
-        let neighbors = Geohash.neighbors(of: center)
+        let center = GeohashUtils.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let neighbors = GeohashUtils.neighbors(of: center)
         XCTAssertEqual(neighbors.count, 8, "interior cell has 8 neighbors")
         XCTAssertEqual(Set(neighbors).count, 8, "all 8 neighbors are distinct")
         XCTAssertFalse(neighbors.contains(center), "center not listed in its own neighbor set")
@@ -1417,8 +1417,8 @@ final class SoloCompassTests: XCTestCase {
     }
 
     func testGeohashCenterAndNeighborsPutsCenterFirst() {
-        let center = Geohash.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
-        let all = Geohash.centerAndNeighbors(of: center)
+        let center = GeohashUtils.encode(latitude: 35.6812, longitude: 139.7671, precision: 6)
+        let all = GeohashUtils.centerAndNeighbors(of: center)
         XCTAssertEqual(all.count, 9)
         XCTAssertEqual(all.first, center, "center cell is always first")
     }
@@ -1426,8 +1426,8 @@ final class SoloCompassTests: XCTestCase {
     func testGeohashDecodeRoundtripsToBoundingBoxThatContainsInput() {
         let lat = 35.6812
         let lon = 139.7671
-        let hash = Geohash.encode(latitude: lat, longitude: lon, precision: 6)
-        guard let bbox = Geohash.decode(hash) else {
+        let hash = GeohashUtils.encode(latitude: lat, longitude: lon, precision: 6)
+        guard let bbox = GeohashUtils.decode(hash) else {
             return XCTFail("decode failed for valid hash \(hash)")
         }
         XCTAssertGreaterThanOrEqual(lat, bbox.latMin)
@@ -1438,8 +1438,8 @@ final class SoloCompassTests: XCTestCase {
 
     func testGeohashDecodeRejectsBadAlphabet() {
         // 'a', 'i', 'l', 'o' are deliberately excluded from the alphabet.
-        XCTAssertNil(Geohash.decode("aaaaaa"))
-        XCTAssertNil(Geohash.decode("xxxxix"))
+        XCTAssertNil(GeohashUtils.decode("aaaaaa"))
+        XCTAssertNil(GeohashUtils.decode("xxxxix"))
     }
 
     // MARK: - US-MR-02 cross-ring dedupe
@@ -2224,10 +2224,10 @@ final class SoloCompassTests: XCTestCase {
         // Now pick a coordinate inside one of A's 8 neighbor cells. We
         // derive it from the cell's bounding box so the test stays
         // correct independent of geohash internals.
-        let hashA = Geohash.encode(latitude: centerA.latitude, longitude: centerA.longitude, precision: 6)
-        let neighborHash = try XCTUnwrap(Geohash.neighbors(of: hashA).first,
+        let hashA = GeohashUtils.encode(latitude: centerA.latitude, longitude: centerA.longitude, precision: 6)
+        let neighborHash = try XCTUnwrap(GeohashUtils.neighbors(of: hashA).first,
                                           "interior cell must have neighbors")
-        let neighborCenter = try XCTUnwrap(Geohash.center(neighborHash),
+        let neighborCenter = try XCTUnwrap(GeohashUtils.center(neighborHash),
                                             "decodable neighbor hash")
         let centerB = CLLocationCoordinate2D(
             latitude: neighborCenter.lat,
@@ -5826,7 +5826,9 @@ final class ApplyQualityFilterTests: XCTestCase {
         )
         let score = SoloScore(overall: soloScore, breakdown: breakdown, basedOnCount: 5)
         let confidence = Confidence(
-            score: 0.7,
+            level: 2,
+            lastVerifiedAt: Date(),
+            reason: "data-driven",
             signals: Confidence.Signals(aiScrapeAgeDays: 3, passiveGpsHits30d: 5, activeReports30d: 0, trustedVerifications: 0)
         )
         let location = ExperienceLocation(coordinates: [98.99, 18.79], cityCode: "cmi")
