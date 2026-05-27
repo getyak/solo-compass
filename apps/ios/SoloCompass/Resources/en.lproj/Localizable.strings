@@ -782,6 +782,8 @@
 "companion.discover.error.config" = "App configuration is missing. Please reinstall.";
 "companion.discover.error.auth" = "Sign in to discover companions.";
 "companion.discover.error.server" = "Server error. Try again later.";
+"companion.discover.error.retry" = "Try again";
+"companion.discover.error.retry.hint" = "Reloads the companion list";
 "companion.discover.empty.title" = "No companions found";
 "companion.discover.empty.description" = "No one is open to companions in this city right now.";
 "companion.discover.coldstart.tip" = "Be the first — open your itinerary to companions and others will find you.";
