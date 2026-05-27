@@ -162,7 +162,7 @@ public struct FilterBarView: View {
                 Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(Text(a11yLabel))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .onAppear {
