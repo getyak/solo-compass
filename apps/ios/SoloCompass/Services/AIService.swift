@@ -698,6 +698,16 @@ public final class AIService {
         return try JSONDecoder().decode(AIResponse.self, from: data)
     }
 
+    // MARK: - Web search enrichment (US-016)
+
+    /// Send a web-search-style query to the AI and return the raw text response.
+    /// Used by `WebSearchEnrichmentSource` to fetch objective, cross-verifiable
+    /// facts for top-N ranked experiences. Throws `AIError.missingAPIKey` when
+    /// no key is configured — callers treat that as a silent skip.
+    public func sendWebSearchQuery(prompt: String) async throws -> String {
+        try await sendMessage(prompt: prompt, kind: .explanation)
+    }
+
     // MARK: - Synthesize from OSM POIs (Explore Here)
 
     /// Maximum POIs sent to the model in one call. Sized to accommodate the

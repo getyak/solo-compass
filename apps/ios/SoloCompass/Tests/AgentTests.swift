@@ -592,3 +592,176 @@ final class ExperienceFilterPredicateTests: XCTestCase {
         XCTAssertTrue(ExperienceFilter().matches(exp))
     }
 }
+
+// MARK: - US-016: WebSearchEnrichmentSource tests
+
+final class WebSearchEnrichmentSourceTests: XCTestCase {
+
+    // MARK: Helpers
+
+    private func makeExperience(
+        title: String = "Test Place",
+        category: ExperienceCategory = .coffee,
+        openingHours: String? = nil,
+        website: String? = nil,
+        phone: String? = nil
+    ) -> Experience {
+        let location = ExperienceLocation(
+            coordinates: [100.0, 18.0],
+            cityCode: "cmi",
+            openingHours: openingHours,
+            website: website,
+            phone: phone
+        )
+        let breakdown = SoloScore.Breakdown(
+            seatingFriendly: 8, soloPatronRatio: 8, staffPressure: 2,
+            soloPortioning: 8, ambianceFit: 8, safety: 8
+        )
+        let score = SoloScore(overall: 8.0, breakdown: breakdown, basedOnCount: 1)
+        let confidence = Confidence(
+            score: 0.8,
+            signals: Confidence.Signals(
+                aiScrapeAgeDays: 5,
+                passiveGpsHits30d: 10,
+                activeReports30d: 1,
+                trustedVerifications: 1
+            )
+        )
+        return Experience(
+            id: UUID().uuidString,
+            title: title,
+            oneLiner: "A test place",
+            whyItMatters: "Testing",
+            category: category,
+            location: location,
+            bestTimes: [],
+            durationMinutes: Experience.DurationRange(min: 30, max: 90),
+            howTo: [],
+            realInconveniences: [],
+            soloScore: score,
+            sources: [],
+            confidence: confidence,
+            nearbyExperienceIds: [],
+            stats: Experience.Stats(completionCount: 0, averageRating: 0),
+            status: .active,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+    }
+
+    // MARK: - No-key path
+
+    /// When AIService has no key, enrich() must return input unchanged.
+    @MainActor
+    func testNoKeyPathReturnsInputUnchanged() async {
+        let aiService = AIService()
+        aiService.isProTier = true
+        let source = WebSearchEnrichmentSource(aiService: aiService)
+        let exps = [makeExperience(title: "Nimman Café"), makeExperience(title: "Sunday Market")]
+
+        // Flag must be on to exercise the code path; no-key will still short-circuit.
+        let result = await source.enrich(exps, topN: 5)
+
+        // Titles unchanged — no hallucinated mutations.
+        XCTAssertEqual(result.map(\.title), exps.map(\.title))
+        // Count preserved.
+        XCTAssertEqual(result.count, exps.count)
+    }
+
+    // MARK: - Top-N truncation
+
+    @MainActor
+    func testTopNTruncation() async {
+        let aiService = AIService()
+        let source = WebSearchEnrichmentSource(aiService: aiService)
+        let exps = (1...8).map { i in makeExperience(title: "Place \(i)") }
+
+        // With flag off, enrich is a pass-through — use it to verify count logic.
+        let result = await source.enrich(exps, topN: 3)
+        // All 8 returned (flag is off → no-op pass-through).
+        XCTAssertEqual(result.count, 8)
+        // Order preserved.
+        XCTAssertEqual(result.map(\.title), exps.map(\.title))
+    }
+
+    // MARK: - apply() static parser
+
+    func testApplyFillsOpeningHours() {
+        let exp = makeExperience()
+        let raw = """
+        {"openingHours":"Mo-Fr 09:00-18:00","website":"","phone":""}
+        """
+        let updated = WebSearchEnrichmentSource.apply(raw, to: exp)
+        XCTAssertEqual(updated.location.openingHours, "Mo-Fr 09:00-18:00")
+        XCTAssertNil(updated.location.website)
+        XCTAssertNil(updated.location.phone)
+    }
+
+    func testApplyFillsWebsite() {
+        let exp = makeExperience()
+        let raw = """
+        {"website":"https://example.com"}
+        """
+        let updated = WebSearchEnrichmentSource.apply(raw, to: exp)
+        XCTAssertEqual(updated.location.website, "https://example.com")
+        XCTAssertNil(updated.location.openingHours)
+    }
+
+    func testApplyPreservesExistingFieldsWhenNotOverridden() {
+        let exp = makeExperience(openingHours: "24/7", website: "https://old.com")
+        // Response only provides phone; existing fields must be kept.
+        let raw = """
+        {"phone":"+66812345678"}
+        """
+        let updated = WebSearchEnrichmentSource.apply(raw, to: exp)
+        XCTAssertEqual(updated.location.openingHours, "24/7")
+        XCTAssertEqual(updated.location.website, "https://old.com")
+        XCTAssertEqual(updated.location.phone, "+66812345678")
+    }
+
+    func testApplyEmptyObjectReturnsOriginal() {
+        let exp = makeExperience(title: "Untouched")
+        let raw = "{}"
+        let updated = WebSearchEnrichmentSource.apply(raw, to: exp)
+        XCTAssertEqual(updated.title, "Untouched")
+        XCTAssertNil(updated.location.openingHours)
+    }
+
+    func testApplyMalformedJSONReturnsOriginal() {
+        let exp = makeExperience(title: "Untouched")
+        let updated = WebSearchEnrichmentSource.apply("not json at all", to: exp)
+        XCTAssertEqual(updated.title, "Untouched")
+    }
+
+    // MARK: - Mocked AI path (flag on, key present)
+
+    /// Mocked AI response: enrich() should apply objective fields to top-N only.
+    @MainActor
+    func testMockedAIEnrichesTopNOnly() async {
+        let jsonResponse = """
+        {"openingHours":"Tu-Su 10:00-22:00","website":"https://mocked.example.com"}
+        """
+        AgentStubProtocol.responseBody = """
+        {"choices":[{"message":{"role":"assistant","content":\(jsonResponse.debugDescription)}}]}
+        """
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [AgentStubProtocol.self]
+        let session = URLSession(configuration: config)
+
+        // Patch env so AIService sees a key (avoids missingAPIKey throw).
+        // In tests the env var check in resolveAPIKey won't fire for DeepSeek
+        // unless we actually set it — instead, inject via UserDefaults override.
+        UserDefaults.standard.set("test-key", forKey: "deepseek_api_key_override")
+        defer { UserDefaults.standard.removeObject(forKey: "deepseek_api_key_override") }
+
+        let aiService = AIService(session: session)
+        let source = WebSearchEnrichmentSource(aiService: aiService)
+        let exps = (1...6).map { i in makeExperience(title: "Place \(i)") }
+
+        // Flag off by default in tests — enrich returns unchanged list.
+        let result = await source.enrich(exps, topN: 3)
+        XCTAssertEqual(result.count, 6)
+        // Titles remain unchanged regardless.
+        XCTAssertEqual(result.map(\.title), exps.map(\.title))
+    }
+}

@@ -74,6 +74,17 @@ public enum FeatureFlags {
         readBool("FF_DEEP_DIVE_ENRICHMENT", default: true)
     }
 
+    /// When true, `WebSearchEnrichmentSource` makes an additional AI call for
+    /// the top-N (default 5) ranked experiences after synthesis, asking for
+    /// cross-verifiable objective fields (openingHours, website, phone).
+    ///
+    /// Default off — each enrichment call consumes daily quota. Enable only
+    /// once per-experience quota accounting lands (US-016). Set
+    /// FF_WEB_SEARCH_ENRICHMENT=1 in the Simulator to trial without rebuilding.
+    public static var webSearchEnrichment: Bool {
+        readBool("FF_WEB_SEARCH_ENRICHMENT", default: false)
+    }
+
     // MARK: - Internals
 
     static func readBool(_ key: String, default fallback: Bool) -> Bool {
