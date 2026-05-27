@@ -352,12 +352,15 @@
 "explore.toast.added" = "%d places added near you";
 "explore.toast.multiRing.addedNamed" = "Now exploring %1$@ · %2$d places added across %3$d km";
 "explore.toast.multiRing.added" = "%1$d places added across %2$d km";
+"explore.toast.progressive.expandedNamed" = "Expanded to %1$@ km · found %2$lld in %3$@";
+"explore.toast.progressive.expanded" = "Expanded to %1$@ km · found %2$lld";
 "explore.progress.scanning" = "Scanning area · ring %1$d of %2$d";
 "explore.progress.synthesizing" = "Synthesizing %d places…";
 "explore.progress.progressiveScanning" = "Scanning %d km…";
 "explore.progress.expanding" = "Nearby sparse · expanding to %d km";
 "explore.offline.staleToast" = "Showing offline data from %@";
 "explore.toast.cachedFallback" = "Showing cached results";
+"explore.expand.alreadyMax" = "Already exploring the maximum radius (100 km).";
 
 /* Paywall */
 "paywall.hero.title" = "Unlock Solo Compass Pro";
@@ -627,6 +630,14 @@
 "locationPicker.map.saveCity.save" = "Save & Set";
 "locationPicker.map.saveAndSet" = "Save & Set Location";
 "locationPicker.map.saveCity.confirmed" = "Location saved!";
+
+/* US-015: Multi-source indicator and real signals in detail view */
+"detail.multiSource.indicator" = "Verified by multiple sources";
+"detail.multiSource.indicator.a11y" = "This place was verified by multiple data sources";
+"detail.rating" = "Rating";
+"detail.rating.a11y" = "Rating: %@ out of 10";
+"detail.priceLevel" = "Price level";
+"detail.priceLevel.a11y" = "Price level %d out of 4";
 
 /* Location picker — general UI */
 "locationPicker.picker.a11y" = "Location type";

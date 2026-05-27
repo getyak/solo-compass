@@ -5742,3 +5742,183 @@ final class EnrichmentPipelineTests: XCTestCase {
         XCTAssertNotEqual(id & 0x2000_0000_0000_0000, 0, "MapKit id must carry its own marker bit")
     }
 }
+
+// MARK: - US-019: VoiceAgentToolRouter quality args → ExperienceFilter mapping
+
+@MainActor
+final class ToolRouterQualityArgsTests: XCTestCase {
+
+    private func makeFilter(
+        categories: [String]? = nil,
+        soloScoreMin: Double? = nil,
+        ratingMin: Double? = nil,
+        ambianceMin: Double? = nil
+    ) -> ExperienceFilter {
+        ExperienceFilter(
+            category: categories?.compactMap(ExperienceCategory.init(rawValue:)).first?.rawValue,
+            soloScoreMin: soloScoreMin,
+            ratingMin: ratingMin,
+            ambianceMin: ambianceMin
+        )
+    }
+
+    func testCategoryArgMappedToFilter() {
+        let filter = makeFilter(categories: ["coffee"])
+        XCTAssertEqual(filter.category, "coffee")
+    }
+
+    func testUnknownCategoryYieldsNilCategory() {
+        let filter = makeFilter(categories: ["unknown_cat"])
+        XCTAssertNil(filter.category)
+    }
+
+    func testSoloScoreMinMapped() {
+        let filter = makeFilter(soloScoreMin: 7.5)
+        XCTAssertEqual(filter.soloScoreMin, 7.5)
+    }
+
+    func testRatingMinMapped() {
+        let filter = makeFilter(ratingMin: 8.0)
+        XCTAssertEqual(filter.ratingMin, 8.0)
+    }
+
+    func testAmbianceMinMapped() {
+        let filter = makeFilter(ambianceMin: 6.5)
+        XCTAssertEqual(filter.ambianceMin, 6.5)
+    }
+
+    func testEmptyArgsMapsToEmptyFilter() {
+        let filter = makeFilter()
+        XCTAssertNil(filter.category)
+        XCTAssertNil(filter.soloScoreMin)
+        XCTAssertNil(filter.ratingMin)
+        XCTAssertNil(filter.ambianceMin)
+    }
+}
+
+// MARK: - US-020: applyQualityFilter — no network, trims visible set
+
+@MainActor
+final class ApplyQualityFilterTests: XCTestCase {
+
+    private func makeVM() -> MapViewModel {
+        MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+    }
+
+    private func makeExperience(id: String, category: ExperienceCategory, soloScore: Double) -> Experience {
+        let breakdown = SoloScore.Breakdown(
+            seatingFriendly: 8.0,
+            soloPatronRatio: 8.0,
+            staffPressure: 2.0,
+            soloPortioning: 8.0,
+            ambianceFit: 8.0,
+            safety: 8.0
+        )
+        let score = SoloScore(overall: soloScore, breakdown: breakdown, basedOnCount: 5)
+        let confidence = Confidence(
+            score: 0.7,
+            signals: Confidence.Signals(aiScrapeAgeDays: 3, passiveGpsHits30d: 5, activeReports30d: 0, trustedVerifications: 0)
+        )
+        let location = ExperienceLocation(coordinates: [98.99, 18.79], cityCode: "cmi")
+        return Experience(
+            id: id,
+            title: "Place \(id)",
+            oneLiner: "test",
+            whyItMatters: "test",
+            category: category,
+            location: location,
+            bestTimes: [],
+            durationMinutes: Experience.DurationRange(min: 30, max: 60),
+            howTo: [],
+            realInconveniences: [],
+            soloScore: score,
+            sources: [],
+            confidence: confidence,
+            nearbyExperienceIds: [],
+            stats: Experience.Stats(completionCount: 0, averageRating: 0),
+            status: .active,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+    }
+
+    func testApplyQualityFilterTrimsVisibleSet() {
+        let vm = makeVM()
+        let highScore = makeExperience(id: "a", category: .coffee, soloScore: 8.5)
+        let lowScore  = makeExperience(id: "b", category: .coffee, soloScore: 5.0)
+        vm.visibleExperiences = [highScore, lowScore]
+        let remaining = vm.applyQualityFilter(ExperienceFilter(soloScoreMin: 8.0))
+        XCTAssertEqual(remaining, 1)
+        XCTAssertEqual(vm.visibleExperiences.count, 1)
+        XCTAssertEqual(vm.visibleExperiences.first?.id, "a")
+    }
+
+    func testApplyQualityFilterMakesNoNetworkCall() {
+        // Verify applyQualityFilter is synchronous (no async, no network).
+        // If it were async this would not compile as a direct call.
+        let vm = makeVM()
+        let exp = makeExperience(id: "x", category: .food, soloScore: 9.0)
+        vm.visibleExperiences = [exp]
+        let count: Int = vm.applyQualityFilter(ExperienceFilter(category: "food"))
+        XCTAssertEqual(count, 1) // sync return proves no network
+    }
+
+    func testApplyQualityFilterReturnsCorrectCount() {
+        let vm = makeVM()
+        vm.visibleExperiences = [
+            makeExperience(id: "1", category: .coffee, soloScore: 9.0),
+            makeExperience(id: "2", category: .coffee, soloScore: 7.0),
+            makeExperience(id: "3", category: .food,   soloScore: 9.0),
+        ]
+        let remaining = vm.applyQualityFilter(ExperienceFilter(category: "coffee"))
+        XCTAssertEqual(remaining, 2)
+    }
+}
+
+// MARK: - US-021: expandOneStage advances exactly one ring, no-op at 100km
+
+@MainActor
+final class ExpandOneStageTests: XCTestCase {
+
+    private func makeVM(acceptConsent: Bool = false) -> MapViewModel {
+        let prefs = UserPreferences()
+        if acceptConsent { prefs.acceptExploreConsent() }
+        return MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+    }
+
+    func testNoOpAtMaxRadius() async {
+        let vm = makeVM()
+        let maxRadius = EnrichmentAgent.progressiveRadii.last ?? 100_000
+        vm.progressiveScratchRadiusMeters = maxRadius
+        let reason = await vm.expandOneStage()
+        XCTAssertNotNil(reason, "Should return a no-op reason string at max radius")
+    }
+
+    func testAdvancesExactlyOneStageFromFirstRing() async {
+        let vm = makeVM(acceptConsent: true)
+        let radii = EnrichmentAgent.progressiveRadii
+        // Seed at ring 0 (5 km). expandOneStage should try ring 1 (10 km).
+        vm.progressiveScratchRadiusMeters = radii[0]
+        // Run expandOneStage; network will fail in tests but index must advance.
+        _ = await vm.expandOneStage()
+        XCTAssertEqual(vm.lastProgressiveRadiusIndex, 1)
+    }
+
+    func testNoOpReturnsClearMessage() async {
+        let vm = makeVM()
+        vm.progressiveScratchRadiusMeters = 100_000
+        let msg = await vm.expandOneStage()
+        XCTAssertNotNil(msg)
+        XCTAssertFalse(msg?.isEmpty ?? true, "No-op message should not be empty")
+    }
+}

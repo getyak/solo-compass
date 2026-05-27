@@ -698,6 +698,16 @@ public final class AIService {
         return try JSONDecoder().decode(AIResponse.self, from: data)
     }
 
+    // MARK: - Web search enrichment (US-016)
+
+    /// Send a web-search-style query to the AI and return the raw text response.
+    /// Used by `WebSearchEnrichmentSource` to fetch objective, cross-verifiable
+    /// facts for top-N ranked experiences. Throws `AIError.missingAPIKey` when
+    /// no key is configured — callers treat that as a silent skip.
+    public func sendWebSearchQuery(prompt: String) async throws -> String {
+        try await sendMessage(prompt: prompt, kind: .explanation)
+    }
+
     // MARK: - Synthesize from OSM POIs (Explore Here)
 
     /// Maximum POIs sent to the model in one call. Sized to accommodate the
@@ -1087,6 +1097,101 @@ public final class AIService {
     @MainActor
     private func setQuotaExceeded() {
         self.quotaExceededAt = Date()
+    }
+
+    // MARK: - US-014: Multi-source confidence & attribution
+
+    /// Apply `CompiledPlace` provenance metadata to a synthesized Experience.
+    /// When a place was assembled from ≥2 distinct sources, this bumps the
+    /// confidence level and enriches the `sources` list with per-source entries
+    /// so the detail view can surface the "verified by multiple sources" indicator.
+    ///
+    /// Call this after `synthesizeExperiences` to upgrade the raw synthesis
+    /// with accurate cross-source attribution.
+    public static func applyMultiSourceAttribution(
+        to experience: Experience,
+        compiledPlace: CompiledPlace
+    ) -> Experience {
+        let sourcesCount = compiledPlace.sourcesCount
+        guard sourcesCount >= 2 else { return experience }
+        let now = Date()
+
+        // Build per-source InformationSource entries for every contributor.
+        var infoSources: [InformationSource] = experience.sources
+        let presentSources = Set([compiledPlace.name.source]
+            + [compiledPlace.rating?.source, compiledPlace.openingHours?.source,
+               compiledPlace.priceLevel?.source, compiledPlace.website?.source,
+               compiledPlace.phone?.source, compiledPlace.address?.source]
+            .compactMap { $0 })
+
+        for tag in presentSources {
+            let alreadyPresent = infoSources.contains { src in
+                (src.attribution ?? "").localizedCaseInsensitiveContains(tag.rawValue)
+            }
+            guard !alreadyPresent else { continue }
+            let attribution: String
+            let url: URL?
+            switch tag {
+            case .osm:
+                attribution = "© OpenStreetMap contributors"
+                url = nil
+            case .foursquare:
+                attribution = "Foursquare Places"
+                url = nil
+            case .mapkit:
+                attribution = "Apple Maps"
+                url = nil
+            case .web:
+                attribution = "Web"
+                url = nil
+            }
+            infoSources.append(InformationSource(
+                type: .user,
+                url: url,
+                attribution: attribution,
+                verifiedAt: now
+            ))
+        }
+
+        // Bump basedOnCount to reflect multi-source verification.
+        let bumpedCount = max(experience.soloScore.basedOnCount, sourcesCount)
+        let bumpedScore = SoloScore(
+            overall: experience.soloScore.overall,
+            breakdown: experience.soloScore.breakdown,
+            hint: experience.soloScore.hint,
+            basedOnCount: bumpedCount
+        )
+
+        // Bump confidence level using CompiledPlace's mapping.
+        let newLevel = max(experience.confidence.level, CompiledPlace.confidenceLevel(for: compiledPlace))
+        let bumpedConfidence = Confidence(
+            level: newLevel,
+            lastVerifiedAt: experience.confidence.lastVerifiedAt,
+            reason: "AI-synthesized from \(sourcesCount) cross-verified sources",
+            signals: experience.confidence.signals
+        )
+
+        return Experience(
+            id: experience.id,
+            title: experience.title,
+            oneLiner: experience.oneLiner,
+            whyItMatters: experience.whyItMatters,
+            category: experience.category,
+            location: experience.location,
+            bestTimes: experience.bestTimes,
+            durationMinutes: experience.durationMinutes,
+            howTo: experience.howTo,
+            realInconveniences: experience.realInconveniences,
+            soloScore: bumpedScore,
+            sources: infoSources,
+            confidence: bumpedConfidence,
+            nearbyExperienceIds: experience.nearbyExperienceIds,
+            stats: experience.stats,
+            status: experience.status,
+            createdAt: experience.createdAt,
+            updatedAt: experience.updatedAt,
+            userTags: experience.userTags
+        )
     }
 
     // MARK: - Synthesize helpers

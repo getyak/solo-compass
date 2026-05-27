@@ -893,7 +893,89 @@ public final class MapViewModel {
         experienceService.allExperiences.filter { $0.location.cityCode == cityCode }.count
     }
 
+    // MARK: - Expand radius (US-021)
+
+    /// Center used by the most recent progressive explore (or explicit radius override).
+    /// Stored so `expandOneStage` can advance the same ring ladder from the same anchor.
+    public private(set) var lastExploreCenter: CLLocationCoordinate2D?
+
+    /// Index into `EnrichmentAgent.progressiveRadii` for the ring that was last
+    /// scanned. `expandOneStage` advances this by one and reruns from that radius.
+    public private(set) var lastProgressiveRadiusIndex: Int = 0
+
+    /// Advance the progressive ring ladder by exactly one step from the last
+    /// explore center. Returns `nil` when a new explore was successfully
+    /// launched, or a human-readable no-op reason string when already at the
+    /// max radius (100 km).
+    @discardableResult
+    public func expandOneStage() async -> String? {
+        let radii = EnrichmentAgent.progressiveRadii
+        let maxRadius = radii.last ?? 100_000
+        guard progressiveScratchRadiusMeters < maxRadius else {
+            return NSLocalizedString(
+                "explore.expand.alreadyMax",
+                comment: "Already at maximum explore radius"
+            )
+        }
+        let center = lastExploreCenter ?? exploreAnchorCoordinate
+        // Advance to the next ring beyond the current scratch radius.
+        let nextRadius: Int
+        if let nextIndex = radii.firstIndex(where: { $0 > progressiveScratchRadiusMeters }) {
+            nextRadius = radii[nextIndex]
+            lastProgressiveRadiusIndex = nextIndex
+        } else {
+            nextRadius = maxRadius
+            lastProgressiveRadiusIndex = radii.count - 1
+        }
+        await exploreProgressively(at: center, startingRadiusMeters: nextRadius)
+        return nil
+    }
+
+    // MARK: - Quality filter (US-020)
+
+    /// Apply a quality-dimension filter to `visibleExperiences` in place,
+    /// without making any network calls. Returns the count of experiences
+    /// remaining after the filter is applied, for the agent reply.
+    @discardableResult
+    public func applyQualityFilter(_ filter: ExperienceFilter) -> Int {
+        let trimmed = visibleExperiences.filter { filter.matches($0) }
+        if trimmed.count != visibleExperiences.count {
+            withAnimation(Self.markerSetAnimation) {
+                visibleExperiences = trimmed
+                nearbySoloCount = computeNearbySoloCount(in: trimmed)
+            }
+        }
+        return trimmed.count
+    }
+
     // MARK: - Explore Here
+
+    /// US-019: Voice-tool entry point for progressive multi-ring explore.
+    /// Delegates to `exploreNearby` (which uses `FeatureFlags.deepDiveEnrichment`
+    /// for the progressive path internally). `startingRadiusMeters`, when set,
+    /// overrides the initial stage of the progressive ladder.
+    /// After the explore completes, applies `filter` to trim the visible set
+    /// in-place so quality-dimension args from the voice tool take effect
+    /// without an extra network call.
+    public func exploreProgressively(
+        at coordinate: CLLocationCoordinate2D,
+        startingRadiusMeters: Int? = nil,
+        category: ExperienceCategory? = nil,
+        filter: ExperienceFilter? = nil
+    ) async {
+        lastExploreCenter = coordinate
+        let radius = startingRadiusMeters ?? 3000
+        await exploreNearby(at: coordinate, radiusMeters: radius, category: category)
+        if let filter {
+            let trimmed = visibleExperiences.filter { filter.matches($0) }
+            if trimmed.count != visibleExperiences.count {
+                withAnimation(Self.markerSetAnimation) {
+                    visibleExperiences = trimmed
+                    nearbySoloCount = computeNearbySoloCount(in: trimmed)
+                }
+            }
+        }
+    }
 
     /// Pull real OSM POIs near `coordinate`, hand them to AIService for
     /// solo-traveler enrichment, append the generated Experiences to the
@@ -906,6 +988,8 @@ public final class MapViewModel {
         category: ExperienceCategory? = nil
     ) async {
         guard !isExploring else { return }
+        // Track center so expandOneStage can reuse it (US-021).
+        lastExploreCenter = coordinate
 
         // US-024: free-tier gate. Park the original action so the
         // paywall's onUnlocked can resume it after purchase, then bail.
@@ -940,6 +1024,10 @@ public final class MapViewModel {
             // US-MR-04: always clear progress on exit so a fail / partial
             // run doesn't leave the capsule stuck.
             exploreProgress = .idle
+            // US-011: clear the radius ring overlay when explore ends.
+            withAnimation(.easeOut(duration: 0.4)) {
+                exploreRadiusOverlay = nil
+            }
         }
 
         // Propagate current subscription tier so AIService applies
@@ -965,22 +1053,62 @@ public final class MapViewModel {
 
             let generated: [Experience]
             let effectiveRadius: Int
+            // Track the final radius reached during progressive explore (US-006).
+            var progressiveFinalRadiusKm: Int? = nil
 
             if FeatureFlags.deepDiveEnrichment {
-                // Deep-dive: small radius, cross-channel enrichment, curated
-                // top-N, then synthesis. Returns synthesized Experiences
-                // directly. Empty result → cached/error fallback below.
-                if exploreProgress != .idle {
-                    exploreProgress = .synthesizing(poiCount: 0)
-                }
-                let enriched = try await enrichmentAgent.enrich(
+                // Progressive explore: small radius (5km) first, expand outward
+                // until enough POIs accumulate. Batches are appended to
+                // visibleExperiences incrementally as they arrive (US-009).
+                let filteredCategories: [ExperienceCategory] = category.map { [$0] } ?? []
+                // Reset scratch state before the progressive run.
+                progressiveScratchRadiusMeters = EnrichmentAgent.progressiveRadii[0]
+                progressiveScratchAddedCount = 0
+
+                let allResults = await enrichmentAgent.exploreProgressively(
                     at: coordinate,
-                    radiusMeters: min(radiusMeters, EnrichmentAgent.defaultRadiusMeters),
-                    category: category,
+                    categories: filteredCategories,
                     cityCode: cityCode,
-                    locale: LanguageService.shared.effectiveLocale
+                    locale: LanguageService.shared.effectiveLocale,
+                    onProgress: { [weak self] progress in
+                        guard let self else { return }
+                        // Track which radius we've scanned for US-006 toast.
+                        if case .scanning(let km) = progress {
+                            self.progressiveScratchRadiusMeters = km * 1_000
+                            // US-011: update the radius ring overlay to current stage.
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                self.exploreRadiusOverlay = (center: coordinate, radiusMeters: Double(km * 1_000))
+                            }
+                        } else if case .expanding(let km) = progress {
+                            self.progressiveScratchRadiusMeters = km * 1_000
+                            // US-011: update overlay to the new (larger) radius.
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                self.exploreRadiusOverlay = (center: coordinate, radiusMeters: Double(km * 1_000))
+                            }
+                        }
+                        self.exploreProgress = progress
+                    },
+                    onBatch: { [weak self] batch in
+                        guard let self else { return }
+                        // US-009: dedupe by id and append to visibleExperiences.
+                        let existingIds = Set(self.visibleExperiences.map(\.id))
+                        let novel = batch.filter { !existingIds.contains($0.id) }
+                        if !novel.isEmpty {
+                            let batchAdded = self.experienceService.appendGenerated(novel)
+                            self.progressiveScratchAddedCount += batchAdded
+                            withAnimation(Self.markerSetAnimation) {
+                                self.visibleExperiences.append(contentsOf: novel)
+                                self.nearbySoloCount = self.computeNearbySoloCount(in: self.visibleExperiences)
+                            }
+                        }
+                    }
                 )
-                guard !enriched.isEmpty else {
+
+                // Set the final radius so US-006 toast can reference it.
+                progressiveFinalRadiusKm = progressiveScratchRadiusMeters / 1_000
+                lastExploreAddedCount = progressiveScratchAddedCount
+
+                guard !allResults.isEmpty else {
                     if let region = experienceService.repo.closestRecentRegion(to: coordinate),
                        case let cached = experienceService.repo.experiences(in: region),
                        !cached.isEmpty {
@@ -995,8 +1123,9 @@ public final class MapViewModel {
                     lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
                     return
                 }
-                generated = enriched
-                effectiveRadius = min(radiusMeters, EnrichmentAgent.defaultRadiusMeters)
+                // Use the full accumulated set for appendGenerated count tracking.
+                generated = allResults
+                effectiveRadius = progressiveScratchRadiusMeters
             } else {
                 // Legacy wide-ring pipeline (kill-switch path).
                 // US-MR-01: Pro multi-ring schedule (4 rings, dedup'd, single
@@ -1054,8 +1183,16 @@ public final class MapViewModel {
                 effectiveRadius = ringRadius
             }
 
-            let added = experienceService.appendGenerated(generated)
-            lastExploreAddedCount = added
+            // For the progressive path, appendGenerated + lastExploreAddedCount were
+            // already handled incrementally in onBatch. For the legacy path, do it now.
+            let added: Int
+            if FeatureFlags.deepDiveEnrichment {
+                // Already persisted and counted in onBatch; use the cumulative count.
+                added = lastExploreAddedCount
+            } else {
+                added = experienceService.appendGenerated(generated)
+                lastExploreAddedCount = added
+            }
 
             // US-022: record a successful region so offline fallback can reuse it.
             // For multi-ring runs this is the outermost ring (12 km) so the
@@ -1079,6 +1216,9 @@ public final class MapViewModel {
             // US-MR-04: multi-ring runs use the "added across N km" variant
             // so users understand why distant places appeared.
             let wasMultiRing = effectiveRadius != radiusMeters
+            // US-006: progressive runs that expanded past 5 km surface the final radius.
+            let initialProgressiveKm = EnrichmentAgent.progressiveRadii[0] / 1_000
+            let progressiveExpanded = progressiveFinalRadiusKm.map { $0 > initialProgressiveKm } ?? false
 
             // US-MR-05: emit analytics for multi-ring runs even when
             // added == 0 (a "we tried and got nothing" event is still
@@ -1099,7 +1239,22 @@ public final class MapViewModel {
             if added > 0 {
                 selectCity(cityCode)
                 let outerKm = effectiveRadius / 1000
-                if let resolved {
+                if progressiveExpanded, let finalKm = progressiveFinalRadiusKm {
+                    // US-006: progressive run that widened past 5 km — show final radius.
+                    if let resolved {
+                        lastExploreToast = String(
+                            format: NSLocalizedString("explore.toast.progressive.expandedNamed",
+                                                      comment: "Expanded to %1$@ km · found %2$lld in %3$@"),
+                            "\(finalKm)", Int64(added), resolved.name
+                        )
+                    } else {
+                        lastExploreToast = String(
+                            format: NSLocalizedString("explore.toast.progressive.expanded",
+                                                      comment: "Expanded to %1$@ km · found %2$lld"),
+                            "\(finalKm)", Int64(added)
+                        )
+                    }
+                } else if let resolved {
                     let key = wasMultiRing
                         ? "explore.toast.multiRing.addedNamed"
                         : "explore.toast.addedNamed"
@@ -1181,6 +1336,10 @@ public final class MapViewModel {
 
     public var exploreProgress: ExploreProgress = .idle
 
+    /// US-011: Current stage radius overlay during progressive explore.
+    /// Non-nil while a stage is actively scanning; nil at idle/complete.
+    public var exploreRadiusOverlay: (center: CLLocationCoordinate2D, radiusMeters: Double)? = nil
+
     /// Telemetry from the most recent multi-ring Explore. Populated only
     /// when the Pro multi-ring schedule runs; nil after a single-ring
     /// fetch or before the first Explore. Bound by tests; in production
@@ -1200,6 +1359,14 @@ public final class MapViewModel {
     /// failed-ring count up to `exploreNearby` without changing the
     /// existing tuple return signature (which is covered by tests).
     private var pendingFailedRings: Int = 0
+
+    /// Scratch vars used by the progressive explore path to accumulate
+    /// state across `onProgress`/`onBatch` closures without capturing
+    /// mutable locals (Swift 6 strict-concurrency restriction).
+    /// `internal` (not private) so unit tests can seed the current radius
+    /// for `expandOneStage` assertions without triggering a full explore run.
+    var progressiveScratchRadiusMeters: Int = 0
+    private var progressiveScratchAddedCount: Int = 0
 
     /// Pull OSM POIs for `exploreNearby`. When the Pro multi-ring flag is
     /// on AND the user is Pro, fans out 4 concurrent Overpass calls and

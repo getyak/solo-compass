@@ -42,16 +42,16 @@ export type ItineraryId = string & { readonly __brand: "ItineraryId" };
 export interface Itinerary {
   readonly id: ItineraryId;
   readonly ownerId: UserId;
-  readonly title: string;                          // "清迈 5 日"
+  readonly title: string; // "清迈 5 日"
   readonly cityCode: string;
-  readonly startDate: string;                      // ISO date (日粒度,无时区) e.g. "2026-06-01"
-  readonly endDate: string;                        // ISO date e.g. "2026-06-05"
+  readonly startDate: string; // ISO date (日粒度,无时区) e.g. "2026-06-01"
+  readonly endDate: string; // ISO date e.g. "2026-06-05"
   readonly experienceIds: readonly ExperienceId[]; // 有序,复用现有 Experience
   readonly note?: string;
   /** 是否开放约伴。false = 纯个人行程(等价于"收藏分组")。 */
   readonly openToCompanions: boolean;
-  readonly createdAt: string;                      // ISO 8601 UTC e.g. "2026-05-27T04:30:00Z"
-  readonly updatedAt: string;                      // ISO 8601 UTC
+  readonly createdAt: string; // ISO 8601 UTC e.g. "2026-05-27T04:30:00Z"
+  readonly updatedAt: string; // ISO 8601 UTC
 }
 
 /** 约伴意向:把一个 itinerary 或一个实时网格"挂出来"。 */
@@ -63,14 +63,14 @@ export interface CompanionPost {
   readonly id: CompanionPostId;
   readonly authorId: UserId;
   readonly mode: CompanionMode;
-  readonly itineraryId?: ItineraryId;              // mode=itinerary 时必填
+  readonly itineraryId?: ItineraryId; // mode=itinerary 时必填
   readonly cityCode: string;
   /** 模糊位置:geohash 精度 6(~600m)e.g. "w5q6kx"。mode=nearby 时必填。永不存精确坐标。 */
   readonly geohash6?: string;
   readonly categories: readonly ExperienceCategory[];
-  readonly blurb: string;                          // ≤140 字,"想找人一起吃夜市,说中英文"
-  readonly languages: readonly string[];           // ISO codes
-  readonly expiresAt: string;                      // ISO 8601 UTC。实时贴 ≤2h;行程贴到 endDate
+  readonly blurb: string; // ≤140 字,"想找人一起吃夜市,说中英文"
+  readonly languages: readonly string[]; // ISO codes
+  readonly expiresAt: string; // ISO 8601 UTC。实时贴 ≤2h;行程贴到 endDate
   readonly createdAt: string;
 }
 
@@ -85,7 +85,7 @@ export interface CompanionRequest {
   readonly fromUserId: UserId;
   readonly toUserId: UserId;
   readonly status: CompanionRequestStatus;
-  readonly message?: string;                       // 首条破冰留言,≤200 字
+  readonly message?: string; // 首条破冰留言,≤200 字
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -107,8 +107,8 @@ export interface ChatMessage {
   readonly id: MessageId;
   readonly conversationId: ConversationId;
   readonly senderId: UserId;
-  readonly body: string;                           // 纯文本,≤1000 字
-  readonly sentAt: string;                         // ISO 8601 UTC
+  readonly body: string; // 纯文本,≤1000 字
+  readonly sentAt: string; // ISO 8601 UTC
 }
 
 /** 举报。 */
@@ -129,8 +129,8 @@ export interface CompanionReport {
 ```typescript
 /** 轻量化名档案。全部可选 —— 不填则约伴里只显示 displayHandle。 */
 export interface CompanionProfile {
-  readonly avatarEmoji?: string;       // 不用真人照,emoji 或生成头像
-  readonly bio?: string;               // ≤140 字
+  readonly avatarEmoji?: string; // 不用真人照,emoji 或生成头像
+  readonly bio?: string; // ≤140 字
   readonly languages: readonly string[];
   /** 可见性。off = 完全不出现在任何约伴列表(默认)。 */
   readonly visibility: "off" | "itinerary_only" | "nearby_and_itinerary";
@@ -335,9 +335,11 @@ commit;
 ### Phase 1 — 多行程(纯本地,零社交,零隐私风险,可独立发版)
 
 #### US-001: 定义 Itinerary 数据模型(TS core)
+
 **Description:** As a developer, I want a typed `Itinerary` schema in core so 行程能在三层间一致传递。
 
 **Acceptance Criteria:**
+
 - [ ] 新建 `packages/core/src/companion.ts`,导出 `Itinerary`、`ItineraryId`(branded type)
 - [ ] 在 `packages/core/src/index.ts` 导出
 - [ ] coords/日期遵循项目约定(date 为 ISO 日粒度,时间戳为 ISO 8601 UTC)
@@ -345,9 +347,11 @@ commit;
 - [ ] `pnpm test`(core 包)通过
 
 #### US-002: Itinerary Swift 模型 + parity 通过
+
 **Description:** As a developer, I want `Itinerary.swift` 镜像 TS,so parity guard 通过。
 
 **Acceptance Criteria:**
+
 - [ ] 新建 `apps/ios/SoloCompass/Models/Itinerary.swift`,字段与 TS 对齐
 - [ ] `ItineraryId` 用 Swift 强类型(struct wrapper 或 typealias + 校验)
 - [ ] 提供 `#Preview` 所需的 sample 工厂
@@ -355,18 +359,22 @@ commit;
 - [ ] `xcodebuild build` 通过
 
 #### US-003: Itinerary 本地持久化(SwiftData)
+
 **Description:** As a user, I want 我的行程在本地持久保存,so 关 app 不丢。
 
 **Acceptance Criteria:**
+
 - [ ] SwiftData model + `ItineraryStore`(或扩展现有持久层)实现增删改查
 - [ ] 默认 `openToCompanions = false`
 - [ ] 单元测试覆盖 CRUD(`apps/ios/SoloCompass/Tests/`)
 - [ ] `xcodebuild test` 通过
 
 #### US-004: 行程列表与详情 UI
+
 **Description:** As a user, I want 看到我的所有行程并进入某个行程,so 我能管理多个旅行计划。
 
 **Acceptance Criteria:**
+
 - [ ] 新增 `Views/Companion/ItineraryListView.swift`、`ItineraryDetailView.swift`
 - [ ] 列表显示 title / 城市 / 日期范围 / 体验数
 - [ ] 空状态有引导文案(`NSLocalizedString`)
@@ -374,9 +382,11 @@ commit;
 - [ ] 在 Simulator 中验证(iPhone 17 Pro)新建/查看/删除行程视觉与交互正常
 
 #### US-005: 创建/编辑行程
+
 **Description:** As a user, I want 新建一个行程并填标题/城市/日期,so 我能开始规划。
 
 **Acceptance Criteria:**
+
 - [ ] 创建表单:title、cityCode(从已有城市选择)、startDate/endDate
 - [ ] endDate 不得早于 startDate(表单校验)
 - [ ] 保存后立即出现在列表
@@ -384,9 +394,11 @@ commit;
 - [ ] 在 Simulator 中验证创建与编辑流程
 
 #### US-006: 把体验加入行程 / 从收藏迁移
+
 **Description:** As a user, I want 把一个 Experience 加进某个行程,并把现有收藏归入行程,so 收藏不再是一个无结构的大集合。
 
 **Acceptance Criteria:**
+
 - [ ] Experience 详情页有"加入行程"入口(选择已有行程或新建)
 - [ ] 行程详情页可调整 `experienceIds` 顺序(拖拽)
 - [ ] 提供"从收藏导入"动作:把 `favoritedExperiences` 选取项加入指定行程
@@ -394,9 +406,11 @@ commit;
 - [ ] 在 Simulator 中验证加入/排序/导入
 
 #### US-007: 行程通过 outbox 同步到 Supabase
+
 **Description:** As a user, I want 行程跨设备同步,so 换设备不丢行程。
 
 **Acceptance Criteria:**
+
 - [ ] `itineraries` 表迁移并入 `0003_companion.sql`(仅本表部分先上)
 - [ ] 复用 `SyncService` 的 `enqueue` outbox 模式,新增 itinerary 同步处理
 - [ ] last-write-wins 合并(对齐现有 `updated_at` + device_id 决胜逻辑)
@@ -407,9 +421,11 @@ commit;
 ### Phase 2 — 行程约伴(异步发现 + 握手 + 档案,需后端)
 
 #### US-008: 约伴数据模型补全(TS + Swift + 迁移)
+
 **Description:** As a developer, I want `CompanionPost / CompanionRequest / CompanionProfile / Conversation / ChatMessage / CompanionReport` 三层落地。
 
 **Acceptance Criteria:**
+
 - [ ] `companion.ts` 补全上述类型 + branded IDs
 - [ ] 对应 Swift 模型新建并通过 `parity:check`
 - [ ] `0003_companion.sql` 全表 + RLS 应用成功(本地 supabase 或测试库验证)
@@ -417,9 +433,11 @@ commit;
 - [ ] `pnpm typecheck` + `pnpm parity:check` + `xcodebuild build` 通过
 
 #### US-009: 约伴档案设置 + 可见性开关(默认 off)
+
 **Description:** As a user, I want 设置我的约伴档案(emoji/简介/语言)和可见性,so 我能控制谁能看到我。
 
 **Acceptance Criteria:**
+
 - [ ] 新增 `Views/Companion/CompanionProfileView.swift`
 - [ ] visibility 三档:off(默认)/ itinerary_only / nearby_and_itinerary
 - [ ] off 时本人不出现在任何发现列表(后端 RLS + Edge Function 双重保证)
@@ -427,9 +445,11 @@ commit;
 - [ ] 在 Simulator 中验证档案保存与可见性切换
 
 #### US-010: 把行程标记为"开放约伴"
+
 **Description:** As a user, I want 把某个行程开放约伴,so 同城同期的人能找到我。
 
 **Acceptance Criteria:**
+
 - [ ] 行程详情页有"开放约伴"开关 → 写 `openToCompanions`
 - [ ] 开启时引导填写 `blurb` + categories(生成一条 `CompanionPost(mode=itinerary)`)
 - [ ] 关闭时该行程的 post 立即下架(删除或置过期)
@@ -437,9 +457,11 @@ commit;
 - [ ] 在 Simulator 中验证开/关与提示
 
 #### US-011: 约伴发现列表(Edge Function)
+
 **Description:** As a user, I want 看到同城开放约伴的行程,按日期/品类筛选,so 我能找到合适的旅伴。
 
 **Acceptance Criteria:**
+
 - [ ] 新建 Edge Function `companion-discover`:入参 city_code / mode / 日期 / categories;service role 过滤 + 排除拉黑双方;只回脱敏字段
 - [ ] 新建 `CompanionService.swift` 调用该函数
 - [ ] 新增 `Views/Companion/DiscoverListView.swift`,卡片显示 handle/emoji/blurb/日期/品类
@@ -448,9 +470,11 @@ commit;
 - [ ] 在 Simulator 中验证发现列表渲染与筛选
 
 #### US-012: 发起 / 接受 / 拒绝约伴请求(双向握手)
+
 **Description:** As a user, I want 对一条约伴贴发起请求,对方 accept 后我们才连上,so 双向同意才解锁联系。
 
 **Acceptance Criteria:**
+
 - [ ] 发现卡片可"发起约伴"(带破冰留言 ≤200 字)→ 写 `CompanionRequest(pending)`
 - [ ] 收件箱 `RequestInboxView.swift` 显示收到的 pending 请求,可 accept/decline
 - [ ] 双方都为 accepted 时,后端创建 `Conversation`(通过 Edge Function 或 DB 触发器保证一致性)
@@ -458,9 +482,11 @@ commit;
 - [ ] 在 Simulator 中用两个匿名账号验证完整握手(可借测试库 + 两个 device)
 
 #### US-013: App 内轻量实时聊天(Supabase Realtime)
+
 **Description:** As a user, I want 和已 accept 的旅伴在 app 内文字聊天,so 我们能商量碰头。
 
 **Acceptance Criteria:**
+
 - [ ] `ChatService.swift` 订阅 `chat_messages` 的 Realtime channel(按 conversation_id)
 - [ ] `Views/Companion/ChatView.swift`:文本输入、消息气泡、按 `sent_at` 排序
 - [ ] 仅会话参与者可读写(RLS 已保证;客户端再校验一层)
@@ -469,9 +495,11 @@ commit;
 - [ ] 在 Simulator 中验证双向实时收发
 
 #### US-014: 举报与拉黑
+
 **Description:** As a user, I want 举报或拉黑某人,so 我能保护自己免受骚扰。
 
 **Acceptance Criteria:**
+
 - [ ] post / request / message / profile 任意位置可发起举报(选 reason + 可选 detail)
 - [ ] 拉黑后:对方从我的所有发现列表消失,无法对我发起请求,已有会话冻结
 - [ ] 举报写入 `companion_reports`(用户不可读他人举报)
@@ -481,9 +509,11 @@ commit;
 ### Phase 3 — 实时附近(最高隐私门槛,最后做)
 
 #### US-015: PresenceService — 仅前台、手动开关、geohash6 广播
+
 **Description:** As a user, I want 手动开启"附近约伴",仅在前台模糊广播位置,so 我能即时找到附近的人且隐私可控。
 
 **Acceptance Criteria:**
+
 - [ ] 新建 `PresenceService.swift`:仅当用户在 UI 主动开启时启动
 - [ ] 订阅 `LocationService.currentLocation`,转换为 geohash6(~600m),每 N 分钟上报一次 `CompanionPost(mode=nearby, geohash6)`
 - [ ] app 进入后台 / 用户关闭开关 → **立即停止上报**并下架 nearby post
@@ -493,18 +523,22 @@ commit;
 - [ ] `xcodebuild test` 通过
 
 #### US-016: LocationService 加 coarse geohash 接缝
+
 **Description:** As a developer, I want 在 LocationService 暴露一个 coarse(geohash6)读取口,so PresenceService 不需碰精确 GPS 管理逻辑。
 
 **Acceptance Criteria:**
+
 - [ ] LocationService 新增 `coarseGeohash6` 计算属性 / publisher,基于现有 `currentLocation`
 - [ ] 不修改现有精确定位、地理围栏逻辑(回归测试现有 region 行为)
 - [ ] geohash6 编码有单元测试(已知坐标 → 已知 hash)
 - [ ] `xcodebuild test` 通过
 
 #### US-017: 地图约伴图层(默认关)
+
 **Description:** As a user, I want 在地图上看到附近的约伴网格,so 我能直观发现身边的人。
 
 **Acceptance Criteria:**
+
 - [ ] `CompassMapView` 加一个可选"约伴图层"开关(默认关)
 - [ ] 开启时调用 `companion-discover(mode=nearby)`,以 geohash6 网格中心 + "约 600m 内"模糊呈现,**不画精确点**
 - [ ] 关闭图层后地图回到现状,无任何约伴元素
@@ -512,9 +546,11 @@ commit;
 - [ ] 在 Simulator 中验证图层开关与模糊网格渲染
 
 #### US-018: 自动过期与清理
+
 **Description:** As a system, I want 自动清理过期的 nearby post 和 stale 数据,so 列表不显示幽灵用户。
 
 **Acceptance Criteria:**
+
 - [ ] nearby post `expires_at ≤ 2h`;发现查询 `expires_at > now()` 过滤(RLS 已含)
 - [ ] 定时清理(Supabase scheduled function 或查询时过滤)删除过期 post
 - [ ] pending 超时(如 7 天)的 request 自动置 `expired`
@@ -523,18 +559,22 @@ commit;
 ### 横切 — 安全 / 信任 / 合规
 
 #### US-019: reporterWeight 降权 + 发现排序
+
 **Description:** As a system, I want 用现有信任分给约伴发现排序并对低分用户降权,so 滥用者更难被看到。
 
 **Acceptance Criteria:**
+
 - [ ] Edge Function 发现结果按 `reporter_weight` 降序加权排序
 - [ ] 多次被举报触发 `reporter_weight` 下降(规则文档化)
 - [ ] 低于阈值的用户不出现在发现列表
 - [ ] 单元测试覆盖排序与阈值
 
 #### US-020: 安全文案、未成年人保护与应急条款
+
 **Description:** As a product, I want 在约伴入口与碰头前展示安全提示与免责/举报通道,so 满足合规与用户安全底线。
 
 **Acceptance Criteria:**
+
 - [ ] 首次开启约伴展示安全须知 + 同意条款(碰头前不暴露精确位置、公共场所见面、举报入口)
 - [ ] 未成年人保护声明 / 年龄确认
 - [ ] App Store 隐私清单(PrivacyInfo)更新:位置、用户内容、联系信息用途
@@ -542,9 +582,11 @@ commit;
 - [ ] 法务条款 reviewed(标记为需人工确认的开放项)
 
 #### US-021: 一键全关 / 数据删除
+
 **Description:** As a user, I want 一键关闭所有约伴功能并删除我的约伴数据,so 我能彻底退出社交。
 
 **Acceptance Criteria:**
+
 - [ ] 设置项"关闭约伴并删除我的约伴数据":置 visibility=off、下架所有 post、删除 profile/itinerary 开放标记
 - [ ] 关闭后 app 体验与从未启用约伴完全一致
 - [ ] 删除走 cascade(profile/posts/requests/conversations 关联清理)

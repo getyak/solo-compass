@@ -547,9 +547,83 @@ public struct ExperienceDetailView: View {
         .background(RoundedRectangle(cornerRadius: 10).fill(Color(.secondarySystemBackground)))
     }
 
+    // MARK: - US-015: Multi-source indicator
+
+    /// Multi-source indicator shown when the experience was assembled from ≥2 distinct sources.
+    @ViewBuilder
+    private var multiSourceIndicator: some View {
+        if viewModel.experience.sources.count >= 2 {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+                Text(NSLocalizedString("detail.multiSource.indicator", comment: "Verified by multiple sources indicator"))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Color.green.opacity(0.08)))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(NSLocalizedString("detail.multiSource.indicator.a11y", comment: "Verified by multiple sources accessibility label")))
+        }
+    }
+
+    // MARK: - US-015: Rating and price level rows
+
+    @ViewBuilder
+    private var ratingRow: some View {
+        if let rating = viewModel.experience.location.rating {
+            HStack(spacing: 8) {
+                Image(systemName: "star.fill")
+                    .font(.caption)
+                    .foregroundStyle(.yellow)
+                    .accessibilityHidden(true)
+                Text(NSLocalizedString("detail.rating", comment: "Rating row label"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(String(format: "%.1f / 10", rating))
+                    .font(.subheadline.monospacedDigit())
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(String(
+                format: NSLocalizedString("detail.rating.a11y", comment: "Rating accessibility label"),
+                String(format: "%.1f", rating)
+            )))
+        }
+    }
+
+    @ViewBuilder
+    private var priceLevelRow: some View {
+        if let price = viewModel.experience.location.priceLevel {
+            let dots = Int(price.rounded())
+            let filled = String(repeating: "●", count: min(dots, 4))
+            let empty = String(repeating: "○", count: max(0, 4 - min(dots, 4)))
+            HStack(spacing: 8) {
+                Image(systemName: "banknote")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                Text(NSLocalizedString("detail.priceLevel", comment: "Price level row label"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text("\(filled)\(empty)")
+                    .font(.subheadline.monospacedDigit())
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(String(
+                format: NSLocalizedString("detail.priceLevel.a11y", comment: "Price level accessibility label"),
+                dots
+            )))
+        }
+    }
+
     private var sourcesSection: some View {
         sectionContainer(title: NSLocalizedString("section.sources", comment: "")) {
             VStack(alignment: .leading, spacing: 6) {
+                multiSourceIndicator
+                ratingRow
+                priceLevelRow
                 ForEach(viewModel.experience.sources) { source in
                     sourceRow(source)
                 }

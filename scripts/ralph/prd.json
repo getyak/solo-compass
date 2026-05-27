@@ -1,422 +1,410 @@
 {
   "project": "Solo Compass",
-  "branchName": "ralph/companion-mode",
-  "description": "Companion Mode — 附近人约伴与多行程。在不破坏隐私优先架构的前提下,新增多行程管理、行程约伴发现、双向握手、app 内 Realtime 轻量聊天,以及 geohash6 模糊化的实时附近约伴。默认全关,可一键全关。Source: tasks/prd-companion-mode.md。",
+  "branchName": "feat/progressive-explore-enrichment-final",
+  "description": "Progressive Explore + cross-channel compilation + agent orchestration \u2014 small-radius-first ladder (5\u219210\u219225\u2192100km) that auto-expands when sparse, incrementally drops map pins, cross-compiles each place across OSM/Foursquare/MapKit/web, and is drivable by natural-language chat/voice. Source: tasks/prd-progressive-explore-enrichment.md.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "定义 Itinerary 数据模型 (TS core)",
-      "description": "As a developer, I want a typed Itinerary schema in core so 行程能在三层间一致传递。",
+      "title": "Add radius ladder constants and ringFilter to EnrichmentAgent",
+      "description": "As a developer, I need the progressive radius ladder and stop-threshold defined so later stories can iterate stages.",
       "acceptanceCriteria": [
-        "新建 packages/core/src/companion.ts,导出 Itinerary interface 和 ItineraryId branded type (string & { readonly __brand: 'ItineraryId' })",
-        "Itinerary 含字段: id, ownerId, title, cityCode, startDate (ISO date), endDate (ISO date), experienceIds (readonly ExperienceId[]), note?, openToCompanions (boolean), createdAt (ISO 8601 UTC), updatedAt",
-        "在 packages/core/src/index.ts 导出 companion 模块",
-        "时间戳用 ISO 8601 UTC,行程日期用 ISO 日粒度,不放松 strict / noUncheckedIndexedAccess",
-        "Typecheck passes",
+        "Add `static let progressiveRadii: [Int] = [5_000, 10_000, 25_000, 100_000]` to EnrichmentAgent",
+        "Add `static let enoughThreshold = 8`",
+        "Add a `ringFilter(pois:within:beyond:)` helper keeping POIs whose distance from center is in [beyond, within) meters",
+        "Unit test: ringFilter keeps in-range, drops out-of-range POIs",
+        "xcodebuild build succeeds",
         "Tests pass"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Itinerary Swift 模型 + parity 通过",
-      "description": "As a developer, I want Itinerary.swift 镜像 TS,so parity guard 通过。",
+      "title": "Add exploreProgressively stage loop with cross-stage dedupe and short-circuit",
+      "description": "As a developer, I need a stage loop that collects each ring, dedupes across stages, and stops once enough results accumulate.",
       "acceptanceCriteria": [
-        "新建 apps/ios/SoloCompass/Models/Itinerary.swift,字段与 packages/core/src/companion.ts 的 Itinerary 对齐",
-        "ItineraryId 用 Swift 强类型 (struct wrapper 或带校验的 typealias),不用裸 String",
-        "提供 #Preview / 测试用的 sample 工厂方法",
-        "pnpm parity:check 通过",
-        "xcodebuild build 通过 (-project SoloCompass.xcodeproj -scheme SoloCompass -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest')",
-        "Typecheck passes"
+        "Add `EnrichmentAgent.exploreProgressively(at:categories:cityCode:locale:onBatch:)` looping progressiveRadii",
+        "Each stage collects only the new ring (prevRadius..<radius) via ringFilter",
+        "Dedupe across stages by 4-decimal coordinate cell AND osmId",
+        "Stop expanding once accumulated experience count >= enoughThreshold",
+        "Returns the accumulated [Experience]; never throws on MapKit/Foursquare failure (best-effort)",
+        "Unit test: enough at 5km does not call further stages; sparse 5km expands; dedupe removes overlaps",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Itinerary 本地持久化 (SwiftData)",
-      "description": "As a user, I want 我的行程在本地持久保存,so 关 app 不丢。",
+      "title": "Extend ExploreProgress enum with scanning and expanding cases",
+      "description": "As a developer, I need progress states for per-radius scanning and cross-stage expansion so the UI can show them.",
       "acceptanceCriteria": [
-        "新增 SwiftData model + ItineraryStore (@MainActor final class) 实现增删改查",
-        "新建行程默认 openToCompanions = false",
-        "单元测试覆盖 CRUD,放在 apps/ios/SoloCompass/Tests/",
-        "xcodebuild test 通过 (iPhone 17 Pro, Simulator 后台启动)",
-        "Typecheck passes",
+        "Add `case scanning(radiusKm: Int)` and `case expanding(toRadiusKm: Int)` to MapViewModel.ExploreProgress",
+        "Enum stays Equatable & Sendable",
+        "exploreProgressively sets scanning at each stage start and expanding when moving to a larger ring",
+        "xcodebuild build succeeds",
         "Tests pass"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "行程列表与详情 UI",
-      "description": "As a user, I want 看到我的所有行程并进入某个行程,so 我能管理多个旅行计划。",
+      "title": "Route exploreNearby through exploreProgressively behind the feature flag",
+      "description": "As a developer, I need exploreNearby to drive the progressive engine when deep-dive is enabled, preserving paywall/consent/quota gates.",
       "acceptanceCriteria": [
-        "新增 Views/Companion/ItineraryListView.swift 和 ItineraryDetailView.swift",
-        "列表每行显示 title / 城市 / 日期范围 / 体验数",
-        "空状态有引导文案,所有文案经 NSLocalizedString",
-        "每个 view 有 #Preview",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 新建/查看/删除行程交互与视觉正常"
+        "When FeatureFlags.deepDiveEnrichment is on, exploreNearby calls exploreProgressively starting at 5km",
+        "Paywall, explore-consent, quota, city-resolution, recordRecentExploreRegion logic preserved",
+        "Legacy wide-ring path still runs when the flag is off (kill switch intact)",
+        "Existing explore tests still pass (they disable the flag)",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "创建/编辑行程表单",
-      "description": "As a user, I want 新建一个行程并填标题/城市/日期,so 我能开始规划。",
+      "title": "Show progressive scanning/expanding text in the progress capsule",
+      "description": "As a user, I want to see which radius is being searched and when the app expands outward.",
       "acceptanceCriteria": [
-        "创建表单含 title、cityCode (从已有城市选择器选)、startDate、endDate",
-        "endDate 早于 startDate 时表单校验拦截并提示",
-        "保存后立即出现在 ItineraryListView",
-        "所有文案经 NSLocalizedString",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 创建与编辑流程正常"
+        "CompassMapView.progressText renders scanning(radiusKm) as 'Searching within Nkm\u2026'",
+        "expanding(toRadiusKm) renders 'Few nearby \u00b7 expanding to Nkm'",
+        "Localized in en.lproj and zh-Hans.lproj Localizable.strings",
+        "5km-sufficient run shows no expansion text",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "把体验加入行程 / 从收藏迁移",
-      "description": "As a user, I want 把 Experience 加进行程,并把现有收藏归入行程,so 收藏不再是无结构大集合。",
+      "title": "Add expansion radius to the success toast",
+      "description": "As a user, after an auto-expansion I want the toast to tell me the final radius.",
       "acceptanceCriteria": [
-        "Experience 详情页有'加入行程'入口 (选已有行程或新建)",
-        "行程详情页可拖拽调整 experienceIds 顺序",
-        "提供'从收藏导入'动作: 把选中的 favoritedExperiences 加入指定行程",
-        "现有 favoritedExperiences 行为不被破坏 (行程是叠加,不是替换)",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 加入/排序/导入正常"
+        "When the run expanded past 5km, toast includes the final radius (e.g. 'Expanded to 25km \u00b7 found N')",
+        "5km-only runs keep existing toast wording (no radius mention)",
+        "New strings localized in en + zh-Hans",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-007",
-      "title": "itineraries 表迁移 + FF_COMPANION feature flag",
-      "description": "As a developer, I want itineraries 表与功能开关就位,so 行程可同步且约伴能力可灰度。",
+      "title": "Friendly empty state with city switch when 100km still empty",
+      "description": "As a user, when nothing is found even at 100km I want a helpful prompt, not an error.",
       "acceptanceCriteria": [
-        "新建 infra/supabase/migrations/0003_companion.sql,先含 itineraries 表 + 索引 itineraries_owner_idx / itineraries_open_idx + RLS (itin self-all, itin read-open) + sc_itineraries_touch 触发器",
-        "迁移在本地 supabase 或测试库 apply 成功",
-        "iOS 侧新增 FeatureFlags.FF_COMPANION,默认 false",
-        "Typecheck passes"
+        "After all stages empty AND no cache, set a friendly empty message (not lastExploreError)",
+        "Empty state surfaces the existing browse-city entry point",
+        "No technical error string shown in this path",
+        "New strings localized in en + zh-Hans",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-008",
-      "title": "行程 outbox 同步到 Supabase",
-      "description": "As a user, I want 行程跨设备同步,so 换设备不丢行程。",
+      "title": "Add onBatch incremental callback to exploreProgressively",
+      "description": "As a developer, I need the engine to emit each completed batch so the map can update before the whole run finishes.",
       "acceptanceCriteria": [
-        "复用 SyncService.enqueue outbox 模式,新增 itinerary 同步处理 (上行 + 下行 pull)",
-        "合并用 last-write-wins,对齐现有 updated_at + device_id 决胜逻辑",
-        "FF_COMPANION 关时仅记录 outbox、不 flush/pull (对齐 FF_BACKEND_SYNC 模式)",
-        "单元测试覆盖 enqueue + 合并冲突",
-        "xcodebuild test 通过",
-        "Typecheck passes",
+        "exploreProgressively invokes `onBatch: ([Experience]) -> Void` after each per-category/per-stage synthesis completes",
+        "Respects Task cancellation: stops emitting once cancelled",
+        "Unit test: onBatch called multiple times; union of batches equals final returned set",
+        "xcodebuild build succeeds",
         "Tests pass"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-009",
-      "title": "约伴动态数据模型 (TS core)",
-      "description": "As a developer, I want CompanionPost/Request/Conversation/ChatMessage/Report 的 TS 类型,so 后续后端与 iOS 有真源。",
+      "title": "Incrementally append onBatch results to visibleExperiences",
+      "description": "As a user, I want map pins to appear progressively as places are found.",
       "acceptanceCriteria": [
-        "companion.ts 补全: CompanionPost, CompanionMode, CompanionPostId, CompanionRequest, CompanionRequestStatus, CompanionRequestId, Conversation, ConversationId, MessageId, ChatMessage, CompanionReport,全部用 branded ID",
-        "字段与 tasks/prd-companion-mode.md 的 schema 一致 (blurb ≤140, message ≤200, body ≤1000 等约束以注释标注)",
-        "在 index.ts 导出",
-        "Typecheck passes",
-        "Tests pass"
+        "MapViewModel onBatch handler appends new experiences to visibleExperiences, deduped by id",
+        "appendGenerated persistence still runs for the batch",
+        "Existing markers are not removed or duplicated when a new batch arrives",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-010",
-      "title": "CompanionProfile 模型 + user.ts 扩展",
-      "description": "As a developer, I want CompanionProfile 轻量化名档案类型,so 用户可控可见性。",
+      "title": "Fade-in animation for newly dropped annotations",
+      "description": "As a user, I want new pins to fade in one by one instead of popping all at once.",
       "acceptanceCriteria": [
-        "packages/core/src/user.ts 新增 CompanionProfile interface: avatarEmoji?, bio? (≤140), languages, visibility ('off'|'itinerary_only'|'nearby_and_itinerary'), blockedUserIds",
-        "不破坏现有 User / UserPreferences 类型",
-        "Swift 侧新增对应 CompanionProfile.swift",
-        "visibility 默认 off",
-        "pnpm parity:check 通过",
-        "Typecheck passes"
+        "New annotations animate with an opacity (and slight scale/drop) transition via existing MarkerIconView/annotation fade",
+        "Pins already on the map do not re-animate when a new batch arrives",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-011",
-      "title": "约伴动态表迁移 + 反向 RLS",
-      "description": "As a developer, I want companion 全表与反向 RLS,so 跨用户发现受严格策略约束。",
+      "title": "Fading radius-ring overlay during expansion",
+      "description": "As a user, I want a visual ring showing the current search radius while expanding.",
       "acceptanceCriteria": [
-        "0003_companion.sql 补全: companion_profiles, companion_posts, companion_requests, conversations, chat_messages, companion_reports, companion_blocks 全部表 + 索引",
-        "应用 PRD 中全部 RLS 策略 (profile read-visible 限 visibility<>off; posts read-live 限 expires_at>now; req/conv/msg 限参与者; report self-insert; block self-all)",
-        "chat_messages.body CHECK char_length ≤ 1000",
-        "迁移在测试库 apply 成功,且用两个测试用户验证: A 不能读 B 的 pending request、不能越权读 off 用户的 profile",
-        "Typecheck passes"
+        "Draw a MapCircle overlay at the current stage radius (5/10/25/100km) during explore",
+        "Overlay fades out when explore returns to idle",
+        "Overlay does not block marker taps",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-012",
-      "title": "约伴动态 Swift 模型 + parity",
-      "description": "As a developer, I want CompanionPost/Request/Conversation/ChatMessage 的 Swift 模型,so iOS 能用。",
+      "title": "Add CompiledPlace model with per-field source tags",
+      "description": "As a developer, I need a model that aggregates one place's fields across sources, tracking each field's origin.",
       "acceptanceCriteria": [
-        "新建 apps/ios/SoloCompass/Models/Companion.swift (含 CompanionPost/Request/Conversation/ChatMessage),字段与 TS 对齐",
-        "枚举 mode/status/visibility 用 Swift enum",
-        "提供 sample 工厂",
-        "pnpm parity:check 通过",
-        "xcodebuild build 通过",
-        "Typecheck passes"
+        "Add `CompiledPlace` struct: coordinate, name, optional rating/openingHours/priceLevel/website/phone/address, each with a source tag (osm|foursquare|mapkit|web)",
+        "Conversion from CompiledPlace into OverpassService.POI tags so it feeds existing synthesis",
+        "Unit test: field-level source tags preserved through conversion",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-013",
-      "title": "约伴档案设置 UI + 可见性开关",
-      "description": "As a user, I want 设置 emoji/简介/语言和可见性,so 我能控制谁能看到我。",
+      "title": "Cross-source merge by trust order into CompiledPlace",
+      "description": "As a developer, I need same-cell records from multiple sources merged by credibility, only filling missing fields.",
       "acceptanceCriteria": [
-        "新增 Views/Companion/CompanionProfileView.swift",
-        "visibility 三档单选: off (默认) / itinerary_only / nearby_and_itinerary",
-        "不提供真人照上传,仅 emoji 选择",
-        "保存写入 companion_profiles (经 CompanionService)",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 档案保存与可见性切换正常"
+        "Merge same-cell records: coordinate/name prefer OSM; rating/hours/price prefer Foursquare>MapKit; address prefer MapKit-structured>reverse-geocode",
+        "A field is taken from a lower-priority source only when higher-priority is missing",
+        "Track how many distinct sources contributed (for confidence)",
+        "Unit test: conflict resolution and missing-field backfill correct",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-014",
-      "title": "CompanionService 骨架 + companion-discover Edge Function",
-      "description": "As a developer, I want 发现查询走 Edge Function,so 客户端不全表扫且精确坐标不返回。",
+      "title": "Bump confidence and attribution for multi-source places",
+      "description": "As a user, places confirmed by 2+ sources should read as more trustworthy.",
       "acceptanceCriteria": [
-        "新建 Supabase Edge Function companion-discover: 入参 city_code / mode / 日期 / categories;service role 过滤 city_code + geohash6 前缀 + expires_at>now + 排除拉黑双方;只回脱敏字段 (handle/emoji/blurb/品类/模糊距离桶),不回精确坐标",
-        "新建 apps/ios/SoloCompass/Services/CompanionService.swift (@MainActor) 调用该函数",
-        "结果上限 + 分页参数",
-        "Edge Function 有基础测试或本地 invoke 验证返回结构",
-        "Typecheck passes"
+        "Places with >=2 contributing sources get higher Confidence.level and basedOnCount in synthesis parse",
+        "InformationSource attribution lists the contributing sources",
+        "Unit test: 2-source place gets a bumped level vs single-source",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-015",
-      "title": "把行程标记为开放约伴 (生成 itinerary post)",
-      "description": "As a user, I want 把某行程开放约伴,so 同城同期的人能找到我。",
+      "title": "Show multi-source indicator and real signals in detail view",
+      "description": "As a user, I want to see a 'verified by multiple sources' indicator plus real rating/hours/price.",
       "acceptanceCriteria": [
-        "行程详情页有'开放约伴'开关 → 写 openToCompanions 并经 CompanionService 生成一条 CompanionPost(mode=itinerary)",
-        "开启时引导填 blurb (≤140) + categories",
-        "关闭时该行程的 post 立即下架 (删除或置过期)",
-        "visibility=off 时禁止开启并提示先开可见性",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 开/关与提示正常"
+        "Detail view shows an indicator when basedOnCount>=2 (or >=2 sources)",
+        "Detail view renders rating, openingHours, priceLevel when present; hides the row when nil",
+        "Localized strings in en + zh-Hans",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-016",
-      "title": "约伴发现列表 UI",
-      "description": "As a user, I want 看到同城开放约伴行程并按日期/品类筛选,so 我能找到旅伴。",
+      "title": "Add WebSearchEnrichmentSource for top-N places",
+      "description": "As a developer, I need an optional web-search source that enriches only the top-ranked places, degrading silently.",
       "acceptanceCriteria": [
-        "新增 Views/Companion/DiscoverListView.swift,调用 CompanionService → companion-discover(mode=itinerary)",
-        "卡片显示 handle/emoji/blurb/日期/品类,不显示任何精确坐标",
-        "支持按日期范围 + 品类筛选",
-        "空状态显示冷启动提示 ('这座城市还没有人开放约伴'),经 NSLocalizedString",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 列表渲染与筛选正常"
+        "Add WebSearchEnrichmentSource invoked only for top-N (default 5) ranked places",
+        "Uses the existing AI channel; returns empty/skips silently when no key or quota exceeded",
+        "Anti-hallucination boundary: only cross-verifiable objective info (no invented menu/owner)",
+        "Gated by a FeatureFlag (default per quota policy)",
+        "Unit test: no-key path returns input unchanged; top-N truncation correct",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-017",
-      "title": "发起/接受/拒绝约伴请求 (双向握手)",
-      "description": "As a user, I want 对约伴贴发起请求且对方 accept 后才连上,so 双向同意才解锁联系。",
+      "title": "Extend ExperienceFilter with quality and ambiance dimensions",
+      "description": "As a user, I want to describe needs like high-rated, good-ambiance, quiet, solo-friendly, cheap.",
       "acceptanceCriteria": [
-        "发现卡片可'发起约伴' (带破冰留言 ≤200) → 写 CompanionRequest(pending)",
-        "新增 Views/Companion/RequestInboxView.swift 显示收到的 pending 请求,可 accept/decline",
-        "双方 accepted 时由 Edge Function 或 DB 触发器创建 Conversation (request_id unique 保证唯一)",
-        "decline/withdraw 后不创建会话且不再互相打扰",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 用两个匿名账号走通完整握手"
+        "Add ratingMin / ambianceMin / quietness / soloFriendly / priceMax to QueryAgent.ExperienceFilter",
+        "Mapping: ambiance->ambianceFit; quiet->high seatingFriendly + low staffPressure; solo->high soloPatronRatio + high soloPortioning",
+        "Add a pure `matches(_ experience:)` predicate applying the active dimensions",
+        "Unit test: predicate filters by each dimension correctly",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-018",
-      "title": "App 内轻量实时聊天 (Supabase Realtime)",
-      "description": "As a user, I want 和已 accept 的旅伴在 app 内文字聊天,so 我们能商量碰头。",
+      "title": "Teach QueryAgent to extract quality dimensions from language",
+      "description": "As a user, I want phrases like 'quiet cafe to work' parsed into structured filters.",
       "acceptanceCriteria": [
-        "新建 ChatService.swift 订阅 chat_messages 的 Realtime channel (按 conversation_id)",
-        "新增 Views/Companion/ChatView.swift: 文本输入、消息气泡、按 sent_at 排序",
-        "消息 ≤1000 字、纯文本,客户端再校验一层 (RLS 已强制仅参与者读写)",
-        "断线重连后拉取离线消息 (sent_at > lastSeen)",
-        "仅在 ChatView 活跃时订阅 channel,离开即退订 (省电)",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 两端实时收发正常"
+        "QueryAgent prompt includes extraction examples mapping adjectives to the new filter fields",
+        "Test: 'quiet cafe to work' -> category coffee + quietness; 'highly rated coffee' -> ratingMin set",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-019",
-      "title": "举报与拉黑",
-      "description": "As a user, I want 举报或拉黑某人,so 我能保护自己免受骚扰。",
+      "title": "Add quality params and progressive flag to explore tools",
+      "description": "As a developer, the voice/chat explore tools must accept quality thresholds and trigger progressive collection.",
       "acceptanceCriteria": [
-        "post/request/message/profile 任意位置可发起举报 (选 reason + 可选 detail) → 写 companion_reports",
-        "拉黑写入 companion_blocks;对方从我所有发现列表消失、无法对我发起请求、已有会话冻结",
-        "Edge Function companion-discover 双向排除拉黑关系",
-        "用户不可读他人举报 (RLS 无 select 策略)",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 举报提交与拉黑生效"
+        "explore_nearby and search_places tool schemas add categories[], solo_score_min, rating_min, ambiance_min, progressive",
+        "VoiceAgentToolRouter maps these args into an ExperienceFilter and calls exploreProgressively when progressive=true",
+        "Explicit radius_meters overrides the starting stage",
+        "Unit test: tool args -> ExperienceFilter mapping correct",
+        "xcodebuild build succeeds",
+        "Tests pass"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-020",
-      "title": "geohash6 编码 + LocationService coarse 接缝",
-      "description": "As a developer, I want LocationService 暴露 coarse geohash6 读取口,so PresenceService 不碰精确 GPS 逻辑。",
+      "title": "Add filter_visible tool and applyQualityFilter",
+      "description": "As a user, I want to say 'drop the ones below 8' to filter what's on the map without re-fetching.",
       "acceptanceCriteria": [
-        "实现 geohash6 编码工具 (Swift),精度 6 (~600m)",
-        "LocationService 新增 coarseGeohash6 计算属性,基于现有 currentLocation",
-        "不修改现有精确定位 / 地理围栏 (CLCircularRegion) 逻辑",
-        "单元测试: 已知坐标 → 已知 geohash6 hash (含赤道/高纬边界 case)",
-        "xcodebuild test 通过",
-        "Typecheck passes",
+        "Add filter_visible tool (quality dimensions) to VoiceAgentToolRouter",
+        "MapViewModel.applyQualityFilter(_ filter:) filters visibleExperiences in place, no network",
+        "Returns count remaining for the agent reply",
+        "Unit test: filter_visible triggers no network and trims the set correctly",
+        "xcodebuild build succeeds",
         "Tests pass"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-021",
-      "title": "PresenceService — 仅前台、手动开关、geohash6 广播",
-      "description": "As a user, I want 手动开启附近约伴且仅前台模糊广播位置,so 隐私可控。",
+      "title": "Add expand_radius tool and expandOneStage",
+      "description": "As a user, I want to say 'a bit farther' to expand the search one stage.",
       "acceptanceCriteria": [
-        "新建 apps/ios/SoloCompass/Services/PresenceService.swift (@MainActor),仅当用户 UI 主动开启时启动",
-        "订阅 LocationService.coarseGeohash6,每 N 分钟上报一次 CompanionPost(mode=nearby, geohash6, expires_at ≤2h)",
-        "app 进入后台或用户关开关 → 立即停止上报并下架 nearby post",
-        "精确坐标仅本地用于计算 geohash6 后丢弃,不入库不上报",
-        "不请求 Always 授权,WhenInUse 即可",
-        "单元测试: 开关切换、后台停发、坐标→geohash6 正确",
-        "xcodebuild test 通过",
-        "Typecheck passes",
+        "Add expand_radius tool to VoiceAgentToolRouter",
+        "MapViewModel.expandOneStage() advances exploreProgressively by one ring from the last center",
+        "No-op with a clear reply when already at 100km",
+        "Unit test: expandOneStage advances exactly one stage",
+        "xcodebuild build succeeds",
         "Tests pass"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-022",
-      "title": "地图约伴图层 (默认关)",
-      "description": "As a user, I want 在地图上看到附近的约伴网格,so 我能直观发现身边的人。",
+      "title": "Agent autonomous multi-step orchestration with explanation",
+      "description": "As a user, 'find a high-rated cafe' should make the agent filter-then-fetch-then-expand as needed and explain what it did.",
       "acceptanceCriteria": [
-        "CompassMapView 加一个可选'约伴图层'开关,默认关",
-        "开启时调用 companion-discover(mode=nearby),以 geohash6 网格中心 + '约 600m 内'模糊呈现,不画精确点",
-        "关闭图层后地图回到现状,无任何约伴元素",
-        "visibility=off 或未开启 Presence 时,图层入口禁用并解释",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 图层开关与模糊网格渲染正常"
+        "When a matching visible set exists, agent calls filter_visible first; if too few, calls explore_nearby(progressive)",
+        "When still too few, agent calls expand_radius or relaxes the threshold and GuideAgent explains the tradeoff",
+        "Progress capsule reflects the current action during orchestration",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-023",
-      "title": "自动过期与清理",
-      "description": "As a system, I want 自动清理过期 nearby post 和 stale 数据,so 列表不显示幽灵用户。",
+      "title": "Multi-turn refinement over the previous result set",
+      "description": "As a user, I want 'the closest of those' / 'cheaper' to refine the last results without re-fetching.",
       "acceptanceCriteria": [
-        "nearby post expires_at ≤ 2h;发现查询 expires_at>now 过滤 (RLS 已含)",
-        "定时清理 (Supabase scheduled function 或查询时过滤) 删除过期 post",
-        "pending 超时 (7 天) 的 request 自动置 expired",
-        "测试验证过期数据不出现在发现结果",
-        "Typecheck passes",
-        "Tests pass"
+        "Using AgentMessage.history, refine the previous result set by sort/filter instead of re-collecting",
+        "'closest' re-sorts by distance; 'cheaper' tightens priceMax; switching category restarts intent",
+        "Ordinal reference ('the second one') resolves to the matching visible item",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-024",
-      "title": "reporterWeight 降权 + 发现排序",
-      "description": "As a system, I want 用信任分给发现排序并对低分用户降权,so 滥用者更难被看到。",
+      "title": "Proactive single best recommendation with real reason",
+      "description": "As a user, I want the agent to proactively suggest one best place and say why it fits right now.",
       "acceptanceCriteria": [
-        "companion-discover 结果按 reporter_weight 降序加权排序",
-        "多次被举报触发 reporter_weight 下降 (规则在代码注释 / 文档中明确)",
-        "低于阈值的用户不出现在发现列表",
-        "单元测试覆盖排序与阈值边界",
-        "Typecheck passes",
-        "Tests pass"
+        "On GetRecommendation intent, agent picks one best place using time/location/preferences",
+        "GuideAgent reply cites real signals (rating, open-now, solo-friendly), not vague praise",
+        "The recommended item is highlighted on the map",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-025",
-      "title": "安全须知 / 未成年人保护 / 隐私清单",
-      "description": "As a product, I want 约伴入口展示安全提示与同意条款,so 满足合规与安全底线。",
+      "title": "Open-now filtering using openingHours and local time",
+      "description": "As a user, I want to say 'open now' to only see places I can go to this moment.",
       "acceptanceCriteria": [
-        "首次开启约伴展示安全须知 + 同意条款 (碰头前不暴露精确位置、公共场所见面、举报入口),经 NSLocalizedString",
-        "年龄确认 / 未成年人保护声明",
-        "更新 PrivacyInfo.xcprivacy: 位置、用户内容、联系信息用途",
-        "blurb/bio/message 有最小长度 + 基础敏感词过滤",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 首次开启展示须知与同意流程"
+        "Add an open-now predicate using openingHours + current local time",
+        "Card/detail show status: Open / Closing soon / Closed",
+        "Places with missing hours show 'Hours unknown' and are NOT assumed open",
+        "Unit test: open-now predicate handles open, closed, and unknown cases",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-026",
-      "title": "一键全关 / 删除约伴数据",
-      "description": "As a user, I want 一键关闭所有约伴并删除我的约伴数据,so 我能彻底退出社交。",
+      "title": "Itinerary ordering of selected/favorite places",
+      "description": "As a user, I want to say 'route these for the afternoon' and get a walkable ordered sequence.",
       "acceptanceCriteria": [
-        "设置项'关闭约伴并删除我的约伴数据': 置 visibility=off、下架所有 post、清除 itinerary openToCompanions 标记、删除 companion_profile",
-        "删除走 cascade (posts/requests/conversations/messages 关联清理)",
-        "关闭后 app 体验与从未启用约伴完全一致 (无任何约伴入口/痕迹)",
-        "Typecheck passes",
-        "Verify in iOS Simulator (iPhone 17 Pro): 关闭后无任何约伴痕迹"
+        "Order selected/favorite places by distance + opening hours into a sequence",
+        "Map shows the order via numbered pins and a connecting polyline",
+        "If a stop is closed at its slot, surface a warning with an alternative",
+        "Unit test: ordering respects distance and skips closed stops",
+        "xcodebuild build succeeds",
+        "Verify in iOS Simulator"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
