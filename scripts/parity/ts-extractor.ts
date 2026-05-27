@@ -101,6 +101,12 @@ export const SCHEMA_INTERFACES = new Set([
   "SoloScore",
   "Confidence",
   "Itinerary",
+  "CompanionPost",
+  "CompanionRequest",
+  "CompanionProfile",
+  "Conversation",
+  "ChatMessage",
+  "CompanionReport",
 ]);
 
 /**
