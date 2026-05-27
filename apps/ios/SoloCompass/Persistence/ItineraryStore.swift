@@ -6,6 +6,12 @@ import SwiftData
 /// `@MainActor` because SwiftData `ModelContext` is single-actor and the
 /// rest of the iOS code is main-thread-bound. Owns its `ModelContext`;
 /// pass a context from `SoloCompassModelContainer.makeInMemory()` in tests.
+///
+/// US-007: every mutation enqueues an outbox row via `SyncService` when
+/// `FF_COMPANION` is on. When the flag is off, the row is still written to
+/// SwiftData but the outbox is skipped — flipping the flag later replays
+/// nothing (itineraries are not event-sourced), but new mutations will sync
+/// from that point forward.
 @MainActor
 public final class ItineraryStore {
     private let context: ModelContext
@@ -27,6 +33,7 @@ public final class ItineraryStore {
         deleteRecord(id: itinerary.id.rawValue)
         context.insert(ItineraryRecord(from: itinerary))
         try context.save()
+        enqueueSync(itinerary, isDeleted: false)
     }
 
     /// All stored itineraries, ordered by `createdAt` descending.
@@ -58,54 +65,61 @@ public final class ItineraryStore {
         existing.openToCompanions = fresh.openToCompanions
         existing.updatedAt = fresh.updatedAt
         try context.save()
+        enqueueSync(itinerary, isDeleted: false)
     }
 
     /// Delete an itinerary by id. No-op if not found.
     public func delete(id: ItineraryId) throws {
-        deleteRecord(id: id.rawValue)
+        guard let rec = record(for: id.rawValue) else { return }
+        let value = rec.asValue
+        context.delete(rec)
         try context.save()
+        // Enqueue a tombstone so the row is soft-deleted on the server.
+        enqueueSync(value, isDeleted: true)
     }
 
     /// Append `experienceId` to the itinerary's list (idempotent — skips if already present).
     /// Returns the updated `Itinerary` value, or nil if the itinerary was not found.
     @discardableResult
     public func addExperience(_ experienceId: String, to itineraryId: ItineraryId) throws -> Itinerary? {
-        guard let record = record(for: itineraryId.rawValue) else { return nil }
-        var ids = (try? JSONDecoder().decode([String].self, from: record.experienceIdsBlob)) ?? []
-        guard !ids.contains(experienceId) else {
-            return record.asValue
-        }
+        guard let rec = record(for: itineraryId.rawValue) else { return nil }
+        var ids = (try? JSONDecoder().decode([String].self, from: rec.experienceIdsBlob)) ?? []
+        guard !ids.contains(experienceId) else { return rec.asValue }
         ids.append(experienceId)
-        record.experienceIdsBlob = (try? JSONEncoder().encode(ids)) ?? record.experienceIdsBlob
-        record.updatedAt = ISO8601DateFormatter().string(from: Date())
+        rec.experienceIdsBlob = (try? JSONEncoder().encode(ids)) ?? rec.experienceIdsBlob
+        rec.updatedAt = ISO8601DateFormatter().string(from: Date())
         try context.save()
-        return record.asValue
+        let updated = rec.asValue
+        enqueueSync(updated, isDeleted: false)
+        return updated
     }
 
     /// Replace `experienceIds` with a reordered list. No-op if the itinerary is not found
     /// or the set of IDs differs from the current set (prevents accidental drops).
     public func reorderExperiences(_ orderedIds: [String], in itineraryId: ItineraryId) throws {
-        guard let record = record(for: itineraryId.rawValue) else { return }
-        let current = Set((try? JSONDecoder().decode([String].self, from: record.experienceIdsBlob)) ?? [])
+        guard let rec = record(for: itineraryId.rawValue) else { return }
+        let current = Set((try? JSONDecoder().decode([String].self, from: rec.experienceIdsBlob)) ?? [])
         guard Set(orderedIds) == current else { return }
-        record.experienceIdsBlob = (try? JSONEncoder().encode(orderedIds)) ?? record.experienceIdsBlob
-        record.updatedAt = ISO8601DateFormatter().string(from: Date())
+        rec.experienceIdsBlob = (try? JSONEncoder().encode(orderedIds)) ?? rec.experienceIdsBlob
+        rec.updatedAt = ISO8601DateFormatter().string(from: Date())
         try context.save()
+        enqueueSync(rec.asValue, isDeleted: false)
     }
 
     /// Import a set of favorited experience IDs into an itinerary, skipping duplicates.
     /// Returns the number of IDs actually added.
     @discardableResult
     public func importFavorites(_ favoriteIds: Set<String>, into itineraryId: ItineraryId) throws -> Int {
-        guard let record = record(for: itineraryId.rawValue) else { return 0 }
-        var ids = (try? JSONDecoder().decode([String].self, from: record.experienceIdsBlob)) ?? []
+        guard let rec = record(for: itineraryId.rawValue) else { return 0 }
+        var ids = (try? JSONDecoder().decode([String].self, from: rec.experienceIdsBlob)) ?? []
         let existing = Set(ids)
         let toAdd = favoriteIds.filter { !existing.contains($0) }.sorted()
         ids.append(contentsOf: toAdd)
         if !toAdd.isEmpty {
-            record.experienceIdsBlob = (try? JSONEncoder().encode(ids)) ?? record.experienceIdsBlob
-            record.updatedAt = ISO8601DateFormatter().string(from: Date())
+            rec.experienceIdsBlob = (try? JSONEncoder().encode(ids)) ?? rec.experienceIdsBlob
+            rec.updatedAt = ISO8601DateFormatter().string(from: Date())
             try context.save()
+            enqueueSync(rec.asValue, isDeleted: false)
         }
         return toAdd.count
     }
@@ -122,5 +136,34 @@ public final class ItineraryStore {
     private func deleteRecord(id: String) {
         guard let existing = record(for: id) else { return }
         context.delete(existing)
+    }
+
+    /// Enqueue an upsert (or soft-delete tombstone) to the SyncService outbox.
+    /// No-op when `FF_COMPANION` is off or when no authenticated session exists.
+    private func enqueueSync(_ itinerary: Itinerary, isDeleted: Bool) {
+        guard FeatureFlags.companion else { return }
+        guard let userId = SupabaseClient.shared.currentSession?.userId else { return }
+        let payload = SyncService.SyncItineraryPayload(
+            id: itinerary.id.rawValue,
+            user_id: userId,
+            owner_id: itinerary.ownerId,
+            title: itinerary.title,
+            city_code: itinerary.cityCode,
+            start_date: itinerary.startDate,
+            end_date: itinerary.endDate,
+            experience_ids: itinerary.experienceIds,
+            note: itinerary.note,
+            open_to_companions: itinerary.openToCompanions,
+            is_deleted: isDeleted,
+            device_id: DeviceIdentityService.shared.deviceID,
+            created_at: itinerary.createdAt,
+            updated_at: itinerary.updatedAt
+        )
+        SyncService.shared.enqueue(
+            tableName: "itineraries",
+            operation: "upsert",
+            payload: payload,
+            context: context
+        )
     }
 }

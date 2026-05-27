@@ -85,6 +85,19 @@ public enum FeatureFlags {
         readBool("FF_WEB_SEARCH_ENRICHMENT", default: false)
     }
 
+    /// Companion Mode Phase 1 gate (US-007). When true, `ItineraryStore`
+    /// enqueues saves/updates/deletes to the `itineraries` outbox so
+    /// `SyncService` can push them to Supabase and pull remote changes.
+    ///
+    /// When false, all itinerary mutations still persist locally (SwiftData)
+    /// but the outbox rows are never created, so no network traffic is
+    /// generated. Flip to true after `0003_companion.sql` is deployed.
+    ///
+    /// Default off in Phase 1 beta — local-first invariant (PRD G7).
+    public static var companion: Bool {
+        readBool("FF_COMPANION", default: false)
+    }
+
     // MARK: - Internals
 
     static func readBool(_ key: String, default fallback: Bool) -> Bool {
