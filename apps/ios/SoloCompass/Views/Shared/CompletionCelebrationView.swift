@@ -11,10 +11,13 @@ public struct CompletionCelebrationView: View {
     private struct Particle: Identifiable {
         let id = UUID()
         let color: Color
-        let angle: Double   // radians
-        let distance: CGFloat
+        let angle: Double       // radians
+        let distance: CGFloat   // launch radius
         let size: CGFloat
         let isCircle: Bool
+        let rotation: Double    // final spin in degrees, random -180...180
+        let delay: Double       // stagger offset, random 0...0.08
+        let gravity: CGFloat    // downward drift, random 28...46
     }
 
     @State private var particles: [Particle] = []
@@ -40,10 +43,15 @@ public struct CompletionCelebrationView: View {
                     )
                     .offset(
                         x: animated ? cos(p.angle) * p.distance : 0,
-                        y: animated ? sin(p.angle) * p.distance + (animated ? 18 : 0) : 0
+                        y: animated ? sin(p.angle) * p.distance + p.gravity : 0
                     )
                     .opacity(animated ? 0 : 0.9)
                     .scaleEffect(animated ? 0.3 : 1.0)
+                    .rotationEffect(.degrees(animated ? p.rotation : 0))
+                    .animation(
+                        .easeOut(duration: 0.8).delay(p.delay),
+                        value: animated
+                    )
                 }
             }
 
@@ -69,7 +77,10 @@ public struct CompletionCelebrationView: View {
                 angle: Double(i) / Double(count) * .pi * 2 + Double.random(in: -0.3...0.3),
                 distance: CGFloat.random(in: 52...92),
                 size: CGFloat.random(in: 6...11),
-                isCircle: Bool.random()
+                isCircle: Bool.random(),
+                rotation: Double.random(in: -180...180),
+                delay: Double.random(in: 0...0.08),
+                gravity: CGFloat.random(in: 28...46)
             )
         }
         animated = false
@@ -85,7 +96,7 @@ public struct CompletionCelebrationView: View {
             }
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
             particles = []
             animated = false
             checkmarkPop = false
