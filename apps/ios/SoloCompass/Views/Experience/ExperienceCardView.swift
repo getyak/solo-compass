@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 /// Floating card that slides up when a marker is tapped. Tap → expand. Swipe
 /// down → dismiss. Swipe up → full detail sheet.
@@ -20,8 +21,40 @@ public struct ExperienceCardView: View {
     // Pre-allocated so prepare() can be called once when the drag starts.
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
     @Environment(UserPreferences.self) private var preferences
+    @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+
+    /// Finite distance in meters, or nil when location is unknown.
+    private var distanceMeters: Double? {
+        guard let coord = experience.coordinate else { return nil }
+        let d = locationService.distance(to: coord)
+        // greatestFiniteMagnitude is the sentinel returned when no fix is available;
+        // isFinite alone cannot distinguish it from a real reading.
+        return (d.isFinite && d < .greatestFiniteMagnitude) ? d : nil
+    }
+
+    private static let distanceFormatter: MeasurementFormatter = {
+        let f = MeasurementFormatter()
+        f.unitOptions = .naturalScale
+        f.unitStyle = .abbreviated
+        f.numberFormatter.maximumFractionDigits = 1
+        return f
+    }()
+
+    /// Formats a distance in meters into a human-readable walk-time or distance string.
+    private static func formatDistance(_ meters: Double) -> String {
+        let walkMetersPerMin = 80.0
+        if meters < 1000 {
+            let minutes = Int((meters / walkMetersPerMin).rounded(.up))
+            if minutes < 1 {
+                return NSLocalizedString("card.distance.walkSub1", comment: "Distance less than 1 min walk")
+            }
+            return String(format: NSLocalizedString("card.distance.walk", comment: "Distance in walk minutes"), minutes)
+        }
+        let measurement = Measurement(value: meters, unit: UnitLength.meters)
+        return distanceFormatter.string(from: measurement)
+    }
 
     public init(
         experience: Experience,
@@ -116,8 +149,15 @@ public struct ExperienceCardView: View {
 
             HStack {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
-                if experience.isBestNow() {
-                    BestNowBadge()
+                if let meters = distanceMeters {
+                    distancePill(Self.formatDistance(meters))
+                }
+                if !experience.realInconveniences.isEmpty {
+                    inconveniencePill
+                } else if experience.isBestNow() {
+                    bestNowBadge
+                } else if let hint = experience.bestTimeHint() {
+                    bestTimeHintPill(hint)
                 }
                 Spacer()
                 Button(action: onExpand) {
@@ -176,17 +216,17 @@ public struct ExperienceCardView: View {
             String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"),
                    String(format: "%.1f", experience.soloScore.overall)) +
             {
-                if let hint = experience.bestTimeHint() {
-                    return ". " + String(format: NSLocalizedString("experience.bestTime.hint.a11y", comment: "Best time accessibility"), hint)
+                var parts = ""
+                if let meters = distanceMeters {
+                    parts += ". " + Self.formatDistance(meters)
                 }
-                return ""
-            }() +
-            {
                 let count = experience.realInconveniences.count
                 if count > 0 {
-                    return ". " + String(format: NSLocalizedString("inconvenience.card.a11y", comment: "Heads up: N things to know"), count)
+                    parts += ". " + String(format: NSLocalizedString("inconvenience.card.a11y", comment: "Heads up: N things to know"), count)
+                } else if let hint = experience.bestTimeHint() {
+                    parts += ". " + String(format: NSLocalizedString("experience.bestTime.hint.a11y", comment: "Best time accessibility"), hint)
                 }
-                return ""
+                return parts
             }()
         ))
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
@@ -197,6 +237,16 @@ public struct ExperienceCardView: View {
         ) {
             preferences.toggleFavorite(experience.id)
         }
+    }
+
+    @ViewBuilder
+    private func distancePill(_ label: String) -> some View {
+        Label(label, systemImage: "figure.walk")
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(Color.secondary)
+            .background(Capsule().fill(Color.secondary.opacity(0.12)))
     }
 
     @ViewBuilder
@@ -270,7 +320,13 @@ private struct BestNowBadge: View {
 
 #Preview {
     if let exp = ExperienceService.hardcodedSeed.first {
-        VStack {
+        let locationService = LocationService()
+        // Simulate a location ~450 m from the seed experience so the pill is visible in preview.
+        if let coord = exp.coordinate {
+            let offset = CLLocation(latitude: coord.latitude + 0.004, longitude: coord.longitude)
+            locationService.simulate(location: offset)
+        }
+        return AnyView(VStack {
             Spacer()
             ExperienceCardView(
                 experience: exp,
@@ -280,7 +336,8 @@ private struct BestNowBadge: View {
         }
         .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
         .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview")!))
+        .environment(locationService))
     } else {
-        Text("No seed data")
+        return AnyView(Text("No seed data"))
     }
 }
