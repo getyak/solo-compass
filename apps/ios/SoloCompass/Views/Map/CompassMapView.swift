@@ -827,7 +827,6 @@ private struct MapOverlayView: View {
                     PendingCheckInBanner(
                         experienceTitle: pending.title,
                         onConfirm: {
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
                             checkInCelebrationTrigger += 1
                             viewModel.confirmCheckIn()
                         },
