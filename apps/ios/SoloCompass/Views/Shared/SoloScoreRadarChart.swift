@@ -202,11 +202,27 @@ public struct SoloScoreRadarChart: View {
     }
 
     private var radarAccessibilityLabel: Text {
-        // Always reports final values regardless of animation state
-        let descriptions = zip(Self.axes, values).map { axis, val in
-            "\(axis.label): \(Int(val))"
+        let overallFormatted = String(format: "%.1f", score.overall)
+        let overallLabel = String(format: NSLocalizedString("solo.a11y", comment: ""), overallFormatted)
+
+        let sortedDimensions = zip(Self.axes, values)
+            .sorted { $0.1 > $1.1 }
+        let dimensionParts = sortedDimensions.map { axis, val in
+            "\(axis.label) \(Int(val)) of 10"
         }.joined(separator: ", ")
-        return Text(NSLocalizedString("solo.radar.a11y", comment: "") + ": " + descriptions)
+
+        var label = "\(overallLabel). \(dimensionParts)."
+
+        if values[weakestIndex] < 6 {
+            let weakestName = Self.axes[weakestIndex].label
+            let weakestSentence = String(
+                format: NSLocalizedString("solo.radar.weakest.a11y", comment: ""),
+                weakestName
+            )
+            label += " \(weakestSentence)"
+        }
+
+        return Text(label)
     }
 
     // MARK: - Replay
