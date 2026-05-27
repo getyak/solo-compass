@@ -449,7 +449,7 @@ public struct ExperienceCardView: View {
 // MARK: - BestNowBadge
 
 private struct BestNowBadge: View {
-    /// The experience to query for live countdown; passed so the badge can call
+    /// The experience to query for live countdown; passed so the live timer can call
     /// minutesLeftInBestWindow() on each TimelineView tick.
     var experience: Experience
 
