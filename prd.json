@@ -133,7 +133,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -151,7 +151,7 @@
         "Verify in iOS Simulator: profile saves and visibility toggles work"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
