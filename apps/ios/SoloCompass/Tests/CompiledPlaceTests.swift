@@ -77,7 +77,8 @@ final class CompiledPlaceTests: XCTestCase {
         XCTAssertNotNil(place)
         XCTAssertEqual(place?.name.value, "OSM Cafe", "OSM name takes priority")
         XCTAssertEqual(place?.name.source, .osm)
-        XCTAssertEqual(place?.coordinate.latitude, 21.034, accuracy: 0.0001)
+        let unwrappedPlace = try XCTUnwrap(place)
+        XCTAssertEqual(unwrappedPlace.coordinate.latitude, 21.034, accuracy: 0.0001)
     }
 
     func testMergePrefersFoursquareForRatingHoursPrice() {
@@ -101,11 +102,12 @@ final class CompiledPlaceTests: XCTestCase {
             phone: nil
         )
         let place = CompiledPlace.merge(pois: [osmPoi], venues: [fsqVenue], mapItems: [])
-        XCTAssertEqual(place?.rating?.value, 9.0, accuracy: 0.01)
+        let place2 = try XCTUnwrap(place)
+        XCTAssertEqual(place2.rating?.value, 9.0, accuracy: 0.01)
         XCTAssertEqual(place?.rating?.source, .foursquare)
         XCTAssertEqual(place?.openingHours?.value, "FSQ hours", "Foursquare hours win over OSM")
         XCTAssertEqual(place?.openingHours?.source, .foursquare)
-        XCTAssertEqual(place?.priceLevel?.value, 3.0, accuracy: 0.01)
+        XCTAssertEqual(place2.priceLevel?.value, 3.0, accuracy: 0.01)
     }
 
     func testMergeMissingFoursquareFallsBackToOsmForHours() {
