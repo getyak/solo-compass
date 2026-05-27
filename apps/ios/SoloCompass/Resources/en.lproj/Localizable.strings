@@ -705,6 +705,9 @@
 "itinerary.detail.experiences.empty" = "No experiences pinned yet.";
 "itinerary.detail.experience.unavailable" = "Unavailable experience";
 
+/* Itinerary — Add to Itinerary sheet error alert */
+"itinerary.addTo.error.title" = "Couldn't add to itinerary";
+
 /* Itinerary — Add to Itinerary sheet (US-006) */
 "action.addToItinerary" = "Add to Itinerary";
 "itinerary.addTo.title" = "Add to Itinerary";
