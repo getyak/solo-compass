@@ -13,7 +13,7 @@ import Foundation
 ///     3 km radius.
 ///
 /// Zero third-party deps — pure Swift, deterministic.
-public enum Geohash {
+public enum GeohashUtils {
     /// Standard geohash base32 alphabet (no a/i/l/o to avoid look-alikes).
     private static let alphabet: [Character] = Array("0123456789bcdefghjkmnpqrstuvwxyz")
 
