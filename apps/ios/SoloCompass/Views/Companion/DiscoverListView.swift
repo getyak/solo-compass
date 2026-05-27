@@ -98,7 +98,7 @@ public struct DiscoverListView: View {
             Text(message)
         } actions: {
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
                 Task { await loadPosts() }
             } label: {
                 Label(
@@ -145,7 +145,7 @@ public struct DiscoverListView: View {
     // MARK: - Actions
 
     private func loadPosts() async {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
         let params = CompanionDiscoverParams(cityCode: cityCode)
         await service.fetchDiscovery(params: params)
     }
@@ -164,7 +164,7 @@ public struct DiscoverListView: View {
             requestSentPostId = post.id
         case .failure(let err):
             errorMessage = err.localizedDescription
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            Haptics.notify(.error)
             Task {
                 try? await Task.sleep(for: .seconds(3))
                 errorMessage = nil

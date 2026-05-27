@@ -22,11 +22,6 @@ public struct ExperienceCardView: View {
 
     private static let arrivedThresholdMeters = 75.0
 
-    private enum HapticState { case idle, prepared, fired }
-
-    // Pre-allocated so prepare() can be called once when the drag starts.
-    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
-    private let lightFeedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     @Environment(UserPreferences.self) private var preferences
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -154,7 +149,7 @@ public struct ExperienceCardView: View {
                 Spacer()
                 Button {
                     let wasFavorited = preferences.isFavorited(experience.id)
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                     withAnimation(.spring(response: 0.3)) {
                         preferences.toggleFavorite(experience.id)
                     }
@@ -241,12 +236,9 @@ public struct ExperienceCardView: View {
             DragGesture(minimumDistance: 10)
                 .updating($dragState) { value, state, _ in
                     let t = value.translation.height
-                    if state.translation == 0 {
-                        feedbackGenerator.prepare()
-                    }
                     state.translation = t
                     if abs(t) > 60 && !state.hapticFired {
-                        feedbackGenerator.impactOccurred()
+                        Haptics.impact(.medium)
                         state.hapticFired = true
                     }
                 }
@@ -270,10 +262,10 @@ public struct ExperienceCardView: View {
         .onChange(of: isArrived) { _, arrived in
             guard arrived, !didFireArrival else { return }
             didFireArrival = true
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.notify(.success)
         }
         .onAppear {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.impact(.light)
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .accessibilityElement(children: .contain)
@@ -388,7 +380,7 @@ public struct ExperienceCardView: View {
 
             if apps.count == 1, let app = apps.first {
                 Button {
-                    lightFeedbackGenerator.impactOccurred()
+                    Haptics.impact(.light)
                     NavigationLauncher.open(app: app, coordinate: coordinate, name: name)
                 } label: {
                     pillLabel
@@ -399,7 +391,7 @@ public struct ExperienceCardView: View {
                 Menu {
                     ForEach(apps) { app in
                         Button(app.displayName) {
-                            lightFeedbackGenerator.impactOccurred()
+                            Haptics.impact(.light)
                             NavigationLauncher.open(app: app, coordinate: coordinate, name: name)
                         }
                     }
