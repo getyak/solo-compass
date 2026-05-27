@@ -236,7 +236,7 @@ public final class OverpassService {
         category: ExperienceCategory? = nil
     ) -> [String] {
         let center = Geohash.encode(latitude: lat, longitude: lon, precision: cacheGeohashPrecision)
-        return Geohash.centerAndNeighbors(of: center).map {
+        return GeohashUtils.centerAndNeighbors(of: center).map {
             regionKey(geohash: $0, radiusMeters: radiusMeters, category: category)
         }
     }
