@@ -53,8 +53,8 @@ public struct ExperienceFilter: Sendable, Equatable {
         if let cat = category, !cat.isEmpty {
             guard experience.category.rawValue == cat else { return false }
         }
-        if let rMin = ratingMin, let rating = experience.location.rating {
-            guard rating >= rMin else { return false }
+        if let rMin = ratingMin {
+            guard let rating = experience.location.rating, rating >= rMin else { return false }
         }
         if let priceMax, let price = experience.location.priceLevel {
             guard price <= priceMax else { return false }
