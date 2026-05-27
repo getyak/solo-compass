@@ -162,6 +162,9 @@ public struct ExperienceCardView: View {
                     bestTimeHintPill(hint)
                 }
                 Spacer()
+                if let coord = experience.coordinate {
+                    directionsControl(coordinate: coord)
+                }
                 Button(action: onExpand) {
                     Text(NSLocalizedString("experience.viewDetails", comment: "View details"))
                         .font(.subheadline.weight(.medium))
@@ -229,6 +232,9 @@ public struct ExperienceCardView: View {
                 } else if let hint = experience.bestTimeHint() {
                     parts += ". " + String(format: NSLocalizedString("experience.bestTime.hint.a11y", comment: "Best time accessibility"), hint)
                 }
+                if experience.coordinate != nil {
+                    parts += ". " + NSLocalizedString("action.directions", comment: "Directions accessibility action")
+                }
                 return parts
             }()
         ))
@@ -240,6 +246,11 @@ public struct ExperienceCardView: View {
         ) {
             preferences.toggleFavorite(experience.id)
         }
+        .accessibilityAction(named: Text(NSLocalizedString("action.directions", comment: "Directions accessibility action"))) {
+            guard let coord = experience.coordinate,
+                  let app = NavigationLauncher.availableApps().first else { return }
+            NavigationLauncher.open(app: app, coordinate: coord, name: experience.title)
+        }
     }
 
     @ViewBuilder
@@ -250,6 +261,47 @@ public struct ExperienceCardView: View {
             .padding(.vertical, 4)
             .foregroundStyle(Color.secondary)
             .background(Capsule().fill(Color.secondary.opacity(0.12)))
+    }
+
+    @ViewBuilder
+    private func directionsControl(coordinate: CLLocationCoordinate2D) -> some View {
+        let apps = NavigationLauncher.availableApps()
+        let name = experience.title
+        if !apps.isEmpty {
+            let pillLabel = Label(
+                NSLocalizedString("action.directions", comment: "Directions button"),
+                systemImage: "arrow.triangle.turn.up.right.diamond.fill"
+            )
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(Color.accentColor)
+            .background(Capsule().fill(Color.accentColor.opacity(0.12)))
+
+            if apps.count == 1, let app = apps.first {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    NavigationLauncher.open(app: app, coordinate: coordinate, name: name)
+                } label: {
+                    pillLabel
+                }
+                .buttonStyle(.plain)
+                .contentShape(Capsule())
+            } else {
+                Menu {
+                    ForEach(apps) { app in
+                        Button(app.displayName) {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            NavigationLauncher.open(app: app, coordinate: coordinate, name: name)
+                        }
+                    }
+                } label: {
+                    pillLabel
+                }
+                .buttonStyle(.plain)
+                .contentShape(Capsule())
+            }
+        }
     }
 
     @ViewBuilder
