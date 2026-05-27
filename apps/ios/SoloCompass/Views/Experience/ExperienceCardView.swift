@@ -7,8 +7,13 @@ public struct ExperienceCardView: View {
     var onExpand: () -> Void
     var onDismiss: () -> Void
 
-    @GestureState private var dragTranslation: CGFloat = 0
-    @State private var hapticState: HapticState = .idle
+    private struct DragState {
+        var translation: CGFloat = 0
+        var hapticFired: Bool = false
+    }
+
+    @GestureState private var dragState = DragState()
+    @State private var dragOffset: CGFloat = 0
 
     private enum HapticState { case idle, prepared, fired }
 
@@ -35,12 +40,12 @@ public struct ExperienceCardView: View {
     }
 
     private var totalOffset: CGFloat {
-        rubberBanded(dragTranslation)
+        rubberBanded(dragState.translation) + dragOffset
     }
 
     /// Fades in both directions: downward (dismiss) and upward (expand).
     private var dragOpacity: Double {
-        1 - min(0.4, abs(dragOffset) / 300)
+        1 - min(0.4, abs(dragState.translation) / 300)
     }
 
     private var isFavorited: Bool {
@@ -134,28 +139,25 @@ public struct ExperienceCardView: View {
         )
         .offset(y: totalOffset)
         .opacity(dragOpacity)
-        .animation(.interactiveSpring(), value: dragTranslation)
         .padding(.horizontal, 12)
         .offset(y: dragOffset)
         .opacity(dragOpacity)
         .gesture(
-            DragGesture(minimumDistance: 20)
-                .updating($dragTranslation) { value, state, _ in
-                    state = value.translation.height
-                }
-                .onChanged { value in
-                    if hapticState == .idle {
+            DragGesture(minimumDistance: 10)
+                .updating($dragState) { value, state, _ in
+                    let t = value.translation.height
+                    if state.translation == 0 {
                         feedbackGenerator.prepare()
-                        hapticState = .prepared
                     }
-                    if hapticState == .prepared, abs(value.translation.height) > 60 {
+                    state.translation = t
+                    if abs(t) > 60 && !state.hapticFired {
                         feedbackGenerator.impactOccurred()
-                        hapticState = .fired
+                        state.hapticFired = true
                     }
                 }
                 .onEnded { value in
                     // Capture live offset before @GestureState resets to 0.
-                    let snappingFrom = rubberBanded(dragTranslation)
+                    let snappingFrom = rubberBanded(dragState.translation)
                     if value.translation.height > 60 {
                         dragOffset = 0
                         onDismiss()
@@ -163,12 +165,9 @@ public struct ExperienceCardView: View {
                         dragOffset = 0
                         onExpand()
                     } else {
-                        dragOffset = snappingFrom
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             dragOffset = 0
-                        }
                     }
-                    hapticState = .idle
                 }
         )
         .onTapGesture { onExpand() }
