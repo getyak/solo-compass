@@ -185,6 +185,7 @@ public final class UserPreferences {
             self.companionBio = try container.decodeIfPresent(String.self, forKey: .companionBio) ?? ""
             self.companionLanguages = try container.decodeIfPresent([String].self, forKey: .companionLanguages) ?? []
             self.companionVisibilityRaw = try container.decodeIfPresent(String.self, forKey: .companionVisibilityRaw) ?? CompanionVisibility.off.rawValue
+            self.activeCompanionPosts = try container.decodeIfPresent([String: CompanionPost].self, forKey: .activeCompanionPosts) ?? [:]
         }
     }
 
@@ -272,6 +273,10 @@ public final class UserPreferences {
         set { companionVisibilityRaw = newValue.rawValue }
     }
 
+    /// Active CompanionPosts keyed by ItineraryId.rawValue (US-010).
+    /// A full CompanionPostStore (SwiftData + Supabase sync) will supersede this in a later story.
+    public var activeCompanionPosts: [String: CompanionPost] { didSet { persist() } }
+
     /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
     public var aiProvider: AIProvider {
         get { AIProvider(rawValue: aiProviderRaw) ?? .deepseek }
@@ -322,6 +327,7 @@ public final class UserPreferences {
         self.companionBio = snapshot.companionBio
         self.companionLanguages = snapshot.companionLanguages
         self.companionVisibilityRaw = snapshot.companionVisibilityRaw
+        self.activeCompanionPosts = snapshot.activeCompanionPosts
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -369,7 +375,8 @@ public final class UserPreferences {
             companionAvatarEmoji: companionAvatarEmoji,
             companionBio: companionBio,
             companionLanguages: companionLanguages,
-            companionVisibilityRaw: companionVisibilityRaw
+            companionVisibilityRaw: companionVisibilityRaw,
+            activeCompanionPosts: activeCompanionPosts
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
