@@ -8,6 +8,7 @@ public struct SoloScoreBadge: View {
     public enum Style { case compact, full }
 
     @State private var animatedScore: Double = 0
+    @State private var appeared = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(score: SoloScore, style: Style = .compact) {
@@ -22,8 +23,15 @@ public struct SoloScoreBadge: View {
         }
     }
 
+    private var isExcellent: Bool { score.overall >= 8.5 }
+
     private var compactView: some View {
         HStack(spacing: 4) {
+            if isExcellent {
+                Image(systemName: "star.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.95))
+            }
             Text(NSLocalizedString("solo.label", comment: "Solo"))
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.9))
@@ -36,10 +44,23 @@ public struct SoloScoreBadge: View {
         .background(
             Capsule().fill(score.scoreColor.opacity(0.95))
         )
-        .accessibilityLabel(Text(String(
-            format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"),
-            formatted(score.overall)
-        )))
+        .scaleEffect(appeared ? 1 : 0.7)
+        .opacity(appeared ? 1 : 0)
+        .onAppear {
+            if reduceMotion {
+                appeared = true
+            } else {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                    appeared = true
+                }
+            }
+        }
+        .accessibilityLabel(Text(
+            isExcellent
+                ? String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"), formatted(score.overall))
+                    + ", " + NSLocalizedString("solo.excellent.a11y", comment: "Excellent for solo travelers")
+                : String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"), formatted(score.overall))
+        ))
     }
 
     private var fullView: some View {
@@ -85,15 +106,22 @@ public struct SoloScoreBadge: View {
 }
 
 #Preview {
-    let score = SoloScore(
+    let excellentScore = SoloScore(
         overall: 8.7,
         breakdown: .init(seatingFriendly: 9, soloPatronRatio: 8, staffPressure: 9, soloPortioning: 10, ambianceFit: 8, safety: 9),
         hint: "Order at the bar, sit upstairs.",
         basedOnCount: 14
     )
+    let midScore = SoloScore(
+        overall: 5.2,
+        breakdown: .init(seatingFriendly: 5, soloPatronRatio: 5, staffPressure: 6, soloPortioning: 5, ambianceFit: 5, safety: 5),
+        hint: nil,
+        basedOnCount: 3
+    )
     VStack(spacing: 24) {
-        SoloScoreBadge(score: score, style: .compact)
-        SoloScoreBadge(score: score, style: .full)
+        SoloScoreBadge(score: excellentScore, style: .compact)
+        SoloScoreBadge(score: midScore, style: .compact)
+        SoloScoreBadge(score: excellentScore, style: .full)
             .padding()
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
