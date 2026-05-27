@@ -12,6 +12,11 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
     public let mode: String
     public let activeFrom: String?
     public let activeTo: String?
+    /// Geohash precision-6 cell (~600m). Only present for mode=nearby posts.
+    public let geohash6: String?
+    /// ISO 8601 UTC expiry timestamp. Posts with expires_at ≤ now are stale
+    /// and must not be shown (US-018).
+    public let expiresAt: String?
 
     public init(
         id: String,
@@ -21,7 +26,9 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
         cityCode: String,
         mode: String,
         activeFrom: String?,
-        activeTo: String?
+        activeTo: String?,
+        geohash6: String? = nil,
+        expiresAt: String? = nil
     ) {
         self.id = id
         self.handle = handle
@@ -31,6 +38,8 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
         self.mode = mode
         self.activeFrom = activeFrom
         self.activeTo = activeTo
+        self.geohash6 = geohash6
+        self.expiresAt = expiresAt
     }
 
     enum CodingKeys: String, CodingKey {
@@ -38,6 +47,19 @@ public struct DiscoverPost: Identifiable, Decodable, Sendable {
         case cityCode = "city_code"
         case activeFrom = "active_from"
         case activeTo = "active_to"
+        case geohash6 = "geohash6"
+        case expiresAt = "expires_at"
+    }
+
+    /// US-018: true when the post has an expires_at in the past.
+    public var isExpired: Bool {
+        guard let exp = expiresAt else { return false }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: exp) ?? ISO8601DateFormatter().date(from: exp) {
+            return date <= Date()
+        }
+        return false
     }
 }
 
@@ -156,7 +178,10 @@ public final class CompanionService {
                 let posts: [DiscoverPost]
             }
             let decoded = try JSONDecoder().decode(DiscoverResponse.self, from: data)
-            discoverPosts = decoded.posts
+            // US-018: filter out locally any posts whose expires_at has already
+            // passed. The RLS policy filters server-side too, but the client
+            // should never display stale posts even if they slip through.
+            discoverPosts = decoded.posts.filter { !$0.isExpired }
         } catch {
             lastError = error.localizedDescription
         }
@@ -408,6 +433,63 @@ public final class CompanionService {
         switch result {
         case .success: return .success(())
         case .failure(let err): return .failure(err)
+        }
+    }
+}
+
+    // MARK: - US-018: Expiry and cleanup
+
+    /// Delete companion_posts rows whose expires_at has passed.
+    /// Called periodically — at app launch and after any discovery fetch.
+    /// RLS already blocks reading expired rows; this hard-deletes them so
+    /// the table stays lean.
+    public func cleanupExpiredPosts() async {
+        guard FeatureFlags.companion else { return }
+        let now = ISO8601DateFormatter().string(from: Date())
+        // PostgREST: DELETE /rest/v1/companion_posts?expires_at=lt.<now>
+        let result = await client.get(
+            table: "companion_posts",
+            query: [
+                URLQueryItem(name: "expires_at", value: "lt.\(now)"),
+                URLQueryItem(name: "select", value: "id"),
+            ]
+        )
+        guard case .success(let data) = result, !data.isEmpty else { return }
+        struct IDRow: Decodable { let id: String }
+        guard let rows = try? JSONDecoder().decode([IDRow].self, from: data) else { return }
+        for row in rows {
+            _ = await client.delete(table: "companion_posts", id: row.id)
+        }
+    }
+
+    /// Auto-expire pending companion_requests older than 7 days by marking
+    /// them `.withdrawn` locally and deleting them server-side (US-018).
+    public func cleanupStaleRequests() async {
+        guard FeatureFlags.companion else { return }
+        let cutoff = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+        let cutoffString = ISO8601DateFormatter().string(from: cutoff)
+
+        let result = await client.get(
+            table: "companion_requests",
+            query: [
+                URLQueryItem(name: "status", value: "eq.pending"),
+                URLQueryItem(name: "created_at", value: "lt.\(cutoffString)"),
+                URLQueryItem(name: "select", value: "id"),
+            ]
+        )
+        guard case .success(let data) = result, !data.isEmpty else { return }
+        struct IDRow: Decodable { let id: String }
+        guard let rows = try? JSONDecoder().decode([IDRow].self, from: data) else { return }
+        for row in rows {
+            _ = await client.delete(table: "companion_requests", id: row.id)
+        }
+        // Remove stale pending requests from local inbox / sent lists.
+        let cutoffISO = cutoffString
+        inboxRequests.removeAll { req in
+            req.status == .pending && req.createdAt < cutoffISO
+        }
+        sentRequests.removeAll { req in
+            req.status == .pending && req.createdAt < cutoffISO
         }
     }
 }
