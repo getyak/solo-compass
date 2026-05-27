@@ -59,6 +59,11 @@ public final class UserPreferences {
         var companionLanguages: [String] = []
         var companionVisibilityRaw: String = CompanionVisibility.off.rawValue
 
+        // Companion posts keyed by ItineraryId.rawValue (US-010)
+        // Stored as a simple [itinId: CompanionPost] blob. A full CompanionPostStore
+        // (backed by SwiftData + Supabase sync) will supersede this in a later story.
+        var activeCompanionPosts: [String: CompanionPost] = [:]
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -70,6 +75,7 @@ public final class UserPreferences {
             case foursquareCallsToday, foursquareCallsTodayDate
             case aiProviderRaw, aiApiKey, aiBaseURL, aiModelName
             case companionAvatarEmoji, companionBio, companionLanguages, companionVisibilityRaw
+            case activeCompanionPosts
         }
 
         init() {}
@@ -106,7 +112,8 @@ public final class UserPreferences {
             companionAvatarEmoji: String,
             companionBio: String,
             companionLanguages: [String],
-            companionVisibilityRaw: String
+            companionVisibilityRaw: String,
+            activeCompanionPosts: [String: CompanionPost]
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -140,6 +147,7 @@ public final class UserPreferences {
             self.companionBio = companionBio
             self.companionLanguages = companionLanguages
             self.companionVisibilityRaw = companionVisibilityRaw
+            self.activeCompanionPosts = activeCompanionPosts
         }
 
         init(from decoder: Decoder) throws {
