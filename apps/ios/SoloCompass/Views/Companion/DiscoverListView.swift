@@ -89,11 +89,26 @@ public struct DiscoverListView: View {
     }
 
     private func errorView(message: String) -> some View {
-        ContentUnavailableView(
-            NSLocalizedString("companion.discover.error.title", comment: "Error title"),
-            systemImage: "exclamationmark.triangle",
-            description: Text(message)
-        )
+        ContentUnavailableView {
+            Label(
+                NSLocalizedString("companion.discover.error.title", comment: "Error title"),
+                systemImage: "exclamationmark.triangle"
+            )
+        } description: {
+            Text(message)
+        } actions: {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Task { await loadPosts() }
+            } label: {
+                Label(
+                    NSLocalizedString("companion.discover.error.retry", comment: "Retry button"),
+                    systemImage: "arrow.clockwise"
+                )
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityHint(NSLocalizedString("companion.discover.error.retry.hint", comment: "Retry accessibility hint"))
+        }
     }
 
     private var emptyStateView: some View {
