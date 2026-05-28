@@ -949,7 +949,7 @@
 "favorites.row.distance.a11y" = "%@外";
 "favorites.search.clear" = "清空搜索";
 "favorites.search.clear.hint" = "清空搜索框并显示所有收藏";
-"favorites.search.noResults" = "没有"%@"的匹配结果";
+"favorites.search.noResults" = "没有\"%@\"的匹配结果";
 "favorites.search.noResults.hint" = "换个词试试，或清空搜索。";
 "favorites.search.prompt" = "搜索收藏";
 "favorites.sort.label" = "排序";
