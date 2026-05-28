@@ -1,6 +1,6 @@
 {
   "project": "Solo Compass",
-  "branchName": "ralph/route-anchored-companion",
+  "branchName": "ralph/route-anchored-companion-2",
   "description": "Route-Anchored Companion \u2014 Replace location-based companion matching (DiscoverPost / geohash6 / presence) with route-anchored companion. Routes are ordered experience sequences that double as pure content (solo) and companion carriers (host + recruiting + verified flywheel). Ship A+A+A information architecture (companion default OFF, no UI bleed into map surface) plus an Apple-Maps-style three-detent bottom sheet (170/500/800 pt) that hosts both 'nearby experiences' and 'recruiting routes' lists. Local-first throughout: FF_BACKEND_SYNC defaults off, all flows backed by local SwiftData + seed fixtures with a remote-protocol seam reserved for P3. Supersedes tasks/prd-companion-mode.md. Source: tasks/prd-route-anchored-companion.md.",
   "userStories": [
     {
