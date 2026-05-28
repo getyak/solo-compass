@@ -19,6 +19,7 @@ public struct RouteDetailView: View {
     @Environment(UserPreferences.self) private var preferences
     @State private var isSaved = false
     @State private var isFavorited = false
+    @State private var showJoinSheet = false
 
     public init(route: Route, onTapStop: @escaping (Experience) -> Void = { _ in }) {
         self.route = route
@@ -74,6 +75,9 @@ public struct RouteDetailView: View {
         .safeAreaInset(edge: .bottom) { bottomDock }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { shareButton }
+        .sheet(isPresented: $showJoinSheet) {
+            JoinRouteRequestSheet(route: route)
+        }
     }
 
     // MARK: - Hero
@@ -145,7 +149,7 @@ public struct RouteDetailView: View {
                     hasMyRequest: hasMyRequest,
                     strength: preferences.companionModuleStrength,
                     onRequestJoin: {
-                        // TODO: US-031 — present JoinRouteRequestSheet
+                        showJoinSheet = true
                     },
                     onViewRequests: {
                         // TODO: US-034 — push ApprovalQueueView
