@@ -228,6 +228,13 @@ public struct CompassMapView: View {
                     }
                     .animation(.easeInOut, value: viewModel.isFetchingPOIs)
                 }
+
+                ZStack(alignment: .bottom) {
+                    BottomInfoSheet {
+                        Text("placeholder")
+                    }
+                }
+                .ignoresSafeArea(edges: .bottom)
             } else {
                 ProgressView()
                     .accessibilityLabel(Text(NSLocalizedString("map.loading", comment: "Loading map")))
@@ -800,9 +807,6 @@ private struct MapOverlayView: View {
                         }
                     }
             }
-
-            BottomInfoBar(text: viewModel.bottomInfoText, nearbySoloCount: viewModel.nearbySoloCount)
-                .padding(.bottom, 8)
 
             if let pending = viewModel.pendingCheckIn {
                 PendingCheckInBanner(
