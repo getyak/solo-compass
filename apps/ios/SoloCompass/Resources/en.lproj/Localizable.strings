@@ -902,3 +902,8 @@
 "sort.distance" = "距离";
 "sort.soloScore" = "Solo 分";
 "sort.now" = "此刻";
+
+/* US-022 — VerifiedBadge */
+"verified.title.verified" = "已验证路线";
+"verified.title.watching" = "社群观察中";
+"verified.subtitle" = "与 %d 位旅人走过";
