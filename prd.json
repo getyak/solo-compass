@@ -637,7 +637,7 @@
         "Verify in Simulator: after US-036 transition, open Settings -> \u5df2\u52a0\u5165\u7684\u7fa4\u804a -> see new group -> open it -> see pinned route + ability to send a test message"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

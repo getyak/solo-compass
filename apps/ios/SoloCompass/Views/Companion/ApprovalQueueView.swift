@@ -373,7 +373,7 @@ public struct ApprovalQueueView: View {
         companion: companion
     )
     store.save(route)
-    NavigationStack {
+    return NavigationStack {
         ApprovalQueueView(route: route, contextProvider: { ctx })
     }
 }
@@ -404,7 +404,7 @@ public struct ApprovalQueueView: View {
         companion: companion
     )
     store.save(route)
-    NavigationStack {
+    return NavigationStack {
         ApprovalQueueView(route: route, contextProvider: { ctx })
     }
 }
