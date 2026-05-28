@@ -53,3 +53,4 @@ Tool: claude
 [2026-05-28T11:36:49Z] Story #US-040: Define RouteCompanionRemote protocol + Local implementation — PASSED
 [2026-05-28T11:37:27Z] Story #US-041: Draft Supabase migration 0005_route_companion.sql (no apply) — PASSED
 [2026-05-28T11:43:19Z] Story #US-042: Backfill companion.* localized strings (en + zh-Hans) — PASSED
+[2026-05-28T11:45:15Z] Story #US-043: Delete CompanionHubSheet.swift (final cleanup) — PASSED
