@@ -25,3 +25,4 @@ Tool: claude
 [2026-05-28T09:28:08Z] Story #US-016: Add BottomInfoSheet container with three detents (170/500/800) — PASSED
 [2026-05-28T09:29:52Z] Story #US-017: Replace BottomInfoBar with BottomInfoSheet in CompassMapView — PASSED
 [2026-05-28T09:32:16Z] Story #US-018: BottomInfoSheet content: AI-hint + sort + count toolbar (peek) — PASSED
+[2026-05-28T09:36:22Z] Story #US-019: BottomInfoSheet 'Nearby' section with experience rows (smart sort) — PASSED

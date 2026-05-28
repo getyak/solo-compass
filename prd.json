@@ -307,7 +307,7 @@
         "Verify in Simulator: drag sheet to mid -> see at least 3 experience rows; smart picks visually distinguished"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
