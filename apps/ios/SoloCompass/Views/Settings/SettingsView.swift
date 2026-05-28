@@ -876,27 +876,6 @@ public struct SettingsView: View {
 
 // MARK: - Companion stubs (US-012)
 
-/// US-012 stub: empty list of pending companion recruitment requests.
-/// Real data wired up in a later story.
-struct MyRequestsListView: View {
-    var body: some View {
-        List {
-            Text(NSLocalizedString(
-                "settings.companion.requests.empty",
-                comment: "Empty state for my recruitment requests"
-            ))
-            .foregroundStyle(.secondary)
-            .font(.subheadline)
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle(NSLocalizedString(
-            "settings.companion.requests",
-            comment: "My recruitment requests title"
-        ))
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 /// US-012 stub: empty list of joined companion group chats. Real data
 /// wired up in a later story.
 struct CompanionConversationsListView: View {

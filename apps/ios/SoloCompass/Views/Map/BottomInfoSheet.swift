@@ -9,7 +9,7 @@ public enum SortMode: String, CaseIterable, Identifiable {
     case soloScore
     case now
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
     var localizedTitle: String {
         switch self {

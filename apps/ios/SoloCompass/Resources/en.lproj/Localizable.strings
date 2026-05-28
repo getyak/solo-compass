@@ -1015,6 +1015,14 @@
 "discover.recruiting.empty.description" = "附近还没有开放加入的路线。";
 "discover.recruiting.empty.create" = "开一个你自己的路线";
 
+/* US-033 — MyRequestsListView */
+"my.requests.empty" = "You have not requested to join any routes yet.";
+"my.requests.status.pending" = "Pending";
+"my.requests.status.accepted" = "Accepted";
+"my.requests.status.declined" = "Declined";
+"my.requests.status.withdrawn" = "Withdrawn";
+"my.requests.withdraw" = "撤回申请";
+
 /* US-031 — JoinRouteRequestSheet */
 "join.sheet.title" = "申请加入";
 "join.pace.label" = "配速匹配";
