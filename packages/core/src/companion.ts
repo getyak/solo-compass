@@ -118,6 +118,8 @@ export interface Conversation {
   readonly routeId?: string;
   /** ISO 8601 UTC timestamp of the most recent message. */
   readonly lastMessageAt?: string;
+  /** When true, the chat is frozen — no new messages can be sent (route completed). */
+  readonly isReadOnly: boolean;
   /** ISO 8601 UTC timestamp. */
   readonly createdAt: string;
   /** ISO 8601 UTC timestamp. */
