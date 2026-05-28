@@ -397,7 +397,7 @@
         "Verify in Simulator: open detail for mekong-sunset seed, all sections render"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
