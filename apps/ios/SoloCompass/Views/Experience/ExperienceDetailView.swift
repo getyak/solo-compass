@@ -241,10 +241,6 @@ public struct ExperienceDetailView: View {
         }
     }
 
-    private func absoluteBearing(to coord: CLLocationCoordinate2D) -> Double? {
-        locationService.bearing(to: coord)
-    }
-
     private func relativeBearing(to coord: CLLocationCoordinate2D) -> Double? {
         locationService.relativeBearing(to: coord)
     }
@@ -260,7 +256,8 @@ public struct ExperienceDetailView: View {
             NSLocalizedString("compass.W", comment: "West"),
             NSLocalizedString("compass.NW", comment: "Northwest"),
         ]
-        let index = Int((degrees / 45.0).rounded()) % 8
+        let raw = Int((degrees / 45.0).rounded())
+        let index = ((raw % 8) + 8) % 8
         return directions[index]
     }
 
@@ -276,7 +273,6 @@ public struct ExperienceDetailView: View {
                     distStr
                 )
                 let relBearing = relativeBearing(to: coord)
-                let absBearing = absoluteBearing(to: coord)
                 HStack(spacing: 3) {
                     if let relBearing {
                         Image(systemName: "location.north.fill")
@@ -303,8 +299,8 @@ public struct ExperienceDetailView: View {
                         format: NSLocalizedString("detail.distance.a11y", comment: "Distance accessibility label"),
                         distStr
                     )
-                    if let absBearing {
-                        let direction = Self.compassDirection(for: absBearing)
+                    if let relBearing {
+                        let direction = Self.compassDirection(for: relBearing)
                         label += ". " + String(
                             format: NSLocalizedString("card.distance.bearing.a11y", comment: "Bearing direction accessibility"),
                             direction
