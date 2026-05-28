@@ -1249,14 +1249,14 @@ final class SoloCompassTests: XCTestCase {
 
         // First call: empty store → inserts seed (bundle JSON or hardcoded fallback)
         let added = repo.importSeedIfNeeded()
-        XCTAssertEqual(added, 5, "seed has exactly 5 experiences")
-        XCTAssertEqual(repo.allExperiences().count, 5)
+        XCTAssertEqual(added, 10, "seed has exactly 10 experiences (5 cmi + 5 vte)")
+        XCTAssertEqual(repo.allExperiences().count, 10)
         XCTAssertTrue(prefs.seedImported, "flag must be set after first import")
 
         // Second call: no-op because seedImported is true
         let addedAgain = repo.importSeedIfNeeded()
         XCTAssertEqual(addedAgain, 0, "second call must be a no-op")
-        XCTAssertEqual(repo.allExperiences().count, 5, "count unchanged after no-op")
+        XCTAssertEqual(repo.allExperiences().count, 10, "count unchanged after no-op")
     }
 
     // MARK: - US-009 UserPreferences → SwiftData mirroring

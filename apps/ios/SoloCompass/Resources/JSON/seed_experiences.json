@@ -311,5 +311,304 @@
     "status": "active",
     "createdAt": "2026-04-27T00:00:00Z",
     "updatedAt": "2026-04-27T00:00:00Z"
+  },
+  {
+    "id": "exp_vte_mekong_riverside_sunset",
+    "title": "Watch the sun fall into Thailand from the Mekong promenade",
+    "oneLiner": "Plastic chairs, cheap Beerlao, and a river that swallows the sun in 12 minutes.",
+    "whyItMatters": "The Mekong here is the border. The sun sets behind Thailand and the river turns the color of weak tea. Locals bring whole families; you bring a single chair. Vendors don't push. It is the most ordinary, most generous evening in Southeast Asia.",
+    "category": "nature",
+    "location": {
+      "coordinates": [102.6093, 17.9633],
+      "cityCode": "VTE",
+      "addressHint": "Chao Anouvong Park, Quai Fa Ngum",
+      "placeNameLocal": "ແມ່ນ້ຳຂອງ",
+      "placeNameRomanized": "Mae Nam Khong"
+    },
+    "bestTimes": [
+      { "startHour": 17, "endHour": 19, "note": "Arrive 45 min before sunset" }
+    ],
+    "durationMinutes": { "min": 45, "max": 90 },
+    "howTo": [
+      { "order": 1, "text": "Walk west on Quai Fa Ngum toward Chao Anouvong statue." },
+      { "order": 2, "text": "Pick any plastic chair facing the river." },
+      { "order": 3, "text": "Order a Beerlao; the vendor will not rush you." },
+      { "order": 4, "text": "Stay until the lamps along the promenade flick on." }
+    ],
+    "realInconveniences": [
+      { "category": "weather", "text": "May–October: brief rain showers can flatten the sunset. Bring a thin layer." },
+      { "category": "crowds", "text": "Weekends after 6pm fill up fast; weekdays stay calm." }
+    ],
+    "soloScore": {
+      "overall": 9.0,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 7,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 9,
+        "safety": 9
+      },
+      "hint": "Single chair, single bottle, no one cares. Among the most solo-friendly spots in Laos.",
+      "basedOnCount": 22
+    },
+    "sources": [
+      { "type": "wikivoyage", "url": "https://en.wikivoyage.org/wiki/Vientiane", "attribution": "Wikivoyage", "verifiedAt": "2026-05-01T00:00:00Z" }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-05-01T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 11 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 5,
+        "passiveGpsHits30d": 31,
+        "activeReports30d": 11,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": ["exp_vte_wat_si_saket_morning", "exp_vte_slow_coffee_dao"],
+    "stats": { "completionCount": 58, "averageRating": 4.8 },
+    "status": "active",
+    "createdAt": "2026-05-01T00:00:00Z",
+    "updatedAt": "2026-05-01T00:00:00Z"
+  },
+  {
+    "id": "exp_vte_wat_si_saket_morning",
+    "title": "Count the 6,840 Buddhas at Wat Si Saket before the heat",
+    "oneLiner": "Laos's oldest surviving temple is also its quietest first thing in the morning.",
+    "whyItMatters": "Built in 1818 in Siamese style — which is why the Siamese army spared it when they razed everything else in 1828. Thousands of small Buddha niches line the cloister walls. At 8am the gravel is still cool and you may be the only foreigner inside.",
+    "category": "culture",
+    "location": {
+      "coordinates": [102.6125, 17.9626],
+      "cityCode": "VTE",
+      "addressHint": "Lan Xang Avenue at Setthathirath Rd",
+      "placeNameLocal": "ວັດສີສະເກດ",
+      "placeNameRomanized": "Wat Si Saket"
+    },
+    "bestTimes": [
+      { "startHour": 8, "endHour": 10, "note": "Opens 8am; tour buses arrive ~10:30" }
+    ],
+    "durationMinutes": { "min": 40, "max": 75 },
+    "howTo": [
+      { "order": 1, "text": "Pay the 10,000 kip entry at the booth on Lan Xang Avenue." },
+      { "order": 2, "text": "Walk the cloister clockwise — the Buddha niches start small and grow." },
+      { "order": 3, "text": "Step into the sim (ordination hall); remove shoes, no photos." },
+      { "order": 4, "text": "Exit by the back gate to continue toward Patuxai." }
+    ],
+    "realInconveniences": [
+      { "category": "etiquette", "text": "Shoulders and knees covered. Hats off inside the sim." },
+      { "category": "logistics", "text": "Entry fee cash only; small kip notes preferred." }
+    ],
+    "soloScore": {
+      "overall": 8.2,
+      "breakdown": {
+        "seatingFriendly": 7,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 8,
+        "safety": 9
+      },
+      "hint": "Caretakers leave you alone. Plenty of shaded benches under the cloister.",
+      "basedOnCount": 17
+    },
+    "sources": [
+      { "type": "wikivoyage", "url": "https://en.wikivoyage.org/wiki/Vientiane", "attribution": "Wikivoyage", "verifiedAt": "2026-05-01T00:00:00Z" }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-05-01T00:00:00Z",
+      "reason": "Verified by 1 trusted reporter, 9 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 6,
+        "passiveGpsHits30d": 18,
+        "activeReports30d": 9,
+        "trustedVerifications": 1
+      }
+    },
+    "nearbyExperienceIds": ["exp_vte_patuxai_view", "exp_vte_slow_coffee_dao"],
+    "stats": { "completionCount": 34, "averageRating": 4.6 },
+    "status": "active",
+    "createdAt": "2026-05-01T00:00:00Z",
+    "updatedAt": "2026-05-01T00:00:00Z"
+  },
+  {
+    "id": "exp_vte_patuxai_view",
+    "title": "Climb the Patuxai for the only view of Vientiane's skyline",
+    "oneLiner": "A 'concrete monstrosity' built with U.S. cement meant for an airport — and the best vantage in the capital.",
+    "whyItMatters": "The plaque inside calls itself a 'monster of concrete'. The Americans gifted the cement in 1957 for an airport runway; Laos built a victory arch instead. Climb seven floors past souvenir stalls and you get an unobstructed look at how flat, green and low-rise this capital still is.",
+    "category": "culture",
+    "location": {
+      "coordinates": [102.6311, 17.9686],
+      "cityCode": "VTE",
+      "addressHint": "Lan Xang Avenue, north end",
+      "placeNameLocal": "ປະຕູໄຊ",
+      "placeNameRomanized": "Patuxai"
+    },
+    "bestTimes": [
+      { "startHour": 9, "endHour": 11, "note": "Cooler before midday; afternoon haze blurs the view" }
+    ],
+    "durationMinutes": { "min": 30, "max": 60 },
+    "howTo": [
+      { "order": 1, "text": "Enter from the south side; pay 5,000 kip for the climb." },
+      { "order": 2, "text": "Ignore the souvenir stalls on floors 2–6 unless you need a fan." },
+      { "order": 3, "text": "Top floor: 360° walk around the parapet. Northwest faces Pha That Luang." }
+    ],
+    "realInconveniences": [
+      { "category": "crowds", "text": "Stairs are narrow and one-way during tour-bus arrivals (~11am, ~3pm)." },
+      { "category": "weather", "text": "No shade at the top — bring water, no umbrella allowed up." }
+    ],
+    "soloScore": {
+      "overall": 7.4,
+      "breakdown": {
+        "seatingFriendly": 5,
+        "soloPatronRatio": 7,
+        "staffPressure": 9,
+        "soloPortioning": 10,
+        "ambianceFit": 7,
+        "safety": 8
+      },
+      "hint": "Quick solo climb; nobody pressures you. Skip the upper-floor stalls.",
+      "basedOnCount": 12
+    },
+    "sources": [
+      { "type": "wikivoyage", "url": "https://en.wikivoyage.org/wiki/Vientiane", "attribution": "Wikivoyage", "verifiedAt": "2026-05-01T00:00:00Z" }
+    ],
+    "confidence": {
+      "level": 3,
+      "lastVerifiedAt": "2026-05-01T00:00:00Z",
+      "reason": "8 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 9,
+        "passiveGpsHits30d": 14,
+        "activeReports30d": 8,
+        "trustedVerifications": 1
+      }
+    },
+    "nearbyExperienceIds": ["exp_vte_pha_that_luang_dawn", "exp_vte_wat_si_saket_morning"],
+    "stats": { "completionCount": 21, "averageRating": 4.3 },
+    "status": "active",
+    "createdAt": "2026-05-01T00:00:00Z",
+    "updatedAt": "2026-05-01T00:00:00Z"
+  },
+  {
+    "id": "exp_vte_pha_that_luang_dawn",
+    "title": "Greet dawn at the golden Pha That Luang",
+    "oneLiner": "The national symbol of Laos catches the first light at 6:10am — and the gates open then.",
+    "whyItMatters": "Pha That Luang is on the seal of the republic. Daytime, it's a tour-bus stop; at dawn it's local monks, a handful of joggers on the surrounding plaza, and the gold leaf turning briefly pink. You don't need to enter the stupa — the plaza itself is the point.",
+    "category": "culture",
+    "location": {
+      "coordinates": [102.6486, 17.9756],
+      "cityCode": "VTE",
+      "addressHint": "Thanon That Luang, ~4km NE of city center",
+      "placeNameLocal": "ພະທາດຫຼວງ",
+      "placeNameRomanized": "Pha That Luang"
+    },
+    "bestTimes": [
+      { "startHour": 6, "endHour": 8, "note": "Dawn through 8am; tour buses arrive ~9:30" }
+    ],
+    "durationMinutes": { "min": 30, "max": 60 },
+    "howTo": [
+      { "order": 1, "text": "Tuk-tuk from city center (~30,000 kip); ask for ທາດຫຼວງ." },
+      { "order": 2, "text": "Enter the south gate; the plaza is free, the inner stupa costs 10,000 kip." },
+      { "order": 3, "text": "Walk the perimeter clockwise — east side catches the dawn first." },
+      { "order": 4, "text": "Stop on the way back for coffee on Setthathirath." }
+    ],
+    "realInconveniences": [
+      { "category": "logistics", "text": "Tuk-tuk price doubles after 7am; agree on fare before getting in." },
+      { "category": "etiquette", "text": "Shoulders/knees covered. Monks walking alms route — do not block them." }
+    ],
+    "soloScore": {
+      "overall": 8.6,
+      "breakdown": {
+        "seatingFriendly": 7,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 9,
+        "safety": 8
+      },
+      "hint": "Vast plaza, almost no one at dawn. Solo travelers blend into the joggers.",
+      "basedOnCount": 19
+    },
+    "sources": [
+      { "type": "wikivoyage", "url": "https://en.wikivoyage.org/wiki/Vientiane", "attribution": "Wikivoyage", "verifiedAt": "2026-05-01T00:00:00Z" }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-05-01T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 10 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 5,
+        "passiveGpsHits30d": 17,
+        "activeReports30d": 10,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": ["exp_vte_patuxai_view", "exp_vte_slow_coffee_dao"],
+    "stats": { "completionCount": 41, "averageRating": 4.8 },
+    "status": "active",
+    "createdAt": "2026-05-01T00:00:00Z",
+    "updatedAt": "2026-05-01T00:00:00Z"
+  },
+  {
+    "id": "exp_vte_slow_coffee_dao",
+    "title": "Spend a slow morning over Lao Bolaven beans at a side-street roaster",
+    "oneLiner": "A two-table roaster off Setthathirath where the barista will let you sit through three brews.",
+    "whyItMatters": "Bolaven Plateau coffee is some of the best in Southeast Asia and almost all of it leaves Laos. A handful of tiny Vientiane roasters keep the good lots home. This one has two tables, a single grinder, and a barista who pours water like he's defusing something. Bring a book.",
+    "category": "coffee",
+    "location": {
+      "coordinates": [102.6111, 17.9646],
+      "cityCode": "VTE",
+      "addressHint": "Off Setthathirath Rd, behind Wat Inpeng",
+      "placeNameLocal": "ກາເຟຊ້າ",
+      "placeNameRomanized": "Kafe Sao"
+    },
+    "bestTimes": [
+      { "startHour": 8, "endHour": 11, "note": "Opens 7:30; second pour-over batch at 9" }
+    ],
+    "durationMinutes": { "min": 60, "max": 120 },
+    "howTo": [
+      { "order": 1, "text": "Look for the wooden door with the small hand-painted bean — no English sign." },
+      { "order": 2, "text": "Order the Bolaven natural; ask for the second pour." },
+      { "order": 3, "text": "Sit at the window table — outlets under the counter." },
+      { "order": 4, "text": "If both tables are full, the barista will offer you a beer crate outside; take it." }
+    ],
+    "realInconveniences": [
+      { "category": "logistics", "text": "Cash only; nearest ATM is two blocks east at BCEL." },
+      { "category": "crowds", "text": "Two tables. After 10am you may wait 20 minutes — worth it." }
+    ],
+    "soloScore": {
+      "overall": 9.2,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 9,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 9,
+        "safety": 9
+      },
+      "hint": "Single seats by design. Barista keeps refilling water without being asked.",
+      "basedOnCount": 24
+    },
+    "sources": [
+      { "type": "user", "attribution": "@vientianeslow", "verifiedAt": "2026-05-01T00:00:00Z" }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-05-01T00:00:00Z",
+      "reason": "Verified by 1 trusted reporter, 13 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 4,
+        "passiveGpsHits30d": 22,
+        "activeReports30d": 13,
+        "trustedVerifications": 1
+      }
+    },
+    "nearbyExperienceIds": ["exp_vte_wat_si_saket_morning", "exp_vte_mekong_riverside_sunset"],
+    "stats": { "completionCount": 47, "averageRating": 4.9 },
+    "status": "active",
+    "createdAt": "2026-05-01T00:00:00Z",
+    "updatedAt": "2026-05-01T00:00:00Z"
   }
 ]

@@ -34,6 +34,7 @@
 		2ADAF284E5182CF955D9641E /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323B1BAB8D4A2BE116D8A789 /* LocationPickerSheet.swift */; };
 		2C5A15DE0FCF30A3BCF1EB20 /* RouteItineraryBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B08F2AB2779C31E0870 /* RouteItineraryBridgeTests.swift */; };
 		2D379EAE0BCD339DB670EB5C /* CompanionPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431DC31A80132F719AFEE471 /* CompanionPost.swift */; };
+		2F532734CA53A554106DC739 /* SeedRoutesParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A644911E7B2824A7ABBA4D6F /* SeedRoutesParityTests.swift */; };
 		31DAB367EE76F147742B2B3E /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E8E3F1E2D1A0382CC5D9A6 /* ChatService.swift */; };
 		31F9538643C362D7EEF64C6B /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7919EAFDE363B49C4B4C47 /* LocationService.swift */; };
 		371DDBAF4C385267248ABC83 /* AgentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38E5736BF6DF5644D687637 /* AgentRouter.swift */; };
@@ -152,6 +153,7 @@
 		E611DCAFD85FC84D6BF6CADD /* FoursquareService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67DAE302128E657E150C4B0D /* FoursquareService.swift */; };
 		E7B5B022519434F7C07818CF /* ExperienceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12F087E4FA7161529378098C /* ExperienceService.swift */; };
 		E881A71769542A7C58CF5D10 /* FavoritesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C3BA25EFA9F149FB4FAAB3 /* FavoritesListView.swift */; };
+		EAFABF90D77B4D5E00D6BDFC /* seed_routes.json in Resources */ = {isa = PBXBuildFile; fileRef = 1F39081CF797874064A33814 /* seed_routes.json */; };
 		EBE1ACB7D574EE000B028B23 /* SoloCompassTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED3CB5045CE59A613B5CAAF5 /* SoloCompassTests.swift */; };
 		EC5A75D4BC8E0C767D06C424 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E406C379247653B4AA5A3E0E /* SupabaseClient.swift */; };
 		EDBD7B0E715165E71BC0C17D /* DiscoveredCityRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE05EF69960CBB73431A6F2F /* DiscoveredCityRecord.swift */; };
@@ -205,6 +207,7 @@
 		1A8062A7E6BA3EE88C6DAF02 /* CompanionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionService.swift; sourceTree = "<group>"; };
 		1C04120C63712F09D8357CEE /* CompanionMapLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionMapLayer.swift; sourceTree = "<group>"; };
 		1C23113554E651AA08FD2430 /* POILoadingBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POILoadingBanner.swift; sourceTree = "<group>"; };
+		1F39081CF797874064A33814 /* seed_routes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = seed_routes.json; sourceTree = "<group>"; };
 		1FA8C8BF234F3C74D0D8A9BD /* SecretsRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsRuntime.swift; sourceTree = "<group>"; };
 		20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgentToolRouter.swift; sourceTree = "<group>"; };
 		2294AF173D063B1F55894696 /* CompletionCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionCelebrationView.swift; sourceTree = "<group>"; };
@@ -288,6 +291,7 @@
 		A2BE90CD51D94B3FEE2F5AFA /* CompanionReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionReport.swift; sourceTree = "<group>"; };
 		A38E5736BF6DF5644D687637 /* AgentRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRouter.swift; sourceTree = "<group>"; };
 		A5435FBA9527C07A9FB07D46 /* SoloCompassModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassModelContainer.swift; sourceTree = "<group>"; };
+		A644911E7B2824A7ABBA4D6F /* SeedRoutesParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedRoutesParityTests.swift; sourceTree = "<group>"; };
 		A7E8E3F1E2D1A0382CC5D9A6 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
 		A8670B08F2AB2779C31E0870 /* RouteItineraryBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteItineraryBridgeTests.swift; sourceTree = "<group>"; };
 		A95DD95393E5BF9C89FB4977 /* BilingualCityRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BilingualCityRow.swift; sourceTree = "<group>"; };
@@ -449,6 +453,7 @@
 				B6BAB6EA03E81F52D00CCD59 /* RouteRecordTests.swift */,
 				3AF871B84DDAAD8453B8258D /* RouteStoreTests.swift */,
 				535B5FA4ADF216CEC74FE056 /* RouteTests.swift */,
+				A644911E7B2824A7ABBA4D6F /* SeedRoutesParityTests.swift */,
 				ED3CB5045CE59A613B5CAAF5 /* SoloCompassTests.swift */,
 			);
 			name = Tests;
@@ -459,6 +464,7 @@
 			isa = PBXGroup;
 			children = (
 				61ED51ACFDCE6E0ED274BB60 /* seed_experiences.json */,
+				1F39081CF797874064A33814 /* seed_routes.json */,
 			);
 			path = JSON;
 			sourceTree = "<group>";
@@ -848,6 +854,7 @@
 				F3461FC7F38900F40A880255 /* Localizable.stringsdict in Resources */,
 				8B4F2A6E8F3C6EAD0F9A8E32 /* PrivacyInfo.xcprivacy in Resources */,
 				D7CC906B358ED5337880A942 /* seed_experiences.json in Resources */,
+				EAFABF90D77B4D5E00D6BDFC /* seed_routes.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -895,6 +902,7 @@
 				58EC3C9838462DCD66F11975 /* RouteRecordTests.swift in Sources */,
 				71B9FD2F300F42A5197FFA15 /* RouteStoreTests.swift in Sources */,
 				D2E9B20230FDE14CB1029DC3 /* RouteTests.swift in Sources */,
+				2F532734CA53A554106DC739 /* SeedRoutesParityTests.swift in Sources */,
 				EBE1ACB7D574EE000B028B23 /* SoloCompassTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
