@@ -36,9 +36,20 @@ public struct BottomInfoSheet<Content: View>: View {
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
 
+    private let aiHint: String
+    private let count: Int
+    private let isNowMode: Bool
     private let content: Content
 
-    public init(@ViewBuilder content: () -> Content) {
+    public init(
+        aiHint: String,
+        count: Int,
+        isNowMode: Bool,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.aiHint = aiHint
+        self.count = count
+        self.isNowMode = isNowMode
         self.content = content()
     }
 
@@ -65,6 +76,12 @@ public struct BottomInfoSheet<Content: View>: View {
             // Sheet
             VStack(spacing: 0) {
                 dragHandleArea
+                NowHintRow(hint: aiHint)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
+                SortCountToolbar(count: count, isNowMode: isNowMode)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
                 content
                 Spacer(minLength: 0)
             }
@@ -115,13 +132,96 @@ public struct BottomInfoSheet<Content: View>: View {
     }
 }
 
+// MARK: - NowHintRow
+
+struct NowHintRow: View {
+    let hint: String
+
+    private var timeString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: Date())
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sunset.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+            Text(hint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Text(timeString)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(hint) \(timeString)"))
+    }
+}
+
+// MARK: - SortCountToolbar
+
+struct SortCountToolbar: View {
+    let count: Int
+    let isNowMode: Bool
+
+    var body: some View {
+        HStack {
+            sortButton
+            Spacer()
+            countBadge
+        }
+    }
+
+    private var sortButton: some View {
+        Button {
+            // Sort dropdown — behavior added in a follow-up story
+        } label: {
+            HStack(spacing: 4) {
+                Text(NSLocalizedString("sheet.sort.button", comment: "Sort"))
+                    .font(.caption.weight(.medium))
+                Image(systemName: "chevron.down")
+                    .font(.caption2.weight(.semibold))
+            }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(.regularMaterial))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(NSLocalizedString("sheet.sort.button", comment: "Sort")))
+    }
+
+    private var countBadge: some View {
+        let key = isNowMode ? "sheet.count.now" : "sheet.count.nearby"
+        let label = String(
+            format: NSLocalizedString(key, comment: "Count badge"),
+            count
+        )
+        return Text(label)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(Color.secondary.opacity(0.12)))
+            .accessibilityLabel(Text(label))
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
     ZStack(alignment: .bottom) {
         Color.teal.ignoresSafeArea()
 
-        BottomInfoSheet {
+        BottomInfoSheet(
+            aiHint: NSLocalizedString("ai.now.hint", comment: "AI now hint"),
+            count: 7,
+            isNowMode: false
+        ) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Nearby Places")
                     .font(.headline)

@@ -886,3 +886,9 @@
 "settings.companion.requests.empty" = "No recruitment requests yet.";
 "settings.companion.conversations" = "Joined group chats";
 "settings.companion.conversations.empty" = "You haven't joined any group chats yet.";
+
+/* US-018 — BottomInfoSheet peek toolbar */
+"ai.now.hint" = "Good spots for right now";
+"sheet.sort.button" = "Sort";
+"sheet.count.now" = "此刻 %d";
+"sheet.count.nearby" = "附近 %d";

@@ -230,8 +230,14 @@ public struct CompassMapView: View {
                 }
 
                 ZStack(alignment: .bottom) {
-                    BottomInfoSheet {
-                        Text("placeholder")
+                    BottomInfoSheet(
+                        aiHint: NSLocalizedString("ai.now.hint", comment: "AI now hint"),
+                        count: viewModel.isNowFilter
+                            ? viewModel.nowCount
+                            : viewModel.visibleExperiences.count,
+                        isNowMode: viewModel.isNowFilter
+                    ) {
+                        EmptyView()
                     }
                 }
                 .ignoresSafeArea(edges: .bottom)
