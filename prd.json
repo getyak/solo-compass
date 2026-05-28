@@ -454,7 +454,7 @@
         "Verify in Simulator using #Preview: render with all 4 statuses + viewerIsHost=true/false + hasMyRequest=true/false"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
