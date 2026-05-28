@@ -675,7 +675,7 @@
         "Verify in Simulator: from any itinerary detail -> tap \u5f00\u4e3a\u62db\u52df\u8def\u7ebf -> fill form -> submit -> resulting Route appears in DiscoverRecruitingRoutesView"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

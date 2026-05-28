@@ -49,3 +49,4 @@ Tool: claude
 [2026-05-28T11:19:08Z] Story #US-036: Auto-create group conversation on first accept (open->forming) — PASSED
 [2026-05-28T11:24:41Z] Story #US-037: Group ChatView (top-pinned RouteCard + per-message avatar) — PASSED
 [2026-05-28T11:29:20Z] Story #US-038: CompletionMoment screen (closed -> completed -> verified) — PASSED
+[2026-05-28T11:34:24Z] Story #US-039: OpenForCompanionsSheet (host creates recruiting from an itinerary) — PASSED
