@@ -41,8 +41,13 @@ echo "🎯 Target branch: $TARGET_BRANCH"
 # Verify we're on the correct branch BEFORE first iteration
 CURRENT_BRANCH=$(git branch --show-current)
 if [ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]; then
-  echo "   ⚠️ Not on target branch ($CURRENT_BRANCH ≠ $TARGET_BRANCH) — switching"
-  git checkout "$TARGET_BRANCH"
+  if git rev-parse --verify --quiet "$TARGET_BRANCH" > /dev/null; then
+    echo "   ⚠️ Not on target branch ($CURRENT_BRANCH ≠ $TARGET_BRANCH) — switching"
+    git checkout "$TARGET_BRANCH"
+  else
+    echo "   ⚠️ Target branch $TARGET_BRANCH does not exist — creating from $CURRENT_BRANCH"
+    git checkout -b "$TARGET_BRANCH"
+  fi
 fi
 
 for i in $(seq 1 $MAX_ITERATIONS); do
@@ -54,7 +59,12 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   CURRENT_BRANCH=$(git branch --show-current)
   if [ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]; then
     echo "   ⚠️ Branch drift: on $CURRENT_BRANCH, expected $TARGET_BRANCH — switching back"
-    git checkout "$TARGET_BRANCH"
+    if git rev-parse --verify --quiet "$TARGET_BRANCH" > /dev/null; then
+      git checkout "$TARGET_BRANCH"
+    else
+      # First-iteration race: branch was deleted or never created. Recreate.
+      git checkout -b "$TARGET_BRANCH"
+    fi
   fi
 
   # Find next incomplete story

@@ -1,0 +1,154 @@
+[
+  {
+    "id": "mekong-sunset",
+    "title": "Mekong Sunset",
+    "summary": "A 45-minute promenade walk that ends on a plastic chair facing Thailand, watching the river swallow the sun.",
+    "experienceIds": ["exp_vte_mekong_riverside_sunset"],
+    "cityCode": "VTE",
+    "region": "Riverfront",
+    "estimatedDuration": 90,
+    "distanceMeters": 1200,
+    "pace": "relaxed",
+    "tags": ["sunset", "river", "evening", "solo-friendly"],
+    "source": "editorial",
+    "authorId": "editorial-team",
+    "bestStartHour": 17.0,
+    "bestNow": false,
+    "verification": {
+      "status": "walkedBy",
+      "walkedByCount": 12,
+      "walkedBy": ["maya", "leo", "ana", "kenta"]
+    },
+    "companion": {
+      "status": "open",
+      "hostId": "maya",
+      "departureWindow": {
+        "from": "2026-06-01",
+        "to": "2026-06-03",
+        "time": "17:00"
+      },
+      "departureLabel": "Early June evenings",
+      "pacePreference": "relaxed",
+      "maxMembers": 4,
+      "confirmedMembers": ["maya", "lin"],
+      "joinRequests": [
+        {
+          "id": "jr_mekong_001",
+          "requesterId": "tomas",
+          "message": "Would love to catch the sunset!",
+          "status": "pending",
+          "createdAt": "2026-05-20T10:00:00Z"
+        },
+        {
+          "id": "jr_mekong_002",
+          "requesterId": "ren",
+          "message": "Sounds magical, count me in",
+          "status": "pending",
+          "createdAt": "2026-05-21T08:30:00Z"
+        }
+      ],
+      "visibility": "public",
+      "hostMessage": "Bringing a speaker, come as you are."
+    }
+  },
+  {
+    "id": "slow-coffee-day",
+    "title": "Slow Coffee Day",
+    "summary": "A two-stop drift through the old quarter: cool cloisters at Wat Si Saket, then a long sit-down with Bolaven beans.",
+    "experienceIds": ["exp_vte_wat_si_saket_morning", "exp_vte_slow_coffee_dao"],
+    "cityCode": "VTE",
+    "region": "Old Quarter",
+    "estimatedDuration": 180,
+    "distanceMeters": 1800,
+    "pace": "relaxed",
+    "tags": ["coffee", "culture", "morning", "slow"],
+    "source": "editorial",
+    "authorId": "editorial-team",
+    "bestStartHour": 8.0,
+    "bestNow": false,
+    "verification": {
+      "status": "proposed",
+      "walkedByCount": 5,
+      "walkedBy": ["nora", "hiro"]
+    },
+    "companion": {
+      "status": "forming",
+      "hostId": "eira",
+      "departureWindow": {
+        "from": "2026-06-05",
+        "to": "2026-06-07",
+        "time": "08:00"
+      },
+      "departureLabel": "Weekend mornings",
+      "pacePreference": "relaxed",
+      "maxMembers": 4,
+      "confirmedMembers": ["eira", "kosuke", "yuna"],
+      "joinRequests": [],
+      "visibility": "public",
+      "hostMessage": "Slow pace, lots of time to talk."
+    }
+  },
+  {
+    "id": "morning-ritual",
+    "title": "Morning Ritual",
+    "summary": "Dawn at the golden stupa, then a side-street roaster while the city wakes up around you.",
+    "experienceIds": ["exp_vte_pha_that_luang_dawn", "exp_vte_slow_coffee_dao"],
+    "cityCode": "VTE",
+    "region": "Northeast Plaza",
+    "estimatedDuration": 150,
+    "distanceMeters": 5200,
+    "pace": "standard",
+    "tags": ["dawn", "ritual", "culture", "coffee"],
+    "source": "editorial",
+    "authorId": "editorial-team",
+    "bestStartHour": 6.0,
+    "bestNow": false,
+    "verification": {
+      "status": "proposed",
+      "walkedByCount": 0,
+      "walkedBy": []
+    },
+    "companion": null
+  },
+  {
+    "id": "vientiane-monuments",
+    "title": "Vientiane Monuments",
+    "summary": "Three landmarks in a single morning: temple, victory arch, golden stupa — the long version of Vientiane in three stops.",
+    "experienceIds": [
+      "exp_vte_wat_si_saket_morning",
+      "exp_vte_patuxai_view",
+      "exp_vte_pha_that_luang_dawn"
+    ],
+    "cityCode": "VTE",
+    "region": "Civic Spine",
+    "estimatedDuration": 240,
+    "distanceMeters": 6800,
+    "pace": "packed",
+    "tags": ["monuments", "culture", "walking", "history"],
+    "source": "editorial",
+    "authorId": "editorial-team",
+    "bestStartHour": 8.0,
+    "bestNow": false,
+    "verification": {
+      "status": "verified",
+      "walkedByCount": 28,
+      "walkedBy": ["maya", "leo", "ana", "kenta", "nora", "hiro", "sam", "wei"]
+    },
+    "companion": {
+      "status": "completed",
+      "hostId": "maya",
+      "departureWindow": {
+        "from": "2026-05-10",
+        "to": "2026-05-10",
+        "time": "08:00"
+      },
+      "departureLabel": "May 10 morning",
+      "pacePreference": "packed",
+      "maxMembers": 4,
+      "confirmedMembers": ["maya", "lin", "tomas", "ren"],
+      "joinRequests": [],
+      "visibility": "public",
+      "hostMessage": "All three landmarks in one go — we made it!"
+    }
+  }
+]

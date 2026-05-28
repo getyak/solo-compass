@@ -19,6 +19,10 @@ struct ShareSheet: View {
     @State private var activityItems: [Any]? = nil
     @State private var statusMessage: String? = nil
     @State private var statusIsError: Bool = false
+    /// Pre-rendered preview bitmap for the current card style. Rendering once into a
+    /// static image avoids per-frame re-compositing of `.ultraThinMaterial`, shadows and
+    /// gradients under `scaleEffect`/sheet animation — the source of the preview flicker.
+    @State private var previewImage: UIImage? = nil
 
     enum ShareMode: Hashable, Identifiable, CaseIterable {
         case xiaohongshuPortrait
@@ -92,10 +96,9 @@ struct ShareSheet: View {
             HStack(spacing: 10) {
                 ForEach(ShareMode.allCases) { mode in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            selectedMode = mode
-                            statusMessage = nil
-                        }
+                        if mode != selectedMode { previewImage = nil }
+                        selectedMode = mode
+                        statusMessage = nil
                     } label: {
                         Text(mode.label)
                             .font(.system(size: 13, weight: .semibold))
@@ -125,23 +128,31 @@ struct ShareSheet: View {
     }
 
     private func cardPreview(for style: ShareCardStyle) -> some View {
-        GeometryReader { geo in
-            let target = style.renderSize
-            let scale = min(geo.size.width / target.width, geo.size.height / target.height)
-            ZStack {
-                ShareCardView(payload: payload, style: style)
-                    .frame(width: target.width, height: target.height)
-                    .scaleEffect(scale, anchor: .center)
-                    .frame(
-                        width: target.width * scale,
-                        height: target.height * scale
-                    )
+        let aspect = style.renderSize.width / style.renderSize.height
+        return ZStack {
+            if let image = previewImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(aspect, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 6)
+            } else {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.secondarySystemBackground))
+                    .aspectRatio(aspect, contentMode: .fit)
+                    .overlay(ProgressView())
             }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task(id: style) { await renderPreview(for: style) }
+    }
+
+    /// Render the current card to a static bitmap off the animation path, then publish it
+    /// for display. Re-runs whenever the selected style changes (via `.task(id:)`).
+    @MainActor
+    private func renderPreview(for style: ShareCardStyle) async {
+        let rendered = try? ShareCardRenderer.renderImage(payload: payload, style: style)
+        previewImage = rendered
     }
 
     private var markdownPreview: some View {

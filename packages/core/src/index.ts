@@ -6,3 +6,4 @@ export * from "./user";
 export * from "./city";
 export * from "./llm-context";
 export * from "./companion";
+export * from "./route";

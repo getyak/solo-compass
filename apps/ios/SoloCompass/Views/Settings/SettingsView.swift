@@ -37,6 +37,9 @@ public struct SettingsView: View {
     @State private var appleSignInToast: String?
     @State private var appleSignInService = AppleSignInService()
 
+    // US-012: Companion opt-in safety consent gate
+    @State private var showingCompanionConsent = false
+
     public init(
         onClose: @escaping () -> Void = {},
         onShowFavorites: (() -> Void)? = nil,
@@ -68,6 +71,8 @@ public struct SettingsView: View {
                 exportSection
                 // Section: Subscription
                 subscriptionSection
+                // Section: Companion (US-012) — experimental opt-in
+                companionSection
                 // Section: About / Stats / Data
                 statsSection
                 dataSection
@@ -762,6 +767,139 @@ public struct SettingsView: View {
         } header: {
             settingsSectionHeader("paintpalette", label: NSLocalizedString("settings.appearance", comment: "Appearance"))
         }
+    }
+
+    // MARK: - Companion (US-012)
+
+    /// US-012: Single experimental opt-in gate for the companion feature.
+    /// false→true requires accepting the safety consent sheet; true→false
+    /// is persisted immediately with no confirmation. When enabled, three
+    /// navigation links appear (profile, requests, conversations).
+    private var companionSection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { preferences.companionEnabled },
+                set: { newValue in
+                    if newValue && !preferences.companionEnabled {
+                        // false → true: gate behind safety consent
+                        showingCompanionConsent = true
+                    } else {
+                        preferences.companionEnabled = newValue
+                    }
+                }
+            )) {
+                HStack(spacing: 10) {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.pink, in: RoundedRectangle(cornerRadius: 7))
+                    Text(NSLocalizedString("settings.companion.toggle", comment: "Companion toggle label"))
+                }
+            }
+
+            if preferences.companionEnabled {
+                NavigationLink {
+                    CompanionProfileView()
+                        .environment(preferences)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.crop.circle")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.indigo, in: RoundedRectangle(cornerRadius: 7))
+                        Text(NSLocalizedString("settings.companion.profile", comment: "Companion profile link"))
+                    }
+                }
+
+                NavigationLink {
+                    MyRequestsListView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "tray.and.arrow.up")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.orange, in: RoundedRectangle(cornerRadius: 7))
+                        Text(NSLocalizedString("settings.companion.requests", comment: "My recruitment requests link"))
+                    }
+                }
+
+                NavigationLink {
+                    CompanionConversationsListView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.teal, in: RoundedRectangle(cornerRadius: 7))
+                        Text(NSLocalizedString("settings.companion.conversations", comment: "Joined conversations link"))
+                    }
+                }
+            }
+        } header: {
+            settingsSectionHeader(
+                "person.2",
+                label: NSLocalizedString("settings.companion.header", comment: "Companion (Experimental) section header")
+            )
+        } footer: {
+            Text(NSLocalizedString("settings.companion.footer", comment: "Companion section footer"))
+        }
+        .sheet(isPresented: $showingCompanionConsent) {
+            // Cancel path: companionEnabled stays false (only accept writes
+            // it). The Toggle re-reads from preferences and auto-rollbacks.
+            CompanionSafetyConsentSheet(onAccepted: {
+                preferences.companionEnabled = true
+                showingCompanionConsent = false
+            })
+            .environment(preferences)
+        }
+    }
+}
+
+// MARK: - Companion stubs (US-012)
+
+/// US-012 stub: empty list of pending companion recruitment requests.
+/// Real data wired up in a later story.
+struct MyRequestsListView: View {
+    var body: some View {
+        List {
+            Text(NSLocalizedString(
+                "settings.companion.requests.empty",
+                comment: "Empty state for my recruitment requests"
+            ))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(NSLocalizedString(
+            "settings.companion.requests",
+            comment: "My recruitment requests title"
+        ))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// US-012 stub: empty list of joined companion group chats. Real data
+/// wired up in a later story.
+struct CompanionConversationsListView: View {
+    var body: some View {
+        List {
+            Text(NSLocalizedString(
+                "settings.companion.conversations.empty",
+                comment: "Empty state for joined conversations"
+            ))
+            .foregroundStyle(.secondary)
+            .font(.subheadline)
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(NSLocalizedString(
+            "settings.companion.conversations",
+            comment: "Joined conversations title"
+        ))
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

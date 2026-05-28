@@ -79,6 +79,23 @@ final class SoloCompassTests: XCTestCase {
 
     // MARK: - customTags (US-008)
 
+    // MARK: - companionEnabled (US-011)
+
+    /// `UserPreferences.companionEnabled` defaults to false and a flip to
+    /// true survives re-instantiation against the same UserDefaults suite.
+    func testUserPreferencesCompanionEnabledDefaultsFalseAndPersists() throws {
+        let suite = "us011.companionEnabled.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let prefs = UserPreferences(defaults: defaults)
+        XCTAssertFalse(prefs.companionEnabled, "companionEnabled must default to false")
+
+        prefs.companionEnabled = true
+        let reloaded = UserPreferences(defaults: defaults)
+        XCTAssertTrue(reloaded.companionEnabled, "companionEnabled=true must persist across instantiation")
+    }
+
     /// `UserPreferences.customTags` defaults to empty and survives a
     /// UserDefaults reload.
     func testUserPreferencesCustomTagsPersistsAcrossReload() throws {
@@ -1277,14 +1294,14 @@ final class SoloCompassTests: XCTestCase {
 
         // First call: empty store → inserts seed (bundle JSON or hardcoded fallback)
         let added = repo.importSeedIfNeeded()
-        XCTAssertEqual(added, 5, "seed has exactly 5 experiences")
-        XCTAssertEqual(repo.allExperiences().count, 5)
+        XCTAssertEqual(added, 10, "seed has exactly 10 experiences (5 cmi + 5 vte)")
+        XCTAssertEqual(repo.allExperiences().count, 10)
         XCTAssertTrue(prefs.seedImported, "flag must be set after first import")
 
         // Second call: no-op because seedImported is true
         let addedAgain = repo.importSeedIfNeeded()
         XCTAssertEqual(addedAgain, 0, "second call must be a no-op")
-        XCTAssertEqual(repo.allExperiences().count, 5, "count unchanged after no-op")
+        XCTAssertEqual(repo.allExperiences().count, 10, "count unchanged after no-op")
     }
 
     // MARK: - US-009 UserPreferences → SwiftData mirroring

@@ -279,6 +279,31 @@ public struct CompassMapView: View {
                     }
                     .animation(.easeInOut, value: viewModel.isFetchingPOIs)
                 }
+
+                ZStack(alignment: .bottom) {
+                    BottomInfoSheet(
+                        aiHint: NSLocalizedString("ai.now.hint", comment: "AI now hint"),
+                        count: viewModel.isNowFilter
+                            ? viewModel.nowCount
+                            : viewModel.visibleExperiences.count,
+                        isNowMode: viewModel.isNowFilter
+                    ) { detent, sortMode in
+                        if detent != .peek {
+                            NearbySection(
+                                experiences: viewModel.visibleExperiences,
+                                smartPickIds: viewModel.aiSmartPickIds,
+                                referenceCoordinate: locationService.currentLocation?.coordinate
+                                    ?? viewModel.defaultCenterForSelectedCity,
+                                sortMode: sortMode.wrappedValue,
+                                onSelectExperience: { exp in
+                                    viewModel.selectExperience(exp)
+                                    viewModel.isShowingDetail = true
+                                }
+                            )
+                        }
+                    }
+                }
+                .ignoresSafeArea(edges: .bottom)
             } else {
                 ProgressView()
                     .accessibilityLabel(Text(NSLocalizedString("map.loading", comment: "Loading map")))
@@ -853,9 +878,6 @@ private struct MapOverlayView: View {
                         }
                     }
             }
-
-            BottomInfoBar(text: viewModel.bottomInfoText, nearbySoloCount: viewModel.nearbySoloCount)
-                .padding(.bottom, 8)
 
             if let pending = viewModel.pendingCheckIn {
                 ZStack(alignment: .top) {
