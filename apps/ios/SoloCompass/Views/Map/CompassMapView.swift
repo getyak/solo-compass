@@ -141,6 +141,11 @@ public struct CompassMapView: View {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
             }
+            .onChange(of: viewModel?.isShowingDetail) { _, showing in
+                if showing == true {
+                    HapticService.shared.impact(style: .medium)
+                }
+            }
             .onChange(of: viewModel?.selectedCity) { _, cityCode in
                 refreshNearbyRoutes(cityCode: cityCode)
             }
@@ -604,7 +609,7 @@ public struct CompassMapView: View {
                         Annotation(exp.title, coordinate: coord) {
                             Button {
                                 viewModel.selectExperience(exp)
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                HapticService.shared.impact(style: .light)
                             } label: {
                                 VStack(spacing: 2) {
                                     MarkerIconView(
