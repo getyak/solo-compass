@@ -284,7 +284,7 @@
       "description": "As a user, even at the peek detent (170 pt) I see the AI hint line and the sort/count toolbar so the sheet feels alive without expanding.",
       "acceptanceCriteria": [
         "Inside BottomInfoSheet content: a 'now-hint' row showing AI_NOW_HINT text (left) + mono time HH:MM (right), with a sunset SF Symbol",
-        "Below it a toolbar row: sort button (left, capsule, dropdown chevron) + count badge (right, '\u6b64\u523b N' or '\u9644\u8fd1 N')",
+        "Below it a toolbar row: sort button (left, capsule, dropdown chevron) + count indicator (right, '\u6b64\u523b N' or '\u9644\u8fd1 N')",
         "All visible at peek detent",
         "Localize 2 keys: sheet.sort.button, sheet.count.now / sheet.count.nearby",
         "Typecheck passes",
@@ -335,7 +335,7 @@
         "Props: ids: [String], maxVisible: Int = 5, size: CGFloat = 24, ring: Color = .white",
         "Render up to maxVisible overlapping circles (6 pt overlap), each filled with UserDirectory.color(forId:) and 2pt ring",
         "If ids.count > maxVisible, show '+N' bubble after the stack",
-        "Add enum VerifiedStyle { case badge, header, inline } in the same file",
+        "Add enum VerifiedStyle { case indicator, header, inline } in the same file",
         "Add #Preview showing 3, 5, 8 avatars",
         "Typecheck passes",
         "Verify in Simulator: #Preview renders three permutations correctly"
@@ -350,8 +350,8 @@
       "description": "As a user, I see a small 'verified' badge with 'walked by N travelers' + avatar stack in route detail.",
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/Components/VerifiedBadge.swift with struct VerifiedBadge: View",
-        "Props: route: Route, style: VerifiedStyle = .badge",
-        "Badge style: white card, 1pt border-subtle (#EDE8DF), 14pt corner radius, glyph icon left (check-circle if verified else users), title '\u5df2\u9a8c\u8bc1\u8def\u7ebf' or '\u793e\u7fa4\u89c2\u5bdf\u4e2d', subtitle '\u4e0e N \u4f4d\u65c5\u4eba\u8d70\u8fc7', AvatarStack on right",
+        "Props: route: Route, style: VerifiedStyle = .indicator",
+        "Indicator style: white card, 1pt border-subtle (#EDE8DF), 14pt corner radius, glyph icon left (check-circle if verified else users), title '\u5df2\u9a8c\u8bc1\u8def\u7ebf' or '\u793e\u7fa4\u89c2\u5bdf\u4e2d', subtitle '\u4e0e N \u4f4d\u65c5\u4eba\u8d70\u8fc7', AvatarStack on right",
         "Header and inline branches: stubs returning EmptyView for now (filled later if needed)",
         "Add localized keys: verified.title.verified, verified.title.watching, verified.subtitle",
         "Add #Preview with verified=true and verified=false",
@@ -386,7 +386,7 @@
       "description": "As a user, opening a route shows hero + mono baseline + VerifiedBadge + StopsList + dock with two CTAs (save + favorite). No companion UI.",
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/RouteDetailView.swift with struct RouteDetailView: View",
-        "Hero block: gradient background (use CategoryVisual.gradient(for: route.primaryCategory) -- derive from majority category of stops), category emoji + title (Space Grotesk weight 700) + romanized + region badge",
+        "Hero block: gradient background (use CategoryVisual.gradient(for: route.primaryCategory) -- derive from majority category of stops), category emoji + title (Space Grotesk weight 700) + romanized + region label",
         "Mono baseline (JetBrains Mono caption): '{estimatedDuration} \u00b7 {distanceMeters} m \u00b7 {pace.label} \u00b7 {bestNow ? \"\u6b64\u523b\u6700\u4f73\" : \"\u975e\u6b64\u523b\"}'",
         "Below: VerifiedBadge(route:)",
         "Below: StopsList(route: route, onTapStop: { ...navigate to ExperienceDetail })",
@@ -403,7 +403,7 @@
     {
       "id": "US-025",
       "title": "BottomInfoSheet 'Routes' section (above Nearby)",
-      "description": "As a user, the bottom sheet shows recruiting routes above nearby experiences with their cover, title, mono baseline, and verified corner badge.",
+      "description": "As a user, the bottom sheet shows recruiting routes above nearby experiences with their cover, title, mono baseline, and verified corner indicator.",
       "acceptanceCriteria": [
         "Inside BottomInfoSheet content (above the \u9644\u8fd1 section): a \u8def\u7ebf section listing RouteStore.nearby(cityCode: currentCity, limit: 8)",
         "Each row uses a new RouteCard view (create apps/ios/SoloCompass/Views/Companion/Components/RouteCard.swift)",
@@ -648,14 +648,14 @@
         "Create apps/ios/SoloCompass/Views/Companion/CompletionMoment.swift with struct CompletionMoment: View",
         "Triggered from RouteDetailView when viewerIsHost && route.companion?.status == .closed: show a dock button '\u6807\u8bb0\u5b8c\u6210' in addition to existing 2 CTAs",
         "Presentation: .fullScreenCover with smooth fade-in",
-        "Layout: large central verified badge pulsing (scale 1.0<->1.06 over 1.2s), stat row '\u8d70\u8fc7 x{N} \u00b7 \u65c5\u4eba x{M}', flywheel tagline '\u8fd9\u6761\u8def\u7ebf\u73b0\u5728\u4e3a\u4e0b\u4e00\u6279\u65c5\u4eba\u53d1\u5149', close button at top-right",
+        "Layout: large central verified indicator pulsing (scale 1.0<->1.06 over 1.2s), stat row '\u8d70\u8fc7 x{N} \u00b7 \u65c5\u4eba x{M}', flywheel tagline '\u8fd9\u6761\u8def\u7ebf\u73b0\u5728\u4e3a\u4e0b\u4e00\u6279\u65c5\u4eba\u53d1\u5149', close button at top-right",
         "On appear: dispatch state update via RouteCompanionStateMachine: closed->completed; set verification.status=.verified, verification.walkedByCount += companion.confirmedMembers.count, verification.walkedBy += companion.confirmedMembers, persist via RouteStore.save",
         "Mark groupConversation as readOnly (add Conversation.isReadOnly Bool field if needed) so the chat ungates can be implemented",
         "Add unit test covering the state mutation only (no UI)",
         "Localize 3 keys",
         "Typecheck passes",
         "Tests pass",
-        "Verify in Simulator: simulate a closed mekong-sunset and tap \u6807\u8bb0\u5b8c\u6210 -> moment plays -> close -> reopen detail shows verified badge"
+        "Verify in Simulator: simulate a closed mekong-sunset and tap \u6807\u8bb0\u5b8c\u6210 -> moment plays -> close -> reopen detail shows verified indicator"
       ],
       "priority": 38,
       "passes": false,
