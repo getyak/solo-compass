@@ -793,3 +793,311 @@
 "openForCompanions.hostMessage" = "主理人留言";
 "openForCompanions.hostMessage.placeholder" = "告诉想同行的旅人可以期待什么…";
 "openForCompanions.submit" = "创建路线";
+
+/* ============================================================
+ * US-042 — Backfill: keys missing from zh-Hans
+ * ============================================================ */
+
+/* Actions */
+"action.addToItinerary" = "加入行程";
+"action.ok" = "好的";
+
+/* Agent steps */
+"agent.step.dismiss" = "✕ 关闭中…";
+"agent.step.executing" = "⚙️ 执行中…";
+"agent.step.exploreNearby" = "🔍 搜索附近…";
+"agent.step.filter" = "🗂 筛选地图…";
+"agent.step.listening" = "聆听中…";
+"agent.step.navigate" = "🗺 打开导航…";
+"agent.step.save" = "❤️ 收藏中…";
+"agent.step.search" = "🔍 搜索地点…";
+"agent.step.showDetails" = "📍 查看详情…";
+"agent.step.thinking" = "思考中…";
+
+/* AI hints */
+"ai.now.hint" = "当下最适合的地方";
+
+/* AI Provider settings */
+"ai.provider.settings.title" = "AI 提供商";
+"ai.provider.custom" = "自定义";
+"ai.provider.section.provider" = "提供商";
+"ai.provider.section.apiKey" = "API 密钥";
+"ai.provider.section.baseURL" = "接口地址";
+"ai.provider.section.model" = "模型";
+"ai.provider.apiKey.placeholder" = "粘贴你的 API 密钥…";
+"ai.provider.apiKey.footer" = "存储在本设备上，不会上传至 Solo Compass 服务器。";
+"ai.provider.baseURL.placeholder" = "https://api.example.com/v1";
+"ai.provider.baseURL.footer" = "兼容 OpenAI 格式的接口根地址（如 https://api.openai.com/v1）。";
+"ai.provider.model.placeholder.custom" = "输入模型名称";
+"ai.provider.model.hint" = "默认：%@。留空则使用提供商默认模型。";
+"ai.provider.model.hint.custom" = "输入自定义提供商的模型标识符。";
+"ai.provider.deepseek.description" = "DeepSeek 提供快速且高性价比的模型。在 platform.deepseek.com 获取密钥。";
+"ai.provider.openai.description" = "OpenAI GPT 模型。在 platform.openai.com 获取密钥。";
+"ai.provider.custom.description" = "任意兼容 OpenAI 格式的 API。在下方输入接口地址和密钥。";
+"ai.provider.status.configured" = "已配置 %@";
+"ai.provider.status.unconfigured" = "需要 API 密钥才能使用 AI 功能";
+
+/* Approval queue */
+"approval.queue.title" = "待审批申请";
+"approval.queue.trust.line" = "已走过 %d 条 · 拼团 %d 次";
+"approval.queue.decline" = "拒绝";
+"approval.queue.accept" = "接受";
+"approval.queue.empty" = "暂无待处理申请。";
+
+/* Best times */
+"bestTimes.window.active.a11y" = "正在进行中";
+
+/* Card */
+"card.favorite.add" = "加入收藏";
+"card.favorite.remove" = "取消收藏";
+"card.distance.walk" = "%d 分钟步行";
+"card.distance.walkSub1" = "不到 1 分钟步行";
+"card.distance.arrived" = "你已到达";
+"card.distance.arrived.a11y" = "你已到达";
+"card.distance.bearing.a11y" = "朝%@方向";
+
+/* Celebration */
+"celebration.complete.a11y" = "体验已完成";
+
+/* Chat (Solo AI Chat) */
+"chat.bubble.copy" = "复制";
+"chat.empty.prompt.nearby" = "附近有什么好玩的？";
+"chat.empty.prompt.coffee" = "找一家安静的咖啡馆";
+"chat.empty.prompt.evening" = "帮我计划今晚的行程";
+
+/* Common */
+"common.settings" = "设置";
+
+/* Companion — extended error / status strings */
+"companion.block.success" = "已屏蔽该用户";
+"companion.block.error.title" = "屏蔽失败";
+"companion.chat.error.auth" = "请登录后再发送消息。";
+"companion.chat.error.encode" = "消息发送失败，请重试。";
+"companion.chat.group.memberCount" = "%d 位成员";
+"companion.chat.group.unknownRoute" = "群聊";
+"companion.chat.pinnedRoute.a11y" = "已置顶路线";
+"companion.discover.error.auth" = "请登录后发现同伴。";
+"companion.discover.error.config" = "应用配置缺失，请重新安装。";
+"companion.discover.error.retry" = "重试";
+"companion.discover.error.retry.hint" = "重新加载同伴列表";
+"companion.discover.error.server" = "服务器错误，请稍后再试。";
+"companion.discover.trust.low" = "该用户收到过多次举报，可见范围可能受限。";
+"companion.inbox.error.load" = "无法加载请求，请检查网络后重试。";
+"companion.inbox.error.retry" = "重试";
+"companion.inbox.error.retry.hint" = "重新加载收件箱";
+"companion.inbox.error.title" = "无法加载收件箱";
+"companion.presence.enable" = "分享在线状态";
+"companion.presence.disable" = "停止分享";
+"companion.presence.active" = "正在分享你的大致位置（~600 米）";
+"companion.presence.stopped" = "在线状态已关闭";
+"companion.report.menu.report" = "举报";
+"companion.report.menu.block" = "屏蔽用户";
+"companion.request.accept.error" = "无法接受请求，请重试。";
+"companion.request.send.error" = "无法发送请求，请重试。";
+"companion.request.withdraw" = "撤回";
+
+/* Compass directions */
+"compass.N" = "北";
+"compass.NE" = "东北";
+"compass.E" = "东";
+"compass.SE" = "东南";
+"compass.S" = "南";
+"compass.SW" = "西南";
+"compass.W" = "西";
+"compass.NW" = "西北";
+
+/* Completion moment */
+"completion.mark.done" = "标记完成";
+"completion.stat.walked" = "走过";
+"completion.stat.travelers" = "旅人";
+"completion.tagline" = "这条路线现在为下一批旅人发光";
+
+/* Confidence */
+"confidence.lastVerified" = "验证于 %@";
+
+/* Detail */
+"detail.distance.away" = "%@外";
+"detail.distance.a11y" = "距离 %@";
+"detail.source.openHint" = "打开原始来源";
+
+/* Discover recruiting */
+"discover.recruiting.title" = "发现招募路线";
+"discover.recruiting.chip" = "%d/%d · %@";
+"discover.recruiting.chip.a11y" = "%d 位成员（共 %d 位）· %@";
+"discover.recruiting.empty.title" = "目前没有招募中的路线";
+"discover.recruiting.empty.description" = "附近还没有开放加入的路线。";
+"discover.recruiting.empty.create" = "开一个你自己的路线";
+
+/* Experience */
+"experience.bestNow.countdown" = "此刻最佳 · 还有 %d 分钟";
+"experience.bestNow.countdown.a11y" = "此刻最佳，还有 %d 分钟";
+"experience.bestTime.hint" = "最佳时段：%@";
+"experience.bestTime.hint.a11y" = "最佳时段：%@";
+
+/* Explore */
+"explore.expand.alreadyMax" = "已在最大探索半径（100 公里）。";
+
+/* Favorites */
+"favorites.count" = "已收藏 %d 个";
+"favorites.count.matching" = "匹配 %1$d / %2$d";
+"favorites.distance.km" = "%.1f 公里";
+"favorites.distance.m" = "%d 米";
+"favorites.distance.mi" = "%.1f 英里";
+"favorites.proximity.near" = "步行可达";
+"favorites.proximity.mid" = "短程出行";
+"favorites.proximity.far" = "较远";
+"favorites.row.distance.a11y" = "%@外";
+"favorites.search.clear" = "清空搜索";
+"favorites.search.clear.hint" = "清空搜索框并显示所有收藏";
+"favorites.search.noResults" = "没有"%@"的匹配结果";
+"favorites.search.noResults.hint" = "换个词试试，或清空搜索。";
+"favorites.search.prompt" = "搜索收藏";
+"favorites.sort.label" = "排序";
+"favorites.sort.nearest" = "最近";
+"favorites.sort.recent" = "最新";
+"favorites.swipe.hint" = "左滑删除";
+"favorites.undo" = "已删除 — 撤销";
+"favorites.undo.swipeHint" = "下滑关闭";
+
+/* Filters */
+"filter.clear" = "清除筛选";
+"filter.matches.one" = "%d 个匹配";
+"filter.matches.other" = "%d 个匹配";
+"filter.matches.none" = "无匹配";
+"filter.now.a11y" = "此刻，%d 个体验正处于最佳状态";
+"filter.now.empty.idle" = "现在没有体验处于最佳状态";
+"filter.now.empty.upcoming" = "%@ 还有 %d 分钟";
+"filter.now.empty.a11y" = "现在没有体验处于最佳状态。%@ 将在 %d 分钟后开始。点击跳转。";
+
+/* Inconveniences */
+"inconvenience.category.scam" = "诈骗风险";
+"inconvenience.category.crowds" = "人群拥挤";
+"inconvenience.category.logistics" = "出行不便";
+"inconvenience.category.weather" = "天气影响";
+"inconvenience.category.etiquette" = "礼仪注意";
+"inconvenience.category.safety" = "安全提示";
+"inconvenience.category.other" = "注意事项";
+"inconvenience.a11y.prefix" = "提示：%@ — %@";
+"inconvenience.card.count" = "%d";
+"inconvenience.card.a11y" = "提示：%d 条注意事项";
+
+/* Itinerary */
+"itinerary.addTo.error.title" = "无法加入行程";
+"itinerary.detail.experience.unavailable" = "体验不可用";
+"itinerary.detail.experiences.unknown" = "未知体验（%@）";
+
+/* Join sheet */
+"join.sheet.title" = "申请加入";
+"join.pace.label" = "配速匹配";
+"join.pace.placeholder" = "请选择";
+"join.pace.slower" = "慢于主理人";
+"join.pace.matching" = "相近";
+"join.pace.faster" = "快于主理人";
+"join.message.label" = "自我介绍";
+"join.message.placeholder" = "向主理人介绍自己…";
+"join.submit" = "提交申请";
+
+/* Location */
+"location.copied" = "已复制！";
+"location.copied.a11y" = "坐标已复制";
+
+/* My routes */
+"my.hosted.routes.title" = "我主理的路线";
+"my.hosted.routes.empty" = "你目前还没有主理的路线。";
+"my.requests.empty" = "你还没有申请加入任何路线。";
+"my.requests.status.pending" = "待确认";
+"my.requests.status.accepted" = "已接受";
+"my.requests.status.declined" = "已拒绝";
+"my.requests.status.withdrawn" = "已撤回";
+"my.requests.withdraw" = "撤回申请";
+
+/* Profile */
+"profile.walkedRoutes.header" = "走过的路线（%d）";
+"profile.walkedRoutes.viewAll" = "查看全部 →";
+
+/* Recruiting */
+"recruiting.status.open" = "招募中";
+"recruiting.status.forming" = "组队中";
+"recruiting.status.closed" = "已关闭";
+"recruiting.status.completed" = "已完成";
+"recruiting.slots.label" = "成员";
+"recruiting.slots.count" = "%d/%d";
+"recruiting.cta.viewRequests" = "查看申请（%d）";
+"recruiting.cta.applied" = "已申请 · 等待确认";
+"recruiting.cta.viewChat" = "查看群聊";
+"recruiting.cta.requestJoin" = "申请加入";
+"recruiting.cta.requestJoinForming" = "申请加入（最后 %d 位）";
+
+/* Route */
+"route.card.verified" = "已验证";
+"route.detail.save" = "保存到我的行程";
+"route.detail.favorite" = "加入收藏";
+"route.detail.bestNow.yes" = "此刻最佳";
+"route.detail.bestNow.no" = "非此刻";
+"route.detail.pace.relaxed" = "悠闲";
+"route.detail.pace.standard" = "适中";
+"route.detail.pace.packed" = "紧凑";
+
+/* Router fallback */
+"router.fallback.find" = "找到了一些附近的好地方，快看地图！";
+"router.fallback.recommend" = "根据你的偏好，这里有一些不错的附近选择。";
+"router.fallback.settings" = "你可以在设置中调整你的偏好。";
+"router.fallback.smallTalk" = "我在这里帮你发现适合独行的好地方，你在找什么？";
+
+/* Settings — AI Provider */
+"settings.aiProvider" = "AI 提供商";
+"settings.aiProvider.header" = "人工智能";
+"settings.aiProvider.status.unconfigured" = "未配置 — AI 功能已禁用";
+"settings.aiProvider.status.configured" = "%@ — 已配置";
+
+/* Settings — companion routes */
+"settings.companion.discover.routes" = "发现招募路线";
+"settings.companion.hosted.routes" = "我主理的路线";
+
+/* Sheet */
+"sheet.sort.button" = "排序";
+"sheet.count.now" = "此刻 %d";
+"sheet.count.nearby" = "附近 %d";
+"sheet.nearby.section.title" = "附近";
+"sheet.nearby.smartPick.a11y" = "AI 推荐";
+"sheet.routes.section.title" = "路线";
+
+/* Solo breakdown */
+"solo.breakdown.toggle" = "各维度评分";
+"solo.breakdown.expand.hint" = "展开或收起六维评分详情";
+"solo.breakdown.expanded" = "已展开";
+"solo.breakdown.collapsed" = "已收起";
+"solo.excellent.a11y" = "非常适合独行旅行者";
+"solo.radar.weakest" = "最弱项：%@ — 这是一个权衡点";
+"solo.radar.weakest.a11y" = "注意：%@ 是最弱的维度 — 这是一个权衡点。";
+
+/* Sort */
+"sort.smart" = "智能";
+"sort.distance" = "距离";
+"sort.soloScore" = "Solo 评分";
+"sort.now" = "此刻";
+
+/* Stops */
+"stops.start" = "出发";
+
+/* Verified */
+"verified.title.verified" = "已验证路线";
+"verified.title.watching" = "社群观察中";
+"verified.subtitle" = "与 %d 位旅人走过";
+
+/* Voice */
+"voice.processing" = "思考中：%@";
+"voice.result.found" = "找到 %d 个匹配地点";
+"voice.result.filtered" = "显示附近的 %@";
+"voice.result.none" = "附近没有匹配的地点 — 换个词试试";
+
+/* Voice Agent orb */
+"voiceAgent.orb.a11y" = "长按与 Solo Compass 说话";
+"voiceAgent.orb.hint" = "双击并长按以说话";
+"voiceAgent.orb.listening" = "聆听中…";
+"voiceAgent.orb.release" = "松开发送";
+"voiceAgent.orb.responding" = "回应中…";
+"voiceAgent.orb.holdToSpeak" = "长按说话";
+"voiceAgent.permissionDenied" = "需要麦克风权限 — 请在设置中开启";
+"voiceAgent.error.streaming" = "连接中断 — 请重试";
+"voiceAgent.tts.fallback" = "回复已准备好";
