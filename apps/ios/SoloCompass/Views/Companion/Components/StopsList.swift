@@ -170,7 +170,7 @@ private struct StopRow: View {
             basedOnCount: 22
         ),
         sources: [],
-        confidence: conf(),
+        confidence: conf,
         nearbyExperienceIds: [],
         stats: .init(completionCount: 22, averageRating: 4.8),
         status: .active,
@@ -201,7 +201,7 @@ private struct StopRow: View {
             basedOnCount: 18
         ),
         sources: [],
-        confidence: conf(),
+        confidence: conf,
         nearbyExperienceIds: [],
         stats: .init(completionCount: 30, averageRating: 4.9),
         status: .active,

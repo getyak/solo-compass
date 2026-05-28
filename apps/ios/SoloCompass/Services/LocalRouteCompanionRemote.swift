@@ -1,0 +1,97 @@
+import Foundation
+import SwiftData
+
+// MARK: - LocalRouteCompanionRemote
+
+/// `RouteCompanionRemote` that persists mutations via `RouteStore` (SwiftData).
+/// Used when `FF_BACKEND_SYNC` is false — all data lives on-device.
+@MainActor
+public final class LocalRouteCompanionRemote: RouteCompanionRemote {
+    private let store: RouteStore
+
+    public init(context: ModelContext) {
+        self.store = RouteStore(context: context)
+    }
+
+    public init(store: RouteStore) {
+        self.store = store
+    }
+
+    // MARK: - RouteCompanionRemote
+
+    public func fetchRecruitingRoutes(cityCode: String) async throws -> [Route] {
+        store.all().filter {
+            $0.cityCode == cityCode
+                && ($0.companion?.status == .open || $0.companion?.status == .forming)
+        }
+    }
+
+    public func sendJoinRequest(routeId: RouteId, message: String, pace: String) async throws {
+        guard var route = store.get(routeId), route.companion != nil else { return }
+        let request = JoinRequest(
+            id: JoinRequestId(rawValue: UUID().uuidString),
+            requesterId: DeviceIdentityService.shared.deviceID,
+            message: "\(pace): \(message)",
+            status: .pending,
+            createdAt: ISO8601DateFormatter().string(from: Date())
+        )
+        route.companion!.joinRequests.append(request)
+        store.save(route)
+    }
+
+    public func fetchInbox() async throws -> [JoinRequest] {
+        let hostId = DeviceIdentityService.shared.deviceID
+        return store.all().flatMap { route -> [JoinRequest] in
+            guard let companion = route.companion, companion.hostId == hostId else { return [] }
+            return companion.joinRequests.filter { $0.status == .pending }
+        }
+    }
+
+    public func accept(_ request: JoinRequest, route: Route) async throws {
+        guard var updated = store.get(route.id),
+              var companion = updated.companion,
+              let idx = companion.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
+
+        let wasOpen = companion.status == .open
+        let event: CompanionEvent = wasOpen ? .acceptFirst : .acceptAdditional
+        let newStatus = (try? RouteCompanionStateMachine.transition(state: companion.status, event: event))
+            ?? companion.status
+
+        companion.joinRequests[idx].status = .accepted
+        companion.confirmedMembers.append(request.requesterId)
+        companion.status = newStatus
+
+        if companion.confirmedMembers.count >= companion.maxMembers,
+           let closed = try? RouteCompanionStateMachine.transition(state: companion.status, event: .reachMax) {
+            companion.status = closed
+        }
+
+        updated.companion = companion
+        store.save(updated)
+    }
+
+    public func decline(_ request: JoinRequest, route: Route) async throws {
+        guard var updated = store.get(route.id),
+              let idx = updated.companion?.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
+        updated.companion!.joinRequests[idx].status = .declined
+        store.save(updated)
+    }
+
+    public func withdraw(_ request: JoinRequest, route: Route) async throws {
+        guard var updated = store.get(route.id),
+              let idx = updated.companion?.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
+        updated.companion!.joinRequests[idx].status = .withdrawn
+        store.save(updated)
+    }
+
+    public func markCompleted(routeId: RouteId) async throws {
+        guard var route = store.get(routeId),
+              let companion = route.companion else { return }
+        let newStatus = try RouteCompanionStateMachine.transition(
+            state: companion.status,
+            event: .markCompleted
+        )
+        route.companion!.status = newStatus
+        store.save(route)
+    }
+}
