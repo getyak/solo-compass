@@ -853,6 +853,20 @@ public struct SettingsView: View {
                         Text(NSLocalizedString("settings.companion.discover.routes", comment: "Discover recruiting routes link"))
                     }
                 }
+
+                // US-034: My hosted routes (approval queue entry point)
+                NavigationLink {
+                    MyHostedRoutesListView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.badge.key.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.purple, in: RoundedRectangle(cornerRadius: 7))
+                        Text(NSLocalizedString("settings.companion.hosted.routes", comment: "My hosted routes link"))
+                    }
+                }
             }
         } header: {
             settingsSectionHeader(
