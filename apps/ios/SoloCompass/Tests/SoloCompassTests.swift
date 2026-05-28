@@ -491,9 +491,10 @@ final class SoloCompassTests: XCTestCase {
             preferences: prefs
         )
 
-        // Vientiane, Laos — ~700 km from every seeded Chiang Mai pin.
-        let vientiane = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
-        locationService.simulate(location: CLLocation(latitude: vientiane.latitude, longitude: vientiane.longitude))
+        // Mid-Pacific (40°N, 150°W) — thousands of km from every seeded pin
+        // (both Chiang Mai and Vientiane clusters live in the bundled seed).
+        let emptyArea = CLLocationCoordinate2D(latitude: 40.0, longitude: -150.0)
+        locationService.simulate(location: CLLocation(latitude: emptyArea.latitude, longitude: emptyArea.longitude))
 
         XCTAssertFalse(viewModel.isShowingExploreConsent, "Pre-bind: consent sheet should not be visible")
         viewModel.bindToLocation()
@@ -543,8 +544,9 @@ final class SoloCompassTests: XCTestCase {
             preferences: prefs
         )
 
-        let vientiane = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
-        locationService.simulate(location: CLLocation(latitude: vientiane.latitude, longitude: vientiane.longitude))
+        // Mid-Pacific empty water — outside any seeded cluster (see testAutoExploreFiresInDataSparseArea).
+        let emptyArea = CLLocationCoordinate2D(latitude: 40.0, longitude: -150.0)
+        locationService.simulate(location: CLLocation(latitude: emptyArea.latitude, longitude: emptyArea.longitude))
 
         viewModel.bindToLocation()
         await Task.yield()
