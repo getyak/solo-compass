@@ -41,7 +41,7 @@ final class GroupConversationAutoCreateTests: XCTestCase {
             departureWindow: window,
             departureLabel: "Early June evenings",
             pacePreference: .relaxed,
-            maxMembers: 4,
+            maxMembers: 5,
             confirmedMembers: ["maya", "lin"],
             joinRequests: [
                 JoinRequest(
