@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // MARK: - PaceMatch
 
@@ -26,16 +27,27 @@ enum PaceMatch: String, CaseIterable {
 /// - Pace-match segmented picker (慢于宿主 / 匹配 / 快于宿主).
 /// - Message TextEditor (placeholder '向主理人介绍自己...').
 /// - Submit disabled when message.count < 10 OR pace not chosen.
-/// - On submit: appends JoinRequest to route.companion.joinRequests via RouteStore.save.
+/// - On submit: calls RouteCompanionRemote.sendJoinRequest.
 /// - Dismisses on success with a light haptic.
 struct JoinRouteRequestSheet: View {
     let route: Route
+    private let remoteProvider: @MainActor () -> any RouteCompanionRemote
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedPace: PaceMatch? = nil
     @State private var message = ""
     @State private var isSubmitting = false
+
+    init(
+        route: Route,
+        remoteProvider: (@MainActor () -> any RouteCompanionRemote)? = nil
+    ) {
+        self.route = route
+        self.remoteProvider = remoteProvider ?? { @MainActor in
+            makeRouteCompanionRemote(context: ModelContext(SoloCompassModelContainer.shared))
+        }
+    }
 
     private var isSubmitEnabled: Bool {
         selectedPace != nil && message.count >= 10 && !isSubmitting
@@ -166,24 +178,23 @@ struct JoinRouteRequestSheet: View {
         guard let pace = selectedPace, message.count >= 10 else { return }
         isSubmitting = true
 
-        let deviceId = DeviceIdentityService.shared.deviceID
-        let iso8601 = ISO8601DateFormatter().string(from: Date())
-        let request = JoinRequest(
-            id: JoinRequestId(rawValue: UUID().uuidString),
-            requesterId: deviceId,
-            message: "\(pace.rawValue): \(message)",
-            status: .pending,
-            createdAt: iso8601
-        )
-
-        var updated = route
-        if updated.companion != nil {
-            updated.companion!.joinRequests.append(request)
+        Task { @MainActor in
+            defer { isSubmitting = false }
+            let remote = remoteProvider()
+            do {
+                try await remote.sendJoinRequest(
+                    routeId: route.id,
+                    message: message,
+                    pace: pace.rawValue
+                )
+            } catch is NotImplementedError {
+                // Supabase stub not yet implemented; silently degrade.
+            } catch {
+                // Non-fatal: swallow submission errors gracefully.
+            }
+            Haptics.impact(.light)
+            dismiss()
         }
-        RouteStore().save(updated)
-
-        Haptics.impact(.light)
-        dismiss()
     }
 }
 

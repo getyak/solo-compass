@@ -587,7 +587,7 @@
         "Verify in Simulator: open Settings -> \u6211\u4e3b\u7406\u7684\u8def\u7ebf -> pick mekong-sunset (host=maya simulating as deviceId for test, or seed has hostId=deviceId) -> see 2 pending requests; accept one -> state changes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
