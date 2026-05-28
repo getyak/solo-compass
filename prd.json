@@ -708,7 +708,7 @@
         "Typecheck passes (no swift impact)"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

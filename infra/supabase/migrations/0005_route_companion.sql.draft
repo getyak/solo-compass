@@ -1,0 +1,97 @@
+-- DRAFT. Do not apply until P3.
+
+-- ============================================================
+-- routes
+-- ============================================================
+CREATE TABLE IF NOT EXISTS routes (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    title           text NOT NULL,
+    summary         text,
+    city_code       text NOT NULL,
+    region          text,
+    estimated_duration interval,
+    distance_meters integer,
+    pace            text CHECK (pace IN ('leisurely', 'moderate', 'brisk')),
+    source          text,
+    author_id       uuid REFERENCES auth.users (id) ON DELETE SET NULL,
+    best_start_hour smallint CHECK (best_start_hour BETWEEN 0 AND 23),
+    best_now        boolean NOT NULL DEFAULT false,
+    verification_status text NOT NULL DEFAULT 'unverified'
+        CHECK (verification_status IN ('unverified', 'community_verified', 'staff_verified')),
+    walked_by_count integer NOT NULL DEFAULT 0,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+-- RLS policy comment (not active): routes are public-read.
+-- CREATE POLICY routes_public_read ON routes FOR SELECT USING (true);
+
+-- ============================================================
+-- route_experiences  (ordered junction between routes and experiences)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS route_experiences (
+    route_id      uuid NOT NULL REFERENCES routes (id) ON DELETE CASCADE,
+    experience_id uuid NOT NULL,  -- FK to experiences table (defined in 0001_init)
+    ordinal       smallint NOT NULL,
+    PRIMARY KEY (route_id, ordinal)
+);
+
+-- ============================================================
+-- route_companion  (one companion listing per route)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS route_companion (
+    route_id               uuid PRIMARY KEY REFERENCES routes (id) ON DELETE CASCADE,
+    host_id                uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    departure_from         timestamptz,
+    departure_to           timestamptz,
+    departure_time         time,
+    pace_pref              text CHECK (pace_pref IN ('leisurely', 'moderate', 'brisk')),
+    max_members            smallint NOT NULL DEFAULT 4,
+    visibility             text NOT NULL DEFAULT 'public'
+        CHECK (visibility IN ('public', 'invite_only')),
+    group_conversation_id  uuid,
+    host_message           text,
+    status                 text NOT NULL DEFAULT 'open'
+        CHECK (status IN ('open', 'full', 'closed', 'completed'))
+);
+
+-- RLS policy comment (not active): route_companion is public-read.
+-- CREATE POLICY route_companion_public_read ON route_companion FOR SELECT USING (true);
+
+-- ============================================================
+-- route_members
+-- ============================================================
+CREATE TABLE IF NOT EXISTS route_members (
+    route_id   uuid NOT NULL REFERENCES routes (id) ON DELETE CASCADE,
+    user_id    uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    joined_at  timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (route_id, user_id)
+);
+
+-- RLS policy comment (not active): route_members readable by a member of the same route.
+-- CREATE POLICY route_members_member_read ON route_members FOR SELECT
+--   USING (user_id = auth.uid()
+--          OR route_id IN (SELECT route_id FROM route_members WHERE user_id = auth.uid()));
+
+-- ============================================================
+-- join_requests
+-- ============================================================
+CREATE TABLE IF NOT EXISTS join_requests (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    route_id     uuid NOT NULL REFERENCES routes (id) ON DELETE CASCADE,
+    requester_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    message      text,
+    status       text NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'accepted', 'declined', 'withdrawn')),
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now()
+);
+
+-- RLS policy comment (not active): join_requests readable by the requester OR the route host.
+-- CREATE POLICY join_requests_requester_or_host_read ON join_requests FOR SELECT
+--   USING (
+--     requester_id = auth.uid()
+--     OR route_id IN (
+--       SELECT route_id FROM route_companion WHERE host_id = auth.uid()
+--     )
+--   );
