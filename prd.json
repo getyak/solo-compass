@@ -724,7 +724,7 @@
         "Verify in Simulator: switch device to \u7b80\u4f53\u4e2d\u6587, walk through Settings -> Companion -> all subviews -- no raw key strings visible"
       ],
       "priority": 42,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
