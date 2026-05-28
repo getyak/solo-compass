@@ -910,3 +910,12 @@
 
 /* US-023 — StopsList */
 "stops.start" = "Start";
+
+/* US-024 — RouteDetailView */
+"route.detail.save" = "保存到我的行程";
+"route.detail.favorite" = "加入收藏";
+"route.detail.bestNow.yes" = "此刻最佳";
+"route.detail.bestNow.no" = "非此刻";
+"route.detail.pace.relaxed" = "Relaxed";
+"route.detail.pace.standard" = "Standard";
+"route.detail.pace.packed" = "Packed";
