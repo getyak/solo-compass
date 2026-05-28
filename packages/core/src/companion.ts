@@ -112,6 +112,10 @@ export interface Conversation {
   readonly id: ConversationId;
   readonly requestId: CompanionRequestId;
   readonly participantIds: readonly UserId[];
+  /** `oneOnOne` for private threads; `groupRoute` for route-anchored group chats. */
+  readonly type: "oneOnOne" | "groupRoute";
+  /** Non-nil when `type === "groupRoute"` — the Route this group chat is anchored to. */
+  readonly routeId?: string;
   /** ISO 8601 UTC timestamp of the most recent message. */
   readonly lastMessageAt?: string;
   /** ISO 8601 UTC timestamp. */
