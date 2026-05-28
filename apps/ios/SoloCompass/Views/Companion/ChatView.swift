@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 /// Full-screen chat view for a companion conversation (US-013).
@@ -5,18 +6,25 @@ import SwiftUI
 /// Shows message bubbles sorted by `sent_at`. Subscribes to Supabase
 /// Realtime via `ChatService` so new messages appear without polling.
 /// Only conversation participants can read/write — enforced by RLS.
+///
+/// When `conversation.type == .groupRoute`: renders a sticky pinned RouteCard
+/// at the top (US-037) and shows sender avatar + handle beside each bubble.
 public struct ChatView: View {
     let conversation: Conversation
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var service: ChatService
     @State private var inputText = ""
     @State private var showingReportSheet = false
+    @State private var pinnedRoute: Route?
     @FocusState private var inputFocused: Bool
 
     private let currentUserId: String?
-    /// The other participant's user ID (used for report/block).
+    /// The other participant's user ID (used for report/block in one-on-one).
     private let otherUserId: String?
+
+    private var isGroupRoute: Bool { conversation.type == .groupRoute }
 
     public init(conversation: Conversation, currentUserId: String? = nil) {
         self.conversation = conversation
@@ -29,6 +37,10 @@ public struct ChatView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
+            if isGroupRoute, let route = pinnedRoute {
+                pinnedRouteHeader(route: route)
+                Divider()
+            }
             messageList
             Divider()
             inputBar
@@ -36,7 +48,7 @@ public struct ChatView: View {
         .navigationTitle(NSLocalizedString("companion.chat.title", comment: "Chat nav title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if let otherId = otherUserId {
+            if !isGroupRoute, let otherId = otherUserId {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button(role: .destructive) {
@@ -67,6 +79,9 @@ public struct ChatView: View {
         }
         .task {
             await service.start()
+            if isGroupRoute, let routeId = conversation.routeId {
+                pinnedRoute = RouteStore(context: modelContext).get(RouteId(rawValue: routeId))
+            }
         }
         .onDisappear {
             service.stop()
@@ -86,7 +101,32 @@ public struct ChatView: View {
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Pinned route header (groupRoute only)
+
+    @ViewBuilder
+    private func pinnedRouteHeader(route: Route) -> some View {
+        NavigationLink {
+            RouteDetailView(route: route)
+        } label: {
+            HStack(spacing: 0) {
+                Image(systemName: "pin.fill")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 12)
+                    .padding(.trailing, 6)
+                RouteCard(route: route)
+            }
+            .background(Color(.secondarySystemBackground))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            NSLocalizedString("companion.chat.pinnedRoute.a11y", comment: "Pinned route header")
+            + ": " + route.title
+        )
+    }
+
+    // MARK: - Message list
 
     private var messageList: some View {
         ScrollViewReader { proxy in
@@ -95,7 +135,8 @@ public struct ChatView: View {
                     ForEach(service.messages) { msg in
                         ChatMessageRow(
                             message: msg,
-                            isFromMe: msg.senderId == currentUserId
+                            isFromMe: msg.senderId == currentUserId,
+                            isGroupRoute: isGroupRoute
                         )
                         .id(msg.id.rawValue)
                     }
@@ -164,6 +205,7 @@ public struct ChatView: View {
 private struct ChatMessageRow: View {
     let message: ChatMessage
     let isFromMe: Bool
+    var isGroupRoute: Bool = false
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -172,11 +214,26 @@ private struct ChatMessageRow: View {
         return f
     }()
 
+    private var showAvatar: Bool { isGroupRoute && !isFromMe }
+
     var body: some View {
-        HStack(alignment: .bottom, spacing: 4) {
+        HStack(alignment: .bottom, spacing: 0) {
             if isFromMe { Spacer(minLength: 60) }
 
+            if showAvatar {
+                avatarColumn
+                    .padding(.trailing, 6)
+            }
+
             VStack(alignment: isFromMe ? .trailing : .leading, spacing: 2) {
+                if showAvatar {
+                    Text(message.senderId)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .padding(.horizontal, 4)
+                }
+
                 Text(message.body)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -210,6 +267,19 @@ private struct ChatMessageRow: View {
         )
     }
 
+    @ViewBuilder
+    private var avatarColumn: some View {
+        Circle()
+            .fill(UserDirectory.color(forId: message.senderId))
+            .frame(width: 22, height: 22)
+            .overlay(
+                Text(String(message.senderId.prefix(1)).uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+            )
+            .alignmentGuide(.bottom) { $0[.bottom] }
+    }
+
     private func formattedTime(_ iso: String) -> String {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -225,7 +295,7 @@ private struct ChatMessageRow: View {
 
 // MARK: - Preview
 
-#Preview("Chat") {
+#Preview("Chat — one-on-one") {
     let conv = Conversation.sample
     let service = ChatService(conversationId: conv.id)
     service.messages = [
@@ -249,6 +319,37 @@ private struct ChatMessageRow: View {
             senderId: "user_preview",
             body: "Definitely. I have a few marked — let's compare notes.",
             createdAt: "2026-02-05T14:02:00Z"
+        ),
+    ]
+    return NavigationStack {
+        ChatView(conversation: conv, currentUserId: "user_preview")
+    }
+}
+
+#Preview("Chat — group route") {
+    let conv = Conversation.groupRouteSample
+    let service = ChatService(conversationId: conv.id)
+    service.messages = [
+        ChatMessage(
+            id: ChatMessageId(rawValue: "gm1"),
+            conversationId: conv.id,
+            senderId: "maya",
+            body: "Everyone good to meet at 7am by the river?",
+            createdAt: "2026-02-06T09:00:00Z"
+        ),
+        ChatMessage(
+            id: ChatMessageId(rawValue: "gm2"),
+            conversationId: conv.id,
+            senderId: "user_preview",
+            body: "Works for me!",
+            createdAt: "2026-02-06T09:01:00Z"
+        ),
+        ChatMessage(
+            id: ChatMessageId(rawValue: "gm3"),
+            conversationId: conv.id,
+            senderId: "user_preview_c",
+            body: "Same. Should I bring the portable speaker?",
+            createdAt: "2026-02-06T09:02:00Z"
         ),
     ]
     return NavigationStack {

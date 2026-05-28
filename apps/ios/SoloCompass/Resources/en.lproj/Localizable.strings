@@ -849,6 +849,11 @@
 "companion.chat.bubble.me.a11y" = "You: %@, sent at %@";
 "companion.chat.bubble.them.a11y" = "Companion: %@, sent at %@";
 
+/* Companion — group chat (US-037) */
+"companion.chat.pinnedRoute.a11y" = "Pinned route";
+"companion.chat.group.unknownRoute" = "Group Chat";
+"companion.chat.group.memberCount" = "%d members";
+
 /* Companion — report & block (US-014) */
 "companion.report.title" = "Report";
 "companion.report.reason.header" = "What's the problem?";
