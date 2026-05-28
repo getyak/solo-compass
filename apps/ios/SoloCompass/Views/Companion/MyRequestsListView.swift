@@ -13,11 +13,18 @@ public struct MyRequestsListView: View {
 
     /// Injected for testability; defaults to a live RouteStore in production.
     private let storeProvider: () -> RouteStore
+    private let remoteProvider: @MainActor () -> any RouteCompanionRemote
 
     @State private var refreshToken: UUID = UUID()
 
-    public init(storeProvider: @escaping () -> RouteStore = { RouteStore() }) {
+    public init(
+        storeProvider: @escaping () -> RouteStore = { RouteStore() },
+        remoteProvider: (@MainActor () -> any RouteCompanionRemote)? = nil
+    ) {
         self.storeProvider = storeProvider
+        self.remoteProvider = remoteProvider ?? { @MainActor in
+            makeRouteCompanionRemote(context: ModelContext(SoloCompassModelContainer.shared))
+        }
     }
 
     private var deviceId: String {
@@ -154,11 +161,27 @@ public struct MyRequestsListView: View {
     // MARK: - Withdraw
 
     private func withdraw(request: JoinRequest, from route: Route) {
+        Task { @MainActor in
+            let remote = remoteProvider()
+            do {
+                try await remote.withdraw(request, route: route)
+            } catch is NotImplementedError {
+                localWithdraw(request: request, from: route)
+                return
+            } catch {
+                return
+            }
+            refreshToken = UUID()
+        }
+    }
+
+    private func localWithdraw(request: JoinRequest, from route: Route) {
         let store = storeProvider()
         var updated = route
         guard let idx = updated.companion?.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
         updated.companion!.joinRequests[idx].status = .withdrawn
         store.save(updated)
+        refreshToken = UUID()
     }
 }
 
