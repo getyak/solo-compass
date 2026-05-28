@@ -205,7 +205,7 @@ public struct MyRequestsListView: View {
         companion: companion
     )
     store.save(route)
-    NavigationStack {
+    return NavigationStack {
         MyRequestsListView(storeProvider: { store })
     }
 }
