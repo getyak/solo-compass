@@ -3799,11 +3799,15 @@ final class SoloCompassTests: XCTestCase {
         let currentMinute = cal.component(.minute, from: now)
         let nowMinutes = currentHour * 60 + currentMinute
 
-        // Only set up test if there's room for both windows before midnight.
-        guard nowMinutes + 90 < 24 * 60 else { return }
+        // Push reference 2 h forward so windows never overlap the current hour
+        // (integer division can round (nowMinutes+30)/60 to currentHour when nowMinutes < 30).
+        let referenceMin = nowMinutes + 120
 
-        let startHour30 = (nowMinutes + 30) / 60
-        let startHour90 = (nowMinutes + 90) / 60
+        // Only set up test if there's room for both windows before midnight.
+        guard referenceMin + 90 < 24 * 60 else { return }
+
+        let startHour30 = (referenceMin + 30) / 60
+        let startHour90 = (referenceMin + 90) / 60
 
         let expSoon = try makeExperience(
             id: "soon",
