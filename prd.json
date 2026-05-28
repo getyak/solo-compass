@@ -415,7 +415,7 @@
         "Verify in Simulator: drag sheet to mid, see Routes section above Nearby, tap a route -> detail opens"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
