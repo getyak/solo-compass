@@ -325,9 +325,7 @@
       "placeNameLocal": "ແມ່ນ້ຳຂອງ",
       "placeNameRomanized": "Mae Nam Khong"
     },
-    "bestTimes": [
-      { "startHour": 17, "endHour": 19, "note": "Arrive 45 min before sunset" }
-    ],
+    "bestTimes": [{ "startHour": 17, "endHour": 19, "note": "Arrive 45 min before sunset" }],
     "durationMinutes": { "min": 45, "max": 90 },
     "howTo": [
       { "order": 1, "text": "Walk west on Quai Fa Ngum toward Chao Anouvong statue." },
@@ -336,7 +334,10 @@
       { "order": 4, "text": "Stay until the lamps along the promenade flick on." }
     ],
     "realInconveniences": [
-      { "category": "weather", "text": "May–October: brief rain showers can flatten the sunset. Bring a thin layer." },
+      {
+        "category": "weather",
+        "text": "May–October: brief rain showers can flatten the sunset. Bring a thin layer."
+      },
       { "category": "crowds", "text": "Weekends after 6pm fill up fast; weekdays stay calm." }
     ],
     "soloScore": {
@@ -353,7 +354,12 @@
       "basedOnCount": 22
     },
     "sources": [
-      { "type": "wikivoyage", "url": "https://en.wikivoyage.org/wiki/Vientiane", "attribution": "Wikivoyage", "verifiedAt": "2026-05-01T00:00:00Z" }
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/Vientiane",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-05-01T00:00:00Z"
+      }
     ],
     "confidence": {
       "level": 4,
@@ -385,13 +391,14 @@
       "placeNameLocal": "ວັດສີສະເກດ",
       "placeNameRomanized": "Wat Si Saket"
     },
-    "bestTimes": [
-      { "startHour": 8, "endHour": 10, "note": "Opens 8am; tour buses arrive ~10:30" }
-    ],
+    "bestTimes": [{ "startHour": 8, "endHour": 10, "note": "Opens 8am; tour buses arrive ~10:30" }],
     "durationMinutes": { "min": 40, "max": 75 },
     "howTo": [
       { "order": 1, "text": "Pay the 10,000 kip entry at the booth on Lan Xang Avenue." },
-      { "order": 2, "text": "Walk the cloister clockwise — the Buddha niches start small and grow." },
+      {
+        "order": 2,
+        "text": "Walk the cloister clockwise — the Buddha niches start small and grow."
+      },
       { "order": 3, "text": "Step into the sim (ordination hall); remove shoes, no photos." },
       { "order": 4, "text": "Exit by the back gate to continue toward Patuxai." }
     ],
@@ -413,7 +420,12 @@
       "basedOnCount": 17
     },
     "sources": [
-      { "type": "wikivoyage", "url": "https://en.wikivoyage.org/wiki/Vientiane", "attribution": "Wikivoyage", "verifiedAt": "2026-05-01T00:00:00Z" }
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/Vientiane",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-05-01T00:00:00Z"
+      }
     ],
     "confidence": {
       "level": 4,
@@ -446,17 +458,30 @@
       "placeNameRomanized": "Patuxai"
     },
     "bestTimes": [
-      { "startHour": 9, "endHour": 11, "note": "Cooler before midday; afternoon haze blurs the view" }
+      {
+        "startHour": 9,
+        "endHour": 11,
+        "note": "Cooler before midday; afternoon haze blurs the view"
+      }
     ],
     "durationMinutes": { "min": 30, "max": 60 },
     "howTo": [
       { "order": 1, "text": "Enter from the south side; pay 5,000 kip for the climb." },
       { "order": 2, "text": "Ignore the souvenir stalls on floors 2–6 unless you need a fan." },
-      { "order": 3, "text": "Top floor: 360° walk around the parapet. Northwest faces Pha That Luang." }
+      {
+        "order": 3,
+        "text": "Top floor: 360° walk around the parapet. Northwest faces Pha That Luang."
+      }
     ],
     "realInconveniences": [
-      { "category": "crowds", "text": "Stairs are narrow and one-way during tour-bus arrivals (~11am, ~3pm)." },
-      { "category": "weather", "text": "No shade at the top — bring water, no umbrella allowed up." }
+      {
+        "category": "crowds",
+        "text": "Stairs are narrow and one-way during tour-bus arrivals (~11am, ~3pm)."
+      },
+      {
+        "category": "weather",
+        "text": "No shade at the top — bring water, no umbrella allowed up."
+      }
     ],
     "soloScore": {
       "overall": 7.4,
@@ -472,7 +497,12 @@
       "basedOnCount": 12
     },
     "sources": [
-      { "type": "wikivoyage", "url": "https://en.wikivoyage.org/wiki/Vientiane", "attribution": "Wikivoyage", "verifiedAt": "2026-05-01T00:00:00Z" }
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/Vientiane",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-05-01T00:00:00Z"
+      }
     ],
     "confidence": {
       "level": 3,
@@ -510,13 +540,22 @@
     "durationMinutes": { "min": 30, "max": 60 },
     "howTo": [
       { "order": 1, "text": "Tuk-tuk from city center (~30,000 kip); ask for ທາດຫຼວງ." },
-      { "order": 2, "text": "Enter the south gate; the plaza is free, the inner stupa costs 10,000 kip." },
+      {
+        "order": 2,
+        "text": "Enter the south gate; the plaza is free, the inner stupa costs 10,000 kip."
+      },
       { "order": 3, "text": "Walk the perimeter clockwise — east side catches the dawn first." },
       { "order": 4, "text": "Stop on the way back for coffee on Setthathirath." }
     ],
     "realInconveniences": [
-      { "category": "logistics", "text": "Tuk-tuk price doubles after 7am; agree on fare before getting in." },
-      { "category": "etiquette", "text": "Shoulders/knees covered. Monks walking alms route — do not block them." }
+      {
+        "category": "logistics",
+        "text": "Tuk-tuk price doubles after 7am; agree on fare before getting in."
+      },
+      {
+        "category": "etiquette",
+        "text": "Shoulders/knees covered. Monks walking alms route — do not block them."
+      }
     ],
     "soloScore": {
       "overall": 8.6,
@@ -532,7 +571,12 @@
       "basedOnCount": 19
     },
     "sources": [
-      { "type": "wikivoyage", "url": "https://en.wikivoyage.org/wiki/Vientiane", "attribution": "Wikivoyage", "verifiedAt": "2026-05-01T00:00:00Z" }
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/Vientiane",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-05-01T00:00:00Z"
+      }
     ],
     "confidence": {
       "level": 4,
@@ -569,10 +613,16 @@
     ],
     "durationMinutes": { "min": 60, "max": 120 },
     "howTo": [
-      { "order": 1, "text": "Look for the wooden door with the small hand-painted bean — no English sign." },
+      {
+        "order": 1,
+        "text": "Look for the wooden door with the small hand-painted bean — no English sign."
+      },
       { "order": 2, "text": "Order the Bolaven natural; ask for the second pour." },
       { "order": 3, "text": "Sit at the window table — outlets under the counter." },
-      { "order": 4, "text": "If both tables are full, the barista will offer you a beer crate outside; take it." }
+      {
+        "order": 4,
+        "text": "If both tables are full, the barista will offer you a beer crate outside; take it."
+      }
     ],
     "realInconveniences": [
       { "category": "logistics", "text": "Cash only; nearest ATM is two blocks east at BCEL." },

@@ -3,9 +3,7 @@
     "id": "mekong-sunset",
     "title": "Mekong Sunset",
     "summary": "A 45-minute promenade walk that ends on a plastic chair facing Thailand, watching the river swallow the sun.",
-    "experienceIds": [
-      "exp_vte_mekong_riverside_sunset"
-    ],
+    "experienceIds": ["exp_vte_mekong_riverside_sunset"],
     "cityCode": "VTE",
     "region": "Riverfront",
     "estimatedDuration": 90,
@@ -57,10 +55,7 @@
     "id": "slow-coffee-day",
     "title": "Slow Coffee Day",
     "summary": "A two-stop drift through the old quarter: cool cloisters at Wat Si Saket, then a long sit-down with Bolaven beans.",
-    "experienceIds": [
-      "exp_vte_wat_si_saket_morning",
-      "exp_vte_slow_coffee_dao"
-    ],
+    "experienceIds": ["exp_vte_wat_si_saket_morning", "exp_vte_slow_coffee_dao"],
     "cityCode": "VTE",
     "region": "Old Quarter",
     "estimatedDuration": 180,
@@ -97,10 +92,7 @@
     "id": "morning-ritual",
     "title": "Morning Ritual",
     "summary": "Dawn at the golden stupa, then a side-street roaster while the city wakes up around you.",
-    "experienceIds": [
-      "exp_vte_pha_that_luang_dawn",
-      "exp_vte_slow_coffee_dao"
-    ],
+    "experienceIds": ["exp_vte_pha_that_luang_dawn", "exp_vte_slow_coffee_dao"],
     "cityCode": "VTE",
     "region": "Northeast Plaza",
     "estimatedDuration": 150,
