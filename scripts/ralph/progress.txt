@@ -35,3 +35,4 @@ Tool: claude
 [2026-05-28T10:20:00Z] Story #US-025: BottomInfoSheet Routes section — PASSED (recovered from reflog after PR merge)
 [2026-05-28T10:20:01Z] Story #US-026: AddToItinerarySheet success toast -> 'View itinerary' action — PASSED (recovered from cherry-pick)
 [2026-05-28T10:16:53Z] Story #US-027: RecruitingModule view -- restrained visual default — PASSED
+[2026-05-28T10:19:03Z] Story #US-028: Insert RecruitingModule into RouteDetailView (gated by companionEnabled) — PASSED

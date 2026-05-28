@@ -473,7 +473,7 @@
         "Verify in Simulator: in Settings toggle off -> open mekong-sunset detail (no module); toggle on -> re-open (module visible)"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
