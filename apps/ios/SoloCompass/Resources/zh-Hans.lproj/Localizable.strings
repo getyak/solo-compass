@@ -617,7 +617,7 @@
 "companion.post.removed" = "同伴帖子已移除";
 
 /* ============================================================
- * Companion Hub (CompanionHubSheet) — 地图上的统一入口
+ * Companion Hub — 地图上的统一入口
  * ============================================================ */
 "companion.hub.title" = "同伴";
 "companion.hub.button.a11y" = "打开同伴中心";

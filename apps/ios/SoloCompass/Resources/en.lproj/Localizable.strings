@@ -902,7 +902,7 @@
 "action.cancel" = "Cancel";
 
 /* ============================================================
- * Companion Hub (CompanionHubSheet) — entry point on the map
+ * Companion Hub — entry point on the map
  * ============================================================ */
 "companion.hub.title" = "Companion";
 "companion.hub.button.a11y" = "Open Companion";
