@@ -147,15 +147,7 @@ public struct MyRequestsListView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        List {
-            Text(NSLocalizedString(
-                "my.requests.empty",
-                comment: "Empty state — no join requests sent yet"
-            ))
-            .foregroundStyle(.secondary)
-            .font(.subheadline)
-        }
-        .listStyle(.insetGrouped)
+        EmptyMyRequestsView()
     }
 
     // MARK: - Withdraw
@@ -182,6 +174,47 @@ public struct MyRequestsListView: View {
         updated.companion!.joinRequests[idx].status = .withdrawn
         store.save(updated)
         refreshToken = UUID()
+    }
+}
+
+// MARK: - Empty state view
+
+private struct EmptyMyRequestsView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isBreathing = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(0.12))
+                    .frame(width: 80, height: 80)
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 36))
+                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                    .scaleEffect(isBreathing ? 1.08 : 0.94)
+                    .opacity(isBreathing ? 1.0 : 0.7)
+                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)
+            }
+            Text(NSLocalizedString(
+                "my.requests.empty",
+                comment: "Empty state — no join requests sent yet"
+            ))
+            .font(.headline)
+            Text(NSLocalizedString(
+                "my.requests.empty.hint",
+                comment: "Empty state hint — explains how to send a join request"
+            ))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            guard !isBreathing, !reduceMotion else { return }
+            isBreathing = true
+        }
     }
 }
 
@@ -238,5 +271,11 @@ public struct MyRequestsListView: View {
     let store = RouteStore(context: ModelContext(container))
     NavigationStack {
         MyRequestsListView(storeProvider: { store })
+            .navigationTitle(NSLocalizedString("settings.companion.requests", comment: "My recruitment requests title"))
+            .navigationBarTitleDisplayMode(.large)
     }
+}
+
+#Preview("EmptyMyRequestsView — standalone") {
+    EmptyMyRequestsView()
 }
