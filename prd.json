@@ -155,7 +155,7 @@
         "Typecheck passes (deprecation warning is acceptable; treat any error as fail)"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
