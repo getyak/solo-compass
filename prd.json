@@ -142,7 +142,7 @@
         "Verify in Simulator using xcodebuild + simctl screenshot: relaunched app shows map with city pill only (no person icon)"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

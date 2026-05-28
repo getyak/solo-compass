@@ -12,3 +12,4 @@ Tool: claude
 [2026-05-28T08:30:08Z] Story #US-006: Create seed_routes.json with 4 Vientiane routes — PASSED
 [2026-05-28T08:41:30Z] Story #US-007: Load seed routes into RouteStore on app launch — PASSED
 [2026-05-28T08:47:24Z] Story #US-008: Run parity check for Route schema (TS <-> Swift) — PASSED
+[2026-05-28T08:52:09Z] Story #US-009: Remove CompanionHubSheet button from CompassMapView (A+A+A cleanup) — PASSED
