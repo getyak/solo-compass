@@ -566,7 +566,7 @@
         "Verify in Simulator: submit a request via US-031 then open this view, see pending entry; swipe to withdraw"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

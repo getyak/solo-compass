@@ -40,3 +40,4 @@ Tool: claude
 [2026-05-28T10:24:46Z] Story #US-030: Companion Profile -- 'walked routes' section — PASSED
 [2026-05-28T10:26:50Z] Story #US-031: JoinRouteRequestSheet (modal form, local-only submit) — PASSED
 [2026-05-28T10:30:25Z] Story #US-032: Discover Recruiting Routes list view — PASSED
+[2026-05-28T10:33:54Z] Story #US-033: MyRequestsListView (applicant view of own pending requests) — PASSED
