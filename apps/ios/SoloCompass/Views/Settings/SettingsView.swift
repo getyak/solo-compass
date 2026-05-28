@@ -901,7 +901,7 @@ struct CompanionConversationsListView: View {
     ) private var records: [ConversationRecord]
 
     private var currentUserId: String? {
-        DeviceIdentityService.shared.userId
+        DeviceIdentityService.shared.anonymousUserId
     }
 
     private var myGroupConversations: [Conversation] {
