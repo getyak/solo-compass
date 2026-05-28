@@ -259,7 +259,7 @@
         "Verify in Simulator: drag handle up/down, snap to 3 detents, map pan still works in non-handle areas"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
