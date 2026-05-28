@@ -10,3 +10,4 @@ Tool: claude
 [2026-05-28T08:25:25Z] Story #US-006: Create seed_routes.json with 4 Vientiane routes — FAILED (iteration 6)
     └─ NEXT_STEPS: (auto) prior run ended (max_turns) Reached maximum number of turns (60)
 [2026-05-28T08:30:08Z] Story #US-006: Create seed_routes.json with 4 Vientiane routes — PASSED
+[2026-05-28T08:41:30Z] Story #US-007: Load seed routes into RouteStore on app launch — PASSED
