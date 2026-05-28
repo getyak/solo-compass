@@ -107,6 +107,8 @@ export const SCHEMA_INTERFACES = new Set([
   "Conversation",
   "ChatMessage",
   "CompanionReport",
+  "Route",
+  "RouteVerification",
 ]);
 
 /**
