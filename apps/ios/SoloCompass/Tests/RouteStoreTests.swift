@@ -252,6 +252,42 @@ final class RouteStoreTests: XCTestCase {
         XCTAssertEqual(store.all().first?.id.rawValue, "mekong-sunset")
     }
 
+    /// US-015: After seed load, RouteStore.all() yields 4 routes with the 4
+    /// expected distinct companion-fixture shapes.
+    func testImportSeedIfNeededYieldsDistinctCompanionFixtures() {
+        let bundle = Self.seedBundle()
+        store.importSeedIfNeeded(
+            knownExperienceIds: Self.seedRoutesExperienceIds,
+            bundle: bundle
+        )
+
+        let routes = store.all()
+        XCTAssertEqual(routes.count, 4)
+        let byId = Dictionary(uniqueKeysWithValues: routes.map { ($0.id.rawValue, $0) })
+
+        // mekong-sunset: open, 2 confirmed, 2 pending requests
+        let mekong = byId["mekong-sunset"]
+        XCTAssertNotNil(mekong?.companion)
+        XCTAssertEqual(mekong?.companion?.status, .open)
+        XCTAssertEqual(mekong?.companion?.confirmedMembers.count, 2)
+        XCTAssertEqual(mekong?.companion?.joinRequests.filter { $0.status == .pending }.count, 2)
+
+        // slow-coffee-day: forming, 3 confirmed
+        let coffee = byId["slow-coffee-day"]
+        XCTAssertNotNil(coffee?.companion)
+        XCTAssertEqual(coffee?.companion?.status, .forming)
+        XCTAssertEqual(coffee?.companion?.confirmedMembers.count, 3)
+
+        // morning-ritual: nil companion
+        XCTAssertNil(byId["morning-ritual"]?.companion)
+
+        // vientiane-monuments: completed, 4/4 members
+        let monuments = byId["vientiane-monuments"]
+        XCTAssertNotNil(monuments?.companion)
+        XCTAssertEqual(monuments?.companion?.status, .completed)
+        XCTAssertEqual(monuments?.companion?.confirmedMembers.count, 4)
+    }
+
     /// Locate the bundle hosting `seed_routes.json`. Mirrors the lookup in
     /// `SeedRoutesParityTests`: prefer the test bundle if it carries the
     /// resource, otherwise fall back to `Bundle.main` — under

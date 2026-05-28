@@ -41,14 +41,32 @@ final class SeedRoutesParityTests: XCTestCase {
         )
     }
 
-    func testSeedRoutesCompanionFieldIsNilInP0() throws {
+    /// P1: each seed route carries the expected companion fixture shape.
+    func testSeedRoutesCompanionFixtures() throws {
         let routes = try loadRoutes()
-        for route in routes {
-            XCTAssertNil(
-                route.companion,
-                "Route \(route.id.rawValue) must have companion=null in P0; status populated in P1"
-            )
-        }
+        let byId = Dictionary(uniqueKeysWithValues: routes.map { ($0.id.rawValue, $0) })
+
+        // mekong-sunset: open, 2 confirmed, 2 pending
+        let mekong = try XCTUnwrap(byId["mekong-sunset"]?.companion, "mekong-sunset must have companion")
+        XCTAssertEqual(mekong.status, .open)
+        XCTAssertEqual(mekong.confirmedMembers.count, 2)
+        XCTAssertEqual(mekong.joinRequests.filter { $0.status == .pending }.count, 2)
+        XCTAssertEqual(mekong.maxMembers, 4)
+
+        // slow-coffee-day: forming, 3 confirmed
+        let coffee = try XCTUnwrap(byId["slow-coffee-day"]?.companion, "slow-coffee-day must have companion")
+        XCTAssertEqual(coffee.status, .forming)
+        XCTAssertEqual(coffee.confirmedMembers.count, 3)
+        XCTAssertEqual(coffee.maxMembers, 4)
+
+        // morning-ritual: no companion (nil)
+        XCTAssertNil(byId["morning-ritual"]?.companion, "morning-ritual must have companion=null")
+
+        // vientiane-monuments: completed, 4/4 confirmed
+        let monuments = try XCTUnwrap(byId["vientiane-monuments"]?.companion, "vientiane-monuments must have companion")
+        XCTAssertEqual(monuments.status, .completed)
+        XCTAssertEqual(monuments.confirmedMembers.count, 4)
+        XCTAssertEqual(monuments.maxMembers, 4)
     }
 
     // MARK: - Helpers

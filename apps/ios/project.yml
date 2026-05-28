@@ -115,6 +115,8 @@ targets:
         buildPhase: resources
       - path: SoloCompass/Resources/JSON/seed_routes.json
         buildPhase: resources
+      - path: SoloCompass/Resources/JSON/seed_users.json
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.solocompass.tests

@@ -1,0 +1,51 @@
+[
+  {
+    "handle": "maya",
+    "blurb": "Chasing sunsets and slow mornings in Southeast Asia.",
+    "color": "#E8826A",
+    "trips": 14,
+    "walked": ["mekong-sunset", "vientiane-monuments"]
+  },
+  {
+    "handle": "lin",
+    "blurb": "Coffee nerd, temple wanderer, always early.",
+    "color": "#6A9FE8",
+    "trips": 9,
+    "walked": ["mekong-sunset", "vientiane-monuments"]
+  },
+  {
+    "handle": "tomas",
+    "blurb": "Backpacker turned slow traveler. Laos obsessed.",
+    "color": "#72C98E",
+    "trips": 21,
+    "walked": ["vientiane-monuments"]
+  },
+  {
+    "handle": "ren",
+    "blurb": "Maps, markets, and morning light.",
+    "color": "#C97AA0",
+    "trips": 6,
+    "walked": ["vientiane-monuments"]
+  },
+  {
+    "handle": "eira",
+    "blurb": "Nordic traveler, long sits with good beans.",
+    "color": "#C9A86A",
+    "trips": 11,
+    "walked": []
+  },
+  {
+    "handle": "kosuke",
+    "blurb": "Architecture buff, early riser, avid note-taker.",
+    "color": "#8E72C9",
+    "trips": 7,
+    "walked": []
+  },
+  {
+    "handle": "yuna",
+    "blurb": "Quiet streets, strong coffee, zero FOMO.",
+    "color": "#6AC9C2",
+    "trips": 4,
+    "walked": []
+  }
+]

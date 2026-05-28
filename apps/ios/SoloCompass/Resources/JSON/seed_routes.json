@@ -21,7 +21,37 @@
       "walkedByCount": 12,
       "walkedBy": ["maya", "leo", "ana", "kenta"]
     },
-    "companion": null
+    "companion": {
+      "status": "open",
+      "hostId": "maya",
+      "departureWindow": {
+        "from": "2026-06-01",
+        "to": "2026-06-03",
+        "time": "17:00"
+      },
+      "departureLabel": "Early June evenings",
+      "pacePreference": "relaxed",
+      "maxMembers": 4,
+      "confirmedMembers": ["maya", "lin"],
+      "joinRequests": [
+        {
+          "id": "jr_mekong_001",
+          "requesterId": "tomas",
+          "message": "Would love to catch the sunset!",
+          "status": "pending",
+          "createdAt": "2026-05-20T10:00:00Z"
+        },
+        {
+          "id": "jr_mekong_002",
+          "requesterId": "ren",
+          "message": "Sounds magical, count me in",
+          "status": "pending",
+          "createdAt": "2026-05-21T08:30:00Z"
+        }
+      ],
+      "visibility": "public",
+      "hostMessage": "Bringing a speaker, come as you are."
+    }
   },
   {
     "id": "slow-coffee-day",
@@ -46,7 +76,22 @@
       "walkedByCount": 5,
       "walkedBy": ["nora", "hiro"]
     },
-    "companion": null
+    "companion": {
+      "status": "forming",
+      "hostId": "eira",
+      "departureWindow": {
+        "from": "2026-06-05",
+        "to": "2026-06-07",
+        "time": "08:00"
+      },
+      "departureLabel": "Weekend mornings",
+      "pacePreference": "relaxed",
+      "maxMembers": 4,
+      "confirmedMembers": ["eira", "kosuke", "yuna"],
+      "joinRequests": [],
+      "visibility": "public",
+      "hostMessage": "Slow pace, lots of time to talk."
+    }
   },
   {
     "id": "morning-ritual",
@@ -97,6 +142,21 @@
       "walkedByCount": 28,
       "walkedBy": ["maya", "leo", "ana", "kenta", "nora", "hiro", "sam", "wei"]
     },
-    "companion": null
+    "companion": {
+      "status": "completed",
+      "hostId": "maya",
+      "departureWindow": {
+        "from": "2026-05-10",
+        "to": "2026-05-10",
+        "time": "08:00"
+      },
+      "departureLabel": "May 10 morning",
+      "pacePreference": "packed",
+      "maxMembers": 4,
+      "confirmedMembers": ["maya", "lin", "tomas", "ren"],
+      "joinRequests": [],
+      "visibility": "public",
+      "hostMessage": "All three landmarks in one go — we made it!"
+    }
   }
 ]

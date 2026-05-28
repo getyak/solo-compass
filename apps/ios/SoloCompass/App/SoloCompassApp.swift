@@ -63,6 +63,8 @@ struct SoloCompassApp: App {
                     // Start the outbox sync timer (Epic E US-029).
                     // Idempotent across re-renders.
                     SyncService.shared.start()
+                    // Load seed user fixtures into the in-memory UserDirectory.
+                    UserDirectory.shared.loadIfNeeded()
                     // Seed RouteStore from bundled `seed_routes.json` on first
                     // launch (no-op once any route exists). Routes referencing
                     // unknown experienceIds are skipped with an os_log warning.
