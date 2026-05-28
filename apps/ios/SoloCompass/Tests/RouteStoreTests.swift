@@ -188,4 +188,80 @@ final class RouteStoreTests: XCTestCase {
         store.delete(route.id)
         wait(for: [exp], timeout: 1.0)
     }
+
+    // MARK: - importSeedIfNeeded (US-007)
+
+    /// Set of every experienceId referenced by `seed_routes.json` so all 4
+    /// seed routes resolve cleanly. Mirrors what `ExperienceService` would
+    /// have loaded on a real first launch.
+    private static let seedRoutesExperienceIds: Set<String> = [
+        "exp_vte_mekong_riverside_sunset",
+        "exp_vte_wat_si_saket_morning",
+        "exp_vte_slow_coffee_dao",
+        "exp_vte_pha_that_luang_dawn",
+        "exp_vte_patuxai_view"
+    ]
+
+    func testImportSeedIfNeededOnFreshLaunchLoadsFourRoutes() {
+        XCTAssertTrue(store.all().isEmpty, "fresh in-memory store must start empty")
+
+        let bundle = Self.seedBundle()
+        let added = store.importSeedIfNeeded(
+            knownExperienceIds: Self.seedRoutesExperienceIds,
+            bundle: bundle
+        )
+
+        XCTAssertEqual(added, 4, "importSeedIfNeeded should insert all 4 Vientiane seed routes")
+        XCTAssertEqual(store.all().count, 4)
+
+        let ids = Set(store.all().map { $0.id.rawValue })
+        XCTAssertEqual(
+            ids,
+            Set(["mekong-sunset", "slow-coffee-day", "morning-ritual", "vientiane-monuments"])
+        )
+    }
+
+    func testImportSeedIfNeededIsNoOpWhenStoreAlreadyPopulated() {
+        store.save(makeRoute(id: "preexisting_route"))
+        XCTAssertEqual(store.all().count, 1)
+
+        let bundle = Self.seedBundle()
+        let added = store.importSeedIfNeeded(
+            knownExperienceIds: Self.seedRoutesExperienceIds,
+            bundle: bundle
+        )
+
+        XCTAssertEqual(added, 0, "importSeedIfNeeded must be a no-op when store is non-empty")
+        XCTAssertEqual(store.all().count, 1)
+    }
+
+    func testImportSeedIfNeededSkipsRoutesWithUnknownExperienceIds() {
+        // Only `mekong-sunset` (single id) resolves; the other three routes
+        // reference experienceIds we deliberately omit and must be skipped
+        // without crashing.
+        let partialKnown: Set<String> = ["exp_vte_mekong_riverside_sunset"]
+
+        let bundle = Self.seedBundle()
+        let added = store.importSeedIfNeeded(
+            knownExperienceIds: partialKnown,
+            bundle: bundle
+        )
+
+        XCTAssertEqual(added, 1, "only routes whose experienceIds all resolve should be saved")
+        XCTAssertEqual(store.all().count, 1)
+        XCTAssertEqual(store.all().first?.id.rawValue, "mekong-sunset")
+    }
+
+    /// Locate the bundle hosting `seed_routes.json`. Mirrors the lookup in
+    /// `SeedRoutesParityTests`: prefer the test bundle if it carries the
+    /// resource, otherwise fall back to `Bundle.main` — under
+    /// `xcodebuild test` the main bundle is the host app, which always ships
+    /// `seed_routes.json` because XcodeGen scans the `Resources/JSON` tree.
+    private static func seedBundle() -> Bundle {
+        let testBundle = Bundle(for: RouteStoreTests.self)
+        if testBundle.url(forResource: "seed_routes", withExtension: "json") != nil {
+            return testBundle
+        }
+        return .main
+    }
 }

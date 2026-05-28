@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os.log
 
 /// SwiftData-backed CRUD for `Route` values.
 ///
@@ -101,5 +102,73 @@ public final class RouteStore {
             object: self,
             userInfo: ["routeId": routeId]
         )
+    }
+
+    // MARK: - Seed import
+
+    private static let seedLog = OSLog(subsystem: "com.solocompass.app", category: "RouteStore")
+
+    /// On first launch (when `all().isEmpty`), decode the bundled
+    /// `seed_routes.json` and save each route. Routes referencing
+    /// experienceIds not present in `knownExperienceIds` are skipped
+    /// with a single `os_log` warning rather than crashing.
+    ///
+    /// Returns the number of routes inserted. Idempotent: if the store is
+    /// already populated, this is a no-op and returns 0.
+    @discardableResult
+    public func importSeedIfNeeded(
+        knownExperienceIds: Set<String>,
+        bundle: Bundle = .main
+    ) -> Int {
+        guard all().isEmpty else { return 0 }
+
+        guard let seed = Self.loadBundledSeed(bundle: bundle) else {
+            return 0
+        }
+
+        var skipped: [(routeId: String, missingIds: [String])] = []
+        var added = 0
+        for route in seed {
+            let missing = route.experienceIds.filter { !knownExperienceIds.contains($0) }
+            if !missing.isEmpty {
+                skipped.append((route.id.rawValue, missing))
+                continue
+            }
+            save(route)
+            added += 1
+        }
+
+        if !skipped.isEmpty {
+            let summary = skipped
+                .map { "\($0.routeId)→[\($0.missingIds.joined(separator: ","))]" }
+                .joined(separator: " ")
+            os_log(
+                "RouteStore seed: skipped %d route(s) with unresolved experienceIds: %{public}@",
+                log: Self.seedLog,
+                type: .info,
+                skipped.count,
+                summary
+            )
+        }
+
+        return added
+    }
+
+    private static func loadBundledSeed(bundle: Bundle) -> [Route]? {
+        guard let url = bundle.url(forResource: "seed_routes", withExtension: "json") else {
+            return nil
+        }
+        do {
+            let data = try Data(contentsOf: url)
+            return try JSONDecoder().decode([Route].self, from: data)
+        } catch {
+            os_log(
+                "RouteStore seed: decode failed: %{public}@",
+                log: Self.seedLog,
+                type: .error,
+                String(describing: error)
+            )
+            return nil
+        }
     }
 }
