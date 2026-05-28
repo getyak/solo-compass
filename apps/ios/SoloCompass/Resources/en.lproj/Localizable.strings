@@ -988,3 +988,16 @@
 /* US-026 — AddToItinerary success toast */
 "itinerary.toast.added" = "Added to 《%@》";
 "itinerary.toast.viewAction" = "View itinerary";
+
+/* US-027 — RecruitingModule */
+"recruiting.status.open" = "招募中";
+"recruiting.status.forming" = "组队中";
+"recruiting.status.closed" = "已关闭";
+"recruiting.status.completed" = "已完成";
+"recruiting.slots.label" = "成员";
+"recruiting.slots.count" = "%d/%d";
+"recruiting.cta.viewRequests" = "查看申请(%d)";
+"recruiting.cta.applied" = "已申请 · 等待确认";
+"recruiting.cta.viewChat" = "查看群聊";
+"recruiting.cta.requestJoin" = "申请加入";
+"recruiting.cta.requestJoinForming" = "申请加入(最后 %d 位)";
