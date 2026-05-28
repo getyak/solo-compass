@@ -40,12 +40,6 @@ public struct ExperienceCardView: View {
         return (d.isFinite && d < .greatestFiniteMagnitude) ? d : nil
     }
 
-    /// Absolute bearing in degrees (0 = N, clockwise) — used only for VoiceOver cardinal direction.
-    private var absoluteBearingDegrees: Double? {
-        guard let coord = experience.coordinate else { return nil }
-        return locationService.bearing(to: coord)
-    }
-
     /// Heading-corrected bearing: 0 = straight ahead. Falls back to absolute bearing
     /// when the device has no compass or heading accuracy is invalid.
     private var relativeBearingDegrees: Double? {
@@ -65,7 +59,8 @@ public struct ExperienceCardView: View {
             NSLocalizedString("compass.W", comment: "West"),
             NSLocalizedString("compass.NW", comment: "Northwest"),
         ]
-        let index = Int((degrees / 45.0).rounded()) % 8
+        let raw = Int((degrees / 45.0).rounded())
+        let index = ((raw % 8) + 8) % 8
         return directions[index]
     }
 
@@ -310,7 +305,6 @@ public struct ExperienceCardView: View {
     @ViewBuilder
     private func distancePill(_ label: String, symbol: String) -> some View {
         let relBearing = relativeBearingDegrees
-        let absBearing = absoluteBearingDegrees
         HStack(spacing: 4) {
             if let relBearing {
                 Image(systemName: "location.north.fill")
@@ -332,8 +326,8 @@ public struct ExperienceCardView: View {
         .background(Capsule().fill(Color.secondary.opacity(0.12)))
         .accessibilityLabel({
             var text = label
-            if let absBearing {
-                let direction = Self.compassDirection(for: absBearing)
+            if let relBearing {
+                let direction = Self.compassDirection(for: relBearing)
                 text += ". " + String(format: NSLocalizedString("card.distance.bearing.a11y", comment: "Bearing direction accessibility"), direction)
             }
             return text
