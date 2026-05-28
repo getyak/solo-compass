@@ -528,7 +528,7 @@
         "Verify in Simulator: from mekong-sunset detail -> tap \u7533\u8bf7\u52a0\u5165 -> fill form -> submit -> re-open detail shows '\u5df2\u7533\u8bf7 \u00b7 \u7b49\u5f85\u786e\u8ba4' CTA state"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
