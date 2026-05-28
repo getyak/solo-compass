@@ -547,7 +547,7 @@
         "Verify in Simulator: Settings -> \u53d1\u73b0\u62db\u52df\u8def\u7ebf -> see at least mekong-sunset and slow-coffee-day"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

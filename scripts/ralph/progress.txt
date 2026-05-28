@@ -39,3 +39,4 @@ Tool: claude
 [2026-05-28T10:22:13Z] Story #US-029: RecruitingModule strength parameter (restrained/neutral/strong) — PASSED
 [2026-05-28T10:24:46Z] Story #US-030: Companion Profile -- 'walked routes' section — PASSED
 [2026-05-28T10:26:50Z] Story #US-031: JoinRouteRequestSheet (modal form, local-only submit) — PASSED
+[2026-05-28T10:30:25Z] Story #US-032: Discover Recruiting Routes list view — PASSED
