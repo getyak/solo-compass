@@ -28,7 +28,7 @@ private let midHeight: CGFloat = 500
 private let fullHeight: CGFloat = 800
 private let minHeight: CGFloat = 120
 private let maxHeight: CGFloat = 830
-private let cornerRadius: CGFloat = 20
+private let sheetCornerRadius: CGFloat = 20
 private let scrimMaxOpacity: CGFloat = 0.18
 
 // MARK: - Detent
@@ -111,10 +111,10 @@ public struct BottomInfoSheet<Content: View>: View {
             .frame(height: displayHeight)
             .background(
                 UnevenRoundedRectangle(
-                    topLeadingRadius: cornerRadius,
+                    topLeadingRadius: sheetCornerRadius,
                     bottomLeadingRadius: 0,
                     bottomTrailingRadius: 0,
-                    topTrailingRadius: cornerRadius
+                    topTrailingRadius: sheetCornerRadius
                 )
                 .fill(.ultraThinMaterial)
             )
