@@ -68,6 +68,9 @@ public final class UserPreferences {
         var hasAcceptedCompanionConsent: Bool = false
         var companionConsentGivenAt: Date?
 
+        // US-011: A+A+A companion gating master switch (default off).
+        var companionEnabled: Bool = false
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -81,6 +84,7 @@ public final class UserPreferences {
             case companionAvatarEmoji, companionBio, companionLanguages, companionVisibilityRaw
             case activeCompanionPosts
             case hasAcceptedCompanionConsent, companionConsentGivenAt
+            case companionEnabled
         }
 
         init() {}
@@ -120,7 +124,8 @@ public final class UserPreferences {
             companionVisibilityRaw: String,
             activeCompanionPosts: [String: CompanionPost],
             hasAcceptedCompanionConsent: Bool = false,
-            companionConsentGivenAt: Date? = nil
+            companionConsentGivenAt: Date? = nil,
+            companionEnabled: Bool = false
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -157,6 +162,7 @@ public final class UserPreferences {
             self.activeCompanionPosts = activeCompanionPosts
             self.hasAcceptedCompanionConsent = hasAcceptedCompanionConsent
             self.companionConsentGivenAt = companionConsentGivenAt
+            self.companionEnabled = companionEnabled
         }
 
         init(from decoder: Decoder) throws {
@@ -197,6 +203,7 @@ public final class UserPreferences {
             self.activeCompanionPosts = try container.decodeIfPresent([String: CompanionPost].self, forKey: .activeCompanionPosts) ?? [:]
             self.hasAcceptedCompanionConsent = try container.decodeIfPresent(Bool.self, forKey: .hasAcceptedCompanionConsent) ?? false
             self.companionConsentGivenAt = try container.decodeIfPresent(Date.self, forKey: .companionConsentGivenAt)
+            self.companionEnabled = try container.decodeIfPresent(Bool.self, forKey: .companionEnabled) ?? false
         }
     }
 
@@ -296,6 +303,11 @@ public final class UserPreferences {
     /// Date the user first accepted the companion safety consent (US-020).
     public var companionConsentGivenAt: Date? { didSet { persist() } }
 
+    /// US-011: A+A+A companion feature master switch. When false, all
+    /// companion UI surfaces stay hidden regardless of visibility/consent
+    /// state. Default false — the feature is opt-in.
+    public var companionEnabled: Bool { didSet { persist() } }
+
     /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
     public var aiProvider: AIProvider {
         get { AIProvider(rawValue: aiProviderRaw) ?? .deepseek }
@@ -349,6 +361,7 @@ public final class UserPreferences {
         self.activeCompanionPosts = snapshot.activeCompanionPosts
         self.hasAcceptedCompanionConsent = snapshot.hasAcceptedCompanionConsent
         self.companionConsentGivenAt = snapshot.companionConsentGivenAt
+        self.companionEnabled = snapshot.companionEnabled
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -399,7 +412,8 @@ public final class UserPreferences {
             companionVisibilityRaw: companionVisibilityRaw,
             activeCompanionPosts: activeCompanionPosts,
             hasAcceptedCompanionConsent: hasAcceptedCompanionConsent,
-            companionConsentGivenAt: companionConsentGivenAt
+            companionConsentGivenAt: companionConsentGivenAt,
+            companionEnabled: companionEnabled
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

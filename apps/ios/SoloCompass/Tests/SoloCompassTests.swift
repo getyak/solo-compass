@@ -79,6 +79,23 @@ final class SoloCompassTests: XCTestCase {
 
     // MARK: - customTags (US-008)
 
+    // MARK: - companionEnabled (US-011)
+
+    /// `UserPreferences.companionEnabled` defaults to false and a flip to
+    /// true survives re-instantiation against the same UserDefaults suite.
+    func testUserPreferencesCompanionEnabledDefaultsFalseAndPersists() throws {
+        let suite = "us011.companionEnabled.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let prefs = UserPreferences(defaults: defaults)
+        XCTAssertFalse(prefs.companionEnabled, "companionEnabled must default to false")
+
+        prefs.companionEnabled = true
+        let reloaded = UserPreferences(defaults: defaults)
+        XCTAssertTrue(reloaded.companionEnabled, "companionEnabled=true must persist across instantiation")
+    }
+
     /// `UserPreferences.customTags` defaults to empty and survives a
     /// UserDefaults reload.
     func testUserPreferencesCustomTagsPersistsAcrossReload() throws {
