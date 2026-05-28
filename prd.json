@@ -341,7 +341,7 @@
         "Verify in Simulator: #Preview renders three permutations correctly"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
