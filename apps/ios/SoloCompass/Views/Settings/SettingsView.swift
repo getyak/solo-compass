@@ -859,7 +859,7 @@ public struct SettingsView: View {
                     MyHostedRoutesListView()
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "person.badge.key.fill")
+                        Image(systemName: "person.badge.key.fill") // anti-pattern-lint:allow standard Apple SF Symbol for key access, not gamification
                             .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(.white)
                             .frame(width: 30, height: 30)

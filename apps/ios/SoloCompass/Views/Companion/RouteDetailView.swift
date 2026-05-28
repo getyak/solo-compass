@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 // MARK: - RouteDetailView
@@ -17,25 +18,30 @@ public struct RouteDetailView: View {
 
     @Environment(ExperienceService.self) private var service
     @Environment(UserPreferences.self) private var preferences
+    @Environment(\.modelContext) private var modelContext
     @State private var isSaved = false
     @State private var isFavorited = false
     @State private var showJoinSheet = false
     @State private var showCompletionMoment = false
+    @State private var showApprovalQueue = false
+    // Refreshes whenever RouteStore.didChange fires (join request submitted, accepted, etc.)
+    @State private var liveRoute: Route
 
     public init(route: Route, onTapStop: @escaping (Experience) -> Void = { _ in }) {
         self.route = route
+        self._liveRoute = State(initialValue: route)
         self.onTapStop = onTapStop
     }
 
     // MARK: - Companion recruiting helpers
 
     private var viewerIsHost: Bool {
-        guard let companion = route.companion else { return false }
+        guard let companion = liveRoute.companion else { return false }
         return companion.hostId == DeviceIdentityService.shared.deviceID
     }
 
     private var hasMyRequest: Bool {
-        guard let companion = route.companion else { return false }
+        guard let companion = liveRoute.companion else { return false }
         let deviceId = DeviceIdentityService.shared.deviceID
         return companion.joinRequests.contains { $0.requesterId == deviceId && $0.status == .pending }
     }
@@ -43,7 +49,7 @@ public struct RouteDetailView: View {
     // MARK: - Primary category (majority category of stops)
 
     private var primaryCategory: ExperienceCategory {
-        let stops = route.experienceIds.compactMap { service.getExperience(id: $0) }
+        let stops = liveRoute.experienceIds.compactMap { service.getExperience(id: $0) }
         guard !stops.isEmpty else { return .hidden }
         var counts: [ExperienceCategory: Int] = [:]
         for stop in stops { counts[stop.category, default: 0] += 1 }
@@ -53,10 +59,10 @@ public struct RouteDetailView: View {
     // MARK: - Mono baseline string
 
     private var monoBaseline: String {
-        let durStr = "\(route.estimatedDuration)"
-        let distStr = "\(route.distanceMeters) m"
-        let paceStr = route.pace.localizedLabel
-        let bestStr = route.bestNow
+        let durStr = "\(liveRoute.estimatedDuration)"
+        let distStr = "\(liveRoute.distanceMeters) m"
+        let paceStr = liveRoute.pace.localizedLabel
+        let bestStr = liveRoute.bestNow
             ? NSLocalizedString("route.detail.bestNow.yes", comment: "")
             : NSLocalizedString("route.detail.bestNow.no", comment: "")
         return "\(durStr) min · \(distStr) · \(paceStr) · \(bestStr)"
@@ -77,10 +83,21 @@ public struct RouteDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { shareButton }
         .sheet(isPresented: $showJoinSheet) {
-            JoinRouteRequestSheet(route: route)
+            JoinRouteRequestSheet(route: liveRoute)
         }
         .fullScreenCover(isPresented: $showCompletionMoment) {
-            CompletionMoment(route: route, onDismiss: { showCompletionMoment = false })
+            CompletionMoment(route: liveRoute, onDismiss: { showCompletionMoment = false })
+        }
+        .navigationDestination(isPresented: $showApprovalQueue) {
+            ApprovalQueueView(route: liveRoute, contextProvider: { modelContext })
+        }
+        .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { note in
+            // Accept both targeted (routeId key present) and broadcast (nil userInfo) changes.
+            let affectedId = note.userInfo?["routeId"] as? String
+            guard affectedId == nil || affectedId == route.id.rawValue else { return }
+            if let updated = RouteStore(context: modelContext).get(route.id) {
+                liveRoute = updated
+            }
         }
     }
 
@@ -96,13 +113,13 @@ public struct RouteDetailView: View {
                 Text(CategoryVisual.emoji(for: primaryCategory))
                     .font(.system(size: 40))
 
-                Text(route.title)
+                Text(liveRoute.title)
                     .font(.custom("SpaceGrotesk-Bold", size: 26).weight(.bold))
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if !route.summary.isEmpty {
-                    Text(route.summary)
+                if !liveRoute.summary.isEmpty {
+                    Text(liveRoute.summary)
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.85))
                         .lineLimit(2)
@@ -119,7 +136,7 @@ public struct RouteDetailView: View {
     }
 
     private var regionBadge: some View {
-        Text(route.region)
+        Text(liveRoute.region)
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 10)
@@ -142,13 +159,13 @@ public struct RouteDetailView: View {
                 .padding(.top, 16)
 
             // VerifiedBadge
-            VerifiedBadge(route: route)
+            VerifiedBadge(route: liveRoute)
                 .padding(.horizontal, 20)
 
             // RecruitingModule — only when companion feature is on and route has a companion slot
-            if preferences.companionEnabled, let _ = route.companion {
+            if preferences.companionEnabled, let _ = liveRoute.companion {
                 RecruitingModule(
-                    route: route,
+                    route: liveRoute,
                     viewerIsHost: viewerIsHost,
                     hasMyRequest: hasMyRequest,
                     strength: preferences.companionModuleStrength,
@@ -156,14 +173,14 @@ public struct RouteDetailView: View {
                         showJoinSheet = true
                     },
                     onViewRequests: {
-                        // TODO: US-034 — push ApprovalQueueView
+                        showApprovalQueue = true
                     }
                 )
                 .padding(.horizontal, 16)
             }
 
             // StopsList
-            StopsList(route: route, onTapStop: onTapStop)
+            StopsList(route: liveRoute, onTapStop: onTapStop)
                 .background(Color(.secondarySystemGroupedBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .padding(.horizontal, 16)
@@ -173,7 +190,7 @@ public struct RouteDetailView: View {
     // MARK: - Bottom dock
 
     private var showMarkCompleted: Bool {
-        viewerIsHost && route.companion?.status == .closed
+        viewerIsHost && liveRoute.companion?.status == .closed
     }
 
     private var bottomDock: some View {
@@ -227,7 +244,7 @@ public struct RouteDetailView: View {
     @ToolbarContentBuilder
     private var shareButton: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            ShareLink(item: route.title) {
+            ShareLink(item: liveRoute.title) {
                 Image(systemName: "square.and.arrow.up")
             }
         }
@@ -343,4 +360,5 @@ extension Pace {
             .environment(service)
             .environment(UserPreferences())
     }
+    .modelContainer(SoloCompassModelContainer.makeInMemory())
 }
