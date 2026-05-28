@@ -45,3 +45,4 @@ Tool: claude
     └─ NEXT_STEPS: (auto) prior run ended (max_turns) Reached maximum number of turns (60)
 [2026-05-28T11:30:00Z] Story #US-034: ApprovalQueueView (host view of pending requests for one route) — PASSED
 [2026-05-28T11:09:49Z] Story #US-034: ApprovalQueueView (host view of pending requests for one route) — PASSED
+[2026-05-28T11:13:04Z] Story #US-035: Extend Conversation model with group + routeId — PASSED
