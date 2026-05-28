@@ -20,3 +20,4 @@ Tool: claude
 [2026-05-28T09:11:21Z] Story #US-012: Add Settings -> Companion section with opt-in toggle — PASSED
 [2026-05-28T09:13:29Z] Story #US-013: Define RouteCompanion struct + JoinRequest (no state machine yet) — FAILED (iteration 15)
 [2026-05-28T09:20:33Z] Story #US-013: Define RouteCompanion struct + JoinRequest (no state machine yet) — PASSED
+[2026-05-28T09:23:31Z] Story #US-014: Implement RouteCompanionStateMachine (pure function) — PASSED
