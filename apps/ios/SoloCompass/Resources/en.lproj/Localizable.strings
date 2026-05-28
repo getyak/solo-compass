@@ -980,3 +980,7 @@
 "route.detail.pace.relaxed" = "Relaxed";
 "route.detail.pace.standard" = "Standard";
 "route.detail.pace.packed" = "Packed";
+
+/* US-026 — AddToItinerary success toast */
+"itinerary.toast.added" = "Added to 《%@》";
+"itinerary.toast.viewAction" = "View itinerary";

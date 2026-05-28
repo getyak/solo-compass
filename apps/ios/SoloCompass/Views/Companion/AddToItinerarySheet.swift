@@ -6,6 +6,9 @@ import SwiftData
 public struct AddToItinerarySheet: View {
     let experienceId: String
     let experienceTitle: String
+    /// Called after a successful add, with the itinerary that was updated.
+    /// The sheet dismisses itself before invoking this.
+    var onSuccess: ((Itinerary) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ExperienceService.self) private var experienceService
@@ -16,10 +19,16 @@ public struct AddToItinerarySheet: View {
     @State private var addedToId: ItineraryId?
     @State private var errorMessage: String?
 
-    public init(experienceId: String, experienceTitle: String, store: ItineraryStore = ItineraryStore()) {
+    public init(
+        experienceId: String,
+        experienceTitle: String,
+        store: ItineraryStore = ItineraryStore(),
+        onSuccess: ((Itinerary) -> Void)? = nil
+    ) {
         self.experienceId = experienceId
         self.experienceTitle = experienceTitle
         self.store = store
+        self.onSuccess = onSuccess
     }
 
     public var body: some View {
@@ -182,7 +191,14 @@ public struct AddToItinerarySheet: View {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             withAnimation { addedToId = itin.id }
             reload()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { dismiss() }
+            // Capture the updated itinerary for the success callback.
+            let updated = store.load(id: itin.id) ?? itin
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    onSuccess?(updated)
+                }
+            }
         } catch {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
             errorMessage = error.localizedDescription

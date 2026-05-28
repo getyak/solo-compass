@@ -33,6 +33,9 @@ public struct ExperienceDetailView: View {
     @State private var isShowingNavPicker = false
     @State private var isShowingAddToItinerary = false
     @State private var heroTitleVisible: Bool = true
+    @State private var addedItineraryToast: Itinerary? = nil
+    @State private var toastDismissTask: Task<Void, Never>? = nil
+    @State private var itineraryToNavigate: Itinerary? = nil
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -161,9 +164,31 @@ public struct ExperienceDetailView: View {
         .sheet(isPresented: $isShowingAddToItinerary) {
             AddToItinerarySheet(
                 experienceId: viewModel.experience.id,
-                experienceTitle: viewModel.experience.title
+                experienceTitle: viewModel.experience.title,
+                onSuccess: { itinerary in
+                    showItineraryToast(itinerary)
+                }
             )
             .environment(viewModel.experienceService)
+        }
+        .sheet(item: $itineraryToNavigate) { itin in
+            NavigationStack {
+                ItineraryDetailView(itinerary: itin)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(NSLocalizedString("common.close", comment: "Close")) {
+                                itineraryToNavigate = nil
+                            }
+                        }
+                    }
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let itin = addedItineraryToast {
+                itineraryAddedToast(itin)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 96)
+            }
         }
         .task {
             await viewModel.loadAIExplanation()
@@ -894,6 +919,44 @@ public struct ExperienceDetailView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Itinerary toast
+
+    @MainActor
+    private func showItineraryToast(_ itinerary: Itinerary) {
+        toastDismissTask?.cancel()
+        withAnimation { addedItineraryToast = itinerary }
+        toastDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation { addedItineraryToast = nil }
+        }
+    }
+
+    private func itineraryAddedToast(_ itin: Itinerary) -> some View {
+        HStack(spacing: 10) {
+            Text(String(
+                format: NSLocalizedString("itinerary.toast.added", comment: "Success toast after adding to itinerary"),
+                itin.title
+            ))
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+
+            Button {
+                toastDismissTask?.cancel()
+                withAnimation { addedItineraryToast = nil }
+                itineraryToNavigate = itin
+            } label: {
+                Text(NSLocalizedString("itinerary.toast.viewAction", comment: "View itinerary button in success toast"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(Color(.systemBackground)).shadow(radius: 6))
     }
 
     // MARK: - Action bar

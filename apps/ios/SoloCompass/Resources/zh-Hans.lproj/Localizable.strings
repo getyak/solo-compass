@@ -772,3 +772,7 @@
 "settings.companion.requests.empty" = "暂无招募申请。";
 "settings.companion.conversations" = "已加入的群聊";
 "settings.companion.conversations.empty" = "尚未加入任何群聊。";
+
+/* US-026 — AddToItinerary success toast */
+"itinerary.toast.added" = "已加入《%@》";
+"itinerary.toast.viewAction" = "查看行程";
