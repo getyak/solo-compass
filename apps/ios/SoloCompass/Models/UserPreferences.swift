@@ -71,6 +71,10 @@ public final class UserPreferences {
         // US-011: A+A+A companion gating master switch (default off).
         var companionEnabled: Bool = false
 
+        // US-029: visual strength of the RecruitingModule. Hidden from Settings UI;
+        // stored so an A/B test can set it without a code change.
+        var companionModuleStrengthRaw: String = ModuleStrength.restrained.rawValue
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -85,6 +89,7 @@ public final class UserPreferences {
             case activeCompanionPosts
             case hasAcceptedCompanionConsent, companionConsentGivenAt
             case companionEnabled
+            case companionModuleStrengthRaw
         }
 
         init() {}
@@ -125,7 +130,8 @@ public final class UserPreferences {
             activeCompanionPosts: [String: CompanionPost],
             hasAcceptedCompanionConsent: Bool = false,
             companionConsentGivenAt: Date? = nil,
-            companionEnabled: Bool = false
+            companionEnabled: Bool = false,
+            companionModuleStrengthRaw: String = ModuleStrength.restrained.rawValue
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -163,6 +169,7 @@ public final class UserPreferences {
             self.hasAcceptedCompanionConsent = hasAcceptedCompanionConsent
             self.companionConsentGivenAt = companionConsentGivenAt
             self.companionEnabled = companionEnabled
+            self.companionModuleStrengthRaw = companionModuleStrengthRaw
         }
 
         init(from decoder: Decoder) throws {
@@ -204,6 +211,7 @@ public final class UserPreferences {
             self.hasAcceptedCompanionConsent = try container.decodeIfPresent(Bool.self, forKey: .hasAcceptedCompanionConsent) ?? false
             self.companionConsentGivenAt = try container.decodeIfPresent(Date.self, forKey: .companionConsentGivenAt)
             self.companionEnabled = try container.decodeIfPresent(Bool.self, forKey: .companionEnabled) ?? false
+            self.companionModuleStrengthRaw = try container.decodeIfPresent(String.self, forKey: .companionModuleStrengthRaw) ?? ModuleStrength.restrained.rawValue
         }
     }
 
@@ -308,6 +316,17 @@ public final class UserPreferences {
     /// state. Default false — the feature is opt-in.
     public var companionEnabled: Bool { didSet { persist() } }
 
+    /// US-029: Raw string backing for `companionModuleStrength`. Not exposed in
+    /// Settings UI — intended for A/B experiments only. Default: "restrained".
+    public var companionModuleStrengthRaw: String { didSet { persist() } }
+
+    /// US-029: Typed access to the visual strength of the RecruitingModule.
+    /// Reads/writes `companionModuleStrengthRaw`.
+    public var companionModuleStrength: ModuleStrength {
+        get { ModuleStrength(rawValue: companionModuleStrengthRaw) ?? .restrained }
+        set { companionModuleStrengthRaw = newValue.rawValue }
+    }
+
     /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
     public var aiProvider: AIProvider {
         get { AIProvider(rawValue: aiProviderRaw) ?? .deepseek }
@@ -362,6 +381,7 @@ public final class UserPreferences {
         self.hasAcceptedCompanionConsent = snapshot.hasAcceptedCompanionConsent
         self.companionConsentGivenAt = snapshot.companionConsentGivenAt
         self.companionEnabled = snapshot.companionEnabled
+        self.companionModuleStrengthRaw = snapshot.companionModuleStrengthRaw
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {
@@ -413,7 +433,8 @@ public final class UserPreferences {
             activeCompanionPosts: activeCompanionPosts,
             hasAcceptedCompanionConsent: hasAcceptedCompanionConsent,
             companionConsentGivenAt: companionConsentGivenAt,
-            companionEnabled: companionEnabled
+            companionEnabled: companionEnabled,
+            companionModuleStrengthRaw: companionModuleStrengthRaw
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

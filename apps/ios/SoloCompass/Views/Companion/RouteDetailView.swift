@@ -143,6 +143,7 @@ public struct RouteDetailView: View {
                     route: route,
                     viewerIsHost: viewerIsHost,
                     hasMyRequest: hasMyRequest,
+                    strength: preferences.companionModuleStrength,
                     onRequestJoin: {
                         // TODO: US-031 — present JoinRouteRequestSheet
                     },

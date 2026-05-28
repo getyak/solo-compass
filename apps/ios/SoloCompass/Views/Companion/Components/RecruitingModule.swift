@@ -1,9 +1,22 @@
 import SwiftUI
 
+// MARK: - ModuleStrength
+
+/// Visual weight of the RecruitingModule card. Used for A/B testing without
+/// a code refactor — persisted via UserPreferences.companionModuleStrength.
+public enum ModuleStrength: String, Codable, CaseIterable {
+    /// No accent fill — plain card with a 1pt separator border. Default.
+    case restrained
+    /// 3pt left sun-gold border + light cream background tint.
+    case neutral
+    /// Full warm sun-gold-soft background + bold primary CTA fill.
+    case strong
+}
+
 // MARK: - RecruitingModule
 
-/// Restrained recruiting card shown inside a route detail view when the route
-/// has an active companion slot. Renders nothing when `route.companion == nil`.
+/// Recruiting card shown inside a route detail view when the route has an
+/// active companion slot. Renders nothing when `route.companion == nil`.
 ///
 /// CTA label logic:
 /// - viewerIsHost && pending requests   → 查看申请(n)
@@ -15,8 +28,16 @@ public struct RecruitingModule: View {
     let route: Route
     let viewerIsHost: Bool
     let hasMyRequest: Bool
+    var strength: ModuleStrength = .restrained
     let onRequestJoin: () -> Void
     let onViewRequests: () -> Void
+
+    // Sun-gold accent shared across neutral and strong variants.
+    private static let sunGold = Color(red: 0.95, green: 0.76, blue: 0.20)
+    // Light cream tint for neutral background.
+    private static let creamTint = Color(red: 1.0, green: 0.98, blue: 0.92)
+    // Warm sun-gold-soft for strong background.
+    private static let sunGoldSoft = Color(red: 1.0, green: 0.94, blue: 0.72)
 
     public var body: some View {
         if let companion = route.companion {
@@ -38,12 +59,42 @@ public struct RecruitingModule: View {
             ctaButton(companion: companion)
         }
         .padding(16)
-        .background(Color(.systemBackground))
-        .overlay(
+        .background(cardBackground)
+        .overlay(cardBorder)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    // MARK: - Strength-based card styling
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        switch strength {
+        case .restrained:
+            Color(.systemBackground)
+        case .neutral:
+            Self.creamTint
+        case .strong:
+            Self.sunGoldSoft
+        }
+    }
+
+    @ViewBuilder
+    private var cardBorder: some View {
+        switch strength {
+        case .restrained:
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color(.separator).opacity(0.45), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        case .neutral:
+            HStack(spacing: 0) {
+                Self.sunGold
+                    .frame(width: 3)
+                Spacer()
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        case .strong:
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Self.sunGold.opacity(0.6), lineWidth: 1)
+        }
     }
 
     // MARK: - Header row: status capsule + departure label
@@ -168,19 +219,34 @@ public struct RecruitingModule: View {
         let config = ctaConfig(companion: companion)
         return Button(action: config.action) {
             Text(config.label)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 14, weight: strength == .strong ? .bold : .semibold))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(config.isDisabled
-                              ? Color(.systemGray5)
-                              : Color.accentColor.opacity(0.12))
-                )
-                .foregroundStyle(config.isDisabled ? Color(.tertiaryLabel) : Color.accentColor)
+                .background(ctaBackground(isDisabled: config.isDisabled))
+                .foregroundStyle(ctaForeground(isDisabled: config.isDisabled))
         }
         .disabled(config.isDisabled)
         .accessibilityLabel(config.label)
+    }
+
+    private func ctaBackground(isDisabled: Bool) -> some View {
+        Group {
+            if isDisabled {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(.systemGray5))
+            } else if strength == .strong {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Self.sunGold)
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.12))
+            }
+        }
+    }
+
+    private func ctaForeground(isDisabled: Bool) -> Color {
+        if isDisabled { return Color(.tertiaryLabel) }
+        return strength == .strong ? Color(.systemBackground) : Color.accentColor
     }
 
     // MARK: - CTA config
@@ -248,6 +314,48 @@ private extension CompanionStatus {
 }
 
 // MARK: - Previews
+
+/// Shows all 3 ModuleStrength variants × status=open side-by-side.
+#Preview("strength × open — all 3 variants") {
+    ScrollView {
+        VStack(spacing: 20) {
+            Text("restrained (default)")
+                .font(.caption).foregroundStyle(.secondary)
+            RecruitingModule(
+                route: .previewWithCompanion(status: .open),
+                viewerIsHost: false,
+                hasMyRequest: false,
+                strength: .restrained,
+                onRequestJoin: {},
+                onViewRequests: {}
+            )
+
+            Text("neutral")
+                .font(.caption).foregroundStyle(.secondary)
+            RecruitingModule(
+                route: .previewWithCompanion(status: .open),
+                viewerIsHost: false,
+                hasMyRequest: false,
+                strength: .neutral,
+                onRequestJoin: {},
+                onViewRequests: {}
+            )
+
+            Text("strong")
+                .font(.caption).foregroundStyle(.secondary)
+            RecruitingModule(
+                route: .previewWithCompanion(status: .open),
+                viewerIsHost: false,
+                hasMyRequest: false,
+                strength: .strong,
+                onRequestJoin: {},
+                onViewRequests: {}
+            )
+        }
+        .padding()
+    }
+    .background(Color(.secondarySystemBackground))
+}
 
 #Preview("status=open, viewer") {
     ScrollView {
