@@ -20,6 +20,7 @@ public struct RouteDetailView: View {
     @State private var isSaved = false
     @State private var isFavorited = false
     @State private var showJoinSheet = false
+    @State private var showCompletionMoment = false
 
     public init(route: Route, onTapStop: @escaping (Experience) -> Void = { _ in }) {
         self.route = route
@@ -77,6 +78,9 @@ public struct RouteDetailView: View {
         .toolbar { shareButton }
         .sheet(isPresented: $showJoinSheet) {
             JoinRouteRequestSheet(route: route)
+        }
+        .fullScreenCover(isPresented: $showCompletionMoment) {
+            CompletionMoment(route: route, onDismiss: { showCompletionMoment = false })
         }
     }
 
@@ -168,33 +172,49 @@ public struct RouteDetailView: View {
 
     // MARK: - Bottom dock
 
+    private var showMarkCompleted: Bool {
+        viewerIsHost && route.companion?.status == .closed
+    }
+
     private var bottomDock: some View {
         VStack(spacing: 0) {
             Divider()
-            HStack(spacing: 12) {
-                Button {
-                    isSaved.toggle()
-                } label: {
-                    Label(
-                        NSLocalizedString("route.detail.save", comment: ""),
-                        systemImage: isSaved ? "bookmark.fill" : "bookmark"
-                    )
-                    .frame(maxWidth: .infinity)
+            VStack(spacing: 8) {
+                if showMarkCompleted {
+                    Button {
+                        showCompletionMoment = true
+                    } label: {
+                        Text(NSLocalizedString("completion.mark.done", comment: ""))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 0.1, green: 0.7, blue: 0.5))
                 }
-                .buttonStyle(.bordered)
-                .tint(isSaved ? .accentColor : .secondary)
+                HStack(spacing: 12) {
+                    Button {
+                        isSaved.toggle()
+                    } label: {
+                        Label(
+                            NSLocalizedString("route.detail.save", comment: ""),
+                            systemImage: isSaved ? "bookmark.fill" : "bookmark"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(isSaved ? .accentColor : .secondary)
 
-                Button {
-                    isFavorited.toggle()
-                } label: {
-                    Label(
-                        NSLocalizedString("route.detail.favorite", comment: ""),
-                        systemImage: isFavorited ? "heart.fill" : "heart"
-                    )
-                    .frame(maxWidth: .infinity)
+                    Button {
+                        isFavorited.toggle()
+                    } label: {
+                        Label(
+                            NSLocalizedString("route.detail.favorite", comment: ""),
+                            systemImage: isFavorited ? "heart.fill" : "heart"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(isFavorited ? .pink : .accentColor)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(isFavorited ? .pink : .accentColor)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)

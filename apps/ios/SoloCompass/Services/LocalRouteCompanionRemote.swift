@@ -135,6 +135,35 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
             event: .markCompleted
         )
         route.companion!.status = newStatus
+        let newMembers = companion.confirmedMembers
+        route.verification.status = .verified
+        route.verification.walkedByCount += newMembers.count
+        for memberId in newMembers where !route.verification.walkedBy.contains(memberId) {
+            route.verification.walkedBy.append(memberId)
+        }
+
+        if let convIdStr = companion.groupConversationId {
+            let convStore = ConversationStore(context: store.context)
+            let convId = ConversationId(rawValue: convIdStr)
+            if let conv = convStore.get(convId) {
+                let frozen = Conversation(
+                    id: conv.id,
+                    requestId: conv.requestId,
+                    participantIds: conv.participantIds,
+                    type: conv.type,
+                    routeId: conv.routeId,
+                    lastMessageAt: conv.lastMessageAt,
+                    createdAt: conv.createdAt,
+                    updatedAt: ISO8601DateFormatter().string(from: Date()),
+                    isReadOnly: true
+                )
+                store.saveWithContext(route)
+                convStore.saveWithContext(frozen)
+                try store.commitContext()
+                return
+            }
+        }
+
         store.save(route)
     }
 }

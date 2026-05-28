@@ -38,6 +38,8 @@ public struct Conversation: Identifiable, Codable, Sendable {
     public let createdAt: String
     /// ISO 8601 UTC timestamp.
     public let updatedAt: String
+    /// When true, the chat is frozen — no new messages can be sent (route completed).
+    public let isReadOnly: Bool
 
     public init(
         id: ConversationId,
@@ -47,7 +49,8 @@ public struct Conversation: Identifiable, Codable, Sendable {
         routeId: String? = nil,
         lastMessageAt: String? = nil,
         createdAt: String,
-        updatedAt: String
+        updatedAt: String,
+        isReadOnly: Bool = false
     ) {
         self.id = id
         self.requestId = requestId
@@ -57,9 +60,10 @@ public struct Conversation: Identifiable, Codable, Sendable {
         self.lastMessageAt = lastMessageAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.isReadOnly = isReadOnly
     }
 
-    // Custom decoder: `type` defaults to `.oneOnOne` when absent (legacy payloads).
+    // Custom decoder: `type` defaults to `.oneOnOne` and `isReadOnly` defaults to `false` when absent (legacy payloads).
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(ConversationId.self, forKey: .id)
@@ -70,6 +74,7 @@ public struct Conversation: Identifiable, Codable, Sendable {
         lastMessageAt = try c.decodeIfPresent(String.self, forKey: .lastMessageAt)
         createdAt = try c.decode(String.self, forKey: .createdAt)
         updatedAt = try c.decode(String.self, forKey: .updatedAt)
+        isReadOnly = try c.decodeIfPresent(Bool.self, forKey: .isReadOnly) ?? false
     }
 }
 

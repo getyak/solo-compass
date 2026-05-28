@@ -1050,3 +1050,9 @@
 "my.hosted.routes.title" = "我主理的路线";
 "my.hosted.routes.empty" = "You are not hosting any routes yet.";
 "settings.companion.hosted.routes" = "我主理的路线";
+
+/* US-038 — CompletionMoment */
+"completion.mark.done" = "标记完成";
+"completion.stat.walked" = "走过";
+"completion.stat.travelers" = "旅人";
+"completion.tagline" = "这条路线现在为下一批旅人发光";

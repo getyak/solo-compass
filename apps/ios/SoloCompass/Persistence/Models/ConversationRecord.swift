@@ -20,6 +20,8 @@ public final class ConversationRecord {
     public var createdAt: String
     /// ISO 8601 UTC timestamp.
     public var updatedAt: String
+    /// When true, the chat is frozen — no new messages can be sent (route completed).
+    public var isReadOnly: Bool
 
     public init(
         id: String,
@@ -29,7 +31,8 @@ public final class ConversationRecord {
         routeId: String?,
         lastMessageAt: String?,
         createdAt: String,
-        updatedAt: String
+        updatedAt: String,
+        isReadOnly: Bool = false
     ) {
         self.id = id
         self.requestId = requestId
@@ -39,6 +42,7 @@ public final class ConversationRecord {
         self.lastMessageAt = lastMessageAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.isReadOnly = isReadOnly
     }
 }
 
@@ -60,7 +64,8 @@ extension ConversationRecord {
             routeId: conversation.routeId,
             lastMessageAt: conversation.lastMessageAt,
             createdAt: conversation.createdAt,
-            updatedAt: conversation.updatedAt
+            updatedAt: conversation.updatedAt,
+            isReadOnly: conversation.isReadOnly
         )
     }
 
@@ -79,7 +84,8 @@ extension ConversationRecord {
             routeId: routeId,
             lastMessageAt: lastMessageAt,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            isReadOnly: isReadOnly
         )
     }
 }
