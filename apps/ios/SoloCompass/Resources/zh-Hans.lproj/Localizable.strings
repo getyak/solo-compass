@@ -1005,6 +1005,7 @@
 "my.hosted.routes.title" = "我主理的路线";
 "my.hosted.routes.empty" = "你目前还没有主理的路线。";
 "my.requests.empty" = "你还没有申请加入任何路线。";
+"my.requests.empty.hint" = "在发现页浏览路线，然后点击发送加入申请。";
 "my.requests.status.pending" = "待确认";
 "my.requests.status.accepted" = "已接受";
 "my.requests.status.declined" = "已拒绝";
