@@ -25,10 +25,6 @@ public struct CompassMapView: View {
     @State private var surveyExperience: Experience? = nil
     @State private var isShowingFavorites: Bool = false
     @State private var voiceOrchestrator: VoiceAgentOrchestrator? = nil
-    /// Drives the Companion hub sheet — single entry point into Discover,
-    /// Inbox, Itineraries, and Profile. Replaces the missing navigation
-    /// surface that previously orphaned all Companion views.
-    @State private var isShowingCompanionHub: Bool = false
 
     // US-017: Companion map layer (default off)
     @State private var isCompanionLayerOn: Bool = false
@@ -111,11 +107,6 @@ public struct CompassMapView: View {
             .sheet(isPresented: detailSheetBinding) { detailSheetContent }
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
-            .sheet(isPresented: $isShowingCompanionHub) {
-                // companionService / presenceService / preferences are already
-                // injected at WindowGroup level — sheet inherits them.
-                CompanionHubSheet(cityCode: viewModel?.selectedCity ?? "")
-            }
             // Bind the chat sheet to the orchestrator itself instead of a
             // separate Bool. With `.sheet(isPresented:)` the content closure
             // could be evaluated in the same render pass that flips the flag —
@@ -151,12 +142,10 @@ public struct CompassMapView: View {
                     viewModel: viewModel,
                     isAIProcessing: aiService.isProcessing,
                     isShowingCityPicker: $isShowingCityPicker,
-                    isShowingCompanionHub: $isShowingCompanionHub,
                     dismissedAIError: $dismissedAIError,
                     dismissedExploreError: $dismissedExploreError,
                     dismissedQuotaInfo: $dismissedQuotaInfo,
-                    isMapPanning: $isMapPanning,
-                    inboxCount: companionService.inboxRequests.count
+                    isMapPanning: $isMapPanning
                 )
 
                 VStack {
@@ -652,14 +641,10 @@ private struct MapOverlayView: View {
     var viewModel: MapViewModel
     var isAIProcessing: Bool
     @Binding var isShowingCityPicker: Bool
-    @Binding var isShowingCompanionHub: Bool
     @Binding var dismissedAIError: String?
     @Binding var dismissedExploreError: String?
     @Binding var dismissedQuotaInfo: String?
     @Binding var isMapPanning: Bool
-    /// Pending companion-request count surfaced as a red badge on the hub button.
-    /// Zero hides the badge so cold-start users see a quiet icon.
-    var inboxCount: Int = 0
 
     private var isFilterActive: Bool {
         viewModel.selectedCategory != nil || viewModel.selectedCustomTag != nil || viewModel.isNowFilter
@@ -672,9 +657,6 @@ private struct MapOverlayView: View {
                     .padding(.leading, 12)
                     .padding(.top, 8)
                 Spacer()
-                companionHubButton
-                    .padding(.trailing, 12)
-                    .padding(.top, 8)
             }
 
             FilterBarView(
@@ -910,46 +892,6 @@ private struct MapOverlayView: View {
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
             .accessibilityLabel(Text(countText))
         }
-    }
-
-    /// People icon next to the city pill. Single entry point into the Companion
-    /// hub (Discover / Inbox / Itineraries / Profile). Red badge surfaces pending
-    /// requests so the hub remains discoverable without polluting the map.
-    private var companionHubButton: some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            isShowingCompanionHub = true
-        } label: {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "person.2.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.regularMaterial, in: Capsule())
-                    .frame(
-                        minWidth: MapOverlayMetrics.cityPillHitTarget,
-                        minHeight: MapOverlayMetrics.cityPillHitTarget
-                    )
-                    .contentShape(Rectangle())
-
-                if inboxCount > 0 {
-                    Text("\(min(inboxCount, 99))")
-                        .font(.caption2.weight(.bold).monospacedDigit())
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 5)
-                        .frame(minWidth: 18, minHeight: 18)
-                        .background(Capsule().fill(Color.red))
-                        .offset(x: 4, y: -4)
-                        .accessibilityHidden(true)
-                }
-            }
-        }
-        .accessibilityLabel(Text(NSLocalizedString("companion.hub.button.a11y", comment: "Companion hub")))
-        .accessibilityValue(inboxCount > 0
-            ? Text(String(format: NSLocalizedString("companion.hub.button.badge.a11y",
-                                                   comment: "n pending requests"), inboxCount))
-            : Text(""))
     }
 
     @ViewBuilder
