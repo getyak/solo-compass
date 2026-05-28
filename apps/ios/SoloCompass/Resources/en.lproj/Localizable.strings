@@ -834,3 +834,45 @@
 /* Shared actions */
 "action.ok" = "OK";
 "action.cancel" = "Cancel";
+
+/* ============================================================
+ * Companion Hub (CompanionHubSheet) — entry point on the map
+ * ============================================================ */
+"companion.hub.title" = "Companion";
+"companion.hub.button.a11y" = "Open Companion";
+"companion.hub.button.badge.a11y" = "%d pending request(s)";
+"companion.hub.section.connect" = "Connect";
+"companion.hub.section.you" = "You";
+"companion.hub.presence.title" = "Be discoverable nearby";
+"companion.hub.presence.on" = "On — others can find you";
+"companion.hub.presence.off" = "Off — you stay invisible";
+"companion.hub.presence.footer" = "When on, your fuzzy ~600 m cell becomes visible to other travelers in the same city. No exact location, no identity is shared.";
+"companion.hub.discover.title" = "Discover companions";
+"companion.hub.discover.subtitle" = "See travelers looking for company in this city";
+"companion.hub.inbox.title" = "Requests";
+"companion.hub.inbox.subtitle" = "People who want to meet up";
+"companion.hub.itineraries.title" = "My itineraries";
+"companion.hub.itineraries.subtitle" = "Trips, dates, and saved experiences";
+"companion.hub.profile.title" = "Companion profile";
+"companion.hub.profile.subtitle" = "Avatar, bio, languages, visibility";
+
+/* ============================================================
+ * Safety consent (CompanionSafetyConsentSheet) — first-run gate
+ * ============================================================ */
+"companion.safety.title" = "Before you connect";
+"companion.safety.heading" = "Solo Compass is a travel companion app, not a dating app.";
+"companion.safety.subtitle" = "Please review and accept these basics so everyone stays safe.";
+"companion.safety.age.header" = "Age";
+"companion.safety.age.body" = "You must be 18 or older to use Companion features.";
+"companion.safety.age.confirm" = "I am 18 or older";
+"companion.safety.privacy.header" = "Privacy";
+"companion.safety.privacy.body" = "Your exact location is never shared. Only a fuzzy ~600 m cell, and only when you turn Presence on.";
+"companion.safety.rules.header" = "Ground rules";
+"companion.safety.rule.meetInPublic" = "Meet in public places only.";
+"companion.safety.rule.noPreciseLocation" = "Never share your home or precise location.";
+"companion.safety.rule.noObligation" = "You're never obligated to accept a request or keep chatting.";
+"companion.safety.rule.reportSuspicious" = "Report anyone who feels off — your reports are weighted.";
+"companion.safety.rule.emergency" = "If something feels wrong, leave and call local emergency services.";
+"companion.safety.rules.confirm" = "I understand and will follow these rules";
+"companion.safety.legal.footer" = "By tapping Accept, you agree to the Terms of Service and our community guidelines.";
+"companion.safety.accept" = "Accept and continue";
