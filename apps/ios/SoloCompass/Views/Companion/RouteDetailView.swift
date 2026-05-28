@@ -2,25 +2,40 @@ import SwiftUI
 
 // MARK: - RouteDetailView
 
-/// Pure-content route detail screen (P0 — no companion recruiting UI).
+/// Pure-content route detail screen.
 ///
 /// Layout (top → bottom):
 ///   1. Hero: gradient + category emoji + title + romanized + region badge
 ///   2. Mono baseline: duration · distance · pace · bestNow
 ///   3. VerifiedBadge
-///   4. StopsList (tapping a stop navigates to ExperienceDetailView)
-///   5. Bottom dock: Save + Favorite CTAs
+///   4. RecruitingModule (when companionEnabled && route.companion != nil)
+///   5. StopsList (tapping a stop navigates to ExperienceDetailView)
+///   6. Bottom dock: Save + Favorite CTAs
 public struct RouteDetailView: View {
     let route: Route
     var onTapStop: (Experience) -> Void
 
     @Environment(ExperienceService.self) private var service
+    @Environment(UserPreferences.self) private var preferences
     @State private var isSaved = false
     @State private var isFavorited = false
 
     public init(route: Route, onTapStop: @escaping (Experience) -> Void = { _ in }) {
         self.route = route
         self.onTapStop = onTapStop
+    }
+
+    // MARK: - Companion recruiting helpers
+
+    private var viewerIsHost: Bool {
+        guard let companion = route.companion else { return false }
+        return companion.hostId == DeviceIdentityService.shared.deviceID
+    }
+
+    private var hasMyRequest: Bool {
+        guard let companion = route.companion else { return false }
+        let deviceId = DeviceIdentityService.shared.deviceID
+        return companion.joinRequests.contains { $0.requesterId == deviceId && $0.status == .pending }
     }
 
     // MARK: - Primary category (majority category of stops)
@@ -121,6 +136,22 @@ public struct RouteDetailView: View {
             // VerifiedBadge
             VerifiedBadge(route: route)
                 .padding(.horizontal, 20)
+
+            // RecruitingModule — only when companion feature is on and route has a companion slot
+            if preferences.companionEnabled, let _ = route.companion {
+                RecruitingModule(
+                    route: route,
+                    viewerIsHost: viewerIsHost,
+                    hasMyRequest: hasMyRequest,
+                    onRequestJoin: {
+                        // TODO: US-031 — present JoinRouteRequestSheet
+                    },
+                    onViewRequests: {
+                        // TODO: US-034 — push ApprovalQueueView
+                    }
+                )
+                .padding(.horizontal, 16)
+            }
 
             // StopsList
             StopsList(route: route, onTapStop: onTapStop)
@@ -287,5 +318,6 @@ extension Pace {
     NavigationStack {
         RouteDetailView(route: route)
             .environment(service)
+            .environment(UserPreferences())
     }
 }
