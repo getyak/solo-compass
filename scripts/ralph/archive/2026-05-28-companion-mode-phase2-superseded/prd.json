@@ -1,0 +1,365 @@
+{
+  "project": "Solo Compass",
+  "branchName": "feat/companion-mode-phase2",
+  "description": "Companion Mode \u2014 privacy-first nearby travel-buddy matching and multi-itinerary planning, layered on top of a strictly local, no-social-graph solo app. Three phases: (1) local multi-itinerary planning, (2) async itinerary-based companion discovery + double-opt-in handshake + in-app realtime chat, (3) foreground-only geohash6-blurred nearby presence. Default-off, location always blurred, exact coordinates never leave the device. Source: tasks/prd-companion-mode.md.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Define Itinerary data model in TS core",
+      "description": "As a developer, I want a typed Itinerary schema in core so itineraries pass consistently across the three layers.",
+      "acceptanceCriteria": [
+        "Create packages/core/src/companion.ts exporting Itinerary and ItineraryId (branded type)",
+        "Itinerary fields: id, ownerId, title, cityCode, startDate (ISO date), endDate (ISO date), experienceIds (ordered ExperienceId[]), note?, openToCompanions, createdAt (ISO 8601 UTC), updatedAt",
+        "Export from packages/core/src/index.ts",
+        "Dates use ISO day-granularity; timestamps use ISO 8601 UTC per project convention",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Mirror Itinerary in Swift and pass parity check",
+      "description": "As a developer, I want Itinerary.swift mirroring the TS type so the parity guard passes.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Models/Itinerary.swift with fields aligned to the TS Itinerary",
+        "ItineraryId is a strongly-typed Swift wrapper (struct wrapper or validated typealias), not a plain String",
+        "Provide a sample factory for #Preview usage",
+        "pnpm parity:check passes",
+        "xcodebuild build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Itinerary local persistence (SwiftData)",
+      "description": "As a user, I want my itineraries saved locally so closing the app does not lose them.",
+      "acceptanceCriteria": [
+        "Add a SwiftData model + ItineraryStore (or extend the existing persistence layer) implementing create/read/update/delete",
+        "New itineraries default to openToCompanions = false",
+        "Unit tests cover CRUD in apps/ios/SoloCompass/Tests/",
+        "xcodebuild test passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Itinerary list and detail UI",
+      "description": "As a user, I want to see all my itineraries and open one so I can manage multiple travel plans.",
+      "acceptanceCriteria": [
+        "Add Views/Companion/ItineraryListView.swift and ItineraryDetailView.swift",
+        "List shows title / city / date range / experience count per itinerary",
+        "Empty state has guidance copy via NSLocalizedString",
+        "Each view has a #Preview",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator (iPhone 17 Pro): create / view / delete itinerary looks and behaves correctly"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Create / edit itinerary form",
+      "description": "As a user, I want to create an itinerary with title/city/dates so I can start planning.",
+      "acceptanceCriteria": [
+        "Create form with title, cityCode (chosen from existing cities), startDate, endDate",
+        "Form validation: endDate must not be earlier than startDate",
+        "After save the itinerary appears immediately in the list",
+        "All copy via NSLocalizedString",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: create and edit flows work"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add experiences to an itinerary / migrate from favorites",
+      "description": "As a user, I want to add an Experience to an itinerary and group existing favorites into itineraries so favorites are no longer one unstructured pile.",
+      "acceptanceCriteria": [
+        "Experience detail view has an 'Add to itinerary' entry (pick existing or create new)",
+        "Itinerary detail view can reorder experienceIds via drag",
+        "Provide an 'Import from favorites' action moving selected favoritedExperiences into a chosen itinerary",
+        "Existing favoritedExperiences behavior is not broken (itinerary is additive, not a replacement)",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: add / reorder / import"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Sync itineraries to Supabase via outbox",
+      "description": "As a user, I want itineraries to sync across devices so switching devices does not lose them.",
+      "acceptanceCriteria": [
+        "Create infra/supabase/migrations/0003_companion.sql containing the itineraries table (this table only for now) with its indexes and RLS (self-all + read-open)",
+        "Reuse SyncService.enqueue outbox pattern, adding itinerary sync handling",
+        "last-write-wins merge aligned with existing updated_at + device_id tiebreak logic",
+        "When FF_COMPANION flag is off, only record to outbox and do NOT flush (aligned with existing FF_BACKEND_SYNC pattern)",
+        "Unit tests cover enqueue + merge",
+        "xcodebuild test passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Complete companion data models (TS + Swift + migration)",
+      "description": "As a developer, I want CompanionPost / CompanionRequest / CompanionProfile / Conversation / ChatMessage / CompanionReport landed across all three layers.",
+      "acceptanceCriteria": [
+        "companion.ts adds the above types + branded IDs (CompanionPostId, CompanionRequestId, ConversationId, MessageId), plus CompanionMode and CompanionRequestStatus unions",
+        "Add CompanionProfile to packages/core/src/user.ts (all-optional, does not break existing User)",
+        "Create the corresponding Swift models and pass parity:check",
+        "Extend 0003_companion.sql with all remaining tables (companion_profiles, companion_posts, companion_requests, conversations, chat_messages, companion_reports, companion_blocks) + their indexes + reverse RLS policies + updated_at triggers",
+        "pnpm typecheck + pnpm parity:check + xcodebuild build all pass",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Companion profile settings + visibility switch (default off)",
+      "description": "As a user, I want to set my companion profile (emoji/bio/languages) and visibility so I control who can see me.",
+      "acceptanceCriteria": [
+        "Add Views/Companion/CompanionProfileView.swift",
+        "visibility has three levels: off (default) / itinerary_only / nearby_and_itinerary",
+        "When off, the user does not appear in any discovery list (enforced by both RLS and the Edge Function)",
+        "No real-photo upload \u2014 emoji / generated avatar only",
+        "All copy via NSLocalizedString",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: profile saves and visibility toggles work"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Mark an itinerary as 'open to companions'",
+      "description": "As a user, I want to open an itinerary to companions so same-city same-period people can find me.",
+      "acceptanceCriteria": [
+        "Itinerary detail view has an 'open to companions' switch writing openToCompanions",
+        "Enabling prompts for blurb + categories and generates a CompanionPost(mode=itinerary)",
+        "Disabling immediately takes down that itinerary's post (delete or set expired)",
+        "When visibility=off, enabling is blocked with a prompt to turn on visibility first",
+        "All copy via NSLocalizedString",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: open/close and prompts"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Companion discovery list via Edge Function",
+      "description": "As a user, I want to see same-city open itineraries filtered by date/category so I can find suitable travel buddies.",
+      "acceptanceCriteria": [
+        "Create Edge Function companion-discover: inputs city_code / mode / dates / categories; filter with service role + exclude blocked pairs; return only de-identified fields (handle / emoji / blurb / blurred distance bucket) \u2014 never exact coordinates",
+        "Create CompanionService.swift calling the function",
+        "Add Views/Companion/DiscoverListView.swift; cards show handle/emoji/blurb/dates/categories",
+        "List returns no exact coordinates",
+        "Empty-state copy + cold-start prompt ('No one in this city is open to companions yet')",
+        "All copy via NSLocalizedString",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: discovery list renders and filters"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Send / accept / decline companion requests (double opt-in)",
+      "description": "As a user, I want to request a companion post and only connect after they accept so contact requires mutual consent.",
+      "acceptanceCriteria": [
+        "Discovery card can 'send request' (with ice-breaker message <=200 chars) writing CompanionRequest(pending)",
+        "Add RequestInboxView.swift showing received pending requests with accept/decline",
+        "When both sides are accepted, the backend creates a Conversation (via Edge Function or DB trigger for consistency)",
+        "After decline / withdraw no conversation is created and the two no longer disturb each other",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator with two anonymous accounts: full handshake (test DB + two devices acceptable)"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "In-app lightweight realtime chat (Supabase Realtime)",
+      "description": "As a user, I want to text an accepted travel buddy inside the app so we can arrange to meet.",
+      "acceptanceCriteria": [
+        "ChatService.swift subscribes to the chat_messages Realtime channel by conversation_id",
+        "Views/Companion/ChatView.swift: text input, message bubbles, ordered by sent_at",
+        "Only conversation participants can read/write (RLS enforces; client double-checks)",
+        "Messages <=1000 chars; plain text only (no images/attachments)",
+        "After reconnect, fetch messages missed while offline (sent_at > lastSeen)",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: bidirectional realtime send/receive"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Report and block",
+      "description": "As a user, I want to report or block someone so I can protect myself from harassment.",
+      "acceptanceCriteria": [
+        "Report can be started from any post / request / message / profile (pick reason + optional detail)",
+        "After blocking: the other person disappears from all my discovery lists, cannot send me requests, and any existing conversation is frozen",
+        "Reports write to companion_reports (a user cannot read others' reports)",
+        "Blocks write to companion_blocks; the discovery Edge Function excludes blocked pairs bidirectionally",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: report submission and block takes effect"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "PresenceService \u2014 foreground-only, manual switch, geohash6 broadcast",
+      "description": "As a user, I want to manually enable 'nearby companions' broadcasting only a blurred location in the foreground so I can find nearby people with controlled privacy.",
+      "acceptanceCriteria": [
+        "Create PresenceService.swift that starts only when the user actively enables it in the UI",
+        "Subscribe to LocationService.currentLocation, convert to geohash6 (~600m), and report a CompanionPost(mode=nearby, geohash6) every N minutes",
+        "When the app enters background OR the user turns the switch off, immediately stop reporting and take down the nearby post",
+        "Exact coordinates never leave the device (compute geohash6 locally then discard the precise value)",
+        "Do not request Always authorization; WhenInUse is sufficient",
+        "Unit tests: switch toggling, background stop, coordinate->geohash6 conversion correct",
+        "xcodebuild test passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "LocationService coarse geohash seam",
+      "description": "As a developer, I want LocationService to expose a coarse (geohash6) read seam so PresenceService never touches precise GPS management.",
+      "acceptanceCriteria": [
+        "LocationService adds a coarseGeohash6 computed property / publisher derived from the existing currentLocation",
+        "Existing precise-location and geofencing logic is unchanged (regression-test existing region behavior)",
+        "geohash6 encoding has unit tests (known coordinate -> known hash)",
+        "xcodebuild test passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Map companion layer (default off)",
+      "description": "As a user, I want to see the nearby companion grid on the map so I can intuitively discover people around me.",
+      "acceptanceCriteria": [
+        "CompassMapView adds an optional 'companion layer' switch (default off)",
+        "When on, call companion-discover(mode=nearby) and render as geohash6 grid centers + 'within ~600m' blur \u2014 never draw exact points",
+        "Turning the layer off returns the map to its current state with no companion elements",
+        "When visibility=off or Presence is not enabled, the layer entry is disabled with an explanation",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: layer toggle and blurred-grid rendering"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Auto-expiry and cleanup",
+      "description": "As a system, I want to auto-clean expired nearby posts and stale data so lists do not show ghost users.",
+      "acceptanceCriteria": [
+        "nearby post expires_at <= 2h; discovery query filters expires_at > now() (RLS already includes this)",
+        "Scheduled cleanup (Supabase scheduled function or query-time filter) removes expired posts",
+        "pending requests that time out (e.g. 7 days) auto-set to expired",
+        "Unit/integration test verifies expired items do not appear in discovery results",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "reporterWeight downranking + discovery sort",
+      "description": "As a system, I want to use the existing trust score to sort companion discovery and downrank low-score users so abusers are harder to find.",
+      "acceptanceCriteria": [
+        "Edge Function discovery results are weighted-sorted by reporter_weight descending",
+        "Repeated reports trigger a reporter_weight decrease (rule documented)",
+        "Users below a threshold do not appear in the discovery list",
+        "Unit tests cover the sort and the threshold",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Safety copy, minor protection, and emergency clauses",
+      "description": "As a product, I want safety guidance and a disclaimer/report channel shown at companion entry and before meeting so we meet compliance and the user-safety baseline.",
+      "acceptanceCriteria": [
+        "First-time companion opt-in shows safety notice + consent terms (no precise location before meeting, meet in public, report entry point)",
+        "Minor-protection statement / age confirmation",
+        "Update App Store privacy manifest (PrivacyInfo): purposes for location, user content, contact info",
+        "UGC (blurb/bio/messages) has basic min-length / sensitive-word filtering",
+        "Legal terms marked as a human-confirmation open item (not decided by development)",
+        "All copy via NSLocalizedString",
+        "xcodebuild build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "One-tap full off / data deletion",
+      "description": "As a user, I want to turn off all companion features and delete my companion data in one tap so I can fully exit the social layer.",
+      "acceptanceCriteria": [
+        "Settings item 'Turn off companions and delete my companion data': set visibility=off, take down all posts, delete profile / itinerary open flags",
+        "After turning off, the app experience is identical to never having enabled companions",
+        "Deletion cascades (profile/posts/requests/conversations associated cleanup)",
+        "xcodebuild build succeeds",
+        "Typecheck passes",
+        "Verify in iOS Simulator: no companion traces remain after turning off"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

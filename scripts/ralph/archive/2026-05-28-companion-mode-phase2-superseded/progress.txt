@@ -1,4 +1,5 @@
 # Solo Compass — Ralph Progress Log
 Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-Target: ralph/route-anchored-companion
+Target: ralph/companion-mode
 Tool: claude
+---
