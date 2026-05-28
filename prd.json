@@ -188,7 +188,7 @@
         "Verify in Simulator: open Settings -> toggle on -> safety sheet appears -> accept -> 3 links appear; toggle off -> links disappear"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

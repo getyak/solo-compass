@@ -17,3 +17,4 @@ Tool: claude
 [2026-05-28T09:00:02Z] Story #US-011: Add UserPreferences.companionEnabled flag (default false) — FAILED (iteration 12)
     └─ NEXT_STEPS: (auto) prior run ended (completed)
 [2026-05-28T09:04:24Z] Story #US-011: Add UserPreferences.companionEnabled flag (default false) — PASSED
+[2026-05-28T09:11:21Z] Story #US-012: Add Settings -> Companion section with opt-in toggle — PASSED
