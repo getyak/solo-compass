@@ -54,10 +54,128 @@ public struct RouteVerification: Codable, Hashable, Sendable {
     }
 }
 
-// MARK: - RouteCompanion (placeholder — filled in US-013)
+// MARK: - Companion enums
+
+public enum CompanionStatus: String, Codable, Sendable, CaseIterable {
+    case open
+    case forming
+    case closed
+    case completed
+}
+
+public enum PacePreference: String, Codable, Sendable, CaseIterable {
+    case relaxed
+    case standard
+    case packed
+    case flexible
+}
+
+/// Visibility for a route's companion slot.
+///
+/// Named `RouteCompanionVisibility` to avoid collision with the existing
+/// `CompanionVisibility` enum in `CompanionProfile.swift`, which describes
+/// a user's overall discoverability (off/itinerary_only/nearby_and_itinerary).
+public enum RouteCompanionVisibility: String, Codable, Sendable, CaseIterable {
+    case `public`
+    case linkOnly
+}
+
+public enum JoinRequestStatus: String, Codable, Sendable, CaseIterable {
+    case pending
+    case accepted
+    case declined
+    case withdrawn
+}
+
+// MARK: - JoinRequestId (branded)
+
+public struct JoinRequestId: RawRepresentable, Codable, Hashable, Sendable {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+}
+
+// MARK: - JoinRequest
+
+public struct JoinRequest: Codable, Hashable, Sendable, Identifiable {
+    public let id: JoinRequestId
+    public var requesterId: String
+    public var message: String
+    public var status: JoinRequestStatus
+    /// ISO 8601 UTC timestamp.
+    public var createdAt: String
+
+    public init(
+        id: JoinRequestId,
+        requesterId: String,
+        message: String,
+        status: JoinRequestStatus = .pending,
+        createdAt: String
+    ) {
+        self.id = id
+        self.requesterId = requesterId
+        self.message = message
+        self.status = status
+        self.createdAt = createdAt
+    }
+}
+
+// MARK: - DepartureWindow
+
+public struct DepartureWindow: Codable, Hashable, Sendable {
+    /// ISO 8601 date (YYYY-MM-DD) for the window start.
+    public var from: String
+    /// ISO 8601 date (YYYY-MM-DD) for the window end.
+    public var to: String
+    /// Free-form local time hint, e.g. "morning", "18:30".
+    public var time: String
+
+    public init(from: String, to: String, time: String) {
+        self.from = from
+        self.to = to
+        self.time = time
+    }
+}
+
+// MARK: - RouteCompanion
 
 public struct RouteCompanion: Codable, Hashable, Sendable {
-    public init() {}
+    public var status: CompanionStatus
+    public var hostId: String
+    public var departureWindow: DepartureWindow
+    public var departureLabel: String
+    public var pacePreference: PacePreference
+    public var maxMembers: Int
+    public var confirmedMembers: [String]
+    public var joinRequests: [JoinRequest]
+    public var visibility: RouteCompanionVisibility
+    public var groupConversationId: String?
+    public var hostMessage: String?
+
+    public init(
+        status: CompanionStatus = .open,
+        hostId: String,
+        departureWindow: DepartureWindow,
+        departureLabel: String,
+        pacePreference: PacePreference = .standard,
+        maxMembers: Int,
+        confirmedMembers: [String] = [],
+        joinRequests: [JoinRequest] = [],
+        visibility: RouteCompanionVisibility = .public,
+        groupConversationId: String? = nil,
+        hostMessage: String? = nil
+    ) {
+        self.status = status
+        self.hostId = hostId
+        self.departureWindow = departureWindow
+        self.departureLabel = departureLabel
+        self.pacePreference = pacePreference
+        self.maxMembers = maxMembers
+        self.confirmedMembers = confirmedMembers
+        self.joinRequests = joinRequests
+        self.visibility = visibility
+        self.groupConversationId = groupConversationId
+        self.hostMessage = hostMessage
+    }
 }
 
 // MARK: - Route
