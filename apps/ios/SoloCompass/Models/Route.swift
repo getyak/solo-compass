@@ -129,8 +129,8 @@ public struct DepartureWindow: Codable, Hashable, Sendable {
     /// Free-form local time hint, e.g. "morning", "18:30".
     public var time: String
 
-    public init(from: String, to: String, time: String) {
-        self.from = from
+    public init(startDate: String, to: String, time: String) {
+        self.from = startDate
         self.to = to
         self.time = time
     }
@@ -181,7 +181,7 @@ public struct RouteCompanion: Codable, Hashable, Sendable {
     public init() {
         self.status = .open
         self.hostId = ""
-        self.departureWindow = DepartureWindow(from: "", to: "", time: "")
+        self.departureWindow = DepartureWindow(startDate: "", to: "", time: "")
         self.departureLabel = ""
         self.pacePreference = .standard
         self.maxMembers = 4

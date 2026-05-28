@@ -42,7 +42,7 @@ final class RouteCompanionTests: XCTestCase {
             status: .accepted,
             createdAt: "2026-05-27T14:30:00Z"
         )
-        let window = DepartureWindow(from: "2026-06-01", to: "2026-06-03", time: "morning")
+        let window = DepartureWindow(startDate: "2026-06-01", to: "2026-06-03", time: "morning")
         let original = RouteCompanion(
             status: .forming,
             hostId: "user-host-1",
@@ -78,7 +78,7 @@ final class RouteCompanionTests: XCTestCase {
     }
 
     func testRouteCompanionRoundTripWithNilOptionals() throws {
-        let window = DepartureWindow(from: "2026-07-10", to: "2026-07-12", time: "flexible")
+        let window = DepartureWindow(startDate: "2026-07-10", to: "2026-07-12", time: "flexible")
         let original = RouteCompanion(
             status: .open,
             hostId: "user-solo",
