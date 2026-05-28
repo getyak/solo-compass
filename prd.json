@@ -291,7 +291,7 @@
         "Verify in Simulator: peek detent shows hint + toolbar without scrolling"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
