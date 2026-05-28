@@ -491,7 +491,7 @@
         "Verify in Simulator using #Preview: 3 strengths render distinctly"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
