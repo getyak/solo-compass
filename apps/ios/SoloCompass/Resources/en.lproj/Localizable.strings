@@ -896,3 +896,9 @@
 /* US-019 — BottomInfoSheet nearby section */
 "sheet.nearby.section.title" = "附近";
 "sheet.nearby.smartPick.a11y" = "AI recommended";
+
+/* US-020 — Sort mode sheet */
+"sort.smart" = "智能";
+"sort.distance" = "距离";
+"sort.soloScore" = "Solo 分";
+"sort.now" = "此刻";

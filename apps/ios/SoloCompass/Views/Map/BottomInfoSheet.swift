@@ -1,6 +1,26 @@
 import SwiftUI
 import CoreLocation
 
+// MARK: - SortMode
+
+enum SortMode: String, CaseIterable, Identifiable {
+    case smart
+    case distance
+    case soloScore
+    case now
+
+    var id: String { rawValue }
+
+    var localizedTitle: String {
+        switch self {
+        case .smart:     return NSLocalizedString("sort.smart",     comment: "Sort: smart")
+        case .distance:  return NSLocalizedString("sort.distance",  comment: "Sort: distance")
+        case .soloScore: return NSLocalizedString("sort.soloScore", comment: "Sort: solo score")
+        case .now:       return NSLocalizedString("sort.now",       comment: "Sort: now")
+        }
+    }
+}
+
 // MARK: - Constants
 
 private let peekHeight: CGFloat = 170
@@ -36,17 +56,18 @@ public struct BottomInfoSheet<Content: View>: View {
     @State private var currentDetent: BottomSheetDetent = .peek
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
+    @State var sortMode: SortMode = .smart
 
     private let aiHint: String
     private let count: Int
     private let isNowMode: Bool
-    private let content: (BottomSheetDetent) -> Content
+    private let content: (BottomSheetDetent, Binding<SortMode>) -> Content
 
     public init(
         aiHint: String,
         count: Int,
         isNowMode: Bool,
-        @ViewBuilder content: @escaping (BottomSheetDetent) -> Content
+        @ViewBuilder content: @escaping (BottomSheetDetent, Binding<SortMode>) -> Content
     ) {
         self.aiHint = aiHint
         self.count = count
@@ -80,10 +101,10 @@ public struct BottomInfoSheet<Content: View>: View {
                 NowHintRow(hint: aiHint)
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
-                SortCountToolbar(count: count, isNowMode: isNowMode)
+                SortCountToolbar(count: count, isNowMode: isNowMode, sortMode: $sortMode)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
-                content(currentDetent)
+                content(currentDetent, $sortMode)
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
@@ -168,6 +189,8 @@ struct NowHintRow: View {
 struct SortCountToolbar: View {
     let count: Int
     let isNowMode: Bool
+    @Binding var sortMode: SortMode
+    @State private var showSortSheet = false
 
     var body: some View {
         HStack {
@@ -175,14 +198,19 @@ struct SortCountToolbar: View {
             Spacer()
             countBadge
         }
+        .sheet(isPresented: $showSortSheet) {
+            SortModeSheet(sortMode: $sortMode)
+                .presentationDetents([.height(300)])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private var sortButton: some View {
         Button {
-            // Sort dropdown — behavior added in a follow-up story
+            showSortSheet = true
         } label: {
             HStack(spacing: 4) {
-                Text(NSLocalizedString("sheet.sort.button", comment: "Sort"))
+                Text(sortMode.localizedTitle)
                     .font(.caption.weight(.medium))
                 Image(systemName: "chevron.down")
                     .font(.caption2.weight(.semibold))
@@ -209,6 +237,53 @@ struct SortCountToolbar: View {
             .padding(.vertical, 5)
             .background(Capsule().fill(Color.secondary.opacity(0.12)))
             .accessibilityLabel(Text(label))
+    }
+}
+
+// MARK: - SortModeSheet
+
+struct SortModeSheet: View {
+    @Binding var sortMode: SortMode
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(NSLocalizedString("sheet.sort.button", comment: "Sort sheet title"))
+                .font(.headline)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
+
+            ForEach(SortMode.allCases) { mode in
+                Button {
+                    sortMode = mode
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(mode.localizedTitle)
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if sortMode == mode {
+                            Image(systemName: "checkmark")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                if mode.id != SortMode.allCases.last?.id {
+                    Divider()
+                        .padding(.leading, 20)
+                }
+            }
+            Spacer()
+        }
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -344,15 +419,28 @@ struct NearbyExperienceRow: View {
 // MARK: - NearbySection
 
 /// '附近' section rendered inside BottomInfoSheet when detent > .peek.
-/// Smart sort: AI top-3 pinned at top (sun-gold border + warm gradient),
-/// remaining sorted by distance ascending.
 struct NearbySection: View {
     let experiences: [Experience]
     /// IDs of AI-ranked top picks (up to 3 pinned at top).
     let smartPickIds: [String]
     /// Reference coordinate for distance calculation (user location or map center).
     let referenceCoordinate: CLLocationCoordinate2D?
+    let sortMode: SortMode
     let onSelectExperience: (Experience) -> Void
+
+    init(
+        experiences: [Experience],
+        smartPickIds: [String],
+        referenceCoordinate: CLLocationCoordinate2D?,
+        sortMode: SortMode = .smart,
+        onSelectExperience: @escaping (Experience) -> Void
+    ) {
+        self.experiences = experiences
+        self.smartPickIds = smartPickIds
+        self.referenceCoordinate = referenceCoordinate
+        self.sortMode = sortMode
+        self.onSelectExperience = onSelectExperience
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -364,7 +452,7 @@ struct NearbySection: View {
                     ForEach(sortedExperiences) { exp in
                         NearbyExperienceRow(
                             experience: exp,
-                            isSmartPick: smartPickIds.contains(exp.id),
+                            isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
                             distanceMeters: distance(to: exp),
                             onTap: { onSelectExperience(exp) }
                         )
@@ -387,18 +475,28 @@ struct NearbySection: View {
             .padding(.bottom, 6)
     }
 
-    /// Smart sort: AI picks (in ranked order) first, then remaining sorted by distance.
     private var sortedExperiences: [Experience] {
-        let smartSet = Set(smartPickIds)
-        let picks = smartPickIds.compactMap { id in experiences.first { $0.id == id } }
-        let rest = experiences
-            .filter { !smartSet.contains($0.id) }
-            .sorted { lhs, rhs in
-                let dl = distance(to: lhs) ?? .infinity
-                let dr = distance(to: rhs) ?? .infinity
-                return dl < dr
+        switch sortMode {
+        case .smart:
+            let smartSet = Set(smartPickIds)
+            let picks = smartPickIds.compactMap { id in experiences.first { $0.id == id } }
+            let rest = experiences
+                .filter { !smartSet.contains($0.id) }
+                .sorted { distance(to: $0) ?? .infinity < distance(to: $1) ?? .infinity }
+            return picks + rest
+        case .distance:
+            return experiences.sorted { distance(to: $0) ?? .infinity < distance(to: $1) ?? .infinity }
+        case .soloScore:
+            return experiences.sorted { $0.soloScore.overall > $1.soloScore.overall }
+        case .now:
+            let hour = Calendar.current.component(.hour, from: Date())
+            return experiences.sorted { lhs, rhs in
+                let lhsNow = lhs.bestTimes.contains { $0.contains(hour: hour) }
+                let rhsNow = rhs.bestTimes.contains { $0.contains(hour: hour) }
+                if lhsNow != rhsNow { return lhsNow }
+                return distance(to: lhs) ?? .infinity < distance(to: rhs) ?? .infinity
             }
-        return picks + rest
+        }
     }
 
     private func distance(to experience: Experience) -> Double? {
@@ -420,7 +518,7 @@ struct NearbySection: View {
             aiHint: NSLocalizedString("ai.now.hint", comment: "AI now hint"),
             count: 7,
             isNowMode: false
-        ) { detent in
+        ) { detent, _ in
             if detent != .peek {
                 Text("Nearby list goes here")
                     .padding()

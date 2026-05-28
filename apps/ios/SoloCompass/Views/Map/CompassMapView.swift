@@ -236,13 +236,14 @@ public struct CompassMapView: View {
                             ? viewModel.nowCount
                             : viewModel.visibleExperiences.count,
                         isNowMode: viewModel.isNowFilter
-                    ) { detent in
+                    ) { detent, sortMode in
                         if detent != .peek {
                             NearbySection(
                                 experiences: viewModel.visibleExperiences,
                                 smartPickIds: viewModel.aiSmartPickIds,
                                 referenceCoordinate: locationService.currentLocation?.coordinate
                                     ?? viewModel.defaultCenterForSelectedCity,
+                                sortMode: sortMode.wrappedValue,
                                 onSelectExperience: { exp in
                                     viewModel.selectExperience(exp)
                                     viewModel.isShowingDetail = true
