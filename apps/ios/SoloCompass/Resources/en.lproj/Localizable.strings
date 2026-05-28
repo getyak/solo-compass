@@ -1001,3 +1001,7 @@
 "recruiting.cta.viewChat" = "查看群聊";
 "recruiting.cta.requestJoin" = "申请加入";
 "recruiting.cta.requestJoinForming" = "申请加入(最后 %d 位)";
+
+/* US-030 — Companion Profile walked routes section */
+"profile.walkedRoutes.header" = "走过的路线 (%d)";
+"profile.walkedRoutes.viewAll" = "查看全部 ->";
