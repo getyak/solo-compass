@@ -7,6 +7,7 @@ import SwiftUI
 /// sheet keeps the social/itinerary surface from polluting the map while still
 /// giving the 5 companion screens (Discover, Inbox, Itineraries, Profile, plus
 /// presence toggle) a single, obvious doorway.
+@available(*, deprecated, message: "Replaced by Settings -> Companion section per A+A+A. Delete after P2 ships.")
 public struct CompanionHubSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(CompanionService.self) private var companionService
