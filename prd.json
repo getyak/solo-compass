@@ -323,7 +323,7 @@
         "Verify in Simulator: tap sort -> pick distance -> list reorders"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
