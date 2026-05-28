@@ -1,5 +1,6 @@
 import Foundation
 import os.log
+import SwiftUI
 
 /// In-memory directory of seed users loaded from `seed_users.json`.
 ///
@@ -53,5 +54,31 @@ public final class UserDirectory {
     /// Number of loaded users.
     public var count: Int {
         usersByHandle.count
+    }
+
+    // MARK: - Avatar color
+
+    /// Deterministic avatar color for any string id.
+    ///
+    /// Returns the user's stored hex color when `id` matches a known handle;
+    /// otherwise hashes `id` into a fixed palette so the color is stable
+    /// across sessions without requiring a network lookup.
+    @MainActor
+    public static func color(forId id: String) -> Color {
+        if let hex = shared.user(handle: id)?.color {
+            return Color(hex: hex) ?? palette(id)
+        }
+        return palette(id)
+    }
+
+    private static let paletteHex: [String] = [
+        "#E8826A", "#6AAEE8", "#82E8A0", "#E8D06A", "#C06AE8",
+        "#E86AA0", "#6AE8D8", "#A0E86A", "#E8A06A", "#6A82E8",
+    ]
+
+    private static func palette(_ id: String) -> Color {
+        let hash = id.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }
+        let hex = paletteHex[abs(hash) % paletteHex.count]
+        return Color(hex: hex) ?? .gray
     }
 }
