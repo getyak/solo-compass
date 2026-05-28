@@ -65,7 +65,7 @@ public struct DiscoverRecruitingRoutesView: View {
                 .padding(.horizontal, -16)  // cancel List row insets already applied
 
             if let companion = route.companion {
-                slotChip(companion: companion)
+                slotChip(companion)
                     .padding(.leading, 54)   // align under the title (past 44px cover + 10px gap)
                     .padding(.bottom, 4)
             }
