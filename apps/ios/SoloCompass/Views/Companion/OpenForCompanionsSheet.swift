@@ -247,14 +247,6 @@ public struct OpenForCompanionsSheet: View {
 // MARK: - Pace helpers
 
 private extension Pace {
-    var localizedLabel: String {
-        switch self {
-        case .relaxed:  return NSLocalizedString("route.detail.pace.relaxed", comment: "Relaxed pace")
-        case .standard: return NSLocalizedString("route.detail.pace.standard", comment: "Standard pace")
-        case .packed:   return NSLocalizedString("route.detail.pace.packed", comment: "Packed pace")
-        }
-    }
-
     var asPacePreference: PacePreference {
         switch self {
         case .relaxed:  return .relaxed
