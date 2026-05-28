@@ -32,3 +32,5 @@ Tool: claude
 [2026-05-28T09:56:46Z] Story #US-023: StopsList view (ordered experience stops) — PASSED
 [2026-05-28T09:59:22Z] Story #US-024: RouteDetailView (pure content, no recruiting module) — PASSED
 [2026-05-28T10:09:49Z] Story #US-026: AddToItinerarySheet success toast -> 'View itinerary' action — PASSED
+[2026-05-28T10:20:00Z] Story #US-025: BottomInfoSheet Routes section — PASSED (recovered from reflog after PR merge)
+[2026-05-28T10:20:01Z] Story #US-026: AddToItinerarySheet success toast -> 'View itinerary' action — PASSED (recovered from cherry-pick)
