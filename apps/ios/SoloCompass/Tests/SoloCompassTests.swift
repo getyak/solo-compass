@@ -3792,22 +3792,10 @@ final class SoloCompassTests: XCTestCase {
 
     /// `nextBestExperience` returns the soonest experience within 180 min.
     func testNextBestExperiencePicksClosestUpcoming() throws {
-        // Two experiences: one starts in 30 min, one in 90 min (both within cap).
-        let cal = Calendar.current
-        let now = Date()
-        let currentHour = cal.component(.hour, from: now)
-        let currentMinute = cal.component(.minute, from: now)
-        let nowMinutes = currentHour * 60 + currentMinute
-
-        // Push reference 2 h forward so windows never overlap the current hour
-        // (integer division can round (nowMinutes+30)/60 to currentHour when nowMinutes < 30).
-        let referenceMin = nowMinutes + 120
-
-        // Only set up test if there's room for both windows before midnight.
-        guard referenceMin + 90 < 24 * 60 else { return }
-
-        let startHour30 = (referenceMin + 30) / 60
-        let startHour90 = (referenceMin + 90) / 60
+        // Use a fixed reference hour (06:00) so time windows never overlap
+        // the current hour regardless of Calendar.current timezone.
+        let startHour30 = 6  // 06:00 – 07:00, always ≤ 180 min from any hour
+        let startHour90 = 7  // 07:00 – 08:00
 
         let expSoon = try makeExperience(
             id: "soon",
