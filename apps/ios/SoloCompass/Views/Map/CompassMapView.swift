@@ -30,6 +30,12 @@ public struct CompassMapView: View {
     @State private var isCompanionLayerOn: Bool = false
     @State private var nearbyCells: [NearbyCell] = []
 
+    // US-025: Routes section in BottomInfoSheet
+    @State private var routeStore = RouteStore()
+    @State private var nearbyRoutes: [Route] = []
+    @State private var selectedRoute: Route? = nil
+    @State private var isShowingRouteDetail: Bool = false
+
     // Single chat sheet (replaces former plus-menu + voice-overlay split).
     // Presentation is driven by `voiceOrchestrator` via `.sheet(item:)`.
     @State private var chatStartMode: ChatStartMode = .text
@@ -135,7 +141,12 @@ public struct CompassMapView: View {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
             }
-            .sheet(isPresented: settingsSheetBinding) { settingsSheetContent }
+            .onChange(of: viewModel?.selectedCity) { _, cityCode in
+                refreshNearbyRoutes(cityCode: cityCode)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { _ in
+                refreshNearbyRoutes(cityCode: viewModel?.selectedCity)
+            }
             .sheet(item: $surveyExperience) { exp in surveySheetContent(exp: exp) }
             .alert(
                 NSLocalizedString("addExperience.confirm.title", comment: "Add an experience here?"),
@@ -289,21 +300,45 @@ public struct CompassMapView: View {
                         isNowMode: viewModel.isNowFilter
                     ) { detent, sortMode in
                         if detent != .peek {
-                            NearbySection(
-                                experiences: viewModel.visibleExperiences,
-                                smartPickIds: viewModel.aiSmartPickIds,
-                                referenceCoordinate: locationService.currentLocation?.coordinate
-                                    ?? viewModel.defaultCenterForSelectedCity,
-                                sortMode: sortMode.wrappedValue,
-                                onSelectExperience: { exp in
-                                    viewModel.selectExperience(exp)
-                                    viewModel.isShowingDetail = true
-                                }
-                            )
+                            VStack(spacing: 0) {
+                                // US-025: Routes section above Nearby (non-scrollable header rows)
+                                RoutesSection(
+                                    routes: nearbyRoutes,
+                                    isNowFilter: viewModel.isNowFilter,
+                                    onSelectRoute: { route in
+                                        selectedRoute = route
+                                        isShowingRouteDetail = true
+                                    }
+                                )
+
+                                NearbySection(
+                                    experiences: viewModel.visibleExperiences,
+                                    smartPickIds: viewModel.aiSmartPickIds,
+                                    referenceCoordinate: locationService.currentLocation?.coordinate
+                                        ?? viewModel.defaultCenterForSelectedCity,
+                                    sortMode: sortMode.wrappedValue,
+                                    onSelectExperience: { exp in
+                                        viewModel.selectExperience(exp)
+                                        viewModel.isShowingDetail = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
                 .ignoresSafeArea(edges: .bottom)
+                .sheet(isPresented: $isShowingRouteDetail) {
+                    if let route = selectedRoute {
+                        NavigationStack {
+                            RouteDetailView(route: route) { exp in
+                                isShowingRouteDetail = false
+                                viewModel.selectExperience(exp)
+                                viewModel.isShowingDetail = true
+                            }
+                            .environment(experienceService)
+                        }
+                    }
+                }
             } else {
                 ProgressView()
                     .accessibilityLabel(Text(NSLocalizedString("map.loading", comment: "Loading map")))
@@ -479,6 +514,15 @@ public struct CompassMapView: View {
         .environment(preferences)
     }
 
+
+    /// Load up to 8 routes for the current city from RouteStore (US-025).
+    private func refreshNearbyRoutes(cityCode: String?) {
+        guard let code = cityCode, !code.isEmpty else {
+            nearbyRoutes = []
+            return
+        }
+        nearbyRoutes = routeStore.nearby(cityCode: code, limit: 8)
+    }
 
     /// Fetch nearby companion posts and convert geohash6 fields to cell centres
     /// for the companion map layer (US-017).

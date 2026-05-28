@@ -416,6 +416,54 @@ struct NearbyExperienceRow: View {
     }
 }
 
+// MARK: - RoutesSection
+
+/// '路线' section rendered inside BottomInfoSheet above 附近.
+/// Shows RouteStore.nearby routes. When isNowFilter is true only bestNow routes appear.
+struct RoutesSection: View {
+    let routes: [Route]
+    let isNowFilter: Bool
+    let onSelectRoute: (Route) -> Void
+
+    private var displayed: [Route] {
+        isNowFilter ? routes.filter(\.bestNow) : routes
+    }
+
+    var body: some View {
+        let items = displayed
+        Group {
+            if !items.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    sectionHeader
+                    Divider()
+                        .padding(.horizontal, 16)
+                    ForEach(items) { route in
+                        Button { onSelectRoute(route) } label: {
+                            RouteCard(route: route)
+                        }
+                        .buttonStyle(.plain)
+                        if route.id != items.last?.id {
+                            Divider()
+                                .padding(.leading, 70)
+                        }
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+
+    private var sectionHeader: some View {
+        Text(NSLocalizedString("sheet.routes.section.title", comment: "Routes section header"))
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .tracking(0.5)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 6)
+    }
+}
+
 // MARK: - NearbySection
 
 /// '附近' section rendered inside BottomInfoSheet when detent > .peek.
