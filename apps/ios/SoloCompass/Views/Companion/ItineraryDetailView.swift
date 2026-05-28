@@ -24,6 +24,9 @@ public struct ItineraryDetailView: View {
     @State private var showingVisibilityOffAlert = false
     @State private var showingRemovePostConfirm = false
 
+    // Open for companions flow (US-039)
+    @State private var showingOpenForCompanionsSheet = false
+
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .long
@@ -151,6 +154,9 @@ public struct ItineraryDetailView: View {
                 activateCompanionPost(post)
             }
         }
+        .sheet(isPresented: $showingOpenForCompanionsSheet) {
+            OpenForCompanionsSheet(itinerary: itinerary)
+        }
         .overlay(alignment: .bottom) {
             if let count = importedCount {
                 importedToast(count: count)
@@ -231,6 +237,24 @@ public struct ItineraryDetailView: View {
                 }
                 .padding(.vertical, 2)
             }
+
+            // US-039: Convert to a recruiting route
+            Button {
+                showingOpenForCompanionsSheet = true
+            } label: {
+                HStack {
+                    Text(NSLocalizedString(
+                        "openForCompanions.button",
+                        comment: "Button to open itinerary as a recruiting route"
+                    ))
+                    .foregroundStyle(Color.accentColor)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .buttonStyle(.plain)
         } footer: {
             if openToCompanions {
                 Text(NSLocalizedString("companion.post.openToCompanions.footer", comment: "Open to companions footer"))

@@ -112,8 +112,14 @@ export interface Conversation {
   readonly id: ConversationId;
   readonly requestId: CompanionRequestId;
   readonly participantIds: readonly UserId[];
+  /** `oneOnOne` for private threads; `groupRoute` for route-anchored group chats. */
+  readonly type: "oneOnOne" | "groupRoute";
+  /** Non-nil when `type === "groupRoute"` — the Route this group chat is anchored to. */
+  readonly routeId?: string;
   /** ISO 8601 UTC timestamp of the most recent message. */
   readonly lastMessageAt?: string;
+  /** When true, the chat is frozen — no new messages can be sent (route completed). */
+  readonly isReadOnly: boolean;
   /** ISO 8601 UTC timestamp. */
   readonly createdAt: string;
   /** ISO 8601 UTC timestamp. */

@@ -3,13 +3,13 @@ import CoreLocation
 
 // MARK: - SortMode
 
-enum SortMode: String, CaseIterable, Identifiable {
+public enum SortMode: String, CaseIterable, Identifiable {
     case smart
     case distance
     case soloScore
     case now
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
     var localizedTitle: String {
         switch self {
@@ -28,12 +28,12 @@ private let midHeight: CGFloat = 500
 private let fullHeight: CGFloat = 800
 private let minHeight: CGFloat = 120
 private let maxHeight: CGFloat = 830
-private let cornerRadius: CGFloat = 20
+private let sheetCornerRadius: CGFloat = 20
 private let scrimMaxOpacity: CGFloat = 0.18
 
 // MARK: - Detent
 
-enum BottomSheetDetent {
+public enum BottomSheetDetent {
     case peek, mid, full
 
     var height: CGFloat {
@@ -111,10 +111,10 @@ public struct BottomInfoSheet<Content: View>: View {
             .frame(height: displayHeight)
             .background(
                 UnevenRoundedRectangle(
-                    topLeadingRadius: cornerRadius,
+                    topLeadingRadius: sheetCornerRadius,
                     bottomLeadingRadius: 0,
                     bottomTrailingRadius: 0,
-                    topTrailingRadius: cornerRadius
+                    topTrailingRadius: sheetCornerRadius
                 )
                 .fill(.ultraThinMaterial)
             )
@@ -413,6 +413,54 @@ struct NearbyExperienceRow: View {
         } else {
             return String(format: "%.1fkm", meters / 1000)
         }
+    }
+}
+
+// MARK: - RoutesSection
+
+/// '路线' section rendered inside BottomInfoSheet above 附近.
+/// Shows RouteStore.nearby routes. When isNowFilter is true only bestNow routes appear.
+struct RoutesSection: View {
+    let routes: [Route]
+    let isNowFilter: Bool
+    let onSelectRoute: (Route) -> Void
+
+    private var displayed: [Route] {
+        isNowFilter ? routes.filter(\.bestNow) : routes
+    }
+
+    var body: some View {
+        let items = displayed
+        Group {
+            if !items.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    sectionHeader
+                    Divider()
+                        .padding(.horizontal, 16)
+                    ForEach(items) { route in
+                        Button { onSelectRoute(route) } label: {
+                            RouteCard(route: route)
+                        }
+                        .buttonStyle(.plain)
+                        if route.id != items.last?.id {
+                            Divider()
+                                .padding(.leading, 70)
+                        }
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+
+    private var sectionHeader: some View {
+        Text(NSLocalizedString("sheet.routes.section.title", comment: "Routes section header"))
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .tracking(0.5)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 6)
     }
 }
 

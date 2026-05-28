@@ -31,6 +31,7 @@ public enum SoloCompassSchemaV1: VersionedSchema {
             PendingSyncRecord.self,
             ItineraryRecord.self,
             RouteRecord.self,
+            ConversationRecord.self,
         ]
     }
 }
@@ -60,6 +61,7 @@ public enum SoloCompassSchemaV1_1: VersionedSchema {
             PendingSyncRecord.self,
             ItineraryRecord.self,
             RouteRecord.self,
+            ConversationRecord.self,
         ]
     }
 }
@@ -118,6 +120,7 @@ public enum SoloCompassModelContainer {
                 PendingSyncRecord.self,
                 ItineraryRecord.self,
                 RouteRecord.self,
+                ConversationRecord.self,
                 configurations: config
             )
         } catch {
@@ -149,6 +152,7 @@ public enum SoloCompassModelContainer {
                 PendingSyncRecord.self,
                 ItineraryRecord.self,
                 RouteRecord.self,
+                ConversationRecord.self,
                 configurations: config
             )
         } catch {

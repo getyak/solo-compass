@@ -838,6 +838,35 @@ public struct SettingsView: View {
                         Text(NSLocalizedString("settings.companion.conversations", comment: "Joined conversations link"))
                     }
                 }
+
+                // US-032: Discover recruiting routes
+                NavigationLink {
+                    DiscoverRecruitingRoutesView()
+                        .environment(preferences)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.green, in: RoundedRectangle(cornerRadius: 7))
+                        Text(NSLocalizedString("settings.companion.discover.routes", comment: "Discover recruiting routes link"))
+                    }
+                }
+
+                // US-034: My hosted routes (approval queue entry point)
+                NavigationLink {
+                    MyHostedRoutesListView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "person.badge.key.fill") // anti-pattern-lint:allow standard Apple SF Symbol for key access, not gamification
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.purple, in: RoundedRectangle(cornerRadius: 7))
+                        Text(NSLocalizedString("settings.companion.hosted.routes", comment: "My hosted routes link"))
+                    }
+                }
             }
         } header: {
             settingsSectionHeader(
@@ -859,40 +888,45 @@ public struct SettingsView: View {
     }
 }
 
-// MARK: - Companion stubs (US-012)
+// MARK: - Group Conversations List (US-037)
 
-/// US-012 stub: empty list of pending companion recruitment requests.
-/// Real data wired up in a later story.
-struct MyRequestsListView: View {
-    var body: some View {
-        List {
-            Text(NSLocalizedString(
-                "settings.companion.requests.empty",
-                comment: "Empty state for my recruitment requests"
-            ))
-            .foregroundStyle(.secondary)
-            .font(.subheadline)
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle(NSLocalizedString(
-            "settings.companion.requests",
-            comment: "My recruitment requests title"
-        ))
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-/// US-012 stub: empty list of joined companion group chats. Real data
-/// wired up in a later story.
+/// Lists all group-route conversations the current user participates in.
+/// Replaces the US-012 stub with live SwiftData reads.
 struct CompanionConversationsListView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(
+        filter: #Predicate<ConversationRecord> { $0.type == "groupRoute" },
+        sort: \ConversationRecord.createdAt,
+        order: .reverse
+    ) private var records: [ConversationRecord]
+
+    private var currentUserId: String? {
+        DeviceIdentityService.shared.anonymousUserId
+    }
+
+    private var myGroupConversations: [Conversation] {
+        let uid = currentUserId ?? ""
+        return records.map(\.asValue).filter { $0.participantIds.contains(uid) }
+    }
+
     var body: some View {
         List {
-            Text(NSLocalizedString(
-                "settings.companion.conversations.empty",
-                comment: "Empty state for joined conversations"
-            ))
-            .foregroundStyle(.secondary)
-            .font(.subheadline)
+            if myGroupConversations.isEmpty {
+                Text(NSLocalizedString(
+                    "settings.companion.conversations.empty",
+                    comment: "Empty state for joined conversations"
+                ))
+                .foregroundStyle(.secondary)
+                .font(.subheadline)
+            } else {
+                ForEach(myGroupConversations) { conv in
+                    NavigationLink {
+                        ChatView(conversation: conv, currentUserId: currentUserId)
+                    } label: {
+                        GroupConversationRow(conversation: conv, modelContext: modelContext)
+                    }
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(NSLocalizedString(
@@ -900,6 +934,50 @@ struct CompanionConversationsListView: View {
             comment: "Joined conversations title"
         ))
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - GroupConversationRow
+
+private struct GroupConversationRow: View {
+    let conversation: Conversation
+    let modelContext: ModelContext
+
+    private var route: Route? {
+        guard let rid = conversation.routeId else { return nil }
+        return RouteStore(context: modelContext).get(RouteId(rawValue: rid))
+    }
+
+    private var memberCount: Int { conversation.participantIds.count }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(Color.teal, in: RoundedRectangle(cornerRadius: 9))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(route?.title ?? NSLocalizedString(
+                    "companion.chat.group.unknownRoute",
+                    comment: "Unknown route placeholder for group chat row"
+                ))
+                .font(.subheadline.weight(.medium))
+                .lineLimit(1)
+
+                Text(String(
+                    format: NSLocalizedString(
+                        "companion.chat.group.memberCount",
+                        comment: "Group member count label, e.g. '3 members'"
+                    ),
+                    memberCount
+                ))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 

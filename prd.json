@@ -1,6 +1,6 @@
 {
   "project": "Solo Compass",
-  "branchName": "ralph/route-anchored-companion",
+  "branchName": "ralph/route-anchored-companion-2",
   "description": "Route-Anchored Companion \u2014 Replace location-based companion matching (DiscoverPost / geohash6 / presence) with route-anchored companion. Routes are ordered experience sequences that double as pure content (solo) and companion carriers (host + recruiting + verified flywheel). Ship A+A+A information architecture (companion default OFF, no UI bleed into map surface) plus an Apple-Maps-style three-detent bottom sheet (170/500/800 pt) that hosts both 'nearby experiences' and 'recruiting routes' lists. Local-first throughout: FF_BACKEND_SYNC defaults off, all flows backed by local SwiftData + seed fixtures with a remote-protocol seam reserved for P3. Supersedes tasks/prd-companion-mode.md. Source: tasks/prd-route-anchored-companion.md.",
   "userStories": [
     {
@@ -284,7 +284,7 @@
       "description": "As a user, even at the peek detent (170 pt) I see the AI hint line and the sort/count toolbar so the sheet feels alive without expanding.",
       "acceptanceCriteria": [
         "Inside BottomInfoSheet content: a 'now-hint' row showing AI_NOW_HINT text (left) + mono time HH:MM (right), with a sunset SF Symbol",
-        "Below it a toolbar row: sort button (left, capsule, dropdown chevron) + count badge (right, '\u6b64\u523b N' or '\u9644\u8fd1 N')",
+        "Below it a toolbar row: sort button (left, capsule, dropdown chevron) + count indicator (right, '\u6b64\u523b N' or '\u9644\u8fd1 N')",
         "All visible at peek detent",
         "Localize 2 keys: sheet.sort.button, sheet.count.now / sheet.count.nearby",
         "Typecheck passes",
@@ -335,7 +335,7 @@
         "Props: ids: [String], maxVisible: Int = 5, size: CGFloat = 24, ring: Color = .white",
         "Render up to maxVisible overlapping circles (6 pt overlap), each filled with UserDirectory.color(forId:) and 2pt ring",
         "If ids.count > maxVisible, show '+N' bubble after the stack",
-        "Add enum VerifiedStyle { case badge, header, inline } in the same file",
+        "Add enum VerifiedStyle { case indicator, header, inline } in the same file",
         "Add #Preview showing 3, 5, 8 avatars",
         "Typecheck passes",
         "Verify in Simulator: #Preview renders three permutations correctly"
@@ -350,8 +350,8 @@
       "description": "As a user, I see a small 'verified' badge with 'walked by N travelers' + avatar stack in route detail.",
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/Components/VerifiedBadge.swift with struct VerifiedBadge: View",
-        "Props: route: Route, style: VerifiedStyle = .badge",
-        "Badge style: white card, 1pt border-subtle (#EDE8DF), 14pt corner radius, glyph icon left (check-circle if verified else users), title '\u5df2\u9a8c\u8bc1\u8def\u7ebf' or '\u793e\u7fa4\u89c2\u5bdf\u4e2d', subtitle '\u4e0e N \u4f4d\u65c5\u4eba\u8d70\u8fc7', AvatarStack on right",
+        "Props: route: Route, style: VerifiedStyle = .indicator",
+        "Indicator style: white card, 1pt border-subtle (#EDE8DF), 14pt corner radius, glyph icon left (check-circle if verified else users), title '\u5df2\u9a8c\u8bc1\u8def\u7ebf' or '\u793e\u7fa4\u89c2\u5bdf\u4e2d', subtitle '\u4e0e N \u4f4d\u65c5\u4eba\u8d70\u8fc7', AvatarStack on right",
         "Header and inline branches: stubs returning EmptyView for now (filled later if needed)",
         "Add localized keys: verified.title.verified, verified.title.watching, verified.subtitle",
         "Add #Preview with verified=true and verified=false",
@@ -386,7 +386,7 @@
       "description": "As a user, opening a route shows hero + mono baseline + VerifiedBadge + StopsList + dock with two CTAs (save + favorite). No companion UI.",
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/RouteDetailView.swift with struct RouteDetailView: View",
-        "Hero block: gradient background (use CategoryVisual.gradient(for: route.primaryCategory) -- derive from majority category of stops), category emoji + title (Space Grotesk weight 700) + romanized + region badge",
+        "Hero block: gradient background (use CategoryVisual.gradient(for: route.primaryCategory) -- derive from majority category of stops), category emoji + title (Space Grotesk weight 700) + romanized + region label",
         "Mono baseline (JetBrains Mono caption): '{estimatedDuration} \u00b7 {distanceMeters} m \u00b7 {pace.label} \u00b7 {bestNow ? \"\u6b64\u523b\u6700\u4f73\" : \"\u975e\u6b64\u523b\"}'",
         "Below: VerifiedBadge(route:)",
         "Below: StopsList(route: route, onTapStop: { ...navigate to ExperienceDetail })",
@@ -403,7 +403,7 @@
     {
       "id": "US-025",
       "title": "BottomInfoSheet 'Routes' section (above Nearby)",
-      "description": "As a user, the bottom sheet shows recruiting routes above nearby experiences with their cover, title, mono baseline, and verified corner badge.",
+      "description": "As a user, the bottom sheet shows recruiting routes above nearby experiences with their cover, title, mono baseline, and verified corner indicator.",
       "acceptanceCriteria": [
         "Inside BottomInfoSheet content (above the \u9644\u8fd1 section): a \u8def\u7ebf section listing RouteStore.nearby(cityCode: currentCity, limit: 8)",
         "Each row uses a new RouteCard view (create apps/ios/SoloCompass/Views/Companion/Components/RouteCard.swift)",
@@ -415,7 +415,7 @@
         "Verify in Simulator: drag sheet to mid, see Routes section above Nearby, tap a route -> detail opens"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -432,7 +432,7 @@
         "Verify in Simulator: from any ExperienceDetailView -> \u52a0\u5165\u884c\u7a0b -> submit -> toast appears -> tap action -> lands on ItineraryDetailView"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -454,7 +454,7 @@
         "Verify in Simulator using #Preview: render with all 4 statuses + viewerIsHost=true/false + hasMyRequest=true/false"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -473,7 +473,7 @@
         "Verify in Simulator: in Settings toggle off -> open mekong-sunset detail (no module); toggle on -> re-open (module visible)"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -491,7 +491,7 @@
         "Verify in Simulator using #Preview: 3 strengths render distinctly"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -510,7 +510,7 @@
         "Verify in Simulator: open Settings -> Companion -> \u540c\u4f34\u6863\u6848, see section if any routes match"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -528,7 +528,7 @@
         "Verify in Simulator: from mekong-sunset detail -> tap \u7533\u8bf7\u52a0\u5165 -> fill form -> submit -> re-open detail shows '\u5df2\u7533\u8bf7 \u00b7 \u7b49\u5f85\u786e\u8ba4' CTA state"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -547,7 +547,7 @@
         "Verify in Simulator: Settings -> \u53d1\u73b0\u62db\u52df\u8def\u7ebf -> see at least mekong-sunset and slow-coffee-day"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -566,7 +566,7 @@
         "Verify in Simulator: submit a request via US-031 then open this view, see pending entry; swipe to withdraw"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -587,7 +587,7 @@
         "Verify in Simulator: open Settings -> \u6211\u4e3b\u7406\u7684\u8def\u7ebf -> pick mekong-sunset (host=maya simulating as deviceId for test, or seed has hostId=deviceId) -> see 2 pending requests; accept one -> state changes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -603,7 +603,7 @@
         "Tests pass"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -619,7 +619,7 @@
         "Tests pass"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -637,7 +637,7 @@
         "Verify in Simulator: after US-036 transition, open Settings -> \u5df2\u52a0\u5165\u7684\u7fa4\u804a -> see new group -> open it -> see pinned route + ability to send a test message"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -648,17 +648,17 @@
         "Create apps/ios/SoloCompass/Views/Companion/CompletionMoment.swift with struct CompletionMoment: View",
         "Triggered from RouteDetailView when viewerIsHost && route.companion?.status == .closed: show a dock button '\u6807\u8bb0\u5b8c\u6210' in addition to existing 2 CTAs",
         "Presentation: .fullScreenCover with smooth fade-in",
-        "Layout: large central verified badge pulsing (scale 1.0<->1.06 over 1.2s), stat row '\u8d70\u8fc7 x{N} \u00b7 \u65c5\u4eba x{M}', flywheel tagline '\u8fd9\u6761\u8def\u7ebf\u73b0\u5728\u4e3a\u4e0b\u4e00\u6279\u65c5\u4eba\u53d1\u5149', close button at top-right",
+        "Layout: large central verified indicator pulsing (scale 1.0<->1.06 over 1.2s), stat row '\u8d70\u8fc7 x{N} \u00b7 \u65c5\u4eba x{M}', flywheel tagline '\u8fd9\u6761\u8def\u7ebf\u73b0\u5728\u4e3a\u4e0b\u4e00\u6279\u65c5\u4eba\u53d1\u5149', close button at top-right",
         "On appear: dispatch state update via RouteCompanionStateMachine: closed->completed; set verification.status=.verified, verification.walkedByCount += companion.confirmedMembers.count, verification.walkedBy += companion.confirmedMembers, persist via RouteStore.save",
         "Mark groupConversation as readOnly (add Conversation.isReadOnly Bool field if needed) so the chat ungates can be implemented",
         "Add unit test covering the state mutation only (no UI)",
         "Localize 3 keys",
         "Typecheck passes",
         "Tests pass",
-        "Verify in Simulator: simulate a closed mekong-sunset and tap \u6807\u8bb0\u5b8c\u6210 -> moment plays -> close -> reopen detail shows verified badge"
+        "Verify in Simulator: simulate a closed mekong-sunset and tap \u6807\u8bb0\u5b8c\u6210 -> moment plays -> close -> reopen detail shows verified indicator"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -675,7 +675,7 @@
         "Verify in Simulator: from any itinerary detail -> tap \u5f00\u4e3a\u62db\u52df\u8def\u7ebf -> fill form -> submit -> resulting Route appears in DiscoverRecruitingRoutesView"
       ],
       "priority": 39,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -693,7 +693,7 @@
         "Existing tests still pass after refactor"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -708,7 +708,7 @@
         "Typecheck passes (no swift impact)"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -724,7 +724,7 @@
         "Verify in Simulator: switch device to \u7b80\u4f53\u4e2d\u6587, walk through Settings -> Companion -> all subviews -- no raw key strings visible"
       ],
       "priority": 42,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -739,7 +739,7 @@
         "Existing tests still pass"
       ],
       "priority": 43,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -763,7 +763,7 @@
         "Verify in Simulator using xcodebuild + simctl screenshots at each milestone (attach in PR description)"
       ],
       "priority": 44,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]

@@ -1,7 +1,7 @@
 {
   "project": "Solo Compass",
-  "branchName": "ralph/route-anchored-companion",
-  "description": "Route-Anchored Companion — Replace location-based companion matching (DiscoverPost / geohash6 / presence) with route-anchored companion. Routes are ordered experience sequences that double as pure content (solo) and companion carriers (host + recruiting + verified flywheel). Ship A+A+A information architecture (companion default OFF, no UI bleed into map surface) plus an Apple-Maps-style three-detent bottom sheet (170/500/800 pt) that hosts both 'nearby experiences' and 'recruiting routes' lists. Local-first throughout: FF_BACKEND_SYNC defaults off, all flows backed by local SwiftData + seed fixtures with a remote-protocol seam reserved for P3. Supersedes tasks/prd-companion-mode.md. Source: tasks/prd-route-anchored-companion.md.",
+  "branchName": "ralph/route-anchored-companion-2",
+  "description": "Route-Anchored Companion \u2014 Replace location-based companion matching (DiscoverPost / geohash6 / presence) with route-anchored companion. Routes are ordered experience sequences that double as pure content (solo) and companion carriers (host + recruiting + verified flywheel). Ship A+A+A information architecture (companion default OFF, no UI bleed into map surface) plus an Apple-Maps-style three-detent bottom sheet (170/500/800 pt) that hosts both 'nearby experiences' and 'recruiting routes' lists. Local-first throughout: FF_BACKEND_SYNC defaults off, all flows backed by local SwiftData + seed fixtures with a remote-protocol seam reserved for P3. Supersedes tasks/prd-companion-mode.md. Source: tasks/prd-route-anchored-companion.md.",
   "userStories": [
     {
       "id": "US-001",
@@ -18,7 +18,7 @@
         "Typecheck passes (xcodebuild build succeeds)"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -31,7 +31,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -49,7 +49,7 @@
         "Tests pass"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -65,7 +65,7 @@
         "Tests pass"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -80,7 +80,7 @@
         "Tests pass"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -97,7 +97,7 @@
         "Tests pass"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -112,7 +112,7 @@
         "Tests pass"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -127,7 +127,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -142,7 +142,7 @@
         "Verify in Simulator using xcodebuild + simctl screenshot: relaunched app shows map with city pill only (no person icon)"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -155,7 +155,7 @@
         "Typecheck passes (deprecation warning is acceptable; treat any error as fail)"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -170,25 +170,25 @@
         "Tests pass"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-012",
       "title": "Add Settings -> Companion section with opt-in toggle",
-      "description": "As a user, I see a Settings section titled '同伴 (实验中)' with a single toggle that gates everything; toggling on first time triggers CompanionSafetyConsentSheet, accepting persists companionEnabled=true.",
+      "description": "As a user, I see a Settings section titled '\u540c\u4f34 (\u5b9e\u9a8c\u4e2d)' with a single toggle that gates everything; toggling on first time triggers CompanionSafetyConsentSheet, accepting persists companionEnabled=true.",
       "acceptanceCriteria": [
         "Add companionSection in SettingsView.swift after subscriptionSection",
-        "Section header: localized key 'settings.companion.header' = '同伴 (实验中)' / 'Companion (Experimental)'",
+        "Section header: localized key 'settings.companion.header' = '\u540c\u4f34 (\u5b9e\u9a8c\u4e2d)' / 'Companion (Experimental)'",
         "Section body: a Toggle bound to preferences.companionEnabled",
         "When toggling false->true: present CompanionSafetyConsentSheet as .sheet; only on accept persist true; on cancel rollback to false",
         "When toggling true->false: persist immediately, no confirmation",
-        "When companionEnabled=true, three NavigationLinks appear: 同伴档案 -> CompanionProfileView, 我的招募申请 -> MyRequestsListView (stub returning empty list for now), 已加入的群聊 -> list of conversations (stub returning empty for now)",
+        "When companionEnabled=true, three NavigationLinks appear: \u540c\u4f34\u6863\u6848 -> CompanionProfileView, \u6211\u7684\u62db\u52df\u7533\u8bf7 -> MyRequestsListView (stub returning empty list for now), \u5df2\u52a0\u5165\u7684\u7fa4\u804a -> list of conversations (stub returning empty for now)",
         "Typecheck passes",
         "Verify in Simulator: open Settings -> toggle on -> safety sheet appears -> accept -> 3 links appear; toggle off -> links disappear"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -205,7 +205,7 @@
         "Tests pass"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -221,7 +221,7 @@
         "Tests pass"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -237,7 +237,7 @@
         "Tests pass"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -259,7 +259,7 @@
         "Verify in Simulator: drag handle up/down, snap to 3 detents, map pan still works in non-handle areas"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -275,7 +275,7 @@
         "Verify in Simulator using xcodebuild + simctl screenshot"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -284,14 +284,14 @@
       "description": "As a user, even at the peek detent (170 pt) I see the AI hint line and the sort/count toolbar so the sheet feels alive without expanding.",
       "acceptanceCriteria": [
         "Inside BottomInfoSheet content: a 'now-hint' row showing AI_NOW_HINT text (left) + mono time HH:MM (right), with a sunset SF Symbol",
-        "Below it a toolbar row: sort button (left, capsule, dropdown chevron) + count badge (right, '此刻 N' or '附近 N')",
+        "Below it a toolbar row: sort button (left, capsule, dropdown chevron) + count indicator (right, '\u6b64\u523b N' or '\u9644\u8fd1 N')",
         "All visible at peek detent",
         "Localize 2 keys: sheet.sort.button, sheet.count.now / sheet.count.nearby",
         "Typecheck passes",
         "Verify in Simulator: peek detent shows hint + toolbar without scrolling"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -299,7 +299,7 @@
       "title": "BottomInfoSheet 'Nearby' section with experience rows (smart sort)",
       "description": "As a user, when I drag the sheet to mid/full, I see nearby experiences as list rows sorted by smart (AI-top + distance) by default.",
       "acceptanceCriteria": [
-        "Inside BottomInfoSheet, when detent > .peek: render Section '附近' with a list of nearby experiences from viewModel.visibleExperiences",
+        "Inside BottomInfoSheet, when detent > .peek: render Section '\u9644\u8fd1' with a list of nearby experiences from viewModel.visibleExperiences",
         "Row layout: 36x36 category disc (CategoryVisual.color) left, title + romanized + lao right, mono distance + small compass arrow far right",
         "Smart sort: AI_SMART_PICK_IDS (top 3) pinned at top with 3pt sun-gold left border + warm gradient bg; remaining sorted by distance ascending",
         "Tap row -> opens existing ExperienceDetailView via viewModel.selectExperience(exp); isShowingDetail=true",
@@ -307,7 +307,7 @@
         "Verify in Simulator: drag sheet to mid -> see at least 3 experience rows; smart picks visually distinguished"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -315,7 +315,7 @@
       "title": "Sort sheet (4 modes: smart/distance/soloScore/now)",
       "description": "As a user, I can change the nearby list's sort mode by tapping the sort button to open a sheet with 4 options.",
       "acceptanceCriteria": [
-        "Tapping sort button opens a .sheet(isPresented:) with 4 radio options: 智能 / 距离 / Solo 分 / 此刻",
+        "Tapping sort button opens a .sheet(isPresented:) with 4 radio options: \u667a\u80fd / \u8ddd\u79bb / Solo \u5206 / \u6b64\u523b",
         "Selection persists in @State sortMode within BottomInfoSheet, drives nearby section ordering",
         "Default is .smart",
         "Add localized keys: sort.smart, sort.distance, sort.soloScore, sort.now",
@@ -323,7 +323,7 @@
         "Verify in Simulator: tap sort -> pick distance -> list reorders"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -335,23 +335,23 @@
         "Props: ids: [String], maxVisible: Int = 5, size: CGFloat = 24, ring: Color = .white",
         "Render up to maxVisible overlapping circles (6 pt overlap), each filled with UserDirectory.color(forId:) and 2pt ring",
         "If ids.count > maxVisible, show '+N' bubble after the stack",
-        "Add enum VerifiedStyle { case badge, header, inline } in the same file",
+        "Add enum VerifiedStyle { case indicator, header, inline } in the same file",
         "Add #Preview showing 3, 5, 8 avatars",
         "Typecheck passes",
         "Verify in Simulator: #Preview renders three permutations correctly"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-022",
-      "title": "VerifiedBadge view (badge style default)",
-      "description": "As a user, I see a small 'verified' badge with 'walked by N travelers' + avatar stack in route detail.",
+      "title": "VerifiedBadgeComponent view (indicator style default)",
+      "description": "As a user, I see a small 'verified' indicator with 'walked by N travelers' + avatar stack in route detail.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/Components/VerifiedBadge.swift with struct VerifiedBadge: View",
-        "Props: route: Route, style: VerifiedStyle = .badge",
-        "Badge style: white card, 1pt border-subtle (#EDE8DF), 14pt corner radius, glyph icon left (check-circle if verified else users), title '已验证路线' or '社群观察中', subtitle '与 N 位旅人走过', AvatarStack on right",
+        "Create apps/ios/SoloCompass/Views/Companion/Components/VerifiedBadgeComponent.swift with struct VerifiedBadgeComponent: View",
+        "Props: route: Route, style: VerifiedStyle = .indicator",
+        "Indicator style: white card, 1pt border-subtle (#EDE8DF), 14pt corner radius, glyph icon left (check-circle if verified else users), title '\u5df2\u9a8c\u8bc1\u8def\u7ebf' or '\u793e\u7fa4\u89c2\u5bdf\u4e2d', subtitle '\u4e0e N \u4f4d\u65c5\u4eba\u8d70\u8fc7', AvatarStack on right",
         "Header and inline branches: stubs returning EmptyView for now (filled later if needed)",
         "Add localized keys: verified.title.verified, verified.title.watching, verified.subtitle",
         "Add #Preview with verified=true and verified=false",
@@ -359,7 +359,7 @@
         "Verify in Simulator using #Preview"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -377,35 +377,35 @@
         "Verify in Simulator using #Preview"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-024",
       "title": "RouteDetailView (pure content, no recruiting module)",
-      "description": "As a user, opening a route shows hero + mono baseline + VerifiedBadge + StopsList + dock with two CTAs (save + favorite). No companion UI.",
+      "description": "As a user, opening a route shows hero + mono baseline + VerifiedBadgeComponent + StopsList + dock with two CTAs (save + favorite). No companion UI.",
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/RouteDetailView.swift with struct RouteDetailView: View",
-        "Hero block: gradient background (use CategoryVisual.gradient(for: route.primaryCategory) -- derive from majority category of stops), category emoji + title (Space Grotesk weight 700) + romanized + region badge",
-        "Mono baseline (JetBrains Mono caption): '{estimatedDuration} · {distanceMeters} m · {pace.label} · {bestNow ? \"此刻最佳\" : \"非此刻\"}'",
-        "Below: VerifiedBadge(route:)",
+        "Hero block: gradient background (use CategoryVisual.gradient(for: route.primaryCategory) -- derive from majority category of stops), category emoji + title (Space Grotesk weight 700) + romanized + region label",
+        "Mono baseline (JetBrains Mono caption): '{estimatedDuration} \u00b7 {distanceMeters} m \u00b7 {pace.label} \u00b7 {bestNow ? \"\u6b64\u523b\u6700\u4f73\" : \"\u975e\u6b64\u523b\"}'",
+        "Below: VerifiedBadgeComponent(route:)",
         "Below: StopsList(route: route, onTapStop: { ...navigate to ExperienceDetail })",
-        "Bottom dock: 2 buttons '保存到我的行程' and '加入收藏' (no companion CTA in P0)",
+        "Bottom dock: 2 buttons '\u4fdd\u5b58\u5230\u6211\u7684\u884c\u7a0b' and '\u52a0\u5165\u6536\u85cf' (no companion CTA in P0)",
         "Embedded in NavigationStack content; toolbar back button + share icon",
         "Localize 6 keys: route.detail.save, route.detail.favorite, route.detail.bestNow.yes, route.detail.bestNow.no, route.detail.pace.relaxed/standard/packed",
         "Typecheck passes",
         "Verify in Simulator: open detail for mekong-sunset seed, all sections render"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
       "id": "US-025",
       "title": "BottomInfoSheet 'Routes' section (above Nearby)",
-      "description": "As a user, the bottom sheet shows recruiting routes above nearby experiences with their cover, title, mono baseline, and verified corner badge.",
+      "description": "As a user, the bottom sheet shows recruiting routes above nearby experiences with their cover, title, mono baseline, and verified corner indicator.",
       "acceptanceCriteria": [
-        "Inside BottomInfoSheet content (above the 附近 section): a 路线 section listing RouteStore.nearby(cityCode: currentCity, limit: 8)",
+        "Inside BottomInfoSheet content (above the \u9644\u8fd1 section): a \u8def\u7ebf section listing RouteStore.nearby(cityCode: currentCity, limit: 8)",
         "Each row uses a new RouteCard view (create apps/ios/SoloCompass/Views/Companion/Components/RouteCard.swift)",
         "RouteCard layout: gradient cover (44x44 rounded square) left, title + estimated duration + distance + pace (mono) right, small verified corner pill if route.verification.status == .verified",
         "RouteCard never shows companion info in P0 (companion module added in P1)",
@@ -415,7 +415,7 @@
         "Verify in Simulator: drag sheet to mid, see Routes section above Nearby, tap a route -> detail opens"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -424,15 +424,15 @@
       "description": "As a user, after I add an experience to an itinerary I see a toast with a 'View itinerary' button that pushes to that itinerary detail.",
       "acceptanceCriteria": [
         "Modify AddToItinerarySheet (existing file in apps/ios/SoloCompass/Views/Companion/) success path",
-        "On submission success: dismiss sheet and present a 2.5s toast with text '已加入《{itineraryTitle}》' + button '查看行程'",
+        "On submission success: dismiss sheet and present a 2.5s toast with text '\u5df2\u52a0\u5165\u300a{itineraryTitle}\u300b' + button '\u67e5\u770b\u884c\u7a0b'",
         "Button action: programmatically push ItineraryDetailView(itinerary:) (e.g. via NavigationPath set in parent or via Notification observer)",
         "If user does not tap, toast auto-dismisses at 2.5s; itinerary still saved",
         "Add localized keys: itinerary.toast.added (with %@ placeholder), itinerary.toast.viewAction",
         "Typecheck passes",
-        "Verify in Simulator: from any ExperienceDetailView -> 加入行程 -> submit -> toast appears -> tap action -> lands on ItineraryDetailView"
+        "Verify in Simulator: from any ExperienceDetailView -> \u52a0\u5165\u884c\u7a0b -> submit -> toast appears -> tap action -> lands on ItineraryDetailView"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -448,7 +448,7 @@
         "Host row: 28pt color circle (UserDirectory.color) + handle (semibold) + blurb (caption secondary)",
         "Slots row: maxMembers circles, filled positions show member avatars, empty positions show outlined circle with + glyph",
         "Optional hostMessage as italic quote",
-        "Bottom CTA: label switches by (viewerIsHost, hasMyRequest, status): viewerIsHost && pending requests -> '查看申请({n})'; hasMyRequest -> '已申请 · 等待确认' (disabled); status=completed/closed -> '查看群聊'; status=open -> '申请加入'; status=forming -> '申请加入(最后 N 位)'",
+        "Bottom CTA: label switches by (viewerIsHost, hasMyRequest, status): viewerIsHost && pending requests -> '\u67e5\u770b\u7533\u8bf7({n})'; hasMyRequest -> '\u5df2\u7533\u8bf7 \u00b7 \u7b49\u5f85\u786e\u8ba4' (disabled); status=completed/closed -> '\u67e5\u770b\u7fa4\u804a'; status=open -> '\u7533\u8bf7\u52a0\u5165'; status=forming -> '\u7533\u8bf7\u52a0\u5165(\u6700\u540e N \u4f4d)'",
         "Localize 10+ keys for status labels + CTA variants",
         "Typecheck passes",
         "Verify in Simulator using #Preview: render with all 4 statuses + viewerIsHost=true/false + hasMyRequest=true/false"
@@ -460,10 +460,10 @@
     {
       "id": "US-028",
       "title": "Insert RecruitingModule into RouteDetailView (gated by companionEnabled)",
-      "description": "As a user with companion enabled, I see the recruiting module rendered between VerifiedBadge and StopsList in route detail; with companion disabled I see nothing.",
+      "description": "As a user with companion enabled, I see the recruiting module rendered between VerifiedBadgeComponent and StopsList in route detail; with companion disabled I see nothing.",
       "acceptanceCriteria": [
         "In RouteDetailView.swift: inject @Environment(UserPreferences.self) preferences",
-        "After VerifiedBadge: if preferences.companionEnabled && route.companion != nil, render RecruitingModule(route:viewerIsHost:hasMyRequest:onRequestJoin:onViewRequests:)",
+        "After VerifiedBadgeComponent: if preferences.companionEnabled && route.companion != nil, render RecruitingModule(route:viewerIsHost:hasMyRequest:onRequestJoin:onViewRequests:)",
         "viewerIsHost = (route.companion?.hostId == DeviceIdentityService.shared.deviceId)",
         "hasMyRequest computed from route.companion.joinRequests.contains where requesterId == deviceId && status == .pending",
         "onRequestJoin -> present JoinRouteRequestSheet (stub for US-031, can be empty TODO closure here)",
@@ -499,15 +499,15 @@
       "title": "Companion Profile -- 'walked routes' section",
       "description": "As a companion-enabled user, my Companion Profile shows a 'walked routes' section with up to 5 thumbnail cards.",
       "acceptanceCriteria": [
-        "In existing CompanionProfileView.swift: when preferences.companionEnabled, add Section '走过的路线 (N)' below current bio section",
+        "In existing CompanionProfileView.swift: when preferences.companionEnabled, add Section '\u8d70\u8fc7\u7684\u8def\u7ebf (N)' below current bio section",
         "Data source: RouteStore.all().filter { $0.verification.walkedBy.contains(currentUserId) || ($0.companion?.confirmedMembers.contains(currentUserId) == true && $0.companion?.status == .completed) }",
         "currentUserId = DeviceIdentityService.shared.deviceId",
         "Render horizontal ScrollView of up to 5 thumbnail RouteCard variants (compact form ~140pt wide)",
-        "If count > 5, append a '查看全部 ->' chip pushing to MyWalkedRoutesListView (create stub view returning the same list vertical)",
+        "If count > 5, append a '\u67e5\u770b\u5168\u90e8 ->' chip pushing to MyWalkedRoutesListView (create stub view returning the same list vertical)",
         "Section hidden entirely if companionEnabled=false",
         "Localize 2 keys: profile.walkedRoutes.header (with %d), profile.walkedRoutes.viewAll",
         "Typecheck passes",
-        "Verify in Simulator: open Settings -> Companion -> 同伴档案, see section if any routes match"
+        "Verify in Simulator: open Settings -> Companion -> \u540c\u4f34\u6863\u6848, see section if any routes match"
       ],
       "priority": 30,
       "passes": false,
@@ -516,16 +516,16 @@
     {
       "id": "US-031",
       "title": "JoinRouteRequestSheet (modal form, local-only submit)",
-      "description": "As a companion user, tapping '申请加入' opens a sheet with pace-match + message; submitting writes a JoinRequest locally.",
+      "description": "As a companion user, tapping '\u7533\u8bf7\u52a0\u5165' opens a sheet with pace-match + message; submitting writes a JoinRequest locally.",
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/JoinRouteRequestSheet.swift",
-        "Sheet content: pinned RouteCard at top (non-scrolling), pace-match segmented (慢于宿主 / 匹配 / 快于宿主), message TextEditor (placeholder '向主理人介绍自己...'), submit button (disabled when message.count < 10 OR pace not chosen)",
+        "Sheet content: pinned RouteCard at top (non-scrolling), pace-match segmented (\u6162\u4e8e\u5bbf\u4e3b / \u5339\u914d / \u5feb\u4e8e\u5bbf\u4e3b), message TextEditor (placeholder '\u5411\u4e3b\u7406\u4eba\u4ecb\u7ecd\u81ea\u5df1...'), submit button (disabled when message.count < 10 OR pace not chosen)",
         "On submit: append JoinRequest(id: UUID, requesterId: deviceId, message:, status: .pending, createdAt: ISO8601 now) to route.companion.joinRequests via RouteStore.save",
         "Dismiss sheet on success; haptic feedback (light impact)",
         "Caller (RecruitingModule.onRequestJoin in RouteDetailView) handles presentation via .sheet(isPresented:)",
         "Localize 6 keys for placeholder, segmented labels, submit button",
         "Typecheck passes",
-        "Verify in Simulator: from mekong-sunset detail -> tap 申请加入 -> fill form -> submit -> re-open detail shows '已申请 · 等待确认' CTA state"
+        "Verify in Simulator: from mekong-sunset detail -> tap \u7533\u8bf7\u52a0\u5165 -> fill form -> submit -> re-open detail shows '\u5df2\u7533\u8bf7 \u00b7 \u7b49\u5f85\u786e\u8ba4' CTA state"
       ],
       "priority": 31,
       "passes": false,
@@ -539,12 +539,12 @@
         "Add new view apps/ios/SoloCompass/Views/Companion/DiscoverRecruitingRoutesView.swift (do NOT modify deprecated DiscoverListView)",
         "Data source: RouteStore.all().filter { $0.companion?.status == .open || $0.companion?.status == .forming }",
         "Sort by composite score: departure-within-7-days (weight 3) + verified (weight 2) + city-matches-current-city (weight 1)",
-        "Each row is a RouteCard + a small chip showing '{filled}/{max} · {departureLabel}'",
-        "Empty state: ContentUnavailableView '目前没有招募中的路线' + secondary action '开一个你自己的路线' (closure stub for now)",
+        "Each row is a RouteCard + a small chip showing '{filled}/{max} \u00b7 {departureLabel}'",
+        "Empty state: ContentUnavailableView '\u76ee\u524d\u6ca1\u6709\u62db\u52df\u4e2d\u7684\u8def\u7ebf' + secondary action '\u5f00\u4e00\u4e2a\u4f60\u81ea\u5df1\u7684\u8def\u7ebf' (closure stub for now)",
         "Add NavigationLink in Settings -> Companion section pointing to this view (replace temporary stub from US-012)",
         "Localize 4 keys",
         "Typecheck passes",
-        "Verify in Simulator: Settings -> 发现招募路线 -> see at least mekong-sunset and slow-coffee-day"
+        "Verify in Simulator: Settings -> \u53d1\u73b0\u62db\u52df\u8def\u7ebf -> see at least mekong-sunset and slow-coffee-day"
       ],
       "priority": 32,
       "passes": false,
@@ -557,10 +557,10 @@
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/MyRequestsListView.swift",
         "Data source: RouteStore.all().compactMap { route in route.companion?.joinRequests.filter { $0.requesterId == deviceId }.map { (route, $0) } }.flatten()",
-        "Each row: thumbnail RouteCard + status chip (pending=orange, accepted=green, declined=gray, withdrawn=gray) + 'View route' chevron + (if pending) '撤回申请' button on swipe action",
+        "Each row: thumbnail RouteCard + status chip (pending=orange, accepted=green, declined=gray, withdrawn=gray) + 'View route' chevron + (if pending) '\u64a4\u56de\u7533\u8bf7' button on swipe action",
         "Withdraw: RouteStore.save with the matching JoinRequest.status = .withdrawn",
         "Empty state: 'You have not requested to join any routes yet.'",
-        "Wire as the 我的招募申请 NavigationLink destination in Settings (replace stub)",
+        "Wire as the \u6211\u7684\u62db\u52df\u7533\u8bf7 NavigationLink destination in Settings (replace stub)",
         "Localize 4 keys",
         "Typecheck passes",
         "Verify in Simulator: submit a request via US-031 then open this view, see pending entry; swipe to withdraw"
@@ -576,15 +576,15 @@
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/ApprovalQueueView.swift with init(route: Route)",
         "Data source: route.companion?.joinRequests.filter { $0.status == .pending }",
-        "Each row: requester avatar + handle + blurb + trust line '已走过 N 条 · 拼团 M 次' (from UserDirectory.user(id:).walked/trips, fallback to 0) + message + pace-match chip",
-        "Two actions per row: 拒绝 (bordered button) and 接受 (borderedProminent)",
+        "Each row: requester avatar + handle + blurb + trust line '\u5df2\u8d70\u8fc7 N \u6761 \u00b7 \u62fc\u56e2 M \u6b21' (from UserDirectory.user(id:).walked/trips, fallback to 0) + message + pace-match chip",
+        "Two actions per row: \u62d2\u7edd (bordered button) and \u63a5\u53d7 (borderedProminent)",
         "Accept handler: call RouteCompanionStateMachine.transition with appropriate event, append requesterId to confirmedMembers, set JoinRequest.status = .accepted, persist via RouteStore.save; if status transitioned to .forming for the first time, also create a groupConversationId UUID and assign it",
         "Decline handler: set JoinRequest.status = .declined, persist",
         "Empty state: 'No pending requests for this route.'",
         "Add a parent list view MyHostedRoutesListView (also new) listing routes where companion.hostId == deviceId; pushes into ApprovalQueueView; wire as NavigationLink from Settings",
         "Localize 8 keys",
         "Typecheck passes",
-        "Verify in Simulator: open Settings -> 我主理的路线 -> pick mekong-sunset (host=maya simulating as deviceId for test, or seed has hostId=deviceId) -> see 2 pending requests; accept one -> state changes"
+        "Verify in Simulator: open Settings -> \u6211\u4e3b\u7406\u7684\u8def\u7ebf -> pick mekong-sunset (host=maya simulating as deviceId for test, or seed has hostId=deviceId) -> see 2 pending requests; accept one -> state changes"
       ],
       "priority": 34,
       "passes": false,
@@ -634,7 +634,7 @@
         "Replace the temporary stub list from US-012",
         "Local-only: ChatService.send already writes to SwiftData; no network changes",
         "Typecheck passes",
-        "Verify in Simulator: after US-036 transition, open Settings -> 已加入的群聊 -> see new group -> open it -> see pinned route + ability to send a test message"
+        "Verify in Simulator: after US-036 transition, open Settings -> \u5df2\u52a0\u5165\u7684\u7fa4\u804a -> see new group -> open it -> see pinned route + ability to send a test message"
       ],
       "priority": 37,
       "passes": false,
@@ -643,19 +643,19 @@
     {
       "id": "US-038",
       "title": "CompletionMoment screen (closed -> completed -> verified)",
-      "description": "As a host, tapping '标记完成' on a closed route triggers a celebratory full-screen moment and updates Route.verification atomically.",
+      "description": "As a host, tapping '\u6807\u8bb0\u5b8c\u6210' on a closed route triggers a celebratory full-screen moment and updates Route.verification atomically.",
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Companion/CompletionMoment.swift with struct CompletionMoment: View",
-        "Triggered from RouteDetailView when viewerIsHost && route.companion?.status == .closed: show a dock button '标记完成' in addition to existing 2 CTAs",
+        "Triggered from RouteDetailView when viewerIsHost && route.companion?.status == .closed: show a dock button '\u6807\u8bb0\u5b8c\u6210' in addition to existing 2 CTAs",
         "Presentation: .fullScreenCover with smooth fade-in",
-        "Layout: large central verified badge pulsing (scale 1.0<->1.06 over 1.2s), stat row '走过 x{N} · 旅人 x{M}', flywheel tagline '这条路线现在为下一批旅人发光', close button at top-right",
+        "Layout: large central verified indicator pulsing (scale 1.0<->1.06 over 1.2s), stat row '\u8d70\u8fc7 x{N} \u00b7 \u65c5\u4eba x{M}', flywheel tagline '\u8fd9\u6761\u8def\u7ebf\u73b0\u5728\u4e3a\u4e0b\u4e00\u6279\u65c5\u4eba\u53d1\u5149', close button at top-right",
         "On appear: dispatch state update via RouteCompanionStateMachine: closed->completed; set verification.status=.verified, verification.walkedByCount += companion.confirmedMembers.count, verification.walkedBy += companion.confirmedMembers, persist via RouteStore.save",
         "Mark groupConversation as readOnly (add Conversation.isReadOnly Bool field if needed) so the chat ungates can be implemented",
         "Add unit test covering the state mutation only (no UI)",
         "Localize 3 keys",
         "Typecheck passes",
         "Tests pass",
-        "Verify in Simulator: simulate a closed mekong-sunset and tap 标记完成 -> moment plays -> close -> reopen detail shows verified badge"
+        "Verify in Simulator: simulate a closed mekong-sunset and tap \u6807\u8bb0\u5b8c\u6210 -> moment plays -> close -> reopen detail shows verified indicator"
       ],
       "priority": 38,
       "passes": false,
@@ -669,10 +669,10 @@
         "Create apps/ios/SoloCompass/Views/Companion/OpenForCompanionsSheet.swift with init(itinerary: Itinerary)",
         "Form fields: departure date range picker, departure time picker, pace segmented (relaxed/standard/packed), max members stepper (2-8 default 4), visibility segmented (public/linkOnly default public), host message multiline TextField",
         "Submit handler: build a Route from itinerary (using Route(itinerary:) from US-005) with source=.userCreated, companion=RouteCompanion(...form values..., status=.open, hostId=deviceId, confirmedMembers=[deviceId], joinRequests=[], groupConversationId=nil); persist via RouteStore.save",
-        "Wire entry from ItineraryDetailView: replace existing 'openToCompanions' Toggle behavior with a button '开为招募路线 ->' that presents this sheet",
+        "Wire entry from ItineraryDetailView: replace existing 'openToCompanions' Toggle behavior with a button '\u5f00\u4e3a\u62db\u52df\u8def\u7ebf ->' that presents this sheet",
         "Localize 6 keys",
         "Typecheck passes",
-        "Verify in Simulator: from any itinerary detail -> tap 开为招募路线 -> fill form -> submit -> resulting Route appears in DiscoverRecruitingRoutesView"
+        "Verify in Simulator: from any itinerary detail -> tap \u5f00\u4e3a\u62db\u52df\u8def\u7ebf -> fill form -> submit -> resulting Route appears in DiscoverRecruitingRoutesView"
       ],
       "priority": 39,
       "passes": false,
@@ -721,7 +721,7 @@
         "Add a unit test (StringsParityTests) that loads both .strings files and asserts they have the same key set",
         "Typecheck passes",
         "Tests pass",
-        "Verify in Simulator: switch device to 简体中文, walk through Settings -> Companion -> all subviews -- no raw key strings visible"
+        "Verify in Simulator: switch device to \u7b80\u4f53\u4e2d\u6587, walk through Settings -> Companion -> all subviews -- no raw key strings visible"
       ],
       "priority": 42,
       "passes": false,
@@ -748,16 +748,16 @@
       "description": "As a developer, I confirm the full P0+P1 path works in a single Simulator session before declaring this sprint done.",
       "acceptanceCriteria": [
         "Cold start app (companionEnabled=false): map renders; bottom sheet at peek shows hint + toolbar; no person icon at top-right",
-        "Drag sheet to mid: see Routes section (4 routes) above Nearby; tap mekong-sunset -> RouteDetailView with hero + mono baseline + VerifiedBadge + StopsList + dock; no RecruitingModule visible",
+        "Drag sheet to mid: see Routes section (4 routes) above Nearby; tap mekong-sunset -> RouteDetailView with hero + mono baseline + VerifiedBadgeComponent + StopsList + dock; no RecruitingModule visible",
         "Back to map, open Settings -> Companion -> toggle on -> safety sheet appears -> accept -> 3 NavigationLinks appear",
-        "Re-open mekong-sunset detail: RecruitingModule now visible with status=open, 2/4 members, departure label, CTA '申请加入'",
-        "Tap 申请加入 -> fill JoinRouteRequestSheet -> submit -> detail CTA changes to '已申请 · 等待确认'",
-        "Settings -> 我的招募申请 -> see entry pending",
-        "Settings -> 我主理的路线 (host view): pick slow-coffee-day -> ApprovalQueueView (use seeded pending requests) -> accept one -> state advances forming->closed (if max reached) and a group chat appears",
-        "Settings -> 已加入的群聊 -> see group -> ChatView shows pinned route + can send a local message",
-        "From closed route detail: tap 标记完成 -> CompletionMoment plays -> after close, reopen detail -> VerifiedBadge shows verified=true and walkedByCount incremented",
+        "Re-open mekong-sunset detail: RecruitingModule now visible with status=open, 2/4 members, departure label, CTA '\u7533\u8bf7\u52a0\u5165'",
+        "Tap \u7533\u8bf7\u52a0\u5165 -> fill JoinRouteRequestSheet -> submit -> detail CTA changes to '\u5df2\u7533\u8bf7 \u00b7 \u7b49\u5f85\u786e\u8ba4'",
+        "Settings -> \u6211\u7684\u62db\u52df\u7533\u8bf7 -> see entry pending",
+        "Settings -> \u6211\u4e3b\u7406\u7684\u8def\u7ebf (host view): pick slow-coffee-day -> ApprovalQueueView (use seeded pending requests) -> accept one -> state advances forming->closed (if max reached) and a group chat appears",
+        "Settings -> \u5df2\u52a0\u5165\u7684\u7fa4\u804a -> see group -> ChatView shows pinned route + can send a local message",
+        "From closed route detail: tap \u6807\u8bb0\u5b8c\u6210 -> CompletionMoment plays -> after close, reopen detail -> VerifiedBadgeComponent shows verified=true and walkedByCount incremented",
         "Toggle companion off in Settings: all of the above hidden again; mekong-sunset detail no longer shows RecruitingModule",
-        "Switch device language to 简体中文 and repeat key screens: no raw keys visible",
+        "Switch device language to \u7b80\u4f53\u4e2d\u6587 and repeat key screens: no raw keys visible",
         "Typecheck passes",
         "Tests pass",
         "Verify in Simulator using xcodebuild + simctl screenshots at each milestone (attach in PR description)"

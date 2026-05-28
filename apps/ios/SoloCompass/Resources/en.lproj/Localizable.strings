@@ -849,6 +849,11 @@
 "companion.chat.bubble.me.a11y" = "You: %@, sent at %@";
 "companion.chat.bubble.them.a11y" = "Companion: %@, sent at %@";
 
+/* Companion — group chat (US-037) */
+"companion.chat.pinnedRoute.a11y" = "Pinned route";
+"companion.chat.group.unknownRoute" = "Group Chat";
+"companion.chat.group.memberCount" = "%d members";
+
 /* Companion — report & block (US-014) */
 "companion.report.title" = "Report";
 "companion.report.reason.header" = "What's the problem?";
@@ -897,7 +902,7 @@
 "action.cancel" = "Cancel";
 
 /* ============================================================
- * Companion Hub (CompanionHubSheet) — entry point on the map
+ * Companion Hub — entry point on the map
  * ============================================================ */
 "companion.hub.title" = "Companion";
 "companion.hub.button.a11y" = "Open Companion";
@@ -947,6 +952,7 @@
 "settings.companion.requests.empty" = "No recruitment requests yet.";
 "settings.companion.conversations" = "Joined group chats";
 "settings.companion.conversations.empty" = "You haven't joined any group chats yet.";
+"settings.companion.discover.routes" = "发现招募路线";
 
 /* US-018 — BottomInfoSheet peek toolbar */
 "ai.now.hint" = "Good spots for right now";
@@ -972,6 +978,10 @@
 /* US-023 — StopsList */
 "stops.start" = "Start";
 
+/* US-025 — RouteCard / RoutesSection */
+"sheet.routes.section.title" = "路线";
+"route.card.verified" = "已验证";
+
 /* US-024 — RouteDetailView */
 "route.detail.save" = "保存到我的行程";
 "route.detail.favorite" = "加入收藏";
@@ -980,3 +990,86 @@
 "route.detail.pace.relaxed" = "Relaxed";
 "route.detail.pace.standard" = "Standard";
 "route.detail.pace.packed" = "Packed";
+
+/* US-026 — AddToItinerary success toast */
+"itinerary.toast.added" = "Added to 《%@》";
+"itinerary.toast.viewAction" = "View itinerary";
+
+/* US-027 — RecruitingModule */
+"recruiting.status.open" = "招募中";
+"recruiting.status.forming" = "组队中";
+"recruiting.status.closed" = "已关闭";
+"recruiting.status.completed" = "已完成";
+"recruiting.slots.label" = "成员";
+"recruiting.slots.count" = "%d/%d";
+"recruiting.cta.viewRequests" = "查看申请(%d)";
+"recruiting.cta.applied" = "已申请 · 等待确认";
+"recruiting.cta.viewChat" = "查看群聊";
+"recruiting.cta.requestJoin" = "申请加入";
+"recruiting.cta.requestJoinForming" = "申请加入(最后 %d 位)";
+
+/* US-030 — Companion Profile walked routes section */
+"profile.walkedRoutes.header" = "走过的路线 (%d)";
+"profile.walkedRoutes.viewAll" = "查看全部 ->";
+
+/* US-032 — DiscoverRecruitingRoutesView */
+"discover.recruiting.title" = "发现招募路线";
+"discover.recruiting.chip" = "%d/%d · %@";
+"discover.recruiting.chip.a11y" = "%d of %d members · %@";
+"discover.recruiting.empty.title" = "目前没有招募中的路线";
+"discover.recruiting.empty.description" = "附近还没有开放加入的路线。";
+"discover.recruiting.empty.create" = "开一个你自己的路线";
+
+/* US-033 — MyRequestsListView */
+"my.requests.empty" = "You have not requested to join any routes yet.";
+"my.requests.status.pending" = "Pending";
+"my.requests.status.accepted" = "Accepted";
+"my.requests.status.declined" = "Declined";
+"my.requests.status.withdrawn" = "Withdrawn";
+"my.requests.withdraw" = "撤回申请";
+
+/* US-031 — JoinRouteRequestSheet */
+"join.sheet.title" = "申请加入";
+"join.pace.label" = "配速匹配";
+"join.pace.placeholder" = "请选择";
+"join.pace.slower" = "慢于宿主";
+"join.pace.matching" = "匹配";
+"join.pace.faster" = "快于宿主";
+"join.message.label" = "自我介绍";
+"join.message.placeholder" = "向主理人介绍自己...";
+"join.submit" = "提交申请";
+
+/* US-034 — ApprovalQueueView */
+"approval.queue.title" = "待审批申请";
+"approval.queue.trust.line" = "已走过 %d 条 · 拼团 %d 次";
+"approval.queue.decline" = "拒绝";
+"approval.queue.accept" = "接受";
+"approval.queue.empty" = "No pending requests for this route.";
+
+/* US-034 — MyHostedRoutesListView */
+"my.hosted.routes.title" = "我主理的路线";
+"my.hosted.routes.empty" = "You are not hosting any routes yet.";
+"settings.companion.hosted.routes" = "我主理的路线";
+
+/* US-038 — CompletionMoment */
+"completion.mark.done" = "标记完成";
+"completion.stat.walked" = "走过";
+"completion.stat.travelers" = "旅人";
+"completion.tagline" = "这条路线现在为下一批旅人发光";
+
+/* US-039 — OpenForCompanionsSheet */
+"openForCompanions.button" = "开为招募路线 ->";
+"openForCompanions.sheet.title" = "Create Recruiting Route";
+"openForCompanions.departure.header" = "Departure Window";
+"openForCompanions.departureFrom" = "From";
+"openForCompanions.departureTo" = "To";
+"openForCompanions.departureTime" = "Time";
+"openForCompanions.pace" = "Pace";
+"openForCompanions.maxMembers" = "Max Members";
+"openForCompanions.maxMembers.value" = "%d people";
+"openForCompanions.visibility" = "Visibility";
+"openForCompanions.visibility.public" = "Public";
+"openForCompanions.visibility.linkOnly" = "Link Only";
+"openForCompanions.hostMessage" = "Host Message";
+"openForCompanions.hostMessage.placeholder" = "Tell potential companions what to expect…";
+"openForCompanions.submit" = "Create Route";

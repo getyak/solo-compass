@@ -5,11 +5,16 @@ import SwiftUI
 /// US-009: visibility defaults to `.off`; when off the user never appears in
 /// any discovery list. Users can escalate to `itinerary_only` or
 /// `nearby_and_itinerary` at any time.
+///
+/// US-030: when `companionEnabled`, shows a 'walked routes' section with up to
+/// 5 thumbnail cards. A 'view all' chip navigates to `MyWalkedRoutesListView`.
 public struct CompanionProfileView: View {
     @Environment(UserPreferences.self) private var preferences
 
     @State private var showingEmojiPicker = false
     @State private var languageInput = ""
+    @State private var walkedRoutes: [Route] = []
+    @State private var showAllWalked = false
 
     // Common travel-language options
     private static let suggestedLanguages: [(code: String, name: String)] = [
@@ -34,9 +39,28 @@ public struct CompanionProfileView: View {
                 bioSection(prefs: $prefs)
                 languagesSection(prefs: $prefs)
                 visibilitySection(prefs: $prefs)
+                if preferences.companionEnabled {
+                    walkedRoutesSection
+                }
             }
             .navigationTitle(NSLocalizedString("companion.profile.title", comment: "Companion Profile nav title"))
             .navigationBarTitleDisplayMode(.large)
+            .onAppear { loadWalkedRoutes() }
+            .navigationDestination(isPresented: $showAllWalked) {
+                MyWalkedRoutesListView(routes: walkedRoutes)
+            }
+        }
+    }
+
+    // MARK: - Walked routes data
+
+    private func loadWalkedRoutes() {
+        let store = RouteStore()
+        let currentUserId = DeviceIdentityService.shared.deviceID
+        walkedRoutes = store.all().filter { route in
+            route.verification.walkedBy.contains(currentUserId)
+            || (route.companion?.confirmedMembers.contains(currentUserId) == true
+                && route.companion?.status == .completed)
         }
     }
 
@@ -148,6 +172,51 @@ public struct CompanionProfileView: View {
         }
     }
 
+    // MARK: - Walked routes section (US-030)
+
+    private var walkedRoutesPreview: [Route] { Array(walkedRoutes.prefix(5)) }
+
+    @ViewBuilder
+    private var walkedRoutesSection: some View {
+        Section {
+            if walkedRoutesPreview.isEmpty {
+                Text(verbatim: "—")
+                    .foregroundStyle(.secondary)
+                    .font(.callout)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(walkedRoutesPreview) { route in
+                            WalkedRouteCard(route: route)
+                        }
+                        if walkedRoutes.count > 5 {
+                            Button {
+                                showAllWalked = true
+                            } label: {
+                                Text(NSLocalizedString("profile.walkedRoutes.viewAll", comment: "View all walked routes chip"))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color.accentColor)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.accentColor.opacity(0.1))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        } header: {
+            Text(String(
+                format: NSLocalizedString("profile.walkedRoutes.header", comment: "Walked routes section header"),
+                walkedRoutes.count
+            ))
+        }
+    }
+
     @ViewBuilder
     private func visibilitySection(prefs: Bindable<UserPreferences>) -> some View {
         Section {
@@ -222,6 +291,32 @@ public struct CompanionProfileView: View {
     }
 }
 
+// MARK: - WalkedRouteCard (compact thumbnail ~140pt)
+
+private struct WalkedRouteCard: View {
+    let route: Route
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.accentColor.opacity(0.15))
+                .frame(width: 140, height: 76)
+                .overlay(
+                    Text(route.title.prefix(1))
+                        .font(.largeTitle)
+                )
+            Text(route.title)
+                .font(.caption.weight(.semibold))
+                .lineLimit(2)
+                .frame(width: 140, alignment: .leading)
+            Text("\(route.estimatedDuration) min")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 140)
+    }
+}
+
 // MARK: - Preview
 
 #Preview("Default (off)") {
@@ -235,6 +330,13 @@ public struct CompanionProfileView: View {
     prefs.companionBio = "Solo traveler, 12 countries. Coffee shops and hidden temples."
     prefs.companionLanguages = ["en", "zh", "ja"]
     prefs.companionVisibility = .itinerary_only
+    return CompanionProfileView()
+        .environment(prefs)
+}
+
+#Preview("Companion enabled — walked routes empty") {
+    let prefs = UserPreferences()
+    prefs.companionEnabled = true
     return CompanionProfileView()
         .environment(prefs)
 }

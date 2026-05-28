@@ -140,14 +140,12 @@ private struct StopRow: View {
     let now = Date()
     let recent = Calendar.current.date(byAdding: .day, value: -7, to: now) ?? now
 
-    func conf() -> Confidence {
-        Confidence(
-            level: 4,
-            lastVerifiedAt: recent,
-            reason: "Preview",
-            signals: .init(aiScrapeAgeDays: 7, passiveGpsHits30d: 24, activeReports30d: 8, trustedVerifications: 1)
-        )
-    }
+    let conf = Confidence(
+        level: 4,
+        lastVerifiedAt: recent,
+        reason: "Preview",
+        signals: .init(aiScrapeAgeDays: 7, passiveGpsHits30d: 24, activeReports30d: 8, trustedVerifications: 1)
+    )
 
     let mekongExp = Experience(
         id: "exp_vte_mekong_riverside_sunset",
@@ -172,7 +170,7 @@ private struct StopRow: View {
             basedOnCount: 22
         ),
         sources: [],
-        confidence: conf(),
+        confidence: conf,
         nearbyExperienceIds: [],
         stats: .init(completionCount: 22, averageRating: 4.8),
         status: .active,
@@ -203,7 +201,7 @@ private struct StopRow: View {
             basedOnCount: 18
         ),
         sources: [],
-        confidence: conf(),
+        confidence: conf,
         nearbyExperienceIds: [],
         stats: .init(completionCount: 30, averageRating: 4.9),
         status: .active,

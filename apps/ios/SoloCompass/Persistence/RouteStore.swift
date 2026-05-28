@@ -20,7 +20,7 @@ public final class RouteStore {
     /// the `"routeId"` key when applicable.
     public static let didChange = Notification.Name("SoloCompass.RouteStore.didChange")
 
-    private let context: ModelContext
+    let context: ModelContext
 
     public init(context: ModelContext) {
         self.context = context
@@ -101,6 +101,25 @@ public final class RouteStore {
             name: RouteStore.didChange,
             object: self,
             userInfo: ["routeId": routeId]
+        )
+    }
+
+    // MARK: - Atomic helpers (for multi-record saves in a single context.save())
+
+    /// Stage a route insert without calling `context.save()`. Pair with
+    /// `commitContext()` to flush multiple staged writes atomically.
+    public func saveWithContext(_ route: Route) {
+        deleteRecord(id: route.id.rawValue)
+        context.insert(RouteRecord.fromValue(route))
+    }
+
+    /// Flush all staged inserts/deletes to disk. Throws on failure.
+    public func commitContext() throws {
+        try context.save()
+        NotificationCenter.default.post(
+            name: RouteStore.didChange,
+            object: self,
+            userInfo: nil
         )
     }
 
