@@ -3819,9 +3819,6 @@ final class SoloCompassTests: XCTestCase {
             aiService: AIService(),
             preferences: UserPreferences()
         )
-        // Debug: check experiences
-        let allCount = vm.experienceService.allExperiences.count
-        XCTFail("DEBUG: nowMinutes=\(nowMinutes), startHour30=\(startHour30), startHour90=\(startHour90), allCount=\(allCount), ids=\(vm.experienceService.allExperiences.map(\.id))")
         let next = vm.nextBestExperience
         XCTAssertNotNil(next)
         XCTAssertEqual(next?.experience.id, "soon", "must pick the soonest, not the first in array")
