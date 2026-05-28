@@ -377,7 +377,7 @@
         "Verify in Simulator using #Preview"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

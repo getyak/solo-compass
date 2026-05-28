@@ -29,3 +29,4 @@ Tool: claude
 [2026-05-28T09:39:20Z] Story #US-020: Sort sheet (4 modes: smart/distance/soloScore/now) — PASSED
 [2026-05-28T09:41:40Z] Story #US-021: Define VerifiedStyle + AvatarStack reusable views — PASSED
 [2026-05-28T09:53:22Z] Story #US-022: VerifiedBadge view (badge style default) — PASSED
+[2026-05-28T09:56:46Z] Story #US-023: StopsList view (ordered experience stops) — PASSED
