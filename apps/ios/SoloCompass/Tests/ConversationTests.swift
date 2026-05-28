@@ -102,19 +102,11 @@ final class ConversationTests: XCTestCase {
         dict.removeValue(forKey: "routeId")
         let stripped = try JSONSerialization.data(withJSONObject: dict)
 
-        // Decode using a decoder that provides a default for missing keys.
-        // Since `type` has no default in Codable, we verify the struct still
-        // round-trips correctly when the field is present (backward-compatible
-        // JSON always written by this client). Legacy payloads from older server
-        // versions may omit the field — handled by the optional default below.
-        // This test documents the expectation that the field should be present.
-        // If a server omits it, the app should use a custom decode strategy.
-        //
-        // For now, assert that the encoder DOES include the `type` key.
-        XCTAssertNotNil(dict["type"] == nil ? nil : dict["type"],
-            "type field should be absent in stripped dict — test setup is correct")
-        // Verify the stripped data is valid JSON.
-        XCTAssertNoThrow(try JSONSerialization.jsonObject(with: stripped))
+        // Custom init(from:) falls back to .oneOnOne when `type` is absent.
+        let decoded = try decoder.decode(Conversation.self, from: stripped)
+        XCTAssertEqual(decoded.type, .oneOnOne)
+        XCTAssertNil(decoded.routeId)
+        XCTAssertEqual(decoded.id.rawValue, "conv_legacy")
     }
 
     // MARK: - Sample data sanity
