@@ -510,7 +510,7 @@
         "Verify in Simulator: open Settings -> Companion -> \u540c\u4f34\u6863\u6848, see section if any routes match"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
