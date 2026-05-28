@@ -907,3 +907,6 @@
 "verified.title.verified" = "已验证路线";
 "verified.title.watching" = "社群观察中";
 "verified.subtitle" = "与 %d 位旅人走过";
+
+/* US-023 — StopsList */
+"stops.start" = "Start";
