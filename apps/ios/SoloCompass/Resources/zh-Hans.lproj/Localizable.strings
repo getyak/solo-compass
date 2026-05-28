@@ -736,3 +736,13 @@
 "itinerary.detail.importFavorites.confirm.message" = "已收藏的体验将被添加到这个行程中。已存在的不会重复添加。";
 "itinerary.detail.importFavorites.confirm.action" = "导入";
 "itinerary.detail.importFavorites.toast" = "已导入 %d 项";
+
+/* US-012 — 同伴（实验中）设置区 */
+"settings.companion.header" = "同伴 (实验中)";
+"settings.companion.toggle" = "启用同伴功能";
+"settings.companion.footer" = "实验功能。打开后可与其他独行旅行者发现彼此并组群；关闭则隐藏所有同伴相关入口。";
+"settings.companion.profile" = "同伴档案";
+"settings.companion.requests" = "我的招募申请";
+"settings.companion.requests.empty" = "暂无招募申请。";
+"settings.companion.conversations" = "已加入的群聊";
+"settings.companion.conversations.empty" = "尚未加入任何群聊。";

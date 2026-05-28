@@ -876,3 +876,13 @@
 "companion.safety.rules.confirm" = "I understand and will follow these rules";
 "companion.safety.legal.footer" = "By tapping Accept, you agree to the Terms of Service and our community guidelines.";
 "companion.safety.accept" = "Accept and continue";
+
+/* US-012 — Companion (Experimental) settings section */
+"settings.companion.header" = "Companion (Experimental)";
+"settings.companion.toggle" = "Enable companion features";
+"settings.companion.footer" = "Experimental. Turn on to discover and chat with other solo travelers; turn off to hide everything companion-related.";
+"settings.companion.profile" = "Companion profile";
+"settings.companion.requests" = "My recruitment requests";
+"settings.companion.requests.empty" = "No recruitment requests yet.";
+"settings.companion.conversations" = "Joined group chats";
+"settings.companion.conversations.empty" = "You haven't joined any group chats yet.";
