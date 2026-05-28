@@ -275,7 +275,7 @@
         "Verify in Simulator using xcodebuild + simctl screenshot"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

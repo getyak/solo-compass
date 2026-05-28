@@ -23,3 +23,4 @@ Tool: claude
 [2026-05-28T09:23:31Z] Story #US-014: Implement RouteCompanionStateMachine (pure function) — PASSED
 [2026-05-28T09:26:55Z] Story #US-015: Wire seed_routes.json companion fixtures (4 statuses present) — PASSED
 [2026-05-28T09:28:08Z] Story #US-016: Add BottomInfoSheet container with three detents (170/500/800) — PASSED
+[2026-05-28T09:29:52Z] Story #US-017: Replace BottomInfoBar with BottomInfoSheet in CompassMapView — PASSED
