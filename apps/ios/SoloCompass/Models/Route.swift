@@ -176,6 +176,21 @@ public struct RouteCompanion: Codable, Hashable, Sendable {
         self.groupConversationId = groupConversationId
         self.hostMessage = hostMessage
     }
+
+    /// Convenience no-arg init used in tests and previews.
+    public init() {
+        self.status = .open
+        self.hostId = ""
+        self.departureWindow = DepartureWindow(from: "", to: "", time: "")
+        self.departureLabel = ""
+        self.pacePreference = .standard
+        self.maxMembers = 4
+        self.confirmedMembers = []
+        self.joinRequests = []
+        self.visibility = .public
+        self.groupConversationId = nil
+        self.hostMessage = nil
+    }
 }
 
 // MARK: - Route
