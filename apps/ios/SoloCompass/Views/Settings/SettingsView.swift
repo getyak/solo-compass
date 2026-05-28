@@ -838,6 +838,21 @@ public struct SettingsView: View {
                         Text(NSLocalizedString("settings.companion.conversations", comment: "Joined conversations link"))
                     }
                 }
+
+                // US-032: Discover recruiting routes
+                NavigationLink {
+                    DiscoverRecruitingRoutesView()
+                        .environment(preferences)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.green, in: RoundedRectangle(cornerRadius: 7))
+                        Text(NSLocalizedString("settings.companion.discover.routes", comment: "Discover recruiting routes link"))
+                    }
+                }
             }
         } header: {
             settingsSectionHeader(

@@ -947,6 +947,7 @@
 "settings.companion.requests.empty" = "No recruitment requests yet.";
 "settings.companion.conversations" = "Joined group chats";
 "settings.companion.conversations.empty" = "You haven't joined any group chats yet.";
+"settings.companion.discover.routes" = "发现招募路线";
 
 /* US-018 — BottomInfoSheet peek toolbar */
 "ai.now.hint" = "Good spots for right now";
@@ -1005,6 +1006,14 @@
 /* US-030 — Companion Profile walked routes section */
 "profile.walkedRoutes.header" = "走过的路线 (%d)";
 "profile.walkedRoutes.viewAll" = "查看全部 ->";
+
+/* US-032 — DiscoverRecruitingRoutesView */
+"discover.recruiting.title" = "发现招募路线";
+"discover.recruiting.chip" = "%d/%d · %@";
+"discover.recruiting.chip.a11y" = "%d of %d members · %@";
+"discover.recruiting.empty.title" = "目前没有招募中的路线";
+"discover.recruiting.empty.description" = "附近还没有开放加入的路线。";
+"discover.recruiting.empty.create" = "开一个你自己的路线";
 
 /* US-031 — JoinRouteRequestSheet */
 "join.sheet.title" = "申请加入";

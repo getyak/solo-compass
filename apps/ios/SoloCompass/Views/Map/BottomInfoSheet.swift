@@ -3,7 +3,7 @@ import CoreLocation
 
 // MARK: - SortMode
 
-enum SortMode: String, CaseIterable, Identifiable {
+public enum SortMode: String, CaseIterable, Identifiable {
     case smart
     case distance
     case soloScore
@@ -33,7 +33,7 @@ private let scrimMaxOpacity: CGFloat = 0.18
 
 // MARK: - Detent
 
-enum BottomSheetDetent {
+public enum BottomSheetDetent {
     case peek, mid, full
 
     var height: CGFloat {

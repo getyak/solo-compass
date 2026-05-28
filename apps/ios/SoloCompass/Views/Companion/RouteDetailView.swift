@@ -321,7 +321,7 @@ extension Pace {
     let service = ExperienceService(seed: [mekongExp, watExp])
 
     NavigationStack {
-        RouteDetailView(route: route)
+        RouteDetailView(route: route, onTapStop: { _ in })
             .environment(service)
             .environment(UserPreferences())
     }
