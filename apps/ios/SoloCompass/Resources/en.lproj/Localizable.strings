@@ -1056,3 +1056,20 @@
 "completion.stat.walked" = "走过";
 "completion.stat.travelers" = "旅人";
 "completion.tagline" = "这条路线现在为下一批旅人发光";
+
+/* US-039 — OpenForCompanionsSheet */
+"openForCompanions.button" = "开为招募路线 ->";
+"openForCompanions.sheet.title" = "Create Recruiting Route";
+"openForCompanions.departure.header" = "Departure Window";
+"openForCompanions.departureFrom" = "From";
+"openForCompanions.departureTo" = "To";
+"openForCompanions.departureTime" = "Time";
+"openForCompanions.pace" = "Pace";
+"openForCompanions.maxMembers" = "Max Members";
+"openForCompanions.maxMembers.value" = "%d people";
+"openForCompanions.visibility" = "Visibility";
+"openForCompanions.visibility.public" = "Public";
+"openForCompanions.visibility.linkOnly" = "Link Only";
+"openForCompanions.hostMessage" = "Host Message";
+"openForCompanions.hostMessage.placeholder" = "Tell potential companions what to expect…";
+"openForCompanions.submit" = "Create Route";

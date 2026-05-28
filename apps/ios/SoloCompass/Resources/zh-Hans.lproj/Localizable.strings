@@ -776,3 +776,20 @@
 /* US-026 — AddToItinerary success toast */
 "itinerary.toast.added" = "已加入《%@》";
 "itinerary.toast.viewAction" = "查看行程";
+
+/* US-039 — OpenForCompanionsSheet */
+"openForCompanions.button" = "开为招募路线 ->";
+"openForCompanions.sheet.title" = "创建招募路线";
+"openForCompanions.departure.header" = "出发窗口";
+"openForCompanions.departureFrom" = "从";
+"openForCompanions.departureTo" = "到";
+"openForCompanions.departureTime" = "时间";
+"openForCompanions.pace" = "行程节奏";
+"openForCompanions.maxMembers" = "最多人数";
+"openForCompanions.maxMembers.value" = "%d 人";
+"openForCompanions.visibility" = "可见性";
+"openForCompanions.visibility.public" = "公开";
+"openForCompanions.visibility.linkOnly" = "仅限链接";
+"openForCompanions.hostMessage" = "主理人留言";
+"openForCompanions.hostMessage.placeholder" = "告诉想同行的旅人可以期待什么…";
+"openForCompanions.submit" = "创建路线";
