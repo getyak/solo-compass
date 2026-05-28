@@ -31,3 +31,4 @@ Tool: claude
 [2026-05-28T09:53:22Z] Story #US-022: VerifiedBadge view (badge style default) — PASSED
 [2026-05-28T09:56:46Z] Story #US-023: StopsList view (ordered experience stops) — PASSED
 [2026-05-28T09:59:22Z] Story #US-024: RouteDetailView (pure content, no recruiting module) — PASSED
+[2026-05-28T10:09:49Z] Story #US-026: AddToItinerarySheet success toast -> 'View itinerary' action — PASSED

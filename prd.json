@@ -432,7 +432,7 @@
         "Verify in Simulator: from any ExperienceDetailView -> \u52a0\u5165\u884c\u7a0b -> submit -> toast appears -> tap action -> lands on ItineraryDetailView"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
