@@ -443,6 +443,7 @@ public final class MapViewModel {
             visibleExperiences = nearby
             nearbySoloCount = computeNearbySoloCount(in: nearby)
         }
+        aiSmartPickIds = []
         updateBottomInfo()
     }
 
@@ -718,6 +719,11 @@ public final class MapViewModel {
 
     // MARK: - AI
 
+    /// IDs of the top-3 AI-ranked experiences (smart picks). Updated by
+    /// `runAIRanking()`; used by `NearbySection` to pin those rows with
+    /// a sun-gold border and warm gradient bg.
+    public var aiSmartPickIds: [String] = []
+
     public func runAIRanking() async {
         let candidates = visibleExperiences
         guard !candidates.isEmpty else { return }
@@ -734,6 +740,7 @@ public final class MapViewModel {
             visibleExperiences = candidates.sorted { lhs, rhs in
                 (rank[lhs.id] ?? Int.max) < (rank[rhs.id] ?? Int.max)
             }
+            aiSmartPickIds = Array(ranked.prefix(3))
             lastAIError = nil
         } catch {
             // Unranked list is still useful — keep it visible, just record the error.

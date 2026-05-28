@@ -892,3 +892,7 @@
 "sheet.sort.button" = "Sort";
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";
+
+/* US-019 — BottomInfoSheet nearby section */
+"sheet.nearby.section.title" = "附近";
+"sheet.nearby.smartPick.a11y" = "AI recommended";

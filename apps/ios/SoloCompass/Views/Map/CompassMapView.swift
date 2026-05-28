@@ -236,8 +236,19 @@ public struct CompassMapView: View {
                             ? viewModel.nowCount
                             : viewModel.visibleExperiences.count,
                         isNowMode: viewModel.isNowFilter
-                    ) {
-                        EmptyView()
+                    ) { detent in
+                        if detent != .peek {
+                            NearbySection(
+                                experiences: viewModel.visibleExperiences,
+                                smartPickIds: viewModel.aiSmartPickIds,
+                                referenceCoordinate: locationService.currentLocation?.coordinate
+                                    ?? viewModel.defaultCenterForSelectedCity,
+                                onSelectExperience: { exp in
+                                    viewModel.selectExperience(exp)
+                                    viewModel.isShowingDetail = true
+                                }
+                            )
+                        }
                     }
                 }
                 .ignoresSafeArea(edges: .bottom)
