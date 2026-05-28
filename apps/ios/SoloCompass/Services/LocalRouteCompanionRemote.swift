@@ -66,8 +66,51 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
             companion.status = closed
         }
 
-        updated.companion = companion
-        store.save(updated)
+        let now = ISO8601DateFormatter().string(from: Date())
+        let convStore = ConversationStore(context: store.context)
+
+        if wasOpen && newStatus == .forming && companion.groupConversationId == nil {
+            // First accept: open → forming. Create the group conversation.
+            let convId = ConversationId(rawValue: UUID().uuidString)
+            let conversation = Conversation(
+                id: convId,
+                requestId: CompanionRequestId(rawValue: request.id.rawValue),
+                participantIds: [companion.hostId, request.requesterId],
+                type: .groupRoute,
+                routeId: route.id.rawValue,
+                createdAt: now,
+                updatedAt: now
+            )
+            companion.groupConversationId = convId.rawValue
+            updated.companion = companion
+            store.saveWithContext(updated)
+            convStore.saveWithContext(conversation)
+            try store.commitContext()
+        } else if let existingConvIdStr = companion.groupConversationId,
+                  let existingConv = convStore.get(ConversationId(rawValue: existingConvIdStr)) {
+            // Subsequent accept: still forming. Append requesterId to participants.
+            var participants = existingConv.participantIds
+            if !participants.contains(request.requesterId) {
+                participants.append(request.requesterId)
+            }
+            let updatedConv = Conversation(
+                id: existingConv.id,
+                requestId: existingConv.requestId,
+                participantIds: participants,
+                type: existingConv.type,
+                routeId: existingConv.routeId,
+                lastMessageAt: existingConv.lastMessageAt,
+                createdAt: existingConv.createdAt,
+                updatedAt: now
+            )
+            updated.companion = companion
+            store.saveWithContext(updated)
+            convStore.saveWithContext(updatedConv)
+            try store.commitContext()
+        } else {
+            updated.companion = companion
+            store.save(updated)
+        }
     }
 
     public func decline(_ request: JoinRequest, route: Route) async throws {

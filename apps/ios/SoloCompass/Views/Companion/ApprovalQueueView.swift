@@ -215,7 +215,8 @@ public struct ApprovalQueueView: View {
 
     private func localAccept(_ request: JoinRequest) {
         let ctx = contextProvider()
-        let store = RouteStore(context: ctx)
+        let routeStore = RouteStore(context: ctx)
+        let convStore = ConversationStore(context: ctx)
         var updated = routeState
         guard var companion = updated.companion,
               let idx = companion.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
@@ -229,19 +230,57 @@ public struct ApprovalQueueView: View {
         companion.confirmedMembers.append(request.requesterId)
         companion.status = newStatus
 
-        // Assign groupConversationId the first time status becomes .forming.
-        if wasOpen && newStatus == .forming && companion.groupConversationId == nil {
-            companion.groupConversationId = UUID().uuidString
-        }
-
         if companion.confirmedMembers.count >= companion.maxMembers,
            let closed = try? RouteCompanionStateMachine.transition(state: companion.status, event: .reachMax) {
             companion.status = closed
         }
 
-        updated.companion = companion
+        let now = ISO8601DateFormatter().string(from: Date())
+
+        if wasOpen && newStatus == .forming && companion.groupConversationId == nil {
+            // First accept: create group conversation atomically with the route update.
+            let convId = ConversationId(rawValue: UUID().uuidString)
+            let conversation = Conversation(
+                id: convId,
+                requestId: CompanionRequestId(rawValue: request.id.rawValue),
+                participantIds: [companion.hostId, request.requesterId],
+                type: .groupRoute,
+                routeId: route.id.rawValue,
+                createdAt: now,
+                updatedAt: now
+            )
+            companion.groupConversationId = convId.rawValue
+            updated.companion = companion
+            routeStore.saveWithContext(updated)
+            convStore.saveWithContext(conversation)
+            try? routeStore.commitContext()
+        } else if let existingConvIdStr = companion.groupConversationId,
+                  let existingConv = convStore.get(ConversationId(rawValue: existingConvIdStr)) {
+            // Subsequent accept: append to existing group conversation.
+            var participants = existingConv.participantIds
+            if !participants.contains(request.requesterId) {
+                participants.append(request.requesterId)
+            }
+            let updatedConv = Conversation(
+                id: existingConv.id,
+                requestId: existingConv.requestId,
+                participantIds: participants,
+                type: existingConv.type,
+                routeId: existingConv.routeId,
+                lastMessageAt: existingConv.lastMessageAt,
+                createdAt: existingConv.createdAt,
+                updatedAt: now
+            )
+            updated.companion = companion
+            routeStore.saveWithContext(updated)
+            convStore.saveWithContext(updatedConv)
+            try? routeStore.commitContext()
+        } else {
+            updated.companion = companion
+            routeStore.save(updated)
+        }
+
         routeState = updated
-        store.save(updated)
     }
 
     private func decline(_ request: JoinRequest) {
