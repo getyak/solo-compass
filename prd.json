@@ -658,7 +658,7 @@
         "Verify in Simulator: simulate a closed mekong-sunset and tap \u6807\u8bb0\u5b8c\u6210 -> moment plays -> close -> reopen detail shows verified indicator"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
