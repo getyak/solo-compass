@@ -7,3 +7,5 @@ Tool: claude
 [2026-05-29T06:01:59Z] Story #US-002: SyncService.enqueue must report encode failures to Sentry — PASSED
 [2026-05-29T06:12:13Z] Story #US-003: Add AISynthesisQuality state to AIService — PASSED
 [2026-05-29T06:24:46Z] Story #US-004: Add SkeletonBadgeView component (transparency pill) — PASSED
+[2026-05-29T06:52:15Z] Story #US-005: Remove AnyView wrapper from CompassMapView.body — FAILED (iteration 4)
+[2026-05-29T06:55:00Z] Story #US-005: Remove AnyView wrapper from CompassMapView.body — PASSED (build + tests green, simulator verified no regression)
