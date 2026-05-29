@@ -17,22 +17,39 @@ public struct MarkerIconView: View {
     /// independent flag. Defaults to false to keep every existing call site
     /// source-compatible.
     let isSelected: Bool
+    /// US-035: true when the FilterBar's "Now" mode is active. When set, a
+    /// `bestNow` marker grows an extra CT.accent ring so the filter pill and
+    /// the map highlight read as the same gesture. No effect on other states.
+    let nowFilterActive: Bool
 
     @Environment(\.themeService) private var themeService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
     @State private var selectionPulse = false
+    @State private var nowRingPulse = false
 
     public init(
         category: ExperienceCategory,
         state: ExperienceMarkerState,
         confidenceLevel: Int = 5,
-        isSelected: Bool = false
+        isSelected: Bool = false,
+        nowFilterActive: Bool = false
     ) {
         self.category = category
         self.state = state
         self.confidenceLevel = confidenceLevel
         self.isSelected = isSelected
+        self.nowFilterActive = nowFilterActive
+    }
+
+    /// US-035: a `bestNow` marker should show the extra "Now" sync ring only
+    /// when the Now filter is active and the pin is a high-confidence best-now
+    /// entry (low-confidence AI guesses don't earn the highlight, mirroring the
+    /// existing pulse-ring suppression).
+    var showsNowSyncRing: Bool {
+        guard nowFilterActive, !isLowConfidence else { return false }
+        if case .bestNow = state { return true }
+        return false
     }
 
     /// True when this marker should render in "AI-generated, low
@@ -42,6 +59,10 @@ public struct MarkerIconView: View {
 
     public var body: some View {
         markerContent
+            // US-035: Now-filter sync ring, layered behind the marker (and the
+            // selection halo) so a best-now pin visibly "lights up" the moment
+            // the Now pill is toggled, tying the two UIs together.
+            .background(nowSyncRing)
             // Selection halo + lift, orthogonal to (and layered behind) the
             // state adornments so any marker — completed, favorited, etc. —
             // can read as "selected". Spring tuned for a snappy-but-soft tap
@@ -54,8 +75,36 @@ public struct MarkerIconView: View {
                 if reduced {
                     pulse = false
                     selectionPulse = false
+                    nowRingPulse = false
                 }
             }
+    }
+
+    /// US-035: extra CT.accent ring drawn around best-now markers while the
+    /// Now filter is on. Solid stroke for the static base; an outward pulse on
+    /// top (suppressed under Reduce Motion) so the highlight is alive but never
+    /// competes with the gold best-now pulse.
+    @ViewBuilder
+    private var nowSyncRing: some View {
+        if showsNowSyncRing {
+            Circle()
+                .strokeBorder(CT.accent, lineWidth: 2.5)
+                .frame(width: 50, height: 50)
+
+            if !reduceMotion {
+                Circle()
+                    .stroke(CT.accent.opacity(0.45), lineWidth: 2)
+                    .frame(width: 50, height: 50)
+                    .scaleEffect(nowRingPulse ? 1.5 : 1.0)
+                    .opacity(nowRingPulse ? 0.0 : 0.7)
+                    .animation(
+                        .easeOut(duration: 1.6).repeatForever(autoreverses: false),
+                        value: nowRingPulse
+                    )
+                    .onAppear { nowRingPulse = true }
+                    .onDisappear { nowRingPulse = false }
+            }
+        }
     }
 
     @ViewBuilder
@@ -236,13 +285,14 @@ public struct MarkerIconView: View {
         return "\(categoryName)\(suffix)"
     }
 
-    /// Stable identifier encoding the confidence tier and selection — used in
-    /// unit tests to assert that low-confidence, normal, and selected markers
-    /// produce distinguishable views.
+    /// Stable identifier encoding the confidence tier, selection, and Now-sync
+    /// highlight — used in unit tests to assert that low-confidence, normal,
+    /// selected, and Now-highlighted markers produce distinguishable views.
     var accessibilityIdentifier: String {
         let confidence = isLowConfidence ? "low" : "normal"
         let selection = isSelected ? ".selected" : ""
-        return "marker.\(category.rawValue).\(state.identifierFragment).\(confidence)\(selection)"
+        let nowSync = showsNowSyncRing ? ".nowsync" : ""
+        return "marker.\(category.rawValue).\(state.identifierFragment).\(confidence)\(selection)\(nowSync)"
     }
 }
 
@@ -299,6 +349,15 @@ private struct ObsidianDotGridMarker: View {
                 Text("selected").frame(width: 120, alignment: .leading)
                 ForEach(ExperienceCategory.allCases) { cat in
                     MarkerIconView(category: cat, state: .default, isSelected: true)
+                }
+            }
+
+            // US-035: best-now markers with the Now filter active — the extra
+            // CT.accent ring ties the map highlight to the "Now" filter pill.
+            HStack(spacing: 16) {
+                Text("bestNow + Now filter").frame(width: 120, alignment: .leading)
+                ForEach(ExperienceCategory.allCases) { cat in
+                    MarkerIconView(category: cat, state: .bestNow, nowFilterActive: true)
                 }
             }
 

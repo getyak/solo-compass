@@ -740,7 +740,11 @@ struct CompassMapContentView: View {
                                         category: exp.category,
                                         state: state,
                                         confidenceLevel: exp.confidence.level,
-                                        isSelected: viewModel.selectedExperience?.id == exp.id
+                                        isSelected: viewModel.selectedExperience?.id == exp.id,
+                                        // US-035: light up best-now pins when the
+                                        // Now filter pill is active so the two UIs
+                                        // feel connected.
+                                        nowFilterActive: viewModel.isNowFilter
                                     )
                                     if case .footprinted = state {
                                         Text("\(viewModel.footprintCount(for: exp))")
