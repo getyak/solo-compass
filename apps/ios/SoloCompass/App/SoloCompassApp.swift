@@ -23,6 +23,9 @@ struct SoloCompassApp: App {
     @State private var languageService = LanguageService.shared
     @State private var companionService = CompanionService.shared
     @State private var presenceService = PresenceService.shared
+    // Single 60s clock feeding every BestNowBadge (US-023). One timer for all
+    // badges instead of one TimelineView per badge.
+    @State private var bestNowClock = BestNowClock.shared
     private let supabaseClient = SupabaseClient.shared
     private let themeService = ThemeService.shared
 
@@ -38,6 +41,7 @@ struct SoloCompassApp: App {
                 .environment(languageService)
                 .environment(companionService)
                 .environment(presenceService)
+                .environment(bestNowClock)
                 .environment(supabaseClient)
                 .environment(\.themeService, themeService)
                 .onAppear {

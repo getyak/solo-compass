@@ -865,6 +865,7 @@ struct CompassMapContentView: View {
         .environment(UserPreferences())
         .environment(CompanionService.shared)
         .environment(PresenceService.shared)
+        .environment(BestNowClock.shared)
 }
 
 private extension String {
