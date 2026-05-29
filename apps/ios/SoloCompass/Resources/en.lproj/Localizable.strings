@@ -117,6 +117,7 @@
 /* Voice */
 "voice.processing" = "Thinking: %@";
 "voice.button" = "Voice input";
+"voice.recording.timer.a11y" = "Recording — %d seconds elapsed";
 "voice.result.found" = "Found %d matching places";
 "voice.result.filtered" = "Showing %@ nearby";
 "voice.result.none" = "No matching places nearby — try a different search";

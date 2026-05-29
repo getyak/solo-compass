@@ -13,6 +13,8 @@ public struct VoiceButton: View {
     @State private var recognitionError: String? = nil
     @State private var pulse = false
     @State private var streamTask: Task<Void, Never>?
+    @State private var elapsed: TimeInterval = 0
+    @State private var timerTask: Task<Void, Never>?
 
     // Retained generators — prepare() pre-warms the Taptic Engine to eliminate first-fire latency.
     private let recordStartGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -80,21 +82,41 @@ public struct VoiceButton: View {
         }
         .overlay(alignment: .top) {
             if isRecording {
-                let displayText = liveTranscript.isEmpty
-                    ? NSLocalizedString("chat.voice.listening", comment: "Listening placeholder")
-                    : liveTranscript
-                Text(displayText)
-                    .font(.caption)
-                    .foregroundStyle(liveTranscript.isEmpty ? .secondary : .primary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(.thinMaterial, in: Capsule())
-                    .offset(y: -50)
-                    .transition(reduceMotion ? .identity : .opacity)
-                    .id(liveTranscript.isEmpty)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: liveTranscript.isEmpty)
+                VStack(spacing: 4) {
+                    Text(formattedElapsed)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(elapsed >= 50
+                            ? AnyShapeStyle(Color.orange)
+                            : AnyShapeStyle(Color.secondary))
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: elapsed >= 50)
+                        .accessibilityHidden(true)
+
+                    let displayText = liveTranscript.isEmpty
+                        ? NSLocalizedString("chat.voice.listening", comment: "Listening placeholder")
+                        : liveTranscript
+                    Text(displayText)
+                        .font(.caption)
+                        .foregroundStyle(liveTranscript.isEmpty ? .secondary : .primary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.thinMaterial, in: Capsule())
+                        .transition(reduceMotion ? .identity : .opacity)
+                        .id(liveTranscript.isEmpty)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: liveTranscript.isEmpty)
+                }
+                .offset(y: -62)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text(String(format: NSLocalizedString("voice.recording.timer.a11y", comment: ""), Int(elapsed))))
             }
         }
+    }
+
+    // MARK: - Helpers
+
+    private var formattedElapsed: String {
+        let min = Int(elapsed) / 60
+        let sec = Int(elapsed) % 60
+        return String(format: "%d:%02d", min, sec)
     }
 
     // MARK: - Actions
@@ -111,7 +133,9 @@ public struct VoiceButton: View {
                 isRecording = true
                 if !reduceMotion { pulse = true }
                 liveTranscript = ""
+                elapsed = 0
                 recordStartGenerator.impactOccurred()
+                startElapsedTimer()
                 let stream = try voiceService.startListening()
                 streamTask = Task {
                     do {
@@ -125,6 +149,7 @@ public struct VoiceButton: View {
                         await MainActor.run {
                             isRecording = false
                             pulse = false
+                            stopElapsedTimer()
                             recognitionError = error.localizedDescription
                         }
                     }
@@ -132,6 +157,7 @@ public struct VoiceButton: View {
             } catch {
                 isRecording = false
                 pulse = false
+                stopElapsedTimer()
                 recognitionError = error.localizedDescription
             }
         }
@@ -141,6 +167,7 @@ public struct VoiceButton: View {
         voiceService.stopListening()
         isRecording = false
         pulse = false
+        stopElapsedTimer()
         let final = liveTranscript
         streamTask?.cancel()
         streamTask = nil
@@ -151,6 +178,23 @@ public struct VoiceButton: View {
             recordStopEmptyGenerator.impactOccurred()
         }
         liveTranscript = ""
+    }
+
+    private func startElapsedTimer() {
+        timerTask?.cancel()
+        timerTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { break }
+                elapsed += 1
+            }
+        }
+    }
+
+    private func stopElapsedTimer() {
+        timerTask?.cancel()
+        timerTask = nil
+        elapsed = 0
     }
 }
 
