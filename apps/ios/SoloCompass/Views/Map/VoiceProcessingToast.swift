@@ -96,12 +96,12 @@ private struct ThinkingDots: View {
 }
 
 #Preview("Animated") {
-    VoiceProcessingToast(text: "Thinking about "coffee near me"…")
+    VoiceProcessingToast(text: "Thinking about \"coffee near me\"…")
         .padding()
 }
 
 #Preview("Reduce Motion") {
-    VoiceProcessingToast(text: "Thinking about "coffee near me"…")
+    VoiceProcessingToast(text: "Thinking about \"coffee near me\"…")
         .environment(\.accessibilityReduceMotion, true)
         .padding()
 }
