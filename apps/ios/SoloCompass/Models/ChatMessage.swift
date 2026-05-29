@@ -1,4 +1,3 @@
-import Foundation
 
 /// ChatMessage — a single message within a Conversation.
 ///

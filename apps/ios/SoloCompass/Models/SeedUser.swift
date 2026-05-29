@@ -1,4 +1,3 @@
-import Foundation
 
 /// A lightweight user fixture loaded from `seed_users.json`.
 ///

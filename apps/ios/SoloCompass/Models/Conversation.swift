@@ -1,4 +1,3 @@
-import Foundation
 
 /// Conversation — a messaging thread opened after a CompanionRequest is accepted,
 /// or a group chat formed around a Route companion slot.

@@ -1,6 +1,5 @@
 import Foundation
 import CoreLocation
-import Contacts
 import os
 
 /// Protocol that lets tests inject a stub instead of hitting `CLGeocoder`.

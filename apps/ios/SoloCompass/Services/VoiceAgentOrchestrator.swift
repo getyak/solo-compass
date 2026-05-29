@@ -1,5 +1,4 @@
 import AVFoundation
-import CoreLocation
 import Foundation
 import Observation
 

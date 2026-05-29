@@ -1,4 +1,3 @@
-import Foundation
 
 /// Bidirectional converters between Itinerary and Route.
 ///

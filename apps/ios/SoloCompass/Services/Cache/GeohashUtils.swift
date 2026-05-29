@@ -1,4 +1,3 @@
-import Foundation
 
 /// Base32 geohash encoder + 8-neighbor helper used by the Overpass POI cache.
 ///

@@ -1,4 +1,3 @@
-import Foundation
 
 /// CompanionReport — a safety report filed against another user.
 ///

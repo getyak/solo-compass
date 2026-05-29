@@ -1,5 +1,4 @@
 import XCTest
-import SwiftUI
 @testable import SoloCompass
 
 /// US-006: BottomInfoSheet drag handle hit target is at least 44 pt in

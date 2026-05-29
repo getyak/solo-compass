@@ -1,5 +1,4 @@
 import XCTest
-import SwiftUI
 @testable import SoloCompass
 
 /// US-030: the BottomInfoSheet sort button must expose an `accessibilityValue`

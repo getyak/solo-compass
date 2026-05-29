@@ -1,5 +1,4 @@
 import XCTest
-import CoreLocation
 import MapKit
 import SwiftData
 @testable import SoloCompass

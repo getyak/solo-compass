@@ -1,4 +1,3 @@
-import Foundation
 
 /// Itinerary — a named trip plan owned by one user.
 ///

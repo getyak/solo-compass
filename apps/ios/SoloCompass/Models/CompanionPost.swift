@@ -1,4 +1,3 @@
-import Foundation
 
 /// CompanionPost — a discoverable post signalling openness to meeting companions.
 ///

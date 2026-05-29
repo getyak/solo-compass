@@ -1,5 +1,4 @@
 import XCTest
-import CoreLocation
 @testable import SoloCompass
 
 // MARK: - US-019: Map render baseline with 150 markers

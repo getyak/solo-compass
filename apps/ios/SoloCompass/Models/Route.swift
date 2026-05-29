@@ -1,4 +1,3 @@
-import Foundation
 
 /// Route — an ordered sequence of experiences plus metadata describing how
 /// to walk it, who has walked it, and (optionally) which companion slot is

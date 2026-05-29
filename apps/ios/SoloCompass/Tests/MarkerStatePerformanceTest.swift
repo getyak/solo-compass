@@ -1,5 +1,4 @@
 import XCTest
-import CoreLocation
 @testable import SoloCompass
 
 // MARK: - US-016: markerState(for:) call-count perf test

@@ -1,5 +1,4 @@
 import XCTest
-import SwiftUI
 @testable import SoloCompass
 
 /// US-009 (decision A): the Companion-layer toggle must be hidden by default

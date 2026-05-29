@@ -1,4 +1,3 @@
-import CoreLocation
 import Foundation
 import MapKit
 

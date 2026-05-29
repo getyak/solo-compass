@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreLocation
 
 /// Documented VoiceOver focus order for every onboarding page.
 ///

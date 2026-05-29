@@ -1,4 +1,3 @@
-import Foundation
 
 /// CompanionRequest — a request from one user to another to travel together.
 ///

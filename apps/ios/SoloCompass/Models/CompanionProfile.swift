@@ -1,4 +1,3 @@
-import Foundation
 
 /// CompanionProfile — the user's public-facing companion identity.
 ///

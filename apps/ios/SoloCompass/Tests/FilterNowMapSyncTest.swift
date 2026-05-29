@@ -1,5 +1,4 @@
 import XCTest
-import CoreLocation
 @testable import SoloCompass
 
 // MARK: - US-035: FilterBar "Now" mode ↔ Map bestNow highlight sync
