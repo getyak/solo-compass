@@ -384,6 +384,7 @@
 /* Generic actions */
 "action.undo" = "Undo";
 "favorites.undo.swipeHint" = "Swipe down to dismiss";
+"favorites.undo.announcement" = "Removed %@. Undo available.";
 
 /* Notifications */
 "settings.notifications" = "Notify me when I'm nearby";
