@@ -833,6 +833,8 @@
 "companion.discover.empty.title" = "No companions found";
 "companion.discover.empty.description" = "No one is open to companions in this city right now.";
 "companion.discover.coldstart.tip" = "Be the first — open your itinerary to companions and others will find you.";
+"companion.discover.empty.cta" = "Be the first — post your trip";
+"companion.discover.empty.cta.hint" = "Opens a form to post your trip availability for this city";
 
 /* Companion — send request (US-012) */
 "companion.request.send" = "Send request";

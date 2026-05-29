@@ -15,6 +15,7 @@ public struct DiscoverListView: View {
     @State private var requestSentPostId: String?
     @State private var reportTarget: DiscoverPost?
     @State private var errorMessage: String?
+    @State private var showPostSheet = false
 
     public init(cityCode: String, service: CompanionService = .shared) {
         self.cityCode = cityCode
@@ -69,6 +70,9 @@ public struct DiscoverListView: View {
                 Task { await sendRequest(to: post, note: note) }
             }
         }
+        .sheet(isPresented: $showPostSheet) {
+            OpenForCompanionsSheet(itinerary: Self.newAvailabilityItinerary(cityCode: cityCode))
+        }
         .sheet(item: $reportTarget) { post in
             ReportBlockSheet(
                 targetUserId: post.id,
@@ -120,11 +124,19 @@ public struct DiscoverListView: View {
         } description: {
             Text(NSLocalizedString("companion.discover.empty.description", comment: "No companions found description"))
         } actions: {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(spacing: 16) {
                 Text(NSLocalizedString("companion.discover.coldstart.tip", comment: "Cold start tip"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                Button {
+                    Haptics.impact(.light)
+                    showPostSheet = true
+                } label: {
+                    Text(NSLocalizedString("companion.discover.empty.cta", comment: "Post your availability CTA"))
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityHint(NSLocalizedString("companion.discover.empty.cta.hint", comment: "Post your availability accessibility hint"))
             }
         }
     }
@@ -143,6 +155,30 @@ public struct DiscoverListView: View {
     }
 
     // MARK: - Actions
+
+    private static func newAvailabilityItinerary(cityCode: String) -> Itinerary {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone(identifier: "UTC")
+        let now = Date()
+        let startDate = fmt.string(from: now)
+        let endDate = fmt.string(from: now.addingTimeInterval(86400 * 7))
+        let isoFmt = ISO8601DateFormatter()
+        let ts = isoFmt.string(from: now)
+        return Itinerary(
+            id: ItineraryId(rawValue: "cta_\(cityCode)_\(UUID().uuidString)"),
+            ownerId: DeviceIdentityService.shared.deviceID,
+            title: cityCode,
+            cityCode: cityCode,
+            startDate: startDate,
+            endDate: endDate,
+            experienceIds: [],
+            note: nil,
+            openToCompanions: true,
+            createdAt: ts,
+            updatedAt: ts
+        )
+    }
 
     private func loadPosts() async {
         Haptics.impact(.light)
