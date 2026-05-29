@@ -98,6 +98,29 @@ public enum FeatureFlags {
         readBool("FF_COMPANION", default: false)
     }
 
+    /// US-009: Master gate for the in-map Companion *layer* toggle (the
+    /// floating control that overlays nearby blurred presence cells). The
+    /// underlying discovery still returns nil today, so the toggle is a dead
+    /// button — hide it by default so users don't tap a control that never
+    /// does anything (decision A).
+    ///
+    /// Default off. In DEBUG you can flip it on without rebuilding by setting
+    /// the `FF_COMPANION_LAYER_ENABLED` UserDefaults key:
+    ///
+    ///     defaults write <app-bundle-id> FF_COMPANION_LAYER_ENABLED -bool YES
+    ///
+    /// or, in a test / debug menu, `UserDefaults.standard.set(true, forKey:
+    /// "FF_COMPANION_LAYER_ENABLED")`. The override is compiled out of Release
+    /// builds so production always reads the plist/env value (default false).
+    public static var companionLayerEnabled: Bool {
+        #if DEBUG
+        if UserDefaults.standard.object(forKey: "FF_COMPANION_LAYER_ENABLED") != nil {
+            return UserDefaults.standard.bool(forKey: "FF_COMPANION_LAYER_ENABLED")
+        }
+        #endif
+        return readBool("FF_COMPANION_LAYER_ENABLED", default: false)
+    }
+
     // MARK: - Internals
 
     static func readBool(_ key: String, default fallback: Bool) -> Bool {

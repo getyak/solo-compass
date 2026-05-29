@@ -85,6 +85,13 @@ public struct CompassMapView: View {
     /// incrementally. DEBUG-only and read-only — never affects production
     /// rendering. Captured lazily inside `mapContent.onAppear`.
     @MainActor static var debugBodyTypeName: String = ""
+
+    /// US-009 test hook: set to `true` the moment the Companion-layer toggle
+    /// branch is evaluated into the overlay (i.e. when
+    /// `FeatureFlags.companionLayerEnabled` is on). Stays `false` when the flag
+    /// gates the toggle out, which lets `CompassMapViewLayerToggleTests` assert
+    /// the control is / is not in the view hierarchy. DEBUG-only and read-only.
+    @MainActor static var debugCompanionLayerToggleRendered: Bool = false
     #endif
 
     @ViewBuilder
@@ -227,8 +234,11 @@ public struct CompassMapView: View {
 
                 VStack {
                     Spacer()
-                    // US-017: Companion layer toggle — only rendered when FF_COMPANION is on.
-                    if FeatureFlags.companion {
+                    // US-017 / US-009: Companion layer toggle — only rendered when
+                    // the companion-layer flag is on. Hidden by default (decision A)
+                    // because the underlying discovery still returns nil, so the
+                    // control would be a dead button.
+                    if FeatureFlags.companionLayerEnabled {
                         HStack {
                             Spacer()
                             CompanionLayerToggle(
@@ -239,6 +249,11 @@ public struct CompassMapView: View {
                             .padding(.trailing, 16)
                         }
                         .padding(.bottom, 4)
+                        .onAppear {
+                            #if DEBUG
+                            Self.debugCompanionLayerToggleRendered = true
+                            #endif
+                        }
                     }
                     MapControlBar(
                         viewModel: viewModel,
