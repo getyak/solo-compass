@@ -247,6 +247,7 @@
 "voice.error.title" = "Voice recognition error";
 "voice.error.permission" = "Microphone or speech recognition permission was denied. Please allow access in Settings.";
 "voice.error.unavailable" = "Speech recognition is unavailable on this device.";
+"voice.interrupted" = "Voice recording was interrupted: %@";
 
 /* Journey progress card */
 "journey.progress.title" = "Experiences completed";

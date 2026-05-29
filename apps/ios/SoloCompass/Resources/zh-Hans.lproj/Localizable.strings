@@ -168,6 +168,7 @@
 "voice.error.title" = "语音识别错误";
 "voice.error.permission" = "麦克风或语音识别权限被拒绝。请在「设置」中允许。";
 "voice.error.unavailable" = "此设备不支持语音识别。";
+"voice.interrupted" = "语音录制被中断：%@";
 
 /* Journey progress card */
 "journey.progress.title" = "已完成的体验";
