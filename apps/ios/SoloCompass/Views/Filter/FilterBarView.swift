@@ -128,7 +128,9 @@ public struct FilterBarView: View {
                             )
                             .id(category.rawValue)
                         }
-                        ForEach(preferences.customTags, id: \.self) { tag in
+                        // US-041: index as stable id so duplicate custom tags don't
+                        // collapse into a single row (`id: \.self` dedups on value).
+                        ForEach(Array(preferences.customTags.enumerated()), id: \.offset) { _, tag in
                             customTagPill(
                                 tag: tag,
                                 isSelected: selectionID == "tag-\(tag)",
