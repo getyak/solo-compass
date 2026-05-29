@@ -73,6 +73,14 @@ public struct VoiceButton: View {
                 }
         )
         .accessibilityLabel(Text(NSLocalizedString("voice.button", comment: "Voice input")))
+        .accessibilityHint(Text(NSLocalizedString("voice.button.hint", comment: "Double tap to start recording, double tap again to stop")))
+        .accessibilityValue(Text(isRecording
+            ? NSLocalizedString("voice.button.value.recording", comment: "Recording")
+            : NSLocalizedString("voice.button.value.idle", comment: "Idle")))
+        .accessibilityAddTraits(.startsMediaSession)
+        .accessibilityAction(named: Text(NSLocalizedString("voice.a11y.toggle", comment: "Start/Stop voice input"))) {
+            if isRecording { stopRecording() } else { startRecording() }
+        }
         .alert(NSLocalizedString("voice.permission.title", comment: ""), isPresented: $showPermissionAlert) {
             Button(NSLocalizedString("common.ok", comment: ""), role: .cancel) { }
         } message: {
@@ -148,6 +156,10 @@ public struct VoiceButton: View {
                 didAutoStop = false
                 autoStopMessage = nil
                 recordStartGenerator.impactOccurred()
+                if UIAccessibility.isVoiceOverRunning {
+                    UIAccessibility.post(notification: .announcement,
+                        argument: NSLocalizedString("voice.announcement.listening", comment: "Listening…"))
+                }
                 startElapsedTimer()
                 let stream = try voiceService.startListening()
                 streamTask = Task {
@@ -181,6 +193,10 @@ public struct VoiceButton: View {
         isRecording = false
         pulse = false
         stopElapsedTimer()
+        if UIAccessibility.isVoiceOverRunning {
+            UIAccessibility.post(notification: .announcement,
+                argument: NSLocalizedString("voice.announcement.stopped", comment: "Recording stopped"))
+        }
         let final = liveTranscript
         streamTask?.cancel()
         streamTask = nil
