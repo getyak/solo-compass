@@ -54,19 +54,7 @@ public struct SoloScoreRadarChart: View {
                 }
             }
 
-            // Honest-tradeoff caption — only when there's a genuine weakness
-            if values[weakestIndex] < 6 {
-                let captionText = String(
-                    format: NSLocalizedString("solo.radar.weakest", comment: ""),
-                    Self.axes[weakestIndex].label
-                )
-                Label(captionText, systemImage: "exclamationmark.bubble")
-                    .font(.caption)
-                    .foregroundStyle(Self.amberAccent)
-                    .opacity(drawProgress >= 0.99 ? 1 : 0)
-                    .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: drawProgress >= 0.99)
-                    .accessibilityHidden(true)
-            }
+            weakestCaption
         }
         .onAppear {
             if reduceMotion {
@@ -240,6 +228,29 @@ public struct SoloScoreRadarChart: View {
         }
     }
 
+    // MARK: - Honest-tradeoff caption
+
+    // Renders for both radar and fallback-bars paths via body's shared VStack.
+    // Fixed-min-height container prevents layout jump during fade-in.
+    @ViewBuilder private var weakestCaption: some View {
+        let captionVisible = values[weakestIndex] < 6
+        ZStack {
+            if captionVisible {
+                let captionText = String(
+                    format: NSLocalizedString("solo.radar.weakest", comment: ""),
+                    Self.axes[weakestIndex].label
+                )
+                Label(captionText, systemImage: "exclamationmark.bubble")
+                    .font(.caption)
+                    .foregroundStyle(Self.amberAccent)
+                    .opacity(drawProgress >= 0.99 ? 1 : 0)
+                    .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: drawProgress >= 0.99)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(minHeight: captionVisible ? 20 : 0)
+    }
+
     // MARK: - Fallback bars
 
     private var fallbackBars: some View {
@@ -333,9 +344,35 @@ public struct SoloScoreRadarChart: View {
         basedOnCount: 14
     )
     VStack(spacing: 24) {
-        Text("Fallback Bars (low variance) — tap to replay")
+        Text("Fallback Bars (low variance, no weak dim) — no amber caption")
             .font(.headline)
+            .multilineTextAlignment(.center)
         SoloScoreRadarChart(score: lowVariance)
+            .padding()
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+    .padding()
+}
+
+#Preview("Low Variance — Fallback Bars + Weak Dim") {
+    let lowVarianceWeak = SoloScore(
+        overall: 7.5,
+        breakdown: .init(
+            seatingFriendly: 9,
+            soloPatronRatio: 9,
+            staffPressure: 9,
+            soloPortioning: 9,
+            ambianceFit: 4,
+            safety: 9
+        ),
+        hint: "Great across most dims but ambiance is a weak point.",
+        basedOnCount: 11
+    )
+    VStack(spacing: 24) {
+        Text("Fallback Bars (low variance, weak ambiance) — amber caption")
+            .font(.headline)
+            .multilineTextAlignment(.center)
+        SoloScoreRadarChart(score: lowVarianceWeak)
             .padding()
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
