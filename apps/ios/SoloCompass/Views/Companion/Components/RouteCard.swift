@@ -9,6 +9,15 @@ import SwiftUI
 /// P0: no companion info shown.
 public struct RouteCard: View {
     let route: Route
+    /// Whether the companion layer is active. When off (or the route has no
+    /// companion slot), the card surfaces a social-proof walked-by row instead
+    /// of the recruit-mini strip.
+    var companionOn: Bool = false
+
+    public init(route: Route, companionOn: Bool = false) {
+        self.route = route
+        self.companionOn = companionOn
+    }
 
     private var monoBaseline: String {
         let dur = route.estimatedDuration >= 60
@@ -43,7 +52,9 @@ public struct RouteCard: View {
                     stopStrip
                 }
 
-                if let mini = recruitMini {
+                if showWalkedBy {
+                    walkedByRow
+                } else if let mini = recruitMini {
                     recruitMiniStrip(mini)
                 }
             }
@@ -152,6 +163,51 @@ public struct RouteCard: View {
         .accessibilityLabel(Text(mini.text))
     }
 
+    // MARK: - Walked-by social-proof row (CompareCanvas A-003)
+
+    /// Show the walked-by row when the companion layer is off, or the route has
+    /// no companion slot — so the card always carries social proof when it is
+    /// not actively recruiting.
+    var showWalkedBy: Bool {
+        !companionOn || route.companion == nil
+    }
+
+    /// The walker ids backing the avatar stack. Falls back to synthesized
+    /// placeholder ids (so the stack still reads) when `walkedBy` is empty but
+    /// `walkedByCount` is positive.
+    var walkedByIds: [String] {
+        let ids = route.verification.walkedBy
+        guard ids.isEmpty else { return ids }
+        let count = max(0, route.verification.walkedByCount)
+        return (0..<count).map { "walker-\($0)" }
+    }
+
+    /// Localized "<count> 位旅人走过" label driven by `walkedByCount`.
+    var walkedByLabel: String {
+        String(
+            format: NSLocalizedString("route.card.walkedBy", comment: "<count> 位旅人走过"),
+            route.verification.walkedByCount
+        )
+    }
+
+    /// Avatar stack (max 4, CT.fgSubtle ring) + count + chevron, reading the
+    /// social proof for the route at a glance.
+    private var walkedByRow: some View {
+        HStack(spacing: 6) {
+            AvatarStack(ids: walkedByIds, maxVisible: 4, size: 18, ring: CT.fgSubtle)
+            Text(walkedByLabel)
+                .font(CT.body(11, .medium))
+                .foregroundStyle(CT.fgMuted)
+                .lineLimit(1)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(CT.fgSubtle)
+        }
+        .padding(.top, 2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(walkedByLabel))
+    }
+
     // MARK: - Cover square
 
     private var coverSquare: some View {
@@ -249,6 +305,32 @@ public struct RouteCard: View {
     }
     .padding()
     .background(Color(.systemBackground))
+}
+
+#Preview("RouteCard — walked-by row") {
+    func route(_ id: String, walkers: Int, ids: [String]) -> Route {
+        Route(
+            id: RouteId(rawValue: id),
+            title: "Mekong Sunset Walk",
+            summary: "Promenade along the river.",
+            experienceIds: ["e1", "e2"],
+            cityCode: "VTE",
+            region: "Riverfront",
+            estimatedDuration: 90,
+            distanceMeters: 1200,
+            pace: .relaxed,
+            tags: ["nature"],
+            source: .editorial,
+            verification: RouteVerification(status: .walkedBy, walkedByCount: walkers, walkedBy: ids)
+        )
+    }
+    return VStack(spacing: 0) {
+        RouteCard(route: route("w0", walkers: 0, ids: []))
+        RouteCard(route: route("w3", walkers: 3, ids: ["maya", "leon", "rina"]))
+        RouteCard(route: route("w12", walkers: 12, ids: ["a", "b", "c", "d", "e", "f"]))
+    }
+    .padding()
+    .background(CT.bgWarm)
 }
 
 #Preview("RouteCard — not verified") {

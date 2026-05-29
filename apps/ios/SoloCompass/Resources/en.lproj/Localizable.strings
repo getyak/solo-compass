@@ -1067,6 +1067,9 @@
 "route.card.recruit.closed" = "已成团 · %d 人 · 出发中";
 "route.card.recruit.completed" = "已完成 · 路线升级";
 
+/* US-058 — RouteCard walked-by row (CompareCanvas A-003) */
+"route.card.walkedBy" = "%d 位旅人走过";
+
 /* US-030 — Companion Profile walked routes section */
 "profile.walkedRoutes.header" = "走过的路线 (%d)";
 "profile.walkedRoutes.viewAll" = "查看全部 ->";
