@@ -1,5 +1,9 @@
 # PRD: P0 Fix Batch — Solo Compass iOS
 
+> **本文是 [tasks/prd-full-fix-roadmap.md](./prd-full-fix-roadmap.md) 的 P0 子集。**
+> 完整的 58 条问题（P0/P1/P2 + 真机发现 + 设计稿剩余缺口 + 架构重构）以及更新过的优先级排期，请以 prd-full-fix-roadmap.md 为准。
+> 本文保留是为了维持 PR 历史与 commit 锚点稳定，**不会再单独更新**。
+
 | 字段     | 值                                |
 | -------- | --------------------------------- |
 | 状态     | 草稿 → 待评审                     |
