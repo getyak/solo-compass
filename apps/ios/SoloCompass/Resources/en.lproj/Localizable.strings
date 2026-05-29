@@ -172,6 +172,16 @@
 /* Solo score accessibility */
 "solo.a11y" = "Solo Score %@ of 10";
 "solo.excellent.a11y" = "Excellent for solo travelers";
+"solo.compact.a11y.hint" = "Double tap to see score breakdown";
+
+/* Solo Score breakdown popover */
+"solo.breakdown.title" = "Solo Score";
+"solo.dim.seating" = "Seating Friendly";
+"solo.dim.ratio" = "Solo Patron Ratio";
+"solo.dim.pressure" = "Staff Pressure";
+"solo.dim.portioning" = "Solo Portioning";
+"solo.dim.ambiance" = "Ambiance Fit";
+"solo.dim.safety" = "Safety";
 
 /* Empty filter banner (below FilterBarView) */
 "filter.empty.title" = "No matches";
