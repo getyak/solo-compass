@@ -35,6 +35,8 @@
 "confidence.reports" = "User reports (30d)";
 "confidence.trusted" = "Trusted verifications";
 "confidence.lastVerified" = "Verified %@";
+"confidence.a11y.label" = "%@, level %d, %d signals";
+"confidence.a11y.hint" = "Double tap to see trust signals";
 
 /* Solo Score */
 "solo.label" = "Solo";

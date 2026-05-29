@@ -28,14 +28,17 @@ public struct ConfidenceBadge: View {
                             .frame(width: 8, height: 8)
                             .scaleEffect(isPulsing ? 1.8 : 1.0)
                             .opacity(isPulsing ? 0.0 : 0.6)
+                            .accessibilityHidden(true)
                     }
                     Circle()
                         .fill(confidence.health.color)
                         .frame(width: 8, height: 8)
+                        .accessibilityHidden(true)
                     if let symbol = confidence.health.accessibilitySymbol {
                         Image(systemName: symbol)
                             .font(.system(size: 4, weight: .bold))
                             .foregroundColor(.white)
+                            .accessibilityHidden(true)
                     }
                 }
                 if !compact {
@@ -51,7 +54,10 @@ public struct ConfidenceBadge: View {
         .popover(isPresented: $showSignals) {
             PopoverContent(confidence: confidence)
         }
-        .accessibilityLabel(Text(confidence.health.localizedDescription))
+        .accessibilityLabel(Text(String(format: NSLocalizedString("confidence.a11y.label", comment: ""), confidence.health.localizedDescription, confidence.level, confidence.signals.totalCount)))
+        .accessibilityValue(Text(confidenceRelativeVerifiedString(confidence) ?? ""))
+        .accessibilityHint(Text(NSLocalizedString("confidence.a11y.hint", comment: "")))
+        .accessibilityAddTraits(.isButton)
         .onAppear {
             guard shouldPulse else { return }
             withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
@@ -155,11 +161,7 @@ private struct PopoverContent: View {
     }
 
     private var relativeVerifiedString: String? {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        let relative = formatter.localizedString(for: confidence.lastVerifiedAt, relativeTo: Date())
-        let format = NSLocalizedString("confidence.lastVerified", comment: "")
-        return String(format: format, relative)
+        confidenceRelativeVerifiedString(confidence)
     }
 
     private func signalRow(symbol: String, label: String, value: String) -> some View {
@@ -172,6 +174,14 @@ private struct PopoverContent: View {
             Text(value).fontWeight(.medium)
         }
     }
+}
+
+fileprivate func confidenceRelativeVerifiedString(_ confidence: Confidence) -> String? {
+    let formatter = RelativeDateTimeFormatter()
+    formatter.unitsStyle = .full
+    let relative = formatter.localizedString(for: confidence.lastVerifiedAt, relativeTo: Date())
+    let format = NSLocalizedString("confidence.lastVerified", comment: "")
+    return String(format: format, relative)
 }
 
 #Preview {
