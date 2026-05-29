@@ -76,7 +76,7 @@ struct LocationCard: View {
                 // US-010: Primary navigate button with gradient; 44pt HIG minimum
                 Button {
                     isShowingPicker = true
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                 } label: {
                     Label(
                         NSLocalizedString("location.navigate", comment: "Open external navigation app"),
@@ -100,7 +100,7 @@ struct LocationCard: View {
                 // US-010: Ghost copy button — icon only, no fill
                 Button {
                     UIPasteboard.general.string = "\(coordinate.latitude), \(coordinate.longitude)"
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Haptics.notify(.success)
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         didCopy = true
                     }
