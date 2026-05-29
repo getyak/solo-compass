@@ -30,11 +30,10 @@ public struct FilterBarView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPulsing: Bool = false
-    @State private var selectionFeedback = UISelectionFeedbackGenerator()
 
     private func fireSelectionHaptic(alreadySelected: Bool) {
         guard !alreadySelected else { return }
-        selectionFeedback.selectionChanged()
+        Haptics.selection()
     }
 
     public init(
@@ -193,7 +192,6 @@ public struct FilterBarView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
         .onAppear {
-            selectionFeedback.prepare()
             guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                 isPulsing = true

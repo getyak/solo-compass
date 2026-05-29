@@ -59,4 +59,17 @@ final class HapticServiceTests: XCTestCase {
         HapticService.shared.prepare(style: .light)
         // No crash → disabled flag short-circuits generator creation correctly.
     }
+
+    func testDisabledFlagShortCircuitsSelection() {
+        HapticService.shared.isEnabled = false
+        XCTAssertFalse(HapticService.shared.isEnabled)
+        // Must complete without crashing — isEnabled gate is respected.
+        HapticService.shared.selectionChanged()
+    }
+
+    func testSelectionEnabledByDefault() {
+        // Key absent → isEnabled is true, selectionChanged must not crash.
+        XCTAssertTrue(HapticService.shared.isEnabled)
+        HapticService.shared.selectionChanged()
+    }
 }

@@ -28,6 +28,7 @@ private extension ProcessInfo {
 
     private var impactGenerators: [UIImpactFeedbackGenerator.FeedbackStyle: UIImpactFeedbackGenerator] = [:]
     private let notificationGenerator = UINotificationFeedbackGenerator()
+    private let selectionGenerator = UISelectionFeedbackGenerator()
 
     private init() {}
 
@@ -58,6 +59,13 @@ private extension ProcessInfo {
         let gen = generator(for: style)
         gen.prepare()
         gen.impactOccurred()
+    }
+
+    /// Fire a selection-changed haptic.
+    public func selectionChanged() {
+        guard shouldFire() else { return }
+        selectionGenerator.prepare()
+        selectionGenerator.selectionChanged()
     }
 
     /// Fire a notification haptic.
