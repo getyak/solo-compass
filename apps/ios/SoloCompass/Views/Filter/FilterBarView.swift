@@ -133,7 +133,17 @@ public struct FilterBarView: View {
         .onTapGesture { isMapPanning = false }
     }
 
-    private static let accentGold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+    /// Selected-pill fill. US-028: replaced the old #D4A843 gold (which gave
+    /// only ~1.9:1 against the white pill text) with CT.accent (#5D3000). White
+    /// text on this brown clears WCAG AA/AAA at ≥ 7:1.
+    static let selectedFillRGB: (r: Int, g: Int, b: Int) = (0x5D, 0x30, 0x00)
+    /// Selected-pill foreground — white, used for the text/glyph on the fill.
+    static let selectedForegroundRGB: (r: Int, g: Int, b: Int) = (0xFF, 0xFF, 0xFF)
+    private static let selectedFill = Color(
+        red: Double(selectedFillRGB.r) / 255,
+        green: Double(selectedFillRGB.g) / 255,
+        blue: Double(selectedFillRGB.b) / 255
+    )
 
     private func nowPill(isSelected: Bool, action: @escaping () -> Void) -> some View {
         let label = NSLocalizedString("filter.now", comment: "Now")
@@ -147,7 +157,7 @@ public struct FilterBarView: View {
         } label: {
             HStack(spacing: 5) {
                 Circle()
-                    .fill(isSelected ? Color.white : Self.accentGold)
+                    .fill(isSelected ? Color.white : Self.selectedFill)
                     .frame(width: 6, height: 6)
                     .scaleEffect(isPulsing ? 1.4 : 1.0)
                     .opacity(isPulsing ? 0.5 : 1.0)
@@ -161,7 +171,7 @@ public struct FilterBarView: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(
-                            Capsule().fill(isSelected ? Color.white.opacity(0.3) : Self.accentGold.opacity(0.25))
+                            Capsule().fill(isSelected ? Color.white.opacity(0.3) : Self.selectedFill.opacity(0.25))
                         )
                 }
             }
@@ -171,7 +181,7 @@ public struct FilterBarView: View {
             .background {
                 if isSelected {
                     Capsule()
-                        .fill(Self.accentGold)
+                        .fill(Self.selectedFill)
                         .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
                 }
             }
@@ -180,7 +190,7 @@ public struct FilterBarView: View {
             )
             .overlay(alignment: .topTrailing) {
                 if isSelected && resultCount > 0 {
-                    countBadge(count: resultCount, tint: Self.accentGold)
+                    countBadge(count: resultCount, tint: Self.selectedFill)
                         .offset(x: 6, y: -6)
                         .transition(.scale.combined(with: .opacity))
                 }
