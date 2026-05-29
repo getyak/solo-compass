@@ -4,14 +4,16 @@
     "blurb": "Chasing sunsets and slow mornings in Southeast Asia.",
     "color": "#E8826A",
     "trips": 14,
-    "walked": ["mekong-sunset", "vientiane-monuments"]
+    "walked": ["mekong-sunset", "vientiane-monuments"],
+    "optedIn": true
   },
   {
     "handle": "lin",
     "blurb": "Coffee nerd, temple wanderer, always early.",
     "color": "#6A9FE8",
     "trips": 9,
-    "walked": ["mekong-sunset", "vientiane-monuments"]
+    "walked": ["mekong-sunset", "vientiane-monuments"],
+    "optedIn": false
   },
   {
     "handle": "tomas",

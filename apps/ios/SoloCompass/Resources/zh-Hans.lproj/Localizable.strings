@@ -848,6 +848,12 @@
 /* Approval queue */
 "approval.queue.title" = "待审批申请";
 "approval.queue.trust.line" = "已走过 %d 条 · 拼团 %d 次";
+/* US-032 — per-requester trust micro-stats */
+"approval.queue.signal.optin.yes" = "已开启";
+"approval.queue.signal.optin.no" = "未开启";
+"approval.queue.signal.optin.a11y" = "结伴开关：%@";
+"approval.queue.signal.walked.a11y" = "已走过 %@ 条路线";
+"approval.queue.signal.group.a11y" = "拼团 %@ 次";
 "approval.queue.decline" = "拒绝";
 "approval.queue.accept" = "接受";
 "approval.queue.empty" = "暂无待处理申请。";
