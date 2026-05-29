@@ -44,7 +44,10 @@ final class AISynthesisQualityTests: XCTestCase {
         )
 
         XCTAssertFalse(result.isEmpty)
-        XCTAssertEqual(service.lastSynthesisQuality, .skeleton)
+        // Drain the MainActor queue so `lastSynthesisQuality` reflects the
+        // hop done inside reportSkeletonFallback (AIService.swift:822).
+        let quality = await MainActor.run { service.lastSynthesisQuality }
+        XCTAssertEqual(quality, .skeleton)
     }
 
     /// A successful model call sets `.real`; replaying the same inputs hits
@@ -68,11 +71,17 @@ final class AISynthesisQualityTests: XCTestCase {
         // First call → real synthesis.
         let first = try await service.synthesizeExperiences(from: [makePOI()], cityCode: "CNX")
         XCTAssertFalse(first.isEmpty)
-        XCTAssertEqual(service.lastSynthesisQuality, .real)
+        // `lastSynthesisQuality` is set inside `await MainActor.run { ... }` at
+        // AIService.swift:783/801 — on slow GitHub runners that hop completes
+        // AFTER `synthesizeExperiences` returns to the test task. Read the
+        // property back through the MainActor to drain the queue first.
+        let firstQuality = await MainActor.run { service.lastSynthesisQuality }
+        XCTAssertEqual(firstQuality, .real)
 
         // Second call with identical inputs → cache hit.
         let second = try await service.synthesizeExperiences(from: [makePOI()], cityCode: "CNX")
         XCTAssertFalse(second.isEmpty)
-        XCTAssertEqual(service.lastSynthesisQuality, .cached)
+        let secondQuality = await MainActor.run { service.lastSynthesisQuality }
+        XCTAssertEqual(secondQuality, .cached)
     }
 }
