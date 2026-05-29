@@ -1061,6 +1061,7 @@
 "sheet.sort.button" = "排序";
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";
+"sheet.handle" = "面板把手，上下滑动可调整高度";
 "sheet.nearby.section.title" = "附近";
 "sheet.nearby.smartPick.a11y" = "AI 推荐";
 "sheet.routes.section.title" = "路线";

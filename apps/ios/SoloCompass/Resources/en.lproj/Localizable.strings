@@ -962,6 +962,9 @@
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";
 
+/* US-006 — BottomInfoSheet drag handle */
+"sheet.handle" = "Sheet handle, swipe up or down to adjust";
+
 /* US-019 — BottomInfoSheet nearby section */
 "sheet.nearby.section.title" = "附近";
 "sheet.nearby.smartPick.a11y" = "AI recommended";

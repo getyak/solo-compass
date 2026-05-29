@@ -31,9 +31,20 @@ private let maxHeight: CGFloat = 830
 private let sheetCornerRadius: CGFloat = 20
 private let scrimMaxOpacity: CGFloat = 0.18
 
+// MARK: - Metrics
+
+/// Hit-target sizing for the BottomInfoSheet, exposed for tests.
+/// Apple HIG requires interactive controls to be at least 44×44 pt.
+enum BottomSheetMetrics {
+    /// Minimum width of the drag handle's tappable region.
+    static let handleHitTargetWidth: CGFloat = 60
+    /// Minimum height of the drag handle's tappable region (HIG minimum).
+    static let handleHitTargetHeight: CGFloat = 44
+}
+
 // MARK: - Detent
 
-public enum BottomSheetDetent {
+public enum BottomSheetDetent: CaseIterable {
     case peek, mid, full
 
     var height: CGFloat {
@@ -47,6 +58,24 @@ public enum BottomSheetDetent {
     static func nearest(to height: CGFloat) -> BottomSheetDetent {
         let all: [BottomSheetDetent] = [.peek, .mid, .full]
         return all.min(by: { abs($0.height - height) < abs($1.height - height) }) ?? .peek
+    }
+
+    /// Next detent in the peek → mid → full ladder, clamped at .full.
+    var nextHigher: BottomSheetDetent {
+        switch self {
+        case .peek: return .mid
+        case .mid: return .full
+        case .full: return .full
+        }
+    }
+
+    /// Previous detent in the full → mid → peek ladder, clamped at .peek.
+    var nextLower: BottomSheetDetent {
+        switch self {
+        case .peek: return .peek
+        case .mid: return .peek
+        case .full: return .mid
+        }
     }
 }
 
@@ -125,18 +154,19 @@ public struct BottomInfoSheet<Content: View>: View {
     // MARK: - Drag Handle
 
     private var dragHandleArea: some View {
-        // 24×16 pt hit area containing a 36×4 pill
+        // ≥44pt hit area (60×44) containing a 36×4 visible pill so VoiceOver /
+        // Switch Control users can reliably grab the handle (Apple HIG).
         ZStack {
-            Color.clear
-                .frame(width: 24, height: 16)
-                .contentShape(Rectangle())
-
             Capsule()
                 .fill(Color.secondary.opacity(0.5))
                 .frame(width: 36, height: 4)
         }
+        .frame(
+            minWidth: BottomSheetMetrics.handleHitTargetWidth,
+            minHeight: BottomSheetMetrics.handleHitTargetHeight
+        )
+        .contentShape(Rectangle())
         .frame(maxWidth: .infinity)
-        .padding(.top, 8)
         .gesture(
             DragGesture(minimumDistance: 4)
                 .onChanged { value in
@@ -151,6 +181,19 @@ public struct BottomInfoSheet<Content: View>: View {
                     dragOffset = 0
                 }
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(NSLocalizedString("sheet.handle", comment: "Bottom sheet drag handle")))
+        .accessibilityAddTraits(.allowsDirectInteraction)
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment:
+                currentDetent = currentDetent.nextHigher
+            case .decrement:
+                currentDetent = currentDetent.nextLower
+            @unknown default:
+                break
+            }
+        }
     }
 }
 
