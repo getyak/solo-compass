@@ -24,6 +24,12 @@ public struct FilterBarView: View {
     /// Namespace for the shared gliding selection highlight.
     @Namespace private var pillHighlight
 
+    /// US-034: width of the scrolling pill content and of the visible viewport.
+    /// When content overflows the viewport we paint a right-edge fade so users
+    /// get a visual hint that more categories are scrollable off-screen.
+    @State private var contentWidth: CGFloat = 0
+    @State private var viewportWidth: CGFloat = 0
+
     /// User's chosen subset of categories. Injected via SwiftUI environment
     /// (US-006). Previews/tests that don't supply preferences get a freshly
     /// constructed `UserPreferences`, which defaults to all 8 categories.
@@ -80,6 +86,25 @@ public struct FilterBarView: View {
         ExperienceCategory.allCases.filter { selection.contains($0) }
     }
 
+    /// US-034: width tolerance (pt) below which we treat content + viewport as
+    /// equal — sub-pixel layout rounding shouldn't trigger a spurious fade.
+    static let overflowTolerance: CGFloat = 1.0
+
+    /// Pure, testable overflow predicate driving the right-edge scroll fade.
+    /// Returns true only when the pill content is meaningfully wider than the
+    /// visible viewport (i.e. some chips are off-screen to the right). A zero
+    /// width (not yet laid out) never shows the affordance.
+    static func shouldShowScrollAffordance(contentWidth: CGFloat, viewportWidth: CGFloat) -> Bool {
+        guard contentWidth > 0, viewportWidth > 0 else { return false }
+        return contentWidth - viewportWidth > overflowTolerance
+    }
+
+    /// Instance accessor used by `body` — bridges the measured @State widths to
+    /// the pure predicate above.
+    private var isOverflowing: Bool {
+        Self.shouldShowScrollAffordance(contentWidth: contentWidth, viewportWidth: viewportWidth)
+    }
+
     public var body: some View {
         GlassmorphismCapsule(horizontalPadding: 0, verticalPadding: 0) {
             ScrollViewReader { proxy in
@@ -124,13 +149,51 @@ public struct FilterBarView: View {
                         proxy.scrollTo(id, anchor: .center)
                     }
                 }
+                // US-034: measure the laid-out pill content width.
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: FilterContentWidthKey.self, value: proxy.size.width)
+                    }
+                )
             }
+            // US-034: measure the visible viewport width so we can compare it
+            // against the content width and only fade when chips overflow.
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(key: FilterViewportWidthKey.self, value: proxy.size.width)
+                }
+            )
+            .onPreferenceChange(FilterContentWidthKey.self) { contentWidth = $0 }
+            .onPreferenceChange(FilterViewportWidthKey.self) { viewportWidth = $0 }
+            // US-034: right-edge fade. Only masks when content overflows; when
+            // every chip fits, the mask is a solid (fully opaque) rectangle so
+            // nothing is clipped.
+            .mask(scrollAffordanceMask)
         }
         .padding(.horizontal, 16)
         .opacity(isMapPanning ? 0.4 : 1.0)
         .scaleEffect(isMapPanning ? 0.85 : 1.0)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isMapPanning)
         .onTapGesture { isMapPanning = false }
+    }
+
+    /// US-034: gradient mask that fades the trailing ~24pt of the strip when
+    /// content overflows; otherwise an opaque rectangle (no visible change).
+    @ViewBuilder
+    private var scrollAffordanceMask: some View {
+        if isOverflowing {
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black, location: 0.88),
+                    .init(color: .black.opacity(0), location: 1.0)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        } else {
+            Rectangle()
+        }
     }
 
     /// Selected-pill fill. US-028: replaced the old #D4A843 gold (which gave
@@ -338,6 +401,24 @@ public struct FilterBarView: View {
             .padding(.horizontal, 5)
             .frame(minWidth: 16, minHeight: 16)
             .background(Capsule().fill(tint))
+    }
+}
+
+// MARK: - Scroll affordance preference keys (US-034)
+
+/// Width of the scrolling pill HStack content.
+private struct FilterContentWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+/// Width of the visible ScrollView viewport.
+private struct FilterViewportWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
