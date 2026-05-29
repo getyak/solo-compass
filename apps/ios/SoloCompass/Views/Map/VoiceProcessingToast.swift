@@ -55,6 +55,7 @@ struct VoiceProcessingToast: View {
 /// Three sequential dots that animate one at a time to suggest AI deliberation.
 private struct ThinkingDots: View {
     @State private var phase: Int = 0
+    @State private var advanceTask: Task<Void, Never>?
 
     private let dotSize: CGFloat = 4
     private let dotCount = 3
@@ -67,22 +68,18 @@ private struct ThinkingDots: View {
                     .frame(width: dotSize, height: dotSize)
                     .scaleEffect(phase == index ? 1.4 : 1.0)
                     .opacity(phase == index ? 1.0 : 0.4)
-                    .animation(
-                        .easeInOut(duration: 0.5)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(index) * 0.18),
-                        value: phase
-                    )
+                    .animation(.easeInOut(duration: 0.4), value: phase)
             }
         }
         .accessibilityHidden(true)
         .onAppear {
-            phase = 0
-            withAnimation { phase = 0 }
-            // Kick off the cycling phase advancement outside the initial layout pass.
-            Task { @MainActor in
+            advanceTask = Task { @MainActor in
                 await advancePhase()
             }
+        }
+        .onDisappear {
+            advanceTask?.cancel()
+            advanceTask = nil
         }
     }
 
@@ -90,6 +87,7 @@ private struct ThinkingDots: View {
     private func advancePhase() async {
         while !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
             phase = (phase + 1) % dotCount
         }
     }
