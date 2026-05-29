@@ -1,19 +1,4 @@
 # Solo Compass — Ralph Progress Log
 Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-Target: ralph/full-fix-roadmap-58us
+Target: ralph/nowscore-v1-10us
 Tool: claude
-
-## Codebase Patterns
-- 权威 prd.json 是【仓库根 prd.json】，不是 scripts/ralph/prd.json。ralph.sh:21 `PRD_FILE="$SCRIPT_DIR/../../prd.json"` 读的是根；scripts/ralph/prd.json 只是低优先级副本。改 prd.json 务必改根（或两者同步），改完用 `python3 -c "import json;json.load(open('prd.json'))"` 在【根路径】回读验证。
-- 通用约定：写任何被脚本读取的配置/数据文件（prd.json/config/.env）前，先 grep 出消费它的代码，以代码里的字面量路径为准，不要凭目录结构猜；写完用消费方路径回读确认。
-- 2026-05-29 记录：根 prd.json 与 scripts/ralph/prd.json 字节数曾不一致（55552 vs 55084），疑似只更新了一个 → 以根为准、保持两者同步。
-
-[2026-05-29T05:16:32Z] Story #US-001: Replace 6 route.companion! force-unwraps with safe binding — PASSED
-[2026-05-29T05:57:07Z] Story #US-002: SyncService.enqueue must report encode failures to Sentry — FAILED (iteration 2)
-[2026-05-29T06:01:59Z] Story #US-002: SyncService.enqueue must report encode failures to Sentry — PASSED
-[2026-05-29T06:12:13Z] Story #US-003: Add AISynthesisQuality state to AIService — PASSED
-[2026-05-29T06:24:46Z] Story #US-004: Add SkeletonBadgeView component (transparency pill) — PASSED
-[2026-05-29T06:52:15Z] Story #US-005: Remove AnyView wrapper from CompassMapView.body — FAILED (iteration 4)
-[2026-05-29T06:55:00Z] Story #US-005: Remove AnyView wrapper from CompassMapView.body — PASSED (build + tests green, simulator verified no regression)
-[2026-05-29T06:56:54Z] Story #US-005: Remove AnyView wrapper from CompassMapView.body — PASSED
-[2026-05-29T07:24:51Z] Story #US-006: BottomInfoSheet drag handle hit target ≥ 44pt — FAILED (iteration 6)
