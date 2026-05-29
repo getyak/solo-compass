@@ -1,33 +1,19 @@
 #if canImport(UIKit)
 import UIKit
 
-/// Centralized haptic feedback helper.
-///
-/// Guards on `UIAccessibility.isReduceMotionEnabled` as the closest public
-/// proxy for the user's haptic-reduction intent (no separate "disable haptics"
-/// API is exposed on iOS). Calls `prepare()` before `impactOccurred()` /
-/// `notificationOccurred()` on the same instance so the Taptic Engine is
-/// pre-warmed for low-latency firing.
+/// Thin compatibility shim so existing call sites are unchanged but now obey
+/// `hapticsEnabled`, Reduce Motion, and preview suppression via `HapticService`.
 @MainActor enum Haptics {
     static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
-        guard !UIAccessibility.isReduceMotionEnabled else { return }
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        HapticService.shared.impact(style: style)
     }
 
     static func selection() {
-        guard !UIAccessibility.isReduceMotionEnabled else { return }
-        let generator = UISelectionFeedbackGenerator()
-        generator.prepare()
-        generator.selectionChanged()
+        HapticService.shared.selectionChanged()
     }
 
     static func notify(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        guard !UIAccessibility.isReduceMotionEnabled else { return }
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(type)
+        HapticService.shared.notification(type: type)
     }
 }
 #endif
