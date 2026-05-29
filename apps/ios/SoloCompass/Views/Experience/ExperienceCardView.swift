@@ -72,6 +72,28 @@ public struct ExperienceCardView: View {
         return directions[index]
     }
 
+    private enum ProximityTint {
+        case near, mid, far
+
+        static func from(meters: Double) -> ProximityTint {
+            if meters <= 300 { return .near }
+            if meters <= 1000 { return .mid }
+            return .far
+        }
+
+        var color: Color {
+            switch self {
+            case .near: return .green
+            case .mid: return Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
+            case .far: return Color.secondary
+            }
+        }
+    }
+
+    private func proximityTint(for meters: Double) -> Color {
+        ProximityTint.from(meters: meters).color
+    }
+
     private static let distanceFormatter: MeasurementFormatter = {
         let f = MeasurementFormatter()
         f.unitOptions = .naturalScale
@@ -318,15 +340,20 @@ public struct ExperienceCardView: View {
     @ViewBuilder
     private func distancePill(_ label: String, symbol: String) -> some View {
         let relBearing = relativeBearingDegrees
+        let arrowTint = distanceMeters.map { proximityTint(for: $0) } ?? Color.secondary
         HStack(spacing: 4) {
             if let relBearing {
                 Image(systemName: "location.north.fill")
                     .font(.caption2)
-                    .foregroundStyle(Color.secondary)
+                    .foregroundStyle(arrowTint)
                     .rotationEffect(.degrees(relBearing))
                     .animation(
                         reduceMotion ? nil : .easeInOut(duration: 0.25),
                         value: relBearing
+                    )
+                    .animation(
+                        reduceMotion ? nil : .easeInOut(duration: 0.3),
+                        value: distanceMeters
                     )
                     .accessibilityHidden(true)
             }
@@ -342,6 +369,9 @@ public struct ExperienceCardView: View {
             if let relBearing {
                 let direction = Self.compassDirection(for: relBearing)
                 text += ". " + String(format: NSLocalizedString("card.distance.bearing.a11y", comment: "Bearing direction accessibility"), direction)
+            }
+            if let meters = distanceMeters, ProximityTint.from(meters: meters) == .near {
+                text += ". " + NSLocalizedString("card.distance.proximity.near", comment: "VoiceOver proximity cue when close")
             }
             return text
         }())

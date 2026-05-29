@@ -224,6 +224,9 @@
 "card.distance.arrived.a11y" = "You're here";
 "card.distance.bearing.a11y" = "toward the %@";
 
+/* Proximity cue appended to bearing arrow a11y label when user is ≤300 m away */
+"card.distance.proximity.near" = "getting close";
+
 /* Compass directions (8 sectors) for bearing arrow accessibility */
 "compass.N" = "north";
 "compass.NE" = "northeast";
