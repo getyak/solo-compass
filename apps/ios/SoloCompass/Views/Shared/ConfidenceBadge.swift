@@ -7,6 +7,7 @@ public struct ConfidenceBadge: View {
 
     @State private var showSignals = false
     @State private var isPulsing = false
+    @State private var pressed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(confidence: Confidence, compact: Bool = true) {
@@ -19,7 +20,16 @@ public struct ConfidenceBadge: View {
     }
 
     public var body: some View {
-        Button { showSignals.toggle() } label: {
+        Button {
+            Haptics.selection()
+            if !reduceMotion {
+                withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { pressed = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { pressed = false }
+                }
+            }
+            showSignals.toggle()
+        } label: {
             HStack(spacing: 4) {
                 ZStack {
                     if shouldPulse {
@@ -49,6 +59,7 @@ public struct ConfidenceBadge: View {
             }
             .contentShape(Rectangle())
             .frame(minWidth: 44, minHeight: 32, alignment: .leading)
+            .scaleEffect(pressed ? 0.86 : 1.0)
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showSignals) {
