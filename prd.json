@@ -68,7 +68,7 @@
         "Verify in iPhone 17 Pro Simulator: launch app without ANTHROPIC_API_KEY \u2192 cards display the badge; with key \u2192 badge absent"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
