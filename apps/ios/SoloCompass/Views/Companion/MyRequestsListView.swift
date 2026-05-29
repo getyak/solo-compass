@@ -129,7 +129,7 @@ public struct MyRequestsListView: View {
         .animation(
             isPending && !reduceMotion
                 ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true)
-                : .default,
+                : .none,
             value: pulse
         )
         .accessibilityLabel(label)
