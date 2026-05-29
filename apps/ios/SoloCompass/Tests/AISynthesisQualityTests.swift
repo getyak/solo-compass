@@ -2,6 +2,17 @@ import XCTest
 import SwiftData
 @testable import SoloCompass
 
+/// Test resolver that always hands back a non-empty key, so the success
+/// path runs regardless of whether the build baked a real `.env` key.
+/// This is the seam US-001 added specifically for tests — injecting via
+/// the wrong UserDefaults constant (`deepseek_api_key_override`) silently
+/// no-ops because `DefaultAPIKeyResolver` reads `runtimeDeepSeekKey`, which
+/// is exactly why this test was green on Macs (baked key) and red on CI
+/// (placeholder secrets → empty baked key → missingAPIKey → skeleton).
+private struct FixedAPIKeyResolver: APIKeyResolver {
+    func resolveDeepSeekAPIKey() -> String { "test-key" }
+}
+
 /// US-003: verify `AIService.lastSynthesisQuality` transitions correctly
 /// across the three synthesis paths the UI transparency badge depends on: // anti-pattern-lint:allow transparency indicator for AI synthesis quality, not gamification
 /// `.real` on a successful model call, `.skeleton` on fallback, and
@@ -34,9 +45,13 @@ final class AISynthesisQualityTests: XCTestCase {
     /// Default initial state is `.real` (no synthesis has run yet); the
     /// fallback path must flip it to `.skeleton`.
     func testFallbackPathSetsSkeleton() async throws {
-        // No API key override → `sendMessage` throws `.missingAPIKey`
-        // → the catch branch returns skeletons.
-        UserDefaults.standard.removeObject(forKey: "deepseek_api_key_override")
+        // Force an empty key via the resolver seam → `sendMessage` throws
+        // `.missingAPIKey` → the catch branch returns skeletons. Injecting
+        // here (rather than poking UserDefaults) makes the unconfigured
+        // branch fire deterministically even on dev machines whose `.env`
+        // bakes in a real DeepSeek key.
+        Secrets.apiKeyResolver = EmptyAPIKeyResolver()
+        defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
 
         let service = AIService(session: stubbedSession())
         let result = try await service.synthesizeExperiences(
@@ -52,26 +67,7 @@ final class AISynthesisQualityTests: XCTestCase {
 
     /// A successful model call sets `.real`; replaying the same inputs hits
     /// the persisted cache and sets `.cached`.
-    ///
-    /// Skipped on GitHub Actions runners: the ephemeral URLSession + custom
-    /// URLProtocol stub combination is non-deterministic there — the stub
-    /// sometimes does not intercept and the real DeepSeek hostname fails to
-    /// resolve, dropping the call into the catch → skeleton path. The
-    /// `.real` / `.cached` transition itself is well-covered by Mac-local
-    /// runs and by `testFallbackPathSetsSkeleton` (which exercises the
-    /// shared MainActor hop).
     func testRealThenCachedTransition() async throws {
-        // Unconditional skip — matches the repo pattern at
-        // SoloCompassTests.swift:3814 for flake handling. Reason:
-        // URLSessionConfiguration.ephemeral + custom URLProtocol stub does
-        // not deterministically intercept on simulator runners; the real
-        // DeepSeek hostname then fails to resolve and the call falls into
-        // the catch path → .skeleton, breaking the .real / .cached
-        // assertions. Local Mac runs are reliable — comment out this line
-        // when verifying on your own machine. Proper fix requires giving
-        // AIService an apiURL injection seam (out of scope for this PR).
-        throw XCTSkip("URLProtocol stub flake on CI runners — verify locally on Mac")
-
         let synthesisJSON = """
         [{"osmId":1,"title":"Quiet Corner Cafe","oneLiner":"A calm solo spot",\
         "whyItMatters":"Great for reading alone","category":"coffee",\
@@ -79,8 +75,14 @@ final class AISynthesisQualityTests: XCTestCase {
         """
         AgentStubProtocol.responseBody = chatCompletion(wrapping: synthesisJSON)
 
-        UserDefaults.standard.set("test-key", forKey: "deepseek_api_key_override")
-        defer { UserDefaults.standard.removeObject(forKey: "deepseek_api_key_override") }
+        // Inject a non-empty key through the resolver seam so `resolveAPIKey`
+        // returns it and the request actually goes out (to the stub). The old
+        // `UserDefaults[deepseek_api_key_override]` write never worked — that
+        // key name doesn't match `RuntimeKeys.deepSeekApiKey` — so the call
+        // fell back to the baked key, empty on CI's placeholder secrets, which
+        // is why this test was green on Macs but red on GitHub Actions.
+        Secrets.apiKeyResolver = FixedAPIKeyResolver()
+        defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
 
         // In-memory context so the success path can persist to cache and the
         // replay can hit it.
