@@ -1062,6 +1062,11 @@
 "recruiting.cta.requestJoin" = "申请加入";
 "recruiting.cta.requestJoinForming" = "申请加入(最后 %d 位)";
 
+/* US-057 — RouteCard recruit-mini inline state (CompareCanvas A-002) */
+"route.card.recruit.recruiting" = "%1$@ 招募 · %2$d/%3$d · %4$@";
+"route.card.recruit.closed" = "已成团 · %d 人 · 出发中";
+"route.card.recruit.completed" = "已完成 · 路线升级";
+
 /* US-030 — Companion Profile walked routes section */
 "profile.walkedRoutes.header" = "走过的路线 (%d)";
 "profile.walkedRoutes.viewAll" = "查看全部 ->";

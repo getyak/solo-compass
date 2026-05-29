@@ -42,6 +42,10 @@ public struct RouteCard: View {
                 if !stopColors.isEmpty {
                     stopStrip
                 }
+
+                if let mini = recruitMini {
+                    recruitMiniStrip(mini)
+                }
             }
 
             Spacer(minLength: 4)
@@ -88,6 +92,64 @@ public struct RouteCard: View {
         }
         .padding(.top, 2)
         .accessibilityHidden(true)
+    }
+
+    // MARK: - Recruit-mini inline state (CompareCanvas A-002)
+
+    /// Resolved inline-recruiting model: the localized text and tone color for the
+    /// route's companion slot, or `nil` when the route has no companion. Surfaces
+    /// the recruiting state — host, N/M filled, departure — without opening detail.
+    /// Exposed for tests.
+    struct RecruitMini: Equatable {
+        let text: String
+        let tone: Color
+    }
+
+    /// `nil` unless `route.companion != nil`. Text per status:
+    /// - open/forming: `<handle> 招募 · N/M · <departure>`
+    /// - closed:       `已成团 · N 人 · 出发中`
+    /// - completed:    `已完成 · 路线升级`
+    /// Tone: accent for open, amber for forming, green for completed, subtle for closed.
+    var recruitMini: RecruitMini? {
+        guard let companion = route.companion else { return nil }
+        let filled = companion.confirmedMembers.count
+        switch companion.status {
+        case .open, .forming:
+            let text = String(
+                format: NSLocalizedString("route.card.recruit.recruiting", comment: "<handle> 招募 · N/M · <departure>"),
+                companion.hostId,
+                filled,
+                companion.maxMembers,
+                companion.departureLabel
+            )
+            return RecruitMini(text: text, tone: companion.status == .open ? CT.accent : CT.toneForming)
+        case .closed:
+            let text = String(
+                format: NSLocalizedString("route.card.recruit.closed", comment: "已成团 · N 人 · 出发中"),
+                filled
+            )
+            return RecruitMini(text: text, tone: CT.toneClosed)
+        case .completed:
+            let text = NSLocalizedString("route.card.recruit.completed", comment: "已完成 · 路线升级")
+            return RecruitMini(text: text, tone: CT.toneCompleted)
+        }
+    }
+
+    /// Inline strip below the title: host color dot + status-toned line, so the
+    /// recruiting state reads at a glance in the route list.
+    private func recruitMiniStrip(_ mini: RecruitMini) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(mini.tone)
+                .frame(width: 6, height: 6)
+            Text(mini.text)
+                .font(CT.body(11, .medium))
+                .foregroundStyle(mini.tone)
+                .lineLimit(1)
+        }
+        .padding(.top, 2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(mini.text))
     }
 
     // MARK: - Cover square
@@ -153,6 +215,40 @@ public struct RouteCard: View {
     RouteCard(route: route)
         .padding()
         .background(Color(.systemBackground))
+}
+
+#Preview("RouteCard — recruit-mini all states") {
+    func route(_ status: CompanionStatus, members: [String]) -> Route {
+        Route(
+            id: RouteId(rawValue: "r-\(status.rawValue)"),
+            title: "Mekong Sunset Walk",
+            summary: "Promenade along the river.",
+            experienceIds: ["e1", "e2"],
+            cityCode: "VTE",
+            region: "Riverfront",
+            estimatedDuration: 90,
+            distanceMeters: 1200,
+            pace: .relaxed,
+            tags: ["nature"],
+            source: .editorial,
+            companion: RouteCompanion(
+                status: status,
+                hostId: "maya",
+                departureWindow: DepartureWindow(startDate: "2026-06-10", to: "2026-06-12", time: "morning"),
+                departureLabel: "Jun 10–12 · morning",
+                maxMembers: 4,
+                confirmedMembers: members
+            )
+        )
+    }
+    return VStack(spacing: 0) {
+        RouteCard(route: route(.open, members: ["maya"]))
+        RouteCard(route: route(.forming, members: ["maya", "leon"]))
+        RouteCard(route: route(.closed, members: ["maya", "leon", "rina"]))
+        RouteCard(route: route(.completed, members: ["maya", "leon", "rina", "tom"]))
+    }
+    .padding()
+    .background(Color(.systemBackground))
 }
 
 #Preview("RouteCard — not verified") {
