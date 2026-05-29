@@ -880,6 +880,44 @@ enum MapOverlayMetrics {
     /// The visual city pill is smaller than this, so `.contentShape` + `.frame`
     /// expand the tappable region without changing the visual appearance.
     static let cityPillHitTarget: CGFloat = 44
+
+    // US-022: explicit vertical band layout so the city-pill row and the filter
+    // bar can never overlap or hit-test interfere. The two rects are computed
+    // from these constants in `TopOverlayLayoutTest` and applied verbatim in
+    // `MapOverlayView.body`.
+
+    /// Top inset (below the safe area) where the city-pill row begins.
+    static let cityPillTopPadding: CGFloat = 8
+
+    /// Fixed height reserved for the city-pill row. Equals the 44pt hit box so
+    /// the row never grows into the gap, regardless of the pill's visual size.
+    static let cityPillRowHeight: CGFloat = cityPillHitTarget
+
+    /// Mandatory empty gap between the city-pill row and the filter bar. This
+    /// is what guarantees the two capsules read as separate bands and that
+    /// their hit regions don't touch.
+    static let cityPillToFilterBarGap: CGFloat = 12
+
+    /// Approximate rendered height of `FilterBarView` (glass capsule with one
+    /// row of pills). Used only by the layout test to model the filter bar's
+    /// rect; the live view sizes itself intrinsically.
+    static let filterBarHeight: CGFloat = 56
+
+    /// Y offset at which the filter bar's rect starts, measured from the top of
+    /// the overlay band. Sum of the city-pill row + the mandated gap.
+    static var filterBarTopOffset: CGFloat {
+        cityPillTopPadding + cityPillRowHeight + cityPillToFilterBarGap
+    }
+
+    /// The city-pill row rect within the overlay coordinate space.
+    static func cityPillRowRect(width: CGFloat) -> CGRect {
+        CGRect(x: 0, y: cityPillTopPadding, width: width, height: cityPillRowHeight)
+    }
+
+    /// The filter bar rect within the overlay coordinate space.
+    static func filterBarRect(width: CGFloat) -> CGRect {
+        CGRect(x: 0, y: filterBarTopOffset, width: width, height: filterBarHeight)
+    }
 }
 
 private struct MapOverlayView: View {
@@ -910,13 +948,24 @@ private struct MapOverlayView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            // US-022: the city pill lives in its own fixed-height band at the
+            // very top, vertically separated from the filter bar by an explicit
+            // gap, so the two capsules no longer overlap or hit-test interfere.
+            // The row is pinned to a 44pt height (the pill's hit box) so it
+            // never bleeds into the gap regardless of the pill's visual size.
             HStack {
                 cityPill
                     .padding(.leading, 12)
-                    .padding(.top, 8)
                 Spacer()
             }
+            .frame(height: MapOverlayMetrics.cityPillRowHeight)
+            .padding(.top, MapOverlayMetrics.cityPillTopPadding)
+
+            // Mandatory empty gap separating the city-pill band from the
+            // filter bar — this is the dead zone that guarantees no overlap.
+            Spacer()
+                .frame(height: MapOverlayMetrics.cityPillToFilterBarGap)
 
             FilterBarView(
                 selectedCategory: viewModel.selectedCategory,
@@ -930,7 +979,6 @@ private struct MapOverlayView: View {
                 isMapPanning: $isMapPanning,
                 resultCount: viewModel.visibleExperiences.count
             )
-            .padding(.top, 4)
 
             let showEmptyFilterBanner = isFilterActive && viewModel.visibleExperiences.isEmpty
             if showEmptyFilterBanner {
@@ -949,6 +997,7 @@ private struct MapOverlayView: View {
 
             if isFilterActive {
                 filterResultBadge
+                    .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .opacity(isMapPanning ? 0.4 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isMapPanning)
