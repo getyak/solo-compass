@@ -38,7 +38,7 @@ public struct VerifiedBadge: View {
         }
     }
 
-    // MARK: - Badge style (default — independent card below hero)
+    // MARK: - Card style (default — independent card below hero)
 
     private var badgeBody: some View {
         HStack(spacing: 10) {

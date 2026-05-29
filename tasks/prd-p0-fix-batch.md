@@ -80,7 +80,7 @@
 **Acceptance Criteria:**
 
 - [ ] `AIService` 暴露 `lastSynthesisQuality: SynthesisQuality` 状态（`.real | .skeleton | .cached`）
-- [ ] Experience card 在 skeleton 状态下显示一个角标 pill：`NSLocalizedString("ai.skeleton.badge", ...)` = "数据有限" / "Limited data"
+- [ ] Experience card 在 skeleton 状态下显示一个角标 pill：`NSLocalizedString("ai.skeleton.pill", ...)` = "数据有限" / "Limited data"
 - [ ] Skeleton 角标使用 `CT.fgMuted` 色而非 accent，避免抢主内容焦点
 - [ ] 真实 AI 输出 / cached 输出 **不**显示该角标
 - [ ] 新增 `AISkeletonSurfaceTests`：注入 skeleton experience → 验证角标渲染 + a11y label 正确

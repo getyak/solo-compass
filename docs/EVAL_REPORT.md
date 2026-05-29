@@ -16,7 +16,7 @@
 
 - **整体水位**：iOS app 形态完整，核心闭环（Map → Experience → Route → Companion）已经走通。
 - **核心矛盾**：单文件普遍超 800 行（CLAUDE.md 硬约束被多处突破），导致**视觉层级与交互节奏被堆叠掉了**。
-- **设计稿对齐缺口**：CompareCanvas 设计稿要求的 `VerifiedBadge` 三档表达（badge / header / inline）当前只实现了 1 档，本轮已补全。色板与字体 token 一直依赖系统 `accentColor`，本轮已落入 `CT.*`。
+- **设计稿对齐缺口**：CompareCanvas 设计稿要求的 `VerifiedBadge` 三档表达（card / header / inline）当前只实现了 1 档，本轮已补全。色板与字体 token 一直依赖系统 `accentColor`，本轮已落入 `CT.*`。
 - **顶级风险**：6 处 `companion!` force-unwrap + AI 服务静默 fallback（用户看到的 7.0/skeleton 假数据没有任何提示）+ `CompassMapView.AnyView(mapContent)` 杀死 SwiftUI diff。
 - **本轮已落地**：CompareTokens 设计 token + VerifiedBadge 三档 + 三个新 localization key（en/zh-Hans 双语对齐）+ 本评测文档。BUILD SUCCEEDED on iPhone 17 Pro Simulator。
 
