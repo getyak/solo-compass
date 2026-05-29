@@ -916,6 +916,8 @@
 
 /* Confidence */
 "confidence.lastVerified" = "验证于 %@";
+"confidence.a11y.label" = "%@，第 %d 级，%d 个信号";
+"confidence.a11y.hint" = "双击查看信任信号";
 
 /* Detail */
 "detail.distance.away" = "%@外";
