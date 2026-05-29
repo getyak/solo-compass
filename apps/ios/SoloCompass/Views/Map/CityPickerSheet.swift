@@ -11,7 +11,7 @@ public struct CityPickerSheet: View {
     @State private var justSelectedCode: String? = nil
 
     private func selectCity(_ code: String?) {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
             justSelectedCode = code ?? "all"
             viewModel.selectCity(code)

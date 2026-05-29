@@ -29,9 +29,7 @@ public struct SoloScoreBadge: View {
     private var compactView: some View {
         Button {
             showBreakdown.toggle()
-            if !reduceMotion {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
+            Haptics.impact(.light)
         } label: {
             HStack(spacing: 4) {
                 if isExcellent {
