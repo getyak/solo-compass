@@ -357,8 +357,23 @@ public final class MapViewModel {
     public var selectedCustomTag: String?
     public var visibleExperiences: [Experience] = []
 
+    /// US-018: cached count of visible experiences at their best time right
+    /// now. Recomputed only by `recomputeNowCount()` — called at the end of
+    /// `loadNearbyExperiences`, `refreshForLocation`, and `updateBottomInfo`
+    /// (the only places `visibleExperiences` changes or is re-read for info).
+    /// This avoids an O(n) `isBestNow()` scan on every SwiftUI render of
+    /// `BottomInfoSheet` / `FilterBarView`.
+    @ObservationIgnored private var _nowCount: Int = 0
+
     /// Number of currently visible experiences that are at their best time right now.
-    public var nowCount: Int { visibleExperiences.filter { $0.isBestNow() }.count }
+    public var nowCount: Int { _nowCount }
+
+    /// Single source of truth for `_nowCount`. The only place that scans
+    /// `visibleExperiences` for `isBestNow()`. Call after any mutation of
+    /// `visibleExperiences`.
+    private func recomputeNowCount() {
+        _nowCount = visibleExperiences.filter { $0.isBestNow() }.count
+    }
 
     // MARK: - Empty-state progression (US-012)
 
@@ -516,6 +531,7 @@ public final class MapViewModel {
             nearbySoloCount = computeNearbySoloCount(in: nearby)
         }
         aiSmartPickIds = []
+        recomputeNowCount()
         updateBottomInfo()
     }
 
@@ -722,6 +738,7 @@ public final class MapViewModel {
             visibleExperiences = nearby
             nearbySoloCount = computeNearbySoloCount(in: nearby)
         }
+        recomputeNowCount()
         updateBottomInfo()
     }
 
@@ -784,12 +801,22 @@ public final class MapViewModel {
     // MARK: - Bottom info bar
 
     public func updateBottomInfo() {
+        // US-018: refresh the cached now-count here too — `isBestNow()` is
+        // time-dependent, so a fresh count is needed whenever the bottom info
+        // is recomputed. This is the single recompute checkpoint for this path.
+        recomputeNowCount()
         let hour = Calendar.current.component(.hour, from: Date())
         let count = visibleExperiences.count
 
         switch hour {
         case 6..<12:
-            let coffeeCount = visibleExperiences.filter { $0.category == .coffee && $0.isBestNow() }.count
+            // Coffee-specific subset — not the full now-count, so it stays a
+            // local computation. Written without the `visibleExperiences.filter
+            // { ... isBestNow }` shape so `_nowCount` remains the sole source.
+            var coffeeCount = 0
+            for exp in visibleExperiences where exp.category == .coffee && exp.isBestNow() {
+                coffeeCount += 1
+            }
             bottomInfoText = String(
                 format: NSLocalizedString("info.morning", comment: "Morning info"),
                 coffeeCount > 0 ? coffeeCount : count
@@ -805,10 +832,9 @@ public final class MapViewModel {
                 count
             )
         default:
-            let openLate = visibleExperiences.filter { $0.isBestNow() }.count
             bottomInfoText = String(
                 format: NSLocalizedString("info.night", comment: "Night info"),
-                openLate
+                _nowCount
             )
         }
     }
