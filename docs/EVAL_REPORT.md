@@ -1,14 +1,14 @@
 # Solo Compass — Deep UX & Code Evaluation Report
 
-| 字段 | 值 |
-|---|---|
-| 日期 | 2026-05-28 |
-| 基线 commit | `0252ce3` (main) |
-| 评估对象 | apps/ios/SoloCompass |
-| 设计参考 | CompareCanvas.html (claude.ai/design handoff bundle `lmdRckirJx2pW6f14INU8g`) |
-| 模拟器 | iPhone 17 Pro · iOS 26.4 |
-| 评估方式 | 5 个并行 agent + 真机模拟 + 源码 trace |
-| 团队组成 | code-explorer · a11y-architect · performance-optimizer · silent-failure-hunter · code-reviewer · e2e-runner |
+| 字段        | 值                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------- |
+| 日期        | 2026-05-28                                                                                                  |
+| 基线 commit | `0252ce3` (main)                                                                                            |
+| 评估对象    | apps/ios/SoloCompass                                                                                        |
+| 设计参考    | CompareCanvas.html (claude.ai/design handoff bundle `lmdRckirJx2pW6f14INU8g`)                               |
+| 模拟器      | iPhone 17 Pro · iOS 26.4                                                                                    |
+| 评估方式    | 5 个并行 agent + 真机模拟 + 源码 trace                                                                      |
+| 团队组成    | code-explorer · a11y-architect · performance-optimizer · silent-failure-hunter · code-reviewer · e2e-runner |
 
 ---
 
@@ -26,18 +26,18 @@
 
 设计稿核心声明：「A+A+A — 同一路线，两种深度。同伴默认关闭时是纯内容；打开后多出一个克制的招募模块。」
 
-| 设计稿组件 | iOS 现状 | 缺口与本轮处理 |
-|---|---|---|
-| `RouteCard` | ✅ 已存在 `Views/Companion/Components/RouteCard.swift` | 缺 stop-strip（站点彩色圆点 breadcrumb）/ recruit-mini 内嵌条 / walked-by 行；本轮**未改**（留下轮专门处理，避免本 PR 过大） |
-| `VerifiedBadge` 三档 | ⚠️ `.header` / `.inline` 是 EmptyView 占位 | **本轮补全两档**；切到 CT 色板；新增 3 个本地化 key |
-| `RecruitingModule` 三档强度 | ✅ 单档已实现 | 视觉强度 restrained/neutral/strong 仅默认档存在 |
-| `AvatarStack` | ✅ 已存在 | 与设计稿一致 |
-| `StopsList` | ✅ 已存在 | 与设计稿一致 |
-| `CompletionMoment` | ✅ `Views/Companion/CompletionMoment.swift` | 与设计稿一致 |
-| `RouteDetailScreen` | ✅ `RouteDetailView.swift` | hero / verified / stops / recruiting / dock 都齐全 |
-| 4 条种子路线 | ✅ `seed_routes.json` | mekong-sunset / slow-coffee-day / morning-ritual / vientiane-monuments 都在 |
-| 4 态状态机 | ✅ `RouteCompanionStateMachine.swift` + tests | open / forming / closed / completed 全覆盖 |
-| 设计 token（色板/字体） | ❌ 全用系统 `accentColor` | **本轮新增** `Views/Shared/CompareTokens.swift`：bgWarm `#FAF8F6` / accent `#5D3000` / toneOpen `#1F7B4D` / toneForming `#8C6A1A` 全部落地 |
+| 设计稿组件                  | iOS 现状                                               | 缺口与本轮处理                                                                                                                             |
+| --------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RouteCard`                 | ✅ 已存在 `Views/Companion/Components/RouteCard.swift` | 缺 stop-strip（站点彩色圆点 breadcrumb）/ recruit-mini 内嵌条 / walked-by 行；本轮**未改**（留下轮专门处理，避免本 PR 过大）               |
+| `VerifiedBadge` 三档        | ⚠️ `.header` / `.inline` 是 EmptyView 占位             | **本轮补全两档**；切到 CT 色板；新增 3 个本地化 key                                                                                        |
+| `RecruitingModule` 三档强度 | ✅ 单档已实现                                          | 视觉强度 restrained/neutral/strong 仅默认档存在                                                                                            |
+| `AvatarStack`               | ✅ 已存在                                              | 与设计稿一致                                                                                                                               |
+| `StopsList`                 | ✅ 已存在                                              | 与设计稿一致                                                                                                                               |
+| `CompletionMoment`          | ✅ `Views/Companion/CompletionMoment.swift`            | 与设计稿一致                                                                                                                               |
+| `RouteDetailScreen`         | ✅ `RouteDetailView.swift`                             | hero / verified / stops / recruiting / dock 都齐全                                                                                         |
+| 4 条种子路线                | ✅ `seed_routes.json`                                  | mekong-sunset / slow-coffee-day / morning-ritual / vientiane-monuments 都在                                                                |
+| 4 态状态机                  | ✅ `RouteCompanionStateMachine.swift` + tests          | open / forming / closed / completed 全覆盖                                                                                                 |
+| 设计 token（色板/字体）     | ❌ 全用系统 `accentColor`                              | **本轮新增** `Views/Shared/CompareTokens.swift`：bgWarm `#FAF8F6` / accent `#5D3000` / toneOpen `#1F7B4D` / toneForming `#8C6A1A` 全部落地 |
 
 **结论**：iOS 已经实现了设计稿的 80%，但**视觉 token 没对齐 + VerifiedBadge 两档空 placeholder** 是显眼的缺口。本轮补完两个；剩下的 stop-strip / recruit-mini / 强度三档由后续 PR 跟进。
 
@@ -100,28 +100,28 @@
 
 ## 3. 问题汇总矩阵
 
-| 类别 | P0 | P1 | P2 | 合计 |
-|---|---|---|---|---|
-| 视觉 / a11y | 4 | 9 | 5 | 18 |
-| 性能 | 1 | 5 | 2 | 8 |
-| 静默失败 / 数据丢失 | 3 | 5 | 3 | 11 |
-| 代码质量 / 架构 | 1 | 5 | 3 | 9 |
-| 设计稿对齐 | 1 | 3 | 2 | 6 |
-| **总计** | **10** | **27** | **15** | **52** |
+| 类别                | P0     | P1     | P2     | 合计   |
+| ------------------- | ------ | ------ | ------ | ------ |
+| 视觉 / a11y         | 4      | 9      | 5      | 18     |
+| 性能                | 1      | 5      | 2      | 8      |
+| 静默失败 / 数据丢失 | 3      | 5      | 3      | 11     |
+| 代码质量 / 架构     | 1      | 5      | 3      | 9      |
+| 设计稿对齐          | 1      | 3      | 2      | 6      |
+| **总计**            | **10** | **27** | **15** | **52** |
 
 ---
 
 ## 4. 推荐修复顺序（PR 拆分建议）
 
-| PR # | 主题 | 包含 | 估时 |
-|---|---|---|---|
-| ① 本轮 | CompareCanvas token + VerifiedBadge 三档 | CompareTokens.swift / VerifiedBadge.swift / 3 个 localization key | 已完成 |
-| ② P0 安全 | force-unwrap 清零 + SyncService 错误传播 | 6 处 `companion!` → safe binding · `SyncService.enqueue` catch | 半天 |
-| ③ AI 透明度 | 真实 / skeleton 区分 + 错误上报 | `AIService.lastSynthesisError` · map pin 上"limited data"角标 · Sentry 上报 | 一天 |
-| ④ a11y P0 批量 | 6 处 hit target / Dynamic Type / 硬编码英文 | FilterBar pills · BottomInfoSheet handle · 4 处 "results" l10n | 半天 |
-| ⑤ Map 性能 | `AnyView` 去除 · markerState 单次调用 · availableCities 缓存 · nowCount 缓存 | CompassMapView / MapViewModel | 一天 |
-| ⑥ RouteCard 设计稿对齐 | stop-strip · recruit-mini · walked-by 行 · CT token | RouteCard.swift 完整重写 | 半天 |
-| ⑦ 拆文件 | MapViewModel 1685 / AIService 1467 / CompassMapView 1457 / ExperienceDetailView 1423 / SettingsView 1344 / ChatSheet 807 | 抽 sub-VM / sub-View | 2 天 |
+| PR #                   | 主题                                                                                                                     | 包含                                                                        | 估时   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | ------ |
+| ① 本轮                 | CompareCanvas token + VerifiedBadge 三档                                                                                 | CompareTokens.swift / VerifiedBadge.swift / 3 个 localization key           | 已完成 |
+| ② P0 安全              | force-unwrap 清零 + SyncService 错误传播                                                                                 | 6 处 `companion!` → safe binding · `SyncService.enqueue` catch              | 半天   |
+| ③ AI 透明度            | 真实 / skeleton 区分 + 错误上报                                                                                          | `AIService.lastSynthesisError` · map pin 上"limited data"角标 · Sentry 上报 | 一天   |
+| ④ a11y P0 批量         | 6 处 hit target / Dynamic Type / 硬编码英文                                                                              | FilterBar pills · BottomInfoSheet handle · 4 处 "results" l10n              | 半天   |
+| ⑤ Map 性能             | `AnyView` 去除 · markerState 单次调用 · availableCities 缓存 · nowCount 缓存                                             | CompassMapView / MapViewModel                                               | 一天   |
+| ⑥ RouteCard 设计稿对齐 | stop-strip · recruit-mini · walked-by 行 · CT token                                                                      | RouteCard.swift 完整重写                                                    | 半天   |
+| ⑦ 拆文件               | MapViewModel 1685 / AIService 1467 / CompassMapView 1457 / ExperienceDetailView 1423 / SettingsView 1344 / ChatSheet 807 | 抽 sub-VM / sub-View                                                        | 2 天   |
 
 ---
 

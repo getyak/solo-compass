@@ -1,12 +1,12 @@
 # PRD: P0 Fix Batch — Solo Compass iOS
 
-| 字段 | 值 |
-|---|---|
-| 状态 | 草稿 → 待评审 |
-| 创建日期 | 2026-05-28 |
-| 基线 | `main @ 0252ce3` |
-| 依据 | `docs/EVAL_REPORT.md` |
-| 范围 | apps/ios/SoloCompass |
+| 字段     | 值                                |
+| -------- | --------------------------------- |
+| 状态     | 草稿 → 待评审                     |
+| 创建日期 | 2026-05-28                        |
+| 基线     | `main @ 0252ce3`                  |
+| 依据     | `docs/EVAL_REPORT.md`             |
+| 范围     | apps/ios/SoloCompass              |
 | 预计交付 | 10 个 PR（一项一 US），1-2 周窗口 |
 
 ---
@@ -37,11 +37,13 @@
 **Description:** As an iOS engineer, I want all 6 `route.companion!` force-unwrap sites replaced with safe binding so the app never crashes when companion data is unexpectedly nil.
 
 **Affected sites:**
+
 - `Services/LocalRouteCompanionRemote.swift:38, 119, 126, 137`
 - `Views/Companion/MyRequestsListView.swift:182`
 - `Views/Companion/ApprovalQueueView.swift:311`
 
 **Acceptance Criteria:**
+
 - [ ] 0 occurrences of `route.companion!` or `updated.companion!` in non-test Swift files (grep verified)
 - [ ] Each site replaced with `guard var companion = updated.companion else { return }` pattern, mutating the bound copy then writing back via `updated.companion = companion`
 - [ ] New XCTest `RouteCompanionForceUnwrapTests` covers each mutation with `companion == nil` input → operation no-ops cleanly, no crash
@@ -59,6 +61,7 @@
 **Affected:** `Services/SyncService.swift:95-98`
 
 **Acceptance Criteria:**
+
 - [ ] `enqueue(_:)` 中 `try? JSONEncoder().encode(...)` 改为 `do { try ... } catch { SentryService.capture(error, context: "SyncService.enqueue", payload: payloadType) }`
 - [ ] 失败时不再静默 `return`，而是抛回上层（或保留 graceful 降级但**必须**上报）
 - [ ] 新增 `SyncServiceEnqueueTests`：注入故意 encode 失败的 payload → 验证 Sentry mock 收到上报
@@ -75,6 +78,7 @@
 **Affected:** `Services/AIService.swift:765-768, 781-791` + `Views/Experience/ExperienceCardView.swift`
 
 **Acceptance Criteria:**
+
 - [ ] `AIService` 暴露 `lastSynthesisQuality: SynthesisQuality` 状态（`.real | .skeleton | .cached`）
 - [ ] Experience card 在 skeleton 状态下显示一个角标 pill：`NSLocalizedString("ai.skeleton.badge", ...)` = "数据有限" / "Limited data"
 - [ ] Skeleton 角标使用 `CT.fgMuted` 色而非 accent，避免抢主内容焦点
@@ -94,6 +98,7 @@
 **Affected:** `Views/Map/CompassMapView.swift:76`
 
 **Acceptance Criteria:**
+
 - [ ] `public var body: some View { mapContent }` 直接返回 `@ViewBuilder` 的具体类型
 - [ ] 移除 `AnyView(mapContent)` 调用
 - [ ] 若 init 签名因为 public ABI 不能改，加 `@ViewBuilder` 修饰让 body 推导出来
@@ -111,6 +116,7 @@
 **Affected:** `Views/Map/CompassMapView.swift:612-616`
 
 **Acceptance Criteria:**
+
 - [ ] `ForEach(visibleExperiences)` body 顶部 `let state = viewModel.markerState(for: exp)`，下面两处复用
 - [ ] 新增 `MarkerStatePerformanceTest`：构造 100 个 experience，循环 1000 次取 state，p95 latency 较 baseline 降低 ≥40%
 - [ ] iPhone 17 Pro Simulator: 跑一遍 explore + filter 切换，地图 marker 渲染肉眼无差
@@ -126,6 +132,7 @@
 **Affected:** `ViewModels/MapViewModel.swift:187-215`
 
 **Acceptance Criteria:**
+
 - [ ] 加 `@ObservationIgnored private var _cachedCities: [CityInfo]?`
 - [ ] `allExperiences` / `selectedCity` 变化时 invalidate（在 didSet 或 refresh 路径中）
 - [ ] `availableCities` 计算属性命中缓存返回，否则重算并存
@@ -143,6 +150,7 @@
 **Affected:** `ViewModels/MapViewModel.swift:298` + `updateBottomInfo()` 内部第 720, 736 行
 
 **Acceptance Criteria:**
+
 - [ ] `private var _nowCount: Int = 0` + 在 `loadNearbyExperiences` / `refreshForLocation` / `updateBottomInfo` 末尾统一更新
 - [ ] `nowCount` 计算属性返回缓存
 - [ ] `visibleExperiences.filter { $0.isBestNow() }` 出现次数从 3 降到 ≤1
@@ -160,6 +168,7 @@
 **Affected:** `Views/Map/BottomInfoSheet.swift:127-131`
 
 **Acceptance Criteria:**
+
 - [ ] `dragHandleArea` `.frame(minWidth: 60, minHeight: 44).contentShape(Rectangle())`
 - [ ] 视觉 pill 仍是 36×4（不变）
 - [ ] 新增 `.accessibilityLabel("Sheet handle")` + `.accessibilityAdjustableAction` cycling peek/mid/full
@@ -175,11 +184,13 @@
 **Description:** As a VoiceOver / Switch Control user, I want filter pills and the favorite heart to all meet HIG 44pt minimum so I can interact with them reliably.
 
 **Affected:**
+
 - `Views/Filter/FilterBarView.swift:240` (iconPill 36×36)
 - `Views/Experience/ExperienceCardView.swift:175` (favorite heart 32×32)
 - `Views/Map/CompassMapView.swift:1124` (DismissibleBanner X 按钮)
 
 **Acceptance Criteria:**
+
 - [ ] 所有 3 个 hit area `.frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())`，视觉尺寸保持不变
 - [ ] 新增 `HitTargetSizeTests`：枚举上述 view，断言 hit area ≥44
 - [ ] iPhone 17 Pro Simulator: 跑一遍 filter 切换 + 收藏 + 关闭 banner 流程
@@ -193,10 +204,12 @@
 **Description:** As a VoiceOver user, I want hardcoded English "results" strings replaced with localized strings and voice processing toasts to announce themselves so I stay in sync with app state.
 
 **Affected:**
+
 - `Views/Filter/FilterBarView.swift:180, 230, 264, 301` (硬编码 "results")
 - `Views/Map/CompassMapView.swift:868-885` (voice.processing toast 缺 live region)
 
 **Acceptance Criteria:**
+
 - [ ] 4 处 "results" 替换为 `NSLocalizedString("filter.results.count", comment: "")` 配合 `String(format:)`
 - [ ] `Localizable.strings`（en + zh-Hans）新增对应 key，过 `StringsParityTests`
 - [ ] `voice.processing` toast 包裹 `.accessibilityElement().accessibilityAddTraits(.updatesFrequently)` + 在 onAppear 调 `UIAccessibility.post(.announcement, ...)`
@@ -260,24 +273,24 @@
 
 ## 8. Success Metrics
 
-| 指标 | 当前 | 目标 |
-|---|---|---|
-| 仓内 `route.companion!` force-unwrap 数 | 6 | 0 |
-| 仓内 `Services/SyncService.swift` 的 `try?` encode 数 | 1 | 0 |
-| 仓内硬编码 "results" 字符串数 | 4 | 0 |
-| iOS test target 函数数 | 489 | ≥499 |
-| CompassMapView 30s pan/zoom main-thread CPU time | baseline X | ≤ 0.8X |
-| Sentry 月度 crash 数（companion 相关） | unknown | < 1 |
-| Sentry 月度 skeleton_fallback 上报 | 0 | > 0（验证机制有效，而非"越少越好"） |
-| VoiceOver 用户完成"申请加入路线"闭环成功率（人工测试） | 未测 | 100% |
+| 指标                                                   | 当前       | 目标                                |
+| ------------------------------------------------------ | ---------- | ----------------------------------- |
+| 仓内 `route.companion!` force-unwrap 数                | 6          | 0                                   |
+| 仓内 `Services/SyncService.swift` 的 `try?` encode 数  | 1          | 0                                   |
+| 仓内硬编码 "results" 字符串数                          | 4          | 0                                   |
+| iOS test target 函数数                                 | 489        | ≥499                                |
+| CompassMapView 30s pan/zoom main-thread CPU time       | baseline X | ≤ 0.8X                              |
+| Sentry 月度 crash 数（companion 相关）                 | unknown    | < 1                                 |
+| Sentry 月度 skeleton_fallback 上报                     | 0          | > 0（验证机制有效，而非"越少越好"） |
+| VoiceOver 用户完成"申请加入路线"闭环成功率（人工测试） | 未测       | 100%                                |
 
 ---
 
 ## 9. Open Questions
 
-1. **Companion layer toggle 是否本轮隐藏？** `Views/Map/CompassMapView.swift:541` 占位 nil 已存在多月。本 PRD 标 Non-Goal，但用户体验上是显眼 dead button——是否在 US-008/US-009 顺手把 toggle `.hidden()` 掉？*(待产品决定)*
-2. **AI skeleton 角标的产品文案**：用"数据有限" / "Limited data" 还是"占位预览" / "Preview" 还是"AI 未生成"？*(待产品决定)*
-3. **Sentry skeleton_fallback 上报频次**：每次触发都报 vs 按小时合并 vs 按 daily 合并？太多会刷爆 quota。*(待 ops 决定)*
+1. **Companion layer toggle 是否本轮隐藏？** `Views/Map/CompassMapView.swift:541` 占位 nil 已存在多月。本 PRD 标 Non-Goal，但用户体验上是显眼 dead button——是否在 US-008/US-009 顺手把 toggle `.hidden()` 掉？_(待产品决定)_
+2. **AI skeleton 角标的产品文案**：用"数据有限" / "Limited data" 还是"占位预览" / "Preview" 还是"AI 未生成"？_(待产品决定)_
+3. **Sentry skeleton_fallback 上报频次**：每次触发都报 vs 按小时合并 vs 按 daily 合并？太多会刷爆 quota。_(待 ops 决定)_
 4. **Performance metrics 测量基线**：US-004/US-005 的 ≥20% / ≥40% 阈值需要先在干净 baseline 跑一次 Instruments，把绝对数字钉死。建议先开一个 spike PR 跑 baseline。
 5. **本 PRD 与 EVAL_REPORT 的 PR ②④⑤ 的关系**：EVAL_REPORT § 4 给的 PR 拆分是把 P0 安全 + a11y 急修合并；本 PRD 选了一项一 US 的更细粒度。两者非冲突，本 PRD 是落地版。
 6. **何时开始 P1 PRD**：本批 10 个 PR 全 merge 后立即开 P1 PRD，还是中间观察一周 Sentry 数据？
@@ -286,19 +299,19 @@
 
 ## 10. Cross-Reference
 
-| US 编号 | EVAL_REPORT 锚点 | PR ① 已完成？ |
-|---|---|---|
-| US-001 | Journey 6 P0 | ❌ |
-| US-002 | Journey 6 P0 | ❌ |
-| US-003 | Journey 3 P0 | ❌ |
-| US-004 | Journey 2 P0 | ❌ |
-| US-005 | Journey 2 P1（但归入 P0 性能批） | ❌ |
-| US-006 | Journey 2 P1（同上） | ❌ |
-| US-007 | Journey 2 P1（同上） | ❌ |
-| US-008 | Journey 5 P0 | ❌ |
-| US-009 | Journey 4 P1（多处 hit target 合并归 P0 a11y 批） | ❌ |
-| US-010 | Journey 4 P0 + Journey 7 P0 | ❌ |
-| ✅ 已完成 | Journey 0 设计稿对齐 — CompareTokens + VerifiedBadge 三档 | ✅ PR ① |
+| US 编号   | EVAL_REPORT 锚点                                          | PR ① 已完成？ |
+| --------- | --------------------------------------------------------- | ------------- |
+| US-001    | Journey 6 P0                                              | ❌            |
+| US-002    | Journey 6 P0                                              | ❌            |
+| US-003    | Journey 3 P0                                              | ❌            |
+| US-004    | Journey 2 P0                                              | ❌            |
+| US-005    | Journey 2 P1（但归入 P0 性能批）                          | ❌            |
+| US-006    | Journey 2 P1（同上）                                      | ❌            |
+| US-007    | Journey 2 P1（同上）                                      | ❌            |
+| US-008    | Journey 5 P0                                              | ❌            |
+| US-009    | Journey 4 P1（多处 hit target 合并归 P0 a11y 批）         | ❌            |
+| US-010    | Journey 4 P0 + Journey 7 P0                               | ❌            |
+| ✅ 已完成 | Journey 0 设计稿对齐 — CompareTokens + VerifiedBadge 三档 | ✅ PR ①       |
 
 ---
 
