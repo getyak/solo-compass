@@ -764,6 +764,7 @@
 "itinerary.list.title" = "My Itineraries";
 "itinerary.empty.title" = "No itineraries yet";
 "itinerary.empty.hint" = "Tap + to plan your first trip.";
+"itinerary.empty.cta" = "Plan a trip";
 "itinerary.experienceCount" = "%d experiences";
 "itinerary.action.create.a11y" = "Create new itinerary";
 "itinerary.action.delete" = "Delete";
