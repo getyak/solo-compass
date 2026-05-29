@@ -33,8 +33,8 @@ final class SkeletonBadgeViewTests: XCTestCase {
     /// The view body builds without trapping — a minimal smoke test that the
     /// component compiles into a renderable tree.
     func testBadgeBodyIsConstructible() {
-        let badge = SkeletonBadgeView()
-        XCTAssertNotNil(badge.body)
+        let badge = SkeletonBadgeView() // anti-pattern-lint:allow local variable, not gamification
+        XCTAssertNotNil(badge.body) // anti-pattern-lint:allow local variable reference, not gamification
     }
 
     // MARK: - Conditional rendering rule (ExperienceCardView gate)
