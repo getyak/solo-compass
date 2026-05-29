@@ -94,6 +94,8 @@
 "ai.error.request" = "AI 请求失败(状态 %d)。";
 "ai.fallback.explanation" = "推荐给独行旅人:座位安静、员工不打扰、本地信号强。";
 "ai.fallback.voice" = "正在显示附近适合独行的体验。";
+"ai.skeleton.pill" = "数据有限";
+"ai.skeleton.pill.a11y" = "占位内容";
 
 /* Common */
 "common.ok" = "好";

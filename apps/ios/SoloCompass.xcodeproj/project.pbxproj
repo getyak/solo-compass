@@ -41,6 +41,7 @@
 		2C5A15DE0FCF30A3BCF1EB20 /* RouteItineraryBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B08F2AB2779C31E0870 /* RouteItineraryBridgeTests.swift */; };
 		2D379EAE0BCD339DB670EB5C /* CompanionPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431DC31A80132F719AFEE471 /* CompanionPost.swift */; };
 		2F532734CA53A554106DC739 /* SeedRoutesParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A644911E7B2824A7ABBA4D6F /* SeedRoutesParityTests.swift */; };
+		2FFDD120FE87D1EE121EAB40 /* SkeletonBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659B2C7C4B36A086968A28EF /* SkeletonBadgeView.swift */; };
 		31DAB367EE76F147742B2B3E /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E8E3F1E2D1A0382CC5D9A6 /* ChatService.swift */; };
 		31F9538643C362D7EEF64C6B /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7919EAFDE363B49C4B4C47 /* LocationService.swift */; };
 		321C062B9C6CA3558BC88C91 /* VerifiedBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2891DAE62909FE55324494D7 /* VerifiedBadge.swift */; };
@@ -84,6 +85,7 @@
 		5F3ACD03660F3E8B88814C56 /* MyHostedRoutesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E055BAC372B75F743428920 /* MyHostedRoutesListView.swift */; };
 		60FA57D3A56ED061C1F9B899 /* PresenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5BF40BDAD5E085808BE633E /* PresenceService.swift */; };
 		615FCA91C2260950BFE3E4F3 /* ShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30705AFFEB819044661EC871 /* ShareCardView.swift */; };
+		627258EB2A310E2C979787E8 /* SkeletonBadgeViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B418AD0352AC3402D6609E4C /* SkeletonBadgeViewTests.swift */; };
 		62BB74EC16B92899A9A6A44C /* ReverseGeocodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */; };
 		63059F4B8EFE54C8E2699330 /* ItineraryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0AA21CD490B436012818D9D /* ItineraryDetailView.swift */; };
 		63DCAC4B5E83B26B9B175344 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE4515228D70D8804596299D /* AIProvider.swift */; };
@@ -310,6 +312,7 @@
 		649ECD409B685D38E30527FD /* CompletionMomentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionMomentTests.swift; sourceTree = "<group>"; };
 		64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReverseGeocodeService.swift; sourceTree = "<group>"; };
 		6556C23BF1B228BF686C5500 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		659B2C7C4B36A086968A28EF /* SkeletonBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonBadgeView.swift; sourceTree = "<group>"; };
 		67173C74F1A76C3CE5C38C0A /* OverpassService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverpassService.swift; sourceTree = "<group>"; };
 		67DAE302128E657E150C4B0D /* FoursquareService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoursquareService.swift; sourceTree = "<group>"; };
 		69068DE8A2F71601627AE3E8 /* CompanionProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionProfileView.swift; sourceTree = "<group>"; };
@@ -372,6 +375,7 @@
 		B14FE2118ED82DD0593F5C3C /* StringsParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringsParityTests.swift; sourceTree = "<group>"; };
 		B3CC4BB6965F17D1B62F01A1 /* UserCompletionRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserCompletionRecord.swift; sourceTree = "<group>"; };
 		B3F5D58C93D87AC9205148CC /* Itinerary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Itinerary.swift; sourceTree = "<group>"; };
+		B418AD0352AC3402D6609E4C /* SkeletonBadgeViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonBadgeViewTests.swift; sourceTree = "<group>"; };
 		B6BAB6EA03E81F52D00CCD59 /* RouteRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRecordTests.swift; sourceTree = "<group>"; };
 		B7AF85DC8F90CA4721DDAEA6 /* ThemeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeService.swift; sourceTree = "<group>"; };
 		B88D9F377D7AF634DAE07A3E /* ChatInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInputBar.swift; sourceTree = "<group>"; };
@@ -458,6 +462,7 @@
 				5933575E731D8AC09356AB9F /* GlassmorphismCapsule.swift */,
 				5C62D0EFA5859698D9C70B7D /* OfflineBanner.swift */,
 				130B51007552B26F3C1D1AE0 /* PendingCheckInBanner.swift */,
+				659B2C7C4B36A086968A28EF /* SkeletonBadgeView.swift */,
 				BEDD4F6238B484BB7C20904B /* SkeletonView.swift */,
 				EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */,
 				4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */,
@@ -553,6 +558,7 @@
 				3AF871B84DDAAD8453B8258D /* RouteStoreTests.swift */,
 				535B5FA4ADF216CEC74FE056 /* RouteTests.swift */,
 				A644911E7B2824A7ABBA4D6F /* SeedRoutesParityTests.swift */,
+				B418AD0352AC3402D6609E4C /* SkeletonBadgeViewTests.swift */,
 				ED3CB5045CE59A613B5CAAF5 /* SoloCompassTests.swift */,
 				B14FE2118ED82DD0593F5C3C /* StringsParityTests.swift */,
 				6FCC78012D5BFAC15E9B6671 /* SyncServiceEnqueueTests.swift */,
@@ -1038,6 +1044,7 @@
 				71B9FD2F300F42A5197FFA15 /* RouteStoreTests.swift in Sources */,
 				D2E9B20230FDE14CB1029DC3 /* RouteTests.swift in Sources */,
 				2F532734CA53A554106DC739 /* SeedRoutesParityTests.swift in Sources */,
+				627258EB2A310E2C979787E8 /* SkeletonBadgeViewTests.swift in Sources */,
 				EBE1ACB7D574EE000B028B23 /* SoloCompassTests.swift in Sources */,
 				3EF7E97963960C09B7A5575D /* StringsParityTests.swift in Sources */,
 				DDFA62E4BE1AEFAA063D1B24 /* SyncServiceEnqueueTests.swift in Sources */,
@@ -1188,6 +1195,7 @@
 				F3D0A3E30E7D7825805C2801 /* ShareCardRenderer.swift in Sources */,
 				615FCA91C2260950BFE3E4F3 /* ShareCardView.swift in Sources */,
 				3B2C16B114CAAADE0862AF7B /* ShareSheet.swift in Sources */,
+				2FFDD120FE87D1EE121EAB40 /* SkeletonBadgeView.swift in Sources */,
 				F84389464D54A5F5BEB866D0 /* SkeletonView.swift in Sources */,
 				E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */,
 				13E5AEAEE5194DDB79AE92AC /* SoloCompassModelContainer.swift in Sources */,

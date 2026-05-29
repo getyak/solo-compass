@@ -24,7 +24,15 @@ public struct ExperienceCardView: View {
 
     @Environment(UserPreferences.self) private var preferences
     @Environment(LocationService.self) private var locationService
+    @Environment(AIService.self) private var aiService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// True when the most recent synthesis degraded to skeleton placeholders.
+    /// Drives the transparency pill so users don't mistake generic OSM fallback
+    /// copy for a real AI-authored recommendation (US-004).
+    private var isSkeletonData: Bool {
+        aiService.lastSynthesisQuality == .skeleton
+    }
 
 
     private var isArrived: Bool {
@@ -186,6 +194,12 @@ public struct ExperienceCardView: View {
                 .font(.subheadline)
                 .foregroundStyle(.primary)
                 .lineLimit(3)
+
+            // US-004: transparency pill — only for degraded skeleton data,
+            // never for real or cached AI synthesis.
+            if isSkeletonData {
+                SkeletonBadgeView()
+            }
 
             HStack {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
@@ -516,7 +530,8 @@ private struct BestNowBadge: View {
         }
         .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
         .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview")!))
-        .environment(locationService))
+        .environment(locationService)
+        .environment(AIService()))
     } else {
         return AnyView(Text("No seed data"))
     }

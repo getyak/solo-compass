@@ -67,7 +67,7 @@ public final class AIService {
     /// Provenance of the most recent synthesis result (US-003). The UI uses
     /// this to render a transparency badge so users can tell apart a real
     /// AI-authored synthesis, a degraded skeleton fallback, and a cached hit.
-    public enum AISynthesisQuality {
+    public enum AISynthesisQuality: Equatable {
         /// Synthesis succeeded through the model (direct or Edge Function).
         case real
         /// Network/model failed; we returned skeleton placeholders.

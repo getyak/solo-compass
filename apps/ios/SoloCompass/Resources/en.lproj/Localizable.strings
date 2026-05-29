@@ -130,6 +130,8 @@
 "ai.error.request" = "AI request failed (status %d).";
 "ai.fallback.explanation" = "Recommended for solo travelers based on quiet seating, low staff pressure, and a strong local signal.";
 "ai.fallback.voice" = "Showing solo-friendly experiences nearby.";
+"ai.skeleton.pill" = "Limited data";
+"ai.skeleton.pill.a11y" = "placeholder content";
 
 /* Common */
 "common.ok" = "OK";
