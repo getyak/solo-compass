@@ -1142,3 +1142,5 @@
 /* US-050: VoiceOver announcements when empty-state views appear, so VoiceOver
    users know the list is empty rather than thinking the UI froze. */
 "a11y.empty.nearby" = "No experiences nearby";
+"a11y.empty.filterResults" = "No results for this filter";
+"a11y.empty.list" = "No experiences to show";
