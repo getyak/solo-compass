@@ -465,10 +465,24 @@ struct NearbyExperienceRow: View {
     let distanceMeters: Double?
     let onTap: () -> Void
 
+    @State private var pressed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private static let sunGold = Color(red: 1.0, green: 0.80, blue: 0.2)
 
     var body: some View {
-        Button(action: onTap) {
+        Button {
+            #if canImport(UIKit)
+            Haptics.selection()
+            if !reduceMotion {
+                withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { pressed = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                    withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { pressed = false }
+                }
+            }
+            #endif
+            onTap()
+        } label: {
             HStack(spacing: 10) {
                 categoryDisc
                 titleStack
@@ -487,6 +501,7 @@ struct NearbyExperienceRow: View {
             }
         }
         .buttonStyle(.plain)
+        .scaleEffect(pressed ? 0.86 : 1.0)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
@@ -774,6 +789,9 @@ struct EmptySheetListView: View {
     /// announcement. Exposed via the same key the test asserts on.
     static let announcementKey = "a11y.empty.nearby"
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var breathing = false
+
     var localizedEmptyText: String {
         NSLocalizedString(Self.announcementKey, comment: "Announced when the Nearby list is empty")
     }
@@ -783,6 +801,8 @@ struct EmptySheetListView: View {
             Image(systemName: "mappin.slash")
                 .font(.title2)
                 .foregroundStyle(.secondary)
+                .scaleEffect(breathing ? 1.08 : 1.0)
+                .opacity(breathing ? 0.7 : 1.0)
             Text(localizedEmptyText)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -797,6 +817,19 @@ struct EmptySheetListView: View {
             #if canImport(UIKit)
             UIAccessibility.post(notification: .announcement, argument: localizedEmptyText)
             #endif
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                breathing = true
+            }
+        }
+        .onChange(of: reduceMotion) { _, reduced in
+            if reduced {
+                withAnimation(.default) { breathing = false }
+            } else {
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    breathing = true
+                }
+            }
         }
     }
 }
