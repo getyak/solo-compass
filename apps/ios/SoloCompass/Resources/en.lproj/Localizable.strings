@@ -1045,6 +1045,12 @@
 "sort.value.soloScore" = "Sorted by Solo score";
 "sort.value.now" = "Sorted by now";
 
+/* Sort mode subtitles in SortModeSheet */
+"sort.subtitle.smart" = "AI picks tuned to you";
+"sort.subtitle.distance" = "Closest first";
+"sort.subtitle.soloScore" = "Best for going solo";
+"sort.subtitle.now" = "Good right now";
+
 /* US-022 — VerifiedBadge */
 "verified.title.verified" = "已验证路线";
 "verified.title.watching" = "社群观察中";

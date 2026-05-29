@@ -29,6 +29,17 @@ public enum SortMode: String, CaseIterable, Identifiable {
     var accessibilityValue: String {
         NSLocalizedString("sort.value.\(rawValue)", comment: "Sort accessibility value: current mode")
     }
+
+    var symbol: String {
+        switch self {
+        case .smart:     return "sparkles"
+        case .distance:  return "location.fill"
+        case .soloScore: return "person.fill"
+        case .now:       return "sunset.fill"
+        }
+    }
+
+    var subtitleKey: String { "sort.subtitle.\(rawValue)" }
 }
 
 // MARK: - Constants
@@ -423,13 +434,24 @@ struct SortModeSheet: View {
 
             ForEach(SortMode.allCases) { mode in
                 Button {
+                    #if canImport(UIKit)
+                    Haptics.selection()
+                    #endif
                     sortMode = mode
                     dismiss()
                 } label: {
-                    HStack {
-                        Text(mode.localizedTitle)
-                            .font(.body)
-                            .foregroundStyle(.primary)
+                    HStack(spacing: 12) {
+                        Image(systemName: mode.symbol)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(mode.localizedTitle)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                            Text(NSLocalizedString(mode.subtitleKey, comment: "Sort mode subtitle"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                         Spacer()
                         if sortMode == mode {
                             Image(systemName: "checkmark")
@@ -442,6 +464,7 @@ struct SortModeSheet: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
 
                 if mode.id != SortMode.allCases.last?.id {
                     Divider()
