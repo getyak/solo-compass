@@ -162,6 +162,13 @@ public final class LocationService: NSObject {
     public func simulate(heading: CLHeading) {
         self.heading = heading
     }
+
+    /// Test-only: inject a simulated GPS error. Mirrors the
+    /// `locationManager(_:didFailWithError:)` delegate path so views and view
+    /// models can be exercised without a real CLLocationManager failure.
+    public func simulate(error: Error) {
+        self.lastError = error
+    }
 }
 
 extension LocationService: CLLocationManagerDelegate {

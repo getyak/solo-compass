@@ -80,6 +80,9 @@ struct CompassMapContentView: View {
     @State private var dismissedAIError: String? = nil
     @State private var dismissedExploreError: String? = nil
     @State private var dismissedQuotaInfo: String? = nil
+    // US-026: true once the user dismisses the GPS-error banner; reset when the
+    // underlying LocationService.lastError clears so a new failure re-shows it.
+    @State private var dismissedLocationError: Bool = false
 
     @State private var isShowingCityPicker: Bool = false
     @State private var surveyExperience: Experience? = nil
@@ -317,6 +320,7 @@ struct CompassMapContentView: View {
                     dismissedAIError: $dismissedAIError,
                     dismissedExploreError: $dismissedExploreError,
                     dismissedQuotaInfo: $dismissedQuotaInfo,
+                    dismissedLocationError: $dismissedLocationError,
                     isMapPanning: $isMapPanning
                 )
 
@@ -928,6 +932,7 @@ private struct MapOverlayView: View {
     @Binding var dismissedAIError: String?
     @Binding var dismissedExploreError: String?
     @Binding var dismissedQuotaInfo: String?
+    @Binding var dismissedLocationError: Bool
     @Binding var isMapPanning: Bool
 
     @State private var checkInCelebrationTrigger = 0
@@ -980,6 +985,13 @@ private struct MapOverlayView: View {
                 isMapPanning: $isMapPanning,
                 resultCount: viewModel.visibleExperiences.count
             )
+            // US-026: reset the GPS-error dismissal once the error clears so a
+            // later failure re-surfaces the banner. Anchored on the always-present
+            // filter bar (the banner itself is conditional, so its own onChange
+            // wouldn't fire on the nil transition that removes it).
+            .onChange(of: viewModel.locationErrorBannerText) { _, newValue in
+                if newValue == nil { dismissedLocationError = false }
+            }
 
             let showEmptyFilterBanner = isFilterActive && viewModel.visibleExperiences.isEmpty
             if showEmptyFilterBanner {
@@ -1032,6 +1044,17 @@ private struct MapOverlayView: View {
                     onDismiss: { dismissedQuotaInfo = quotaInfo }
                 )
                 .accessibilityIdentifier("quotaBanner")
+            }
+
+            // US-026: GPS failure → explain why the map fell back to a region.
+            if let locationError = viewModel.locationErrorBannerText, !dismissedLocationError {
+                DismissibleBanner(
+                    systemImage: "location.slash.fill",
+                    text: locationError,
+                    color: .orange,
+                    onDismiss: { dismissedLocationError = true }
+                )
+                .accessibilityIdentifier("locationErrorBanner")
             }
 
             Spacer()

@@ -413,6 +413,44 @@ public final class MapViewModel {
     // True when a "Now" filter is active (best-now experiences only).
     public var isNowFilter: Bool = false
 
+    // MARK: - Location error surfacing (US-026)
+
+    /// Tracks the most recent `LocationService.lastError` we already reported to
+    /// Sentry, so observing the banner text repeatedly doesn't re-capture the
+    /// same failure. `@ObservationIgnored` because it's bookkeeping, not UI state.
+    @ObservationIgnored private var reportedLocationError: NSError?
+
+    /// Derived, dismissible banner copy for a GPS failure. Returns the localized
+    /// `location.error.banner` string when `LocationService.lastError` is set,
+    /// or nil when GPS is healthy. Reading this also reports the warning to
+    /// Sentry once per distinct error. Reading `locationService.lastError` keeps
+    /// SwiftUI's dependency tracking intact (LocationService is `@Observable`),
+    /// so the banner appears/disappears reactively.
+    public var locationErrorBannerText: String? {
+        guard let error = locationService.lastError else {
+            reportedLocationError = nil
+            return nil
+        }
+        let nsError = error as NSError
+        if reportedLocationError != nsError {
+            reportedLocationError = nsError
+            // `level:` defaults to `.warning` in SentryService.capture(message:),
+            // so we don't reference SentryLevel here (no Sentry import needed).
+            SentryService.capture(
+                message: "LocationService.lastError surfaced",
+                context: [
+                    "domain": nsError.domain,
+                    "code": nsError.code,
+                    "description": nsError.localizedDescription
+                ]
+            )
+        }
+        return NSLocalizedString(
+            "location.error.banner",
+            comment: "Banner shown when GPS fails and the map falls back to a default region"
+        )
+    }
+
     // MARK: - Voice processing feedback
 
     public var isProcessingVoiceIntent: Bool = false
