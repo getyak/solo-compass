@@ -20,6 +20,7 @@ import Observation
 @MainActor
 @Observable
 public final class MapKitPOIService {
+    /// Failures that can occur while searching nearby places via MapKit.
     public enum MapKitPOIError: Error, LocalizedError {
         case searchFailed(String)
 

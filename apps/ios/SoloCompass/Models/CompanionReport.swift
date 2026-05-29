@@ -5,6 +5,7 @@
 
 // MARK: - CompanionReportId
 
+/// Strongly-typed identifier for a companion safety report, preventing raw-string ID mix-ups.
 public struct CompanionReportId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -12,6 +13,7 @@ public struct CompanionReportId: RawRepresentable, Codable, Hashable, Sendable {
 
 // MARK: - CompanionReportReason
 
+/// The category a user selects when reporting another user for unsafe or unwanted behavior.
 public enum CompanionReportReason: String, Codable, Sendable {
     case spam
     case harassment
@@ -22,6 +24,7 @@ public enum CompanionReportReason: String, Codable, Sendable {
 
 // MARK: - CompanionReport
 
+/// A safety report one user files against another to flag abuse for moderation.
 public struct CompanionReport: Identifiable, Codable, Sendable {
     public let id: CompanionReportId
     public let reporterId: String

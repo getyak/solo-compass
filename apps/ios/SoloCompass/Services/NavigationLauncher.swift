@@ -71,6 +71,7 @@ public enum NavigationLauncher {
         }
     }
 
+    /// Launches walking directions to an experience in the traveler's chosen maps app.
     public static func open(
         app: NavigationApp,
         coordinate: CLLocationCoordinate2D,

@@ -46,6 +46,7 @@ public final class SubscriptionService {
 
     // MARK: - Entitlement
 
+    /// The traveler's current access level, from free through Pro trial to full Pro.
     public enum Entitlement: String, CaseIterable, Sendable {
         case free
         case proTrial

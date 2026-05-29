@@ -512,6 +512,8 @@ public final class MapViewModel {
         pendingCheckIn = (id: id, title: title)
     }
 
+    /// Mark the pending geofence check-in as visited when the user confirms
+    /// they arrived, then advance to any next queued check-in.
     public func confirmCheckIn() {
         guard let pending = pendingCheckIn else { return }
         preferences.markCompleted(pending.id)
@@ -520,6 +522,8 @@ public final class MapViewModel {
         checkForPendingCheckIns()
     }
 
+    /// Dismiss the pending check-in prompt without marking it visited, then
+    /// advance to any next queued check-in.
     public func dismissCheckIn() {
         guard let pending = pendingCheckIn else { return }
         preferences.clearPendingCheckIn(pending.id)
@@ -594,6 +598,8 @@ public final class MapViewModel {
         loadNearbyExperiences()
     }
 
+    /// Recompute the experiences shown on the map for the current origin,
+    /// distance, and active filters, refreshing markers and the info bar.
     public func loadNearbyExperiences() {
         // US-017: the experience set (and thus discovered cities) may have
         // changed since the last load — e.g. after an Explore added pins.
@@ -702,6 +708,8 @@ public final class MapViewModel {
         return nearby
     }
 
+    /// Apply (or clear, when nil) a category filter from the category pills,
+    /// clearing other active filters and refreshing the map.
     public func selectCategory(_ category: ExperienceCategory?) {
         selectedCategory = category
         selectedCustomTag = nil
@@ -712,6 +720,8 @@ public final class MapViewModel {
         scheduleAutoExploreForEmptyCategoryIfNeeded()
     }
 
+    /// Activate the "best right now" filter, clearing other filters and showing
+    /// only experiences well-suited to the current time of day.
     public func selectNowFilter() {
         isNowFilter = true
         selectedCategory = nil
@@ -720,6 +730,7 @@ public final class MapViewModel {
         updateBottomInfo()
     }
 
+    /// Reset all active map filters back to showing every nearby experience.
     public func clearFilters() {
         selectedCategory = nil
         selectedCustomTag = nil
@@ -797,6 +808,7 @@ public final class MapViewModel {
         updateBottomInfo()
     }
 
+    /// Select a map pin to surface its preview card and pan the camera to frame it.
     public func selectExperience(_ experience: Experience) {
         selectedExperience = experience
         // isShowingDetail stays false — card shows first, detail sheet on expand
@@ -839,6 +851,7 @@ public final class MapViewModel {
         }
     }
 
+    /// Close the expanded detail sheet, returning to the map view.
     public func dismissDetail() {
         isShowingDetail = false
     }
@@ -945,6 +958,8 @@ public final class MapViewModel {
 
     // MARK: - Bottom info bar
 
+    /// Refresh the bottom info bar with a time-of-day appropriate summary of
+    /// the currently visible experiences.
     public func updateBottomInfo() {
         // US-018: refresh the cached now-count here too — `isBestNow()` is
         // time-dependent, so a fresh count is needed whenever the bottom info
@@ -991,6 +1006,8 @@ public final class MapViewModel {
     /// a sun-gold border and warm gradient bg.
     public var aiSmartPickIds: [String] = []
 
+    /// Reorder the visible experiences using AI ranking and highlight the top
+    /// three as smart picks, leaving the list intact if ranking fails.
     public func runAIRanking() async {
         let candidates = visibleExperiences
         guard !candidates.isEmpty else { return }
@@ -1022,11 +1039,15 @@ public final class MapViewModel {
         pendingAddCoordinate = coordinate
     }
 
+    /// Abort the long-press add-experience flow, clearing the pending coordinate
+    /// and exiting voice-recording mode.
     public func cancelAddExperience() {
         pendingAddCoordinate = nil
         isRecordingNewExperience = false
     }
 
+    /// Confirm the long-pressed location and begin voice recording to describe
+    /// the new experience to add there.
     public func confirmAddExperience() {
         guard pendingAddCoordinate != nil else { return }
         isRecordingNewExperience = true
@@ -1081,6 +1102,8 @@ public final class MapViewModel {
         }
     }
 
+    /// Handle a spoken request by interpreting it through AI to filter and
+    /// recommend experiences, gating behind Pro and the data-use consent first.
     public func handleVoiceTranscript(_ transcript: String) async {
         // US-024: voice intent is Pro-only. Park the action and surface
         // the paywall when a free user taps the mic.

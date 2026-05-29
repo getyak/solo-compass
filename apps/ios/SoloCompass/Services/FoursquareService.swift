@@ -20,6 +20,7 @@ import Observation
 @MainActor
 @Observable
 public final class FoursquareService {
+    /// Failures that can occur while fetching nearby places from Foursquare.
     public enum FoursquareError: Error, LocalizedError {
         case invalidURL
         case missingAPIKey

@@ -9,6 +9,7 @@
 
 // MARK: - RouteId
 
+/// Strongly-typed identifier for a Route, preventing raw-string ID mix-ups.
 public struct RouteId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -16,12 +17,14 @@ public struct RouteId: RawRepresentable, Codable, Hashable, Sendable {
 
 // MARK: - Enums
 
+/// How leisurely or intense a route's pace is, from relaxed strolls to packed itineraries.
 public enum Pace: String, Codable, Sendable, CaseIterable {
     case relaxed
     case standard
     case packed
 }
 
+/// Where a route originated — editorial curation, AI generation, a user, or co-creation.
 public enum RouteSource: String, Codable, Sendable, CaseIterable {
     case editorial
     case aiGenerated
@@ -29,6 +32,7 @@ public enum RouteSource: String, Codable, Sendable, CaseIterable {
     case coCreated
 }
 
+/// How much real-world walking has validated a route, from merely proposed to fully verified.
 public enum VerificationStatus: String, Codable, Sendable, CaseIterable {
     case proposed
     case walkedBy
@@ -37,6 +41,7 @@ public enum VerificationStatus: String, Codable, Sendable, CaseIterable {
 
 // MARK: - RouteVerification
 
+/// Tracks who has walked a route and its resulting verification status.
 public struct RouteVerification: Codable, Hashable, Sendable {
     public var status: VerificationStatus
     public var walkedByCount: Int
@@ -55,6 +60,7 @@ public struct RouteVerification: Codable, Hashable, Sendable {
 
 // MARK: - Companion enums
 
+/// Lifecycle of a route's companion slot — whether it is open to joiners, forming, closed, or completed.
 public enum CompanionStatus: String, Codable, Sendable, CaseIterable {
     case open
     case forming
@@ -62,6 +68,7 @@ public enum CompanionStatus: String, Codable, Sendable, CaseIterable {
     case completed
 }
 
+/// A companion group's desired walking pace, including a flexible option that defers to the group.
 public enum PacePreference: String, Codable, Sendable, CaseIterable {
     case relaxed
     case standard
@@ -79,6 +86,7 @@ public enum RouteCompanionVisibility: String, Codable, Sendable, CaseIterable {
     case linkOnly
 }
 
+/// State of a request to join a route's companion slot, from pending through accepted, declined, or withdrawn.
 public enum JoinRequestStatus: String, Codable, Sendable, CaseIterable {
     case pending
     case accepted
@@ -88,6 +96,7 @@ public enum JoinRequestStatus: String, Codable, Sendable, CaseIterable {
 
 // MARK: - JoinRequestId (branded)
 
+/// Strongly-typed identifier for a JoinRequest, preventing raw-string ID mix-ups.
 public struct JoinRequestId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -95,6 +104,7 @@ public struct JoinRequestId: RawRepresentable, Codable, Hashable, Sendable {
 
 // MARK: - JoinRequest
 
+/// A user's request to join a route's companion group, with their message and current status.
 public struct JoinRequest: Codable, Hashable, Sendable, Identifiable {
     public let id: JoinRequestId
     public var requesterId: String
@@ -120,6 +130,7 @@ public struct JoinRequest: Codable, Hashable, Sendable, Identifiable {
 
 // MARK: - DepartureWindow
 
+/// The date range and time hint during which a companion group plans to set out.
 public struct DepartureWindow: Codable, Hashable, Sendable {
     /// ISO 8601 date (YYYY-MM-DD) for the window start.
     public var from: String
@@ -137,6 +148,7 @@ public struct DepartureWindow: Codable, Hashable, Sendable {
 
 // MARK: - RouteCompanion
 
+/// The companion slot attached to a route — its host, members, join requests, and departure plans.
 public struct RouteCompanion: Codable, Hashable, Sendable {
     public var status: CompanionStatus
     public var hostId: String
@@ -194,6 +206,7 @@ public struct RouteCompanion: Codable, Hashable, Sendable {
 
 // MARK: - Route
 
+/// An ordered sequence of experiences to walk, with pacing, verification, and an optional companion slot.
 public struct Route: Identifiable, Codable, Sendable {
     public let id: RouteId
     public var title: String

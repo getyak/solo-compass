@@ -10,6 +10,7 @@ import Observation
 @MainActor
 @Observable
 public final class LanguageService {
+    /// The languages a traveler can pick from in settings, plus the option to follow the device.
     public enum Option: String, CaseIterable, Identifiable, Sendable {
         case system
         case english = "en"

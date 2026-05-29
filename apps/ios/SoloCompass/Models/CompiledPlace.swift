@@ -4,6 +4,7 @@ import MapKit
 
 // MARK: - SourceTag
 
+/// Identifies which external data provider a place field came from, preserving provenance.
 public enum SourceTag: String, Codable, Hashable {
     case osm
     case foursquare
@@ -13,6 +14,7 @@ public enum SourceTag: String, Codable, Hashable {
 
 // MARK: - TaggedField
 
+/// Wraps a place attribute with the source it came from and when it was fetched, so provenance travels with the value.
 public struct TaggedField<T: Codable & Hashable>: Codable, Hashable {
     public let value: T
     public let source: SourceTag
@@ -66,6 +68,7 @@ public struct CompiledPlace: Hashable {
 
     // MARK: Hashable
 
+    /// Two compiled places are equal when their name, coordinate, and source count match.
     public static func == (lhs: CompiledPlace, rhs: CompiledPlace) -> Bool {
         lhs.name.value == rhs.name.value
             && lhs.coordinate.latitude == rhs.coordinate.latitude
@@ -73,6 +76,7 @@ public struct CompiledPlace: Hashable {
             && lhs.sourcesCount == rhs.sourcesCount
     }
 
+    /// Hashes a compiled place using its name, coordinate, and source count.
     public func hash(into hasher: inout Hasher) {
         hasher.combine(name.value)
         hasher.combine(coordinate.latitude)

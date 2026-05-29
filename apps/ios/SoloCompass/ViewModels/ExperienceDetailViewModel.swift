@@ -94,6 +94,8 @@ public final class ExperienceDetailViewModel {
     /// Updated synchronously inside toggleComplete so callers can read it immediately.
     public private(set) var completedCount: Int = 0
 
+    /// Toggle the experience's "visited" state for the current user, updating
+    /// completion status and visit count on the detail screen.
     public func toggleComplete() {
         if isCompleted {
             preferences.completedExperiences.remove(experience.id)
@@ -108,11 +110,15 @@ public final class ExperienceDetailViewModel {
         completedCount = preferences.completedExperiences.count
     }
 
+    /// Add or remove this experience from the user's favorites when they tap
+    /// the heart on the detail screen.
     public func toggleFavorite() {
         preferences.toggleFavorite(experience.id)
         isFavorited = preferences.isFavorited(experience.id)
     }
 
+    /// Populate the AI Insight section with a personalized explanation of why
+    /// this experience matters, gated behind Pro and skipped for unsynthesized entries.
     public func loadAIExplanation() async {
         // US-026: free users see an upgrade teaser rather than the loading spinner.
         guard isProUser else {
@@ -143,6 +149,8 @@ public final class ExperienceDetailViewModel {
         }
     }
 
+    /// Resolve the experience's linked nearby IDs into full records for the
+    /// "nearby" carousel on the detail screen.
     public func loadNearby() {
         nearbyExperiences = experience.nearbyExperienceIds.compactMap {
             experienceService.getExperience(id: $0)

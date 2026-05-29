@@ -16,6 +16,8 @@ import SwiftData
 public final class AIService {
     private static let logger = Logger(subsystem: "com.solocompass", category: "AIService")
 
+    /// The solo traveler's current situation — where they are, when, and
+    /// what they like — used to tailor experience recommendations.
     public struct UserContext {
         public let location: CLLocationCoordinate2D?
         public let date: Date
@@ -38,6 +40,8 @@ public final class AIService {
         }
     }
 
+    /// The AI's reply to a voice intent: which experiences to surface, a
+    /// warm explanation for the traveler, and an optional category filter.
     public struct AIResponse: Codable, Hashable {
         public let recommendedIds: [String]
         public let explanation: String
@@ -50,6 +54,8 @@ public final class AIService {
         }
     }
 
+    /// Failure modes when talking to the AI backend — no key configured,
+    /// the request failed, or the response couldn't be decoded.
     public enum AIError: Error, LocalizedError {
         case missingAPIKey
         case requestFailed(status: Int, body: String)
@@ -162,6 +168,8 @@ public final class AIService {
 
     // MARK: - Public
 
+    /// Rank candidate experiences for the traveler's current context,
+    /// returning the top picks; falls back to Solo Score when AI is offline.
     public func recommendExperiences(
         from candidates: [Experience],
         context: UserContext
@@ -183,6 +191,8 @@ public final class AIService {
         }
     }
 
+    /// Generate one warm, grounded sentence on why a solo traveler would
+    /// value visiting this specific place.
     public func explainRecommendation(for experience: Experience) async throws -> String {
         // Feed the model the actual place — name, category, city, and
         // coordinate. Passing only the opaque id (the previous behaviour)
@@ -209,6 +219,8 @@ public final class AIService {
         }
     }
 
+    /// Interpret what the traveler said aloud and turn it into experience
+    /// recommendations plus a spoken-style reply.
     public func processVoiceIntent(
         transcript: String,
         near coordinate: CLLocationCoordinate2D,

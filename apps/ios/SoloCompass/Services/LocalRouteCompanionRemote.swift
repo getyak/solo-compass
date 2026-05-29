@@ -19,6 +19,7 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
 
     // MARK: - RouteCompanionRemote
 
+    /// Fetches routes currently recruiting companions in the given city.
     public func fetchRecruitingRoutes(cityCode: String) async throws -> [Route] {
         store.all().filter {
             $0.cityCode == cityCode
@@ -26,6 +27,7 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
         }
     }
 
+    /// Submits a request to join a route's companion group with a message and pace preference.
     public func sendJoinRequest(routeId: RouteId, message: String, pace: String) async throws {
         guard var route = store.get(routeId) else { return }
         guard var companion = route.companion else {
@@ -47,6 +49,7 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
         store.save(route)
     }
 
+    /// Fetches the host's pending join requests awaiting a decision.
     public func fetchInbox() async throws -> [JoinRequest] {
         let hostId = DeviceIdentityService.shared.deviceID
         return store.all().flatMap { route -> [JoinRequest] in
@@ -55,6 +58,7 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
         }
     }
 
+    /// Accepts a join request, adding the requester to the route's companion group and forming its group chat.
     public func accept(_ request: JoinRequest, route: Route) async throws {
         guard var updated = store.get(route.id),
               var companion = updated.companion,
@@ -121,6 +125,7 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
         }
     }
 
+    /// Declines a join request, leaving the companion group unchanged.
     public func decline(_ request: JoinRequest, route: Route) async throws {
         guard var updated = store.get(route.id) else { return }
         guard var companion = updated.companion else {
@@ -136,6 +141,7 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
         store.save(updated)
     }
 
+    /// Withdraws a previously submitted join request.
     public func withdraw(_ request: JoinRequest, route: Route) async throws {
         guard var updated = store.get(route.id) else { return }
         guard var companion = updated.companion else {
@@ -151,6 +157,7 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
         store.save(updated)
     }
 
+    /// Marks a route as completed, verifying it and crediting the confirmed companions as walkers.
     public func markCompleted(routeId: RouteId) async throws {
         guard var route = store.get(routeId) else { return }
         guard var companion = route.companion else {

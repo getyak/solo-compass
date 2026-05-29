@@ -5,6 +5,7 @@
 
 // MARK: - CompanionPostId
 
+/// Strongly-typed identifier for a companion post, preventing raw-string ID mix-ups.
 public struct CompanionPostId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -12,6 +13,7 @@ public struct CompanionPostId: RawRepresentable, Codable, Hashable, Sendable {
 
 // MARK: - CompanionPostMode
 
+/// Whether a companion post is tied to a planned trip or to open-ended local availability.
 public enum CompanionPostMode: String, Codable, Sendable {
     case itinerary
     case nearby
@@ -19,6 +21,7 @@ public enum CompanionPostMode: String, Codable, Sendable {
 
 // MARK: - CompanionPost
 
+/// A discoverable post where a user signals openness to meeting travel companions.
 public struct CompanionPost: Identifiable, Codable, Sendable {
     public let id: CompanionPostId
     public let authorId: String

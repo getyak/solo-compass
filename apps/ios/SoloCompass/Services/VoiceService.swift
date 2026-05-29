@@ -16,6 +16,7 @@ import Observation
 @MainActor
 @Observable
 public final class VoiceService {
+    /// Failures that can occur while capturing and transcribing the traveler's speech.
     public enum VoiceError: Error, LocalizedError {
         case permissionDenied
         case recognizerUnavailable
@@ -146,6 +147,7 @@ public final class VoiceService {
         return stream
     }
 
+    /// Stops voice capture and tears down the audio session.
     public func stopListening() {
         cleanup()
     }

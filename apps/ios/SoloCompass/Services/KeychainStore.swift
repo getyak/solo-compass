@@ -49,6 +49,7 @@ public enum KeychainStore {
         return status == errSecSuccess
     }
 
+    /// Removes a stored secret for the given account from the Keychain.
     @discardableResult
     public static func delete(account: String) -> Bool {
         let query: [String: Any] = [

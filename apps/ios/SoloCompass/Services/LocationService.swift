@@ -45,6 +45,8 @@ public final class LocationService: NSObject {
         self.manager.distanceFilter = 50 // refresh after 50m of movement
     }
 
+    /// Ask the user for location access, escalating from when-in-use to
+    /// always so the app can fire geofence check-ins in the background.
     public func requestPermission() {
         switch manager.authorizationStatus {
         case .notDetermined:
@@ -61,6 +63,8 @@ public final class LocationService: NSObject {
         }
     }
 
+    /// Begin tracking the traveler's location and compass heading to power
+    /// the map and the directional "walk this way" arrow.
     public func startUpdating() {
         guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
             return
@@ -76,6 +80,8 @@ public final class LocationService: NSObject {
         manager.pausesLocationUpdatesAutomatically = true
     }
 
+    /// Stop tracking location and heading, e.g. to conserve battery when
+    /// the map is not in use.
     public func stopUpdating() {
         manager.stopUpdatingLocation()
         if CLLocationManager.headingAvailable() {
@@ -109,6 +115,8 @@ public final class LocationService: NSObject {
         }
     }
 
+    /// Tear down all geofences this service installed, so no further
+    /// arrival or departure check-ins fire.
     public func stopMonitoringAll() {
         for id in monitoredIdentifiers {
             if let region = manager.monitoredRegions.first(where: { $0.identifier == id }) {
@@ -172,6 +180,8 @@ public final class LocationService: NSObject {
 }
 
 extension LocationService: CLLocationManagerDelegate {
+    /// Reacts when the user grants or revokes location access, starting
+    /// tracking (and background updates) once permission allows.
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         Task { @MainActor in
@@ -188,6 +198,8 @@ extension LocationService: CLLocationManagerDelegate {
         }
     }
 
+    /// Receives a fresh GPS fix and publishes it as the traveler's current
+    /// location for the map and distance calculations.
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let last = locations.last else { return }
         Task { @MainActor in
@@ -195,12 +207,16 @@ extension LocationService: CLLocationManagerDelegate {
         }
     }
 
+    /// Records a location-tracking failure so the UI can surface a
+    /// "can't find you" state.
     public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
             self.lastError = error
         }
     }
 
+    /// Receives a compass heading update so the directional arrow can point
+    /// the traveler toward an experience.
     public func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
         guard newHeading.headingAccuracy >= 0 else { return }
         Task { @MainActor in
@@ -208,6 +224,8 @@ extension LocationService: CLLocationManagerDelegate {
         }
     }
 
+    /// Fires when the traveler arrives at a monitored experience, recording
+    /// a pending check-in and prompting them to log the visit.
     public func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         guard monitoredIdentifiers.contains(region.identifier) else { return }
         let expTitle = monitoredVisits[region.identifier]?.title ?? region.identifier
@@ -224,6 +242,8 @@ extension LocationService: CLLocationManagerDelegate {
         }
     }
 
+    /// Fires when the traveler leaves a monitored experience's geofence,
+    /// notifying observers of the departure.
     public func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
         guard monitoredIdentifiers.contains(region.identifier) else { return }
         Task { @MainActor in

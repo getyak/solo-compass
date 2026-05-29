@@ -1,6 +1,7 @@
 
 // MARK: - CompanionEvent
 
+/// Actions that move a companion meetup through its lifecycle, such as someone joining or it closing.
 public enum CompanionEvent: String, Sendable {
     case acceptFirst
     case acceptAdditional
@@ -11,8 +12,10 @@ public enum CompanionEvent: String, Sendable {
 
 // MARK: - RouteCompanionStateMachine
 
+/// Rules governing how a companion meetup progresses from open to forming to closed.
 public enum RouteCompanionStateMachine {
 
+    /// Raised when a companion event cannot be applied to the meetup's current state.
     public struct IllegalTransition: Error {
         public let state: CompanionStatus
         public let event: CompanionEvent

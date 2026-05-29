@@ -21,6 +21,7 @@ public protocol ReverseGeocoding: AnyObject {
 public final class ReverseGeocodeService: ReverseGeocoding {
     private static let logger = Logger(subsystem: "com.solocompass", category: "ReverseGeocodeService")
 
+    /// The city a coordinate resolves to, used to anchor the traveler to a known location.
     public struct Resolved: Equatable, Sendable {
         public let cityCode: String       // slug like "vn-hanoi"
         public let name: String           // localized "Hanoi"

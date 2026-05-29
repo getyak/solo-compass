@@ -5,6 +5,7 @@
 
 // MARK: - CompanionProfileId
 
+/// Strongly-typed identifier for a CompanionProfile, preventing raw-string ID mix-ups.
 public struct CompanionProfileId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -12,6 +13,7 @@ public struct CompanionProfileId: RawRepresentable, Codable, Hashable, Sendable 
 
 // MARK: - CompanionVisibility
 
+/// Controls whether and to whom a user appears in companion discovery.
 public enum CompanionVisibility: String, Codable, CaseIterable, Sendable {
     /// User never appears in any discovery list. Default.
     case off
@@ -23,6 +25,7 @@ public enum CompanionVisibility: String, Codable, CaseIterable, Sendable {
 
 // MARK: - CompanionProfile
 
+/// A user's public-facing companion identity — avatar, bio, languages, and discovery visibility.
 public struct CompanionProfile: Identifiable, Codable, Sendable {
     public let id: CompanionProfileId
     public let userId: String

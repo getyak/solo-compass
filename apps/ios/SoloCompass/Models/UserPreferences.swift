@@ -14,6 +14,7 @@ import UIKit
 public final class UserPreferences {
     private static let logger = Logger(subsystem: "com.solocompass", category: "UserPreferences")
 
+    /// The traveler's self-described style, used to tailor experience recommendations.
     public enum SoloTravelStyle: String, Codable, CaseIterable, Identifiable {
         case explorer, worker, foodie, cultureSeeker
         public var id: String { rawValue }
@@ -509,6 +510,7 @@ public final class UserPreferences {
 
     // MARK: - Convenience mutations
 
+    /// Records that the user finished an experience, updating completion and visit history.
     public func markCompleted(_ id: String, at date: Date = Date()) {
         completedExperiences.insert(id)
         visitHistory[id] = date
@@ -537,6 +539,7 @@ public final class UserPreferences {
         }
     }
 
+    /// Adds or removes an experience from the user's favorites.
     public func toggleFavorite(_ id: String, at date: Date = Date()) {
         let nowFavorited: Bool
         if favoritedExperiences.contains(id) {
@@ -559,6 +562,7 @@ public final class UserPreferences {
         }
     }
 
+    /// Marks the first-run onboarding flow as finished so it won't be shown again.
     public func completeOnboarding() {
         hasCompletedOnboarding = true
     }
@@ -634,10 +638,12 @@ public final class UserPreferences {
         return completedExperiences.contains(id)
     }
 
+    /// Tracks that the user arrived at an experience but hasn't yet confirmed a check-in.
     public func recordPendingCheckIn(_ id: String, at date: Date = Date()) {
         pendingCheckIns[id] = date
     }
 
+    /// Removes a pending check-in once it has been resolved or dismissed.
     public func clearPendingCheckIn(_ id: String) {
         pendingCheckIns.removeValue(forKey: id)
     }

@@ -3,6 +3,7 @@ import MapKit
 
 // MARK: - Supporting types (Swift mirror of packages/core/src/llm-context.ts)
 
+/// Current weather conditions used to tailor recommendations to the moment.
 public struct WeatherSnapshot: Codable, Sendable {
     public let condition: String
     public let tempCelsius: Double
@@ -16,6 +17,7 @@ public struct WeatherSnapshot: Codable, Sendable {
     }
 }
 
+/// Geographic bounds of the map area currently visible to the user.
 public struct ViewportBBox: Codable, Sendable {
     public let minLon: Double
     public let minLat: Double
@@ -30,6 +32,7 @@ public struct ViewportBBox: Codable, Sendable {
     }
 }
 
+/// The traveler's preferences distilled into the form the LLM needs for personalization.
 public struct LLMContextPreferences: Codable, Sendable {
     public let soloTravelStyle: String
     public let preferredCategories: [String]
@@ -42,6 +45,7 @@ public struct LLMContextPreferences: Codable, Sendable {
     }
 }
 
+/// A snapshot of the traveler's current situation (location, map view, preferences, time, weather) passed to the LLM on every call.
 public struct LLMContext: Codable, Sendable {
     /// [longitude, latitude] or nil when permission denied.
     public let location: [Double]?
@@ -69,6 +73,7 @@ public struct LLMContext: Codable, Sendable {
         self.weather = weather
     }
 
+    /// Serializes the snapshot to a JSON string for inclusion in an LLM prompt.
     public func jsonString() -> String? {
         guard let data = try? JSONEncoder.iso8601Encoder.encode(self) else { return nil }
         return String(data: data, encoding: .utf8)
@@ -77,6 +82,7 @@ public struct LLMContext: Codable, Sendable {
 
 // MARK: - Protocol
 
+/// Supplies a fresh snapshot of the traveler's current context for grounding LLM responses.
 public protocol ContextManager: Sendable {
     /// Produce a fresh LLMContext snapshot. Must complete in < 50 ms.
     func snapshot() async -> LLMContext
@@ -102,6 +108,7 @@ public actor DefaultContextManager: ContextManager {
         self.viewportProvider = viewportProvider
     }
 
+    /// Gathers live location, viewport, preferences, and time into an LLMContext snapshot.
     public func snapshot() async -> LLMContext {
         // Capture live state off the actor.
         let (rect, allPois) = viewportProvider()

@@ -53,12 +53,14 @@ public final class AgentRouter {
 
     // MARK: - Public API
 
+    /// Begins a voice/chat session, putting the assistant into a listening state.
     public func start() {
         guard !isRunning else { return }
         isRunning = true
         uiState = .listening
     }
 
+    /// Ends the active session, halting playback and clearing transient state.
     public func stop() {
         isRunning = false
         streamingContent = ""

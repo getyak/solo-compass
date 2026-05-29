@@ -7,6 +7,7 @@ import Observation
 public final class ThemeService {
     public static let shared = ThemeService()
 
+    /// The visual themes a traveler can select, or following the system appearance.
     public enum ThemeOption: String, CaseIterable, Identifiable {
         case system = "System"
         case obsidian = "Obsidian"
