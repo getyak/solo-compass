@@ -19,6 +19,7 @@ public struct ExperienceCardView: View {
     @State private var heartBurst = false
     @State private var arrivedPulse = false
     @State private var didFireArrival = false
+    @State private var arrivalGlow = false
 
     private static let arrivedThresholdMeters = 75.0
 
@@ -259,9 +260,17 @@ public struct ExperienceCardView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.green.opacity(arrivalGlow ? 0 : 0.7), lineWidth: 3)
+                    .scaleEffect(arrivalGlow ? 1.25 : 1.0)
+                    .animation(.easeOut(duration: 0.8), value: arrivalGlow)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.regularMaterial)
+                    .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
+            }
         )
         .offset(y: totalOffset)
         .opacity(dragOpacity)
@@ -299,6 +308,13 @@ public struct ExperienceCardView: View {
             guard arrived, !didFireArrival else { return }
             didFireArrival = true
             Haptics.notify(.success)
+            if !reduceMotion {
+                arrivalGlow = true
+                Task {
+                    try? await Task.sleep(nanoseconds: 800_000_000)
+                    arrivalGlow = false
+                }
+            }
         }
         .onAppear {
             Haptics.impact(.light)
