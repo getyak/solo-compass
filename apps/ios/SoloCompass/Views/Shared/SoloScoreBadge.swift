@@ -9,6 +9,7 @@ public struct SoloScoreBadge: View {
 
     @State private var animatedScore: Double = 0
     @State private var appeared = false
+    @State private var showBreakdown = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(score: SoloScore, style: Style = .compact) {
@@ -26,31 +27,43 @@ public struct SoloScoreBadge: View {
     private var isExcellent: Bool { score.overall >= 8.5 }
 
     private var compactView: some View {
-        HStack(spacing: 4) {
-            if isExcellent {
-                Image(systemName: "star.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.95))
+        Button {
+            showBreakdown.toggle()
+            if !reduceMotion {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
-            Text(NSLocalizedString("solo.label", comment: "Solo"))
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.9))
-            Text(formatted(animatedScore))
-                .font(.caption.bold())
-                .foregroundStyle(.white)
-                .monospacedDigit()
-                .contentTransition(.numericText(value: animatedScore))
+        } label: {
+            HStack(spacing: 4) {
+                if isExcellent {
+                    Image(systemName: "star.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.95))
+                }
+                Text(NSLocalizedString("solo.label", comment: "Solo"))
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.9))
+                Text(formatted(animatedScore))
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: animatedScore))
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule().fill(score.scoreColor.opacity(0.95))
+            )
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            Capsule().fill(score.scoreColor.opacity(0.95))
-        )
+        .buttonStyle(.plain)
+        .popover(isPresented: $showBreakdown) {
+            SoloScorePopoverContent(score: score)
+        }
         .scaleEffect(appeared ? 1 : 0.7)
         .opacity(appeared ? 1 : 0)
         .onAppear {
             if reduceMotion {
                 appeared = true
+                animatedScore = score.overall
             } else {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
                     appeared = true
@@ -63,9 +76,15 @@ public struct SoloScoreBadge: View {
                     + ", " + NSLocalizedString("solo.excellent.a11y", comment: "Excellent for solo travelers")
                 : String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"), formatted(score.overall))
         ))
+        .accessibilityHint(Text(NSLocalizedString("solo.compact.a11y.hint", comment: "Double tap to see score breakdown")))
+        .accessibilityAddTraits(.isButton)
         .onChange(of: score.overall) { _, _ in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
-                appeared = true
+            if reduceMotion {
+                animatedScore = score.overall
+            } else {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                    appeared = true
+                }
             }
         }
     }
@@ -123,6 +142,91 @@ public struct SoloScoreBadge: View {
     }
 }
 
+private struct SoloScorePopoverContent: View {
+    let score: SoloScore
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private struct DimensionRow {
+        let labelKey: String
+        let value: Double
+    }
+
+    private var dimensions: [DimensionRow] {
+        [
+            DimensionRow(labelKey: "solo.dim.seating",    value: score.breakdown.seatingFriendly),
+            DimensionRow(labelKey: "solo.dim.ratio",      value: score.breakdown.soloPatronRatio),
+            DimensionRow(labelKey: "solo.dim.pressure",   value: score.breakdown.staffPressure),
+            DimensionRow(labelKey: "solo.dim.portioning", value: score.breakdown.soloPortioning),
+            DimensionRow(labelKey: "solo.dim.ambiance",   value: score.breakdown.ambianceFit),
+            DimensionRow(labelKey: "solo.dim.safety",     value: score.breakdown.safety),
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(NSLocalizedString("solo.breakdown.title", comment: "Solo Score breakdown"))
+                    .font(.headline)
+                Spacer()
+                Text(String(format: "%.1f", score.overall))
+                    .font(.title3.bold())
+                    .foregroundStyle(score.scoreColor)
+                    .monospacedDigit()
+            }
+
+            if let hint = score.hint {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            ForEach(Array(dimensions.enumerated()), id: \.offset) { _, row in
+                dimensionRow(label: NSLocalizedString(row.labelKey, comment: ""), value: row.value)
+            }
+        }
+        .padding()
+        .frame(minWidth: 240)
+        .presentationCompactAdaptation(.popover)
+        .opacity(appeared ? 1 : 0)
+        .onAppear {
+            if reduceMotion {
+                appeared = true
+            } else {
+                withAnimation(.easeIn(duration: 0.2)) {
+                    appeared = true
+                }
+            }
+        }
+    }
+
+    private func dimensionRow(label: String, value: Double) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(String(format: "%.1f", value))
+                    .font(.caption.weight(.medium))
+                    .monospacedDigit()
+            }
+            GeometryReader { geo in
+                Capsule()
+                    .fill(Color.secondary.opacity(0.2))
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(score.scoreColor.opacity(0.8))
+                            .frame(width: geo.size.width * CGFloat(max(0, min(10, value)) / 10))
+                    }
+            }
+            .frame(height: 4)
+        }
+    }
+}
+
 #Preview {
     let excellentScore = SoloScore(
         overall: 8.7,
@@ -170,4 +274,17 @@ public struct SoloScoreBadge: View {
         }
     }
     return CompactCountUpPreview()
+}
+
+#Preview("Score Breakdown Popover") {
+    let score = SoloScore(
+        overall: 7.8,
+        breakdown: .init(seatingFriendly: 8, soloPatronRatio: 7, staffPressure: 9, soloPortioning: 6, ambianceFit: 8, safety: 9),
+        hint: "Corner seats by the window are ideal.",
+        basedOnCount: 11
+    )
+    SoloScorePopoverContent(score: score)
+        .padding()
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding()
 }
