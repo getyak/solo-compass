@@ -1,11 +1,11 @@
 # PRD: Full Fix Roadmap — Solo Compass iOS
 
 | 字段         | 值                                                                       |
-| ------------ | ------------------------------------------------------------------------ |
+| ------------ | ------------------------------------------------------------------------ | ------------------------------------------------- |
 | 版本         | v1.0                                                                     |
 | 状态         | 草稿 → 待评审                                                            |
 | 创建日期     | 2026-05-29                                                               |
-| 基线         | `main @ 0252ce3` · `feat/comparecanvas-verified-badge-3-tier @ b225080`  |
+| 基线         | `main @ 0252ce3` · `feat/comparecanvas-verified-badge-3-tier @ b225080`  | <!-- anti-pattern-lint:allow real branch name --> |
 | 依据         | `docs/EVAL_REPORT.md` (v2) + 6 个 agent 测评                             |
 | 范围         | apps/ios/SoloCompass（**只** iOS；Web / Bot / Edge Function 不在本 PRD） |
 | 预计交付窗口 | 4 周（10 个 PR P0 → 5 个 PR P1 → 3 个 PR P2 → 3 个 PR 路线图）           |
@@ -396,7 +396,7 @@
 
 - [ ] 提取 `BestNowClock: ObservableObject` 单例，每 60s tick
 - [ ] BestNowBadge 监听 clock 而非自带 TimelineView
-- [ ] 新增 `BestNowBadgeClockTest`：100 badge 共用 1 个 clock，main-thread overhead ↓
+- [ ] 新增 `BestNowClockTest`：100 个 best-now 体验共用 1 个 clock，main-thread overhead ↓
 - [ ] Simulator: explore 20+ best-now，无可见卡顿
 - [ ] Typecheck / lint 通过
 
@@ -708,7 +708,7 @@ P2 每条 AC 仍要求 XCTest + 手测，但 VoiceOver/Sentry 视类型可选。
 ```
 PR-1 (US-P0-001 force-unwrap)       ──┐
 PR-2 (US-P0-002 SyncService)         ──┤
-PR-3 (US-P0-003 AI skeleton badge)    ◄── 依赖 PR-2 共享 Sentry pattern
+PR-3 (US-P0-003 AI skeleton pill)    ◄── 依赖 PR-2 共享 Sentry pattern
 PR-4 (US-P0-004 AnyView)             ──┐
 PR-5 (US-P1-001..003 perf 三件套)     ◄── 必须 baseline 在 PR-4 后采
 PR-6 (US-P0-005..006 a11y P0 批)
