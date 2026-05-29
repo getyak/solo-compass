@@ -1006,6 +1006,12 @@
 "sort.soloScore" = "Solo 分";
 "sort.now" = "此刻";
 
+/* US-030 — Sort button VoiceOver accessibilityValue (announces current sort mode) */
+"sort.value.smart" = "Sorted by smart";
+"sort.value.distance" = "Sorted by distance";
+"sort.value.soloScore" = "Sorted by Solo score";
+"sort.value.now" = "Sorted by now";
+
 /* US-022 — VerifiedBadge */
 "verified.title.verified" = "已验证路线";
 "verified.title.watching" = "社群观察中";

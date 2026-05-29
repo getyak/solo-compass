@@ -22,6 +22,13 @@ public enum SortMode: String, CaseIterable, Identifiable {
         case .now:       return NSLocalizedString("sort.now",       comment: "Sort: now")
         }
     }
+
+    /// US-030: VoiceOver accessibilityValue announcing the active sort mode
+    /// (e.g. "Sorted by smart"). Keyed off the raw mode so each case maps to
+    /// its own `sort.value.<mode>` localized string.
+    var accessibilityValue: String {
+        NSLocalizedString("sort.value.\(rawValue)", comment: "Sort accessibility value: current mode")
+    }
 }
 
 // MARK: - Constants
@@ -363,6 +370,7 @@ struct SortCountToolbar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(NSLocalizedString("sheet.sort.button", comment: "Sort")))
+        .accessibilityValue(Text(sortMode.accessibilityValue))
     }
 
     private var countBadge: some View {

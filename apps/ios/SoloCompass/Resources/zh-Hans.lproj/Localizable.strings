@@ -1093,6 +1093,12 @@
 "sort.soloScore" = "Solo 评分";
 "sort.now" = "此刻";
 
+/* US-030 — 排序按钮 VoiceOver accessibilityValue（朗读当前排序方式） */
+"sort.value.smart" = "按智能排序";
+"sort.value.distance" = "按距离排序";
+"sort.value.soloScore" = "按 Solo 评分排序";
+"sort.value.now" = "按此刻排序";
+
 /* Stops */
 "stops.start" = "出发";
 
