@@ -820,6 +820,8 @@
 
 /* AI hints */
 "ai.now.hint" = "当下最适合的地方";
+/* US-015 — BottomInfoSheet now-mode headline */
+"sheet.now.headline" = "此刻最适合的好去处";
 
 /* AI Provider settings */
 "ai.provider.settings.title" = "AI 提供商";

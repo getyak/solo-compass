@@ -983,6 +983,8 @@
 
 /* US-018 — BottomInfoSheet peek toolbar */
 "ai.now.hint" = "Good spots for right now";
+/* US-015 — BottomInfoSheet now-mode headline */
+"sheet.now.headline" = "Good spots for right now";
 "sheet.sort.button" = "Sort";
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";

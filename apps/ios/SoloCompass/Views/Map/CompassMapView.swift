@@ -327,7 +327,9 @@ public struct CompassMapView: View {
 
                 ZStack(alignment: .bottom) {
                     BottomInfoSheet(
-                        aiHint: NSLocalizedString("ai.now.hint", comment: "AI now hint"),
+                        aiHint: viewModel.isNowFilter
+                            ? NSLocalizedString("sheet.now.headline", comment: "Bottom sheet now-mode headline")
+                            : NSLocalizedString("ai.now.hint", comment: "AI now hint"),
                         count: viewModel.isNowFilter
                             ? viewModel.nowCount
                             : viewModel.visibleExperiences.count,
