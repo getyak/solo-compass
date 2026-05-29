@@ -32,33 +32,33 @@ public struct VerifiedBadge: View {
         case .badge:
             badgeBody
         case .header:
-            EmptyView()
+            headerBody
         case .inline:
-            EmptyView()
+            inlineBody
         }
     }
 
-    // MARK: - Badge style
+    // MARK: - Badge style (default — independent card below hero)
 
     private var badgeBody: some View {
         HStack(spacing: 10) {
             glyphIcon
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(isVerified ? Color.accentColor : Color.secondary)
+                .foregroundStyle(isVerified ? CT.accent : CT.fgMuted)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(isVerified
                     ? NSLocalizedString("verified.title.verified", comment: "")
                     : NSLocalizedString("verified.title.watching", comment: ""))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .font(CT.display(13, .semibold))
+                    .foregroundStyle(CT.fgPrimary)
 
                 Text(String(
                     format: NSLocalizedString("verified.subtitle", comment: ""),
                     walkedByCount
                 ))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .font(CT.body(12))
+                    .foregroundStyle(CT.fgMuted)
             }
 
             Spacer(minLength: 0)
@@ -74,9 +74,67 @@ public struct VerifiedBadge: View {
                 .fill(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color(hex: "#EDE8DF") ?? Color(.separator), lineWidth: 1)
+                        .strokeBorder(CT.accentBorder, lineWidth: 1)
                 )
         )
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Header style (strong — top status banner)
+
+    private var headerBody: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.white)
+                .frame(width: 6, height: 6)
+
+            Text(isVerified
+                ? NSLocalizedString("verified.title.verified", comment: "")
+                : NSLocalizedString("verified.title.watching", comment: ""))
+                .font(CT.display(12, .semibold))
+                .foregroundStyle(Color.white)
+
+            Spacer(minLength: 4)
+
+            if !walkedByIds.isEmpty {
+                AvatarStack(ids: walkedByIds, maxVisible: 4, size: 18, ring: isVerified ? CT.toneCompleted : CT.fgMuted)
+            }
+            Text(String(
+                format: NSLocalizedString("verified.subtitle", comment: ""),
+                walkedByCount
+            ))
+                .font(CT.mono(10, .medium))
+                .foregroundStyle(Color.white.opacity(0.85))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isVerified ? CT.toneCompleted : CT.fgMuted)
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Inline style (quietest — text-flow pill)
+
+    private var inlineBody: some View {
+        HStack(spacing: 4) {
+            Image(systemName: isVerified ? "checkmark.circle.fill" : "person.2.fill")
+                .font(.system(size: 10, weight: .semibold))
+            Text(String(
+                format: NSLocalizedString("verified.inline", comment: ""),
+                isVerified
+                    ? NSLocalizedString("verified.short.verified", comment: "")
+                    : NSLocalizedString("verified.short.watching", comment: ""),
+                walkedByCount
+            ))
+                .font(CT.body(11, .medium))
+        }
+        .foregroundStyle(isVerified ? CT.toneCompleted : CT.fgMuted)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(
+            Capsule().fill((isVerified ? CT.toneCompleted : CT.fgMuted).opacity(0.10))
+        )
+        .accessibilityElement(children: .combine)
     }
 
     private var glyphIcon: Image {
