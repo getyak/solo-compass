@@ -188,7 +188,7 @@ public struct AddToItinerarySheet: View {
     private func addExperience(to itin: Itinerary) {
         do {
             try store.addExperience(experienceId, to: itin.id)
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.notify(.success)
             withAnimation { addedToId = itin.id }
             reload()
             // Capture the updated itinerary for the success callback.
@@ -200,7 +200,7 @@ public struct AddToItinerarySheet: View {
                 }
             }
         } catch {
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            Haptics.notify(.error)
             errorMessage = error.localizedDescription
         }
     }
