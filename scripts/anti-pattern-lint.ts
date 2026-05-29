@@ -78,6 +78,7 @@ function scan(diff: string): Hit[] {
       currentFile === "scripts/anti-pattern-lint.ts" ||
       currentFile === "docs/PRIVACY.md" ||
       currentFile === "CLAUDE.md" ||
+      currentFile === "prd.json" ||
       currentFile === "scripts/ralph/prd.json" ||
       currentFile.startsWith("scripts/ralph/archive/")
     ) {
