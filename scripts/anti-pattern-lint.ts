@@ -70,10 +70,15 @@ function scan(diff: string): Hit[] {
 
     // Skip the lint script itself — it legitimately mentions every keyword.
     // Skip archived Ralph runs — frozen historical artefacts, not shipped product.
+    // Skip the live Ralph PRD — its acceptance criteria reference SwiftUI
+    // component names (VerifiedBadge / SkeletonBadgeView / BestNowBadge) which
+    // are existing UI affordances, not engagement-loop gamification; JSON has
+    // no comment syntax so an inline `:allow` is impossible.
     if (
       currentFile === "scripts/anti-pattern-lint.ts" ||
       currentFile === "docs/PRIVACY.md" ||
       currentFile === "CLAUDE.md" ||
+      currentFile === "scripts/ralph/prd.json" ||
       currentFile.startsWith("scripts/ralph/archive/")
     ) {
       continue;
