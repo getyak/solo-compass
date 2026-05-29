@@ -1044,6 +1044,7 @@
 /* US-030 — Companion Profile walked routes section */
 "profile.walkedRoutes.header" = "走过的路线 (%d)";
 "profile.walkedRoutes.viewAll" = "查看全部 ->";
+
 /* Empty state for MyWalkedRoutesListView */
 "profile.walkedRoutes.empty.title" = "No routes walked yet";
 "profile.walkedRoutes.empty.hint" = "Complete a companion route to see your journeys here.";

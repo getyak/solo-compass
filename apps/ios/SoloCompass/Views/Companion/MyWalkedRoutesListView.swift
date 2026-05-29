@@ -59,6 +59,7 @@ private struct WalkedRoutesEmptyState: View {
                     .scaleEffect(isBreathing ? 1.08 : 0.94)
                     .opacity(isBreathing ? 1.0 : 0.7)
                     .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)
+                    .accessibilityHidden(true)
             }
             Text(NSLocalizedString("profile.walkedRoutes.empty.title", comment: "No walked routes yet"))
                 .font(.headline)
@@ -76,6 +77,7 @@ private struct WalkedRoutesEmptyState: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)
                 .padding(.top, 4)
+                .accessibilityLabel(Text(NSLocalizedString("profile.walkedRoutes.empty.cta", comment: "Discover routes button in empty walked routes state")))
             }
         }
         .padding(32)
