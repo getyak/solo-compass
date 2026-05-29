@@ -500,6 +500,8 @@
 "share.style.minimalText" = "极简 9:16";
 /* Share-card image brand label (US-038) — kept as "Solo Compass" in both locales, but routed through l10n. */
 "sharecard.brand" = "Solo Compass";
+/* Share-card score suffix (US-039) — rendered after the numeric Solo Score on the share card. */
+"sharecard.score.suffix" = "/100 Solo 评分";
 
 /* Offline banner (US-041) */
 "offline.banner" = "离线模式 · 显示缓存数据";

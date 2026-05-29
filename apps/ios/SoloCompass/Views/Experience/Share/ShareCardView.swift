@@ -276,7 +276,7 @@ struct MinimalTextCard: View {
                     Text("\(payload.score100)")
                         .font(.system(size: 40, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("/100  Solo Score")
+                    Text(NSLocalizedString("sharecard.score.suffix", comment: "Suffix rendered after the numeric Solo Score on share-card images"))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.85))
                         .padding(.bottom, 4)
