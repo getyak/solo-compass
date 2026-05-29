@@ -192,7 +192,32 @@ private struct RequestRow: View {
     let onDecline: () -> Void
     let onReport: () -> Void
 
+    private static let isoFormatter: ISO8601DateFormatter = ISO8601DateFormatter()
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
+    private static let absoluteFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
+    private func relativeString(_ iso: String) -> String? {
+        guard let date = Self.isoFormatter.date(from: iso) else { return nil }
+        return Self.relativeFormatter.localizedString(for: date, relativeTo: .now)
+    }
+
+    private func absoluteString(_ iso: String) -> String {
+        guard let date = Self.isoFormatter.date(from: iso) else { return iso }
+        return Self.absoluteFormatter.string(from: date)
+    }
+
     var body: some View {
+        let relative = relativeString(request.createdAt) ?? request.createdAt
+        let absolute = absoluteString(request.createdAt)
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "person.circle.fill")
@@ -208,9 +233,16 @@ private struct RequestRow: View {
                         .lineLimit(1)
                 }
                 Spacer()
-                Text(formattedDate(request.createdAt))
+                Text(relative)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
+                    .accessibilityLabel(
+                        String(
+                            format: NSLocalizedString("companion.inbox.request.received", comment: "VoiceOver: exact received date"),
+                            absolute
+                        )
+                    )
+                    .accessibilityValue(absolute)
             }
 
             if let note = request.note, !note.isEmpty {
@@ -253,14 +285,7 @@ private struct RequestRow: View {
         }
     }
 
-    private func formattedDate(_ iso: String) -> String {
-        let f = ISO8601DateFormatter()
-        guard let date = f.date(from: iso) else { return iso }
-        let display = DateFormatter()
-        display.dateStyle = .short
-        display.timeStyle = .none
-        return display.string(from: date)
-    }
+
 }
 
 // MARK: - Preview
