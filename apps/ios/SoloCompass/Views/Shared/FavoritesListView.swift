@@ -121,6 +121,10 @@ public struct FavoritesListView: View {
         }
     }
 
+    private var nearbyCount: Int {
+        sortedFavorites.filter { proximity(for: $0) == .near }.count
+    }
+
     public var body: some View {
         NavigationStack {
             Group {
@@ -142,14 +146,47 @@ public struct FavoritesListView: View {
                                     return String(format: NSLocalizedString("favorites.count.matching", comment: "M of N matching"), filteredFavorites.count, sortedFavorites.count)
                                 }
                             }()
-                            Text(countLabel)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            let showNearbyChip = locationService.currentLocation != nil
+                                && nearbyCount > 0
+                                && searchText.trimmingCharacters(in: .whitespaces).isEmpty
+                            HStack(spacing: 8) {
+                                Text(countLabel)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .animation(.easeInOut, value: filteredFavorites.count)
+                                    .contentTransition(.numericText())
+                                Spacer()
+                                if showNearbyChip {
+                                    Button {
+                                        Haptics.selection()
+                                        withAnimation(reduceMotion ? nil : .easeInOut) {
+                                            sortMode = .nearest
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Circle()
+                                                .fill(Color.green)
+                                                .frame(width: 7, height: 7)
+                                                .accessibilityHidden(true)
+                                            Text(String(format: NSLocalizedString("favorites.nearby.count", comment: "N nearby chip"), nearbyCount))
+                                                .font(.caption2)
+                                                .foregroundStyle(Color.green)
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(Color.green.opacity(0.12), in: Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.count.a11y", comment: "N nearby chip accessibility label"), nearbyCount))
+                                    .accessibilityHint(NSLocalizedString("favorites.nearby.hint", comment: "Nearby chip sorts by distance"))
+                                    .accessibilityAddTraits(.isButton)
+                                    .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                                }
+                            }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 6)
-                            .animation(.easeInOut, value: filteredFavorites.count)
-                            .contentTransition(.numericText())
+                            .animation(reduceMotion ? nil : .easeInOut, value: showNearbyChip)
+                            .animation(.easeInOut, value: nearbyCount)
                         }
 
                         List {

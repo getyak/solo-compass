@@ -386,6 +386,9 @@
 "favorites.proximity.mid" = "short ride";
 "favorites.proximity.far" = "far";
 "favorites.row.directions" = "Directions";
+"favorites.nearby.count" = "%d nearby";
+"favorites.nearby.count.a11y" = "%d nearby favorites";
+"favorites.nearby.hint" = "Sorts favorites by distance";
 
 /* Generic actions */
 "action.undo" = "Undo";
