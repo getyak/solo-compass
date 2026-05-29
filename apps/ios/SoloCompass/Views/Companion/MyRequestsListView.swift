@@ -17,6 +17,7 @@ public struct MyRequestsListView: View {
 
     @State private var refreshToken: UUID = UUID()
     @State private var pulse = false
+    @State private var showDiscover = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(
@@ -58,6 +59,9 @@ public struct MyRequestsListView: View {
             comment: "My recruitment requests title"
         ))
         .navigationBarTitleDisplayMode(.large)
+        .navigationDestination(isPresented: $showDiscover) {
+            DiscoverRecruitingRoutesView()
+        }
         .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { _ in
             refreshToken = UUID()
         }
@@ -206,7 +210,7 @@ public struct MyRequestsListView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        EmptyMyRequestsView()
+        EmptyMyRequestsView(onDiscover: { showDiscover = true })
     }
 
     // MARK: - Withdraw
@@ -247,6 +251,8 @@ public struct MyRequestsListView: View {
 // MARK: - Empty state view
 
 private struct EmptyMyRequestsView: View {
+    var onDiscover: (() -> Void)? = nil
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
 
@@ -275,6 +281,20 @@ private struct EmptyMyRequestsView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
+            if let onDiscover {
+                Button {
+                    Haptics.selection()
+                    onDiscover()
+                } label: {
+                    Label(
+                        NSLocalizedString("my.requests.empty.cta", comment: "Discover recruiting routes CTA"),
+                        systemImage: "figure.walk"
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .padding(.top, 4)
+            }
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -344,5 +364,5 @@ private struct EmptyMyRequestsView: View {
 }
 
 #Preview("EmptyMyRequestsView — standalone") {
-    EmptyMyRequestsView()
+    EmptyMyRequestsView(onDiscover: {})
 }

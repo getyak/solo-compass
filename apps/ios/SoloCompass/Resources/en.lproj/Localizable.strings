@@ -1114,6 +1114,7 @@
 /* US-033 — MyRequestsListView */
 "my.requests.empty" = "You have not requested to join any routes yet.";
 "my.requests.empty.hint" = "Browse routes in Discover and tap Send Join Request.";
+"my.requests.empty.cta" = "Find a route to join";
 "my.requests.status.pending" = "Pending";
 "my.requests.status.accepted" = "Accepted";
 "my.requests.status.declined" = "Declined";
