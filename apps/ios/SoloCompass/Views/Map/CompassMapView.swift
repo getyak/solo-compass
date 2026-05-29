@@ -445,6 +445,8 @@ struct CompassMapContentView: View {
                                     referenceCoordinate: locationService.currentLocation?.coordinate
                                         ?? viewModel.defaultCenterForSelectedCity,
                                     sortMode: sortMode.wrappedValue,
+                                    // US-036: divider above the Nearby header separates it from Routes.
+                                    showsSectionDivider: true,
                                     onSelectExperience: { exp in
                                         viewModel.selectExperience(exp)
                                         viewModel.isShowingDetail = true

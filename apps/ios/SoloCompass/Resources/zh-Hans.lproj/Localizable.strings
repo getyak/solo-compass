@@ -1084,6 +1084,10 @@
 "sheet.nearby.smartPick.a11y" = "AI 推荐";
 "sheet.routes.section.title" = "路线";
 
+/* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */
+"sheet.section.routes" = "路线";
+"sheet.section.nearby" = "附近";
+
 /* Solo breakdown */
 "solo.breakdown.toggle" = "各维度评分";
 "solo.breakdown.expand.hint" = "展开或收起六维评分详情";

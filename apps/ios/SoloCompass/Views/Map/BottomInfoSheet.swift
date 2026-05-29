@@ -565,6 +565,48 @@ struct NearbyExperienceRow: View {
     }
 }
 
+// MARK: - SheetSectionSeparator
+
+/// US-036: Visual divider between the Routes and Nearby sections in the
+/// BottomInfoSheet. Renders an inset (leading-padded) divider followed by a
+/// localized section title, so the information hierarchy between routes and
+/// nearby experiences is explicit. The two titles live behind the
+/// `sheet.section.routes` / `sheet.section.nearby` localized keys.
+struct SheetSectionSeparator: View {
+    /// Localization key for the section title (e.g. `sheet.section.nearby`).
+    let titleKey: String
+    /// When true, the leading inset divider is drawn above the title. The very
+    /// first section (Routes) omits it so the sheet doesn't open with a divider.
+    let showsDivider: Bool
+
+    /// Leading inset (pt) applied to the divider so it reads as a section break
+    /// rather than a full-bleed rule, matching the row dividers below it.
+    static let dividerInset: CGFloat = 16
+
+    init(titleKey: String, showsDivider: Bool = true) {
+        self.titleKey = titleKey
+        self.showsDivider = showsDivider
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if showsDivider {
+                Divider()
+                    .padding(.leading, Self.dividerInset)
+                    .padding(.vertical, 8)
+            }
+            Text(NSLocalizedString(titleKey, comment: "Bottom sheet section title"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .tracking(0.5)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 6)
+                .accessibilityAddTraits(.isHeader)
+        }
+    }
+}
+
 // MARK: - RoutesSection
 
 /// '路线' section rendered inside BottomInfoSheet above 附近.
@@ -583,7 +625,9 @@ struct RoutesSection: View {
         Group {
             if !items.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
-                    sectionHeader
+                    // US-036: Routes is the first section, so its header omits the
+                    // leading inset divider (the sheet must not open with a rule).
+                    SheetSectionSeparator(titleKey: "sheet.section.routes", showsDivider: false)
                     Divider()
                         .padding(.horizontal, 16)
                     ForEach(items) { route in
@@ -600,16 +644,6 @@ struct RoutesSection: View {
                 .padding(.top, 8)
             }
         }
-    }
-
-    private var sectionHeader: some View {
-        Text(NSLocalizedString("sheet.routes.section.title", comment: "Routes section header"))
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
-            .tracking(0.5)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 6)
     }
 }
 
@@ -630,18 +664,27 @@ struct NearbySection: View {
         smartPickIds: [String],
         referenceCoordinate: CLLocationCoordinate2D?,
         sortMode: SortMode = .smart,
+        showsSectionDivider: Bool = false,
         onSelectExperience: @escaping (Experience) -> Void
     ) {
         self.experiences = experiences
         self.smartPickIds = smartPickIds
         self.referenceCoordinate = referenceCoordinate
         self.sortMode = sortMode
+        self.showsSectionDivider = showsSectionDivider
         self.onSelectExperience = onSelectExperience
     }
 
+    /// US-036: When true, the Nearby header is preceded by an inset divider so a
+    /// clear visual break separates it from the Routes section above. Set false
+    /// when Nearby is rendered standalone (no Routes section present).
+    let showsSectionDivider: Bool
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionHeader
+            // US-036: inset divider + localized "Nearby" header separates this
+            // section from Routes above (showsDivider gated by composition).
+            SheetSectionSeparator(titleKey: "sheet.section.nearby", showsDivider: showsSectionDivider)
             Divider()
                 .padding(.horizontal, 16)
             ScrollView {
@@ -660,16 +703,6 @@ struct NearbySection: View {
             }
         }
         .padding(.top, 8)
-    }
-
-    private var sectionHeader: some View {
-        Text(NSLocalizedString("sheet.nearby.section.title", comment: "Nearby section header"))
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
-            .tracking(0.5)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 6)
     }
 
     private var sortedExperiences: [Experience] {

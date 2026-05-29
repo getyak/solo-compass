@@ -1000,6 +1000,10 @@
 "sheet.nearby.section.title" = "附近";
 "sheet.nearby.smartPick.a11y" = "AI recommended";
 
+/* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */
+"sheet.section.routes" = "Routes";
+"sheet.section.nearby" = "Nearby";
+
 /* US-020 — Sort mode sheet */
 "sort.smart" = "智能";
 "sort.distance" = "距离";
