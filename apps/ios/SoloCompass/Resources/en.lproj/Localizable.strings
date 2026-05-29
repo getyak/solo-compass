@@ -403,6 +403,9 @@
 "favorites.nearby.count" = "%d nearby";
 "favorites.nearby.count.a11y" = "%d nearby favorites";
 "favorites.nearby.hint" = "Sorts favorites by distance";
+"favorites.completed.count" = "%1$d of %2$d done";
+"favorites.completed.count.a11y" = "%1$d of %2$d favorites completed";
+"favorites.row.done.a11y" = "completed";
 
 /* Generic actions */
 "action.undo" = "Undo";
