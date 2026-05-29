@@ -5519,6 +5519,83 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         XCTAssertGreaterThan(png.count, 100_000, "screenshot looks empty (PNG=\(png.count)B)")
     }
 
+    // MARK: - US-025: Ask Solo gated CTA → Paywall navigation
+
+    /// US-025: tapping the gated "Ask Solo" CTA must route a free-tier user to
+    /// the paywall, not a dead toast. The tap handler delegates to the pure
+    /// `askSoloAction(canAskSolo:)` decision, which we exercise directly here
+    /// (ViewInspector is not a dependency of this target, so we can't post a
+    /// synthetic tap — testing the routing function is the equivalent
+    /// assertion: free-tier → present paywall, entitled → open chat).
+    @MainActor
+    func testAskSoloGatedCTAPresentsPaywallForFreeTier() throws {
+        // Free-tier (not entitled, no local key) → the tap presents the paywall.
+        XCTAssertEqual(
+            ExperienceDetailView.askSoloAction(canAskSolo: false),
+            .presentPaywall,
+            "free-tier tap must open the paywall, not a dead toast"
+        )
+        // Entitled → the tap opens the scoped chat instead.
+        XCTAssertEqual(
+            ExperienceDetailView.askSoloAction(canAskSolo: true),
+            .openChat,
+            "entitled tap must open Solo chat"
+        )
+    }
+
+    /// US-025 visual evidence: render `ExperienceDetailView` for a NON-entitled
+    /// user. The gated "Ask Solo" CTA must still be present in the hierarchy
+    /// (the gate moved from visibility to the tap handler), so tapping it can
+    /// reach the paywall. Snapshot is attached for human inspection.
+    @MainActor
+    func testAskSoloGatedCTARendersForFreeTierUser() throws {
+        let exp = try XCTUnwrap(ExperienceService.hardcodedSeed.first, "need at least one seed experience")
+
+        let ai = AIService()
+        ai.isProTier = false // free tier
+
+        let vm = ExperienceDetailViewModel(
+            experience: exp,
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: UserPreferences(),
+            reviewsService: ReviewsService()
+        )
+
+        let detail = ExperienceDetailView(
+            viewModel: vm,
+            onClose: {},
+            onMarkDone: nil,
+            onAskSolo: { _ in } // non-nil so askSoloSection renders
+        )
+        .environment(LocationService())
+        .environment(SubscriptionService())
+
+        let host = UIHostingController(rootView: detail)
+        host.overrideUserInterfaceStyle = .light
+        host.view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+
+        let renderer = UIGraphicsImageRenderer(bounds: host.view.bounds)
+        let image = renderer.image { _ in
+            host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+        }
+        let png = try XCTUnwrap(image.pngData(), "failed to encode PNG")
+
+        let outDir = URL(fileURLWithPath: "/tmp/sc-screens", isDirectory: true)
+        try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        let outURL = outDir.appendingPathComponent("us025-ask-solo-gated.png")
+        try png.write(to: outURL)
+
+        let attachment = XCTAttachment(data: png, uniformTypeIdentifier: "public.png")
+        attachment.name = "us025-ask-solo-gated-cta"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        XCTAssertGreaterThan(png.count, 100_000, "screenshot looks empty (PNG=\(png.count)B)")
+    }
+
     // MARK: - US-003 <experience_context> block contents + no coord leak
 
     /// buildSystemPrompt(experience:) must emit an <experience_context> block
