@@ -28,7 +28,8 @@ const RULES: Rule[] = [
   // forbid is the engagement-loop semantics: badges that get earned, unlocked,
   // awarded, or framed as achievements.
   {
-    pattern: /\b(?:earn(?:ed|s|ing)?|unlock(?:ed|s|ing)?|award(?:ed|s|ing)?|achievement|reward)[_-]?badge[s]?\b|\bbadge[s]?[_-]?(?:earn(?:ed)?|unlock(?:ed)?|award(?:ed)?|achievement|reward|progress|level[_-]?up)\b/i,
+    pattern:
+      /\b(?:earn(?:ed|s|ing)?|unlock(?:ed|s|ing)?|award(?:ed|s|ing)?|achievement|reward)[_-]?badge[s]?\b|\bbadge[s]?[_-]?(?:earn(?:ed)?|unlock(?:ed)?|award(?:ed)?|achievement|reward|progress|level[_-]?up)\b/i,
     reason: "no gamification badges (earned/unlocked/awarded)",
   },
   { pattern: /\bstreak[s]?\b/i, reason: "no engagement streaks" },
