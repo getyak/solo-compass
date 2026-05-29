@@ -146,7 +146,30 @@ public final class MapViewModel {
 
     /// Currently selected city code (e.g. "cmi"), nil = all cities.
     /// Custom locations use the format `custom_{lat}_{lon}`.
-    public var selectedCity: String?
+    ///
+    /// V-002: any change here keeps `cameraPosition` in agreement with the
+    /// city header label, so the rendered map region never disagrees with the
+    /// name shown to the user. Custom-pin selections (`custom_…`) are skipped
+    /// because their camera is driven by `customCoordinates` in
+    /// `selectCustomLocation`. The first set during `init` does NOT trigger
+    /// `didSet` (Swift initializer semantics), so `init` performs the same
+    /// sync explicitly after all stored properties are set.
+    public var selectedCity: String? {
+        didSet {
+            guard selectedCity != oldValue else { return }
+            syncCameraToSelectedCity()
+        }
+    }
+
+    /// Move `cameraPosition` to the selected city's center. Custom-pin
+    /// selections keep their existing camera (set in `selectCustomLocation`).
+    private func syncCameraToSelectedCity() {
+        if selectedCity?.hasPrefix("custom_") == true { return }
+        cameraPosition = .region(MKCoordinateRegion(
+            center: defaultCenterForSelectedCity,
+            span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+        ))
+    }
 
     /// Coordinate for a custom-pin location set via LocationPickerSheet.
     /// Non-nil when `selectedCity` starts with "custom_".
@@ -220,13 +243,29 @@ public final class MapViewModel {
         "cmi": "Chiang Mai",
     ]
 
+    /// Well-known city centers keyed by both their seed/discovered codes and
+    /// their human-readable slugs. Used as a fallback in
+    /// `defaultCenterForSelectedCity` so the camera can still resolve a sane
+    /// region for a selection that has no matching experiences yet (e.g. a
+    /// persisted `lastSelectedCity` on a cold start, before any pins load).
+    static let knownCityCenters: [String: CLLocationCoordinate2D] = [
+        "cmi": CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
+        "chiang-mai": CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
+        "san-francisco": CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+    ]
+
     /// Center coordinate for the selected city, or the default if none selected.
+    /// Resolution order: live `availableCities` (seed + discovered) → the static
+    /// `knownCityCenters` slug catalog → the global default (Chiang Mai).
     public var defaultCenterForSelectedCity: CLLocationCoordinate2D {
-        guard let code = selectedCity,
-              let city = availableCities.first(where: { $0.code == code }) else {
-            return Self.defaultCenter
+        guard let code = selectedCity else { return Self.defaultCenter }
+        if let city = availableCities.first(where: { $0.code == code }) {
+            return city.center
         }
-        return city.center
+        if let known = Self.knownCityCenters[code] {
+            return known
+        }
+        return Self.defaultCenter
     }
 
     /// Selects a preset city, recenters the map, and reloads experiences.
@@ -421,6 +460,11 @@ public final class MapViewModel {
             center: initialCenter,
             span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
         ))
+        // V-002: `didSet` does not fire for the `selectedCity` set above
+        // (initializer semantics), so apply the same camera↔city sync here so
+        // a cold start with a persisted city lands the camera on that city's
+        // center — including slug-only selections resolved via knownCityCenters.
+        syncCameraToSelectedCity()
         loadNearbyExperiences()
         updateBottomInfo()
     }
