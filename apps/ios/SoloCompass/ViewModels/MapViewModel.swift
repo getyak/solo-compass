@@ -278,12 +278,40 @@ public final class MapViewModel {
         "san-francisco": CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
     ]
 
+    /// V-004: human-readable city slugs (used by the city header / persisted
+    /// `lastSelectedCity`) mapped to the compact seed `cityCode` they share a
+    /// location with. The cold-start empty state happened because a persisted
+    /// slug like `chiang-mai` never `==` matched the seed's `cmi` cityCode in
+    /// `applyFilters`, so every seed row was filtered out. `cityCodeMatches`
+    /// consults this table both directions so either form selects the city.
+    static let cityCodeAliases: [String: String] = [
+        "chiang-mai": "cmi",
+        "vientiane": "VTE",
+    ]
+
+    /// True when `seedCityCode` (an experience's `location.cityCode`) belongs to
+    /// the same city as `selectedCode` (the header / persisted selection),
+    /// resolving slug↔seed-code aliases in both directions. Case-insensitive so
+    /// the upper-cased seed codes (`VTE`) match lower-cased slugs.
+    static func cityCodeMatches(_ seedCityCode: String, selected selectedCode: String) -> Bool {
+        if seedCityCode.caseInsensitiveCompare(selectedCode) == .orderedSame { return true }
+        if let alias = cityCodeAliases[selectedCode.lowercased()],
+           alias.caseInsensitiveCompare(seedCityCode) == .orderedSame { return true }
+        if let alias = cityCodeAliases[seedCityCode.lowercased()],
+           alias.caseInsensitiveCompare(selectedCode) == .orderedSame { return true }
+        return false
+    }
+
     /// Center coordinate for the selected city, or the default if none selected.
     /// Resolution order: live `availableCities` (seed + discovered) → the static
     /// `knownCityCenters` slug catalog → the global default (Chiang Mai).
     public var defaultCenterForSelectedCity: CLLocationCoordinate2D {
         guard let code = selectedCity else { return Self.defaultCenter }
-        if let city = availableCities.first(where: { $0.code == code }) {
+        // V-004: match alias-aware so a header slug (`chiang-mai`, `vientiane`)
+        // resolves to the seed-coded city's centroid — exact `==` left slug
+        // selections falling through to the global default (Chiang Mai), which
+        // mis-anchored both the camera and the nearby query origin.
+        if let city = availableCities.first(where: { Self.cityCodeMatches($0.code, selected: code) }) {
             return city.center
         }
         if let known = Self.knownCityCenters[code] {
@@ -564,9 +592,7 @@ public final class MapViewModel {
         // changed since the last load — e.g. after an Explore added pins.
         // Drop the city cache so the next `availableCities` read recomputes.
         invalidateCityCache()
-        let center = customCoordinates
-            ?? locationService.currentLocation?.coordinate
-            ?? defaultCenterForSelectedCity
+        let center = nearbyQueryOrigin
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: center, radiusKm: radiusKm)
         withAnimation(Self.markerSetAnimation) {
@@ -576,13 +602,82 @@ public final class MapViewModel {
         aiSmartPickIds = []
         recomputeNowCount()
         updateBottomInfo()
+        scheduleColdStartEmptyWatchdog()
+    }
+
+    /// V-004: origin for the nearby query. A *preset* city selection drives the
+    /// origin from that city's center, NOT live GPS — otherwise a cold start in
+    /// the simulator (GPS defaults to San Francisco) queries thousands of km from
+    /// the selected city and returns zero seed experiences. Custom pins keep
+    /// their explicit coordinate; with no city selected we follow live GPS (or
+    /// the default center) as before.
+    private var nearbyQueryOrigin: CLLocationCoordinate2D {
+        if let custom = customCoordinates { return custom }
+        if let city = selectedCity, !city.hasPrefix("custom_") {
+            return defaultCenterForSelectedCity
+        }
+        return locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+    }
+
+    // MARK: - Cold-start empty-state watchdog (V-004 / US-033)
+
+    /// Seconds a selected city may stay empty before we report it to Sentry.
+    static let coldStartEmptyWatchdogSeconds: UInt64 = 5
+
+    /// Set true once we've reported a given empty cold start so the watchdog
+    /// doesn't spam Sentry on every subsequent reload while the map stays empty.
+    @ObservationIgnored private var reportedColdStartEmpty = false
+
+    /// In-flight watchdog so repeated `loadNearbyExperiences` calls don't pile
+    /// up parallel timers. `@ObservationIgnored` — pure bookkeeping.
+    @ObservationIgnored private var coldStartWatchdogTask: Task<Void, Never>?
+
+    /// V-004: when a city is selected but the nearby set is still empty after
+    /// `coldStartEmptyWatchdogSeconds`, emit a Sentry warning so the
+    /// cold-start-empty regression can't silently come back. Resets as soon as
+    /// any non-empty load lands. No-op when no preset city is selected (an empty
+    /// GPS-follow map isn't necessarily a bug).
+    private func scheduleColdStartEmptyWatchdog() {
+        guard let city = selectedCity, !city.hasPrefix("custom_") else {
+            coldStartWatchdogTask?.cancel()
+            coldStartWatchdogTask = nil
+            reportedColdStartEmpty = false
+            return
+        }
+        if !visibleExperiences.isEmpty {
+            // Recovered — clear the flag so a later empty state can report again.
+            reportedColdStartEmpty = false
+            coldStartWatchdogTask?.cancel()
+            coldStartWatchdogTask = nil
+            return
+        }
+        guard !reportedColdStartEmpty, coldStartWatchdogTask == nil else { return }
+        let seconds = Self.coldStartEmptyWatchdogSeconds
+        coldStartWatchdogTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            self.coldStartWatchdogTask = nil
+            guard let current = self.selectedCity, !current.hasPrefix("custom_"),
+                  self.visibleExperiences.isEmpty, !self.reportedColdStartEmpty else { return }
+            self.reportedColdStartEmpty = true
+            SentryService.capture(
+                message: "Cold-start empty state: selectedCity set but 0 nearby experiences",
+                context: [
+                    "selectedCity": current,
+                    "maxDistanceKm": self.preferences.maxDistanceKm,
+                    "totalExperiences": self.experienceService.allExperiences.count
+                ]
+            )
+        }
     }
 
     private func applyFilters(near coordinate: CLLocationCoordinate2D, radiusKm: Double) -> [Experience] {
         var nearby = experienceService.getExperiences(near: coordinate, radiusKm: radiusKm)
         // Custom locations have no matching cityCode — show all nearby experiences instead.
         if let cityCode = selectedCity, !cityCode.hasPrefix("custom_") {
-            nearby = nearby.filter { $0.location.cityCode == cityCode }
+            // V-004: alias-aware so a header slug (`chiang-mai`) matches the seed
+            // `cityCode` (`cmi`) — exact `==` left the cold-start map empty.
+            nearby = nearby.filter { Self.cityCodeMatches($0.location.cityCode, selected: cityCode) }
         }
         if let category = selectedCategory {
             nearby = nearby.filter { $0.category == category }
