@@ -64,22 +64,11 @@ public struct MyRequestsListView: View {
     // MARK: - List
 
     private var requestList: some View {
-        VStack(spacing: 0) {
-            let pending = myRequests.filter { $0.1.status == .pending }.count
-            Text(String(format: NSLocalizedString(
-                "my.requests.count",
-                comment: "Footer showing total and pending request counts"
-            ), myRequests.count, pending))
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-            .contentTransition(.numericText())
-            .animation(.easeInOut, value: myRequests.count)
-
+        let requests = myRequests
+        let pending = requests.filter { $0.1.status == .pending }.count
+        return VStack(spacing: 0) {
             List {
-                ForEach(myRequests, id: \.1.id) { route, request in
+                ForEach(requests, id: \.1.id) { route, request in
                     row(route: route, request: request)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             if request.status == .pending {
@@ -103,6 +92,18 @@ public struct MyRequestsListView: View {
             .refreshable {
                 await refresh()
             }
+
+            Text(String(format: NSLocalizedString(
+                "my.requests.count",
+                comment: "Footer showing total and pending request counts"
+            ), requests.count, pending))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+            .contentTransition(.numericText())
+            .animation(.easeInOut, value: requests.count)
         }
     }
 
