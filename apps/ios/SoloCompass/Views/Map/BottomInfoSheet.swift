@@ -307,10 +307,28 @@ public struct BottomInfoSheet<Content: View>: View {
 struct NowHintRow: View {
     let hint: String
 
-    private var timeString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: Date())
+    @Environment(BestNowClock.self) private var clock
+
+    /// Locale-aware short time string (respects the device's 12/24h preference).
+    /// Cached as a static so a single formatter is reused across re-evaluations.
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        f.dateStyle = .none
+        return f
+    }()
+
+    /// Testable helper — formats `date` using the given locale.
+    static func timeString(for date: Date, locale: Locale = .current) -> String {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        f.dateStyle = .none
+        f.locale = locale
+        return f.string(from: date)
+    }
+
+    private var formattedTime: String {
+        Self.timeString(for: clock.tick)
     }
 
     var body: some View {
@@ -323,12 +341,12 @@ struct NowHintRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Text(timeString)
+            Text(formattedTime)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(hint) \(timeString)"))
+        .accessibilityLabel(Text("\(hint) \(formattedTime)"))
     }
 }
 
@@ -799,5 +817,6 @@ struct EmptySheetListView: View {
                     .padding()
             }
         }
+        .environment(BestNowClock.shared)
     }
 }
