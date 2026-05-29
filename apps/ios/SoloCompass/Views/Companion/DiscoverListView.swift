@@ -71,19 +71,7 @@ public struct DiscoverListView: View {
             }
         }
         .sheet(isPresented: $showPostSheet) {
-            OpenForCompanionsSheet(itinerary: Itinerary(
-                id: ItineraryId(rawValue: "discover_cta_\(cityCode)"),
-                ownerId: DeviceIdentityService.shared.deviceID,
-                title: cityCode,
-                cityCode: cityCode,
-                startDate: "",
-                endDate: "",
-                experienceIds: [],
-                note: nil,
-                openToCompanions: true,
-                createdAt: "",
-                updatedAt: ""
-            ))
+            OpenForCompanionsSheet(itinerary: Self.newAvailabilityItinerary(cityCode: cityCode))
         }
         .sheet(item: $reportTarget) { post in
             ReportBlockSheet(
@@ -167,6 +155,30 @@ public struct DiscoverListView: View {
     }
 
     // MARK: - Actions
+
+    private static func newAvailabilityItinerary(cityCode: String) -> Itinerary {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone(identifier: "UTC")
+        let now = Date()
+        let startDate = fmt.string(from: now)
+        let endDate = fmt.string(from: now.addingTimeInterval(86400 * 7))
+        let isoFmt = ISO8601DateFormatter()
+        let ts = isoFmt.string(from: now)
+        return Itinerary(
+            id: ItineraryId(rawValue: "cta_\(cityCode)_\(UUID().uuidString)"),
+            ownerId: DeviceIdentityService.shared.deviceID,
+            title: cityCode,
+            cityCode: cityCode,
+            startDate: startDate,
+            endDate: endDate,
+            experienceIds: [],
+            note: nil,
+            openToCompanions: true,
+            createdAt: ts,
+            updatedAt: ts
+        )
+    }
 
     private func loadPosts() async {
         Haptics.impact(.light)
