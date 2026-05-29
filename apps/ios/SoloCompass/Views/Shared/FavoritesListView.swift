@@ -10,6 +10,7 @@ public struct FavoritesListView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
     let onSelectExperience: (Experience) -> Void
     var onExplore: (() -> Void)? = nil
 
@@ -24,6 +25,8 @@ public struct FavoritesListView: View {
     @State private var showSwipeHint = false
     @State private var hintDismissTask: Task<Void, Never>?
     @AppStorage("favorites.swipeHintSeen") private var swipeHintSeen = false
+
+    private var undoDismissSeconds: Double { voiceOverOn ? 12 : 4 }
 
     private enum Proximity {
         case near, mid, far
@@ -416,8 +419,8 @@ private extension FavoritesListView {
         .onAppear {
             undoProgress = 1
             undoDragOffset = 0
-            if !reduceMotion {
-                withAnimation(.linear(duration: 4)) {
+            if !reduceMotion && !voiceOverOn {
+                withAnimation(.linear(duration: undoDismissSeconds)) {
                     undoProgress = 0
                 }
             }
@@ -510,9 +513,14 @@ private extension FavoritesListView {
                     preferences.toggleFavorite(expId)
                 }
                 lastUnfavorited = (id: expId, title: expTitle, date: savedDate)
+                UIAccessibility.post(
+                    notification: .announcement,
+                    argument: String(format: NSLocalizedString("favorites.undo.announcement", comment: "VoiceOver announcement after unfavoriting"), expTitle)
+                )
                 undoDismissTask?.cancel()
+                let dismissSeconds = undoDismissSeconds
                 undoDismissTask = Task {
-                    try? await Task.sleep(for: .seconds(4))
+                    try? await Task.sleep(for: .seconds(dismissSeconds))
                     guard !Task.isCancelled else { return }
                     await MainActor.run {
                         withAnimation(.easeInOut) {
