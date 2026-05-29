@@ -457,6 +457,20 @@ struct CompassMapContentView: View {
                                     sortMode: sortMode.wrappedValue,
                                     // US-036: divider above the Nearby header separates it from Routes.
                                     showsSectionDivider: true,
+                                    onExploreElsewhere: {
+                                        // Zoom the map out one step by doubling the visible span,
+                                        // capped at ±90° lat / ±180° lon, so out-of-range
+                                        // experiences scroll into view.
+                                        if let region = viewModel.cameraPosition.region {
+                                            let newSpan = MKCoordinateSpan(
+                                                latitudeDelta: min(region.span.latitudeDelta * 2, 90),
+                                                longitudeDelta: min(region.span.longitudeDelta * 2, 180)
+                                            )
+                                            viewModel.cameraPosition = .region(
+                                                MKCoordinateRegion(center: region.center, span: newSpan)
+                                            )
+                                        }
+                                    },
                                     onSelectExperience: { exp in
                                         viewModel.selectExperience(exp)
                                         viewModel.isShowingDetail = true
