@@ -6,6 +6,14 @@ import Observation
 /// Native speech recognition. No third-party deps — uses SFSpeechRecognizer +
 /// AVAudioEngine. Streams partial transcripts via AsyncThrowingStream so the
 /// UI can show live waveform/text as the user speaks.
+///
+/// Main-actor isolated so callers (all SwiftUI views / view models) can `await`
+/// `requestPermission()` and read `isListening` / `amplitude` without crossing
+/// actor boundaries. Under `SWIFT_STRICT_CONCURRENCY: complete`, sending a
+/// `VoiceService` value into a `@MainActor` method (e.g. ChatSheet's
+/// push-to-talk task) is then race-free — the instance never leaves the main
+/// actor.
+@MainActor
 @Observable
 public final class VoiceService {
     public enum VoiceError: Error, LocalizedError {
@@ -84,9 +92,12 @@ public final class VoiceService {
         let inputNode = audioEngine.inputNode
         let format = inputNode.outputFormat(forBus: 0)
         inputNode.removeTap(onBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-            guard let self else { return }
-            self.recognitionRequest?.append(buffer)
+        // The tap runs on a real-time, non-isolated audio thread. Capture
+        // `request` directly (SFSpeechAudioBufferRecognitionRequest.append is
+        // thread-safe) instead of touching main-actor-isolated `self` state, and
+        // hop to the main actor only to publish the amplitude.
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+            request.append(buffer)
             // Compute RMS amplitude for waveform rendering
             if let channelData = buffer.floatChannelData?[0] {
                 let frames = Int(buffer.frameLength)
@@ -107,26 +118,32 @@ public final class VoiceService {
 
         isListening = true
 
-        return AsyncThrowingStream { [weak self] continuation in
-            guard let self else { continuation.finish(); return }
-            self.recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
-                if let result {
-                    continuation.yield(result.bestTranscription.formattedString)
-                    if result.isFinal {
-                        continuation.finish()
-                        Task { @MainActor [weak self] in self?.cleanup() }
-                    }
-                }
-                if let error {
-                    continuation.finish(throwing: VoiceError.recognitionFailed(error))
+        let (stream, continuation) = AsyncThrowingStream<String, Error>.makeStream()
+
+        // Start the recognition task on the main actor (we're already isolated
+        // here) so assigning `recognitionTask` is race-free. The recognizer's
+        // result handler fires on a background queue; it only touches the
+        // `Sendable` continuation directly and hops to the main actor for any
+        // isolated cleanup.
+        recognitionTask = recognizer.recognitionTask(with: request) { result, error in
+            if let result {
+                continuation.yield(result.bestTranscription.formattedString)
+                if result.isFinal {
+                    continuation.finish()
                     Task { @MainActor [weak self] in self?.cleanup() }
                 }
             }
-
-            continuation.onTermination = { [weak self] _ in
-                Task { @MainActor [weak self] in self?.stopListening() }
+            if let error {
+                continuation.finish(throwing: VoiceError.recognitionFailed(error))
+                Task { @MainActor [weak self] in self?.cleanup() }
             }
         }
+
+        continuation.onTermination = { _ in
+            Task { @MainActor [weak self] in self?.stopListening() }
+        }
+
+        return stream
     }
 
     public func stopListening() {
