@@ -1085,6 +1085,9 @@
 "verified.title.verified" = "已验证路线";
 "verified.title.watching" = "社群观察中";
 "verified.subtitle" = "与 %d 位旅人走过";
+"verified.short.verified" = "已验证";
+"verified.short.watching" = "观察中";
+"verified.inline" = "%1$@ · %2$d 人走过";
 
 /* Voice */
 "voice.processing" = "思考中：%@";

@@ -43,6 +43,7 @@
 		31DAB367EE76F147742B2B3E /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E8E3F1E2D1A0382CC5D9A6 /* ChatService.swift */; };
 		31F9538643C362D7EEF64C6B /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7919EAFDE363B49C4B4C47 /* LocationService.swift */; };
 		321C062B9C6CA3558BC88C91 /* VerifiedBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2891DAE62909FE55324494D7 /* VerifiedBadge.swift */; };
+		337CAFC8B35CF36D175B27CF /* CompareTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53F836182A03FC067C4A9AB9 /* CompareTokens.swift */; };
 		371DDBAF4C385267248ABC83 /* AgentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38E5736BF6DF5644D687637 /* AgentRouter.swift */; };
 		391D6B5C48997AD74F367C0C /* GeneratedSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5642EDC714993C8EE0ECDD83 /* GeneratedSecrets.swift */; };
 		397C20402788F9B63F06A01A /* City.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DFBC1C003B8745713588A23 /* City.swift */; };
@@ -281,6 +282,7 @@
 		4FE945F792AFD68B33B7E8B5 /* UserDirectoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDirectoryTests.swift; sourceTree = "<group>"; };
 		520EDA3B7A8A6136FB0355A4 /* SupabaseRouteCompanionRemote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseRouteCompanionRemote.swift; sourceTree = "<group>"; };
 		535B5FA4ADF216CEC74FE056 /* RouteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteTests.swift; sourceTree = "<group>"; };
+		53F836182A03FC067C4A9AB9 /* CompareTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareTokens.swift; sourceTree = "<group>"; };
 		54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownExporter.swift; sourceTree = "<group>"; };
 		5642EDC714993C8EE0ECDD83 /* GeneratedSecrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedSecrets.swift; sourceTree = "<group>"; };
 		56AF27F0567AACEA9E6D916E /* CompiledPlaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompiledPlaceTests.swift; sourceTree = "<group>"; };
@@ -439,6 +441,7 @@
 				13350B81187FB64B252B8A46 /* BottomInfoBar.swift */,
 				30E9EE8B07B66490112B696A /* ChatStateModifier.swift */,
 				94CD4C674431C0702AD8AED3 /* Color+Hex.swift */,
+				53F836182A03FC067C4A9AB9 /* CompareTokens.swift */,
 				2294AF173D063B1F55894696 /* CompletionCelebrationView.swift */,
 				EC8F9EFD56A2C839428AA92D /* ConfidenceBadge.swift */,
 				C5C3BA25EFA9F149FB4FAAB3 /* FavoritesListView.swift */,
@@ -1060,6 +1063,7 @@
 				15530E784D55EED02B3EE21F /* CompanionRequest.swift in Sources */,
 				1D6B1ADE4D2C1245BABD0A6B /* CompanionSafetyConsentSheet.swift in Sources */,
 				1917588F1289C48C928ACF6C /* CompanionService.swift in Sources */,
+				337CAFC8B35CF36D175B27CF /* CompareTokens.swift in Sources */,
 				C21906307DCC96E5B2583BFE /* CompassMapView.swift in Sources */,
 				EF7C549F31EDA5ABE2B95FE8 /* CompiledPlace.swift in Sources */,
 				A93EEDF38B969D10CC369C59 /* CompletionCelebrationView.swift in Sources */,
