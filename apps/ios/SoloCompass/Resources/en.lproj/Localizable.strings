@@ -232,6 +232,10 @@
 "compass.W" = "west";
 "compass.NW" = "northwest";
 
+/* Voice recording auto-stop at 60s system limit */
+"voice.recording.maxReached" = "Maximum length reached";
+"voice.recording.maxReached.a11y" = "Maximum recording length reached — transcript saved";
+
 /* Voice recognition error alert */
 "voice.error.title" = "Voice recognition error";
 "voice.error.permission" = "Microphone or speech recognition permission was denied. Please allow access in Settings.";
