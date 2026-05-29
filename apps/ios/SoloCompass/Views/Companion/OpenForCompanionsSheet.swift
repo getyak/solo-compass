@@ -229,7 +229,7 @@ public struct OpenForCompanionsSheet: View {
         )
 
         storeProvider().save(route)
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Haptics.notify(.success)
         dismiss()
     }
 

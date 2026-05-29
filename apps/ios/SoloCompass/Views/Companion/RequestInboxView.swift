@@ -135,10 +135,10 @@ public struct RequestInboxView: View {
         case .success(let conversation):
             acceptedConversation = conversation
             showingAcceptedConfirm = true
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Haptics.notify(.success)
         case .failure(let err):
             errorMessage = err.localizedDescription
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            Haptics.notify(.error)
             Task {
                 try? await Task.sleep(for: .seconds(3))
                 errorMessage = nil
