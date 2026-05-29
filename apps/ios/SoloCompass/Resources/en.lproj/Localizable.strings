@@ -843,6 +843,7 @@
 "companion.inbox.empty.title" = "No pending requests";
 "companion.inbox.empty.description" = "When someone sends you a companion request, it will appear here.";
 "companion.inbox.request.from" = "From";
+"companion.inbox.request.received" = "Received %@";
 "companion.inbox.accepted.title" = "You're connected!";
 "companion.inbox.accepted.message" = "Request accepted. You can now message each other.";
 "companion.inbox.error.load" = "Couldn't load requests. Check your connection and try again.";
