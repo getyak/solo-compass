@@ -1013,6 +1013,8 @@
 "my.requests.status.declined" = "已拒绝";
 "my.requests.status.withdrawn" = "已撤回";
 "my.requests.withdraw" = "撤回申请";
+/* Footer: "%d requests · %d pending" */
+"my.requests.count" = "%1$d 条申请 · %2$d 条待审";
 
 /* Profile */
 "profile.walkedRoutes.header" = "走过的路线（%d）";

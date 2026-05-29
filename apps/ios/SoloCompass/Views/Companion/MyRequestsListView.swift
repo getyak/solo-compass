@@ -64,28 +64,62 @@ public struct MyRequestsListView: View {
     // MARK: - List
 
     private var requestList: some View {
-        List {
-            ForEach(myRequests, id: \.1.id) { route, request in
-                row(route: route, request: request)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        if request.status == .pending {
-                            Button(role: .destructive) {
-                                withdraw(request: request, from: route)
-                            } label: {
-                                Label(
-                                    NSLocalizedString(
-                                        "my.requests.withdraw",
-                                        comment: "Swipe action — withdraw join request"
-                                    ),
-                                    systemImage: "arrow.uturn.backward"
-                                )
+        VStack(spacing: 0) {
+            let pending = myRequests.filter { $0.1.status == .pending }.count
+            Text(String(format: NSLocalizedString(
+                "my.requests.count",
+                comment: "Footer showing total and pending request counts"
+            ), myRequests.count, pending))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+            .contentTransition(.numericText())
+            .animation(.easeInOut, value: myRequests.count)
+
+            List {
+                ForEach(myRequests, id: \.1.id) { route, request in
+                    row(route: route, request: request)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            if request.status == .pending {
+                                Button(role: .destructive) {
+                                    withdraw(request: request, from: route)
+                                } label: {
+                                    Label(
+                                        NSLocalizedString(
+                                            "my.requests.withdraw",
+                                            comment: "Swipe action — withdraw join request"
+                                        ),
+                                        systemImage: "arrow.uturn.backward"
+                                    )
+                                }
+                                .tint(.orange)
                             }
-                            .tint(.orange)
                         }
-                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .refreshable {
+                await refresh()
             }
         }
-        .listStyle(.insetGrouped)
+    }
+
+    // MARK: - Refresh
+
+    @MainActor
+    private func refresh() async {
+        let remote = remoteProvider()
+        do {
+            _ = try await remote.fetchRecruitingRoutes(cityCode: "")
+        } catch is NotImplementedError {
+            // local-only mode — no-op
+        } catch {
+            // network errors silently ignored; local data still current
+        }
+        refreshToken = UUID()
+        Haptics.impact(.light)
     }
 
     // MARK: - Row
