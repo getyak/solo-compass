@@ -1082,6 +1082,8 @@
 "solo.excellent.a11y" = "非常适合独行旅行者";
 "solo.radar.weakest" = "最弱项：%@ — 这是一个权衡点";
 "solo.radar.weakest.a11y" = "注意：%@ 是最弱的维度 — 这是一个权衡点。";
+"solo.radar.strongest" = "独行最佳：%@";
+"solo.radar.strongest.a11y" = "独行最佳：%@。";
 
 /* Sort */
 "sort.smart" = "智能";

@@ -357,6 +357,11 @@ public final class MapViewModel {
     public var selectedCustomTag: String?
     public var visibleExperiences: [Experience] = []
 
+    /// US-021: read-only passthrough to the full seeded/synced experience set.
+    /// `MapViewModelEagerInitTest` reads this on the launch path to prove the
+    /// eagerly-built view model is live before any `onAppear` fires.
+    public var allExperiences: [Experience] { experienceService.allExperiences }
+
     /// US-018: cached count of visible experiences at their best time right
     /// now. Recomputed only by `recomputeNowCount()` — called at the end of
     /// `loadNearbyExperiences`, `refreshForLocation`, and `updateBottomInfo`

@@ -515,9 +515,9 @@ struct CompassMapContentView: View {
     @ViewBuilder
     private var settingsSheetContent: some View {
         SettingsView(
-            onClose: { viewModel?.isShowingSettings = false },
+            onClose: { viewModel.isShowingSettings = false },
             onShowFavorites: { isShowingFavorites = true },
-            onDistanceCommitted: { viewModel?.reloadForDistanceChange() }
+            onDistanceCommitted: { viewModel.reloadForDistanceChange() }
         )
         .environment(preferences)
         .environment(notificationService)
@@ -553,7 +553,7 @@ struct CompassMapContentView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             VoiceButton(voiceService: voiceService) { transcript in
-                Task { await viewModel?.handleNewExperienceTranscript(transcript) }
+                Task { await viewModel.handleNewExperienceTranscript(transcript) }
             }
         }
         .padding(32)
@@ -562,7 +562,7 @@ struct CompassMapContentView: View {
 
     @ViewBuilder
     private var detailSheetContent: some View {
-        if let exp = viewModel?.selectedExperience, let vm = viewModel {
+        if let exp = viewModel.selectedExperience {
             NavigationStack {
                 ExperienceDetailView(
                     viewModel: ExperienceDetailViewModel(
@@ -572,7 +572,7 @@ struct CompassMapContentView: View {
                         preferences: preferences,
                         subscriptionService: subscriptionService
                     ),
-                    onClose: { viewModel?.dismissDetail() },
+                    onClose: { viewModel.dismissDetail() },
                     onMarkDone: { experience in surveyExperience = experience },
                     // US-004: open ChatSheet bound to this experience. We
                     // dismiss the detail sheet first so the chat sheet can
@@ -581,13 +581,13 @@ struct CompassMapContentView: View {
                     // created if needed, then `rebindContext` injects the
                     // <experience_context> system block.
                     onAskSolo: { experience in
-                        viewModel?.dismissDetail()
+                        viewModel.dismissDetail()
                         // Per-card chat stays text-first. Set mode before the
                         // orchestrator assignment presents the sheet, then
                         // rebind the experience scope (still synchronous, so it
                         // lands before the sheet content is evaluated).
                         chatStartMode = .text
-                        ensureOrchestrator(viewModel: vm)
+                        ensureOrchestrator(viewModel: viewModel)
                         voiceOrchestrator?.rebindContext(experience)
                     }
                 )
@@ -597,10 +597,8 @@ struct CompassMapContentView: View {
 
     @ViewBuilder
     private var cityPickerSheetContent: some View {
-        if let vm = viewModel {
-            LocationPickerSheet(viewModel: vm) {
-                isShowingCityPicker = false
-            }
+        LocationPickerSheet(viewModel: viewModel) {
+            isShowingCityPicker = false
         }
     }
 
@@ -609,8 +607,8 @@ struct CompassMapContentView: View {
         FavoritesListView(
             onSelectExperience: { exp in
                 isShowingFavorites = false
-                viewModel?.selectExperience(exp)
-                viewModel?.isShowingDetail = true
+                viewModel.selectExperience(exp)
+                viewModel.isShowingDetail = true
             },
             onExplore: { isShowingFavorites = false }
         )
@@ -621,8 +619,8 @@ struct CompassMapContentView: View {
     @ViewBuilder
     private var paywallSheetContent: some View {
         PaywallView(onUnlocked: {
-            let resume = viewModel?.onPaywallUnlocked
-            viewModel?.onPaywallUnlocked = nil
+            let resume = viewModel.onPaywallUnlocked
+            viewModel.onPaywallUnlocked = nil
             resume?()
         })
         .environment(subscriptionService)
