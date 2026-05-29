@@ -754,7 +754,7 @@ PR-22..24 (架构拆文件 A-006..011，每文件独立)
 
 - **OQ-1**: Companion layer toggle 选 A (hide) / B (coming soon hint) / C (接 backend)？_待产品决策，影响 US-P0-007_
 - **OQ-2**: AI skeleton 角标产品文案：「数据有限」/「Limited data」/「占位预览」/「AI 未生成」？_待产品决策，影响 US-P0-003_
-- **OQ-3**: Sentry skeleton_fallback 上报频次：每次 / 每小时合并 / 每日合并？_待 ops 决策_
+- **OQ-3**: Sentry skeleton*fallback 上报频次：每次 / 每小时合并 / 每日合并？*待 ops 决策\_
 - **OQ-4**: Performance 阈值绝对数字（US-P0-004 / US-P1-001..003）需要 spike PR 钉死。是否本周内跑 baseline？_待决_
 - **OQ-5**: 设计稿剩余 20% 缺口（A-001..005）的优先级——是穿插进 P1 批，还是 P1/P2 全做完后单独冲刺？_待 PM 决策_
 - **OQ-6**: 6 个超 800 行的拆文件 PR（A-006..011）排在 P2 之后还是 P1 之后？拆文件风险最高，建议最后。_待 lead 决策_
