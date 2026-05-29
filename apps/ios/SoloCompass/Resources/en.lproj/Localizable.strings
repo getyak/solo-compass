@@ -1138,3 +1138,7 @@
 "openForCompanions.hostMessage" = "Host Message";
 "openForCompanions.hostMessage.placeholder" = "Tell potential companions what to expect…";
 "openForCompanions.submit" = "Create Route";
+
+/* US-050: VoiceOver announcements when empty-state views appear, so VoiceOver
+   users know the list is empty rather than thinking the UI froze. */
+"a11y.empty.nearby" = "No experiences nearby";

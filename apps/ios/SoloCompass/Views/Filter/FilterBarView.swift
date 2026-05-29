@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Top-of-screen pill bar. One tap, clear feedback. The whole bar slides in
 /// over the map; we keep it visually light so the map stays the protagonist.
@@ -177,6 +180,27 @@ public struct FilterBarView: View {
         .scaleEffect(isMapPanning ? 0.85 : 1.0)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isMapPanning)
         .onTapGesture { isMapPanning = false }
+        // US-050: when the active filter yields no results, announce it so
+        // VoiceOver users know the empty map isn't a frozen UI. Fires both on
+        // first appearance and whenever the count transitions to zero.
+        .onAppear { announceIfEmpty(resultCount) }
+        .onChange(of: resultCount) { _, newCount in announceIfEmpty(newCount) }
+    }
+
+    /// US-050: localized VoiceOver string posted when the filter has no results.
+    static let emptyResultsAnnouncementKey = "a11y.empty.filterResults"
+
+    var localizedEmptyText: String {
+        NSLocalizedString(Self.emptyResultsAnnouncementKey, comment: "Announced when a filter returns no results")
+    }
+
+    /// Posts a VoiceOver announcement when `count` is zero. No-op otherwise so
+    /// non-empty filters don't chatter.
+    private func announceIfEmpty(_ count: Int) {
+        guard count == 0 else { return }
+        #if canImport(UIKit)
+        UIAccessibility.post(notification: .announcement, argument: localizedEmptyText)
+        #endif
     }
 
     /// US-034: gradient mask that fades the trailing ~24pt of the strip when

@@ -1143,3 +1143,6 @@
 "voiceAgent.permissionDenied" = "需要麦克风权限 — 请在设置中开启";
 "voiceAgent.error.streaming" = "连接中断 — 请重试";
 "voiceAgent.tts.fallback" = "回复已准备好";
+"a11y.empty.nearby" = "附近没有体验";
+"a11y.empty.filterResults" = "此筛选没有结果";
+"a11y.empty.list" = "没有可显示的体验";

@@ -687,17 +687,24 @@ struct NearbySection: View {
             SheetSectionSeparator(titleKey: "sheet.section.nearby", showsDivider: showsSectionDivider)
             Divider()
                 .padding(.horizontal, 16)
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(sortedExperiences) { exp in
-                        NearbyExperienceRow(
-                            experience: exp,
-                            isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
-                            distanceMeters: distance(to: exp),
-                            onTap: { onSelectExperience(exp) }
-                        )
-                        Divider()
-                            .padding(.leading, 62)
+            if experiences.isEmpty {
+                // US-050: empty Nearby list. Announce on appear so VoiceOver
+                // users learn the list is empty rather than thinking the sheet
+                // froze; a visible row keeps the state legible to everyone.
+                EmptySheetListView()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(sortedExperiences) { exp in
+                            NearbyExperienceRow(
+                                experience: exp,
+                                isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
+                                distanceMeters: distance(to: exp),
+                                onTap: { onSelectExperience(exp) }
+                            )
+                            Divider()
+                                .padding(.leading, 62)
+                        }
                     }
                 }
             }
@@ -735,6 +742,44 @@ struct NearbySection: View {
         let from = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
         let to = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
         return from.distance(from: to)
+    }
+}
+
+// MARK: - EmptySheetListView
+
+/// US-050: Empty-state row for the BottomInfoSheet's Nearby list. When no
+/// experiences are visible we show a localized message AND post a VoiceOver
+/// announcement on appear, so VoiceOver users know the list is genuinely empty
+/// instead of assuming the UI froze.
+struct EmptySheetListView: View {
+    /// Localized text used both for the on-screen label and the VoiceOver
+    /// announcement. Exposed via the same key the test asserts on.
+    static let announcementKey = "a11y.empty.nearby"
+
+    var localizedEmptyText: String {
+        NSLocalizedString(Self.announcementKey, comment: "Announced when the Nearby list is empty")
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "mappin.slash")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+            Text(localizedEmptyText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(localizedEmptyText))
+        .onAppear {
+            #if canImport(UIKit)
+            UIAccessibility.post(notification: .announcement, argument: localizedEmptyText)
+            #endif
+        }
     }
 }
 
