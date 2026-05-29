@@ -95,6 +95,8 @@
 
 /* Celebration */
 "celebration.complete.a11y" = "Experience completed";
+"celebration.milestone.first" = "Your 1st experience!";
+"celebration.milestone.count" = "%d explored";
 
 /* Actions */
 "action.markDone" = "Mark done";

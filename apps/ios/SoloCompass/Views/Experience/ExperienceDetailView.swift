@@ -30,6 +30,7 @@ public struct ExperienceDetailView: View {
     @State private var exportMarkdown: String? = nil
     @State private var heartPop = false
     @State private var celebrationTrigger = 0
+    @State private var celebrationMilestone: Int? = nil
     @State private var isShowingNavPicker = false
     @State private var isShowingAddToItinerary = false
     @State private var heroTitleVisible: Bool = true
@@ -1019,6 +1020,8 @@ public struct ExperienceDetailView: View {
                 let wasCompleted = viewModel.isCompleted
                 viewModel.toggleComplete()
                 if !wasCompleted {
+                    let count = viewModel.completedCount
+                    celebrationMilestone = (count == 1 || count % 5 == 0) ? count : nil
                     celebrationTrigger += 1
                     onMarkDone?(viewModel.experience)
                 } else {
@@ -1073,7 +1076,7 @@ public struct ExperienceDetailView: View {
             Button(NSLocalizedString("action.cancel", comment: "Cancel picker"), role: .cancel) { }
         }
 
-        CompletionCelebrationView(trigger: celebrationTrigger)
+        CompletionCelebrationView(trigger: celebrationTrigger, milestone: celebrationMilestone)
             .frame(maxWidth: .infinity)
             .offset(y: -28)
         }
