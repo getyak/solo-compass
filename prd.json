@@ -1,7 +1,7 @@
 {
   "project": "Solo Compass",
   "branchName": "ralph/full-fix-roadmap-58us",
-  "description": "Full Fix Roadmap — Solo Compass iOS. Executes the 58 user stories captured in tasks/prd-full-fix-roadmap.md across 4 categories: P0 (13 — crash/data-loss/a11y/perf hot-paths), P1 (29 — correctness/coverage), P2 (16 — polish/i18n), and A-Series (8 — design-token adoption + 800-line file decomposition). Source documents: docs/EVAL_REPORT.md (52 source-level findings) + 6 device findings from e2e-runner v2 (a16a636) + design ground truth at /tmp/compare_design/solocompassapp/. Strict four-way acceptance: iPhone 17 Pro Simulator manual run + XCTest + VoiceOver (a11y stories) + Sentry capture (silent-failure stories). All file:line anchors against main @ 0252ce3 (see PRD §3).",
+  "description": "Full Fix Roadmap \u2014 Solo Compass iOS. Executes the 58 user stories captured in tasks/prd-full-fix-roadmap.md across 4 categories: P0 (13 \u2014 crash/data-loss/a11y/perf hot-paths), P1 (29 \u2014 correctness/coverage), P2 (16 \u2014 polish/i18n), and A-Series (8 \u2014 design-token adoption + 800-line file decomposition). Source documents: docs/EVAL_REPORT.md (52 source-level findings) + 6 device findings from e2e-runner v2 (a16a636) + design ground truth at /tmp/compare_design/solocompassapp/. Strict four-way acceptance: iPhone 17 Pro Simulator manual run + XCTest + VoiceOver (a11y stories) + Sentry capture (silent-failure stories). All file:line anchors against main @ 0252ce3 (see PRD \u00a73).",
   "userStories": [
     {
       "id": "US-001",
@@ -10,14 +10,14 @@
       "acceptanceCriteria": [
         "grep '\\bcompanion!' across non-Tests Swift files returns 0 hits",
         "Each of the 6 sites (Services/LocalRouteCompanionRemote.swift:38,119,126,137 + Views/Companion/MyRequestsListView.swift:182 + Views/Companion/ApprovalQueueView.swift:311) rewritten with `guard var companion = updated.companion else { ... }` pattern, mutating the bound copy then assigning back via updated.companion = companion",
-        "Add new XCTest RouteCompanionForceUnwrapTests covering each mutation path with companion == nil input — operation must no-op cleanly with no crash",
+        "Add new XCTest RouteCompanionForceUnwrapTests covering each mutation path with companion == nil input \u2014 operation must no-op cleanly with no crash",
         "Existing RouteCompanionStateMachineTests still pass",
         "When the no-op safety path triggers, SentryService.capture(...) reports a warning so production occurrences are visible",
         "Typecheck passes (xcodebuild build succeeds on iPhone 17 Pro Simulator)",
         "Tests pass"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -26,8 +26,8 @@
       "description": "As an end user, I want my completions, favorites, and route join requests to never silently disappear so my actions are durable across devices.",
       "acceptanceCriteria": [
         "Services/SyncService.swift:95-98 `try? JSONEncoder().encode(...)` replaced with `do { try ... } catch { SentryService.capture(error, context: \"SyncService.enqueue\", payload: payloadType) }`",
-        "On failure the queue either rethrows to the caller or falls back gracefully — but always reports via Sentry; the bare `return` is gone",
-        "Add SyncServiceEnqueueTests injecting a payload that deterministically fails encoding — assert a SentryService mock receives the capture call",
+        "On failure the queue either rethrows to the caller or falls back gracefully \u2014 but always reports via Sentry; the bare `return` is gone",
+        "Add SyncServiceEnqueueTests injecting a payload that deterministically fails encoding \u2014 assert a SentryService mock receives the capture call",
         "grep 'try?' inside Services/SyncService.swift returns 0 hits for encode/decode",
         "Typecheck passes",
         "Tests pass"
@@ -42,7 +42,7 @@
       "description": "As an iOS engineer, I need AIService to expose whether the last synthesis was real, skeleton, or cached so the UI can render a transparency badge.",
       "acceptanceCriteria": [
         "Add public enum AISynthesisQuality { case real, skeleton, cached } in Services/AIService.swift",
-        "Add public observable property `lastSynthesisQuality: AISynthesisQuality` updated on every synthesis path (success branch -> .real, fallback branch -> .skeleton, cache-hit branch -> .cached) — anchor lines 765-768 and 781-791",
+        "Add public observable property `lastSynthesisQuality: AISynthesisQuality` updated on every synthesis path (success branch -> .real, fallback branch -> .skeleton, cache-hit branch -> .cached) \u2014 anchor lines 765-768 and 781-791",
         "Skeleton fallback path also calls SentryService.capture(...) with subsystem 'AIService.skeleton_fallback'",
         "Add AISynthesisQualityTests injecting each path and asserting lastSynthesisQuality transitions correctly",
         "Typecheck passes",
@@ -58,14 +58,14 @@
       "description": "As a user, I want a small visible indicator when an experience card is showing skeleton data instead of real AI insight so I don't mistake placeholder text for personalized recommendation.",
       "acceptanceCriteria": [
         "Create apps/ios/SoloCompass/Views/Shared/SkeletonBadgeView.swift with public struct SkeletonBadgeView: View",
-        "Visual: capsule using CT.fgMuted (NOT accent) and CT.body(10, .medium); text from NSLocalizedString(\"ai.skeleton.pill\", ...) — add the key to en.lproj and zh-Hans.lproj Localizable.strings (en: \"Limited data\", zh-Hans: \"数据有限\")",
+        "Visual: capsule using CT.fgMuted (NOT accent) and CT.body(10, .medium); text from NSLocalizedString(\"ai.skeleton.pill\", ...) \u2014 add the key to en.lproj and zh-Hans.lproj Localizable.strings (en: \"Limited data\", zh-Hans: \"\u6570\u636e\u6709\u9650\")",
         "accessibilityLabel reads the localized string + \"placeholder content\" hint",
         "Wire it into Views/Experience/ExperienceCardView.swift: render only when the bound AIService.lastSynthesisQuality == .skeleton; never render for .real or .cached",
         "Add SkeletonBadgeViewTests with snapshot of badge + ExperienceCardTests verifying conditional rendering",
-        "Add LocalizableStringsParityTest expectation — both new keys present in en and zh-Hans, StringsParityTests passes",
+        "Add LocalizableStringsParityTest expectation \u2014 both new keys present in en and zh-Hans, StringsParityTests passes",
         "Typecheck passes",
         "Tests pass",
-        "Verify in iPhone 17 Pro Simulator: launch app without ANTHROPIC_API_KEY → cards display the badge; with key → badge absent"
+        "Verify in iPhone 17 Pro Simulator: launch app without ANTHROPIC_API_KEY \u2192 cards display the badge; with key \u2192 badge absent"
       ],
       "priority": 4,
       "passes": false,
@@ -76,7 +76,7 @@
       "title": "Remove AnyView wrapper from CompassMapView.body",
       "description": "As an iOS engineer, I want the root mapContent to return some View directly so SwiftUI can do incremental diffing on the app's heaviest view.",
       "acceptanceCriteria": [
-        "Views/Map/CompassMapView.swift:76 — `public var body: some View { mapContent }` returns the @ViewBuilder result without AnyView(...) wrapping",
+        "Views/Map/CompassMapView.swift:76 \u2014 `public var body: some View { mapContent }` returns the @ViewBuilder result without AnyView(...) wrapping",
         "If init signature constraints fight the return type, add @ViewBuilder to body so the concrete opaque type is inferred",
         "Add CompassMapViewBodyTypeTests: assert String(describing: type(of: someInstance.body)) does NOT contain \"AnyView\"",
         "All existing snapshot/unit tests (MarkerIconTests, CityPillHitTargetTests, FilterBarViewTests) still pass",
@@ -90,17 +90,17 @@
     },
     {
       "id": "US-006",
-      "title": "BottomInfoSheet drag handle hit target ≥ 44pt",
-      "description": "As a VoiceOver / Switch Control user, I want the bottom sheet drag handle to have a 44×44pt minimum hit area so I can switch detent levels reliably.",
+      "title": "BottomInfoSheet drag handle hit target \u2265 44pt",
+      "description": "As a VoiceOver / Switch Control user, I want the bottom sheet drag handle to have a 44\u00d744pt minimum hit area so I can switch detent levels reliably.",
       "acceptanceCriteria": [
-        "Views/Map/BottomInfoSheet.swift:127-131 — wrap the handle in `.frame(minWidth: 60, minHeight: 44).contentShape(Rectangle())`; the visible pill stays 36×4",
-        "Add `.accessibilityLabel(NSLocalizedString(\"sheet.handle\", ...))` plus `.accessibilityAdjustableAction` that cycles peek → mid → full",
+        "Views/Map/BottomInfoSheet.swift:127-131 \u2014 wrap the handle in `.frame(minWidth: 60, minHeight: 44).contentShape(Rectangle())`; the visible pill stays 36\u00d74",
+        "Add `.accessibilityLabel(NSLocalizedString(\"sheet.handle\", ...))` plus `.accessibilityAdjustableAction` that cycles peek \u2192 mid \u2192 full",
         "Add new localization key sheet.handle to en + zh-Hans Localizable.strings",
-        "Add BottomInfoSheetHandleHitTargetTests asserting hit-area frame ≥ 44 in either dimension",
+        "Add BottomInfoSheetHandleHitTargetTests asserting hit-area frame \u2265 44 in either dimension",
         "StringsParityTests passes",
         "Typecheck passes",
         "Tests pass",
-        "Verify in iPhone 17 Pro Simulator with Accessibility Inspector: hit area visualized ≥ 44pt"
+        "Verify in iPhone 17 Pro Simulator with Accessibility Inspector: hit area visualized \u2265 44pt"
       ],
       "priority": 6,
       "passes": false,
@@ -111,8 +111,8 @@
       "title": "Localize hardcoded 'results' strings in FilterBarView",
       "description": "As a zh-Hans user, I want the filter result count rendered in my locale instead of English so the UI is consistent.",
       "acceptanceCriteria": [
-        "Views/Filter/FilterBarView.swift:180, 230, 264, 301 — replace literal \"results\" with String(format: NSLocalizedString(\"filter.results.count\", ...), count)",
-        "Add filter.results.count to en (\"%d results\") and zh-Hans (\"%d 个结果\") Localizable.strings",
+        "Views/Filter/FilterBarView.swift:180, 230, 264, 301 \u2014 replace literal \"results\" with String(format: NSLocalizedString(\"filter.results.count\", ...), count)",
+        "Add filter.results.count to en (\"%d results\") and zh-Hans (\"%d \u4e2a\u7ed3\u679c\") Localizable.strings",
         "Add FilterBarLocalizationTests verifying the resolved string in zh-Hans uses Chinese characters",
         "grep 'results' inside Views/Filter/FilterBarView.swift produces zero literal hits (excluding comments)",
         "StringsParityTests passes",
@@ -128,7 +128,7 @@
       "title": "voice.processing toast announces via UIAccessibility live region",
       "description": "As a VoiceOver user, I want voice processing toasts to announce themselves so I stay in sync with app state without manually moving focus.",
       "acceptanceCriteria": [
-        "Views/Map/CompassMapView.swift:868-885 — the voice.processing toast view chain adds .accessibilityElement().accessibilityAddTraits(.updatesFrequently)",
+        "Views/Map/CompassMapView.swift:868-885 \u2014 the voice.processing toast view chain adds .accessibilityElement().accessibilityAddTraits(.updatesFrequently)",
         "On the toast's onAppear (and on text change) call UIAccessibility.post(.announcement, argument: localizedText)",
         "Add VoiceToastA11yTests asserting the view tree contains the .updatesFrequently trait when toast is active",
         "Typecheck passes",
@@ -144,8 +144,8 @@
       "title": "Hide Companion-layer toggle behind a feature flag (decision A)",
       "description": "As a product owner, I want the long-unimplemented companion layer toggle hidden by default so users don't click a dead button that always returns nil.",
       "acceptanceCriteria": [
-        "Views/Map/CompassMapView.swift:541 — wrap the toggle in `if FeatureFlags.companionLayerEnabled { ... }`",
-        "Services/FeatureFlags.swift — add static var companionLayerEnabled: Bool = false (default off) plus a way to override in DEBUG via UserDefaults",
+        "Views/Map/CompassMapView.swift:541 \u2014 wrap the toggle in `if FeatureFlags.companionLayerEnabled { ... }`",
+        "Services/FeatureFlags.swift \u2014 add static var companionLayerEnabled: Bool = false (default off) plus a way to override in DEBUG via UserDefaults",
         "Update CompassMapViewLayerToggleTests to assert the toggle is NOT in the view hierarchy when the flag is false (and IS when true)",
         "Typecheck passes",
         "Tests pass",
@@ -160,7 +160,7 @@
       "title": "Resolve SwiftData @Query KeyPath Sendable warning in SettingsView",
       "description": "As an iOS engineer, I want the SwiftData @Query Sendable warning resolved so strict concurrency stays clean.",
       "acceptanceCriteria": [
-        "Views/Settings/SettingsView.swift:897 — replace the bare KeyPath in @Query with an explicit SortDescriptor(\\.field, order: ...) or wrap in @Sendable closure",
+        "Views/Settings/SettingsView.swift:897 \u2014 replace the bare KeyPath in @Query with an explicit SortDescriptor(\\.field, order: ...) or wrap in @Sendable closure",
         "Add SettingsViewQuerySortTest asserting the records query returns expected order",
         "xcodebuild output no longer surfaces the 'sending KeyPath risks data races' warning for this line",
         "Typecheck passes",
@@ -175,7 +175,7 @@
       "title": "Fix ChatSheet voiceService main-actor isolation",
       "description": "As an iOS engineer, I want main-actor isolated voiceService usage to not race so strict concurrency holds.",
       "acceptanceCriteria": [
-        "Services/VoiceService.swift — add @MainActor to the class declaration (or @MainActor to requestPermission()) so Views/Chat/ChatSheet.swift:621 sends a main-actor value to a main-actor method",
+        "Services/VoiceService.swift \u2014 add @MainActor to the class declaration (or @MainActor to requestPermission()) so Views/Chat/ChatSheet.swift:621 sends a main-actor value to a main-actor method",
         "Add VoiceServiceActorIsolationTest asserting requestPermission is callable from a @MainActor context without warning",
         "xcodebuild output no longer surfaces the 'sending self.voiceService risks data races' warning",
         "Typecheck passes",
@@ -190,7 +190,7 @@
       "title": "Gate FavoritesListView BounceSymbolEffect behind iOS 18 availability",
       "description": "As an iOS engineer, I want the iOS-18-only BounceSymbolEffect API gated by `if #available` so the project stays clean under Swift 6 strict mode.",
       "acceptanceCriteria": [
-        "Views/Shared/FavoritesListView.swift:327 — wrap `base.symbolEffect(.bounce, options: .repeating.speed(0.6))` in `if #available(iOS 18, *) { ... } else { base }`",
+        "Views/Shared/FavoritesListView.swift:327 \u2014 wrap `base.symbolEffect(.bounce, options: .repeating.speed(0.6))` in `if #available(iOS 18, *) { ... } else { base }`",
         "Add FavoritesBounceAvailabilityTest verifying SwipeHintCapsuleView builds and renders under both iOS 17 and iOS 18 deployment targets",
         "xcodebuild output no longer surfaces the 'IndefiniteSymbolEffect available only iOS 18+' warning",
         "Typecheck passes",
@@ -205,7 +205,7 @@
       "title": "Fix Onboarding privacy sheet subtitle truncation (V-001)",
       "description": "As a first-time user, I want the privacy onboarding sheet to show the full subtitle so I understand what services the app calls on my behalf.",
       "acceptanceCriteria": [
-        "Locate the source file via `grep -rn 'talks to two services' apps/ios/SoloCompass/Views/Onboarding` — likely Views/Onboarding/PrivacyAcknowledgementSheet.swift",
+        "Locate the source file via `grep -rn 'talks to two services' apps/ios/SoloCompass/Views/Onboarding` \u2014 likely Views/Onboarding/PrivacyAcknowledgementSheet.swift",
         "Either set the sheet to use a self-sizing detent (.medium then .large) OR add `.fixedSize(horizontal: false, vertical: true)` to the subtitle Text",
         "Subtitle renders the full phrase ending in '...on your behalf' at default AND AX5 Dynamic Type",
         "Add PrivacyAcknowledgementSheetSnapshotTest with snapshots at .accessibilityMedium and .accessibilityExtraExtraExtraLarge",
@@ -219,10 +219,10 @@
     },
     {
       "id": "US-014",
-      "title": "Sync selectedCity → mapCameraPosition on cold start (V-002)",
+      "title": "Sync selectedCity \u2192 mapCameraPosition on cold start (V-002)",
       "description": "As a user, I want the city header label and the map's rendered region to always agree so I'm never confused about where I am.",
       "acceptanceCriteria": [
-        "ViewModels/MapViewModel.swift — `selectedCity` didSet must trigger an update to `mapCameraPosition` via defaultCenterForSelectedCity, including on the first set during init (not just user-driven changes)",
+        "ViewModels/MapViewModel.swift \u2014 `selectedCity` didSet must trigger an update to `mapCameraPosition` via defaultCenterForSelectedCity, including on the first set during init (not just user-driven changes)",
         "Add MapViewModelCityRegionSyncTests: after init with city=\"chiang-mai\" the cameraPosition center is within 1km of Chiang Mai; after switching to city=\"san-francisco\" the camera moves",
         "Existing MapViewModel tests still pass",
         "Typecheck passes",
@@ -240,7 +240,7 @@
       "acceptanceCriteria": [
         "Add scripts/check-hardcoded-strings.sh that greps Views/ for `Text(\"[A-Z]` patterns and prints offenders (excluding #Preview blocks and acceptable proper nouns)",
         "Run the script and replace each user-visible literal with NSLocalizedString(...)",
-        "Known offender: Views/Map/BottomInfoSheet.swift literal 'Good spots for right now' — replace with NSLocalizedString(\"sheet.now.headline\", ...) with en/zh-Hans entries",
+        "Known offender: Views/Map/BottomInfoSheet.swift literal 'Good spots for right now' \u2014 replace with NSLocalizedString(\"sheet.now.headline\", ...) with en/zh-Hans entries",
         "Add LocalizationCoverageTest invoking the script and asserting 0 offenders remain",
         "StringsParityTests passes",
         "Typecheck passes",
@@ -256,8 +256,8 @@
       "title": "Cache markerState(for:) once per ForEach iteration",
       "description": "As an iOS engineer, I want markerState(for:) called once per ForEach iteration so we don't recompute six conditions twice per visible marker per frame.",
       "acceptanceCriteria": [
-        "Views/Map/CompassMapView.swift:612-616 — refactor the ForEach body so `let state = viewModel.markerState(for: exp)` appears once at the top, and both downstream branches reuse `state` instead of calling markerState again",
-        "Add MarkerStatePerformanceTest constructing 100 experiences and measuring 1000 iterations — p95 latency drops by ≥ 40% vs baseline (record baseline in same test on a non-cached helper)",
+        "Views/Map/CompassMapView.swift:612-616 \u2014 refactor the ForEach body so `let state = viewModel.markerState(for: exp)` appears once at the top, and both downstream branches reuse `state` instead of calling markerState again",
+        "Add MarkerStatePerformanceTest constructing 100 experiences and measuring 1000 iterations \u2014 p95 latency drops by \u2265 40% vs baseline (record baseline in same test on a non-cached helper)",
         "Existing MarkerIconViewTests pass",
         "Typecheck passes",
         "Tests pass",
@@ -272,7 +272,7 @@
       "title": "Cache MapViewModel.availableCities",
       "description": "As an iOS engineer, I want availableCities cached so we don't traverse allExperiences on every body invocation.",
       "acceptanceCriteria": [
-        "ViewModels/MapViewModel.swift:187-215 — introduce `@ObservationIgnored private var _cachedCities: [CityInfo]?`",
+        "ViewModels/MapViewModel.swift:187-215 \u2014 introduce `@ObservationIgnored private var _cachedCities: [CityInfo]?`",
         "availableCities returns the cache when non-nil; otherwise recomputes and stores",
         "Invalidate (_cachedCities = nil) whenever allExperiences or selectedCity change (in their didSet or in the refresh path)",
         "Add MapViewModelCityCacheTests covering: fresh path computes and stores; second call hits cache (verify by snapshotting allExperiences before second call); invalidation after allExperiences change",
@@ -289,7 +289,7 @@
       "title": "Cache MapViewModel.nowCount",
       "description": "As an iOS engineer, I want nowCount cached and recomputed only on visibleExperiences change so BottomInfoSheet and FilterBarView don't trigger O(n) scans on every render.",
       "acceptanceCriteria": [
-        "ViewModels/MapViewModel.swift — add `@ObservationIgnored private var _nowCount: Int = 0`",
+        "ViewModels/MapViewModel.swift \u2014 add `@ObservationIgnored private var _nowCount: Int = 0`",
         "Update _nowCount at the end of loadNearbyExperiences, refreshForLocation, and updateBottomInfo",
         "nowCount property returns _nowCount",
         "Lines 720 and 736 inside updateBottomInfo no longer recompute via .filter { $0.isBestNow() }",
@@ -305,16 +305,16 @@
     },
     {
       "id": "US-019",
-      "title": "Hit-target ≥ 44pt for FilterBar icon pill, favorite heart, banner X",
+      "title": "Hit-target \u2265 44pt for FilterBar icon pill, favorite heart, banner X",
       "description": "As a VoiceOver / Switch Control user, I want all interactive controls to meet the 44pt HIG minimum.",
       "acceptanceCriteria": [
-        "Views/Filter/FilterBarView.swift:240 iconPill (36×36) — wrap in .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()); keep the visible chip 36×36",
-        "Views/Experience/ExperienceCardView.swift:175 favorite heart (32×32) — same treatment",
-        "Views/Map/CompassMapView.swift:1124 DismissibleBanner X button — same treatment",
-        "Add HitTargetSizeTests enumerating each control and asserting hit-area dimensions ≥ 44",
+        "Views/Filter/FilterBarView.swift:240 iconPill (36\u00d736) \u2014 wrap in .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()); keep the visible chip 36\u00d736",
+        "Views/Experience/ExperienceCardView.swift:175 favorite heart (32\u00d732) \u2014 same treatment",
+        "Views/Map/CompassMapView.swift:1124 DismissibleBanner X button \u2014 same treatment",
+        "Add HitTargetSizeTests enumerating each control and asserting hit-area dimensions \u2265 44",
         "Typecheck passes",
         "Tests pass",
-        "Verify in iPhone 17 Pro Simulator with Accessibility Inspector: three controls all show ≥ 44pt hit area"
+        "Verify in iPhone 17 Pro Simulator with Accessibility Inspector: three controls all show \u2265 44pt hit area"
       ],
       "priority": 19,
       "passes": false,
@@ -325,9 +325,9 @@
       "title": "Parallelize SoloCompassApp.onAppear init chain",
       "description": "As a user, I want cold start TTI to not block on serial main-thread init so the map appears within 500ms.",
       "acceptanceCriteria": [
-        "App/SoloCompassApp.swift:43-73 — move pruneStaleCheckIns, attachRepository, RouteStore.importSeedIfNeeded, and UserDirectory.loadIfNeeded into independent `Task { ... }` blocks; remove the serial await chain",
-        "Break subscriptionService.loadProducts → refreshEntitlement into its own independent Task",
-        "Add AppLaunchPerformanceTest measuring time from init to first body completion — assert ≤ baseline × 0.5 (record baseline in test setup using the pre-refactor serial path stub)",
+        "App/SoloCompassApp.swift:43-73 \u2014 move pruneStaleCheckIns, attachRepository, RouteStore.importSeedIfNeeded, and UserDirectory.loadIfNeeded into independent `Task { ... }` blocks; remove the serial await chain",
+        "Break subscriptionService.loadProducts \u2192 refreshEntitlement into its own independent Task",
+        "Add AppLaunchPerformanceTest measuring time from init to first body completion \u2014 assert \u2264 baseline \u00d7 0.5 (record baseline in test setup using the pre-refactor serial path stub)",
         "Existing app launch tests pass",
         "Typecheck passes",
         "Tests pass",
@@ -342,7 +342,7 @@
       "title": "Initialize CompassMapView viewModel eagerly (no Optional)",
       "description": "As an iOS engineer, I want viewModel initialized eagerly so writes between launch and onAppear don't silently drop.",
       "acceptanceCriteria": [
-        "Views/Map/CompassMapView.swift:1458 — change `@State private var viewModel: MapViewModel? = nil` to `@State private var viewModel = MapViewModel(...)` with required dependencies (or use environment injection)",
+        "Views/Map/CompassMapView.swift:1458 \u2014 change `@State private var viewModel: MapViewModel? = nil` to `@State private var viewModel = MapViewModel(...)` with required dependencies (or use environment injection)",
         "Remove the lazy creation block inside .onAppear",
         "All sites that did `if let viewModel = ...` simplify to direct use",
         "Add MapViewModelEagerInitTest: app launch path can read viewModel.allExperiences before any onAppear fires",
@@ -360,9 +360,9 @@
       "title": "Resolve City pill vs. filter bar visual stacking conflict",
       "description": "As a user, I want city selector and filter bar to not visually fight for attention in the top-left.",
       "acceptanceCriteria": [
-        "Views/Map/CompassMapView.swift top overlay — move the city pill into the navigation-bar area OR vertically separate it from the filter bar so the two capsules no longer overlap or hit-test interfere",
-        "Add TopOverlayLayoutTest using snapshot at iPhone 17 Pro size — assert city pill rect and filter bar rect do not intersect",
-        "VoiceOver order: city pill → filter bar → map (manually verified)",
+        "Views/Map/CompassMapView.swift top overlay \u2014 move the city pill into the navigation-bar area OR vertically separate it from the filter bar so the two capsules no longer overlap or hit-test interfere",
+        "Add TopOverlayLayoutTest using snapshot at iPhone 17 Pro size \u2014 assert city pill rect and filter bar rect do not intersect",
+        "VoiceOver order: city pill \u2192 filter bar \u2192 map (manually verified)",
         "Typecheck passes",
         "Tests pass",
         "Verify in iPhone 17 Pro Simulator: city pill and filter bar are visually separate"
@@ -376,9 +376,9 @@
       "title": "Share a single TimelineView clock across BestNowBadge instances",
       "description": "As an iOS engineer, I want a single periodic timer feeding all BestNowBadge instances instead of 20+ concurrent timelines.",
       "acceptanceCriteria": [
-        "Create Services/BestNowClock.swift — an @Observable @MainActor singleton with a tick property updated every 60s via a single Timer or AsyncStream",
-        "Views/Experience/ExperienceCardView.swift:267-289 BestNowBadge — replace its inline TimelineView(.periodic(by: 60)) with `@Environment(BestNowClock.self)` consumption",
-        "Add BestNowBadgeClockTest constructing 100 badges sharing one clock — assert only one Timer/AsyncStream is allocated",
+        "Create Services/BestNowClock.swift \u2014 an @Observable @MainActor singleton with a tick property updated every 60s via a single Timer or AsyncStream",
+        "Views/Experience/ExperienceCardView.swift:267-289 BestNowBadge \u2014 replace its inline TimelineView(.periodic(by: 60)) with `@Environment(BestNowClock.self)` consumption",
+        "Add BestNowBadgeClockTest constructing 100 badges sharing one clock \u2014 assert only one Timer/AsyncStream is allocated",
         "Existing BestNow tests pass",
         "Typecheck passes",
         "Tests pass",
@@ -393,7 +393,7 @@
       "title": "Add accessibilityLabel/value to SoloScoreRadarChart",
       "description": "As a VoiceOver user, I want the radar chart's 6 dimensions read out loud.",
       "acceptanceCriteria": [
-        "Views/Shared/SoloScoreRadarChart.swift — add `.accessibilityElement(children: .combine)` plus an `.accessibilityLabel` that names all 6 dimensions with their values, and `.accessibilityValue` for the overall score",
+        "Views/Shared/SoloScoreRadarChart.swift \u2014 add `.accessibilityElement(children: .combine)` plus an `.accessibilityLabel` that names all 6 dimensions with their values, and `.accessibilityValue` for the overall score",
         "Add SoloScoreRadarA11yTest asserting accessibilityLabel is non-empty and contains all 6 dimension names",
         "Typecheck passes",
         "Tests pass",
@@ -408,8 +408,8 @@
       "title": "Wire 'Ask Solo' gated CTA to Paywall sheet",
       "description": "As a free-tier user, I want clicking a gated feature to take me to the paywall, not a dead toast.",
       "acceptanceCriteria": [
-        "Views/Experience/ExperienceDetailView.swift — the gated 'Ask Solo' CTA now presents PaywallSheet via .sheet(isPresented:) when the user is not subscribed",
-        "Add AskSoloPaywallNavigationTest: tap the gated CTA → assert sheet appears via ViewInspector or snapshot",
+        "Views/Experience/ExperienceDetailView.swift \u2014 the gated 'Ask Solo' CTA now presents PaywallSheet via .sheet(isPresented:) when the user is not subscribed",
+        "Add AskSoloPaywallNavigationTest: tap the gated CTA \u2192 assert sheet appears via ViewInspector or snapshot",
         "Existing ExperienceDetailView tests pass",
         "Typecheck passes",
         "Tests pass",
@@ -424,9 +424,9 @@
       "title": "Surface LocationService.lastError as dismissible banner",
       "description": "As a user, I want GPS errors surfaced so I understand why the map defaulted to a region instead of my location.",
       "acceptanceCriteria": [
-        "Services/LocationService.swift — confirm lastError is @Observable (Published) so views can react",
-        "ViewModels/MapViewModel.swift — observe lastError and expose a derived `locationErrorBannerText: String?`",
-        "Views/Map/CompassMapView.swift — render a dismissible banner using existing DismissibleBanner pattern when locationErrorBannerText != nil; copy from NSLocalizedString(\"location.error.banner\", ...)",
+        "Services/LocationService.swift \u2014 confirm lastError is @Observable (Published) so views can react",
+        "ViewModels/MapViewModel.swift \u2014 observe lastError and expose a derived `locationErrorBannerText: String?`",
+        "Views/Map/CompassMapView.swift \u2014 render a dismissible banner using existing DismissibleBanner pattern when locationErrorBannerText != nil; copy from NSLocalizedString(\"location.error.banner\", ...)",
         "Add en + zh-Hans entries for location.error.banner",
         "Add LocationErrorSurfaceTests asserting banner appears when lastError set",
         "When lastError != nil, SentryService.capture reports a warning",
@@ -444,9 +444,9 @@
       "title": "Surface voice recording interruptions in UI",
       "description": "As a user, I want voice recording interruptions shown in UI instead of silently stopping.",
       "acceptanceCriteria": [
-        "Views/Chat/ChatSheet.swift:636-638 — the empty catch is replaced with a toast/alert showing NSLocalizedString(\"voice.interrupted\", ...) with the underlying error description",
+        "Views/Chat/ChatSheet.swift:636-638 \u2014 the empty catch is replaced with a toast/alert showing NSLocalizedString(\"voice.interrupted\", ...) with the underlying error description",
         "Add en + zh-Hans entries for voice.interrupted (format string with %@ placeholder)",
-        "Add VoiceInterruptionToastTest: inject a throwing voice service → assert toast appears",
+        "Add VoiceInterruptionToastTest: inject a throwing voice service \u2192 assert toast appears",
         "StringsParityTests passes",
         "Typecheck passes",
         "Tests pass",
@@ -458,11 +458,11 @@
     },
     {
       "id": "US-028",
-      "title": "Filter chip selected-state contrast ≥ 4.5:1",
+      "title": "Filter chip selected-state contrast \u2265 4.5:1",
       "description": "As a low-vision user, I want filter chip text to meet WCAG 4.5:1 contrast.",
       "acceptanceCriteria": [
-        "Views/Filter/FilterBarView.swift selected state — replace #D4A843 on white with either CT.accent (#5D3000) text-on-CT.accentSoft (#FBF1E4) background OR white text on CT.accent background; both achieve ≥ 7:1",
-        "Add FilterChipContrastTest computing the WCAG relative luminance for selected state's foreground and background — assert contrast ratio ≥ 4.5",
+        "Views/Filter/FilterBarView.swift selected state \u2014 replace #D4A843 on white with either CT.accent (#5D3000) text-on-CT.accentSoft (#FBF1E4) background OR white text on CT.accent background; both achieve \u2265 7:1",
+        "Add FilterChipContrastTest computing the WCAG relative luminance for selected state's foreground and background \u2014 assert contrast ratio \u2265 4.5",
         "Existing FilterBarView tests pass",
         "Typecheck passes",
         "Tests pass",
@@ -477,8 +477,8 @@
       "title": "Scale BottomInfoSheet detent heights with Dynamic Type",
       "description": "As an AX5 Dynamic Type user, I want sheet detent heights to scale so content doesn't overflow.",
       "acceptanceCriteria": [
-        "Views/Map/BottomInfoSheet.swift — multiply the three detent heights (peek 170, mid 500, full 800) by UIFontMetrics.default.scaledValue(for: 1.0) or equivalent",
-        "Add BottomSheetDetentDynamicTypeTest snapshotting all three detents at .accessibilityExtraExtraExtraLarge — content not clipped",
+        "Views/Map/BottomInfoSheet.swift \u2014 multiply the three detent heights (peek 170, mid 500, full 800) by UIFontMetrics.default.scaledValue(for: 1.0) or equivalent",
+        "Add BottomSheetDetentDynamicTypeTest snapshotting all three detents at .accessibilityExtraExtraExtraLarge \u2014 content not clipped",
         "Existing BottomInfoSheet tests pass",
         "Typecheck passes",
         "Tests pass",
@@ -493,7 +493,7 @@
       "title": "Sort button announces current mode via accessibilityValue",
       "description": "As a VoiceOver user, I want the sort button to announce current sort mode.",
       "acceptanceCriteria": [
-        "Views/Map/BottomInfoSheet.swift:208 — sort button adds `.accessibilityValue(NSLocalizedString(\"sort.value.\\(currentMode)\", ...))` keyed off the active sort mode",
+        "Views/Map/BottomInfoSheet.swift:208 \u2014 sort button adds `.accessibilityValue(NSLocalizedString(\"sort.value.\\(currentMode)\", ...))` keyed off the active sort mode",
         "Add en + zh-Hans entries for sort.value.smart, sort.value.distance, sort.value.recent (whatever modes exist)",
         "Add SortButtonA11yValueTest asserting accessibilityValue updates when sort mode changes",
         "StringsParityTests passes",
@@ -510,7 +510,7 @@
       "title": "JoinRouteRequestSheet inline error feedback",
       "description": "As a user submitting a join request, I want inline validation errors so I know which field is missing.",
       "acceptanceCriteria": [
-        "Views/Companion/JoinRouteRequestSheet.swift — missing pace or empty message field renders a red hint below the relevant input using NSLocalizedString(\"join.error.\\(field).missing\", ...)",
+        "Views/Companion/JoinRouteRequestSheet.swift \u2014 missing pace or empty message field renders a red hint below the relevant input using NSLocalizedString(\"join.error.\\(field).missing\", ...)",
         "Add en + zh-Hans entries for join.error.pace.missing and join.error.message.missing",
         "Submit button stays disabled until both fields validate",
         "Add JoinRequestValidationTest asserting hints appear/disappear with field state",
@@ -528,8 +528,8 @@
       "title": "Approval queue shows trust signals per requester",
       "description": "As a host reviewing join requests, I want to see opt-in status, walked-count, and group-count next to each requester.",
       "acceptanceCriteria": [
-        "Views/Companion/ApprovalQueueView.swift — each request row renders three micro-stats: opt-in badge, walked count icon+number, group count icon+number — sourced from the existing requester profile object",
-        "If a stat is unknown, show '—' instead of fabricating",
+        "Views/Companion/ApprovalQueueView.swift \u2014 each request row renders three micro-stats: opt-in badge, walked count icon+number, group count icon+number \u2014 sourced from the existing requester profile object",
+        "If a stat is unknown, show '\u2014' instead of fabricating",
         "Add ApprovalTrustSignalTest snapshotting three rows with different signal combinations",
         "Existing ApprovalQueueView tests pass",
         "Typecheck passes",
@@ -545,14 +545,14 @@
       "title": "Diagnose and fix cold-start empty-state at 5km and 25km (V-004)",
       "description": "As a user, I want the home screen to show experiences for my selected city on cold start so the app doesn't feel broken.",
       "acceptanceCriteria": [
-        "Investigate the chain: Services/ExperienceService.swift seed import → MapViewModel.loadNearbyExperiences. Document root cause in PR description (likely candidates: distance filter uses SF user-location while header city is set differently; or seed not imported when SwiftData store exists but is empty)",
+        "Investigate the chain: Services/ExperienceService.swift seed import \u2192 MapViewModel.loadNearbyExperiences. Document root cause in PR description (likely candidates: distance filter uses SF user-location while header city is set differently; or seed not imported when SwiftData store exists but is empty)",
         "Apply the fix that makes selectedCity drive both the camera AND the nearby query origin (depends on US-014)",
         "Add ColdStartExperienceLoadTests: simulate cold start with selectedCity='chiang-mai' and assert nearby experiences count > 0 after the load completes",
         "Add a Sentry warning if selectedCity is set but nearby experience count remains 0 for > 5 seconds",
         "Existing ExperienceService tests pass",
         "Typecheck passes",
         "Tests pass",
-        "Verify in iPhone 17 Pro Simulator: cold launch with each of 5 seed cities → each shows non-zero nearby count"
+        "Verify in iPhone 17 Pro Simulator: cold launch with each of 5 seed cities \u2192 each shows non-zero nearby count"
       ],
       "priority": 33,
       "passes": false,
@@ -563,9 +563,9 @@
       "title": "Add scroll affordance to filter chip strip (V-005)",
       "description": "As a user, I want a visual hint that filter chips scroll horizontally so I can discover all categories.",
       "acceptanceCriteria": [
-        "Views/Filter/FilterBarView.swift — add a fade gradient mask on the right edge (using .mask(LinearGradient(...))) when content overflows; OR add a small chevron icon",
+        "Views/Filter/FilterBarView.swift \u2014 add a fade gradient mask on the right edge (using .mask(LinearGradient(...))) when content overflows; OR add a small chevron icon",
         "Mask/chevron only shows when there is overflow content (not when all chips fit)",
-        "Add FilterBarScrollAffordanceTest snapshotting with > 6 categories (overflow) and ≤ 5 (no overflow)",
+        "Add FilterBarScrollAffordanceTest snapshotting with > 6 categories (overflow) and \u2264 5 (no overflow)",
         "Existing FilterBarView tests pass",
         "Typecheck passes",
         "Tests pass",
@@ -580,12 +580,12 @@
       "title": "Sync Filter 'Now' mode and Map 'bestNow' visual highlight",
       "description": "As a user, I want toggling the 'Now' filter to also highlight 'best now' markers on the map so the two UIs feel connected.",
       "acceptanceCriteria": [
-        "Views/Map/CompassMapView.swift — when FilterBarView's 'Now' mode is active, decorate bestNow markers with an additional ring (use CT.accent) or pulse animation",
+        "Views/Map/CompassMapView.swift \u2014 when FilterBarView's 'Now' mode is active, decorate bestNow markers with an additional ring (use CT.accent) or pulse animation",
         "Add FilterNowMapSyncTest asserting marker style changes when Now filter toggles",
         "Existing CompassMapView tests pass",
         "Typecheck passes",
         "Tests pass",
-        "Verify in iPhone 17 Pro Simulator: toggling Now → markers visibly change"
+        "Verify in iPhone 17 Pro Simulator: toggling Now \u2192 markers visibly change"
       ],
       "priority": 35,
       "passes": false,
@@ -596,7 +596,7 @@
       "title": "Add visual separator between Routes and Nearby sections in BottomInfoSheet",
       "description": "As a user, I want a clear visual division between routes and nearby experiences in the bottom sheet so the information hierarchy is obvious.",
       "acceptanceCriteria": [
-        "Views/Map/BottomInfoSheet.swift — insert a section header with the localized title (NSLocalizedString(\"sheet.section.routes\", ...) and \"sheet.section.nearby\") and an inset divider between the two sections",
+        "Views/Map/BottomInfoSheet.swift \u2014 insert a section header with the localized title (NSLocalizedString(\"sheet.section.routes\", ...) and \"sheet.section.nearby\") and an inset divider between the two sections",
         "Add en + zh-Hans entries for the two section titles",
         "Add BottomSheetSectionSeparationTest snapshotting at mid detent",
         "StringsParityTests passes",
@@ -628,7 +628,7 @@
       "title": "Localize ShareCardComponents brand label",
       "description": "As a non-English user, I want share-card images to render branding in my locale (or stay neutral, but at minimum go through NSLocalizedString).",
       "acceptanceCriteria": [
-        "Views/Experience/Share/ShareCardComponents.swift:54 — replace `Text(\"Solo Compass\")` with `Text(NSLocalizedString(\"sharecard.brand\", ...))`",
+        "Views/Experience/Share/ShareCardComponents.swift:54 \u2014 replace `Text(\"Solo Compass\")` with `Text(NSLocalizedString(\"sharecard.brand\", ...))`",
         "Add en + zh-Hans entries for sharecard.brand (both currently 'Solo Compass'; intentional but routes through l10n pipeline)",
         "Add ShareCardComponentsL10nTest asserting the resolved string in both locales",
         "StringsParityTests passes",
@@ -644,8 +644,8 @@
       "title": "Localize ShareCardView '/100  Solo Score' label",
       "description": "As a non-English user, I want the share card score label rendered in my locale.",
       "acceptanceCriteria": [
-        "Views/Experience/Share/ShareCardView.swift:279 — replace `Text(\"/100  Solo Score\")` with a localized format string NSLocalizedString(\"sharecard.score.suffix\", ...)",
-        "Add en (\"/100  Solo Score\") and zh-Hans (\"/100 Solo 评分\") entries",
+        "Views/Experience/Share/ShareCardView.swift:279 \u2014 replace `Text(\"/100  Solo Score\")` with a localized format string NSLocalizedString(\"sharecard.score.suffix\", ...)",
+        "Add en (\"/100  Solo Score\") and zh-Hans (\"/100 Solo \u8bc4\u5206\") entries",
         "Add ShareCardScoreL10nTest asserting the resolved string in both locales",
         "StringsParityTests passes",
         "Typecheck passes",
@@ -663,7 +663,7 @@
         "Replace print() in Services/Agents/AgentRouter.swift:179, ViewModels/MapViewModel.swift:1185, and Services/SubscriptionService.swift:325 with Logger().debug/info calls",
         "Use a subsystem of 'com.solocompass' and category matching the file (e.g. 'AgentRouter')",
         "Do NOT touch print() calls inside #Preview blocks or test targets",
-        "Add a script-based check (scripts/check-no-production-print.sh) that greps for print( in non-Preview, non-Tests Swift files — count should drop by 3",
+        "Add a script-based check (scripts/check-no-production-print.sh) that greps for print( in non-Preview, non-Tests Swift files \u2014 count should drop by 3",
         "Typecheck passes",
         "Tests pass"
       ],
@@ -676,8 +676,8 @@
       "title": "Fix ForEach String id `\\.self` instability (3 sites)",
       "description": "As an iOS engineer, I want ForEach over String collections to use stable IDs so duplicate strings don't collapse rows.",
       "acceptanceCriteria": [
-        "Views/Filter/FilterBarView.swift:103 (customTags) — wrap each tag in `struct IdentifiableTag: Identifiable { let id = UUID(); let value: String }` or use Array.enumerated() with the index as id",
-        "Views/Experience/Share/ShareCardView.swift:69 and :221 (highlights) — same treatment",
+        "Views/Filter/FilterBarView.swift:103 (customTags) \u2014 wrap each tag in `struct IdentifiableTag: Identifiable { let id = UUID(); let value: String }` or use Array.enumerated() with the index as id",
+        "Views/Experience/Share/ShareCardView.swift:69 and :221 (highlights) \u2014 same treatment",
         "Add ForEachStringIDStabilityTest constructing a list with duplicate strings and asserting the rendered view has the correct number of rows (not collapsed)",
         "Typecheck passes",
         "Tests pass"
@@ -691,7 +691,7 @@
       "title": "Add 'Skip' affordance to Onboarding flow",
       "description": "As a returning user or QA tester, I want a Skip option in onboarding so I don't have to tap through every screen.",
       "acceptanceCriteria": [
-        "Onboarding parent view — add a 'Skip' button in the top-right corner that completes the onboarding flow (marks onboardingComplete = true in UserDefaults / repository)",
+        "Onboarding parent view \u2014 add a 'Skip' button in the top-right corner that completes the onboarding flow (marks onboardingComplete = true in UserDefaults / repository)",
         "Skip button has NSLocalizedString(\"onboarding.skip\", ...) entries in en + zh-Hans",
         "Add OnboardingSkipTest asserting Skip dismisses the flow",
         "StringsParityTests passes",
@@ -722,7 +722,7 @@
       "title": "Test admin-unlock and language-switch restart flows in SettingsView",
       "description": "As an iOS engineer, I want test coverage for two undocumented Settings flows so they don't regress silently.",
       "acceptanceCriteria": [
-        "Add SettingsAdminUnlockTest covering the secret admin unlock sequence (whatever taps trigger it) → assert admin flag set",
+        "Add SettingsAdminUnlockTest covering the secret admin unlock sequence (whatever taps trigger it) \u2192 assert admin flag set",
         "Add SettingsLanguageSwitchRestartTest asserting language change schedules an app-restart prompt",
         "Both tests reference existing SettingsView code paths without modifying behavior",
         "Typecheck passes",
@@ -737,7 +737,7 @@
       "title": "Audit Color extensions for unintended public scope",
       "description": "As an iOS engineer, I want SettingsView's private Color(hex:) extension verified as scope-limited so it doesn't collide with global hex helpers.",
       "acceptanceCriteria": [
-        "Views/Settings/SettingsView.swift:1131-1132 — confirm the `private extension Color { init(hex: UInt32) }` stays private file-scope; if it's used elsewhere, hoist to Views/Shared/Color+Hex.swift and dedupe",
+        "Views/Settings/SettingsView.swift:1131-1132 \u2014 confirm the `private extension Color { init(hex: UInt32) }` stays private file-scope; if it's used elsewhere, hoist to Views/Shared/Color+Hex.swift and dedupe",
         "Add ColorExtensionScopeTest asserting Color(hex: UInt32) is not accessible from outside SettingsView (or alternatively, that the canonical helper is in Color+Hex.swift)",
         "Typecheck passes",
         "Tests pass"
@@ -754,7 +754,7 @@
         "If FeatureFlags.companionLayerEnabled remains false but UI shows a 'Coming soon' affordance, the copy uses NSLocalizedString(\"companion.layer.coming_soon\", ...)",
         "Add en + zh-Hans entries",
         "Add CompanionLayerPlaceholderTest asserting copy rendering",
-        "If US-009 implemented option A (full hide) and no placeholder exists, this story is a no-op — mark passes:true after verifying nothing references the key",
+        "If US-009 implemented option A (full hide) and no placeholder exists, this story is a no-op \u2014 mark passes:true after verifying nothing references the key",
         "StringsParityTests passes",
         "Typecheck passes",
         "Tests pass"
@@ -768,9 +768,9 @@
       "title": "Investigate map top dark band rendering (V-006)",
       "description": "As a user, I want the map's top region to render street content instead of a flat dark band so the map looks complete.",
       "acceptanceCriteria": [
-        "Reproduce in iPhone 17 Pro Simulator (cold launch shows NORTH BEACH band) and identify cause: MapKit tile loading delay, search-box backdrop blur covering tiles, or overlay z-order bug — document in PR description",
+        "Reproduce in iPhone 17 Pro Simulator (cold launch shows NORTH BEACH band) and identify cause: MapKit tile loading delay, search-box backdrop blur covering tiles, or overlay z-order bug \u2014 document in PR description",
         "Apply the minimum fix: defer overlay rendering until map first-tile-rendered event; or reduce backdrop blur footprint; or correct z-order",
-        "Add MapTopOverlayRenderTest snapshotting the top 200pt of the map at T+5s — assert non-uniform pixel content (not a flat color band)",
+        "Add MapTopOverlayRenderTest snapshotting the top 200pt of the map at T+5s \u2014 assert non-uniform pixel content (not a flat color band)",
         "Existing CompassMapView tests pass",
         "Typecheck passes",
         "Tests pass",
@@ -783,7 +783,7 @@
     {
       "id": "US-048",
       "title": "Migrate remaining production print() calls to os.Logger (batch 2)",
-      "description": "As an iOS engineer, complete the print() → Logger migration started in US-040 by handling the remaining offenders.",
+      "description": "As an iOS engineer, complete the print() \u2192 Logger migration started in US-040 by handling the remaining offenders.",
       "acceptanceCriteria": [
         "scripts/check-no-production-print.sh shows zero print( hits in non-Preview, non-Tests Swift files",
         "All migrated sites use Logger with appropriate subsystem/category",
@@ -800,7 +800,7 @@
       "title": "Onboarding pages: explicit VoiceOver order",
       "description": "As a VoiceOver user, I want onboarding pages to have a sensible focus order so I can navigate without getting lost.",
       "acceptanceCriteria": [
-        "Each onboarding page — wrap content in a single `.accessibilityElement(children: .contain)` container and set `.accessibilitySortPriority` for title → subtitle → primary CTA → skip",
+        "Each onboarding page \u2014 wrap content in a single `.accessibilityElement(children: .contain)` container and set `.accessibilitySortPriority` for title \u2192 subtitle \u2192 primary CTA \u2192 skip",
         "Add OnboardingA11yOrderTest asserting accessibility element order matches expectation",
         "Typecheck passes",
         "Tests pass",
@@ -831,7 +831,7 @@
       "title": "Calibrate ObsidianTheme dark-mode color values",
       "description": "As a dark-mode user with ObsidianTheme selected, I want the colors to actually look like the intended obsidian palette.",
       "acceptanceCriteria": [
-        "Services/Themes/ObsidianTheme.swift — audit each Color value against the design intent in docs (or chat transcripts); adjust to match",
+        "Services/Themes/ObsidianTheme.swift \u2014 audit each Color value against the design intent in docs (or chat transcripts); adjust to match",
         "Add ObsidianThemeContrastTest asserting foreground/background pairs meet WCAG 4.5:1",
         "Existing Theme tests pass",
         "Typecheck passes",
@@ -847,7 +847,7 @@
       "title": "Audit zh-Hans punctuation (half-width vs full-width)",
       "description": "As a zh-Hans user, I want consistent full-width punctuation so the UI follows Chinese typography conventions.",
       "acceptanceCriteria": [
-        "Run a script that greps Resources/zh-Hans.lproj/Localizable.strings for half-width punctuation in Chinese contexts (e.g. , ! ? : ; vs ，！？：；)",
+        "Run a script that greps Resources/zh-Hans.lproj/Localizable.strings for half-width punctuation in Chinese contexts (e.g. , ! ? : ; vs \uff0c\uff01\uff1f\uff1a\uff1b)",
         "Replace each offender with the full-width equivalent",
         "Add a ZhHansPunctuationTest invoking the same script at test time and asserting 0 offenders",
         "Existing localization tests pass",
@@ -907,11 +907,11 @@
     },
     {
       "id": "US-056",
-      "title": "RouteCard — add stop-strip breadcrumb (CompareCanvas A-001)",
+      "title": "RouteCard \u2014 add stop-strip breadcrumb (CompareCanvas A-001)",
       "description": "As a user browsing routes, I want a visual breadcrumb of stops on each route card so I can preview the journey at a glance.",
       "acceptanceCriteria": [
-        "Views/Companion/Components/RouteCard.swift — render a horizontal strip of colored discs (one per stop, color from CategoryVisual) connected by 1px CT.fgSubtle connectors; matches design-truth in /tmp/compare_design/solocompassapp/project/route.jsx's `stop-strip` block",
-        "All colors come from CT.* tokens — no Color.accentColor or failable hex",
+        "Views/Companion/Components/RouteCard.swift \u2014 render a horizontal strip of colored discs (one per stop, color from CategoryVisual) connected by 1px CT.fgSubtle connectors; matches design-truth in /tmp/compare_design/solocompassapp/project/route.jsx's `stop-strip` block",
+        "All colors come from CT.* tokens \u2014 no Color.accentColor or failable hex",
         "Add RouteCardStopStripTest snapshotting cards with 2, 3, and 5 stops",
         "Existing RouteCard tests pass",
         "Typecheck passes",
@@ -924,11 +924,11 @@
     },
     {
       "id": "US-057",
-      "title": "RouteCard — add recruit-mini inline state (CompareCanvas A-002)",
+      "title": "RouteCard \u2014 add recruit-mini inline state (CompareCanvas A-002)",
       "description": "As a user with companion mode on, I want each route card to show the recruiting state inline (host / N filled out of M / departure label) without opening detail.",
       "acceptanceCriteria": [
-        "Views/Companion/Components/RouteCard.swift — when route.companion != nil AND status is open/forming/closed/completed, render an inline strip below the title showing: host avatar + `<handle> 招募 · N/M · <departure>` (open/forming) or `已成团 · N 人 · 出发中` (closed) or `已完成 · 路线升级` (completed)",
-        "Uses CT.* tokens; tone color per status — green for completed, accent for open, amber for forming",
+        "Views/Companion/Components/RouteCard.swift \u2014 when route.companion != nil AND status is open/forming/closed/completed, render an inline strip below the title showing: host avatar + `<handle> \u62db\u52df \u00b7 N/M \u00b7 <departure>` (open/forming) or `\u5df2\u6210\u56e2 \u00b7 N \u4eba \u00b7 \u51fa\u53d1\u4e2d` (closed) or `\u5df2\u5b8c\u6210 \u00b7 \u8def\u7ebf\u5347\u7ea7` (completed)",
+        "Uses CT.* tokens; tone color per status \u2014 green for completed, accent for open, amber for forming",
         "Add RouteCardRecruitMiniTest snapshotting all four status variants",
         "Existing RouteCard tests pass",
         "Typecheck passes",
@@ -941,11 +941,11 @@
     },
     {
       "id": "US-058",
-      "title": "RouteCard — add walked-by row (CompareCanvas A-003) and migrate to CT tokens",
+      "title": "RouteCard \u2014 add walked-by row (CompareCanvas A-003) and migrate to CT tokens",
       "description": "As a user browsing routes, I want to see how many travelers walked this route (with avatar stack) so I can gauge social proof.",
       "acceptanceCriteria": [
-        "Views/Companion/Components/RouteCard.swift — when companionOn is false OR route.companion is nil, render a walked-by row with AvatarStack(maxVisible: 4) + `<count> 位旅人走过` + chevron",
-        "AvatarStack uses CT.fgSubtle ring (current default) on a CT.bgWarm-or-white background — confirm no Color.accentColor or failable hex remains anywhere in RouteCard",
+        "Views/Companion/Components/RouteCard.swift \u2014 when companionOn is false OR route.companion is nil, render a walked-by row with AvatarStack(maxVisible: 4) + `<count> \u4f4d\u65c5\u4eba\u8d70\u8fc7` + chevron",
+        "AvatarStack uses CT.fgSubtle ring (current default) on a CT.bgWarm-or-white background \u2014 confirm no Color.accentColor or failable hex remains anywhere in RouteCard",
         "Add RouteCardWalkedByTest snapshotting with 0, 3, and 12 walkers (the +N more case)",
         "Existing RouteCard tests pass",
         "Typecheck passes",
