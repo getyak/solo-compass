@@ -143,6 +143,7 @@ public struct SoloScoreBadge: View {
 private struct SoloScorePopoverContent: View {
     let score: SoloScore
     @State private var appeared = false
+    @State private var barsFilled = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private struct DimensionRow {
@@ -181,8 +182,8 @@ private struct SoloScorePopoverContent: View {
 
             Divider()
 
-            ForEach(Array(dimensions.enumerated()), id: \.offset) { _, row in
-                dimensionRow(label: NSLocalizedString(row.labelKey, comment: ""), value: row.value)
+            ForEach(Array(dimensions.enumerated()), id: \.offset) { index, row in
+                dimensionRow(label: NSLocalizedString(row.labelKey, comment: ""), value: row.value, index: index)
             }
         }
         .padding()
@@ -192,16 +193,19 @@ private struct SoloScorePopoverContent: View {
         .onAppear {
             if reduceMotion {
                 appeared = true
+                barsFilled = true
             } else {
                 withAnimation(.easeIn(duration: 0.2)) {
                     appeared = true
                 }
+                barsFilled = true
             }
         }
     }
 
-    private func dimensionRow(label: String, value: Double) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+    private func dimensionRow(label: String, value: Double, index: Int) -> some View {
+        let clamped = max(0, min(10, value))
+        return VStack(alignment: .leading, spacing: 3) {
             HStack {
                 Text(label)
                     .font(.caption)
@@ -217,7 +221,12 @@ private struct SoloScorePopoverContent: View {
                     .overlay(alignment: .leading) {
                         Capsule()
                             .fill(score.scoreColor.opacity(0.8))
-                            .frame(width: geo.size.width * CGFloat(max(0, min(10, value)) / 10))
+                            .frame(width: barsFilled ? geo.size.width * CGFloat(clamped / 10) : 0)
+                            .animation(
+                                reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.8)
+                                    .delay(Double(index) * 0.05),
+                                value: barsFilled
+                            )
                     }
             }
             .frame(height: 4)
