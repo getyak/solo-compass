@@ -87,6 +87,10 @@ public final class ExperienceDetailViewModel {
         )
     }
 
+    /// Count of all completed experiences after the last toggleComplete() call.
+    /// Updated synchronously inside toggleComplete so callers can read it immediately.
+    public private(set) var completedCount: Int = 0
+
     public func toggleComplete() {
         if isCompleted {
             preferences.completedExperiences.remove(experience.id)
@@ -98,6 +102,7 @@ public final class ExperienceDetailViewModel {
             visitCount += 1
             isCompleted = true
         }
+        completedCount = preferences.completedExperiences.count
     }
 
     public func toggleFavorite() {

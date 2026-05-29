@@ -5,6 +5,7 @@ import SwiftUI
 /// Respects Reduce Motion: skips particles, only shows the checkmark pop.
 public struct CompletionCelebrationView: View {
     let trigger: Int
+    var milestone: Int? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -23,6 +24,7 @@ public struct CompletionCelebrationView: View {
     @State private var particles: [Particle] = []
     @State private var animated = false
     @State private var checkmarkPop = false
+    @State private var milestoneVisible = false
 
     private static let palette: [Color] = ExperienceCategory.allCases.map(\.color)
 
@@ -61,6 +63,25 @@ public struct CompletionCelebrationView: View {
                 .scaleEffect(checkmarkPop ? 1.0 : 0.01)
                 .opacity(checkmarkPop ? 1.0 : 0.0)
                 .symbolEffect(.bounce, value: checkmarkPop)
+
+            if let count = milestone {
+                let label = count == 1
+                    ? NSLocalizedString("celebration.milestone.first", comment: "First experience milestone")
+                    : String(format: NSLocalizedString("celebration.milestone.count", comment: "Nth experience milestone"), count)
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(.thinMaterial, in: Capsule())
+                    .offset(y: 36)
+                    .scaleEffect(reduceMotion ? 1.0 : (milestoneVisible ? 1.0 : 0.5))
+                    .opacity(milestoneVisible ? 1.0 : 0.0)
+                    .animation(
+                        reduceMotion ? .none : .spring(response: 0.35, dampingFraction: 0.6),
+                        value: milestoneVisible
+                    )
+            }
         }
         .allowsHitTesting(false)
         .onChange(of: trigger) { _, _ in
@@ -88,6 +109,7 @@ public struct CompletionCelebrationView: View {
         }
         animated = false
         checkmarkPop = false
+        milestoneVisible = false
 
         #if canImport(UIKit)
         Haptics.notify(.success)
@@ -98,10 +120,27 @@ public struct CompletionCelebrationView: View {
                 attributes: [.accessibilitySpeechQueueAnnouncement: true]
             )
         )
+        if let count = milestone {
+            let milestoneText = count == 1
+                ? NSLocalizedString("celebration.milestone.first", comment: "First experience milestone")
+                : String(format: NSLocalizedString("celebration.milestone.count", comment: "Nth experience milestone"), count)
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: NSAttributedString(
+                    string: milestoneText,
+                    attributes: [.accessibilitySpeechQueueAnnouncement: true]
+                )
+            )
+        }
         #endif
 
         withAnimation(.spring(response: 0.15, dampingFraction: 0.6)) {
             checkmarkPop = true
+        }
+        if milestone != nil {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                milestoneVisible = true
+            }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             Haptics.impact(.soft)
@@ -117,6 +156,9 @@ public struct CompletionCelebrationView: View {
             particles = []
             animated = false
             checkmarkPop = false
+            withAnimation(.easeOut(duration: 0.2)) {
+                milestoneVisible = false
+            }
         }
     }
 }
