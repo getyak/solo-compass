@@ -174,7 +174,9 @@ public struct SoloScoreRadarChart: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
+        .accessibilityElement(children: .combine)
         .accessibilityLabel(radarAccessibilityLabel)
+        .accessibilityValue(radarAccessibilityValue)
         .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "Tap to replay the draw-in animation")))
         .onTapGesture {
             guard !reduceMotion, !isReplaying else { return }
@@ -206,17 +208,17 @@ public struct SoloScoreRadarChart: View {
         )
     }
 
-    private var radarAccessibilityLabel: Text {
-        let overallFormatted = String(format: "%.1f", score.overall)
-        let overallLabel = String(format: NSLocalizedString("solo.a11y", comment: ""), overallFormatted)
-
+    /// Raw VoiceOver label string naming all six dimensions with their values,
+    /// e.g. "Safety 9 of 10, Seating 8 of 10, ...". The overall score is exposed
+    /// separately via `radarAccessibilityValueString`. Exposed for unit testing.
+    var radarAccessibilityLabelString: String {
         let sortedDimensions = zip(Self.axes, values)
             .sorted { $0.1 > $1.1 }
         let dimensionParts = sortedDimensions.map { axis, val in
             "\(axis.label) \(Int(val)) of 10"
         }.joined(separator: ", ")
 
-        var label = "\(overallLabel). \(dimensionParts)."
+        var label = dimensionParts
 
         if hasQualifyingStrongest {
             let strongestName = Self.axes[strongestIndex].label
@@ -233,11 +235,24 @@ public struct SoloScoreRadarChart: View {
                 format: NSLocalizedString("solo.radar.weakest.a11y", comment: ""),
                 weakestName
             )
-            label += " \(weakestSentence)"
+            label += ". \(weakestSentence)"
         }
 
-        return Text(label)
+        return label
     }
+
+    /// Raw VoiceOver value string announcing the overall Solo Score, e.g.
+    /// "Solo Score 7.8 of 10". Exposed for unit testing.
+    var radarAccessibilityValueString: String {
+        let overallFormatted = String(format: "%.1f", score.overall)
+        return String(format: NSLocalizedString("solo.a11y", comment: ""), overallFormatted)
+    }
+
+    /// VoiceOver label naming all six dimensions with their values.
+    var radarAccessibilityLabel: Text { Text(radarAccessibilityLabelString) }
+
+    /// VoiceOver value announcing the overall Solo Score.
+    var radarAccessibilityValue: Text { Text(radarAccessibilityValueString) }
 
     // MARK: - Replay
 
@@ -339,6 +354,7 @@ public struct SoloScoreRadarChart: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(radarAccessibilityLabel)
+        .accessibilityValue(radarAccessibilityValue)
         .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "")))
         .onTapGesture {
             guard !reduceMotion, !isReplaying else { return }
