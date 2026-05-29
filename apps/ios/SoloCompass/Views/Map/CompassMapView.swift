@@ -640,6 +640,10 @@ public struct CompassMapView: View {
                 UserAnnotation()
                 ForEach(viewModel.visibleExperiences) { exp in
                     if let coord = exp.coordinate {
+                        // US-016: compute the marker state once per ForEach
+                        // iteration — its six conditions are otherwise evaluated
+                        // twice per visible marker per frame (icon + badge).
+                        let state = viewModel.markerState(for: exp)
                         Annotation(exp.title, coordinate: coord) {
                             Button {
                                 viewModel.selectExperience(exp)
@@ -648,11 +652,11 @@ public struct CompassMapView: View {
                                 VStack(spacing: 2) {
                                     MarkerIconView(
                                         category: exp.category,
-                                        state: viewModel.markerState(for: exp),
+                                        state: state,
                                         confidenceLevel: exp.confidence.level,
                                         isSelected: viewModel.selectedExperience?.id == exp.id
                                     )
-                                    if case .footprinted = viewModel.markerState(for: exp) {
+                                    if case .footprinted = state {
                                         Text("\(viewModel.footprintCount(for: exp))")
                                             .font(.caption2.weight(.semibold))
                                             .foregroundStyle(.white)
