@@ -128,6 +128,10 @@ public struct FavoritesListView: View {
         sortedFavorites.filter { proximity(for: $0) == .near }.count
     }
 
+    private var completedCount: Int {
+        sortedFavorites.filter { preferences.completedExperiences.contains($0.id) }.count
+    }
+
     public var body: some View {
         NavigationStack {
             Group {
@@ -152,6 +156,8 @@ public struct FavoritesListView: View {
                             let showNearbyChip = locationService.currentLocation != nil
                                 && nearbyCount > 0
                                 && searchText.trimmingCharacters(in: .whitespaces).isEmpty
+                            let showCompletedChip = completedCount > 0
+                                && searchText.trimmingCharacters(in: .whitespaces).isEmpty
                             HStack(spacing: 8) {
                                 Text(countLabel)
                                     .font(.subheadline)
@@ -159,6 +165,24 @@ public struct FavoritesListView: View {
                                     .animation(.easeInOut, value: filteredFavorites.count)
                                     .contentTransition(.numericText())
                                 Spacer()
+                                if showCompletedChip {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.caption2)
+                                            .foregroundStyle(Color.green)
+                                            .accessibilityHidden(true)
+                                        Text(String(format: NSLocalizedString("favorites.completed.count", comment: "N of M done chip"), completedCount, sortedFavorites.count))
+                                            .font(.caption2)
+                                            .foregroundStyle(Color.green)
+                                            .contentTransition(.numericText())
+                                            .animation(reduceMotion ? nil : .easeInOut, value: completedCount)
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.green.opacity(0.12), in: Capsule())
+                                    .accessibilityLabel(String(format: NSLocalizedString("favorites.completed.count.a11y", comment: "N of M done chip accessibility label"), completedCount, sortedFavorites.count))
+                                    .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                                }
                                 if showNearbyChip {
                                     Button {
                                         Haptics.selection()
@@ -189,6 +213,7 @@ public struct FavoritesListView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 6)
                             .animation(reduceMotion ? nil : .easeInOut, value: showNearbyChip)
+                            .animation(reduceMotion ? nil : .easeInOut, value: showCompletedChip)
                             .animation(.easeInOut, value: nearbyCount)
                         }
 
@@ -486,6 +511,7 @@ private extension FavoritesListView {
     func favoriteRow(_ exp: Experience) -> some View {
         let distStr = distanceString(for: exp)
         let prox = proximity(for: exp)
+        let isDone = preferences.completedExperiences.contains(exp.id)
         Button {
             onSelectExperience(exp)
         } label: {
@@ -497,6 +523,14 @@ private extension FavoritesListView {
                     Image(systemName: exp.category.symbol)
                         .font(.body)
                         .foregroundStyle(exp.category.color)
+                    if isDone {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.green)
+                            .background(Circle().fill(Color.white).padding(2))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                            .accessibilityHidden(true)
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -535,15 +569,16 @@ private extension FavoritesListView {
         }
         .buttonStyle(.plain)
         .accessibilityLabel({
+            let doneWord = isDone ? ", \(NSLocalizedString("favorites.row.done.a11y", comment: "Completed row suffix"))" : ""
             if let distStr {
                 let awayFmt = NSLocalizedString("favorites.row.distance.a11y", comment: "Distance away accessibility label")
                 let distLabel = String(format: awayFmt, distStr)
                 if let prox {
-                    return Text("\(exp.title), \(exp.oneLiner), \(distLabel), \(prox.a11yWord)")
+                    return Text("\(exp.title), \(exp.oneLiner), \(distLabel), \(prox.a11yWord)\(doneWord)")
                 }
-                return Text("\(exp.title), \(exp.oneLiner), \(distLabel)")
+                return Text("\(exp.title), \(exp.oneLiner), \(distLabel)\(doneWord)")
             }
-            return Text("\(exp.title), \(exp.oneLiner)")
+            return Text("\(exp.title), \(exp.oneLiner)\(doneWord)")
         }())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
