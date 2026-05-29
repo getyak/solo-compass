@@ -83,34 +83,48 @@ public struct FilterBarView: View {
 
     public var body: some View {
         GlassmorphismCapsule(horizontalPadding: 0, verticalPadding: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    nowPill(isSelected: isNowSelected, action: onSelectNow)
-                    pill(
-                        id: "all",
-                        label: NSLocalizedString("filter.all", comment: "All"),
-                        isSelected: !isNowSelected && selectedCategory == nil && selectedCustomTag == nil,
-                        color: Color.primary,
-                        action: onSelectAll
-                    )
-                    ForEach(visibleCategories) { category in
-                        iconPill(
-                            category: category,
-                            isSelected: selectionID == category.rawValue,
-                            action: { onSelectCategory(category) }
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        nowPill(isSelected: isNowSelected, action: onSelectNow)
+                            .id("now")
+                        pill(
+                            id: "all",
+                            label: NSLocalizedString("filter.all", comment: "All"),
+                            isSelected: !isNowSelected && selectedCategory == nil && selectedCustomTag == nil,
+                            color: Color.primary,
+                            action: onSelectAll
                         )
+                        .id("all")
+                        ForEach(visibleCategories) { category in
+                            iconPill(
+                                category: category,
+                                isSelected: selectionID == category.rawValue,
+                                action: { onSelectCategory(category) }
+                            )
+                            .id(category.rawValue)
+                        }
+                        ForEach(preferences.customTags, id: \.self) { tag in
+                            customTagPill(
+                                tag: tag,
+                                isSelected: selectionID == "tag-\(tag)",
+                                action: { onSelectCustomTag(tag) }
+                            )
+                            .id("tag-\(tag)")
+                        }
                     }
-                    ForEach(preferences.customTags, id: \.self) { tag in
-                        customTagPill(
-                            tag: tag,
-                            isSelected: selectionID == "tag-\(tag)",
-                            action: { onSelectCustomTag(tag) }
-                        )
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectionID)
+                }
+                .onAppear {
+                    proxy.scrollTo(selectionID, anchor: .center)
+                }
+                .onChange(of: selectionID) { _, id in
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                        proxy.scrollTo(id, anchor: .center)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectionID)
             }
         }
         .padding(.horizontal, 16)
