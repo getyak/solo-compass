@@ -1,457 +1,456 @@
 {
   "project": "Solo Compass",
-  "branchName": "ralph/route-anchored-companion-2",
-  "description": "Route-Anchored Companion \u2014 Replace location-based companion matching (DiscoverPost / geohash6 / presence) with route-anchored companion. Routes are ordered experience sequences that double as pure content (solo) and companion carriers (host + recruiting + verified flywheel). Ship A+A+A information architecture (companion default OFF, no UI bleed into map surface) plus an Apple-Maps-style three-detent bottom sheet (170/500/800 pt) that hosts both 'nearby experiences' and 'recruiting routes' lists. Local-first throughout: FF_BACKEND_SYNC defaults off, all flows backed by local SwiftData + seed fixtures with a remote-protocol seam reserved for P3. Supersedes tasks/prd-companion-mode.md. Source: tasks/prd-route-anchored-companion.md.",
+  "branchName": "ralph/full-fix-roadmap-58us",
+  "description": "Full Fix Roadmap — Solo Compass iOS. Executes the 58 user stories captured in tasks/prd-full-fix-roadmap.md across 4 categories: P0 (13 — crash/data-loss/a11y/perf hot-paths), P1 (29 — correctness/coverage), P2 (16 — polish/i18n), and A-Series (8 — design-token adoption + 800-line file decomposition). Source documents: docs/EVAL_REPORT.md (52 source-level findings) + 6 device findings from e2e-runner v2 (a16a636) + design ground truth at /tmp/compare_design/solocompassapp/. Strict four-way acceptance: iPhone 17 Pro Simulator manual run + XCTest + VoiceOver (a11y stories) + Sentry capture (silent-failure stories). All file:line anchors against main @ 0252ce3 (see PRD §3).",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Define Route value type (Swift struct, no persistence yet)",
-      "description": "As a developer, I need a Route value-type struct that captures an ordered experience sequence plus metadata (verification, optional companion slot) so later stories can persist, render, and mutate it.",
+      "title": "Replace 6 route.companion! force-unwraps with safe binding",
+      "description": "As an iOS engineer, I want all 6 `route.companion!` force-unwrap sites replaced with safe binding so the app never crashes when companion data is unexpectedly nil.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Models/Route.swift with public struct Route: Identifiable, Codable, Sendable",
-        "Route fields: id (RouteId branded type), title, summary, experienceIds: [String] (ordered), cityCode, region, estimatedDuration, distanceMeters, pace (Pace enum: relaxed/standard/packed), tags: [String], source (RouteSource enum: editorial/aiGenerated/userCreated/coCreated), authorId: String?, bestStartHour: Double?, bestNow: Bool, verification: RouteVerification, companion: RouteCompanion?",
-        "Define nested RouteVerification struct: status (VerificationStatus: proposed/walkedBy/verified), walkedByCount: Int, walkedBy: [String]",
-        "Leave RouteCompanion as a placeholder typealias or empty struct (filled in US-013)",
-        "Add Pace, RouteSource, VerificationStatus enums with Codable conformance",
-        "Add public init with default verification (.proposed, 0, [])",
-        "File compiles with apps/ios target",
-        "Typecheck passes (xcodebuild build succeeds)"
+        "grep '\\bcompanion!' across non-Tests Swift files returns 0 hits",
+        "Each of the 6 sites (Services/LocalRouteCompanionRemote.swift:38,119,126,137 + Views/Companion/MyRequestsListView.swift:182 + Views/Companion/ApprovalQueueView.swift:311) rewritten with `guard var companion = updated.companion else { ... }` pattern, mutating the bound copy then assigning back via updated.companion = companion",
+        "Add new XCTest RouteCompanionForceUnwrapTests covering each mutation path with companion == nil input — operation must no-op cleanly with no crash",
+        "Existing RouteCompanionStateMachineTests still pass",
+        "When the no-op safety path triggers, SentryService.capture(...) reports a warning so production occurrences are visible",
+        "Typecheck passes (xcodebuild build succeeds on iPhone 17 Pro Simulator)",
+        "Tests pass"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Add Route unit tests covering construction and decoding",
-      "description": "As a developer, I want unit tests proving Route can be constructed and round-tripped through Codable so later persistence work has a stable foundation.",
+      "title": "SyncService.enqueue must report encode failures to Sentry",
+      "description": "As an end user, I want my completions, favorites, and route join requests to never silently disappear so my actions are durable across devices.",
       "acceptanceCriteria": [
-        "Add RouteTests.swift in apps/ios/SoloCompass/Tests covering: default verification values, ordered experienceIds preservation, JSON encode/decode round-trip, Pace/RouteSource/VerificationStatus enum codability",
-        "All new tests pass under xcodebuild test on iPhone 17 Pro simulator",
-        "Typecheck passes"
+        "Services/SyncService.swift:95-98 `try? JSONEncoder().encode(...)` replaced with `do { try ... } catch { SentryService.capture(error, context: \"SyncService.enqueue\", payload: payloadType) }`",
+        "On failure the queue either rethrows to the caller or falls back gracefully — but always reports via Sentry; the bare `return` is gone",
+        "Add SyncServiceEnqueueTests injecting a payload that deterministically fails encoding — assert a SentryService mock receives the capture call",
+        "grep 'try?' inside Services/SyncService.swift returns 0 hits for encode/decode",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Define RouteRecord SwiftData @Model for persistence",
-      "description": "As a developer, I need a SwiftData @Model that persists Route value instances via JSON blob for array fields (matching ItineraryRecord.experienceIdsBlob pattern).",
+      "title": "Add AISynthesisQuality state to AIService",
+      "description": "As an iOS engineer, I need AIService to expose whether the last synthesis was real, skeleton, or cached so the UI can render a transparency badge.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Persistence/Models/RouteRecord.swift with @Model final class RouteRecord",
-        "Scalar fields stored natively: id (unique), title, summary, cityCode, region, etc.",
-        "Array fields stored as Data blob: experienceIdsBlob, walkedByBlob, tagsBlob",
-        "Provide asValue: Route computed property (decode blobs) and static fromValue(_ route: Route) -> RouteRecord (encode blobs)",
-        "Register RouteRecord in SoloCompassModelContainer.swift Schema list",
-        "Add unit test covering round-trip: Route -> RouteRecord -> Route equals original",
+        "Add public enum AISynthesisQuality { case real, skeleton, cached } in Services/AIService.swift",
+        "Add public observable property `lastSynthesisQuality: AISynthesisQuality` updated on every synthesis path (success branch -> .real, fallback branch -> .skeleton, cache-hit branch -> .cached) — anchor lines 765-768 and 781-791",
+        "Skeleton fallback path also calls SentryService.capture(...) with subsystem 'AIService.skeleton_fallback'",
+        "Add AISynthesisQualityTests injecting each path and asserting lastSynthesisQuality transitions correctly",
         "Typecheck passes",
         "Tests pass"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Implement RouteStore (CRUD over SwiftData)",
-      "description": "As a developer, I need a single RouteStore service that wraps SwiftData CRUD for Route so UI never touches the model context directly.",
+      "title": "Add SkeletonBadgeView component (transparency pill)",
+      "description": "As a user, I want a small visible indicator when an experience card is showing skeleton data instead of real AI insight so I don't mistake placeholder text for personalized recommendation.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Persistence/RouteStore.swift with @MainActor final class RouteStore",
-        "Inject ModelContainer in init; expose: all() -> [Route], get(_ id: RouteId) -> Route?, save(_ route: Route), delete(_ id: RouteId), nearby(cityCode: String, limit: Int) -> [Route]",
-        "Add notification when store changes (NotificationCenter or @Observable) so views can refresh",
-        "Add RouteStoreTests.swift covering: save+get, delete, all-after-save count, nearby filters by cityCode",
+        "Create apps/ios/SoloCompass/Views/Shared/SkeletonBadgeView.swift with public struct SkeletonBadgeView: View",
+        "Visual: capsule using CT.fgMuted (NOT accent) and CT.body(10, .medium); text from NSLocalizedString(\"ai.skeleton.pill\", ...) — add the key to en.lproj and zh-Hans.lproj Localizable.strings (en: \"Limited data\", zh-Hans: \"数据有限\")",
+        "accessibilityLabel reads the localized string + \"placeholder content\" hint",
+        "Wire it into Views/Experience/ExperienceCardView.swift: render only when the bound AIService.lastSynthesisQuality == .skeleton; never render for .real or .cached",
+        "Add SkeletonBadgeViewTests with snapshot of badge + ExperienceCardTests verifying conditional rendering",
+        "Add LocalizableStringsParityTest expectation — both new keys present in en and zh-Hans, StringsParityTests passes",
         "Typecheck passes",
-        "Tests pass"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: launch app without ANTHROPIC_API_KEY → cards display the badge; with key → badge absent"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Add Itinerary<->Route bidirectional converters",
-      "description": "As a developer, I want pure functions that convert between Itinerary and Route so the existing itinerary surface keeps working while Route becomes the new core.",
+      "title": "Remove AnyView wrapper from CompassMapView.body",
+      "description": "As an iOS engineer, I want the root mapContent to return some View directly so SwiftUI can do incremental diffing on the app's heaviest view.",
       "acceptanceCriteria": [
-        "Add extension Route { init(itinerary: Itinerary) } that maps an Itinerary to a Route with source=.userCreated, companion=nil, verification=(.proposed, 0, [])",
-        "Add extension Itinerary { init?(route: Route) } that maps a Route back to Itinerary (returns nil when source != .userCreated)",
-        "Add tests covering: Itinerary -> Route -> Itinerary equals original, ordering preserved, companion=nil after round-trip",
+        "Views/Map/CompassMapView.swift:76 — `public var body: some View { mapContent }` returns the @ViewBuilder result without AnyView(...) wrapping",
+        "If init signature constraints fight the return type, add @ViewBuilder to body so the concrete opaque type is inferred",
+        "Add CompassMapViewBodyTypeTests: assert String(describing: type(of: someInstance.body)) does NOT contain \"AnyView\"",
+        "All existing snapshot/unit tests (MarkerIconTests, CityPillHitTargetTests, FilterBarViewTests) still pass",
         "Typecheck passes",
-        "Tests pass"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: pan/zoom map for 30 seconds, no visual regression"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Create seed_routes.json with 4 Vientiane routes",
-      "description": "As a product, I need 4 hand-curated Vientiane routes as a local seed so Route concepts work in-app without backend or content ops.",
+      "title": "BottomInfoSheet drag handle hit target ≥ 44pt",
+      "description": "As a VoiceOver / Switch Control user, I want the bottom sheet drag handle to have a 44×44pt minimum hit area so I can switch detent levels reliably.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Resources/JSON/seed_routes.json with 4 routes: mekong-sunset, slow-coffee-day, morning-ritual, vientiane-monuments",
-        "Each route includes id/title/summary/experienceIds (ordered)/cityCode=VTE/region/estimatedDuration/distanceMeters/pace/tags/source (editorial or user_created)/authorId/bestStartHour/bestNow/verification",
-        "4 routes cover 4 companion-status fixtures (open, forming, closed/null, completed) -- companion field set to null in P0; status will populate in P1",
-        "All referenced experienceIds must exist in seed_experiences.json (verified by a parity test)",
-        "Add ParityTests entry verifying every seed_routes.json experienceId resolves in seed_experiences.json",
+        "Views/Map/BottomInfoSheet.swift:127-131 — wrap the handle in `.frame(minWidth: 60, minHeight: 44).contentShape(Rectangle())`; the visible pill stays 36×4",
+        "Add `.accessibilityLabel(NSLocalizedString(\"sheet.handle\", ...))` plus `.accessibilityAdjustableAction` that cycles peek → mid → full",
+        "Add new localization key sheet.handle to en + zh-Hans Localizable.strings",
+        "Add BottomInfoSheetHandleHitTargetTests asserting hit-area frame ≥ 44 in either dimension",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Tests pass"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator with Accessibility Inspector: hit area visualized ≥ 44pt"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-007",
-      "title": "Load seed routes into RouteStore on app launch",
-      "description": "As a developer, I need ExperienceService (or a new SeedLoader) to load seed_routes.json into RouteStore at app startup so RouteStore.all() returns the 4 seeds on first launch.",
+      "title": "Localize hardcoded 'results' strings in FilterBarView",
+      "description": "As a zh-Hans user, I want the filter result count rendered in my locale instead of English so the UI is consistent.",
       "acceptanceCriteria": [
-        "Add seed-loading path: on app launch, if RouteStore.all().isEmpty, decode seed_routes.json and save each Route",
-        "Missing experienceIds are skipped with a single os_log warning, not a crash",
-        "Add test that simulates fresh launch and asserts RouteStore.all().count == 4",
+        "Views/Filter/FilterBarView.swift:180, 230, 264, 301 — replace literal \"results\" with String(format: NSLocalizedString(\"filter.results.count\", ...), count)",
+        "Add filter.results.count to en (\"%d results\") and zh-Hans (\"%d 个结果\") Localizable.strings",
+        "Add FilterBarLocalizationTests verifying the resolved string in zh-Hans uses Chinese characters",
+        "grep 'results' inside Views/Filter/FilterBarView.swift produces zero literal hits (excluding comments)",
+        "StringsParityTests passes",
         "Typecheck passes",
         "Tests pass"
       ],
       "priority": 7,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-008",
-      "title": "Run parity check for Route schema (TS <-> Swift)",
-      "description": "As a developer, I need pnpm parity:check to know about Route so the TS/Swift schema-parity guard catches drift on Route fields.",
+      "title": "voice.processing toast announces via UIAccessibility live region",
+      "description": "As a VoiceOver user, I want voice processing toasts to announce themselves so I stay in sync with app state without manually moving focus.",
       "acceptanceCriteria": [
-        "Add packages/core/src/route.ts mirroring Swift Route fields (id, title, experienceIds, verification, etc.)",
-        "Add Route to scripts/check-swift-parity.ts comparator entries",
-        "Run pnpm parity:check from repo root -- must exit 0",
-        "Add packages/core/src/index.ts re-export",
-        "Typecheck passes"
+        "Views/Map/CompassMapView.swift:868-885 — the voice.processing toast view chain adds .accessibilityElement().accessibilityAddTraits(.updatesFrequently)",
+        "On the toast's onAppear (and on text change) call UIAccessibility.post(.announcement, argument: localizedText)",
+        "Add VoiceToastA11yTests asserting the view tree contains the .updatesFrequently trait when toast is active",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator with VoiceOver on: triggering a voice query causes the system to read the toast text"
       ],
       "priority": 8,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-009",
-      "title": "Remove CompanionHubSheet button from CompassMapView (A+A+A cleanup)",
-      "description": "As a developer, I need to delete the right-top person-icon button + sheet binding added in the previous sprint so the map surface returns to A+A+A pure state.",
+      "title": "Hide Companion-layer toggle behind a feature flag (decision A)",
+      "description": "As a product owner, I want the long-unimplemented companion layer toggle hidden by default so users don't click a dead button that always returns nil.",
       "acceptanceCriteria": [
-        "In CompassMapView.swift: remove @State var isShowingCompanionHub, remove .sheet binding for CompanionHubSheet, remove companionHubButton private view, remove MapOverlayView isShowingCompanionHub/inboxCount props and the corresponding HStack right-side button",
-        "grep 'isShowingCompanionHub' in apps/ios/SoloCompass -- 0 hits after change",
-        "grep 'companionHubButton' in apps/ios/SoloCompass -- 0 hits after change",
+        "Views/Map/CompassMapView.swift:541 — wrap the toggle in `if FeatureFlags.companionLayerEnabled { ... }`",
+        "Services/FeatureFlags.swift — add static var companionLayerEnabled: Bool = false (default off) plus a way to override in DEBUG via UserDefaults",
+        "Update CompassMapViewLayerToggleTests to assert the toggle is NOT in the view hierarchy when the flag is false (and IS when true)",
         "Typecheck passes",
-        "Verify in Simulator using xcodebuild + simctl screenshot: relaunched app shows map with city pill only (no person icon)"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: cold launch shows no companion-layer toggle in the top overlay"
       ],
       "priority": 9,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-010",
-      "title": "Mark CompanionHubSheet.swift deprecated",
-      "description": "As a developer, I mark CompanionHubSheet as @available deprecated for one sprint so future stories can still reference its NavigationLink reuse pattern, but no surface instantiates it.",
+      "title": "Resolve SwiftData @Query KeyPath Sendable warning in SettingsView",
+      "description": "As an iOS engineer, I want the SwiftData @Query Sendable warning resolved so strict concurrency stays clean.",
       "acceptanceCriteria": [
-        "Add @available(*, deprecated, message: \"Replaced by Settings -> Companion section per A+A+A. Delete after P2 ships.\") on struct CompanionHubSheet",
-        "Confirm grep 'CompanionHubSheet(' across apps/ios returns 0 production call sites (only the file's own definition + #Preview)",
-        "Typecheck passes (deprecation warning is acceptable; treat any error as fail)"
+        "Views/Settings/SettingsView.swift:897 — replace the bare KeyPath in @Query with an explicit SortDescriptor(\\.field, order: ...) or wrap in @Sendable closure",
+        "Add SettingsViewQuerySortTest asserting the records query returns expected order",
+        "xcodebuild output no longer surfaces the 'sending KeyPath risks data races' warning for this line",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 10,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-011",
-      "title": "Add UserPreferences.companionEnabled flag (default false)",
-      "description": "As a developer, I add a persisted companionEnabled flag to UserPreferences so A+A+A gating has a single source of truth.",
+      "title": "Fix ChatSheet voiceService main-actor isolation",
+      "description": "As an iOS engineer, I want main-actor isolated voiceService usage to not race so strict concurrency holds.",
       "acceptanceCriteria": [
-        "Add public var companionEnabled: Bool to UserPreferences with default false",
-        "Persist via existing UserPreferences storage (UserDefaults or SwiftData record)",
-        "Add unit test: default value is false; setting to true persists across instantiation",
+        "Services/VoiceService.swift — add @MainActor to the class declaration (or @MainActor to requestPermission()) so Views/Chat/ChatSheet.swift:621 sends a main-actor value to a main-actor method",
+        "Add VoiceServiceActorIsolationTest asserting requestPermission is callable from a @MainActor context without warning",
+        "xcodebuild output no longer surfaces the 'sending self.voiceService risks data races' warning",
         "Typecheck passes",
         "Tests pass"
       ],
       "priority": 11,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-012",
-      "title": "Add Settings -> Companion section with opt-in toggle",
-      "description": "As a user, I see a Settings section titled '\u540c\u4f34 (\u5b9e\u9a8c\u4e2d)' with a single toggle that gates everything; toggling on first time triggers CompanionSafetyConsentSheet, accepting persists companionEnabled=true.",
+      "title": "Gate FavoritesListView BounceSymbolEffect behind iOS 18 availability",
+      "description": "As an iOS engineer, I want the iOS-18-only BounceSymbolEffect API gated by `if #available` so the project stays clean under Swift 6 strict mode.",
       "acceptanceCriteria": [
-        "Add companionSection in SettingsView.swift after subscriptionSection",
-        "Section header: localized key 'settings.companion.header' = '\u540c\u4f34 (\u5b9e\u9a8c\u4e2d)' / 'Companion (Experimental)'",
-        "Section body: a Toggle bound to preferences.companionEnabled",
-        "When toggling false->true: present CompanionSafetyConsentSheet as .sheet; only on accept persist true; on cancel rollback to false",
-        "When toggling true->false: persist immediately, no confirmation",
-        "When companionEnabled=true, three NavigationLinks appear: \u540c\u4f34\u6863\u6848 -> CompanionProfileView, \u6211\u7684\u62db\u52df\u7533\u8bf7 -> MyRequestsListView (stub returning empty list for now), \u5df2\u52a0\u5165\u7684\u7fa4\u804a -> list of conversations (stub returning empty for now)",
+        "Views/Shared/FavoritesListView.swift:327 — wrap `base.symbolEffect(.bounce, options: .repeating.speed(0.6))` in `if #available(iOS 18, *) { ... } else { base }`",
+        "Add FavoritesBounceAvailabilityTest verifying SwipeHintCapsuleView builds and renders under both iOS 17 and iOS 18 deployment targets",
+        "xcodebuild output no longer surfaces the 'IndefiniteSymbolEffect available only iOS 18+' warning",
         "Typecheck passes",
-        "Verify in Simulator: open Settings -> toggle on -> safety sheet appears -> accept -> 3 links appear; toggle off -> links disappear"
+        "Tests pass"
       ],
       "priority": 12,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-013",
-      "title": "Define RouteCompanion struct + JoinRequest (no state machine yet)",
-      "description": "As a developer, I need to flesh out the RouteCompanion + JoinRequest data shapes so later state-machine and UI work has concrete types to reference.",
+      "title": "Fix Onboarding privacy sheet subtitle truncation (V-001)",
+      "description": "As a first-time user, I want the privacy onboarding sheet to show the full subtitle so I understand what services the app calls on my behalf.",
       "acceptanceCriteria": [
-        "Update Route.swift: replace RouteCompanion placeholder with full struct containing status (CompanionStatus enum: open/forming/closed/completed), hostId, departureWindow (struct {from: String, to: String, time: String}), departureLabel: String, pacePreference (PacePreference enum), maxMembers: Int, confirmedMembers: [String], joinRequests: [JoinRequest], visibility (CompanionVisibility enum: public/linkOnly), groupConversationId: String?, hostMessage: String?",
-        "Define JoinRequest: id (JoinRequestId branded), requesterId, message, status (JoinRequestStatus enum: pending/accepted/declined/withdrawn), createdAt",
-        "All new types Codable + Sendable",
-        "Add encode/decode round-trip test for RouteCompanion and JoinRequest",
-        "Update RouteRecord to persist companion field as Data blob (companionBlob)",
+        "Locate the source file via `grep -rn 'talks to two services' apps/ios/SoloCompass/Views/Onboarding` — likely Views/Onboarding/PrivacyAcknowledgementSheet.swift",
+        "Either set the sheet to use a self-sizing detent (.medium then .large) OR add `.fixedSize(horizontal: false, vertical: true)` to the subtitle Text",
+        "Subtitle renders the full phrase ending in '...on your behalf' at default AND AX5 Dynamic Type",
+        "Add PrivacyAcknowledgementSheetSnapshotTest with snapshots at .accessibilityMedium and .accessibilityExtraExtraExtraLarge",
         "Typecheck passes",
-        "Tests pass"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: cold launch displays full subtitle on first screen"
       ],
       "priority": 13,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-014",
-      "title": "Implement RouteCompanionStateMachine (pure function)",
-      "description": "As a developer, I need a pure state-machine function that drives companion lifecycle transitions and emits side-effect descriptors so logic stays testable and free of UI state.",
+      "title": "Sync selectedCity → mapCameraPosition on cold start (V-002)",
+      "description": "As a user, I want the city header label and the map's rendered region to always agree so I'm never confused about where I am.",
       "acceptanceCriteria": [
-        "Add apps/ios/SoloCompass/Services/RouteCompanionStateMachine.swift with enum CompanionEvent (acceptFirst, acceptAdditional, reachMax, closeEarly, markCompleted) and static func transition(state: CompanionStatus, event: CompanionEvent) throws -> CompanionStatus",
-        "Implement legal transitions: open+acceptFirst->forming, forming+acceptAdditional->forming, forming+reachMax->closed, forming+closeEarly->closed, closed+markCompleted->completed",
-        "All other transitions throw IllegalTransition error",
-        "Add unit tests covering 5 legal transitions plus at least 5 illegal ones (open->closed, completed->open, etc.)",
+        "ViewModels/MapViewModel.swift — `selectedCity` didSet must trigger an update to `mapCameraPosition` via defaultCenterForSelectedCity, including on the first set during init (not just user-driven changes)",
+        "Add MapViewModelCityRegionSyncTests: after init with city=\"chiang-mai\" the cameraPosition center is within 1km of Chiang Mai; after switching to city=\"san-francisco\" the camera moves",
+        "Existing MapViewModel tests still pass",
         "Typecheck passes",
-        "Tests pass"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: cold launch shows city header and map region matching"
       ],
       "priority": 14,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-015",
-      "title": "Wire seed_routes.json companion fixtures (4 statuses present)",
-      "description": "As a product, I want the 4 seed routes to each carry a distinct companion fixture so all UI states have something concrete to render in P1.",
+      "title": "Audit and localize hardcoded English strings in BottomInfoSheet + FilterBar (V-003)",
+      "description": "As a zh-Hans user, I want the entire bottom sheet UI in Chinese so I don't see English copy bleeding through.",
       "acceptanceCriteria": [
-        "Update seed_routes.json: mekong-sunset.companion.status='open' with 2/4 members + 2 pending requests, slow-coffee-day.companion.status='forming' with 3/4 members, morning-ritual.companion=null, vientiane-monuments.companion.status='completed' with 4/4 members",
-        "Add 7 USERS fixtures (maya/lin/tomas/ren/eira/kosuke/yuna) into a new seed_users.json with handle/blurb/color/trips/walked fields",
-        "Load seed_users.json into a UserDirectory service at startup (in-memory dictionary, no persistence)",
-        "Add test: RouteStore.all() after seed load yields 4 routes with the 4 distinct companion-fixture shapes",
+        "Add scripts/check-hardcoded-strings.sh that greps Views/ for `Text(\"[A-Z]` patterns and prints offenders (excluding #Preview blocks and acceptable proper nouns)",
+        "Run the script and replace each user-visible literal with NSLocalizedString(...)",
+        "Known offender: Views/Map/BottomInfoSheet.swift literal 'Good spots for right now' — replace with NSLocalizedString(\"sheet.now.headline\", ...) with en/zh-Hans entries",
+        "Add LocalizationCoverageTest invoking the script and asserting 0 offenders remain",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Tests pass"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator (zh-Hans locale): no English copy visible in bottom sheet or filter bar"
       ],
       "priority": 15,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-016",
-      "title": "Add BottomInfoSheet container with three detents (170/500/800)",
-      "description": "As a user, I can drag a bottom sheet up from the map to see lists; it snaps to peek/mid/full detents.",
+      "title": "Cache markerState(for:) once per ForEach iteration",
+      "description": "As an iOS engineer, I want markerState(for:) called once per ForEach iteration so we don't recompute six conditions twice per visible marker per frame.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Map/BottomInfoSheet.swift with public struct BottomInfoSheet: View",
-        "Three detents defined in code as constants: peekHeight=170, midHeight=500, fullHeight=800 (CGFloat)",
-        "Internal @State currentDetent: Detent enum (.peek/.mid/.full), @State dragOffset: CGFloat",
-        "Drag handle is a 36x4 pt rounded bar inside a 24x16 pt hit area at the top of the sheet",
-        "Drag only activates from the handle hit area, not the content area",
-        "Height = max(120, min(830, baseHeight - dragOffset)) during drag",
-        "On release: compute nearest detent height and snap with spring animation (response 0.3, dampingFraction 0.85)",
-        "Background: ultraThinMaterial RoundedRectangle(cornerRadius: 20, corners: top)",
-        "Pass content via @ViewBuilder closure",
-        "Add visual scrim on map: opacity goes 0 at peek, 0.18 at full (interpolated by current height)",
+        "Views/Map/CompassMapView.swift:612-616 — refactor the ForEach body so `let state = viewModel.markerState(for: exp)` appears once at the top, and both downstream branches reuse `state` instead of calling markerState again",
+        "Add MarkerStatePerformanceTest constructing 100 experiences and measuring 1000 iterations — p95 latency drops by ≥ 40% vs baseline (record baseline in same test on a non-cached helper)",
+        "Existing MarkerIconViewTests pass",
         "Typecheck passes",
-        "Verify in Simulator: drag handle up/down, snap to 3 detents, map pan still works in non-handle areas"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: marker rendering looks identical (no visual regression)"
       ],
       "priority": 16,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-017",
-      "title": "Replace BottomInfoBar with BottomInfoSheet in CompassMapView",
-      "description": "As a developer, I swap the legacy BottomInfoBar for the new BottomInfoSheet container so the new info surface is wired in (content still empty stub for next stories).",
+      "title": "Cache MapViewModel.availableCities",
+      "description": "As an iOS engineer, I want availableCities cached so we don't traverse allExperiences on every body invocation.",
       "acceptanceCriteria": [
-        "In CompassMapView.swift: remove BottomInfoBar from mapZStack",
-        "Add BottomInfoSheet { Text(\"placeholder\") } anchored at bottom (using ZStack alignment .bottom)",
-        "BottomInfoBar.swift file remains (kept for compatibility) but is no longer rendered",
-        "Verify in Simulator: app launches, no BottomInfoBar visible at bottom, sheet present at peek detent",
+        "ViewModels/MapViewModel.swift:187-215 — introduce `@ObservationIgnored private var _cachedCities: [CityInfo]?`",
+        "availableCities returns the cache when non-nil; otherwise recomputes and stores",
+        "Invalidate (_cachedCities = nil) whenever allExperiences or selectedCity change (in their didSet or in the refresh path)",
+        "Add MapViewModelCityCacheTests covering: fresh path computes and stores; second call hits cache (verify by snapshotting allExperiences before second call); invalidation after allExperiences change",
+        "Existing CityPillHitTargetTests pass",
         "Typecheck passes",
-        "Verify in Simulator using xcodebuild + simctl screenshot"
+        "Tests pass"
       ],
       "priority": 17,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-018",
-      "title": "BottomInfoSheet content: AI-hint + sort + count toolbar (peek)",
-      "description": "As a user, even at the peek detent (170 pt) I see the AI hint line and the sort/count toolbar so the sheet feels alive without expanding.",
+      "title": "Cache MapViewModel.nowCount",
+      "description": "As an iOS engineer, I want nowCount cached and recomputed only on visibleExperiences change so BottomInfoSheet and FilterBarView don't trigger O(n) scans on every render.",
       "acceptanceCriteria": [
-        "Inside BottomInfoSheet content: a 'now-hint' row showing AI_NOW_HINT text (left) + mono time HH:MM (right), with a sunset SF Symbol",
-        "Below it a toolbar row: sort button (left, capsule, dropdown chevron) + count indicator (right, '\u6b64\u523b N' or '\u9644\u8fd1 N')",
-        "All visible at peek detent",
-        "Localize 2 keys: sheet.sort.button, sheet.count.now / sheet.count.nearby",
+        "ViewModels/MapViewModel.swift — add `@ObservationIgnored private var _nowCount: Int = 0`",
+        "Update _nowCount at the end of loadNearbyExperiences, refreshForLocation, and updateBottomInfo",
+        "nowCount property returns _nowCount",
+        "Lines 720 and 736 inside updateBottomInfo no longer recompute via .filter { $0.isBestNow() }",
+        "grep `visibleExperiences\\.filter \\{.*isBestNow` returns at most 1 occurrence (in the single source-of-truth update)",
+        "Add NowCountCacheTests injecting mock experiences and asserting the count updates only at the documented checkpoints",
+        "Existing FilterBarViewTests pass",
         "Typecheck passes",
-        "Verify in Simulator: peek detent shows hint + toolbar without scrolling"
+        "Tests pass"
       ],
       "priority": 18,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-019",
-      "title": "BottomInfoSheet 'Nearby' section with experience rows (smart sort)",
-      "description": "As a user, when I drag the sheet to mid/full, I see nearby experiences as list rows sorted by smart (AI-top + distance) by default.",
+      "title": "Hit-target ≥ 44pt for FilterBar icon pill, favorite heart, banner X",
+      "description": "As a VoiceOver / Switch Control user, I want all interactive controls to meet the 44pt HIG minimum.",
       "acceptanceCriteria": [
-        "Inside BottomInfoSheet, when detent > .peek: render Section '\u9644\u8fd1' with a list of nearby experiences from viewModel.visibleExperiences",
-        "Row layout: 36x36 category disc (CategoryVisual.color) left, title + romanized + lao right, mono distance + small compass arrow far right",
-        "Smart sort: AI_SMART_PICK_IDS (top 3) pinned at top with 3pt sun-gold left border + warm gradient bg; remaining sorted by distance ascending",
-        "Tap row -> opens existing ExperienceDetailView via viewModel.selectExperience(exp); isShowingDetail=true",
+        "Views/Filter/FilterBarView.swift:240 iconPill (36×36) — wrap in .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()); keep the visible chip 36×36",
+        "Views/Experience/ExperienceCardView.swift:175 favorite heart (32×32) — same treatment",
+        "Views/Map/CompassMapView.swift:1124 DismissibleBanner X button — same treatment",
+        "Add HitTargetSizeTests enumerating each control and asserting hit-area dimensions ≥ 44",
         "Typecheck passes",
-        "Verify in Simulator: drag sheet to mid -> see at least 3 experience rows; smart picks visually distinguished"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator with Accessibility Inspector: three controls all show ≥ 44pt hit area"
       ],
       "priority": 19,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-020",
-      "title": "Sort sheet (4 modes: smart/distance/soloScore/now)",
-      "description": "As a user, I can change the nearby list's sort mode by tapping the sort button to open a sheet with 4 options.",
+      "title": "Parallelize SoloCompassApp.onAppear init chain",
+      "description": "As a user, I want cold start TTI to not block on serial main-thread init so the map appears within 500ms.",
       "acceptanceCriteria": [
-        "Tapping sort button opens a .sheet(isPresented:) with 4 radio options: \u667a\u80fd / \u8ddd\u79bb / Solo \u5206 / \u6b64\u523b",
-        "Selection persists in @State sortMode within BottomInfoSheet, drives nearby section ordering",
-        "Default is .smart",
-        "Add localized keys: sort.smart, sort.distance, sort.soloScore, sort.now",
+        "App/SoloCompassApp.swift:43-73 — move pruneStaleCheckIns, attachRepository, RouteStore.importSeedIfNeeded, and UserDirectory.loadIfNeeded into independent `Task { ... }` blocks; remove the serial await chain",
+        "Break subscriptionService.loadProducts → refreshEntitlement into its own independent Task",
+        "Add AppLaunchPerformanceTest measuring time from init to first body completion — assert ≤ baseline × 0.5 (record baseline in test setup using the pre-refactor serial path stub)",
+        "Existing app launch tests pass",
         "Typecheck passes",
-        "Verify in Simulator: tap sort -> pick distance -> list reorders"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: cold launch reaches the map screen visibly faster"
       ],
       "priority": 20,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-021",
-      "title": "Define VerifiedStyle + AvatarStack reusable views",
-      "description": "As a developer, I need a reusable AvatarStack view and VerifiedStyle enum so route detail and other screens can render walked-by signals consistently.",
+      "title": "Initialize CompassMapView viewModel eagerly (no Optional)",
+      "description": "As an iOS engineer, I want viewModel initialized eagerly so writes between launch and onAppear don't silently drop.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/Components/AvatarStack.swift with struct AvatarStack: View",
-        "Props: ids: [String], maxVisible: Int = 5, size: CGFloat = 24, ring: Color = .white",
-        "Render up to maxVisible overlapping circles (6 pt overlap), each filled with UserDirectory.color(forId:) and 2pt ring",
-        "If ids.count > maxVisible, show '+N' bubble after the stack",
-        "Add enum VerifiedStyle { case indicator, header, inline } in the same file",
-        "Add #Preview showing 3, 5, 8 avatars",
+        "Views/Map/CompassMapView.swift:1458 — change `@State private var viewModel: MapViewModel? = nil` to `@State private var viewModel = MapViewModel(...)` with required dependencies (or use environment injection)",
+        "Remove the lazy creation block inside .onAppear",
+        "All sites that did `if let viewModel = ...` simplify to direct use",
+        "Add MapViewModelEagerInitTest: app launch path can read viewModel.allExperiences before any onAppear fires",
+        "All existing CompassMapView tests pass",
         "Typecheck passes",
-        "Verify in Simulator: #Preview renders three permutations correctly"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: cold launch shows no ProgressView flicker before the map appears"
       ],
       "priority": 21,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-022",
-      "title": "VerifiedBadgeComponent view (indicator style default)",
-      "description": "As a user, I see a small 'verified' indicator with 'walked by N travelers' + avatar stack in route detail.",
+      "title": "Resolve City pill vs. filter bar visual stacking conflict",
+      "description": "As a user, I want city selector and filter bar to not visually fight for attention in the top-left.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/Components/VerifiedBadgeComponent.swift with struct VerifiedBadgeComponent: View",
-        "Props: route: Route, style: VerifiedStyle = .indicator",
-        "Indicator style: white card, 1pt border-subtle (#EDE8DF), 14pt corner radius, glyph icon left (check-circle if verified else users), title '\u5df2\u9a8c\u8bc1\u8def\u7ebf' or '\u793e\u7fa4\u89c2\u5bdf\u4e2d', subtitle '\u4e0e N \u4f4d\u65c5\u4eba\u8d70\u8fc7', AvatarStack on right",
-        "Header and inline branches: stubs returning EmptyView for now (filled later if needed)",
-        "Add localized keys: verified.title.verified, verified.title.watching, verified.subtitle",
-        "Add #Preview with verified=true and verified=false",
+        "Views/Map/CompassMapView.swift top overlay — move the city pill into the navigation-bar area OR vertically separate it from the filter bar so the two capsules no longer overlap or hit-test interfere",
+        "Add TopOverlayLayoutTest using snapshot at iPhone 17 Pro size — assert city pill rect and filter bar rect do not intersect",
+        "VoiceOver order: city pill → filter bar → map (manually verified)",
         "Typecheck passes",
-        "Verify in Simulator using #Preview"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: city pill and filter bar are visually separate"
       ],
       "priority": 22,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-023",
-      "title": "StopsList view (ordered experience stops)",
-      "description": "As a user, viewing a route I see its ordered stops as a vertical list with category color, title, and walking distance.",
+      "title": "Share a single TimelineView clock across BestNowBadge instances",
+      "description": "As an iOS engineer, I want a single periodic timer feeding all BestNowBadge instances instead of 20+ concurrent timelines.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/Components/StopsList.swift with struct StopsList: View",
-        "Props: route: Route, onTapStop: (Experience) -> Void",
-        "Resolve route.experienceIds -> [Experience] via injected ExperienceService",
-        "Each row: 36x36 category disc, title + romanized name (sub), mono distance from previous stop (or 'start' for first), chevron right",
-        "Connect rows with a thin vertical line (1pt, border-default color) drawn on the left of each disc",
-        "Add #Preview using mekong-sunset seed route",
+        "Create Services/BestNowClock.swift — an @Observable @MainActor singleton with a tick property updated every 60s via a single Timer or AsyncStream",
+        "Views/Experience/ExperienceCardView.swift:267-289 BestNowBadge — replace its inline TimelineView(.periodic(by: 60)) with `@Environment(BestNowClock.self)` consumption",
+        "Add BestNowBadgeClockTest constructing 100 badges sharing one clock — assert only one Timer/AsyncStream is allocated",
+        "Existing BestNow tests pass",
         "Typecheck passes",
-        "Verify in Simulator using #Preview"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: explore view with 20+ best-now badges shows no visible stutter"
       ],
       "priority": 23,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-024",
-      "title": "RouteDetailView (pure content, no recruiting module)",
-      "description": "As a user, opening a route shows hero + mono baseline + VerifiedBadgeComponent + StopsList + dock with two CTAs (save + favorite). No companion UI.",
+      "title": "Add accessibilityLabel/value to SoloScoreRadarChart",
+      "description": "As a VoiceOver user, I want the radar chart's 6 dimensions read out loud.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/RouteDetailView.swift with struct RouteDetailView: View",
-        "Hero block: gradient background (use CategoryVisual.gradient(for: route.primaryCategory) -- derive from majority category of stops), category emoji + title (Space Grotesk weight 700) + romanized + region label",
-        "Mono baseline (JetBrains Mono caption): '{estimatedDuration} \u00b7 {distanceMeters} m \u00b7 {pace.label} \u00b7 {bestNow ? \"\u6b64\u523b\u6700\u4f73\" : \"\u975e\u6b64\u523b\"}'",
-        "Below: VerifiedBadgeComponent(route:)",
-        "Below: StopsList(route: route, onTapStop: { ...navigate to ExperienceDetail })",
-        "Bottom dock: 2 buttons '\u4fdd\u5b58\u5230\u6211\u7684\u884c\u7a0b' and '\u52a0\u5165\u6536\u85cf' (no companion CTA in P0)",
-        "Embedded in NavigationStack content; toolbar back button + share icon",
-        "Localize 6 keys: route.detail.save, route.detail.favorite, route.detail.bestNow.yes, route.detail.bestNow.no, route.detail.pace.relaxed/standard/packed",
+        "Views/Shared/SoloScoreRadarChart.swift — add `.accessibilityElement(children: .combine)` plus an `.accessibilityLabel` that names all 6 dimensions with their values, and `.accessibilityValue` for the overall score",
+        "Add SoloScoreRadarA11yTest asserting accessibilityLabel is non-empty and contains all 6 dimension names",
         "Typecheck passes",
-        "Verify in Simulator: open detail for mekong-sunset seed, all sections render"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator with VoiceOver: focus lands on chart and reads e.g. 'Safety 7.5, Food 8.0, Coffee 7.0, ...'"
       ],
       "priority": 24,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-025",
-      "title": "BottomInfoSheet 'Routes' section (above Nearby)",
-      "description": "As a user, the bottom sheet shows recruiting routes above nearby experiences with their cover, title, mono baseline, and verified corner indicator.",
+      "title": "Wire 'Ask Solo' gated CTA to Paywall sheet",
+      "description": "As a free-tier user, I want clicking a gated feature to take me to the paywall, not a dead toast.",
       "acceptanceCriteria": [
-        "Inside BottomInfoSheet content (above the \u9644\u8fd1 section): a \u8def\u7ebf section listing RouteStore.nearby(cityCode: currentCity, limit: 8)",
-        "Each row uses a new RouteCard view (create apps/ios/SoloCompass/Views/Companion/Components/RouteCard.swift)",
-        "RouteCard layout: gradient cover (44x44 rounded square) left, title + estimated duration + distance + pace (mono) right, small verified corner pill if route.verification.status == .verified",
-        "RouteCard never shows companion info in P0 (companion module added in P1)",
-        "Tap RouteCard -> push RouteDetailView via NavigationLink or programmatic navigation",
-        "When viewModel.isNowFilter == true: only show routes with bestNow=true; otherwise show all",
+        "Views/Experience/ExperienceDetailView.swift — the gated 'Ask Solo' CTA now presents PaywallSheet via .sheet(isPresented:) when the user is not subscribed",
+        "Add AskSoloPaywallNavigationTest: tap the gated CTA → assert sheet appears via ViewInspector or snapshot",
+        "Existing ExperienceDetailView tests pass",
         "Typecheck passes",
-        "Verify in Simulator: drag sheet to mid, see Routes section above Nearby, tap a route -> detail opens"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator (unsubscribed): tapping Ask Solo opens the paywall"
       ],
       "priority": 25,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-026",
-      "title": "AddToItinerarySheet success toast -> 'View itinerary' action",
-      "description": "As a user, after I add an experience to an itinerary I see a toast with a 'View itinerary' button that pushes to that itinerary detail.",
+      "title": "Surface LocationService.lastError as dismissible banner",
+      "description": "As a user, I want GPS errors surfaced so I understand why the map defaulted to a region instead of my location.",
       "acceptanceCriteria": [
-        "Modify AddToItinerarySheet (existing file in apps/ios/SoloCompass/Views/Companion/) success path",
-        "On submission success: dismiss sheet and present a 2.5s toast with text '\u5df2\u52a0\u5165\u300a{itineraryTitle}\u300b' + button '\u67e5\u770b\u884c\u7a0b'",
-        "Button action: programmatically push ItineraryDetailView(itinerary:) (e.g. via NavigationPath set in parent or via Notification observer)",
-        "If user does not tap, toast auto-dismisses at 2.5s; itinerary still saved",
-        "Add localized keys: itinerary.toast.added (with %@ placeholder), itinerary.toast.viewAction",
+        "Services/LocationService.swift — confirm lastError is @Observable (Published) so views can react",
+        "ViewModels/MapViewModel.swift — observe lastError and expose a derived `locationErrorBannerText: String?`",
+        "Views/Map/CompassMapView.swift — render a dismissible banner using existing DismissibleBanner pattern when locationErrorBannerText != nil; copy from NSLocalizedString(\"location.error.banner\", ...)",
+        "Add en + zh-Hans entries for location.error.banner",
+        "Add LocationErrorSurfaceTests asserting banner appears when lastError set",
+        "When lastError != nil, SentryService.capture reports a warning",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Verify in Simulator: from any ExperienceDetailView -> \u52a0\u5165\u884c\u7a0b -> submit -> toast appears -> tap action -> lands on ItineraryDetailView"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator with Location set to None: banner appears"
       ],
       "priority": 26,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-027",
-      "title": "RecruitingModule view -- restrained visual default",
-      "description": "As a companion-enabled user viewing a route with companion != nil, I see a restrained recruiting module showing host, departure window, members, and a contextual CTA.",
+      "title": "Surface voice recording interruptions in UI",
+      "description": "As a user, I want voice recording interruptions shown in UI instead of silently stopping.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/Components/RecruitingModule.swift with struct RecruitingModule: View",
-        "Props: route: Route, viewerIsHost: Bool, hasMyRequest: Bool, onRequestJoin: () -> Void, onViewRequests: () -> Void",
-        "Render nothing if route.companion == nil",
-        "Restrained visual: white card, 1pt border-subtle, 14pt radius, 16pt padding",
-        "Header: status capsule with tone color (open/forming/closed/completed each has tone) + departureLabel in mono",
-        "Host row: 28pt color circle (UserDirectory.color) + handle (semibold) + blurb (caption secondary)",
-        "Slots row: maxMembers circles, filled positions show member avatars, empty positions show outlined circle with + glyph",
-        "Optional hostMessage as italic quote",
-        "Bottom CTA: label switches by (viewerIsHost, hasMyRequest, status): viewerIsHost && pending requests -> '\u67e5\u770b\u7533\u8bf7({n})'; hasMyRequest -> '\u5df2\u7533\u8bf7 \u00b7 \u7b49\u5f85\u786e\u8ba4' (disabled); status=completed/closed -> '\u67e5\u770b\u7fa4\u804a'; status=open -> '\u7533\u8bf7\u52a0\u5165'; status=forming -> '\u7533\u8bf7\u52a0\u5165(\u6700\u540e N \u4f4d)'",
-        "Localize 10+ keys for status labels + CTA variants",
+        "Views/Chat/ChatSheet.swift:636-638 — the empty catch is replaced with a toast/alert showing NSLocalizedString(\"voice.interrupted\", ...) with the underlying error description",
+        "Add en + zh-Hans entries for voice.interrupted (format string with %@ placeholder)",
+        "Add VoiceInterruptionToastTest: inject a throwing voice service → assert toast appears",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Verify in Simulator using #Preview: render with all 4 statuses + viewerIsHost=true/false + hasMyRequest=true/false"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: revoking mic permission mid-record surfaces the toast"
       ],
       "priority": 27,
       "passes": false,
@@ -459,18 +458,15 @@
     },
     {
       "id": "US-028",
-      "title": "Insert RecruitingModule into RouteDetailView (gated by companionEnabled)",
-      "description": "As a user with companion enabled, I see the recruiting module rendered between VerifiedBadgeComponent and StopsList in route detail; with companion disabled I see nothing.",
+      "title": "Filter chip selected-state contrast ≥ 4.5:1",
+      "description": "As a low-vision user, I want filter chip text to meet WCAG 4.5:1 contrast.",
       "acceptanceCriteria": [
-        "In RouteDetailView.swift: inject @Environment(UserPreferences.self) preferences",
-        "After VerifiedBadgeComponent: if preferences.companionEnabled && route.companion != nil, render RecruitingModule(route:viewerIsHost:hasMyRequest:onRequestJoin:onViewRequests:)",
-        "viewerIsHost = (route.companion?.hostId == DeviceIdentityService.shared.deviceId)",
-        "hasMyRequest computed from route.companion.joinRequests.contains where requesterId == deviceId && status == .pending",
-        "onRequestJoin -> present JoinRouteRequestSheet (stub for US-031, can be empty TODO closure here)",
-        "onViewRequests -> push ApprovalQueueView (stub for US-034)",
-        "When companionEnabled=false, module is conditionally not in view tree (use if-let, not opacity)",
+        "Views/Filter/FilterBarView.swift selected state — replace #D4A843 on white with either CT.accent (#5D3000) text-on-CT.accentSoft (#FBF1E4) background OR white text on CT.accent background; both achieve ≥ 7:1",
+        "Add FilterChipContrastTest computing the WCAG relative luminance for selected state's foreground and background — assert contrast ratio ≥ 4.5",
+        "Existing FilterBarView tests pass",
         "Typecheck passes",
-        "Verify in Simulator: in Settings toggle off -> open mekong-sunset detail (no module); toggle on -> re-open (module visible)"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: selected chip is clearly readable"
       ],
       "priority": 28,
       "passes": false,
@@ -478,17 +474,15 @@
     },
     {
       "id": "US-029",
-      "title": "RecruitingModule strength parameter (restrained/neutral/strong)",
-      "description": "As product, I want the recruiting module's visual strength to be parameterized so we can A/B later without refactor.",
+      "title": "Scale BottomInfoSheet detent heights with Dynamic Type",
+      "description": "As an AX5 Dynamic Type user, I want sheet detent heights to scale so content doesn't overflow.",
       "acceptanceCriteria": [
-        "Add enum ModuleStrength { case restrained, neutral, strong } to RecruitingModule.swift",
-        "Add prop strength: ModuleStrength = .restrained",
-        "Variant rules: restrained = no accent fill; neutral = 3pt left sun-gold border + light cream tint; strong = full warm sun-gold-soft background + bold primary CTA",
-        "Add hidden code-only UserPreferences.companionModuleStrength persisting selection (not exposed in Settings UI yet)",
-        "Update RouteDetailView to pass strength: preferences.companionModuleStrength",
-        "Update #Preview to show all 3 strengths x 1 status",
+        "Views/Map/BottomInfoSheet.swift — multiply the three detent heights (peek 170, mid 500, full 800) by UIFontMetrics.default.scaledValue(for: 1.0) or equivalent",
+        "Add BottomSheetDetentDynamicTypeTest snapshotting all three detents at .accessibilityExtraExtraExtraLarge — content not clipped",
+        "Existing BottomInfoSheet tests pass",
         "Typecheck passes",
-        "Verify in Simulator using #Preview: 3 strengths render distinctly"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator (Dynamic Type AX5): all three detent sizes show content without clipping"
       ],
       "priority": 29,
       "passes": false,
@@ -496,18 +490,16 @@
     },
     {
       "id": "US-030",
-      "title": "Companion Profile -- 'walked routes' section",
-      "description": "As a companion-enabled user, my Companion Profile shows a 'walked routes' section with up to 5 thumbnail cards.",
+      "title": "Sort button announces current mode via accessibilityValue",
+      "description": "As a VoiceOver user, I want the sort button to announce current sort mode.",
       "acceptanceCriteria": [
-        "In existing CompanionProfileView.swift: when preferences.companionEnabled, add Section '\u8d70\u8fc7\u7684\u8def\u7ebf (N)' below current bio section",
-        "Data source: RouteStore.all().filter { $0.verification.walkedBy.contains(currentUserId) || ($0.companion?.confirmedMembers.contains(currentUserId) == true && $0.companion?.status == .completed) }",
-        "currentUserId = DeviceIdentityService.shared.deviceId",
-        "Render horizontal ScrollView of up to 5 thumbnail RouteCard variants (compact form ~140pt wide)",
-        "If count > 5, append a '\u67e5\u770b\u5168\u90e8 ->' chip pushing to MyWalkedRoutesListView (create stub view returning the same list vertical)",
-        "Section hidden entirely if companionEnabled=false",
-        "Localize 2 keys: profile.walkedRoutes.header (with %d), profile.walkedRoutes.viewAll",
+        "Views/Map/BottomInfoSheet.swift:208 — sort button adds `.accessibilityValue(NSLocalizedString(\"sort.value.\\(currentMode)\", ...))` keyed off the active sort mode",
+        "Add en + zh-Hans entries for sort.value.smart, sort.value.distance, sort.value.recent (whatever modes exist)",
+        "Add SortButtonA11yValueTest asserting accessibilityValue updates when sort mode changes",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Verify in Simulator: open Settings -> Companion -> \u540c\u4f34\u6863\u6848, see section if any routes match"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator with VoiceOver: tapping sort button announces 'Sort, Sorted by smart'"
       ],
       "priority": 30,
       "passes": false,
@@ -515,17 +507,17 @@
     },
     {
       "id": "US-031",
-      "title": "JoinRouteRequestSheet (modal form, local-only submit)",
-      "description": "As a companion user, tapping '\u7533\u8bf7\u52a0\u5165' opens a sheet with pace-match + message; submitting writes a JoinRequest locally.",
+      "title": "JoinRouteRequestSheet inline error feedback",
+      "description": "As a user submitting a join request, I want inline validation errors so I know which field is missing.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/JoinRouteRequestSheet.swift",
-        "Sheet content: pinned RouteCard at top (non-scrolling), pace-match segmented (\u6162\u4e8e\u5bbf\u4e3b / \u5339\u914d / \u5feb\u4e8e\u5bbf\u4e3b), message TextEditor (placeholder '\u5411\u4e3b\u7406\u4eba\u4ecb\u7ecd\u81ea\u5df1...'), submit button (disabled when message.count < 10 OR pace not chosen)",
-        "On submit: append JoinRequest(id: UUID, requesterId: deviceId, message:, status: .pending, createdAt: ISO8601 now) to route.companion.joinRequests via RouteStore.save",
-        "Dismiss sheet on success; haptic feedback (light impact)",
-        "Caller (RecruitingModule.onRequestJoin in RouteDetailView) handles presentation via .sheet(isPresented:)",
-        "Localize 6 keys for placeholder, segmented labels, submit button",
+        "Views/Companion/JoinRouteRequestSheet.swift — missing pace or empty message field renders a red hint below the relevant input using NSLocalizedString(\"join.error.\\(field).missing\", ...)",
+        "Add en + zh-Hans entries for join.error.pace.missing and join.error.message.missing",
+        "Submit button stays disabled until both fields validate",
+        "Add JoinRequestValidationTest asserting hints appear/disappear with field state",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Verify in Simulator: from mekong-sunset detail -> tap \u7533\u8bf7\u52a0\u5165 -> fill form -> submit -> re-open detail shows '\u5df2\u7533\u8bf7 \u00b7 \u7b49\u5f85\u786e\u8ba4' CTA state"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: submitting empty form shows hints; filling both clears them and enables submit"
       ],
       "priority": 31,
       "passes": false,
@@ -533,18 +525,16 @@
     },
     {
       "id": "US-032",
-      "title": "Discover Recruiting Routes list view",
-      "description": "As a companion-enabled user, I can browse recruiting routes ranked by departure-soon + verified + city match.",
+      "title": "Approval queue shows trust signals per requester",
+      "description": "As a host reviewing join requests, I want to see opt-in status, walked-count, and group-count next to each requester.",
       "acceptanceCriteria": [
-        "Add new view apps/ios/SoloCompass/Views/Companion/DiscoverRecruitingRoutesView.swift (do NOT modify deprecated DiscoverListView)",
-        "Data source: RouteStore.all().filter { $0.companion?.status == .open || $0.companion?.status == .forming }",
-        "Sort by composite score: departure-within-7-days (weight 3) + verified (weight 2) + city-matches-current-city (weight 1)",
-        "Each row is a RouteCard + a small chip showing '{filled}/{max} \u00b7 {departureLabel}'",
-        "Empty state: ContentUnavailableView '\u76ee\u524d\u6ca1\u6709\u62db\u52df\u4e2d\u7684\u8def\u7ebf' + secondary action '\u5f00\u4e00\u4e2a\u4f60\u81ea\u5df1\u7684\u8def\u7ebf' (closure stub for now)",
-        "Add NavigationLink in Settings -> Companion section pointing to this view (replace temporary stub from US-012)",
-        "Localize 4 keys",
+        "Views/Companion/ApprovalQueueView.swift — each request row renders three micro-stats: opt-in badge, walked count icon+number, group count icon+number — sourced from the existing requester profile object",
+        "If a stat is unknown, show '—' instead of fabricating",
+        "Add ApprovalTrustSignalTest snapshotting three rows with different signal combinations",
+        "Existing ApprovalQueueView tests pass",
         "Typecheck passes",
-        "Verify in Simulator: Settings -> \u53d1\u73b0\u62db\u52df\u8def\u7ebf -> see at least mekong-sunset and slow-coffee-day"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: approval queue rows show the three micro-stats"
       ],
       "priority": 32,
       "passes": false,
@@ -552,18 +542,17 @@
     },
     {
       "id": "US-033",
-      "title": "MyRequestsListView (applicant view of own pending requests)",
-      "description": "As a companion-enabled user, I can see all join requests I have sent with status + a withdraw action.",
+      "title": "Diagnose and fix cold-start empty-state at 5km and 25km (V-004)",
+      "description": "As a user, I want the home screen to show experiences for my selected city on cold start so the app doesn't feel broken.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/MyRequestsListView.swift",
-        "Data source: RouteStore.all().compactMap { route in route.companion?.joinRequests.filter { $0.requesterId == deviceId }.map { (route, $0) } }.flatten()",
-        "Each row: thumbnail RouteCard + status chip (pending=orange, accepted=green, declined=gray, withdrawn=gray) + 'View route' chevron + (if pending) '\u64a4\u56de\u7533\u8bf7' button on swipe action",
-        "Withdraw: RouteStore.save with the matching JoinRequest.status = .withdrawn",
-        "Empty state: 'You have not requested to join any routes yet.'",
-        "Wire as the \u6211\u7684\u62db\u52df\u7533\u8bf7 NavigationLink destination in Settings (replace stub)",
-        "Localize 4 keys",
+        "Investigate the chain: Services/ExperienceService.swift seed import → MapViewModel.loadNearbyExperiences. Document root cause in PR description (likely candidates: distance filter uses SF user-location while header city is set differently; or seed not imported when SwiftData store exists but is empty)",
+        "Apply the fix that makes selectedCity drive both the camera AND the nearby query origin (depends on US-014)",
+        "Add ColdStartExperienceLoadTests: simulate cold start with selectedCity='chiang-mai' and assert nearby experiences count > 0 after the load completes",
+        "Add a Sentry warning if selectedCity is set but nearby experience count remains 0 for > 5 seconds",
+        "Existing ExperienceService tests pass",
         "Typecheck passes",
-        "Verify in Simulator: submit a request via US-031 then open this view, see pending entry; swipe to withdraw"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: cold launch with each of 5 seed cities → each shows non-zero nearby count"
       ],
       "priority": 33,
       "passes": false,
@@ -571,20 +560,16 @@
     },
     {
       "id": "US-034",
-      "title": "ApprovalQueueView (host view of pending requests for one route)",
-      "description": "As a host, opening my route's approval queue shows pending requests with trust signals, plus accept/decline actions.",
+      "title": "Add scroll affordance to filter chip strip (V-005)",
+      "description": "As a user, I want a visual hint that filter chips scroll horizontally so I can discover all categories.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/ApprovalQueueView.swift with init(route: Route)",
-        "Data source: route.companion?.joinRequests.filter { $0.status == .pending }",
-        "Each row: requester avatar + handle + blurb + trust line '\u5df2\u8d70\u8fc7 N \u6761 \u00b7 \u62fc\u56e2 M \u6b21' (from UserDirectory.user(id:).walked/trips, fallback to 0) + message + pace-match chip",
-        "Two actions per row: \u62d2\u7edd (bordered button) and \u63a5\u53d7 (borderedProminent)",
-        "Accept handler: call RouteCompanionStateMachine.transition with appropriate event, append requesterId to confirmedMembers, set JoinRequest.status = .accepted, persist via RouteStore.save; if status transitioned to .forming for the first time, also create a groupConversationId UUID and assign it",
-        "Decline handler: set JoinRequest.status = .declined, persist",
-        "Empty state: 'No pending requests for this route.'",
-        "Add a parent list view MyHostedRoutesListView (also new) listing routes where companion.hostId == deviceId; pushes into ApprovalQueueView; wire as NavigationLink from Settings",
-        "Localize 8 keys",
+        "Views/Filter/FilterBarView.swift — add a fade gradient mask on the right edge (using .mask(LinearGradient(...))) when content overflows; OR add a small chevron icon",
+        "Mask/chevron only shows when there is overflow content (not when all chips fit)",
+        "Add FilterBarScrollAffordanceTest snapshotting with > 6 categories (overflow) and ≤ 5 (no overflow)",
+        "Existing FilterBarView tests pass",
         "Typecheck passes",
-        "Verify in Simulator: open Settings -> \u6211\u4e3b\u7406\u7684\u8def\u7ebf -> pick mekong-sunset (host=maya simulating as deviceId for test, or seed has hostId=deviceId) -> see 2 pending requests; accept one -> state changes"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: with default category set, right-edge fade is visible"
       ],
       "priority": 34,
       "passes": false,
@@ -592,15 +577,15 @@
     },
     {
       "id": "US-035",
-      "title": "Extend Conversation model with group + routeId",
-      "description": "As a developer, Conversation must support a group_route type linked to a Route so group chat formation can happen.",
+      "title": "Sync Filter 'Now' mode and Map 'bestNow' visual highlight",
+      "description": "As a user, I want toggling the 'Now' filter to also highlight 'best now' markers on the map so the two UIs feel connected.",
       "acceptanceCriteria": [
-        "Update apps/ios/SoloCompass/Models/Conversation.swift: add ConversationType enum (oneOnOne / groupRoute) and routeId: String? field",
-        "Default existing usages to .oneOnOne (preserves current behavior)",
-        "Update ConversationRecord SwiftData @Model (if exists) to persist new fields; otherwise extend the inline persistence",
-        "Add codability + round-trip test",
+        "Views/Map/CompassMapView.swift — when FilterBarView's 'Now' mode is active, decorate bestNow markers with an additional ring (use CT.accent) or pulse animation",
+        "Add FilterNowMapSyncTest asserting marker style changes when Now filter toggles",
+        "Existing CompassMapView tests pass",
         "Typecheck passes",
-        "Tests pass"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: toggling Now → markers visibly change"
       ],
       "priority": 35,
       "passes": false,
@@ -608,15 +593,16 @@
     },
     {
       "id": "US-036",
-      "title": "Auto-create group conversation on first accept (open->forming)",
-      "description": "As a host, when I accept the first request and companion status moves open->forming, a group conversation is automatically created with the host and the accepted member.",
+      "title": "Add visual separator between Routes and Nearby sections in BottomInfoSheet",
+      "description": "As a user, I want a clear visual division between routes and nearby experiences in the bottom sheet so the information hierarchy is obvious.",
       "acceptanceCriteria": [
-        "In ApprovalQueueView.accept handler (or in a helper service): when transition produces .forming for the first time (companion.groupConversationId == nil), create a new Conversation(type: .groupRoute, routeId: route.id, participantIds: [hostId, requesterId]) via ChatService and assign its id to route.companion.groupConversationId",
-        "On subsequent accepts (still forming), simply append requesterId to the same conversation's participants",
-        "Persist both Route and Conversation atomically (wrap in single ModelContext save)",
-        "Add test: starting with mekong-sunset (open, 2/4 members + 2 pending), simulate accepting first request -> assert route.companion.status == .forming and route.companion.groupConversationId != nil",
+        "Views/Map/BottomInfoSheet.swift — insert a section header with the localized title (NSLocalizedString(\"sheet.section.routes\", ...) and \"sheet.section.nearby\") and an inset divider between the two sections",
+        "Add en + zh-Hans entries for the two section titles",
+        "Add BottomSheetSectionSeparationTest snapshotting at mid detent",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Tests pass"
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: bottom sheet shows section titles + divider"
       ],
       "priority": 36,
       "passes": false,
@@ -624,17 +610,14 @@
     },
     {
       "id": "US-037",
-      "title": "Group ChatView (top-pinned RouteCard + per-message avatar)",
-      "description": "As a group member, opening a group chat shows the pinned route at top and each message with sender avatar + handle.",
+      "title": "Add @available iOS 18 guard to remaining bounce APIs and verify warnings cleared",
+      "description": "As an iOS engineer, I want every IndefiniteSymbolEffect use guarded so xcodebuild emits no related warnings.",
       "acceptanceCriteria": [
-        "Extend apps/ios/SoloCompass/Views/Companion/ChatView.swift to detect conversation.type == .groupRoute",
-        "When groupRoute: render a sticky top section with a compact RouteCard (tap -> push RouteDetailView)",
-        "Message bubble: left of bubble show 22pt avatar circle (UserDirectory.color) + handle (caption) above bubble; my messages right-aligned without avatar (same as one-on-one)",
-        "Wire 'My group chats' NavigationLink in Settings -> list all Conversations where I am a participant and type=.groupRoute; tap -> ChatView(conversation:)",
-        "Replace the temporary stub list from US-012",
-        "Local-only: ChatService.send already writes to SwiftData; no network changes",
+        "Run xcodebuild and grep for 'IndefiniteSymbolEffect' or 'available only iOS 18' warnings; if any remain (besides US-012's site), add #available guards",
+        "If no remaining offenders, add IOS18AvailabilityGuardTest that scans xcodebuild output for the warning string and asserts 0 occurrences (best-effort heuristic)",
+        "Existing tests pass",
         "Typecheck passes",
-        "Verify in Simulator: after US-036 transition, open Settings -> \u5df2\u52a0\u5165\u7684\u7fa4\u804a -> see new group -> open it -> see pinned route + ability to send a test message"
+        "Tests pass"
       ],
       "priority": 37,
       "passes": false,
@@ -642,20 +625,15 @@
     },
     {
       "id": "US-038",
-      "title": "CompletionMoment screen (closed -> completed -> verified)",
-      "description": "As a host, tapping '\u6807\u8bb0\u5b8c\u6210' on a closed route triggers a celebratory full-screen moment and updates Route.verification atomically.",
+      "title": "Localize ShareCardComponents brand label",
+      "description": "As a non-English user, I want share-card images to render branding in my locale (or stay neutral, but at minimum go through NSLocalizedString).",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/CompletionMoment.swift with struct CompletionMoment: View",
-        "Triggered from RouteDetailView when viewerIsHost && route.companion?.status == .closed: show a dock button '\u6807\u8bb0\u5b8c\u6210' in addition to existing 2 CTAs",
-        "Presentation: .fullScreenCover with smooth fade-in",
-        "Layout: large central verified indicator pulsing (scale 1.0<->1.06 over 1.2s), stat row '\u8d70\u8fc7 x{N} \u00b7 \u65c5\u4eba x{M}', flywheel tagline '\u8fd9\u6761\u8def\u7ebf\u73b0\u5728\u4e3a\u4e0b\u4e00\u6279\u65c5\u4eba\u53d1\u5149', close button at top-right",
-        "On appear: dispatch state update via RouteCompanionStateMachine: closed->completed; set verification.status=.verified, verification.walkedByCount += companion.confirmedMembers.count, verification.walkedBy += companion.confirmedMembers, persist via RouteStore.save",
-        "Mark groupConversation as readOnly (add Conversation.isReadOnly Bool field if needed) so the chat ungates can be implemented",
-        "Add unit test covering the state mutation only (no UI)",
-        "Localize 3 keys",
+        "Views/Experience/Share/ShareCardComponents.swift:54 — replace `Text(\"Solo Compass\")` with `Text(NSLocalizedString(\"sharecard.brand\", ...))`",
+        "Add en + zh-Hans entries for sharecard.brand (both currently 'Solo Compass'; intentional but routes through l10n pipeline)",
+        "Add ShareCardComponentsL10nTest asserting the resolved string in both locales",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Tests pass",
-        "Verify in Simulator: simulate a closed mekong-sunset and tap \u6807\u8bb0\u5b8c\u6210 -> moment plays -> close -> reopen detail shows verified indicator"
+        "Tests pass"
       ],
       "priority": 38,
       "passes": false,
@@ -663,16 +641,15 @@
     },
     {
       "id": "US-039",
-      "title": "OpenForCompanionsSheet (host creates recruiting from an itinerary)",
-      "description": "As a host, I can convert one of my private itineraries into a recruiting route by setting departure window, pace, max members, and host message.",
+      "title": "Localize ShareCardView '/100  Solo Score' label",
+      "description": "As a non-English user, I want the share card score label rendered in my locale.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Views/Companion/OpenForCompanionsSheet.swift with init(itinerary: Itinerary)",
-        "Form fields: departure date range picker, departure time picker, pace segmented (relaxed/standard/packed), max members stepper (2-8 default 4), visibility segmented (public/linkOnly default public), host message multiline TextField",
-        "Submit handler: build a Route from itinerary (using Route(itinerary:) from US-005) with source=.userCreated, companion=RouteCompanion(...form values..., status=.open, hostId=deviceId, confirmedMembers=[deviceId], joinRequests=[], groupConversationId=nil); persist via RouteStore.save",
-        "Wire entry from ItineraryDetailView: replace existing 'openToCompanions' Toggle behavior with a button '\u5f00\u4e3a\u62db\u52df\u8def\u7ebf ->' that presents this sheet",
-        "Localize 6 keys",
+        "Views/Experience/Share/ShareCardView.swift:279 — replace `Text(\"/100  Solo Score\")` with a localized format string NSLocalizedString(\"sharecard.score.suffix\", ...)",
+        "Add en (\"/100  Solo Score\") and zh-Hans (\"/100 Solo 评分\") entries",
+        "Add ShareCardScoreL10nTest asserting the resolved string in both locales",
+        "StringsParityTests passes",
         "Typecheck passes",
-        "Verify in Simulator: from any itinerary detail -> tap \u5f00\u4e3a\u62db\u52df\u8def\u7ebf -> fill form -> submit -> resulting Route appears in DiscoverRecruitingRoutesView"
+        "Tests pass"
       ],
       "priority": 39,
       "passes": false,
@@ -680,17 +657,15 @@
     },
     {
       "id": "US-040",
-      "title": "Define RouteCompanionRemote protocol + Local implementation",
-      "description": "As a developer, abstract all companion mutations behind a RouteCompanionRemote protocol so future backend swap is one-class change.",
+      "title": "Migrate production print() calls to os.Logger (batch 1: AgentRouter + MapViewModel + SubscriptionService)",
+      "description": "As an iOS engineer, I want production logging to go through os.Logger so it can be filtered and stripped from release builds.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Services/RouteCompanionRemote.swift with public protocol RouteCompanionRemote",
-        "Methods: fetchRecruitingRoutes(cityCode:) async throws -> [Route], sendJoinRequest(routeId:, message:, pace:) async throws, fetchInbox() async throws -> [JoinRequest], accept(_ request:) async throws, decline(_ request:) async throws, withdraw(_ request:) async throws, markCompleted(routeId:) async throws",
-        "Create LocalRouteCompanionRemote: RouteCompanionRemote conforming via RouteStore",
-        "Create SupabaseRouteCompanionRemote stub: each method throws NotImplementedError",
-        "Resolve concrete instance from FF_BACKEND_SYNC: when false use Local, when true use Supabase stub (caller catches NotImplemented)",
-        "Refactor previously-implemented call sites (JoinRouteRequestSheet submit, ApprovalQueue accept/decline, MyRequestsListView withdraw, CompletionMoment markCompleted) to go through the protocol instead of touching RouteStore directly",
+        "Replace print() in Services/Agents/AgentRouter.swift:179, ViewModels/MapViewModel.swift:1185, and Services/SubscriptionService.swift:325 with Logger().debug/info calls",
+        "Use a subsystem of 'com.solocompass' and category matching the file (e.g. 'AgentRouter')",
+        "Do NOT touch print() calls inside #Preview blocks or test targets",
+        "Add a script-based check (scripts/check-no-production-print.sh) that greps for print( in non-Preview, non-Tests Swift files — count should drop by 3",
         "Typecheck passes",
-        "Existing tests still pass after refactor"
+        "Tests pass"
       ],
       "priority": 40,
       "passes": false,
@@ -698,14 +673,14 @@
     },
     {
       "id": "US-041",
-      "title": "Draft Supabase migration 0005_route_companion.sql (no apply)",
-      "description": "As a developer, I document the future SQL schema as a draft so backend work in a later sprint has a starting point.",
+      "title": "Fix ForEach String id `\\.self` instability (3 sites)",
+      "description": "As an iOS engineer, I want ForEach over String collections to use stable IDs so duplicate strings don't collapse rows.",
       "acceptanceCriteria": [
-        "Create infra/supabase/migrations/0005_route_companion.sql.draft (NOT .sql so it is not auto-applied)",
-        "Schema includes tables: routes (id, title, summary, city_code, region, estimated_duration, distance_meters, pace, source, author_id, best_start_hour, best_now, verification_status, walked_by_count, created_at, updated_at), route_experiences (route_id FK, experience_id, ordinal -- composite PK on route_id+ordinal), route_companion (route_id PK FK, host_id, departure_from, departure_to, departure_time, pace_pref, max_members, visibility, group_conversation_id, host_message, status), route_members (route_id FK, user_id, joined_at -- composite PK), join_requests (id PK, route_id FK, requester_id, message, status, created_at, updated_at)",
-        "Add RLS policy comments (not active): routes/route_companion public read; route_members readable by current member; join_requests readable by requester OR host",
-        "Add a one-line comment at top: -- DRAFT. Do not apply until P3.",
-        "Typecheck passes (no swift impact)"
+        "Views/Filter/FilterBarView.swift:103 (customTags) — wrap each tag in `struct IdentifiableTag: Identifiable { let id = UUID(); let value: String }` or use Array.enumerated() with the index as id",
+        "Views/Experience/Share/ShareCardView.swift:69 and :221 (highlights) — same treatment",
+        "Add ForEachStringIDStabilityTest constructing a list with duplicate strings and asserting the rendered view has the correct number of rows (not collapsed)",
+        "Typecheck passes",
+        "Tests pass"
       ],
       "priority": 41,
       "passes": false,
@@ -713,15 +688,16 @@
     },
     {
       "id": "US-042",
-      "title": "Backfill companion.* localized strings (en + zh-Hans)",
-      "description": "As a user, no raw NSLocalizedString keys leak to the UI; every key added in this PRD has en + zh-Hans entries.",
+      "title": "Add 'Skip' affordance to Onboarding flow",
+      "description": "As a returning user or QA tester, I want a Skip option in onboarding so I don't have to tap through every screen.",
       "acceptanceCriteria": [
-        "Run a sweep: grep -roh 'NSLocalizedString(\"[^\"]+\"' apps/ios/SoloCompass/Views/Companion apps/ios/SoloCompass/Views/Map/BottomInfoSheet.swift | uniq",
-        "For every key found: confirm an entry exists in both en.lproj/Localizable.strings and zh-Hans.lproj/Localizable.strings; add any missing keys with reasonable translations",
-        "Add a unit test (StringsParityTests) that loads both .strings files and asserts they have the same key set",
+        "Onboarding parent view — add a 'Skip' button in the top-right corner that completes the onboarding flow (marks onboardingComplete = true in UserDefaults / repository)",
+        "Skip button has NSLocalizedString(\"onboarding.skip\", ...) entries in en + zh-Hans",
+        "Add OnboardingSkipTest asserting Skip dismisses the flow",
+        "StringsParityTests passes",
         "Typecheck passes",
         "Tests pass",
-        "Verify in Simulator: switch device to \u7b80\u4f53\u4e2d\u6587, walk through Settings -> Companion -> all subviews -- no raw key strings visible"
+        "Verify in iPhone 17 Pro Simulator: cold launch shows Skip in top-right; tapping it reaches the map"
       ],
       "priority": 42,
       "passes": false,
@@ -729,14 +705,13 @@
     },
     {
       "id": "US-043",
-      "title": "Delete CompanionHubSheet.swift (final cleanup)",
-      "description": "As a developer, after Settings -> Companion section is fully wired, remove the deprecated CompanionHubSheet.swift entirely.",
+      "title": "Filter 'Now' and Map 'bestNow' visual sync (P2 polish)",
+      "description": "As a user, I want filter and map states to feel coordinated so toggling Now is visibly reflected on the map.",
       "acceptanceCriteria": [
-        "Delete apps/ios/SoloCompass/Views/Companion/CompanionHubSheet.swift",
-        "Confirm grep 'CompanionHubSheet' across apps/ios returns 0 hits",
-        "Regenerate Xcode project via xcodegen",
+        "Refinement of US-035 if needed: ensure deselecting Now removes the highlight; ensure smooth animation between states (.animation(.easeInOut(duration: 0.2)))",
+        "Add FilterNowMapAnimationTest verifying animation modifier presence",
         "Typecheck passes",
-        "Existing tests still pass"
+        "Tests pass"
       ],
       "priority": 43,
       "passes": false,
@@ -744,25 +719,240 @@
     },
     {
       "id": "US-044",
-      "title": "Verify full P0+P1 user journey end-to-end in Simulator",
-      "description": "As a developer, I confirm the full P0+P1 path works in a single Simulator session before declaring this sprint done.",
+      "title": "Test admin-unlock and language-switch restart flows in SettingsView",
+      "description": "As an iOS engineer, I want test coverage for two undocumented Settings flows so they don't regress silently.",
       "acceptanceCriteria": [
-        "Cold start app (companionEnabled=false): map renders; bottom sheet at peek shows hint + toolbar; no person icon at top-right",
-        "Drag sheet to mid: see Routes section (4 routes) above Nearby; tap mekong-sunset -> RouteDetailView with hero + mono baseline + VerifiedBadgeComponent + StopsList + dock; no RecruitingModule visible",
-        "Back to map, open Settings -> Companion -> toggle on -> safety sheet appears -> accept -> 3 NavigationLinks appear",
-        "Re-open mekong-sunset detail: RecruitingModule now visible with status=open, 2/4 members, departure label, CTA '\u7533\u8bf7\u52a0\u5165'",
-        "Tap \u7533\u8bf7\u52a0\u5165 -> fill JoinRouteRequestSheet -> submit -> detail CTA changes to '\u5df2\u7533\u8bf7 \u00b7 \u7b49\u5f85\u786e\u8ba4'",
-        "Settings -> \u6211\u7684\u62db\u52df\u7533\u8bf7 -> see entry pending",
-        "Settings -> \u6211\u4e3b\u7406\u7684\u8def\u7ebf (host view): pick slow-coffee-day -> ApprovalQueueView (use seeded pending requests) -> accept one -> state advances forming->closed (if max reached) and a group chat appears",
-        "Settings -> \u5df2\u52a0\u5165\u7684\u7fa4\u804a -> see group -> ChatView shows pinned route + can send a local message",
-        "From closed route detail: tap \u6807\u8bb0\u5b8c\u6210 -> CompletionMoment plays -> after close, reopen detail -> VerifiedBadgeComponent shows verified=true and walkedByCount incremented",
-        "Toggle companion off in Settings: all of the above hidden again; mekong-sunset detail no longer shows RecruitingModule",
-        "Switch device language to \u7b80\u4f53\u4e2d\u6587 and repeat key screens: no raw keys visible",
+        "Add SettingsAdminUnlockTest covering the secret admin unlock sequence (whatever taps trigger it) → assert admin flag set",
+        "Add SettingsLanguageSwitchRestartTest asserting language change schedules an app-restart prompt",
+        "Both tests reference existing SettingsView code paths without modifying behavior",
         "Typecheck passes",
-        "Tests pass",
-        "Verify in Simulator using xcodebuild + simctl screenshots at each milestone (attach in PR description)"
+        "Tests pass"
       ],
       "priority": 44,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-045",
+      "title": "Audit Color extensions for unintended public scope",
+      "description": "As an iOS engineer, I want SettingsView's private Color(hex:) extension verified as scope-limited so it doesn't collide with global hex helpers.",
+      "acceptanceCriteria": [
+        "Views/Settings/SettingsView.swift:1131-1132 — confirm the `private extension Color { init(hex: UInt32) }` stays private file-scope; if it's used elsewhere, hoist to Views/Shared/Color+Hex.swift and dedupe",
+        "Add ColorExtensionScopeTest asserting Color(hex: UInt32) is not accessible from outside SettingsView (or alternatively, that the canonical helper is in Color+Hex.swift)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-046",
+      "title": "Companion layer placeholder copy (decision B from US-009)",
+      "description": "As a product owner, IF US-009 chose option B (banner instead of hide), I want the placeholder copy localized.",
+      "acceptanceCriteria": [
+        "If FeatureFlags.companionLayerEnabled remains false but UI shows a 'Coming soon' affordance, the copy uses NSLocalizedString(\"companion.layer.coming_soon\", ...)",
+        "Add en + zh-Hans entries",
+        "Add CompanionLayerPlaceholderTest asserting copy rendering",
+        "If US-009 implemented option A (full hide) and no placeholder exists, this story is a no-op — mark passes:true after verifying nothing references the key",
+        "StringsParityTests passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 46,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-047",
+      "title": "Investigate map top dark band rendering (V-006)",
+      "description": "As a user, I want the map's top region to render street content instead of a flat dark band so the map looks complete.",
+      "acceptanceCriteria": [
+        "Reproduce in iPhone 17 Pro Simulator (cold launch shows NORTH BEACH band) and identify cause: MapKit tile loading delay, search-box backdrop blur covering tiles, or overlay z-order bug — document in PR description",
+        "Apply the minimum fix: defer overlay rendering until map first-tile-rendered event; or reduce backdrop blur footprint; or correct z-order",
+        "Add MapTopOverlayRenderTest snapshotting the top 200pt of the map at T+5s — assert non-uniform pixel content (not a flat color band)",
+        "Existing CompassMapView tests pass",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: top region of map shows streets, not a dark band"
+      ],
+      "priority": 47,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-048",
+      "title": "Migrate remaining production print() calls to os.Logger (batch 2)",
+      "description": "As an iOS engineer, complete the print() → Logger migration started in US-040 by handling the remaining offenders.",
+      "acceptanceCriteria": [
+        "scripts/check-no-production-print.sh shows zero print( hits in non-Preview, non-Tests Swift files",
+        "All migrated sites use Logger with appropriate subsystem/category",
+        "Add CI-friendly assertion: a Swift unit test that loads a known offender's containing file and runs the same grep at test-time",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 48,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-049",
+      "title": "Onboarding pages: explicit VoiceOver order",
+      "description": "As a VoiceOver user, I want onboarding pages to have a sensible focus order so I can navigate without getting lost.",
+      "acceptanceCriteria": [
+        "Each onboarding page — wrap content in a single `.accessibilityElement(children: .contain)` container and set `.accessibilitySortPriority` for title → subtitle → primary CTA → skip",
+        "Add OnboardingA11yOrderTest asserting accessibility element order matches expectation",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator with VoiceOver: swiping through an onboarding page reads in the documented order"
+      ],
+      "priority": 49,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-050",
+      "title": "Empty-state views announce via VoiceOver on appear",
+      "description": "As a VoiceOver user, I want empty-state views to announce themselves so I don't think the UI froze.",
+      "acceptanceCriteria": [
+        "Identify all empty-state views (FilterBarView empty result, BottomInfoSheet empty list, Nearby empty) and add `.onAppear { UIAccessibility.post(.announcement, argument: localizedEmptyText) }`",
+        "Each empty state has a localized announcement key",
+        "Add EmptyStateAnnouncementTest asserting view tree contains the modifier",
+        "StringsParityTests passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 50,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-051",
+      "title": "Calibrate ObsidianTheme dark-mode color values",
+      "description": "As a dark-mode user with ObsidianTheme selected, I want the colors to actually look like the intended obsidian palette.",
+      "acceptanceCriteria": [
+        "Services/Themes/ObsidianTheme.swift — audit each Color value against the design intent in docs (or chat transcripts); adjust to match",
+        "Add ObsidianThemeContrastTest asserting foreground/background pairs meet WCAG 4.5:1",
+        "Existing Theme tests pass",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator (dark mode + ObsidianTheme): visual inspection looks consistent"
+      ],
+      "priority": 51,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-052",
+      "title": "Audit zh-Hans punctuation (half-width vs full-width)",
+      "description": "As a zh-Hans user, I want consistent full-width punctuation so the UI follows Chinese typography conventions.",
+      "acceptanceCriteria": [
+        "Run a script that greps Resources/zh-Hans.lproj/Localizable.strings for half-width punctuation in Chinese contexts (e.g. , ! ? : ; vs ，！？：；)",
+        "Replace each offender with the full-width equivalent",
+        "Add a ZhHansPunctuationTest invoking the same script at test time and asserting 0 offenders",
+        "Existing localization tests pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 52,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-053",
+      "title": "Sweep comment-only TODOs across iOS sources",
+      "description": "As an iOS maintainer, I want stale TODO comments either resolved or converted into tracked issues.",
+      "acceptanceCriteria": [
+        "Run `grep -rn 'TODO\\|FIXME' apps/ios/SoloCompass --include='*.swift'` and triage each: resolve if trivial, delete if obsolete, or convert to a GitHub issue + link the issue number in the comment",
+        "After the sweep, every remaining TODO/FIXME has a GitHub issue number referenced",
+        "Add a Swift test that grep-asserts every TODO in production code has the pattern 'TODO(#NNN):'",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 53,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-054",
+      "title": "Sweep unused imports across iOS sources",
+      "description": "As an iOS maintainer, I want unused imports removed so build time and review surface area shrink.",
+      "acceptanceCriteria": [
+        "Use swift-format or a similar tool to detect unused imports (build with -warn-unused-imports if available) and remove them",
+        "If automated detection isn't available, eyeball-audit Views/ and Services/ and remove obvious cases",
+        "After sweep, the project still builds cleanly",
+        "Existing tests pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 54,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-055",
+      "title": "Add inline documentation comments to all top-level public APIs",
+      "description": "As an API consumer, I want every public type and function in apps/ios/SoloCompass to have at least a single-line doc comment.",
+      "acceptanceCriteria": [
+        "For every `public class/struct/enum/protocol/func` in Models/, Services/, ViewModels/, that lacks a /// comment, add one (one or two lines, explain purpose not mechanism)",
+        "Skip Views/ (SwiftUI views document themselves via #Preview)",
+        "Add a Swift script-test that fails if any public symbol in the listed directories lacks a doc comment (use regex over compiled symbols or grep)",
+        "Existing tests pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 55,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-056",
+      "title": "RouteCard — add stop-strip breadcrumb (CompareCanvas A-001)",
+      "description": "As a user browsing routes, I want a visual breadcrumb of stops on each route card so I can preview the journey at a glance.",
+      "acceptanceCriteria": [
+        "Views/Companion/Components/RouteCard.swift — render a horizontal strip of colored discs (one per stop, color from CategoryVisual) connected by 1px CT.fgSubtle connectors; matches design-truth in /tmp/compare_design/solocompassapp/project/route.jsx's `stop-strip` block",
+        "All colors come from CT.* tokens — no Color.accentColor or failable hex",
+        "Add RouteCardStopStripTest snapshotting cards with 2, 3, and 5 stops",
+        "Existing RouteCard tests pass",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: route cards in BottomInfoSheet show the stop-strip"
+      ],
+      "priority": 56,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-057",
+      "title": "RouteCard — add recruit-mini inline state (CompareCanvas A-002)",
+      "description": "As a user with companion mode on, I want each route card to show the recruiting state inline (host / N filled out of M / departure label) without opening detail.",
+      "acceptanceCriteria": [
+        "Views/Companion/Components/RouteCard.swift — when route.companion != nil AND status is open/forming/closed/completed, render an inline strip below the title showing: host avatar + `<handle> 招募 · N/M · <departure>` (open/forming) or `已成团 · N 人 · 出发中` (closed) or `已完成 · 路线升级` (completed)",
+        "Uses CT.* tokens; tone color per status — green for completed, accent for open, amber for forming",
+        "Add RouteCardRecruitMiniTest snapshotting all four status variants",
+        "Existing RouteCard tests pass",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: route cards in the recruiting demo show the inline strip with the correct status"
+      ],
+      "priority": 57,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-058",
+      "title": "RouteCard — add walked-by row (CompareCanvas A-003) and migrate to CT tokens",
+      "description": "As a user browsing routes, I want to see how many travelers walked this route (with avatar stack) so I can gauge social proof.",
+      "acceptanceCriteria": [
+        "Views/Companion/Components/RouteCard.swift — when companionOn is false OR route.companion is nil, render a walked-by row with AvatarStack(maxVisible: 4) + `<count> 位旅人走过` + chevron",
+        "AvatarStack uses CT.fgSubtle ring (current default) on a CT.bgWarm-or-white background — confirm no Color.accentColor or failable hex remains anywhere in RouteCard",
+        "Add RouteCardWalkedByTest snapshotting with 0, 3, and 12 walkers (the +N more case)",
+        "Existing RouteCard tests pass",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: route cards in the recruiting demo show walked-by row with stacked avatars"
+      ],
+      "priority": 58,
       "passes": false,
       "notes": ""
     }
