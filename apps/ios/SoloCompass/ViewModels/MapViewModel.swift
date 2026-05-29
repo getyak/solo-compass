@@ -157,6 +157,7 @@ public final class MapViewModel {
     public var selectedCity: String? {
         didSet {
             guard selectedCity != oldValue else { return }
+            invalidateCityCache()
             syncCameraToSelectedCity()
         }
     }
@@ -208,6 +209,29 @@ public final class MapViewModel {
     /// previous Explore sessions (Epic C US-016/017). Discovered cities
     /// override seed-derived names when the codes match.
     public var availableCities: [(code: String, name: String, center: CLLocationCoordinate2D)] { // swiftlint:disable:this large_tuple
+        // US-017: cache the result so `body` re-renders don't re-traverse
+        // `allExperiences` (O(n)) on every invocation. Invalidated whenever
+        // the experience set or selected city changes (see invalidateCityCache).
+        if let cached = _cachedCities { return cached }
+        let computed = computeAvailableCities()
+        _cachedCities = computed
+        return computed
+    }
+
+    /// Backing store for `availableCities` (US-017). `@ObservationIgnored`
+    /// so the `@Observable` macro doesn't treat reads of the cache as a
+    /// tracked dependency — invalidation is explicit via `invalidateCityCache`.
+    @ObservationIgnored private var _cachedCities: [(code: String, name: String, center: CLLocationCoordinate2D)]? // swiftlint:disable:this large_tuple
+
+    /// Drop the cached city list. Called whenever the underlying inputs
+    /// (`allExperiences`, discovered cities, or `selectedCity`) change.
+    private func invalidateCityCache() {
+        _cachedCities = nil
+    }
+
+    /// The actual O(n) derivation, split out of `availableCities` so the
+    /// getter can serve a memoized result. See `availableCities` docs.
+    private func computeAvailableCities() -> [(code: String, name: String, center: CLLocationCoordinate2D)] { // swiftlint:disable:this large_tuple
         var cityExperiences: [String: [CLLocationCoordinate2D]] = [:]
         for exp in experienceService.allExperiences {
             guard let coord = exp.coordinate else { continue }
@@ -478,6 +502,10 @@ public final class MapViewModel {
     }
 
     public func loadNearbyExperiences() {
+        // US-017: the experience set (and thus discovered cities) may have
+        // changed since the last load — e.g. after an Explore added pins.
+        // Drop the city cache so the next `availableCities` read recomputes.
+        invalidateCityCache()
         let center = customCoordinates
             ?? locationService.currentLocation?.coordinate
             ?? defaultCenterForSelectedCity
