@@ -59,6 +59,7 @@
 		436C2BF0D0723B2B07428F07 /* CompanionBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBF77E10D341C38C093D22D /* CompanionBlock.swift */; };
 		45A4E8EED0300F00253EC049 /* MarkdownExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F3FDE4BC9458E490AEA67A /* MarkdownExporter.swift */; };
 		464746A44182622D4F617462 /* AIUsageRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001EB4B0431ADF64A02B47F8 /* AIUsageRecord.swift */; };
+		47939336E63740302A83D121 /* AISynthesisQualityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9CF57D3342E9C609CD56801 /* AISynthesisQualityTests.swift */; };
 		48C924FB49F596D91D67A3B2 /* CustomCityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B2B85A119750C65697903E0 /* CustomCityStore.swift */; };
 		48DF01972A1FB107BFFF0684 /* QueryAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06086F5F9463C18F486E5694 /* QueryAgent.swift */; };
 		48DF93F42CDDB1329B038865 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6556C23BF1B228BF686C5500 /* KeychainStore.swift */; };
@@ -401,6 +402,7 @@
 		D5B8BA7FFBD93A01E54B7E4A /* ExperienceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceDetailView.swift; sourceTree = "<group>"; };
 		D5DCEFC3560FED53D0CB5D19 /* AgentMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentMessage.swift; sourceTree = "<group>"; };
 		D60647FA4E64B48E215B9D2F /* RouteCompanionRemote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCompanionRemote.swift; sourceTree = "<group>"; };
+		D9CF57D3342E9C609CD56801 /* AISynthesisQualityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISynthesisQualityTests.swift; sourceTree = "<group>"; };
 		DE4515228D70D8804596299D /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		E03076AD221F78BBDE981C3A /* ExperienceRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceRecord.swift; sourceTree = "<group>"; };
 		E0AA21CD490B436012818D9D /* ItineraryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryDetailView.swift; sourceTree = "<group>"; };
@@ -528,6 +530,7 @@
 			isa = PBXGroup;
 			children = (
 				E5DB59261DB471FD587F4134 /* AgentTests.swift */,
+				D9CF57D3342E9C609CD56801 /* AISynthesisQualityTests.swift */,
 				308B7A34171C74B1CF2DE3F9 /* CityPillHitTargetTests.swift */,
 				9DA531A7BAD8A34652BA4801 /* CompanionCrossTests.swift */,
 				BB612E3F9DD324EF3F308FFA /* CompanionPhase3Tests.swift */,
@@ -1011,6 +1014,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				47939336E63740302A83D121 /* AISynthesisQualityTests.swift in Sources */,
 				8632F83028F07E07435FE075 /* AgentTests.swift in Sources */,
 				D2BCD302B16BBC174B71F84A /* CityPillHitTargetTests.swift in Sources */,
 				5B22BAF4AD26B9941361351B /* CompanionCrossTests.swift in Sources */,

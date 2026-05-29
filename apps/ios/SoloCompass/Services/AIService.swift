@@ -64,8 +64,24 @@ public final class AIService {
         }
     }
 
+    /// Provenance of the most recent synthesis result (US-003). The UI uses
+    /// this to render a transparency badge so users can tell apart a real
+    /// AI-authored synthesis, a degraded skeleton fallback, and a cached hit.
+    public enum AISynthesisQuality {
+        /// Synthesis succeeded through the model (direct or Edge Function).
+        case real
+        /// Network/model failed; we returned skeleton placeholders.
+        case skeleton
+        /// Served from the persisted synthesis cache without a network call.
+        case cached
+    }
+
     public private(set) var isProcessing: Bool = false
     public private(set) var lastError: Error?
+
+    /// Set on every synthesis path: `.real` on success, `.skeleton` on
+    /// fallback, `.cached` on a cache hit. Drives the transparency badge.
+    public private(set) var lastSynthesisQuality: AISynthesisQuality = .real
     /// Set when the daily AI quota cap fires (Epic B US-015). The map
     /// view shows a banner derived from this.
     public private(set) var quotaExceededAt: Date?
@@ -738,6 +754,7 @@ public final class AIService {
         )
 
         if let cached = await loadCachedSynthesis(cacheKey: cacheKey) {
+            await MainActor.run { self.lastSynthesisQuality = .cached }
             return cached
         }
 
@@ -747,6 +764,8 @@ public final class AIService {
         let quotaHit = await checkAndIncrementQuota(kind: .synthesis)
         if quotaHit {
             await setQuotaExceeded()
+            // Expected degradation (not an error) — skeleton, no Sentry report.
+            await MainActor.run { self.lastSynthesisQuality = .skeleton }
             return capped.map { Self.skeletonExperience(from: $0, cityCode: cityCode) }
         }
 
@@ -761,9 +780,11 @@ public final class AIService {
                 await writeCachedSynthesis(
                     cacheKey: cacheKey, experiences: experiences, modelName: modelName
                 )
+                await MainActor.run { self.lastSynthesisQuality = .real }
                 return experiences
             } catch {
                 // Edge Function failed — skeleton fallback (no cache write).
+                await reportSkeletonFallback(error)
                 return capped.map { Self.skeletonExperience(from: $0, cityCode: cityCode) }
             }
         }
@@ -777,6 +798,7 @@ public final class AIService {
                 experiences: experiences,
                 modelName: modelName
             )
+            await MainActor.run { self.lastSynthesisQuality = .real }
             return experiences
         } catch {
             // Skeleton fallback — never written to cache so a
@@ -787,7 +809,22 @@ public final class AIService {
             #if DEBUG
             print("[AIService] synthesis failed, falling back to skeleton: \(error)")
             #endif
+            await reportSkeletonFallback(error)
             return capped.map { Self.skeletonExperience(from: $0, cityCode: cityCode) }
+        }
+    }
+
+    /// Shared skeleton-fallback bookkeeping for the two synthesis paths:
+    /// flip `lastSynthesisQuality` to `.skeleton` and report the underlying
+    /// cause to Sentry under the `AIService.skeleton_fallback` subsystem so
+    /// "Explore only ever shows skeletons" is diagnosable from telemetry.
+    private func reportSkeletonFallback(_ error: Error) async {
+        await MainActor.run {
+            self.lastSynthesisQuality = .skeleton
+            SentryService.capture(
+                error: error,
+                context: ["subsystem": "AIService.skeleton_fallback"]
+            )
         }
     }
 
