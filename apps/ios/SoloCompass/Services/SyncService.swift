@@ -57,6 +57,10 @@ public final class SyncService {
     var supabaseClient: any SupabaseClientProtocol = SupabaseClient.shared
     var deviceID: () -> String = { DeviceIdentityService.shared.deviceID }
 
+    // Error reporter is injectable so tests can assert that encode/save
+    // failures are surfaced instead of being silently swallowed (US-002).
+    var reporter: any SyncErrorReporting = LiveSyncErrorReporter()
+
     init() {}
 
     deinit {
@@ -92,13 +96,24 @@ public final class SyncService {
         payload: any Encodable,
         context: ModelContext
     ) {
-        guard let data = try? JSONEncoder.iso8601Encoder.encode(AnyEncodable(payload)) else {
+        // Encoding or persisting the outbox row must never fail silently — a
+        // dropped row means a user's completion / favorite / route-join request
+        // vanishes. Report to Sentry instead of swallowing via `try?`.
+        let data: Data
+        do {
+            data = try JSONEncoder.iso8601Encoder.encode(AnyEncodable(payload))
+        } catch {
+            reporter.capture(error, context: "SyncService.enqueue", payload: tableName)
             return
         }
         context.insert(
             PendingSyncRecord(tableName: tableName, operation: operation, payloadJSON: data)
         )
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            reporter.capture(error, context: "SyncService.enqueue", payload: tableName)
+        }
         refreshCount(context: context)
     }
 
@@ -254,7 +269,13 @@ public final class SyncService {
             let device_id: String?
         }
 
-        guard let rows = try? JSONDecoder().decode([RemoteCompletion].self, from: data) else { return }
+        let rows: [RemoteCompletion]
+        do {
+            rows = try JSONDecoder().decode([RemoteCompletion].self, from: data)
+        } catch {
+            reporter.capture(error, context: "SyncService.mergeCompletion", payload: "user_completions")
+            return
+        }
         let formatter = ISO8601DateFormatter()
 
         for row in rows {
@@ -295,7 +316,13 @@ public final class SyncService {
             let device_id: String?
         }
 
-        guard let rows = try? JSONDecoder().decode([RemoteFavorite].self, from: data) else { return }
+        let rows: [RemoteFavorite]
+        do {
+            rows = try JSONDecoder().decode([RemoteFavorite].self, from: data)
+        } catch {
+            reporter.capture(error, context: "SyncService.mergeFavorite", payload: "user_favorites")
+            return
+        }
         let formatter = ISO8601DateFormatter()
 
         for row in rows {
@@ -361,7 +388,13 @@ public final class SyncService {
             let updated_at: String
         }
 
-        guard let rows = try? JSONDecoder().decode([RemoteItinerary].self, from: data) else { return }
+        let rows: [RemoteItinerary]
+        do {
+            rows = try JSONDecoder().decode([RemoteItinerary].self, from: data)
+        } catch {
+            reporter.capture(error, context: "SyncService.mergeItinerary", payload: "itineraries")
+            return
+        }
         let formatter = ISO8601DateFormatter()
 
         for row in rows {
@@ -393,7 +426,7 @@ public final class SyncService {
                         local.cityCode = row.city_code
                         local.startDate = row.start_date
                         local.endDate = row.end_date
-                        local.experienceIdsBlob = (try? JSONEncoder().encode(row.experience_ids))
+                        local.experienceIdsBlob = encodeExperienceIDs(row.experience_ids)
                             ?? local.experienceIdsBlob
                         local.note = row.note
                         local.openToCompanions = row.open_to_companions
@@ -402,7 +435,7 @@ public final class SyncService {
                 }
             } else if !row.is_deleted {
                 // No local record and remote is not a tombstone — insert.
-                let blob = (try? JSONEncoder().encode(row.experience_ids)) ?? Data()
+                let blob = encodeExperienceIDs(row.experience_ids) ?? Data()
                 context.insert(ItineraryRecord(
                     id: row.id,
                     ownerId: row.owner_id,
@@ -446,7 +479,13 @@ public final class SyncService {
             let aggregated_solo_score: Double?
             let signal_count: Int?
         }
-        guard let rows = try? JSONDecoder().decode([AggRow].self, from: data) else { return }
+        let rows: [AggRow]
+        do {
+            rows = try JSONDecoder().decode([AggRow].self, from: data)
+        } catch {
+            reporter.capture(error, context: "SyncService.pullAggregatedSoloScores", payload: "synthesized_experiences")
+            return
+        }
 
         let lookup = Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0) })
         var changed = false
@@ -461,6 +500,17 @@ public final class SyncService {
             }
         }
         if changed { try? context.save() }
+    }
+
+    /// Encode an experience-id list to a blob, reporting (rather than swallowing)
+    /// any encoding failure. Returns nil on failure so callers can fall back.
+    private func encodeExperienceIDs(_ ids: [String]) -> Data? {
+        do {
+            return try JSONEncoder().encode(ids)
+        } catch {
+            reporter.capture(error, context: "SyncService.encodeExperienceIDs", payload: nil)
+            return nil
+        }
     }
 
     private func refreshCount(context: ModelContext) {

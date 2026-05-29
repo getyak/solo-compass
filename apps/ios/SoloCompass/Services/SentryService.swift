@@ -1,6 +1,28 @@
 import Foundation
 import Sentry
 
+/// Abstraction over the crash/error reporter so callers (e.g. `SyncService`)
+/// can be unit-tested against a mock instead of the live Sentry SDK (US-002).
+///
+/// `capture` is `nonisolated`, so it can be invoked from any context; the live
+/// implementation hops to the MainActor internally.
+protocol SyncErrorReporting: Sendable {
+    /// Report an error with a context tag plus an optional payload descriptor
+    /// (e.g. the table whose row encoding/persistence failed).
+    func capture(_ error: Error, context: String, payload: String?)
+}
+
+/// Production reporter that forwards to `SentryService`.
+struct LiveSyncErrorReporter: SyncErrorReporting {
+    func capture(_ error: Error, context: String, payload: String?) {
+        var ctx: [String: Any] = ["context": context]
+        if let payload { ctx["payload"] = payload }
+        Task { @MainActor in
+            SentryService.capture(error: error, context: ctx)
+        }
+    }
+}
+
 /// Single entry point for Sentry SDK lifecycle and manual capture.
 ///
 /// `Secrets.sentryDSN` is generated from `.env` by `scripts/generate_secrets.sh`.
