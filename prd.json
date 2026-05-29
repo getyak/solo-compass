@@ -85,7 +85,7 @@
         "Verify in iPhone 17 Pro Simulator: pan/zoom map for 30 seconds, no visual regression"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
