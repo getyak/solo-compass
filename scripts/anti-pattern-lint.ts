@@ -80,7 +80,8 @@ function scan(diff: string): Hit[] {
       currentFile === "CLAUDE.md" ||
       currentFile === "prd.json" ||
       currentFile === "scripts/ralph/prd.json" ||
-      currentFile.startsWith("scripts/ralph/archive/")
+      currentFile.startsWith("scripts/ralph/archive/") ||
+      currentFile.startsWith("tasks/prd-")
     ) {
       continue;
     }
