@@ -1049,7 +1049,9 @@
 "my.requests.status.accepted" = "Accepted";
 "my.requests.status.declined" = "Declined";
 "my.requests.status.withdrawn" = "Withdrawn";
-"my.requests.withdraw" = "撤回申请";
+"my.requests.withdraw" = "Withdraw";
+/* Footer: "%d requests · %d pending" */
+"my.requests.count" = "%1$d requests · %2$d pending";
 
 /* US-031 — JoinRouteRequestSheet */
 "join.sheet.title" = "申请加入";
