@@ -25,6 +25,7 @@ public struct FavoritesListView: View {
     @State private var showSwipeHint = false
     @State private var hintDismissTask: Task<Void, Never>?
     @AppStorage("favorites.swipeHintSeen") private var swipeHintSeen = false
+    @State private var ringDidCelebrate = false
 
     private var undoDismissSeconds: Double { voiceOverOn ? 12 : 4 }
 
@@ -166,21 +167,11 @@ public struct FavoritesListView: View {
                                     .contentTransition(.numericText())
                                 Spacer()
                                 if showCompletedChip {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.caption2)
-                                            .foregroundStyle(Color.green)
-                                            .accessibilityHidden(true)
-                                        Text(String(format: NSLocalizedString("favorites.completed.count", comment: "N of M done chip"), completedCount, sortedFavorites.count))
-                                            .font(.caption2)
-                                            .foregroundStyle(Color.green)
-                                            .contentTransition(.numericText())
-                                            .animation(reduceMotion ? nil : .easeInOut, value: completedCount)
-                                    }
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(Color.green.opacity(0.12), in: Capsule())
-                                    .accessibilityLabel(String(format: NSLocalizedString("favorites.completed.count.a11y", comment: "N of M done chip accessibility label"), completedCount, sortedFavorites.count))
+                                    CompletionRing(
+                                        done: completedCount,
+                                        total: sortedFavorites.count,
+                                        didCelebrate: $ringDidCelebrate
+                                    )
                                     .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                                 }
                                 if showNearbyChip {
@@ -287,6 +278,83 @@ public struct FavoritesListView: View {
         .animation(.easeInOut, value: lastUnfavorited != nil)
         .onChange(of: lastUnfavorited == nil) { _, isNil in
             if isNil { undoDragOffset = 0 }
+        }
+    }
+}
+
+private struct CompletionRing: View {
+    let done: Int
+    let total: Int
+    @Binding var didCelebrate: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var animatedFraction: CGFloat = 0
+    @State private var bloomScale: CGFloat = 1
+
+    private var isAllDone: Bool { total > 0 && done == total }
+    private var fraction: CGFloat { total > 0 ? CGFloat(done) / CGFloat(total) : 0 }
+    private var pctLabel: String { String(format: "%.0f%%", fraction * 100) }
+    private var a11yLabel: String {
+        isAllDone
+            ? NSLocalizedString("favorites.completed.allDone.a11y", comment: "All favorites completed accessibility label")
+            : String(format: NSLocalizedString("favorites.completed.count.a11y", comment: "N of M done chip accessibility label"), done, total)
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.green.opacity(0.15), lineWidth: 2.5)
+            Circle()
+                .trim(from: 0, to: animatedFraction)
+                .stroke(Color.green, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            if isAllDone {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.green)
+                    .scaleEffect(bloomScale)
+            } else {
+                Text(pctLabel)
+                    .font(.system(size: 7, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(Color.green)
+                    .contentTransition(.numericText())
+                    .animation(reduceMotion ? nil : .easeInOut, value: done)
+            }
+        }
+        .frame(width: 22, height: 22)
+        .accessibilityLabel(a11yLabel)
+        .accessibilityValue(pctLabel)
+        .onAppear {
+            let target = fraction
+            if reduceMotion {
+                animatedFraction = target
+            } else {
+                withAnimation(.easeInOut(duration: 0.5)) { animatedFraction = target }
+            }
+            if isAllDone && !didCelebrate {
+                triggerCelebration()
+            }
+        }
+        .onChange(of: done) { _, _ in
+            let target = fraction
+            if reduceMotion {
+                animatedFraction = target
+            } else {
+                withAnimation(.easeInOut(duration: 0.5)) { animatedFraction = target }
+            }
+            if isAllDone && !didCelebrate {
+                triggerCelebration()
+            }
+        }
+    }
+
+    private func triggerCelebration() {
+        didCelebrate = true
+        Haptics.notify(.success)
+        guard !reduceMotion else { return }
+        withAnimation(.easeOut(duration: 0.15)) { bloomScale = 1.15 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeIn(duration: 0.15)) { bloomScale = 1 }
         }
     }
 }
