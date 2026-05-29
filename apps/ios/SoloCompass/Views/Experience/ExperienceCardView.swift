@@ -202,7 +202,13 @@ public struct ExperienceCardView: View {
                             .scaleEffect(favorited ? 1.15 : 1.0)
                             .symbolEffect(.bounce, value: heartBounce)
                     }
+                    // US-019: keep the visible heart 32×32 but expand the
+                    // tappable region to the 44pt HIG minimum.
                     .frame(width: 32, height: 32)
+                    .frame(
+                        minWidth: HitTargetMetrics.minimum,
+                        minHeight: HitTargetMetrics.minimum
+                    )
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

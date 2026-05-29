@@ -1242,6 +1242,12 @@ private struct DismissibleBanner: View {
             Spacer()
             Button(action: onDismiss) {
                 Image(systemName: "xmark").font(.caption.bold()).foregroundStyle(.secondary)
+                    // US-019: expand the small glyph to the 44pt HIG hit target.
+                    .frame(
+                        minWidth: HitTargetMetrics.minimum,
+                        minHeight: HitTargetMetrics.minimum
+                    )
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel(Text(NSLocalizedString("common.dismiss", comment: "Dismiss")))
         }

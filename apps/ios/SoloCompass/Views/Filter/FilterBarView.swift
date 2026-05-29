@@ -269,6 +269,13 @@ public struct FilterBarView: View {
                     }
                 }
                 .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
+                // US-019: keep the visible chip 36×36 but expand the tappable
+                // region to the 44pt HIG minimum.
+                .frame(
+                    minWidth: HitTargetMetrics.minimum,
+                    minHeight: HitTargetMetrics.minimum
+                )
+                .contentShape(Rectangle())
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(Text(category.localizedTitle))
