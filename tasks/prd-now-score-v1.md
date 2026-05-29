@@ -1,13 +1,13 @@
 # PRD: NowScore v1 — 把「此刻最佳」从静态布尔变成动态评分
 
-| 字段 | 值 |
-|---|---|
-| 版本 | v1.0 草稿 |
-| 创建日期 | 2026-05-29 |
-| 基线 | `main @ 996e421` |
-| 范围 | apps/ios/SoloCompass + packages/core |
-| 与 58-US 关系 | 并行 ·  不依赖 prd-full-fix-roadmap 任何 US；可同时推进 |
-| 预计交付 | 2 周（10 个 US，单端 iOS + 1 个 schema 改动） |
+| 字段          | 值                                                     |
+| ------------- | ------------------------------------------------------ |
+| 版本          | v1.0 草稿                                              |
+| 创建日期      | 2026-05-29                                             |
+| 基线          | `main @ 996e421`                                       |
+| 范围          | apps/ios/SoloCompass + packages/core                   |
+| 与 58-US 关系 | 并行 · 不依赖 prd-full-fix-roadmap 任何 US；可同时推进 |
+| 预计交付      | 2 周（10 个 US，单端 iOS + 1 个 schema 改动）          |
 
 ---
 
@@ -18,6 +18,7 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 这意味着 marker 上的"此刻"徽章、`MapViewModel.nowCount` 抽屉数字、Filter "Now" 模式都只能给出**二值答案**：现在好 / 现在不好。
 
 但**独行用户决策的真实变量**是**多维度连续值**：
+
 - 营业时间内吗（已有）
 - 现在到日落还有多久（缺）
 - 今天天气如何（缺）
@@ -52,12 +53,15 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ## 3. User Stories
 
 ### US-NS-001: 引入 NowScore 类型与 Experience.nowScore(at:) 方法
+
 **Description:** As an iOS engineer, I want a `NowScore` value type and an `Experience.nowScore(at:)` method so downstream views and viewmodels can read a continuous value instead of a Bool.
 **Affected:**
+
 - 新建 `apps/ios/SoloCompass/Models/NowScore.swift`
 - `apps/ios/SoloCompass/Models/Experience.swift:472-499`（在 `isBestNow()` 旁边加 `nowScore(at:)`）
 
 **Acceptance Criteria:**
+
 - [ ] 新 struct `public struct NowScore: Sendable { public let value: Double /* [0,1] */; public let reason: String?; public let breakdown: [String: Double] }`
 - [ ] `Experience.nowScore(at date: Date) -> NowScore` 内部第一版只看 bestTimes 维度，返回 `value = isInWindow ? 1.0 : 0.0`
 - [ ] 保留 `isBestNow(at:)` 不变；新增内部 `isBestNow(at:)` impl 改为 `nowScore(at:).value >= 0.7`
@@ -69,13 +73,16 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-002: NowSignal 协议 + bestTimes / hourOfDay 两个内置信号
+
 **Description:** As an iOS engineer, I want a `NowSignal` protocol so future contributors can add new signals (weather / crowd / sunset) without touching `Experience.nowScore` itself.
 **Affected:**
+
 - 新建 `apps/ios/SoloCompass/Services/NowScore/NowSignal.swift`
 - 新建 `apps/ios/SoloCompass/Services/NowScore/BestTimesSignal.swift`
 - 新建 `apps/ios/SoloCompass/Services/NowScore/HourOfDaySignal.swift`
 
 **Acceptance Criteria:**
+
 - [ ] `public protocol NowSignal { static var key: String { get }; func score(for experience: Experience, at date: Date) async -> NowSignalContribution }`
 - [ ] `public struct NowSignalContribution { let value: Double /* [0,1] */; let weight: Double; let reason: String? }`
 - [ ] `BestTimesSignal` 实现：复刻 US-NS-001 的 bestTimes 逻辑，weight = 0.4
@@ -88,12 +95,15 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-003: 新建 WeatherService（OpenWeather 接入 + 12 小时 SwiftData 缓存）
+
 **Description:** As an iOS engineer, I need a WeatherService that fetches and caches current + 24h weather for any coordinate so NowScore can read it without making a fresh network call per marker.
 **Affected:**
+
 - 新建 `apps/ios/SoloCompass/Services/WeatherService.swift`
 - 新建 `apps/ios/SoloCompass/Persistence/Models/WeatherCacheRecord.swift`
 
 **Acceptance Criteria:**
+
 - [ ] `@MainActor @Observable public final class WeatherService` with `func current(at: CLLocationCoordinate2D) async throws -> WeatherSnapshot`
 - [ ] `WeatherSnapshot { let tempC: Double; let condition: WeatherCondition; let precipChancePct: Int; let windKph: Double; let observedAt: Date }`
 - [ ] OpenWeather API key from `Secrets.openWeatherAPIKey`（如缺失，方法 throw `WeatherError.noAPIKey`，调用方 graceful）
@@ -107,11 +117,14 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-004: WeatherSignal（NowScore 信号实现）
+
 **Description:** As a user, I want the NowScore to drop when it's raining hard or unbearably hot so the app doesn't suggest a "perfect now" outdoor experience in a thunderstorm.
 **Affected:**
+
 - 新建 `apps/ios/SoloCompass/Services/NowScore/WeatherSignal.swift`
 
 **Acceptance Criteria:**
+
 - [ ] `WeatherSignal` 实现 `NowSignal` 协议；weight = 0.15
 - [ ] 评分逻辑（outdoor 类 experience，category ∈ [.nature, .nightlife with rooftop tag]）：
   - 晴 / 多云 → 1.0
@@ -129,12 +142,15 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-005: SunsetSignal（日出/日落实时倒计时）
+
 **Description:** As a solo traveler, I want viewpoints / parks / rooftop bars to score highest in the 90 minutes before sunset so I'm nudged to "出发 · 日落还有 23 分钟" at the right moment.
 **Affected:**
+
 - 新建 `apps/ios/SoloCompass/Services/NowScore/SunsetSignal.swift`
 - 复用 Foundation `Solar` 计算（或新增 `apps/ios/SoloCompass/Services/SolarEvents.swift`，本地纯函数计算，无需网络）
 
 **Acceptance Criteria:**
+
 - [ ] `SolarEvents.sunset(at: CLLocationCoordinate2D, date: Date) -> Date?` 纯函数，使用 NREL Solar Position Algorithm 简化版
 - [ ] `SunsetSignal` 实现：仅对 tag 含 `sunset_friendly` 或 category ∈ [.nature, .nightlife] 的 experience 起作用
 - [ ] 评分曲线：日落前 90 → 30 min: 1.0，30 → 0 min: 高斯衰减到 0.7，日落后 30 min（蓝调时刻）: 0.6，其它时段 0.4
@@ -149,11 +165,14 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-006: NowScore reason 拼接 + UI 透出（ExperienceCardView 副标题）
-**Description:** As a user looking at an experience card, I want the "best now" badge replaced with a one-line reason like "日落 23 分钟后 · 晴 · 适合" so I understand *why* this is recommended right now.
+
+**Description:** As a user looking at an experience card, I want the "best now" badge replaced with a one-line reason like "日落 23 分钟后 · 晴 · 适合" so I understand _why_ this is recommended right now.
 **Affected:**
+
 - `apps/ios/SoloCompass/Views/Experience/ExperienceCardView.swift:267-289` (`BestNowBadge`)
 
 **Acceptance Criteria:**
+
 - [ ] `BestNowBadge` 当 `nowScore.value >= 0.7` 时，副标题渲染 `nowScore.reason ?? "此刻"`
 - [ ] reason 最多展示 3 个最高 weight 的 signal 拼接，`·` 分隔；超出截断 + `…`
 - [ ] reason 为 nil（所有 signal 都中性 / 离线）→ 退回原有 "此刻" 文案
@@ -165,12 +184,15 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-007: MapViewModel 排序与 nowCount 接入 nowScore
+
 **Description:** As an iOS engineer, I want `MapViewModel.markerState`/`nowCount` to drive off `nowScore.value >= 0.7` instead of the legacy `isBestNow()` so the entire app reflects the new continuous model.
 **Affected:**
+
 - `apps/ios/SoloCompass/ViewModels/MapViewModel.swift:298` (`nowCount`)
 - `apps/ios/SoloCompass/ViewModels/MapViewModel.swift` (markerState sort)
 
 **Acceptance Criteria:**
+
 - [ ] `nowCount` 计算改为 `visibleExperiences.filter { $0.nowScore(at: .now).value >= 0.7 }.count`（注意：需与 US-P1-003 的 nowCount 缓存策略协调，本 PRD 跟 58-US 都改 nowCount 时哪个先 merge 都要 rebase）
 - [ ] markerState 排序：bestNow 优先 → nowScore 降序 → distance 升序
 - [ ] 新增 `MapViewModelNowScoreSortTest`：注入 3 个 mock experience（score 0.9 / 0.7 / 0.5），断言排序
@@ -181,12 +203,15 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-008: Filter "Now" 模式渐变高亮（连接 nowScore 强度）
-**Description:** As a user, when "Now" filter is on, I want markers visually graded by nowScore intensity (full color / semi / faded) instead of just shown/hidden so I can pick the *best* "now" option.
+
+**Description:** As a user, when "Now" filter is on, I want markers visually graded by nowScore intensity (full color / semi / faded) instead of just shown/hidden so I can pick the _best_ "now" option.
 **Affected:**
+
 - `apps/ios/SoloCompass/Views/Map/CompassMapView.swift` MarkerIconView 调用点
 - `apps/ios/SoloCompass/Views/Map/MarkerIconView.swift`（如存在）
 
 **Acceptance Criteria:**
+
 - [ ] Now 模式下，marker 透明度 = `nowScore.value`（0.5 以下封顶 0.5 避免完全消失）
 - [ ] nowScore >= 0.9 的 marker 加一圈 `CT.accent` pulse 动画（与 P1-035 协调）
 - [ ] 新增 `FilterNowGradientHighlightTest` snapshot
@@ -198,12 +223,15 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-009: nowScore p95 性能保障（< 5ms）
+
 **Description:** As an iOS engineer, I want NowScore evaluation to stay under 5ms p95 so it doesn't tank scrolling perf on a list of 100 markers.
 **Affected:**
+
 - `apps/ios/SoloCompass/Models/Experience.swift` nowScore 实现
 - 可能新增 `apps/ios/SoloCompass/Services/NowScore/NowScoreCache.swift`
 
 **Acceptance Criteria:**
+
 - [ ] WeatherService cache 命中路径：纯内存查询，无 SwiftData fetch（用 in-memory dict + LRU 100 entries 兜底）
 - [ ] SolarEvents 计算结果按 `(lat.rounded(1), lon.rounded(1), date.yyyymmdd)` 缓存到内存
 - [ ] 新增 `NowScorePerformanceTest`：构造 100 experiences → 调用 1000 次 nowScore → p95 < 5ms
@@ -214,12 +242,15 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ---
 
 ### US-NS-010: 离线 + 错误降级 + Sentry 上报
+
 **Description:** As a user, I want NowScore to keep working when offline (using only the bestTimes signal) and never crash or surface a stack trace.
 **Affected:**
+
 - `apps/ios/SoloCompass/Services/NowScore/NowScoreEngine.swift`（如建）
 - 集成 `Services/NetworkMonitor.swift` + `Services/SentryService.swift`
 
 **Acceptance Criteria:**
+
 - [ ] WeatherSignal / SunsetSignal 任何 throw → engine catch + 该 signal contribution = `(0.5, 0.0, nil)`（中性 + 0 权重，等于退出加权平均）
 - [ ] 离线模式：WeatherSignal contribution.weight = 0，UI 不显示 "晴 / 雨" 文案
 - [ ] 任何 unexpected error（非 WeatherError.noAPIKey 等已知态）→ `SentryService.capture(error, context: "NowScoreEngine.\(signalKey)")`
@@ -270,23 +301,28 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 ## 7. Technical Considerations
 
 ### 7.1 Schema 变更
+
 - 仅新增 `WeatherCacheRecord` 一张 SwiftData @Model，无 migration（首次启动自动建表）
 
 ### 7.2 外部依赖
+
 - OpenWeather API：免费档 60 calls/min，缓存 12 小时 + 0.01° 坐标精度 → 单城市 < 30 calls/day，远低于配额
 - 若用户拒绝定位 → 用 selectedCity 的中心坐标兜底
 - API key 缺失：`Secrets.openWeatherAPIKey == nil` → `WeatherError.noAPIKey` → 中性降级
 
 ### 7.3 SolarEvents 数学
+
 - NREL SPA 算法（Solar Position Algorithm）的简化版（< 100 行 Swift 实现）
 - 已有 Swift 包 `LunarHelper`/`SwiftAstronomy` 可参考，**但不引依赖**——本 PRD 不增 SPM 依赖
 
 ### 7.4 与 58-US 的协调
+
 - US-NS-007 与 prd-full-fix-roadmap.md 的 US-P1-003 (nowCount cache) **冲突点**：都改 nowCount。哪个先 merge 都需要 rebase 另一个。建议 US-P1-003 先做（纯性能优化），US-NS-007 在它之上改语义。
 - US-NS-008 与 US-P2-035 (Filter Now 视觉同步) 类似主题——本 PRD 的 US-NS-008 是 superset，建议 merge 时把 US-P2-035 标 obsoleted。
 - US-NS-006 触动 `ExperienceCardView.swift`，与 US-P0-004 (SkeletonBadgeView，已 merged in PR #292) 不冲突（位置不同）
 
 ### 7.5 测试基线
+
 - 新增 ~12 个 XCTest 函数（每 US 1-2 个）
 - iOS test target 总数 489 (PR #292 前) → 547 (58-US 完成后) → ≈ 559 (本 PRD 完成后)
 
@@ -294,54 +330,56 @@ iOS app 当前的 "BestNow" 判定（`Experience.isBestNow()` at `Models/Experie
 
 ## 8. Success Metrics
 
-| 指标 | 当前 | 目标 |
-|---|---|---|
-| `Experience.nowScore` 存在 | ❌ | ✅ |
-| Signal 协议实现数 | 0 | ≥ 4 |
-| WeatherService 接入 | ❌ | ✅ + 12h cache |
-| SolarEvents 纯函数 | ❌ | ✅ |
-| BestNowBadge 含 reason 文案 | ❌ | ✅ |
-| nowScore p95 latency | n/a | < 5ms |
-| 全部 BestNow* 测试通过率 | 100% | 100%（不破） |
-| 新增 NowScore* 测试数 | 0 | ≥ 12 |
-| 离线场景 nowScore 不抛 | n/a | ✅ |
-| Sentry 月度 `NowScoreEngine.*` 上报 | 0 | > 0（验证机制有效）|
-| 新增本地化 key (en + zh-Hans) | 0 | ≥ 10 each |
+| 指标                                | 当前 | 目标                |
+| ----------------------------------- | ---- | ------------------- |
+| `Experience.nowScore` 存在          | ❌   | ✅                  |
+| Signal 协议实现数                   | 0    | ≥ 4                 |
+| WeatherService 接入                 | ❌   | ✅ + 12h cache      |
+| SolarEvents 纯函数                  | ❌   | ✅                  |
+| BestNowBadge 含 reason 文案         | ❌   | ✅                  |
+| nowScore p95 latency                | n/a  | < 5ms               |
+| 全部 BestNow\* 测试通过率           | 100% | 100%（不破）        |
+| 新增 NowScore\* 测试数              | 0    | ≥ 12                |
+| 离线场景 nowScore 不抛              | n/a  | ✅                  |
+| Sentry 月度 `NowScoreEngine.*` 上报 | 0    | > 0（验证机制有效） |
+| 新增本地化 key (en + zh-Hans)       | 0    | ≥ 10 each           |
 
 ---
 
 ## 9. Open Questions
 
-- **OQ-1**：OpenWeather API key 谁来 provision？放 `Secrets.plist` 还是要求 user-supplied？*待 ops 决策*
-- **OQ-2**：SolarEvents 算法用 NREL SPA 简化版还是引 `SwiftAstronomy` 包？引包减少 50 行代码 + 测试压力，但增 dependency。*待 lead 决策*
-- **OQ-3**：reason 文案最多 3 个 signal——是按 weight 还是按 contribution.value 取 top-3？*待 PM 决策*
-- **OQ-4**：US-NS-007 / 008 是否要等 prd-full-fix-roadmap 的 US-P1-003 / US-P2-035 都 merge 后再开始？*建议是*
-- **OQ-5**：v2 是否要做 CrowdSignal？需要付费数据源（BestTime.app $99/mo），值不值得？*待 PM*
-- **OQ-6**：BestNowBadge reason 在 zh-Hans 下的"日落 23 分钟后" 当 23 分钟变 0 时怎么处理？"日落刚到"？"日落 0 分钟"？*待 UX*
-- **OQ-7**：是否要 expose nowScore 到 share card / Open Graph？"我在此刻 92% 完美时刻打卡了京都东山" 有传播潜力，但增 share 复杂度。*待 PM*
+- **OQ-1**：OpenWeather API key 谁来 provision？放 `Secrets.plist` 还是要求 user-supplied？_待 ops 决策_
+- **OQ-2**：SolarEvents 算法用 NREL SPA 简化版还是引 `SwiftAstronomy` 包？引包减少 50 行代码 + 测试压力，但增 dependency。_待 lead 决策_
+- **OQ-3**：reason 文案最多 3 个 signal——是按 weight 还是按 contribution.value 取 top-3？_待 PM 决策_
+- **OQ-4**：US-NS-007 / 008 是否要等 prd-full-fix-roadmap 的 US-P1-003 / US-P2-035 都 merge 后再开始？_建议是_
+- **OQ-5**：v2 是否要做 CrowdSignal？需要付费数据源（BestTime.app $99/mo），值不值得？_待 PM_
+- **OQ-6**：BestNowBadge reason 在 zh-Hans 下的"日落 23 分钟后" 当 23 分钟变 0 时怎么处理？"日落刚到"？"日落 0 分钟"？_待 UX_
+- **OQ-7**：是否要 expose nowScore 到 share card / Open Graph？"我在此刻 92% 完美时刻打卡了京都东山" 有传播潜力，但增 share 复杂度。_待 PM_
 
 ---
 
 ## 10. Cross-Reference
 
-| 文档 | 关系 |
-|---|---|
-| [tasks/prd-full-fix-roadmap.md](./prd-full-fix-roadmap.md) | 并行 PRD；US-NS-007 / 008 与其 US-P1-003 / US-P2-035 协调 |
-| [docs/EVAL_REPORT.md](../docs/EVAL_REPORT.md) | EVAL 没覆盖 nowScore 方向（属于产品演化，不是修复债务） |
-| Issue #296 (Ralph Linux 接力) | 本 PRD 完成后可加入 ralph 队列；建议独立 batch，不和 58-US 混跑 |
-| GitHub issue [拟开]：Product Evolution Roadmap | 本 PRD 是其中"方向 ① 时间动态化"的具体落地 |
+| 文档                                                       | 关系                                                            |
+| ---------------------------------------------------------- | --------------------------------------------------------------- |
+| [tasks/prd-full-fix-roadmap.md](./prd-full-fix-roadmap.md) | 并行 PRD；US-NS-007 / 008 与其 US-P1-003 / US-P2-035 协调       |
+| [docs/EVAL_REPORT.md](../docs/EVAL_REPORT.md)              | EVAL 没覆盖 nowScore 方向（属于产品演化，不是修复债务）         |
+| Issue #296 (Ralph Linux 接力)                              | 本 PRD 完成后可加入 ralph 队列；建议独立 batch，不和 58-US 混跑 |
+| GitHub issue [拟开]：Product Evolution Roadmap             | 本 PRD 是其中"方向 ① 时间动态化"的具体落地                      |
 
 ---
 
 ## 11. Phasing 建议
 
 **Phase 1 (Week 1)**：基础设施
+
 - US-NS-001 NowScore 类型
 - US-NS-002 NowSignal 协议 + BestTimes / HourOfDay
 - US-NS-003 WeatherService + 缓存
 - US-NS-010 离线降级 + Sentry
 
 **Phase 2 (Week 2)**：信号 + UI
+
 - US-NS-004 WeatherSignal
 - US-NS-005 SunsetSignal
 - US-NS-006 BestNowBadge reason 副标题
