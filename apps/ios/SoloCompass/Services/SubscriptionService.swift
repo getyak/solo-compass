@@ -1,6 +1,7 @@
 import Foundation
 import StoreKit
 import Observation
+import os
 import SwiftData
 
 /// StoreKit 2 wrapper. The single source of truth for "is this user
@@ -14,6 +15,11 @@ import SwiftData
 @MainActor
 @Observable
 public final class SubscriptionService {
+
+    // MARK: - Logging
+
+    @ObservationIgnored
+    private let logger = Logger(subsystem: "com.solocompass", category: "SubscriptionService")
 
     // MARK: - Product IDs
 
@@ -321,9 +327,7 @@ public final class SubscriptionService {
             payload: payload,
             context: syncModelContext
         )
-        #if DEBUG
-        print("[SubscriptionService] emitted subscription_events row: event_type=\(eventType) product_id=\(productID) is_in_trial=\(isInTrialPeriod) device_id=\(deviceIDProvider())")
-        #endif
+        logger.info("emitted subscription_events row: event_type=\(eventType, privacy: .public) product_id=\(productID, privacy: .public) is_in_trial=\(isInTrialPeriod, privacy: .public) device_id=\(self.deviceIDProvider(), privacy: .private)")
     }
 }
 

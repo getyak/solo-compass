@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import MapKit
 import Observation
+import os
 import SwiftUI
 
 /// State + intent for the root `CompassMapView`.
@@ -26,6 +27,9 @@ public final class MapViewModel {
     private let foursquareService: FoursquareService
     private let geocodeService: any ReverseGeocoding
     private let preferences: UserPreferences
+
+    @ObservationIgnored
+    private let logger = Logger(subsystem: "com.solocompass", category: "MapViewModel")
 
     /// Lazily built deep-dive orchestrator. Reuses the existing channel
     /// services and adds an Apple MapKit source. `@ObservationIgnored` so the
@@ -1417,9 +1421,7 @@ public final class MapViewModel {
                         preferences.incrementFoursquareCallsToday()
                         pois = FoursquareService.merge(overpass: overpassPois, foursquare: fsq)
                     } catch {
-                        #if DEBUG
-                        print("[MapViewModel] Foursquare fallback failed: \(error)")
-                        #endif
+                        logger.debug("Foursquare fallback failed: \(error.localizedDescription, privacy: .public)")
                     }
                 }
                 guard !pois.isEmpty else {
