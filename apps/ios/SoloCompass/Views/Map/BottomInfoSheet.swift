@@ -418,11 +418,23 @@ struct SortCountToolbar: View {
     }
 }
 
+// MARK: - SortRowButtonStyle
+
+/// Scales down ~4% on press for tactile feedback matching FilterBarView's PressableButtonStyle.
+private struct SortRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
 // MARK: - SortModeSheet
 
 struct SortModeSheet: View {
     @Binding var sortMode: SortMode
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -437,7 +449,9 @@ struct SortModeSheet: View {
                     #if canImport(UIKit)
                     Haptics.selection()
                     #endif
-                    sortMode = mode
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7)) {
+                        sortMode = mode
+                    }
                     dismiss()
                 } label: {
                     HStack(spacing: 12) {
@@ -456,14 +470,24 @@ struct SortModeSheet: View {
                         if sortMode == mode {
                             Image(systemName: "checkmark")
                                 .font(.body.weight(.semibold))
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(Color.accentColor)
+                                .transition(.scale.combined(with: .opacity))
                         }
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 14)
+                    .background(
+                        Group {
+                            if sortMode == mode {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.accentColor.opacity(0.10))
+                                    .padding(.horizontal, 8)
+                            }
+                        }
+                    )
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SortRowButtonStyle())
                 .accessibilityElement(children: .combine)
 
                 if mode.id != SortMode.allCases.last?.id {
