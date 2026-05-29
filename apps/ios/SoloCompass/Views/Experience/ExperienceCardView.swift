@@ -201,7 +201,7 @@ public struct ExperienceCardView: View {
                 SkeletonBadgeView()
             }
 
-            HStack {
+            FlowLayout(spacing: 8) {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
                 Group {
                     if isArrived {
@@ -220,7 +220,6 @@ public struct ExperienceCardView: View {
                 } else if let hint = experience.bestTimeHint() {
                     bestTimeHintPill(hint)
                 }
-                Spacer()
                 if let coord = experience.coordinate {
                     directionsControl(coordinate: coord)
                 }
@@ -532,6 +531,31 @@ private struct BestNowBadge: View {
         .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview")!))
         .environment(locationService)
         .environment(AIService()))
+    } else {
+        return AnyView(Text("No seed data"))
+    }
+}
+
+#Preview("Accessibility3 — pills wrap") {
+    if let exp = ExperienceService.hardcodedSeed.first {
+        let locationService = LocationService()
+        if let coord = exp.coordinate {
+            let offset = CLLocation(latitude: coord.latitude + 0.00027, longitude: coord.longitude)
+            locationService.simulate(location: offset)
+        }
+        return AnyView(VStack {
+            Spacer()
+            ExperienceCardView(
+                experience: exp,
+                onExpand: {},
+                onDismiss: {}
+            )
+        }
+        .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+        .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview-a11y")!))
+        .environment(locationService)
+        .environment(AIService())
+        .environment(\.dynamicTypeSize, .accessibility3))
     } else {
         return AnyView(Text("No seed data"))
     }
