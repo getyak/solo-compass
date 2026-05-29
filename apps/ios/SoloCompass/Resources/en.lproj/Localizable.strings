@@ -121,6 +121,12 @@
 /* Voice */
 "voice.processing" = "Thinking: %@";
 "voice.button" = "Voice input";
+"voice.button.hint" = "Double tap to start recording, double tap again to stop";
+"voice.button.value.recording" = "Recording";
+"voice.button.value.idle" = "Idle";
+"voice.a11y.toggle" = "Start/Stop voice input";
+"voice.announcement.listening" = "Listening…";
+"voice.announcement.stopped" = "Recording stopped";
 "voice.recording.timer.a11y" = "Recording — %d seconds elapsed";
 "voice.result.found" = "Found %d matching places";
 "voice.result.filtered" = "Showing %@ nearby";
