@@ -26,6 +26,7 @@ public struct FlowLayout: Layout {
                 totalHeight += rowHeight + spacing
                 rowWidth = size.width
                 rowHeight = size.height
+                isFirstInRow = true
             } else {
                 rowWidth = isFirstInRow ? size.width : rowWidth + spacing + size.width
                 rowHeight = max(rowHeight, size.height)
