@@ -305,13 +305,23 @@ struct CompassMapContentView: View {
             // immediately — there is no `if let` / `ProgressView` placeholder
             // that could flicker before the map appears on cold launch.
             // Backing tile bleeds under every edge so the map looks
-            // edge-to-edge, but the actual `Map` view keeps its top
-            // safe-area inset so `.mapControls` (MapCompass +
-            // MapUserLocationButton) don't collide with the status bar.
+            // edge-to-edge; the `Map` view itself also extends to every edge
+            // (V-006) so tiles — not the flat theme background — render in the
+            // top status-bar region.
             themeService.currentTheme.background
                 .ignoresSafeArea()
+            // V-006 fix: the map must fill ALL edges — including the top safe
+            // area — so real street tiles render under the status bar. The map
+            // previously kept its top inset (only `.bottom, .horizontal`), which
+            // left the status-bar-height strip showing the flat theme background
+            // (a dark band in dark mode, the "NORTH BEACH band"). `.mapControls`
+            // still avoid the status bar because they are laid out against the
+            // map's layout margins, which honour the safe area regardless of
+            // `.ignoresSafeArea`. The overlay content (city pill / filter bar)
+            // is a sibling layer that keeps its own safe-area inset, so nothing
+            // collides with the status bar.
             mapLayer(viewModel: viewModel)
-                .ignoresSafeArea(edges: [.bottom, .horizontal])
+                .ignoresSafeArea()
 
                 MapOverlayView(
                     viewModel: viewModel,
