@@ -1086,6 +1086,8 @@
 "join.message.label" = "自我介绍";
 "join.message.placeholder" = "向主理人介绍自己...";
 "join.submit" = "提交申请";
+"join.error.pace.missing" = "请选择配速匹配";
+"join.error.message.missing" = "请填写自我介绍";
 
 /* US-034 — ApprovalQueueView */
 "approval.queue.title" = "待审批申请";
