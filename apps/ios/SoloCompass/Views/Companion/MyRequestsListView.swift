@@ -16,6 +16,8 @@ public struct MyRequestsListView: View {
     private let remoteProvider: @MainActor () -> any RouteCompanionRemote
 
     @State private var refreshToken: UUID = UUID()
+    @State private var pulse = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(
         storeProvider: @escaping () -> RouteStore = { RouteStore() },
@@ -145,36 +147,58 @@ public struct MyRequestsListView: View {
 
     @ViewBuilder
     private func statusChip(for status: JoinRequestStatus) -> some View {
-        let (label, color) = chipAttributes(for: status)
-        Text(label)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(color.opacity(0.15), in: Capsule())
+        let (label, color, symbol) = chipAttributes(for: status)
+        let isPending = status == .pending
+        HStack(spacing: 4) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .semibold))
+                .accessibilityHidden(true)
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.15), in: Capsule())
+        .opacity(isPending && !reduceMotion ? (pulse ? 1.0 : 0.6) : 1.0)
+        .animation(
+            isPending && !reduceMotion
+                ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true)
+                : .none,
+            value: pulse
+        )
+        .accessibilityLabel(label)
+        .onAppear {
+            guard isPending, !reduceMotion, !pulse else { return }
+            pulse = true
+        }
     }
 
-    private func chipAttributes(for status: JoinRequestStatus) -> (String, Color) {
+    private func chipAttributes(for status: JoinRequestStatus) -> (label: String, color: Color, symbol: String) {
         switch status {
         case .pending:
             return (
                 NSLocalizedString("my.requests.status.pending", comment: "Pending status chip"),
-                Color.orange
+                Color.orange,
+                "clock.fill"
             )
         case .accepted:
             return (
                 NSLocalizedString("my.requests.status.accepted", comment: "Accepted status chip"),
-                Color.green
+                Color.green,
+                "checkmark.circle.fill"
             )
         case .declined:
             return (
                 NSLocalizedString("my.requests.status.declined", comment: "Declined status chip"),
-                Color.secondary
+                Color.secondary,
+                "xmark.circle.fill"
             )
         case .withdrawn:
             return (
                 NSLocalizedString("my.requests.status.withdrawn", comment: "Withdrawn status chip"),
-                Color.secondary
+                Color.secondary,
+                "arrow.uturn.backward.circle.fill"
             )
         }
     }
