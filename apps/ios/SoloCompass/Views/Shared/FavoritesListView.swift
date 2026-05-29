@@ -511,6 +511,38 @@ private extension FavoritesListView {
                       systemImage: "heart.slash")
             }
         }
+        .modifier(DirectionsSwipeModifier(exp: exp))
+        .accessibilityAction(named: Text(NSLocalizedString("favorites.row.directions", comment: "Directions accessibility action"))) {
+            guard let coord = exp.coordinate,
+                  let app = NavigationLauncher.availableApps().first else { return }
+            Haptics.impact(.light)
+            NavigationLauncher.open(app: app, coordinate: coord, name: exp.title)
+        }
+    }
+}
+
+private struct DirectionsSwipeModifier: ViewModifier {
+    let exp: Experience
+
+    func body(content: Content) -> some View {
+        let coord = exp.coordinate
+        let firstApp = NavigationLauncher.availableApps().first
+        if let coord, let app = firstApp {
+            content.swipeActions(edge: .leading, allowsFullSwipe: true) {
+                Button {
+                    Haptics.impact(.light)
+                    NavigationLauncher.open(app: app, coordinate: coord, name: exp.title)
+                } label: {
+                    Label(
+                        NSLocalizedString("favorites.row.directions", comment: "Directions swipe action"),
+                        systemImage: "arrow.triangle.turn.up.right.diamond.fill"
+                    )
+                }
+                .tint(.accentColor)
+            }
+        } else {
+            content
+        }
     }
 }
 
