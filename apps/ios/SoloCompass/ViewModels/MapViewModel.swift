@@ -31,6 +31,9 @@ public final class MapViewModel {
     @ObservationIgnored
     private let logger = Logger(subsystem: "com.solocompass", category: "MapViewModel")
 
+    /// Static logger for type-level analytics emission (see `emitMultiRingCompleted`).
+    private static let analyticsLogger = Logger(subsystem: "com.solocompass", category: "Analytics")
+
     /// Lazily built deep-dive orchestrator. Reuses the existing channel
     /// services and adds an Apple MapKit source. `@ObservationIgnored` so the
     /// `@Observable` macro leaves it as a plain stored property (and permits
@@ -1916,7 +1919,7 @@ public final class MapViewModel {
         ]
         if let data = try? JSONSerialization.data(withJSONObject: payload),
            let line = String(data: data, encoding: .utf8) {
-            print("[Analytics] \(line)")
+            analyticsLogger.debug("\(line, privacy: .public)")
         }
         #endif
     }

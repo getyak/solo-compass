@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Sentry
 
 /// Abstraction over the crash/error reporter so callers (e.g. `SyncService`)
@@ -41,14 +42,14 @@ struct LiveSyncErrorReporter: SyncErrorReporting {
 /// safe to call even when the SDK was skipped (DSN absent).
 @MainActor
 public enum SentryService {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "Sentry")
+
     /// Idempotent. Safe to call from `SoloCompassApp` `onAppear` / `init`.
     public static func bootstrap() {
         guard !didStart else { return }
         let dsn = Secrets.sentryDSN
         guard !dsn.isEmpty else {
-            #if DEBUG
-            print("[Sentry] DSN empty — skipping SentrySDK.start (set SENTRY_DSN in .env to enable)")
-            #endif
+            logger.info("DSN empty — skipping SentrySDK.start (set SENTRY_DSN in .env to enable)")
             return
         }
 

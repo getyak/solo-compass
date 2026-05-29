@@ -118,9 +118,7 @@ public final class SubscriptionService {
             self.lastError = nil
         } catch {
             self.lastError = error.localizedDescription
-            #if DEBUG
-            print("[SubscriptionService] product load failed: \(error)")
-            #endif
+            logger.error("product load failed: \(String(describing: error), privacy: .public)")
         }
     }
 

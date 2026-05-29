@@ -21,9 +21,11 @@
 
 set -euo pipefail
 
-# Baseline production print() count, post US-040 batch 1 (AgentRouter +
-# MapViewModel + SubscriptionService migrated to os.Logger; dropped by 3).
-BASELINE=16
+# Baseline production print() count. After US-048 batch 2, all remaining
+# production print() calls have been migrated to os.Logger, so the baseline is
+# now 0 — a hard ratchet. Any new production print() will fail this check (and
+# the companion Swift unit test `NoProductionPrintTests`).
+BASELINE=0
 
 # Resolve repo root from this script's location so it runs from anywhere
 # (CI, an Xcode test host, a developer shell).

@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 // MARK: - API response types
 
@@ -26,6 +27,8 @@ private struct SoloScoreResponse: Decodable {
 @MainActor
 public final class ReviewsService {
     public static let shared = ReviewsService()
+
+    private static let logger = Logger(subsystem: "com.solocompass", category: "ReviewsService")
 
     private let session: URLSession
     private let baseURL: URL
@@ -89,9 +92,7 @@ public final class ReviewsService {
         } catch let error as ReviewsServiceError {
             throw error
         } catch {
-#if DEBUG
-            print("[ReviewsService] fetchSoloScore failed for \(experienceId): \(error)")
-#endif
+            Self.logger.error("fetchSoloScore failed for \(experienceId, privacy: .public): \(String(describing: error), privacy: .public)")
             if let fb = fallback { return fb }
             throw error
         }

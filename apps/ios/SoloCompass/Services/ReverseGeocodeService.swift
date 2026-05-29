@@ -1,6 +1,7 @@
 import Foundation
 import CoreLocation
 import Contacts
+import os
 
 /// Protocol that lets tests inject a stub instead of hitting `CLGeocoder`.
 @MainActor
@@ -19,6 +20,8 @@ public protocol ReverseGeocoding: AnyObject {
 /// surface failures as `nil`.
 @MainActor
 public final class ReverseGeocodeService: ReverseGeocoding {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "ReverseGeocodeService")
+
     public struct Resolved: Equatable, Sendable {
         public let cityCode: String       // slug like "vn-hanoi"
         public let name: String           // localized "Hanoi"
@@ -47,9 +50,7 @@ public final class ReverseGeocodeService: ReverseGeocoding {
             guard let placemark = placemarks.first else { return nil }
             return Self.makeResolved(from: placemark)
         } catch {
-            #if DEBUG
-            print("[ReverseGeocodeService] reverse geocode failed: \(error)")
-            #endif
+            Self.logger.error("reverse geocode failed: \(String(describing: error), privacy: .public)")
             return nil
         }
     }

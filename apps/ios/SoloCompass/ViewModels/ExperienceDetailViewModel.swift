@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// State + intent for the experience detail sheet.
 ///
@@ -8,6 +9,8 @@ import Observation
 @MainActor
 @Observable
 public final class ExperienceDetailViewModel {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "ExperienceDetailViewModel")
+
     public let experience: Experience
 
     public var isCompleted: Bool
@@ -136,9 +139,7 @@ public final class ExperienceDetailViewModel {
             aiExplanation = try await aiService.explainRecommendation(for: experience)
         } catch {
             aiExplanation = nil
-            #if DEBUG
-            print("[ExperienceDetailViewModel] loadAIExplanation failed for id=\(experience.id): \(error)")
-            #endif
+            Self.logger.error("loadAIExplanation failed for id=\(String(describing: self.experience.id), privacy: .public): \(String(describing: error), privacy: .public)")
         }
     }
 

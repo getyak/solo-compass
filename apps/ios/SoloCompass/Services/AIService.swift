@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import CryptoKit
 import Observation
+import os
 import SwiftData
 
 /// Talks to DeepSeek via the OpenAI-compatible chat completions API.
@@ -13,6 +14,8 @@ import SwiftData
 /// needs. Adding more should require a real product reason.
 @Observable
 public final class AIService {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "AIService")
+
     public struct UserContext {
         public let location: CLLocationCoordinate2D?
         public let date: Date
@@ -806,9 +809,7 @@ public final class AIService {
             // days. Log the cause: this catch used to swallow the error
             // silently, which made "Explore only ever shows skeletons"
             // impossible to diagnose from the outside.
-            #if DEBUG
-            print("[AIService] synthesis failed, falling back to skeleton: \(error)")
-            #endif
+            Self.logger.error("synthesis failed, falling back to skeleton: \(String(describing: error), privacy: .public)")
             await reportSkeletonFallback(error)
             return capped.map { Self.skeletonExperience(from: $0, cityCode: cityCode) }
         }

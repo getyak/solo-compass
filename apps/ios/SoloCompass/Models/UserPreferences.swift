@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 import StoreKit
 import UIKit
 
@@ -11,6 +12,8 @@ import UIKit
 /// limit on UserDefaults.
 @Observable
 public final class UserPreferences {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "UserPreferences")
+
     public enum SoloTravelStyle: String, Codable, CaseIterable, Identifiable {
         case explorer, worker, foodie, cultureSeeker
         public var id: String { rawValue }
@@ -389,9 +392,7 @@ public final class UserPreferences {
         do {
             return try JSONDecoder.iso8601Decoder.decode(Snapshot.self, from: data)
         } catch {
-            #if DEBUG
-            print("[UserPreferences] decode error — returning defaults. error=\(error)")
-            #endif
+            logger.error("decode error — returning defaults. error=\(String(describing: error), privacy: .public)")
             return Snapshot()
         }
     }
@@ -440,9 +441,7 @@ public final class UserPreferences {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
             defaults.set(data, forKey: Self.storageKey)
         } catch {
-            #if DEBUG
-            print("[UserPreferences] encode error: \(error)")
-            #endif
+            Self.logger.error("encode error: \(String(describing: error), privacy: .public)")
         }
     }
 

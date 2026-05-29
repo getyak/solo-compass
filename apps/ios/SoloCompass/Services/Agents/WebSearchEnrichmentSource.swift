@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Web-search enrichment for the top-N ranked experiences after synthesis.
 ///
@@ -14,6 +15,8 @@ import Foundation
 ///     best-effort pass with zero blast radius.
 @MainActor
 public final class WebSearchEnrichmentSource {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "WebSearchEnrichmentSource")
+
     /// How many experiences to enrich in one pass. Callers pass the
     /// already-ranked slice; this is a hard safety cap.
     public static let defaultTopN = 5
@@ -59,9 +62,7 @@ public final class WebSearchEnrichmentSource {
             let raw = try await aiService.sendWebSearchQuery(prompt: prompt)
             return Self.apply(raw, to: experience)
         } catch {
-            #if DEBUG
-            print("[WebSearchEnrichmentSource] enrichment failed for '\(experience.title)': \(error)")
-            #endif
+            Self.logger.error("enrichment failed for '\(experience.title, privacy: .private)': \(String(describing: error), privacy: .public)")
             return experience
         }
     }

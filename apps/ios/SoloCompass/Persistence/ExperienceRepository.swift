@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import os
 import SwiftData
 
 /// SwiftData-backed CRUD for experiences and the user-action records that
@@ -12,6 +13,8 @@ import SwiftData
 /// later move to a background actor if profiling demands it.
 @MainActor
 public final class ExperienceRepository {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "ExperienceRepository")
+
     /// Exposed so callers (e.g. `AIService`) can share the same actor-bound
     /// context rather than opening a second one on the same container.
     public let modelContext: ModelContext
@@ -58,9 +61,7 @@ public final class ExperienceRepository {
             let data = try Data(contentsOf: url)
             return try JSONDecoder.iso8601Decoder.decode([Experience].self, from: data)
         } catch {
-            #if DEBUG
-            print("[ExperienceRepository] seed decode failed: \(error)")
-            #endif
+            logger.error("seed decode failed: \(String(describing: error), privacy: .public)")
             return nil
         }
     }
