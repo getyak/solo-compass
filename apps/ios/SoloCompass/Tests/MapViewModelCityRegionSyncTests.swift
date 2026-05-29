@@ -23,7 +23,7 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
         return MapViewModel(
             locationService: LocationService(),
             experienceService: ExperienceService(),
-            aiService: AIService(apiKey: ""),
+            aiService: AIService(),
             preferences: prefs
         )
     }
