@@ -498,6 +498,8 @@
 "share.style.twitterLandscape" = "横版 1.91:1";
 "share.style.instagramSquare" = "方形 1:1";
 "share.style.minimalText" = "极简 9:16";
+/* Share-card image brand label (US-038) — kept as "Solo Compass" in both locales, but routed through l10n. */
+"sharecard.brand" = "Solo Compass";
 
 /* Offline banner (US-041) */
 "offline.banner" = "离线模式 · 显示缓存数据";

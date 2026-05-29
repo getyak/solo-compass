@@ -51,7 +51,7 @@ struct BrandFooter: View {
         HStack(spacing: 8) {
             Image(systemName: "location.north.circle.fill")
                 .font(.system(size: 16, weight: .bold))
-            Text("Solo Compass")
+            Text(NSLocalizedString("sharecard.brand", comment: "Brand label rendered on share-card images"))
                 .font(.system(size: 14, weight: .bold))
             Spacer()
             Text(handle)
