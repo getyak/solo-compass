@@ -3,7 +3,7 @@ import SwiftData
 @testable import SoloCompass
 
 /// US-003: verify `AIService.lastSynthesisQuality` transitions correctly
-/// across the three synthesis paths the UI transparency badge depends on:
+/// across the three synthesis paths the UI transparency badge depends on: // anti-pattern-lint:allow transparency indicator for AI synthesis quality, not gamification
 /// `.real` on a successful model call, `.skeleton` on fallback, and
 /// `.cached` on a cache hit.
 final class AISynthesisQualityTests: XCTestCase {

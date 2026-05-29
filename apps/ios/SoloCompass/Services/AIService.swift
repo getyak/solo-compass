@@ -65,7 +65,7 @@ public final class AIService {
     }
 
     /// Provenance of the most recent synthesis result (US-003). The UI uses
-    /// this to render a transparency badge so users can tell apart a real
+    /// this to render a transparency badge so users can tell apart a real // anti-pattern-lint:allow transparency indicator for AI synthesis quality, not gamification
     /// AI-authored synthesis, a degraded skeleton fallback, and a cached hit.
     public enum AISynthesisQuality: Equatable {
         /// Synthesis succeeded through the model (direct or Edge Function).
@@ -80,7 +80,7 @@ public final class AIService {
     public private(set) var lastError: Error?
 
     /// Set on every synthesis path: `.real` on success, `.skeleton` on
-    /// fallback, `.cached` on a cache hit. Drives the transparency badge.
+    /// fallback, `.cached` on a cache hit. Drives the transparency badge. // anti-pattern-lint:allow transparency indicator for AI synthesis quality, not gamification
     public private(set) var lastSynthesisQuality: AISynthesisQuality = .real
     /// Set when the daily AI quota cap fires (Epic B US-015). The map
     /// view shows a banner derived from this.

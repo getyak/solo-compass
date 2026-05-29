@@ -28,12 +28,12 @@ public struct SkeletonBadgeView: View {
     static var accessibilityLabel: String {
         label + ", " + NSLocalizedString(
             "ai.skeleton.pill.a11y",
-            comment: "Accessibility hint clarifying the badge marks placeholder content"
+            comment: "Accessibility hint clarifying the badge marks placeholder content" // anti-pattern-lint:allow transparency indicator for AI synthesis quality, not gamification
         )
     }
 }
 
-#Preview("Skeleton badge") {
+#Preview("Skeleton badge") { // anti-pattern-lint:allow transparency indicator for AI synthesis quality, not gamification
     VStack(spacing: 16) {
         SkeletonBadgeView()
         HStack {
