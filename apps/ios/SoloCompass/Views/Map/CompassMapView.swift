@@ -915,22 +915,11 @@ private struct MapOverlayView: View {
             }
 
             if viewModel.isProcessingVoiceIntent {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text(String(
-                        format: NSLocalizedString("voice.processing", comment: "AI is thinking about your request"),
-                        viewModel.currentVoiceTranscript.truncated(limit: 30)
-                    ))
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(.thinMaterial, in: Capsule())
-                .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                VoiceProcessingToast(
+                    text: VoiceProcessingToast.localizedText(
+                        for: viewModel.currentVoiceTranscript
+                    )
+                )
             }
 
             if let toast = viewModel.voiceResultToast {
