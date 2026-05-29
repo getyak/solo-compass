@@ -1,4 +1,3 @@
-import Foundation
 
 /// ChatMessage — a single message within a Conversation.
 ///
@@ -6,6 +5,7 @@ import Foundation
 
 // MARK: - ChatMessageId
 
+/// Strongly-typed identifier for a ChatMessage, preventing raw-string ID mix-ups.
 public struct ChatMessageId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -13,6 +13,7 @@ public struct ChatMessageId: RawRepresentable, Codable, Hashable, Sendable {
 
 // MARK: - ChatMessage
 
+/// A single message sent within a Conversation, including its body and read receipt.
 public struct ChatMessage: Identifiable, Codable, Sendable {
     public let id: ChatMessageId
     public let conversationId: ConversationId

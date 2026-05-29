@@ -1,5 +1,4 @@
 import Foundation
-import CoreLocation
 
 // MARK: - ExperienceFilter
 
@@ -104,6 +103,7 @@ public final class QueryAgent: Agent, @unchecked Sendable {
 
     // MARK: - Agent
 
+    /// Extracts a search filter from the message and returns it as response metadata.
     public func handle(_ message: AgentMessage) async throws -> AgentResponse {
         let filter = try await extractFilter(from: message.text)
         var meta: [String: String] = [:]
@@ -121,6 +121,7 @@ public final class QueryAgent: Agent, @unchecked Sendable {
 
     // MARK: - Filter Extraction
 
+    /// Parses free-form text into a structured ExperienceFilter, falling back to keyword matching offline.
     public func extractFilter(from text: String) async throws -> ExperienceFilter {
         guard let key = apiKey, let url = apiURL else {
             return keywordFilter(text)

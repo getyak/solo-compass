@@ -20,13 +20,50 @@ enum PaceMatch: String, CaseIterable {
 
 // MARK: - JoinRouteRequestSheet
 
+/// Pure validation for a join request form. Decoupled from the view so it can
+/// be unit-tested without rendering SwiftUI.
+///
+/// US-031: a missing pace selection or an empty message field each produce an
+/// inline error keyed `join.error.<field>.missing`. The submit button stays
+/// disabled until both fields validate.
+enum JoinRequestField: String {
+    case pace
+    case message
+
+    /// Localized inline hint shown below the field when it is invalid.
+    var missingHint: String {
+        NSLocalizedString("join.error.\(rawValue).missing", comment: "Inline validation hint for the \(rawValue) field")
+    }
+}
+
+struct JoinRequestValidation {
+    /// Minimum self-introduction length required to submit.
+    static let minMessageLength = 10
+
+    /// `true` when no pace has been chosen.
+    static func isPaceMissing(_ pace: PaceMatch?) -> Bool {
+        pace == nil
+    }
+
+    /// `true` when the message is empty after trimming whitespace.
+    static func isMessageMissing(_ message: String) -> Bool {
+        message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// `true` only when both fields validate (pace chosen and message long enough).
+    static func canSubmit(pace: PaceMatch?, message: String) -> Bool {
+        pace != nil && message.count >= minMessageLength
+    }
+}
+
 /// Sheet for submitting a join request to a route.
 ///
 /// Acceptance criteria (US-031):
 /// - Pinned RouteCard at top (non-scrolling).
 /// - Pace-match segmented picker (慢于宿主 / 匹配 / 快于宿主).
 /// - Message TextEditor (placeholder '向主理人介绍自己...').
-/// - Submit disabled when message.count < 10 OR pace not chosen.
+/// - Missing pace or empty message renders a red inline hint below that field.
+/// - Submit disabled until both fields validate.
 /// - On submit: calls RouteCompanionRemote.sendJoinRequest.
 /// - Dismisses on success with a light haptic.
 struct JoinRouteRequestSheet: View {
@@ -50,7 +87,17 @@ struct JoinRouteRequestSheet: View {
     }
 
     private var isSubmitEnabled: Bool {
-        selectedPace != nil && message.count >= 10 && !isSubmitting
+        JoinRequestValidation.canSubmit(pace: selectedPace, message: message) && !isSubmitting
+    }
+
+    /// Whether the pace field should show its inline missing-error hint.
+    private var showsPaceError: Bool {
+        JoinRequestValidation.isPaceMissing(selectedPace)
+    }
+
+    /// Whether the message field should show its inline missing-error hint.
+    private var showsMessageError: Bool {
+        JoinRequestValidation.isMessageMissing(message)
     }
 
     var body: some View {
@@ -111,6 +158,10 @@ struct JoinRouteRequestSheet: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            if showsPaceError {
+                inlineError(JoinRequestField.pace.missingHint)
+            }
         }
     }
 
@@ -141,7 +192,22 @@ struct JoinRouteRequestSheet: View {
             Text("\(message.count) / 10+")
                 .font(.caption)
                 .foregroundStyle(message.count < 10 ? Color(.secondaryLabel) : Color.green)
+
+            if showsMessageError {
+                inlineError(JoinRequestField.message.missingHint)
+            }
         }
+    }
+
+    // MARK: - Inline error hint
+
+    /// A red, accessibility-flagged inline hint shown below an invalid field.
+    private func inlineError(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(Color.red)
+            .accessibilityAddTraits(.isStaticText)
+            .transition(.opacity)
     }
 
     // MARK: - Submit button
@@ -175,7 +241,7 @@ struct JoinRouteRequestSheet: View {
 
     @MainActor
     private func submit() {
-        guard let pace = selectedPace, message.count >= 10 else { return }
+        guard let pace = selectedPace, JoinRequestValidation.canSubmit(pace: pace, message: message) else { return }
         isSubmitting = true
 
         Task { @MainActor in

@@ -4,6 +4,13 @@ import MapKit
 /// THE root view. Map-first means: this is what the app *is*. No tabs. No
 /// drawer. Filters and the bottom info bar overlay it; an experience card
 /// floats up when a marker is tapped.
+///
+/// US-021: this is a thin wrapper that reads the `@Environment` services and
+/// hands them to `CompassMapContentView`, whose `MapViewModel` is built
+/// *eagerly* in `init` (a `@State` default initializer can't see the
+/// environment). Eager construction closes the launch→onAppear window where
+/// the old optional view model silently dropped writes, and removes the
+/// `ProgressView` placeholder that used to flash before the map appeared.
 public struct CompassMapView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(ExperienceService.self) private var experienceService
@@ -15,11 +22,67 @@ public struct CompassMapView: View {
     @Environment(CompanionService.self) private var companionService
     @Environment(PresenceService.self) private var presenceService
 
-    @State private var viewModel: MapViewModel?
+    public init() {}
+
+    public var body: some View {
+        CompassMapContentView(
+            locationService: locationService,
+            experienceService: experienceService,
+            aiService: aiService,
+            preferences: preferences,
+            notificationService: notificationService,
+            subscriptionService: subscriptionService,
+            themeService: themeService,
+            companionService: companionService,
+            presenceService: presenceService
+        )
+    }
+
+    #if DEBUG
+    /// US-005 test hook: the dynamic type name of `body` once the view is
+    /// installed in a SwiftUI graph with its environment injected. Asserting
+    /// on this string proves the root returns a concrete opaque view (no
+    /// `AnyView` erasure), which is what lets SwiftUI diff this heavy view
+    /// incrementally. DEBUG-only and read-only — never affects production
+    /// rendering. Captured lazily inside `CompassMapContentView.mapContent.onAppear`.
+    @MainActor static var debugBodyTypeName: String = ""
+
+    /// US-009 test hook: set to `true` the moment the Companion-layer toggle
+    /// branch is evaluated into the overlay (i.e. when
+    /// `FeatureFlags.companionLayerEnabled` is on). Stays `false` when the flag
+    /// gates the toggle out, which lets `CompassMapViewLayerToggleTests` assert
+    /// the control is / is not in the view hierarchy. DEBUG-only and read-only.
+    @MainActor static var debugCompanionLayerToggleRendered: Bool = false
+    #endif
+}
+
+/// Owns the eagerly-initialized `MapViewModel`. Receives every dependency as a
+/// plain init parameter (not `@Environment`) so the view model can be built in
+/// `init` — there is never a window where `viewModel` is `nil`.
+///
+/// `@MainActor` so the `init` can synchronously construct and configure the
+/// `@MainActor`-isolated `MapViewModel` under `SWIFT_STRICT_CONCURRENCY:
+/// complete`.
+@MainActor
+struct CompassMapContentView: View {
+    private let locationService: LocationService
+    private let experienceService: ExperienceService
+    private let aiService: AIService
+    private let preferences: UserPreferences
+    private let notificationService: NotificationService
+    private let subscriptionService: SubscriptionService
+    private let themeService: ThemeService
+    private let companionService: CompanionService
+    private let presenceService: PresenceService
+
+    @State private var viewModel: MapViewModel
     @State private var voiceService = VoiceService()
     @State private var dismissedAIError: String? = nil
     @State private var dismissedExploreError: String? = nil
     @State private var dismissedQuotaInfo: String? = nil
+    // US-026: true once the user dismisses the GPS-error banner; reset when the
+    // underlying LocationService.lastError clears so a new failure re-shows it.
+    @State private var dismissedLocationError: Bool = false
 
     @State private var isShowingCityPicker: Bool = false
     @State private var surveyExperience: Experience? = nil
@@ -47,18 +110,24 @@ public struct CompassMapView: View {
     // after a real offline→online transition, never on cold launch.
     @State private var hasDisconnected: Bool = false
 
+    // US-021: the city-picker first-launch prompt used to be gated by the
+    // `viewModel == nil` check (true only on the first onAppear). With the
+    // eager view model that guard is gone, so this one-shot flag preserves the
+    // "prompt only once" behaviour across repeat onAppear fires.
+    @State private var hasRunFirstAppear: Bool = false
+
     private let networkMonitor = NetworkMonitor.shared
 
     private var isFilterActive: Bool {
-        (viewModel?.selectedCategory != nil) || (viewModel?.selectedCustomTag != nil) || (viewModel?.isNowFilter == true)
+        (viewModel.selectedCategory != nil) || (viewModel.selectedCustomTag != nil) || viewModel.isNowFilter
     }
 
     private var activeFilterName: String {
-        if let category = viewModel?.selectedCategory {
+        if let category = viewModel.selectedCategory {
             return category.localizedTitle
-        } else if let tag = viewModel?.selectedCustomTag {
+        } else if let tag = viewModel.selectedCustomTag {
             return tag
-        } else if viewModel?.isNowFilter == true {
+        } else if viewModel.isNowFilter {
             return NSLocalizedString("filter.now", comment: "Now filter label")
         }
         return ""
@@ -70,22 +139,58 @@ public struct CompassMapView: View {
 
     enum ChatStartMode { case text, voice }
 
-    public init() {}
+    init(
+        locationService: LocationService,
+        experienceService: ExperienceService,
+        aiService: AIService,
+        preferences: UserPreferences,
+        notificationService: NotificationService,
+        subscriptionService: SubscriptionService,
+        themeService: ThemeService,
+        companionService: CompanionService,
+        presenceService: PresenceService
+    ) {
+        self.locationService = locationService
+        self.experienceService = experienceService
+        self.aiService = aiService
+        self.preferences = preferences
+        self.notificationService = notificationService
+        self.subscriptionService = subscriptionService
+        self.themeService = themeService
+        self.companionService = companionService
+        self.presenceService = presenceService
+
+        // Eager (US-021): build the view model up-front so writes between
+        // launch and `onAppear` land on a live instance instead of dropping
+        // against `nil`. Production opts into the SwiftData-backed Overpass
+        // cache so warm starts skip the network; tests construct `MapViewModel`
+        // directly and stay cache-isolated via the default `OverpassService()`.
+        let vm = MapViewModel(
+            locationService: locationService,
+            experienceService: experienceService,
+            aiService: aiService,
+            preferences: preferences,
+            overpassService: OverpassService(useSharedCache: true)
+        )
+        vm.attachSubscriptionService(subscriptionService)
+        _viewModel = State(initialValue: vm)
+    }
 
     @ViewBuilder
-    public var body: some View {
+    var body: some View {
         mapContent
     }
 
     #if DEBUG
-    /// US-005 test hook: the dynamic type name of `body` once the view is
-    /// installed in a SwiftUI graph with its environment injected. Asserting
-    /// on this string proves the root returns a concrete opaque view (no
-    /// `AnyView` erasure), which is what lets SwiftUI diff this heavy view
-    /// incrementally. DEBUG-only and read-only — never affects production
-    /// rendering. Captured lazily inside `mapContent.onAppear`.
-    @MainActor static var debugBodyTypeName: String = ""
+    /// US-021 test hook: the eagerly-initialized view model. Reachable the
+    /// instant the view is constructed (the app-launch path), before any
+    /// `onAppear` fires — which is exactly what `MapViewModelEagerInitTest`
+    /// asserts. DEBUG-only and read-only.
+    @MainActor var debugViewModel: MapViewModel { viewModel }
     #endif
+
+    // US-005 / US-009 test hooks live on `CompassMapView` (the public type the
+    // tests reference as `CompassMapView.debug…`). See that type below.
 
     @ViewBuilder
     private var mapContent: some View {
@@ -93,40 +198,31 @@ public struct CompassMapView: View {
             .background(themeService.currentTheme.background)
             .onAppear {
                 #if DEBUG
-                Self.debugBodyTypeName = String(describing: type(of: body))
+                CompassMapView.debugBodyTypeName = String(describing: type(of: body))
                 #endif
                 locationService.requestPermission()
-                if viewModel == nil {
-                    // Production-only: opt into the SwiftData-backed Overpass
-                    // cache so warm starts skip the network. Tests construct
-                    // MapViewModel directly and stay cache-isolated via the
-                    // default `OverpassService()` (repository: nil).
-                    let vm = MapViewModel(
-                        locationService: locationService,
-                        experienceService: experienceService,
-                        aiService: aiService,
-                        preferences: preferences,
-                        overpassService: OverpassService(useSharedCache: true)
-                    )
-                    vm.attachSubscriptionService(subscriptionService)
-                    viewModel = vm
+                // US-021: `viewModel` is built eagerly in `init`, so there is no
+                // lazy-creation block here anymore. We only run the one-shot
+                // first-launch side effects that used to live behind the
+                // `viewModel == nil` guard.
+                if !hasRunFirstAppear {
+                    hasRunFirstAppear = true
                     // On first launch with no saved city and no GPS, prompt city picker.
                     if preferences.lastSelectedCity == nil && locationService.currentLocation == nil {
                         isShowingCityPicker = true
                     }
                 }
-                viewModel?.checkForPendingCheckIns()
+                viewModel.checkForPendingCheckIns()
             }
             .onChange(of: locationService.currentLocation) { _, _ in
-                viewModel?.bindToLocation()
+                viewModel.bindToLocation()
             }
             .onChange(of: preferences.pendingCheckIns) { _, _ in
-                viewModel?.checkForPendingCheckIns()
+                viewModel.checkForPendingCheckIns()
             }
-            .onChange(of: viewModel?.visibleExperiences.count) { _, count in
-                guard isFilterActive, UIAccessibility.isVoiceOverRunning,
-                      let count, let filterName = viewModel.map({ _ in activeFilterName })
-                else { return }
+            .onChange(of: viewModel.visibleExperiences.count) { _, count in
+                guard isFilterActive, UIAccessibility.isVoiceOverRunning else { return }
+                let filterName = activeFilterName
                 let argument: NSAttributedString
                 if count == 0 {
                     argument = NSAttributedString(
@@ -155,16 +251,16 @@ public struct CompassMapView: View {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                 }
             }
-            .onChange(of: viewModel?.isShowingDetail) { _, showing in
-                if showing == true {
+            .onChange(of: viewModel.isShowingDetail) { _, showing in
+                if showing {
                     HapticService.shared.impact(style: .medium)
                 }
             }
-            .onChange(of: viewModel?.selectedCity) { _, cityCode in
+            .onChange(of: viewModel.selectedCity) { _, cityCode in
                 refreshNearbyRoutes(cityCode: cityCode)
             }
             .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { _ in
-                refreshNearbyRoutes(cityCode: viewModel?.selectedCity)
+                refreshNearbyRoutes(cityCode: viewModel.selectedCity)
             }
             .sheet(item: $surveyExperience) { exp in surveySheetContent(exp: exp) }
             .alert(
@@ -172,10 +268,10 @@ public struct CompassMapView: View {
                 isPresented: addExperienceAlertBinding
             ) {
                 Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {
-                    viewModel?.cancelAddExperience()
+                    viewModel.cancelAddExperience()
                 }
                 Button(NSLocalizedString("addExperience.confirm.add", comment: "Add")) {
-                    viewModel?.confirmAddExperience()
+                    viewModel.confirmAddExperience()
                 }
             } message: {
                 Text(NSLocalizedString("addExperience.confirm.message", comment: "Describe it with your voice"))
@@ -197,7 +293,7 @@ public struct CompassMapView: View {
             .sheet(item: chatOrchestratorBinding) { orch in
                 chatSheetContent(orch)
             }
-            .sheet(isPresented: paywallSheetBinding, onDismiss: { viewModel?.onPaywallUnlocked = nil }) { paywallSheetContent }
+            .sheet(isPresented: paywallSheetBinding, onDismiss: { viewModel.onPaywallUnlocked = nil }) { paywallSheetContent }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
     }
@@ -205,15 +301,27 @@ public struct CompassMapView: View {
     @ViewBuilder
     private var mapZStack: some View {
         ZStack {
-            if let viewModel {
-                // Backing tile bleeds under every edge so the map looks
-                // edge-to-edge, but the actual `Map` view keeps its top
-                // safe-area inset so `.mapControls` (MapCompass +
-                // MapUserLocationButton) don't collide with the status bar.
-                themeService.currentTheme.background
-                    .ignoresSafeArea()
-                mapLayer(viewModel: viewModel)
-                    .ignoresSafeArea(edges: [.bottom, .horizontal])
+            // US-021: `viewModel` is eager and non-optional, so the map renders
+            // immediately — there is no `if let` / `ProgressView` placeholder
+            // that could flicker before the map appears on cold launch.
+            // Backing tile bleeds under every edge so the map looks
+            // edge-to-edge; the `Map` view itself also extends to every edge
+            // (V-006) so tiles — not the flat theme background — render in the
+            // top status-bar region.
+            themeService.currentTheme.background
+                .ignoresSafeArea()
+            // V-006 fix: the map must fill ALL edges — including the top safe
+            // area — so real street tiles render under the status bar. The map
+            // previously kept its top inset (only `.bottom, .horizontal`), which
+            // left the status-bar-height strip showing the flat theme background
+            // (a dark band in dark mode, the "NORTH BEACH band"). `.mapControls`
+            // still avoid the status bar because they are laid out against the
+            // map's layout margins, which honour the safe area regardless of
+            // `.ignoresSafeArea`. The overlay content (city pill / filter bar)
+            // is a sibling layer that keeps its own safe-area inset, so nothing
+            // collides with the status bar.
+            mapLayer(viewModel: viewModel)
+                .ignoresSafeArea()
 
                 MapOverlayView(
                     viewModel: viewModel,
@@ -222,13 +330,17 @@ public struct CompassMapView: View {
                     dismissedAIError: $dismissedAIError,
                     dismissedExploreError: $dismissedExploreError,
                     dismissedQuotaInfo: $dismissedQuotaInfo,
+                    dismissedLocationError: $dismissedLocationError,
                     isMapPanning: $isMapPanning
                 )
 
                 VStack {
                     Spacer()
-                    // US-017: Companion layer toggle — only rendered when FF_COMPANION is on.
-                    if FeatureFlags.companion {
+                    // US-017 / US-009: Companion layer toggle — only rendered when
+                    // the companion-layer flag is on. Hidden by default (decision A)
+                    // because the underlying discovery still returns nil, so the
+                    // control would be a dead button.
+                    if FeatureFlags.companionLayerEnabled {
                         HStack {
                             Spacer()
                             CompanionLayerToggle(
@@ -239,6 +351,11 @@ public struct CompassMapView: View {
                             .padding(.trailing, 16)
                         }
                         .padding(.bottom, 4)
+                        .onAppear {
+                            #if DEBUG
+                            CompassMapView.debugCompanionLayerToggleRendered = true
+                            #endif
+                        }
                     }
                     MapControlBar(
                         viewModel: viewModel,
@@ -312,7 +429,9 @@ public struct CompassMapView: View {
 
                 ZStack(alignment: .bottom) {
                     BottomInfoSheet(
-                        aiHint: NSLocalizedString("ai.now.hint", comment: "AI now hint"),
+                        aiHint: viewModel.isNowFilter
+                            ? NSLocalizedString("sheet.now.headline", comment: "Bottom sheet now-mode headline")
+                            : NSLocalizedString("ai.now.hint", comment: "AI now hint"),
                         count: viewModel.isNowFilter
                             ? viewModel.nowCount
                             : viewModel.visibleExperiences.count,
@@ -336,6 +455,8 @@ public struct CompassMapView: View {
                                     referenceCoordinate: locationService.currentLocation?.coordinate
                                         ?? viewModel.defaultCenterForSelectedCity,
                                     sortMode: sortMode.wrappedValue,
+                                    // US-036: divider above the Nearby header separates it from Routes.
+                                    showsSectionDivider: true,
                                     onSelectExperience: { exp in
                                         viewModel.selectExperience(exp)
                                         viewModel.isShowingDetail = true
@@ -358,10 +479,6 @@ public struct CompassMapView: View {
                         }
                     }
                 }
-            } else {
-                ProgressView()
-                    .accessibilityLabel(Text(NSLocalizedString("map.loading", comment: "Loading map")))
-            }
         }
     }
 
@@ -369,36 +486,36 @@ public struct CompassMapView: View {
 
     private var settingsSheetBinding: Binding<Bool> {
         Binding(
-            get: { viewModel?.isShowingSettings ?? false },
-            set: { if !$0 { viewModel?.isShowingSettings = false } }
+            get: { viewModel.isShowingSettings },
+            set: { if !$0 { viewModel.isShowingSettings = false } }
         )
     }
 
     private var addExperienceAlertBinding: Binding<Bool> {
         Binding(
-            get: { (viewModel?.pendingAddCoordinate != nil) && (viewModel?.isRecordingNewExperience == false) },
-            set: { if !$0 { viewModel?.cancelAddExperience() } }
+            get: { (viewModel.pendingAddCoordinate != nil) && !viewModel.isRecordingNewExperience },
+            set: { if !$0 { viewModel.cancelAddExperience() } }
         )
     }
 
     private var recordExperienceSheetBinding: Binding<Bool> {
         Binding(
-            get: { viewModel?.isRecordingNewExperience ?? false },
-            set: { if !$0 { viewModel?.cancelAddExperience() } }
+            get: { viewModel.isRecordingNewExperience },
+            set: { if !$0 { viewModel.cancelAddExperience() } }
         )
     }
 
     private var detailSheetBinding: Binding<Bool> {
         Binding(
-            get: { viewModel?.isShowingDetail ?? false },
-            set: { if !$0 { viewModel?.isShowingDetail = false } }
+            get: { viewModel.isShowingDetail },
+            set: { if !$0 { viewModel.isShowingDetail = false } }
         )
     }
 
     private var paywallSheetBinding: Binding<Bool> {
         Binding(
-            get: { viewModel?.isShowingPaywall ?? false },
-            set: { if !$0 { viewModel?.isShowingPaywall = false } }
+            get: { viewModel.isShowingPaywall },
+            set: { if !$0 { viewModel.isShowingPaywall = false } }
         )
     }
 
@@ -414,9 +531,9 @@ public struct CompassMapView: View {
     @ViewBuilder
     private var settingsSheetContent: some View {
         SettingsView(
-            onClose: { viewModel?.isShowingSettings = false },
+            onClose: { viewModel.isShowingSettings = false },
             onShowFavorites: { isShowingFavorites = true },
-            onDistanceCommitted: { viewModel?.reloadForDistanceChange() }
+            onDistanceCommitted: { viewModel.reloadForDistanceChange() }
         )
         .environment(preferences)
         .environment(notificationService)
@@ -452,7 +569,7 @@ public struct CompassMapView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             VoiceButton(voiceService: voiceService) { transcript in
-                Task { await viewModel?.handleNewExperienceTranscript(transcript) }
+                Task { await viewModel.handleNewExperienceTranscript(transcript) }
             }
         }
         .padding(32)
@@ -461,7 +578,7 @@ public struct CompassMapView: View {
 
     @ViewBuilder
     private var detailSheetContent: some View {
-        if let exp = viewModel?.selectedExperience, let vm = viewModel {
+        if let exp = viewModel.selectedExperience {
             NavigationStack {
                 ExperienceDetailView(
                     viewModel: ExperienceDetailViewModel(
@@ -471,7 +588,7 @@ public struct CompassMapView: View {
                         preferences: preferences,
                         subscriptionService: subscriptionService
                     ),
-                    onClose: { viewModel?.dismissDetail() },
+                    onClose: { viewModel.dismissDetail() },
                     onMarkDone: { experience in surveyExperience = experience },
                     // US-004: open ChatSheet bound to this experience. We
                     // dismiss the detail sheet first so the chat sheet can
@@ -480,13 +597,13 @@ public struct CompassMapView: View {
                     // created if needed, then `rebindContext` injects the
                     // <experience_context> system block.
                     onAskSolo: { experience in
-                        viewModel?.dismissDetail()
+                        viewModel.dismissDetail()
                         // Per-card chat stays text-first. Set mode before the
                         // orchestrator assignment presents the sheet, then
                         // rebind the experience scope (still synchronous, so it
                         // lands before the sheet content is evaluated).
                         chatStartMode = .text
-                        ensureOrchestrator(viewModel: vm)
+                        ensureOrchestrator(viewModel: viewModel)
                         voiceOrchestrator?.rebindContext(experience)
                     }
                 )
@@ -496,10 +613,8 @@ public struct CompassMapView: View {
 
     @ViewBuilder
     private var cityPickerSheetContent: some View {
-        if let vm = viewModel {
-            LocationPickerSheet(viewModel: vm) {
-                isShowingCityPicker = false
-            }
+        LocationPickerSheet(viewModel: viewModel) {
+            isShowingCityPicker = false
         }
     }
 
@@ -508,8 +623,8 @@ public struct CompassMapView: View {
         FavoritesListView(
             onSelectExperience: { exp in
                 isShowingFavorites = false
-                viewModel?.selectExperience(exp)
-                viewModel?.isShowingDetail = true
+                viewModel.selectExperience(exp)
+                viewModel.isShowingDetail = true
             },
             onExplore: { isShowingFavorites = false }
         )
@@ -520,8 +635,8 @@ public struct CompassMapView: View {
     @ViewBuilder
     private var paywallSheetContent: some View {
         PaywallView(onUnlocked: {
-            let resume = viewModel?.onPaywallUnlocked
-            viewModel?.onPaywallUnlocked = nil
+            let resume = viewModel.onPaywallUnlocked
+            viewModel.onPaywallUnlocked = nil
             resume?()
         })
         .environment(subscriptionService)
@@ -623,6 +738,10 @@ public struct CompassMapView: View {
                 UserAnnotation()
                 ForEach(viewModel.visibleExperiences) { exp in
                     if let coord = exp.coordinate {
+                        // US-016: compute the marker state once per ForEach
+                        // iteration — its six conditions are otherwise evaluated
+                        // twice per visible marker per frame (icon + badge).
+                        let state = viewModel.markerState(for: exp)
                         Annotation(exp.title, coordinate: coord) {
                             Button {
                                 viewModel.selectExperience(exp)
@@ -631,11 +750,15 @@ public struct CompassMapView: View {
                                 VStack(spacing: 2) {
                                     MarkerIconView(
                                         category: exp.category,
-                                        state: viewModel.markerState(for: exp),
+                                        state: state,
                                         confidenceLevel: exp.confidence.level,
-                                        isSelected: viewModel.selectedExperience?.id == exp.id
+                                        isSelected: viewModel.selectedExperience?.id == exp.id,
+                                        // US-035: light up best-now pins when the
+                                        // Now filter pill is active so the two UIs
+                                        // feel connected.
+                                        nowFilterActive: viewModel.isNowFilter
                                     )
-                                    if case .footprinted = viewModel.markerState(for: exp) {
+                                    if case .footprinted = state {
                                         Text("\(viewModel.footprintCount(for: exp))")
                                             .font(.caption2.weight(.semibold))
                                             .foregroundStyle(.white)
@@ -762,6 +885,7 @@ public struct CompassMapView: View {
         .environment(UserPreferences())
         .environment(CompanionService.shared)
         .environment(PresenceService.shared)
+        .environment(BestNowClock.shared)
 }
 
 private extension String {
@@ -777,6 +901,44 @@ enum MapOverlayMetrics {
     /// The visual city pill is smaller than this, so `.contentShape` + `.frame`
     /// expand the tappable region without changing the visual appearance.
     static let cityPillHitTarget: CGFloat = 44
+
+    // US-022: explicit vertical band layout so the city-pill row and the filter
+    // bar can never overlap or hit-test interfere. The two rects are computed
+    // from these constants in `TopOverlayLayoutTest` and applied verbatim in
+    // `MapOverlayView.body`.
+
+    /// Top inset (below the safe area) where the city-pill row begins.
+    static let cityPillTopPadding: CGFloat = 8
+
+    /// Fixed height reserved for the city-pill row. Equals the 44pt hit box so
+    /// the row never grows into the gap, regardless of the pill's visual size.
+    static let cityPillRowHeight: CGFloat = cityPillHitTarget
+
+    /// Mandatory empty gap between the city-pill row and the filter bar. This
+    /// is what guarantees the two capsules read as separate bands and that
+    /// their hit regions don't touch.
+    static let cityPillToFilterBarGap: CGFloat = 12
+
+    /// Approximate rendered height of `FilterBarView` (glass capsule with one
+    /// row of pills). Used only by the layout test to model the filter bar's
+    /// rect; the live view sizes itself intrinsically.
+    static let filterBarHeight: CGFloat = 56
+
+    /// Y offset at which the filter bar's rect starts, measured from the top of
+    /// the overlay band. Sum of the city-pill row + the mandated gap.
+    static var filterBarTopOffset: CGFloat {
+        cityPillTopPadding + cityPillRowHeight + cityPillToFilterBarGap
+    }
+
+    /// The city-pill row rect within the overlay coordinate space.
+    static func cityPillRowRect(width: CGFloat) -> CGRect {
+        CGRect(x: 0, y: cityPillTopPadding, width: width, height: cityPillRowHeight)
+    }
+
+    /// The filter bar rect within the overlay coordinate space.
+    static func filterBarRect(width: CGFloat) -> CGRect {
+        CGRect(x: 0, y: filterBarTopOffset, width: width, height: filterBarHeight)
+    }
 }
 
 private struct MapOverlayView: View {
@@ -786,6 +948,7 @@ private struct MapOverlayView: View {
     @Binding var dismissedAIError: String?
     @Binding var dismissedExploreError: String?
     @Binding var dismissedQuotaInfo: String?
+    @Binding var dismissedLocationError: Bool
     @Binding var isMapPanning: Bool
 
     @State private var checkInCelebrationTrigger = 0
@@ -807,13 +970,24 @@ private struct MapOverlayView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            // US-022: the city pill lives in its own fixed-height band at the
+            // very top, vertically separated from the filter bar by an explicit
+            // gap, so the two capsules no longer overlap or hit-test interfere.
+            // The row is pinned to a 44pt height (the pill's hit box) so it
+            // never bleeds into the gap regardless of the pill's visual size.
             HStack {
                 cityPill
                     .padding(.leading, 12)
-                    .padding(.top, 8)
                 Spacer()
             }
+            .frame(height: MapOverlayMetrics.cityPillRowHeight)
+            .padding(.top, MapOverlayMetrics.cityPillTopPadding)
+
+            // Mandatory empty gap separating the city-pill band from the
+            // filter bar — this is the dead zone that guarantees no overlap.
+            Spacer()
+                .frame(height: MapOverlayMetrics.cityPillToFilterBarGap)
 
             FilterBarView(
                 selectedCategory: viewModel.selectedCategory,
@@ -827,7 +1001,13 @@ private struct MapOverlayView: View {
                 isMapPanning: $isMapPanning,
                 resultCount: viewModel.visibleExperiences.count
             )
-            .padding(.top, 4)
+            // US-026: reset the GPS-error dismissal once the error clears so a
+            // later failure re-surfaces the banner. Anchored on the always-present
+            // filter bar (the banner itself is conditional, so its own onChange
+            // wouldn't fire on the nil transition that removes it).
+            .onChange(of: viewModel.locationErrorBannerText) { _, newValue in
+                if newValue == nil { dismissedLocationError = false }
+            }
 
             let showEmptyFilterBanner = isFilterActive && viewModel.visibleExperiences.isEmpty
             if showEmptyFilterBanner {
@@ -846,6 +1026,7 @@ private struct MapOverlayView: View {
 
             if isFilterActive {
                 filterResultBadge
+                    .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .opacity(isMapPanning ? 0.4 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isMapPanning)
@@ -879,6 +1060,17 @@ private struct MapOverlayView: View {
                     onDismiss: { dismissedQuotaInfo = quotaInfo }
                 )
                 .accessibilityIdentifier("quotaBanner")
+            }
+
+            // US-026: GPS failure → explain why the map fell back to a region.
+            if let locationError = viewModel.locationErrorBannerText, !dismissedLocationError {
+                DismissibleBanner(
+                    systemImage: "location.slash.fill",
+                    text: locationError,
+                    color: .orange,
+                    onDismiss: { dismissedLocationError = true }
+                )
+                .accessibilityIdentifier("locationErrorBanner")
             }
 
             Spacer()
@@ -915,22 +1107,11 @@ private struct MapOverlayView: View {
             }
 
             if viewModel.isProcessingVoiceIntent {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text(String(
-                        format: NSLocalizedString("voice.processing", comment: "AI is thinking about your request"),
-                        viewModel.currentVoiceTranscript.truncated(limit: 30)
-                    ))
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(.thinMaterial, in: Capsule())
-                .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                VoiceProcessingToast(
+                    text: VoiceProcessingToast.localizedText(
+                        for: viewModel.currentVoiceTranscript
+                    )
+                )
             }
 
             if let toast = viewModel.voiceResultToast {
@@ -1232,6 +1413,12 @@ private struct DismissibleBanner: View {
             Spacer()
             Button(action: onDismiss) {
                 Image(systemName: "xmark").font(.caption.bold()).foregroundStyle(.secondary)
+                    // US-019: expand the small glyph to the 44pt HIG hit target.
+                    .frame(
+                        minWidth: HitTargetMetrics.minimum,
+                        minHeight: HitTargetMetrics.minimum
+                    )
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel(Text(NSLocalizedString("common.dismiss", comment: "Dismiss")))
         }

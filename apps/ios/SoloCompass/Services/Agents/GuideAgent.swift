@@ -25,6 +25,7 @@ public final class GuideAgent: Agent, @unchecked Sendable {
 
     // MARK: - Agent
 
+    /// Produces a complete guide reply by collecting the full streamed response.
     public func handle(_ message: AgentMessage) async throws -> AgentResponse {
         var full = ""
         let stream = stream(message: message, contextSnapshot: nil, experienceSummaries: [])

@@ -155,7 +155,7 @@
         "Tests pass"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -172,7 +172,7 @@
         "Verify in iPhone 17 Pro Simulator: toggle Now filter on → screenshot showing the gradient + pulse highlight on top markers"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -189,7 +189,7 @@
         "Tests pass"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]

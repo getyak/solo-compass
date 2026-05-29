@@ -34,6 +34,7 @@ struct ExploreConsentSheet: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 24)
             }
 
@@ -106,27 +107,29 @@ struct ExploreConsentSheet: View {
 /// the SwiftUI type-checker does not blow its budget on the long
 /// modifier chain there.
 struct ExploreConsentSheetModifier: ViewModifier {
-    var viewModel: MapViewModel?
+    // US-021: `MapViewModel` is now built eagerly and is never nil, so this is
+    // a plain (non-optional) reference used directly.
+    var viewModel: MapViewModel
     var preferences: UserPreferences
 
     func body(content: Content) -> some View {
         content.sheet(isPresented: Binding(
-            get: { viewModel?.isShowingExploreConsent ?? false },
+            get: { viewModel.isShowingExploreConsent },
             set: { newValue in
-                if !newValue { viewModel?.isShowingExploreConsent = false }
+                if !newValue { viewModel.isShowingExploreConsent = false }
             }
         )) {
             ExploreConsentSheet(
                 onAccept: {
                     preferences.acceptExploreConsent()
-                    viewModel?.isShowingExploreConsent = false
-                    let resume = viewModel?.onExploreConsentAccepted
-                    viewModel?.onExploreConsentAccepted = nil
+                    viewModel.isShowingExploreConsent = false
+                    let resume = viewModel.onExploreConsentAccepted
+                    viewModel.onExploreConsentAccepted = nil
                     resume?()
                 },
                 onCancel: {
-                    viewModel?.onExploreConsentAccepted = nil
-                    viewModel?.isShowingExploreConsent = false
+                    viewModel.onExploreConsentAccepted = nil
+                    viewModel.isShowingExploreConsent = false
                 }
             )
         }

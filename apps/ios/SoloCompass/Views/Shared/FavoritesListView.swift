@@ -319,7 +319,11 @@ private struct NoSearchResultsView: View {
     }
 }
 
-private struct SwipeHintCapsuleView: View {
+/// Internal (not `private`) so `FavoritesBounceAvailabilityTest` can construct
+/// it via `@testable import`. The `.bounce` repeating symbol effect below is
+/// gated behind `if #available(iOS 18, *)` because `IndefiniteSymbolEffect`
+/// (`.repeating`) is iOS 18+; on iOS 17 the bare label renders instead.
+struct SwipeHintCapsuleView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -340,8 +344,10 @@ private struct SwipeHintCapsuleView: View {
         )
         if reduceMotion {
             base
-        } else {
+        } else if #available(iOS 18, *) {
             base.symbolEffect(.bounce, options: .repeating.speed(0.6))
+        } else {
+            base
         }
     }
 }

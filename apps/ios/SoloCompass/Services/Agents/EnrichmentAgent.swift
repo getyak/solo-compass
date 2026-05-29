@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import os
 
 /// Deep-dive enrichment orchestrator. Where the legacy `exploreNearby` pipeline
 /// fetched a wide ring of shallow POIs and synthesized them in one pass, this
@@ -22,6 +23,8 @@ import CoreLocation
 /// this returns strongly-typed `[Experience]`, so it stands alone.
 @MainActor
 public final class EnrichmentAgent {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "EnrichmentAgent")
+
     /// Default search radius. Deliberately small — the whole point is depth
     /// over breadth. Callers can widen it for a sparse area.
     public static let defaultRadiusMeters = 800
@@ -111,9 +114,7 @@ public final class EnrichmentAgent {
                 )
                 pois = FoursquareService.enrichMerge(base: pois, enrichment: fsq)
             } catch {
-                #if DEBUG
-                print("[EnrichmentAgent] Foursquare enrichment failed: \(error)")
-                #endif
+                Self.logger.error("Foursquare enrichment failed: \(String(describing: error), privacy: .public)")
             }
         }
 
@@ -184,9 +185,7 @@ public final class EnrichmentAgent {
                 let rawMapKit = await mapKitTask
                 allPois = FoursquareService.enrichMerge(base: rawOverpass, enrichment: rawMapKit)
             } catch {
-                #if DEBUG
-                print("[EnrichmentAgent] Stage \(radius)m Overpass fetch failed: \(error)")
-                #endif
+                Self.logger.error("Stage \(radius, privacy: .public)m Overpass fetch failed: \(String(describing: error), privacy: .public)")
                 prevRadius = radius
                 continue
             }
@@ -218,9 +217,7 @@ public final class EnrichmentAgent {
                     )
                     stagePois = FoursquareService.enrichMerge(base: stagePois, enrichment: ringFsq)
                 } catch {
-                    #if DEBUG
-                    print("[EnrichmentAgent] Stage \(radius)m Foursquare enrichment failed: \(error)")
-                    #endif
+                    Self.logger.error("Stage \(radius, privacy: .public)m Foursquare enrichment failed: \(String(describing: error), privacy: .public)")
                 }
             }
 
@@ -252,9 +249,7 @@ public final class EnrichmentAgent {
                     from: enriched, cityCode: cityCode, locale: locale
                 )
             } catch {
-                #if DEBUG
-                print("[EnrichmentAgent] Stage \(radius)m synthesis failed: \(error)")
-                #endif
+                Self.logger.error("Stage \(radius, privacy: .public)m synthesis failed: \(String(describing: error), privacy: .public)")
                 continue
             }
 
@@ -284,9 +279,7 @@ public final class EnrichmentAgent {
                 near: coordinate, radiusMeters: radiusMeters, category: category
             )
         } catch {
-            #if DEBUG
-            print("[EnrichmentAgent] MapKit fetch failed: \(error)")
-            #endif
+            Self.logger.error("MapKit fetch failed: \(String(describing: error), privacy: .public)")
             return []
         }
     }

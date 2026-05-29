@@ -1,4 +1,3 @@
-import Foundation
 
 // MARK: - AgentMessage
 
@@ -17,6 +16,7 @@ public struct AgentMessage: Sendable {
 
 /// One completed turn in the conversation history.
 public struct AgentTurn: Sendable {
+    /// Identifies who authored a conversation turn — the traveler or the assistant.
     public enum Role: String, Sendable { case user, assistant }
     public let role: Role
     public let content: String

@@ -21,6 +21,7 @@ import SwiftData
 @MainActor
 public final class AppleSignInService: NSObject {
 
+    /// The outcome of linking the traveler's anonymous device identity to an Apple account.
     public enum LinkResult {
         case linked(newUserId: String)
         case cancelled

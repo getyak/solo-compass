@@ -52,6 +52,8 @@
 "solo.radar.replayHint" = "Tap to replay the draw-in animation";
 "solo.radar.weakest" = "Weakest: %@ — expect it to be a tradeoff";
 "solo.radar.weakest.a11y" = "Note: %@ is the weakest dimension — expect it to be a tradeoff.";
+"solo.radar.strongest" = "Great for solo %@";
+"solo.radar.strongest.a11y" = "Great for solo %@.";
 "solo.basedOn.early" = "Based on %d early reports";
 "solo.estimate.pill" = "AI estimate";
 "solo.section.estimate" = "Solo Score (AI estimate)";
@@ -251,6 +253,7 @@
 "voice.error.title" = "Voice recognition error";
 "voice.error.permission" = "Microphone or speech recognition permission was denied. Please allow access in Settings.";
 "voice.error.unavailable" = "Speech recognition is unavailable on this device.";
+"voice.interrupted" = "Voice recording was interrupted: %@";
 
 /* Journey progress card */
 "journey.progress.title" = "Experiences completed";
@@ -357,6 +360,7 @@
 "onboarding.style.subtitle" = "This shapes which experiences float to the top. You can change it anytime.";
 "onboarding.style.cta" = "Start exploring";
 "onboarding.style.skip" = "Decide later";
+"onboarding.skip" = "Skip";
 
 /* Favorites list */
 "favorites.title" = "Favorites";
@@ -417,6 +421,7 @@
 "explore.aiBadge" = "AI-generated · OpenStreetMap";
 "explore.osmBadge" = "OpenStreetMap · not enriched";
 "explore.error.nothingFound" = "No public places found nearby. Try moving the map.";
+"location.error.banner" = "Can't find your location — showing a default area. Check Location permissions in Settings.";
 "explore.skeleton.oneLiner" = "A real spot pulled from OpenStreetMap.";
 "explore.skeleton.why" = "We don't have a curated story for this place yet. Visit, then add what you found.";
 "explore.quota.dailyLimit" = "Daily AI limit reached. Showing real places without enrichment until tomorrow.";
@@ -640,6 +645,10 @@
 "share.style.twitterLandscape" = "Twitter 1.91:1";
 "share.style.instagramSquare" = "Square 1:1";
 "share.style.minimalText" = "Minimal 9:16";
+/* Share-card image brand label (US-038) — kept as "Solo Compass" in both locales, but routed through l10n. */
+"sharecard.brand" = "Solo Compass";
+/* Share-card score suffix (US-039) — rendered after the numeric Solo Score on the share card. */
+"sharecard.score.suffix" = "/100  Solo Score";
 
 /* Offline banner (US-041) */
 "offline.banner" = "Offline mode · showing cached data";
@@ -990,6 +999,8 @@
 
 /* US-018 — BottomInfoSheet peek toolbar */
 "ai.now.hint" = "Good spots for right now";
+/* US-015 — BottomInfoSheet now-mode headline */
+"sheet.now.headline" = "Good spots for right now";
 "sheet.sort.button" = "Sort";
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";
@@ -1001,11 +1012,21 @@
 "sheet.nearby.section.title" = "附近";
 "sheet.nearby.smartPick.a11y" = "AI recommended";
 
+/* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */
+"sheet.section.routes" = "Routes";
+"sheet.section.nearby" = "Nearby";
+
 /* US-020 — Sort mode sheet */
 "sort.smart" = "智能";
 "sort.distance" = "距离";
 "sort.soloScore" = "Solo 分";
 "sort.now" = "此刻";
+
+/* US-030 — Sort button VoiceOver accessibilityValue (announces current sort mode) */
+"sort.value.smart" = "Sorted by smart";
+"sort.value.distance" = "Sorted by distance";
+"sort.value.soloScore" = "Sorted by Solo score";
+"sort.value.now" = "Sorted by now";
 
 /* US-022 — VerifiedBadge */
 "verified.title.verified" = "已验证路线";
@@ -1048,6 +1069,14 @@
 "recruiting.cta.requestJoin" = "申请加入";
 "recruiting.cta.requestJoinForming" = "申请加入(最后 %d 位)";
 
+/* US-057 — RouteCard recruit-mini inline state (CompareCanvas A-002) */
+"route.card.recruit.recruiting" = "%1$@ 招募 · %2$d/%3$d · %4$@";
+"route.card.recruit.closed" = "已成团 · %d 人 · 出发中";
+"route.card.recruit.completed" = "已完成 · 路线升级";
+
+/* US-058 — RouteCard walked-by row (CompareCanvas A-003) */
+"route.card.walkedBy" = "%d 位旅人走过";
+
 /* US-030 — Companion Profile walked routes section */
 "profile.walkedRoutes.header" = "走过的路线 (%d)";
 "profile.walkedRoutes.viewAll" = "查看全部 ->";
@@ -1086,10 +1115,18 @@
 "join.message.label" = "自我介绍";
 "join.message.placeholder" = "向主理人介绍自己...";
 "join.submit" = "提交申请";
+"join.error.pace.missing" = "请选择配速匹配";
+"join.error.message.missing" = "请填写自我介绍";
 
 /* US-034 — ApprovalQueueView */
 "approval.queue.title" = "待审批申请";
 "approval.queue.trust.line" = "已走过 %d 条 · 拼团 %d 次";
+/* US-032 — per-requester trust micro-stats */
+"approval.queue.signal.optin.yes" = "Opted in";
+"approval.queue.signal.optin.no" = "Not opted in";
+"approval.queue.signal.optin.a11y" = "Companion opt-in: %@";
+"approval.queue.signal.walked.a11y" = "Walked %@ routes";
+"approval.queue.signal.group.a11y" = "%@ group trips";
 "approval.queue.decline" = "拒绝";
 "approval.queue.accept" = "接受";
 "approval.queue.empty" = "No pending requests for this route.";
@@ -1121,3 +1158,9 @@
 "openForCompanions.hostMessage" = "Host Message";
 "openForCompanions.hostMessage.placeholder" = "Tell potential companions what to expect…";
 "openForCompanions.submit" = "Create Route";
+
+/* US-050: VoiceOver announcements when empty-state views appear, so VoiceOver
+   users know the list is empty rather than thinking the UI froze. */
+"a11y.empty.nearby" = "No experiences nearby";
+"a11y.empty.filterResults" = "No results for this filter";
+"a11y.empty.list" = "No experiences to show";

@@ -1,4 +1,3 @@
-import Foundation
 import CoreLocation
 
 /// Minimal geohash encoder — Base32 grid subdivision.

@@ -1,4 +1,3 @@
-import Foundation
 
 /// Itinerary — a named trip plan owned by one user.
 ///
@@ -6,6 +5,7 @@ import Foundation
 
 // MARK: - ItineraryId
 
+/// Strongly-typed identifier for an itinerary, preventing raw-string ID mix-ups.
 public struct ItineraryId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -13,6 +13,7 @@ public struct ItineraryId: RawRepresentable, Codable, Hashable, Sendable {
 
 // MARK: - Itinerary
 
+/// A named trip plan owned by one user, scoping a set of experiences over a date range.
 public struct Itinerary: Identifiable, Codable, Sendable {
     public let id: ItineraryId
     public let ownerId: String

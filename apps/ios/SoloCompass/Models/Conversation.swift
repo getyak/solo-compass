@@ -1,4 +1,3 @@
-import Foundation
 
 /// Conversation — a messaging thread opened after a CompanionRequest is accepted,
 /// or a group chat formed around a Route companion slot.
@@ -7,6 +6,7 @@ import Foundation
 
 // MARK: - ConversationId
 
+/// Strongly-typed identifier for a Conversation, preventing raw-string ID mix-ups.
 public struct ConversationId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -24,6 +24,7 @@ public enum ConversationType: String, Codable, Sendable, CaseIterable {
 
 // MARK: - Conversation
 
+/// A messaging thread between accepted companions, either one-on-one or anchored to a route group.
 public struct Conversation: Identifiable, Codable, Sendable {
     public let id: ConversationId
     public let requestId: CompanionRequestId

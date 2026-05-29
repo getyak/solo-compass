@@ -1,6 +1,4 @@
-import Foundation
 import MapKit
-import CoreLocation
 
 /// Forward-geocoding search wrapping MKLocalSearch.
 /// All methods are `@MainActor` to keep MKLocalSearch on the main thread

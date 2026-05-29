@@ -39,6 +39,7 @@ public protocol SupabaseClientProtocol: AnyObject {
 public final class SupabaseClient: SupabaseClientProtocol {
     public static let shared = SupabaseClient()
 
+    /// Failures that can arise while syncing the traveler's data with the Supabase backend.
     public enum SupabaseError: Error, LocalizedError, Sendable {
         case missingConfig
         case requestFailed(status: Int, body: String)
@@ -57,6 +58,7 @@ public final class SupabaseClient: SupabaseClientProtocol {
         }
     }
 
+    /// The signed-in traveler's authenticated backend session and its tokens.
     public struct Session: Codable, Sendable {
         public let userId: String
         public let accessToken: String

@@ -23,6 +23,7 @@ private protocol QualityArgsProvider {
 @MainActor
 public final class VoiceAgentToolRouter {
 
+    /// Failures encountered while dispatching a voice assistant tool call.
     public enum RouterError: Error, LocalizedError {
         case unknownTool(String)
         case invalidArguments(tool: String, reason: String)

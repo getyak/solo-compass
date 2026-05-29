@@ -12,6 +12,7 @@ import SwiftUI
 
 // MARK: - Category
 
+/// The kind of activity an experience represents, used to group and filter the map.
 public enum ExperienceCategory: String, Codable, CaseIterable, Identifiable, Hashable {
     case culture, nature, food, coffee, work, wellness, nightlife, hidden
 
@@ -52,6 +53,7 @@ public enum ExperienceCategory: String, Codable, CaseIterable, Identifiable, Has
 
 // MARK: - Time window
 
+/// A recurring slot when an experience is at its best, scoped by hour, weekday, and season.
 public struct TimeWindow: Codable, Hashable {
     public let startHour: Int       // 0–23
     public let endHour: Int         // 0–23
@@ -77,6 +79,8 @@ public struct TimeWindow: Codable, Hashable {
 
 // MARK: - Location
 
+/// Where an experience happens: its coordinates plus enriched place details like
+/// rating, hours, and contact info pulled from map providers.
 public struct ExperienceLocation: Codable, Hashable {
     /// GeoJSON convention: [longitude, latitude].
     public let coordinates: [Double]
@@ -124,6 +128,7 @@ public struct ExperienceLocation: Codable, Hashable {
 
 // MARK: - HowTo step
 
+/// A single ordered instruction in the step-by-step guide for doing an experience.
 public struct HowToStep: Codable, Hashable, Identifiable {
     public let order: Int
     public let text: String
@@ -137,7 +142,9 @@ public struct HowToStep: Codable, Hashable, Identifiable {
 
 // MARK: - Real inconvenience
 
+/// An honest heads-up about a downside of an experience — scams, crowds, weather, etc.
 public struct RealInconvenience: Codable, Hashable, Identifiable {
+    /// How seriously a warning should be presented to the traveler.
     public enum Severity {
         case high, medium, low
 
@@ -150,6 +157,7 @@ public struct RealInconvenience: Codable, Hashable, Identifiable {
         }
     }
 
+    /// The kind of inconvenience a traveler might encounter at an experience.
     public enum Category: String, Codable, Hashable {
         case scam, crowds, logistics, weather, etiquette, safety, other
 
@@ -186,7 +194,10 @@ public struct RealInconvenience: Codable, Hashable, Identifiable {
 
 // MARK: - Solo Score
 
+/// How comfortable an experience is for someone visiting alone, as an overall
+/// rating plus the factors that produced it.
 public struct SoloScore: Codable, Hashable {
+    /// The individual solo-friendliness factors that combine into the overall score.
     public struct Breakdown: Codable, Hashable {
         public let seatingFriendly: Double
         public let soloPatronRatio: Double
@@ -240,6 +251,8 @@ public struct SoloScore: Codable, Hashable {
 
 // MARK: - Health & Confidence
 
+/// How likely an experience is still real and accurate, shown to travelers as a
+/// freshness indicator from healthy to possibly gone.
 public enum HealthStatus: String, Codable {
     case healthy
     case fading
@@ -279,7 +292,10 @@ public enum HealthStatus: String, Codable {
     }
 }
 
+/// How much we trust that an experience's information is current, derived from
+/// when it was last verified and the signals backing it up.
 public struct Confidence: Codable, Hashable {
+    /// The raw evidence behind a confidence level: scrape age, GPS visits, and reports.
     public struct Signals: Codable, Hashable {
         public let aiScrapeAgeDays: Int
         public let passiveGpsHits30d: Int
@@ -322,7 +338,10 @@ public struct Confidence: Codable, Hashable {
 
 // MARK: - Information Source
 
+/// An attributed origin for an experience's information — where the details came
+/// from and when that source was last verified.
 public struct InformationSource: Codable, Hashable, Identifiable {
+    /// The kind of place an experience's information was sourced from.
     public enum SourceType: String, Codable, Hashable {
         case wikivoyage, wikipedia, reddit, blog, youtube, user, fieldVisit = "field_visit"
     }
@@ -346,13 +365,17 @@ public struct InformationSource: Codable, Hashable, Identifiable {
 
 // MARK: - Experience
 
+/// The core unit of Solo Compass: a concrete, time-bound, story-rich thing worth
+/// doing alone, bundling its location, timing, guidance, score, and provenance.
 public struct Experience: Codable, Hashable, Identifiable {
+    /// The typical shortest-to-longest time, in minutes, an experience takes.
     public struct DurationRange: Codable, Hashable {
         public let min: Int
         public let max: Int
         public init(min: Int, max: Int) { self.min = min; self.max = max }
     }
 
+    /// Aggregate usage data for an experience: how often it's been done and how it rated.
     public struct Stats: Codable, Hashable {
         public let completionCount: Int
         public let averageRating: Double // 0-5
@@ -364,6 +387,7 @@ public struct Experience: Codable, Hashable, Identifiable {
         }
     }
 
+    /// Where an experience sits in its lifecycle, from unverified candidate to retired.
     public enum Status: String, Codable, Hashable {
         case candidate, active, stale, retired
     }
@@ -592,6 +616,8 @@ private extension Locale {
 
 // MARK: - Marker State
 
+/// The visual state of an experience's pin on the map, reflecting timing and the
+/// traveler's own relationship to it (favorited, completed, upcoming, visited).
 public enum ExperienceMarkerState: Hashable {
     case `default`
     case bestNow

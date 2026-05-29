@@ -1,6 +1,5 @@
 import XCTest
 import CoreLocation
-import MapKit
 @testable import SoloCompass
 
 // MARK: - US-012 CompiledPlace model

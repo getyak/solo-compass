@@ -16,6 +16,7 @@ public final class NotificationService {
 
     // MARK: - Authorization
 
+    /// Asks the traveler for permission to send check-in and safety notifications.
     public func requestAuthorization() async {
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
@@ -25,6 +26,7 @@ public final class NotificationService {
         }
     }
 
+    /// Refreshes whether notifications are currently allowed for the app.
     public func checkAuthorizationStatus() async {
         let settings = await center.notificationSettings()
         isAuthorized = settings.authorizationStatus == .authorized

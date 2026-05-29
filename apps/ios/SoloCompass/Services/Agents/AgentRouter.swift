@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import Observation
+import os
 
 // MARK: - AgentRouter
 
@@ -34,6 +35,8 @@ public final class AgentRouter {
 
     private let synthesizer = AVSpeechSynthesizer()
 
+    private let logger = Logger(subsystem: "com.solocompass", category: "AgentRouter")
+
     public init(
         intentAgent: IntentAgent = IntentAgent(),
         queryAgent: QueryAgent = QueryAgent(),
@@ -50,12 +53,14 @@ public final class AgentRouter {
 
     // MARK: - Public API
 
+    /// Begins a voice/chat session, putting the assistant into a listening state.
     public func start() {
         guard !isRunning else { return }
         isRunning = true
         uiState = .listening
     }
 
+    /// Ends the active session, halting playback and clearing transient state.
     public func stop() {
         isRunning = false
         streamingContent = ""
@@ -174,9 +179,7 @@ public final class AgentRouter {
         // "anthropic-cache-creation-input-tokens" / "anthropic-cache-read-input-tokens".
         // For now, track via conversation history length as a proxy.
         lastCacheHit = conversationHistory.count > 2
-        #if DEBUG
         let status = (lastCacheHit == true) ? "HIT" : "MISS"
-        print("[AgentRouter] Cache \(status) for intent: \(intentRaw)")
-        #endif
+        logger.debug("Cache \(status, privacy: .public) for intent: \(intentRaw, privacy: .public)")
     }
 }

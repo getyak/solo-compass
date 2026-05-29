@@ -37,6 +37,9 @@ public struct ExperienceDetailView: View {
     @State private var addedItineraryToast: Itinerary? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var itineraryToNavigate: Itinerary? = nil
+    /// US-025: drives the paywall sheet when a free-tier user taps the gated
+    /// "Ask Solo" CTA instead of leaving them on a dead toast.
+    @State private var isShowingPaywall: Bool = false
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -183,6 +186,16 @@ public struct ExperienceDetailView: View {
                         }
                     }
             }
+        }
+        // US-025: free-tier users tapping the gated "Ask Solo" CTA land here.
+        // PaywallView inherits SubscriptionService from the environment chain
+        // (injected at the app root). On unlock the sheet dismisses; the user
+        // can then re-tap the now-enabled CTA to open chat.
+        .sheet(isPresented: $isShowingPaywall) {
+            NavigationStack {
+                PaywallView(onUnlocked: { isShowingPaywall = false })
+            }
+            .accessibilityIdentifier("experience.askSolo.paywall")
         }
         .overlay(alignment: .bottom) {
             if let itin = addedItineraryToast {
@@ -364,19 +377,38 @@ public struct ExperienceDetailView: View {
         }
     }
 
-    // MARK: - Ask Solo (US-004)
+    // MARK: - Ask Solo (US-004 / US-025)
 
-    /// "Ask Solo about this" CTA. Hidden unless:
-    ///   • the parent supplied `onAskSolo` (so a chat surface is actually
-    ///     reachable from this presentation context), and
-    ///   • `viewModel.canAskSolo` is true (Pro entitlement OR a local
-    ///     DeepSeek key is configured — mirrors the "+" plus-button gate).
+    /// US-025: routing for an "Ask Solo" tap. Pure so it's unit-testable
+    /// without driving the live UI. When the user is entitled
+    /// (`canAskSolo`), the chat opens; otherwise the paywall is presented.
+    enum AskSoloAction: Equatable {
+        case openChat
+        case presentPaywall
+    }
+
+    /// Decide what a tap on the gated CTA should do. Free-tier users (no Pro
+    /// entitlement and no local key) get the paywall, not a dead toast.
+    static func askSoloAction(canAskSolo: Bool) -> AskSoloAction {
+        canAskSolo ? .openChat : .presentPaywall
+    }
+
+    /// "Ask Solo about this" CTA. Rendered whenever the parent supplied
+    /// `onAskSolo` (so a chat surface is reachable from this context). The
+    /// entitlement gate now lives in the *tap handler*, not in visibility:
+    ///   • entitled (`viewModel.canAskSolo`) → opens the scoped chat.
+    ///   • free-tier → presents the paywall sheet (US-025).
     @ViewBuilder
     private var askSoloSection: some View {
-        if let onAskSolo, viewModel.canAskSolo {
+        if let onAskSolo {
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                onAskSolo(viewModel.experience)
+                switch Self.askSoloAction(canAskSolo: viewModel.canAskSolo) {
+                case .openChat:
+                    onAskSolo(viewModel.experience)
+                case .presentPaywall:
+                    isShowingPaywall = true
+                }
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "bubble.left.and.text.bubble.right")

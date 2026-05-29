@@ -32,6 +32,13 @@ public struct ChatSheet: View {
     /// Auto-clears on the next successful send or after a short delay.
     @State private var sendHint: String? = nil
     @State private var sendHintTask: Task<Void, Never>? = nil
+    /// US-027: transient, dismissible toast surfaced when the voice recording
+    /// stream ends via an error (mic revoked mid-record, audio session
+    /// interruption, recognizer failure) instead of silently dropping the
+    /// transcript. Carries the localized `voice.interrupted` copy interpolated
+    /// with the underlying error description. Auto-clears after a short delay.
+    @State private var voiceInterruptionToast: String? = nil
+    @State private var voiceInterruptionTask: Task<Void, Never>? = nil
 
     /// True while showing the dedicated voice surface (large mic + live agent
     /// state). Set on appear when `startInVoiceMode`; user can opt into the
@@ -64,6 +71,10 @@ public struct ChatSheet: View {
 
             if permissionDenied {
                 permissionDeniedBanner
+            }
+
+            if let toast = voiceInterruptionToast {
+                voiceInterruptionBanner(toast)
             }
 
             mainContent
@@ -214,6 +225,35 @@ public struct ChatSheet: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 12)
         .padding(.top, 8)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    /// US-027: dismissible toast surfaced when the live voice stream ends via an
+    /// error instead of being silently dropped. Tappable / has an explicit
+    /// close affordance, and auto-dismisses after a few seconds.
+    private func voiceInterruptionBanner(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "waveform.slash")
+                .foregroundStyle(.orange)
+            Text(message)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+                .lineLimit(3)
+            Spacer(minLength: 4)
+            Button(action: dismissVoiceInterruptionToast) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(NSLocalizedString("common.dismiss", comment: "Dismiss")))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isStaticText)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
@@ -633,9 +673,15 @@ public struct ChatSheet: View {
                         for try await text in stream {
                             liveTranscript = text
                         }
+                    } catch is CancellationError {
+                        // Deliberate stop (endPushToTalk / teardown cancels the
+                        // task) — not an interruption, stay silent.
                     } catch {
-                        // Stream ended via error — drop transcript silently;
-                        // user-facing errors surface through orchestrator.errorMessage.
+                        // Stream ended via error (mic revoked mid-record, audio
+                        // session interruption, recognizer failure). US-027:
+                        // surface it as a dismissible toast instead of silently
+                        // stopping, so the user knows recording was interrupted.
+                        showVoiceInterruptionToast(for: error)
                     }
                 }
             } catch {
@@ -662,10 +708,50 @@ public struct ChatSheet: View {
         sendHintTask?.cancel()
         sendHintTask = nil
         sendHint = nil
+        voiceInterruptionTask?.cancel()
+        voiceInterruptionTask = nil
+        voiceInterruptionToast = nil
         if voiceService.isListening {
             voiceService.stopListening()
         }
         liveTranscript = ""
+    }
+
+    // MARK: - Voice interruption toast (US-027)
+
+    /// Localized toast copy for an interrupted voice recording. Pulled out as a
+    /// pure static so it can be unit-tested without driving the live audio
+    /// stream (mirrors `VoiceProcessingToast.localizedText(for:)`).
+    static func voiceInterruptionToastText(for error: Error) -> String {
+        let format = NSLocalizedString(
+            "voice.interrupted",
+            comment: "Toast shown when voice recording is interrupted; %@ is the underlying error"
+        )
+        return String(format: format, error.localizedDescription)
+    }
+
+    private func showVoiceInterruptionToast(for error: Error) {
+        let text = Self.voiceInterruptionToastText(for: error)
+        liveTranscript = ""
+        withAnimation(.easeInOut(duration: 0.2)) {
+            voiceInterruptionToast = text
+        }
+        voiceInterruptionTask?.cancel()
+        voiceInterruptionTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                voiceInterruptionToast = nil
+            }
+        }
+    }
+
+    private func dismissVoiceInterruptionToast() {
+        voiceInterruptionTask?.cancel()
+        voiceInterruptionTask = nil
+        withAnimation(.easeInOut(duration: 0.2)) {
+            voiceInterruptionToast = nil
+        }
     }
 
     // MARK: - Scroll helpers

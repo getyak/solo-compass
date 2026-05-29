@@ -23,6 +23,9 @@ struct SoloCompassApp: App {
     @State private var languageService = LanguageService.shared
     @State private var companionService = CompanionService.shared
     @State private var presenceService = PresenceService.shared
+    // Single 60s clock feeding every BestNowBadge (US-023). One timer for all
+    // badges instead of one TimelineView per badge.
+    @State private var bestNowClock = BestNowClock.shared
     private let supabaseClient = SupabaseClient.shared
     private let themeService = ThemeService.shared
 
@@ -38,18 +41,39 @@ struct SoloCompassApp: App {
                 .environment(languageService)
                 .environment(companionService)
                 .environment(presenceService)
+                .environment(bestNowClock)
                 .environment(supabaseClient)
                 .environment(\.themeService, themeService)
                 .onAppear {
+                    // Location wiring stays inline: it is cheap, must happen
+                    // before any region monitoring fires, and requestPermission()
+                    // already hands off to the system asynchronously.
                     locationService.preferences = preferences
                     locationService.notificationService = notificationService
                     locationService.requestPermission()
-                    preferences.pruneStaleCheckIns()
-                    // Wire SwiftData mirroring for completion/favorite
-                    // mutations and run the one-shot UserDefaults → SwiftData
-                    // migration on first launch of v1.1.
-                    preferences.attachRepository(experienceService.repo)
+
+                    // US-020: cold-start TTI must not block on a serial main-thread
+                    // init chain. Each piece of bootstrap below is independent —
+                    // there is no ordering dependency between pruning check-ins,
+                    // wiring the repository, importing seed routes, loading the
+                    // user directory, or refreshing the subscription entitlement.
+                    // Dispatching each into its own Task lets the WindowGroup body
+                    // complete (and the map render) without waiting for any of them
+                    // to finish, while still running them on the main actor where
+                    // the @MainActor services require it.
+
+                    // Auto-clear stale pending check-ins.
+                    Task { @MainActor in preferences.pruneStaleCheckIns() }
+
+                    // Wire SwiftData mirroring for completion/favorite mutations
+                    // and run the one-shot UserDefaults → SwiftData migration on
+                    // first launch of v1.1.
+                    Task { @MainActor in
+                        preferences.attachRepository(experienceService.repo)
+                    }
+
                     Task { await notificationService.checkAuthorizationStatus() }
+
                     // Refresh subscription entitlement from StoreKit on launch.
                     // Pre-launch UI already reflects the Keychain-cached value
                     // so this just confirms / corrects it once the network is up.
@@ -63,13 +87,17 @@ struct SoloCompassApp: App {
                     // Start the outbox sync timer (Epic E US-029).
                     // Idempotent across re-renders.
                     SyncService.shared.start()
+
                     // Load seed user fixtures into the in-memory UserDirectory.
-                    UserDirectory.shared.loadIfNeeded()
+                    Task { @MainActor in UserDirectory.shared.loadIfNeeded() }
+
                     // Seed RouteStore from bundled `seed_routes.json` on first
                     // launch (no-op once any route exists). Routes referencing
                     // unknown experienceIds are skipped with an os_log warning.
-                    let knownExperienceIds = Set(experienceService.allExperiences.map(\.id))
-                    routeStore.importSeedIfNeeded(knownExperienceIds: knownExperienceIds)
+                    Task { @MainActor in
+                        let knownExperienceIds = Set(experienceService.allExperiences.map(\.id))
+                        routeStore.importSeedIfNeeded(knownExperienceIds: knownExperienceIds)
+                    }
                 }
         }
         .modelContainer(SoloCompassModelContainer.shared)

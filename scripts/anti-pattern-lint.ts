@@ -22,7 +22,16 @@ interface Rule {
 const RULES: Rule[] = [
   { pattern: /\bsocial[_-]?feed\b/i, reason: "no social feed" },
   { pattern: /\bleaderboard\b/i, reason: "no leaderboards" },
-  { pattern: /\bbadge[s]?\b/i, reason: "no gamification badges" },
+  // Gamification badges only — the bare noun "badge" is allowed because the app
+  // legitimately ships descriptive UI affordances (BestNowBadge, the confidence
+  // "L1" badge, the footprinted map-marker badge, the opt-in indicator). What we
+  // forbid is the engagement-loop semantics: badges that get earned, unlocked,
+  // awarded, or framed as achievements.
+  {
+    pattern:
+      /\b(?:earn(?:ed|s|ing)?|unlock(?:ed|s|ing)?|award(?:ed|s|ing)?|achievement|reward)[_-]?badge[s]?\b|\bbadge[s]?[_-]?(?:earn(?:ed)?|unlock(?:ed)?|award(?:ed)?|achievement|reward|progress|level[_-]?up)\b/i,
+    reason: "no gamification badges (earned/unlocked/awarded)",
+  },
   { pattern: /\bstreak[s]?\b/i, reason: "no engagement streaks" },
   { pattern: /\bfollow[_-]?user\b/i, reason: "no follow graph" },
   { pattern: /\bshare[_-]?to[_-]?social\b/i, reason: "no share-to-social pressure" },

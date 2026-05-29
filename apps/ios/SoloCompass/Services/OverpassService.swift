@@ -38,6 +38,7 @@ public final class OverpassService {
         }
     }
 
+    /// Failures that can occur while querying OpenStreetMap places via Overpass.
     public enum OverpassError: Error, LocalizedError {
         case invalidURL
         case requestFailed(status: Int)

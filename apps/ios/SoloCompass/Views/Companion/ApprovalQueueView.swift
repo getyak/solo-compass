@@ -78,8 +78,6 @@ public struct ApprovalQueueView: View {
 
     private func requestRow(_ request: JoinRequest) -> some View {
         let user = UserDirectory.shared.user(handle: request.requesterId)
-        let walked = user?.walked.count ?? 0
-        let trips = user?.trips ?? 0
         let blurb = user?.blurb ?? ""
         let paceChip = paceFromMessage(request.message)
         let cleanMessage = messageBody(request.message)
@@ -112,16 +110,7 @@ public struct ApprovalQueueView: View {
                 }
             }
 
-            Text(String(
-                format: NSLocalizedString(
-                    "approval.queue.trust.line",
-                    comment: "Trust signal: walked N routes · M trips"
-                ),
-                walked,
-                trips
-            ))
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            ApprovalQueueView.trustSignalRow(for: user)
 
             if !cleanMessage.isEmpty {
                 Text(cleanMessage)
@@ -151,6 +140,87 @@ public struct ApprovalQueueView: View {
             .padding(.top, 4)
         }
         .padding(.vertical, 4)
+    }
+
+    // MARK: - Trust signals (US-032)
+
+    /// Three micro-stats sourced from the requester profile object:
+    /// opt-in badge, walked count, and group (trips) count. When a stat is
+    /// unknown — e.g. the profile is missing or the field is absent — the
+    /// stat shows "—" rather than fabricating a value.
+    @ViewBuilder
+    static func trustSignalRow(for user: SeedUser?) -> some View {
+        HStack(spacing: 12) {
+            optInBadge(user?.optedIn)
+
+            microStat(
+                systemImage: "figure.walk",
+                value: user.map { String($0.walked.count) } ?? Self.unknownValue,
+                accessibilityLabelKey: "approval.queue.signal.walked.a11y"
+            )
+
+            microStat(
+                systemImage: "person.2.fill",
+                value: user.map { String($0.trips) } ?? Self.unknownValue,
+                accessibilityLabelKey: "approval.queue.signal.group.a11y"
+            )
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    /// Placeholder shown for any stat we don't actually know.
+    static let unknownValue = "—"
+
+    @ViewBuilder
+    private static func optInBadge(_ optedIn: Bool?) -> some View {
+        let (text, color): (String, Color)
+        switch optedIn {
+        case .some(true):
+            text = NSLocalizedString("approval.queue.signal.optin.yes", comment: "Opt-in badge — opted in")
+            color = .green
+        case .some(false):
+            text = NSLocalizedString("approval.queue.signal.optin.no", comment: "Opt-in badge — not opted in")
+            color = .secondary
+        case .none:
+            text = unknownValue
+            color = .secondary
+        }
+        HStack(spacing: 4) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(.system(size: 11, weight: .semibold))
+            Text(text)
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.15), in: Capsule())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(
+            format: NSLocalizedString("approval.queue.signal.optin.a11y", comment: "Opt-in status accessibility label"),
+            text
+        ))
+    }
+
+    @ViewBuilder
+    private static func microStat(
+        systemImage: String,
+        value: String,
+        accessibilityLabelKey: String
+    ) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: systemImage)
+                .font(.system(size: 11, weight: .medium))
+            Text(value)
+                .font(.system(size: 12, weight: .medium))
+                .monospacedDigit()
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(
+            format: NSLocalizedString(accessibilityLabelKey, comment: "Trust signal accessibility label"),
+            value
+        ))
     }
 
     // MARK: - Pace chip
@@ -361,6 +431,14 @@ public struct ApprovalQueueView: View {
                 id: JoinRequestId(rawValue: "req-2"),
                 requesterId: "lin",
                 message: "slower: Love slow mornings and coffee stops along the way.",
+                status: .pending,
+                createdAt: ISO8601DateFormatter().string(from: Date())
+            ),
+            // Unknown requester (not in the directory) → all three stats show "—".
+            JoinRequest(
+                id: JoinRequestId(rawValue: "req-3"),
+                requesterId: "stranger",
+                message: "faster: New here — would love to join!",
                 status: .pending,
                 createdAt: ISO8601DateFormatter().string(from: Date())
             ),

@@ -37,8 +37,19 @@ public struct SoloScoreRadarChart: View {
         values.indices.min(by: { values[$0] < values[$1] }) ?? 0
     }
 
+    private var strongestIndex: Int {
+        values.indices.max(by: { values[$0] < values[$1] }) ?? 0
+    }
+
+    // True only when the top dimension qualifies as a genuine strength
+    private var hasQualifyingStrongest: Bool {
+        let si = strongestIndex
+        return values[si] >= 8 && si != weakestIndex
+    }
+
     // Amber accent matching the app's accentGold
     private static let amberAccent = Color(red: 0xD4 / 255, green: 0xA8 / 255, blue: 0x43 / 255)
+    private static let greenAccent = Color.green
 
     public init(score: SoloScore) {
         self.score = score
@@ -116,14 +127,16 @@ public struct SoloScoreRadarChart: View {
                 ForEach(0..<axisCount, id: \.self) { i in
                     let angle = axisAngle(index: i, count: axisCount)
                     let isWeakest = i == weakestIndex
-                    let dotRadius = size * 0.018 * (isWeakest ? 1.3 : 1.0)
+                    let isStrongest = hasQualifyingStrongest && i == strongestIndex
+                    let dotRadius = size * 0.018 * ((isWeakest || isStrongest) ? 1.3 : 1.0)
                     let dotPos = point(
                         center: center,
                         radius: radius * CGFloat(values[i] / 10.0) * CGFloat(drawProgress),
                         angle: angle
                     )
+                    let dotColor: Color = isWeakest ? Self.amberAccent : (isStrongest ? Self.greenAccent : score.scoreColor)
                     Circle()
-                        .fill(isWeakest ? Self.amberAccent : score.scoreColor)
+                        .fill(dotColor)
                         .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
                         .frame(width: dotRadius * 2, height: dotRadius * 2)
                         .scaleEffect(drawProgress)
@@ -138,17 +151,21 @@ public struct SoloScoreRadarChart: View {
                     let pos = point(center: center, radius: labelRadius, angle: angle)
                     let axis = Self.axes[i]
                     let isWeakest = i == weakestIndex
+                    let isStrongest = hasQualifyingStrongest && i == strongestIndex
                     let labelDelay = Double(i) * 0.06
                     let labelOpacity = max(0, min(1, (drawProgress - labelDelay) / (1.0 - labelDelay)))
+                    let iconColor: Color = isWeakest ? Self.amberAccent : (isStrongest ? Self.greenAccent : score.scoreColor)
+                    let textColor: Color = isWeakest ? Self.amberAccent : (isStrongest ? Self.greenAccent : Color.primary)
+                    let fontWeight: Font.Weight = (isWeakest || isStrongest) ? .bold : .semibold
 
                     VStack(spacing: 2) {
                         Image(systemName: axis.symbol)
                             .font(.system(size: size * 0.065))
-                            .foregroundStyle(isWeakest ? Self.amberAccent : score.scoreColor)
+                            .foregroundStyle(iconColor)
                         // Always display final values — animation only affects opacity
                         Text(String(format: "%.0f", values[i]))
-                            .font(.system(size: size * 0.055, weight: isWeakest ? .bold : .semibold, design: .rounded))
-                            .foregroundStyle(isWeakest ? Self.amberAccent : Color.primary)
+                            .font(.system(size: size * 0.055, weight: fontWeight, design: .rounded))
+                            .foregroundStyle(textColor)
                     }
                     .opacity(labelOpacity)
                     .position(pos)
@@ -157,7 +174,9 @@ public struct SoloScoreRadarChart: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
+        .accessibilityElement(children: .combine)
         .accessibilityLabel(radarAccessibilityLabel)
+        .accessibilityValue(radarAccessibilityValue)
         .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "Tap to replay the draw-in animation")))
         .onTapGesture {
             guard !reduceMotion, !isReplaying else { return }
@@ -189,17 +208,26 @@ public struct SoloScoreRadarChart: View {
         )
     }
 
-    private var radarAccessibilityLabel: Text {
-        let overallFormatted = String(format: "%.1f", score.overall)
-        let overallLabel = String(format: NSLocalizedString("solo.a11y", comment: ""), overallFormatted)
-
+    /// Raw VoiceOver label string naming all six dimensions with their values,
+    /// e.g. "Safety 9 of 10, Seating 8 of 10, ...". The overall score is exposed
+    /// separately via `radarAccessibilityValueString`. Exposed for unit testing.
+    var radarAccessibilityLabelString: String {
         let sortedDimensions = zip(Self.axes, values)
             .sorted { $0.1 > $1.1 }
         let dimensionParts = sortedDimensions.map { axis, val in
             "\(axis.label) \(Int(val)) of 10"
         }.joined(separator: ", ")
 
-        var label = "\(overallLabel). \(dimensionParts)."
+        var label = dimensionParts
+
+        if hasQualifyingStrongest {
+            let strongestName = Self.axes[strongestIndex].label
+            let strongestSentence = String(
+                format: NSLocalizedString("solo.radar.strongest.a11y", comment: ""),
+                strongestName
+            )
+            label = "\(strongestSentence) \(label)"
+        }
 
         if values[weakestIndex] < 6 {
             let weakestName = Self.axes[weakestIndex].label
@@ -207,11 +235,24 @@ public struct SoloScoreRadarChart: View {
                 format: NSLocalizedString("solo.radar.weakest.a11y", comment: ""),
                 weakestName
             )
-            label += " \(weakestSentence)"
+            label += ". \(weakestSentence)"
         }
 
-        return Text(label)
+        return label
     }
+
+    /// Raw VoiceOver value string announcing the overall Solo Score, e.g.
+    /// "Solo Score 7.8 of 10". Exposed for unit testing.
+    var radarAccessibilityValueString: String {
+        let overallFormatted = String(format: "%.1f", score.overall)
+        return String(format: NSLocalizedString("solo.a11y", comment: ""), overallFormatted)
+    }
+
+    /// VoiceOver label naming all six dimensions with their values.
+    var radarAccessibilityLabel: Text { Text(radarAccessibilityLabelString) }
+
+    /// VoiceOver value announcing the overall Solo Score.
+    var radarAccessibilityValue: Text { Text(radarAccessibilityValueString) }
 
     // MARK: - Replay
 
@@ -233,22 +274,38 @@ public struct SoloScoreRadarChart: View {
     // Renders for both radar and fallback-bars paths via body's shared VStack.
     // Fixed-min-height container prevents layout jump during fade-in.
     @ViewBuilder private var weakestCaption: some View {
-        let captionVisible = values[weakestIndex] < 6
+        let weakCaptionVisible = values[weakestIndex] < 6
+        let strongCaptionVisible = hasQualifyingStrongest
+        let anyVisible = weakCaptionVisible || strongCaptionVisible
         ZStack {
-            if captionVisible {
-                let captionText = String(
-                    format: NSLocalizedString("solo.radar.weakest", comment: ""),
-                    Self.axes[weakestIndex].label
-                )
-                Label(captionText, systemImage: "exclamationmark.bubble")
-                    .font(.caption)
-                    .foregroundStyle(Self.amberAccent)
-                    .opacity(drawProgress >= 0.99 ? 1 : 0)
-                    .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: drawProgress >= 0.99)
-                    .accessibilityHidden(true)
+            VStack(spacing: 4) {
+                if strongCaptionVisible {
+                    let strongText = String(
+                        format: NSLocalizedString("solo.radar.strongest", comment: ""),
+                        Self.axes[strongestIndex].label
+                    )
+                    Label(strongText, systemImage: "star.fill")
+                        .font(.caption)
+                        .foregroundStyle(Self.greenAccent)
+                        .opacity(drawProgress >= 0.99 ? 1 : 0)
+                        .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: drawProgress >= 0.99)
+                        .accessibilityHidden(true)
+                }
+                if weakCaptionVisible {
+                    let captionText = String(
+                        format: NSLocalizedString("solo.radar.weakest", comment: ""),
+                        Self.axes[weakestIndex].label
+                    )
+                    Label(captionText, systemImage: "exclamationmark.bubble")
+                        .font(.caption)
+                        .foregroundStyle(Self.amberAccent)
+                        .opacity(drawProgress >= 0.99 ? 1 : 0)
+                        .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: drawProgress >= 0.99)
+                        .accessibilityHidden(true)
+                }
             }
         }
-        .frame(minHeight: captionVisible ? 20 : 0)
+        .frame(minHeight: anyVisible ? 20 : 0)
     }
 
     // MARK: - Fallback bars
@@ -259,12 +316,15 @@ public struct SoloScoreRadarChart: View {
                 let axis = Self.axes[i]
                 let val = values[i]
                 let isWeakest = i == weakestIndex
+                let isStrongest = hasQualifyingStrongest && i == strongestIndex
                 let barDelay = Double(i) * 0.06
                 let barProgress = max(0, min(1, (drawProgress - barDelay) / (1.0 - barDelay)))
+                let iconColor: Color = isWeakest ? Self.amberAccent : (isStrongest ? Self.greenAccent : score.scoreColor)
+                let textColor: Color = isWeakest ? Self.amberAccent : (isStrongest ? Self.greenAccent : Color.primary)
                 HStack(spacing: 8) {
                     Image(systemName: axis.symbol)
                         .font(.caption)
-                        .foregroundStyle(isWeakest ? Self.amberAccent : score.scoreColor)
+                        .foregroundStyle(iconColor)
                         .frame(width: 20)
                         .accessibilityHidden(true)
                     Text(axis.label)
@@ -285,8 +345,8 @@ public struct SoloScoreRadarChart: View {
                     .frame(height: 6)
                     Text(String(format: "%.0f", val))
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(isWeakest ? Self.amberAccent : Color.primary)
-                        .fontWeight(isWeakest ? .bold : .regular)
+                        .foregroundStyle(textColor)
+                        .fontWeight((isWeakest || isStrongest) ? .bold : .regular)
                         .frame(width: 24, alignment: .trailing)
                         .accessibilityHidden(true)
                 }
@@ -294,6 +354,7 @@ public struct SoloScoreRadarChart: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(radarAccessibilityLabel)
+        .accessibilityValue(radarAccessibilityValue)
         .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "")))
         .onTapGesture {
             guard !reduceMotion, !isReplaying else { return }

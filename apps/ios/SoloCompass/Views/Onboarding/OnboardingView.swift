@@ -1,5 +1,25 @@
 import SwiftUI
-import CoreLocation
+
+/// Documented VoiceOver focus order for every onboarding page.
+///
+/// VoiceOver visits accessibility elements in **descending** sort-priority order
+/// (higher reads first). The intended reading order on each page is therefore:
+/// `title → subtitle → (page content) → primary CTA → skip`.
+///
+/// Exposed (not private) so `OnboardingA11yOrderTest` asserts against the same
+/// source of truth the views apply via `.accessibilitySortPriority(_:)`.
+enum OnboardingA11ySortPriority {
+    static let title: Double = 100
+    static let subtitle: Double = 90
+    /// Mid-page interactive content (e.g. travel-style options) read after the
+    /// subtitle but before the primary call to action.
+    static let content: Double = 80
+    static let primaryCTA: Double = 50
+    static let skip: Double = 10
+
+    /// The documented order, highest priority (read first) to lowest (read last).
+    static let documentedOrder: [Double] = [title, subtitle, content, primaryCTA, skip]
+}
 
 /// Three-step first-run flow shown once via `.fullScreenCover` from CompassMapView.
 /// Gated by `UserPreferences.hasCompletedOnboarding`.
@@ -20,7 +40,29 @@ public struct OnboardingView: View {
             default: welcomeStep
             }
         }
+        .overlay(alignment: .topTrailing) {
+            skipButton
+        }
         .animation(.easeInOut(duration: 0.3), value: step)
+    }
+
+    // MARK: - Skip the whole flow
+
+    /// Completes onboarding immediately from any step (returning users / QA).
+    private var skipButton: some View {
+        Button {
+            preferences.completeOnboarding()
+            onComplete()
+        } label: {
+            Text(NSLocalizedString("onboarding.skip", comment: "Skip the entire onboarding flow"))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+        }
+        .padding(.top, 8)
+        .padding(.trailing, 8)
+        .accessibilityIdentifier("onboarding.skip")
     }
 
     // MARK: - Step indicator
@@ -50,17 +92,20 @@ public struct OnboardingView: View {
                 Image(systemName: "map.fill")
                     .font(.system(size: 64))
                     .foregroundStyle(.tint)
+                    .accessibilityHidden(true)
 
                 VStack(spacing: 8) {
                     Text(NSLocalizedString("onboarding.welcome.title", comment: "Onboarding title"))
                         .font(.largeTitle.bold())
                         .multilineTextAlignment(.center)
+                        .accessibilitySortPriority(OnboardingA11ySortPriority.title)
 
                     Text(NSLocalizedString("onboarding.welcome.subtitle", comment: "Onboarding subtitle"))
                         .font(.body)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
+                        .accessibilitySortPriority(OnboardingA11ySortPriority.subtitle)
                 }
             }
 
@@ -78,6 +123,7 @@ public struct OnboardingView: View {
                         .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(.white)
                 }
+                .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
 
                 Button {
                     step = 1
@@ -86,10 +132,12 @@ public struct OnboardingView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+                .accessibilitySortPriority(OnboardingA11ySortPriority.skip)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
         }
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: - Step 1: Travel style
@@ -105,12 +153,14 @@ public struct OnboardingView: View {
                 Text(NSLocalizedString("onboarding.style.title", comment: "Travel style title"))
                     .font(.title.bold())
                     .multilineTextAlignment(.center)
+                    .accessibilitySortPriority(OnboardingA11ySortPriority.title)
 
                 Text(NSLocalizedString("onboarding.style.subtitle", comment: "Travel style subtitle"))
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+                    .accessibilitySortPriority(OnboardingA11ySortPriority.subtitle)
 
                 VStack(spacing: 10) {
                     ForEach(UserPreferences.SoloTravelStyle.allCases) { style in
@@ -118,6 +168,7 @@ public struct OnboardingView: View {
                     }
                 }
                 .padding(.horizontal, 24)
+                .accessibilitySortPriority(OnboardingA11ySortPriority.content)
             }
 
             Spacer()
@@ -134,6 +185,7 @@ public struct OnboardingView: View {
                         .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(.white)
                 }
+                .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
 
                 Button {
                     preferences.completeOnboarding()
@@ -143,10 +195,12 @@ public struct OnboardingView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+                .accessibilitySortPriority(OnboardingA11ySortPriority.skip)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
         }
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder

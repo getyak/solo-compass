@@ -16,6 +16,7 @@ public enum Intent: String, Sendable, CaseIterable {
 /// Confidence < 0.6 falls back to `.smallTalk`.
 public final class IntentAgent: Agent, @unchecked Sendable {
 
+    /// The classified intent for an utterance paired with the model's confidence.
     public struct ClassificationResult: Sendable {
         public let intent: Intent
         public let confidence: Double
@@ -45,6 +46,7 @@ public final class IntentAgent: Agent, @unchecked Sendable {
 
     // MARK: - Agent
 
+    /// Classifies the message and returns the detected intent and confidence as response metadata.
     public func handle(_ message: AgentMessage) async throws -> AgentResponse {
         let result = try await classify(message.text)
         return AgentResponse(
@@ -58,6 +60,7 @@ public final class IntentAgent: Agent, @unchecked Sendable {
 
     // MARK: - Classification
 
+    /// Determines which of the four intents a user utterance expresses, falling back to keywords offline.
     public func classify(_ text: String) async throws -> ClassificationResult {
         guard let key = apiKey, let url = apiURL else {
             return fallbackClassify(text)

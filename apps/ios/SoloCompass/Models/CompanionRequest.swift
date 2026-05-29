@@ -1,4 +1,3 @@
-import Foundation
 
 /// CompanionRequest — a request from one user to another to travel together.
 ///
@@ -6,6 +5,7 @@ import Foundation
 
 // MARK: - CompanionRequestId
 
+/// Strongly-typed identifier for a companion request, preventing raw-string ID mix-ups.
 public struct CompanionRequestId: RawRepresentable, Codable, Hashable, Sendable {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
@@ -13,6 +13,7 @@ public struct CompanionRequestId: RawRepresentable, Codable, Hashable, Sendable 
 
 // MARK: - CompanionRequestStatus
 
+/// Tracks where a companion request stands in its lifecycle, from sent to resolved.
 public enum CompanionRequestStatus: String, Codable, Sendable {
     case pending
     case accepted
@@ -22,6 +23,7 @@ public enum CompanionRequestStatus: String, Codable, Sendable {
 
 // MARK: - CompanionRequest
 
+/// One user's request to another to travel together in response to a companion post.
 public struct CompanionRequest: Identifiable, Codable, Sendable {
     public let id: CompanionRequestId
     public let postId: CompanionPostId

@@ -66,7 +66,9 @@ struct XiaohongshuPortraitCard: View {
                     .padding(.bottom, 24)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(payload.highlights.prefix(3), id: \.self) { line in
+                    // US-041: index as stable id so duplicate highlight lines
+                    // don't collapse into a single row (`id: \.self` dedups).
+                    ForEach(Array(payload.highlights.prefix(3).enumerated()), id: \.offset) { _, line in
                         HighlightBullet(text: line, fontSize: 20, onLightBackground: false)
                     }
                 }
@@ -218,7 +220,9 @@ struct InstagramSquareCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(payload.highlights.prefix(2), id: \.self) { line in
+                    // US-041: index as stable id so duplicate highlight lines
+                    // don't collapse into a single row (`id: \.self` dedups).
+                    ForEach(Array(payload.highlights.prefix(2).enumerated()), id: \.offset) { _, line in
                         HighlightBullet(text: line, fontSize: 12, onLightBackground: true)
                     }
                 }
@@ -276,7 +280,7 @@ struct MinimalTextCard: View {
                     Text("\(payload.score100)")
                         .font(.system(size: 40, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("/100  Solo Score")
+                    Text(NSLocalizedString("sharecard.score.suffix", comment: "Suffix rendered after the numeric Solo Score on share-card images"))
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.85))
                         .padding(.bottom, 4)

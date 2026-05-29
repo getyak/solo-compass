@@ -529,6 +529,7 @@ public final class CompanionService {
 
 // MARK: - Errors
 
+/// Failures that can occur while creating or joining companion meetups.
 public enum CompanionServiceError: LocalizedError {
     case featureDisabled
     case encodingFailed

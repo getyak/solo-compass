@@ -23,8 +23,8 @@
 /* Confidence */
 "confidence.signals" = "信号";
 "confidence.aiScrape" = "AI 抓取时间";
-"confidence.gps" = "GPS 命中(30 天)";
-"confidence.reports" = "用户反馈(30 天)";
+"confidence.gps" = "GPS 命中（30 天）";
+"confidence.reports" = "用户反馈（30 天）";
 "confidence.trusted" = "可信认证";
 
 /* Solo Score */
@@ -39,8 +39,8 @@
 "solo.basedOn" = "基于 %d 位独行者";
 "solo.basedOn.early" = "基于 %d 条早期反馈";
 "solo.estimate.pill" = "AI 推断";
-"solo.section.estimate" = "独行评分(AI 推断)";
-"solo.section.early" = "独行评分(早期)";
+"solo.section.estimate" = "独行评分（AI 推断）";
+"solo.section.early" = "独行评分（早期）";
 
 /* Best times timeline */
 "timeline.now.good" = "现在是最佳时段。";
@@ -58,7 +58,7 @@
 "section.soloScore" = "独行评分";
 "section.sources" = "信息来源";
 "section.nearby" = "附近体验";
-"section.duration" = "通常:%d–%d 分钟";
+"section.duration" = "通常：%d–%d 分钟";
 
 /* US-015: Multi-source indicator and real signals in detail view */
 "detail.multiSource.indicator" = "已多来源验证";
@@ -91,8 +91,8 @@
 "ai.explanation.loading" = "正在加载洞察…";
 "ai.explanation.title" = "AI 洞察";
 "ai.error.missingKey" = "AI 功能尚未配置。";
-"ai.error.request" = "AI 请求失败(状态 %d)。";
-"ai.fallback.explanation" = "推荐给独行旅人:座位安静、员工不打扰、本地信号强。";
+"ai.error.request" = "AI 请求失败（状态 %d）。";
+"ai.fallback.explanation" = "推荐给独行旅人：座位安静、员工不打扰、本地信号强。";
 "ai.fallback.voice" = "正在显示附近适合独行的体验。";
 "ai.skeleton.pill" = "数据有限";
 "ai.skeleton.pill.a11y" = "占位内容";
@@ -102,11 +102,11 @@
 "common.cancel" = "取消";
 
 /* Add Experience (long-press flow) */
-"addExperience.confirm.title" = "在此处添加一个体验?";
+"addExperience.confirm.title" = "在此处添加一个体验？";
 "addExperience.confirm.message" = "用语音描述它。";
 "addExperience.confirm.add" = "添加";
 "addExperience.record.title" = "聊聊这个地方";
-"addExperience.record.hint" = "按住麦克风,描述它为何值得一人前来。";
+"addExperience.record.hint" = "按住麦克风，描述它为何值得一人前来。";
 
 /* Marker accessibility */
 "marker.a11y.bestNow" = "此刻最佳";
@@ -159,7 +159,7 @@
 "ai.processing" = "AI 思考中…";
 
 /* Map candidate marker accessibility */
-"map.candidate.label" = "候选体验:%@";
+"map.candidate.label" = "候选体验：%@";
 
 /* Experience card accessibility */
 "experience.card.hint" = "双击查看详情";
@@ -168,6 +168,7 @@
 "voice.error.title" = "语音识别错误";
 "voice.error.permission" = "麦克风或语音识别权限被拒绝。请在「设置」中允许。";
 "voice.error.unavailable" = "此设备不支持语音识别。";
+"voice.interrupted" = "语音录制被中断：%@";
 
 /* Journey progress card */
 "journey.progress.title" = "已完成的体验";
@@ -218,19 +219,19 @@
 
 /* MicroSurvey */
 "survey.title" = "快速反馈";
-"survey.comfort.question" = "作为独行者你感觉有多舒适?";
+"survey.comfort.question" = "作为独行者你感觉有多舒适？";
 "survey.comfort.1" = "非常不舒适";
 "survey.comfort.2" = "略微不舒适";
 "survey.comfort.3" = "中性";
 "survey.comfort.4" = "舒适";
 "survey.comfort.5" = "非常舒适";
-"survey.pressure.question" = "员工/商家有多主动?(星越多越轻松)";
+"survey.pressure.question" = "员工/商家有多主动？（星越多越轻松）";
 "survey.pressure.1" = "非常主动";
 "survey.pressure.2" = "略主动";
 "survey.pressure.3" = "中性";
 "survey.pressure.4" = "氛围放松";
 "survey.pressure.5" = "完全没有压力";
-"survey.recommend.question" = "你会推荐给另一位独行者吗?";
+"survey.recommend.question" = "你会推荐给另一位独行者吗？";
 "survey.recommend.yes" = "会";
 "survey.recommend.depends" = "看情况";
 "survey.recommend.no" = "不会";
@@ -242,9 +243,9 @@
 "report.title" = "反馈问题";
 "report.cancel" = "取消";
 "report.submit" = "提交";
-"report.reason.header" = "哪里不对?";
-"report.detail.header" = "补充说明(可选)";
-"report.detail.placeholder" = "再给点上下文…(最多 200 字)";
+"report.reason.header" = "哪里不对？";
+"report.detail.header" = "补充说明（可选）";
+"report.detail.placeholder" = "再给点上下文…（最多 200 字）";
 "report.reason.closed_permanently" = "已永久关闭";
 "report.reason.moved" = "已搬迁";
 "report.reason.hours_wrong" = "营业时间错误";
@@ -253,9 +254,9 @@
 "report.reason.other" = "其他";
 
 /* Pending check-in banner */
-"checkin.banner.title" = "你来过了吗?";
-"checkin.banner.yes" = "来过!";
-"checkin.banner.a11y" = "你来过 %@ 吗?";
+"checkin.banner.title" = "你来过了吗？";
+"checkin.banner.yes" = "来过！";
+"checkin.banner.a11y" = "你来过 %@ 吗？";
 
 /* Experience detail overflow */
 "detail.report" = "反馈问题";
@@ -266,13 +267,14 @@
 
 /* Onboarding */
 "onboarding.welcome.title" = "值得独处的地方。";
-"onboarding.welcome.subtitle" = "一张地图,记录适合一人前往的体验。";
+"onboarding.welcome.subtitle" = "一张地图，记录适合一人前往的体验。";
 "onboarding.welcome.cta" = "在地图上找到我";
 "onboarding.welcome.skip" = "先逛逛";
-"onboarding.style.title" = "你怎么旅行?";
+"onboarding.style.title" = "你怎么旅行？";
 "onboarding.style.subtitle" = "这会决定哪些体验优先出现。随时可改。";
 "onboarding.style.cta" = "开始探索";
 "onboarding.style.skip" = "稍后决定";
+"onboarding.skip" = "跳过";
 
 /* Favorites list */
 "favorites.title" = "收藏";
@@ -286,14 +288,14 @@
 /* Notifications */
 "settings.notifications" = "靠近时提醒我";
 "settings.notifications.header" = "通知";
-"settings.notifications.footer" = "经过你保存的体验时,Solo Compass 会安静地提醒你。永不打扰式营销。";
+"settings.notifications.footer" = "经过你保存的体验时，Solo Compass 会安静地提醒你。永不打扰式营销。";
 "notification.checkin.title" = "你就在附近";
-"notification.checkin.body" = "你正站在 %@ 附近,要去看看吗?";
+"notification.checkin.body" = "你正站在 %@ 附近，要去看看吗？";
 
 /* Settings data */
 "settings.data.header" = "我的数据";
 "settings.clearData" = "清除全部数据";
-"settings.clearData.confirm.title" = "清除全部数据?";
+"settings.clearData.confirm.title" = "清除全部数据？";
 "settings.clearData.confirm.action" = "清除一切";
 "settings.clearData.confirm.message" = "这会删除你的已完成体验、收藏与偏好。无法恢复。";
 
@@ -302,8 +304,9 @@
 "explore.aiBadge" = "AI 生成 · 来自 OpenStreetMap";
 "explore.osmBadge" = "来自 OpenStreetMap · 未增强";
 "explore.error.nothingFound" = "附近没找到公共场所。试试拖动地图。";
+"location.error.banner" = "无法获取你的位置 — 已显示默认区域。请在“设置”中检查定位权限。";
 "explore.skeleton.oneLiner" = "一处来自 OpenStreetMap 的真实地点。";
-"explore.skeleton.why" = "我们还没有这个地方的精选故事。去看看,然后告诉我们你发现了什么。";
+"explore.skeleton.why" = "我们还没有这个地方的精选故事。去看看，然后告诉我们你发现了什么。";
 "explore.quota.dailyLimit" = "今日 AI 调用次数已达上限。明天恢复前会展示真实地点但不再增强。";
 "explore.toast.addedNamed" = "正在探索 %1$@ · 新增 %2$d 处地点";
 "explore.toast.added" = "附近新增 %d 处地点";
@@ -320,14 +323,14 @@
 
 /* Paywall */
 "paywall.hero.title" = "解锁 Solo Compass Pro";
-"paywall.hero.subtitle" = "在地球任意角落用 AI 探索,语音意图,以及随取随用的逐处 AI 洞察。";
+"paywall.hero.subtitle" = "在地球任意角落用 AI 探索，语音意图，以及随取随用的逐处 AI 洞察。";
 "paywall.feature.explore" = "在这里探索 — 任意城市的 AI 增强真实地点";
-"paywall.feature.voice" = "语音意图 — 描述你的需求,得到筛选后的地图";
-"paywall.feature.insight" = "对每处体验提供 AI 洞察(按需)";
+"paywall.feature.voice" = "语音意图 — 描述你的需求，得到筛选后的地图";
+"paywall.feature.insight" = "对每处体验提供 AI 洞察（按需）";
 "paywall.feature.quota" = "每天 30 次新探索 + 60 次 AI 洞察";
 "paywall.bestValue" = "最划算";
 "paywall.cta.startTrial" = "开始 7 天免费试用";
-"paywall.fineprint" = "免费 7 天,之后自动扣费。可在「设置 → Apple ID → 订阅」中随时取消。订阅即表示同意 App Store EULA 与我们的条款。";
+"paywall.fineprint" = "免费 7 天，之后自动扣费。可在「设置 → Apple ID → 订阅」中随时取消。订阅即表示同意 App Store EULA 与我们的条款。";
 "paywall.restore" = "恢复购买";
 "paywall.manage" = "管理订阅";
 "paywall.error.title" = "购买未完成";
@@ -349,18 +352,18 @@
 "settings.adminUnlock.failure" = "该邮箱不在测试白名单内。";
 
 /* Free-tier paywall hooks */
-"explore.button.pro" = "探索(Pro)";
+"explore.button.pro" = "探索（Pro)";
 "detail.aiInsight.gated" = "订阅后解锁 AI 洞察";
 
 /* Overpass errors */
 "overpass.error.url" = "Overpass 端点 URL 无效。";
-"overpass.error.request" = "地图数据请求失败(状态 %d)。";
+"overpass.error.request" = "地图数据请求失败（状态 %d）。";
 
 /* Explore consent (US-034) */
 "explore.consent.title" = "开始探索之前";
 "explore.consent.subtitle" = "Solo Compass 会代你与两个服务通讯。下面是会离开你手机的全部数据。";
-"explore.consent.bullet.location" = "粗略位置 → OpenStreetMap。完全公开,无账号,不追踪。";
-"explore.consent.bullet.ai" = "OSM 标签 + 城市标识 → Anthropic,用于生成独行旅人风格的描述。无任何个人资料。";
+"explore.consent.bullet.location" = "粗略位置 → OpenStreetMap。完全公开，无账号，不追踪。";
+"explore.consent.bullet.ai" = "OSM 标签 + 城市标识 → Anthropic，用于生成独行旅人风格的描述。无任何个人资料。";
 "explore.consent.bullet.no_pii" = "我们不收集通讯录、相册、浏览记录。绝不与广告商共享。";
 "explore.consent.accept" = "了解了 — 开始探索";
 "explore.consent.cancel" = "暂不";
@@ -406,7 +409,7 @@
 
 /* Location card + navigation picker */
 "location.openingHours" = "营业时间";
-"location.openingHours.a11y" = "营业时间:%@";
+"location.openingHours.a11y" = "营业时间：%@";
 "location.navigate" = "导航";
 "location.copyCoords" = "复制坐标";
 "location.openIn.apple" = "苹果地图";
@@ -443,16 +446,16 @@
 /* Chat sheet */
 "chat.title" = "Solo Compass";
 "chat.empty.title" = "问我你附近有什么好玩的";
-"chat.empty.subtitle" = "试试「附近有什么好的?」或按住麦克风说话。";
+"chat.empty.subtitle" = "试试「附近有什么好的？」或按住麦克风说话。";
 "chat.input.placeholder" = "输入消息…";
 "chat.input.send.a11y" = "发送";
 "chat.input.mic.a11y" = "语音";
-"chat.input.mic.hint" = "点击开始/停止语音,长按推按说话";
+"chat.input.mic.hint" = "点击开始/停止语音，长按推按说话";
 "chat.state.listening" = "正在聆听 — 松开即发送";
 "chat.state.thinking" = "思考中…";
 "chat.error.retry" = "重试";
-"chat.bubble.user.a11y" = "你说:%@";
-"chat.bubble.assistant.a11y" = "Solo 说:%@";
+"chat.bubble.user.a11y" = "你说：%@";
+"chat.bubble.assistant.a11y" = "Solo 说：%@";
 "chat.typing.a11y" = "Solo Compass 正在思考…";
 "chat.tool.exploreNearby" = "搜索附近";
 "chat.tool.filter" = "筛选地图";
@@ -496,6 +499,10 @@
 "share.style.twitterLandscape" = "横版 1.91:1";
 "share.style.instagramSquare" = "方形 1:1";
 "share.style.minimalText" = "极简 9:16";
+/* Share-card image brand label (US-038) — kept as "Solo Compass" in both locales, but routed through l10n. */
+"sharecard.brand" = "Solo Compass";
+/* Share-card score suffix (US-039) — rendered after the numeric Solo Score on the share card. */
+"sharecard.score.suffix" = "/100 Solo 评分";
 
 /* Offline banner (US-041) */
 "offline.banner" = "离线模式 · 显示缓存数据";
@@ -629,7 +636,7 @@
 "companion.hub.presence.title" = "允许他人发现我";
 "companion.hub.presence.on" = "已开启 — 其他旅行者可以找到你";
 "companion.hub.presence.off" = "未开启 — 你保持隐身";
-"companion.hub.presence.footer" = "开启后,你所在的 ~600 米模糊网格对同城旅行者可见。不会暴露精确位置或身份信息。";
+"companion.hub.presence.footer" = "开启后，你所在的 ~600 米模糊网格对同城旅行者可见。不会暴露精确位置或身份信息。";
 "companion.hub.discover.title" = "发现同伴";
 "companion.hub.discover.subtitle" = "看看本城有谁想找同伴";
 "companion.hub.inbox.title" = "请求";
@@ -648,7 +655,7 @@
 "companion.discover.error.title" = "无法加载";
 "companion.discover.empty.title" = "暂无同伴";
 "companion.discover.empty.description" = "这座城市目前没有公开找同伴的旅行者。";
-"companion.discover.coldstart.tip" = "试着发一条自己的同伴帖,让其他人发现你。";
+"companion.discover.coldstart.tip" = "试着发一条自己的同伴帖，让其他人发现你。";
 "companion.discover.empty.cta" = "抢先发布 — 分享你的行程";
 "companion.discover.empty.cta.hint" = "打开表单，发布你在这座城市的出行时间";
 
@@ -661,15 +668,15 @@
 "companion.inbox.empty.description" = "暂时还没人向你发送同伴请求。";
 "companion.inbox.request.from" = "来自";
 "companion.inbox.accepted.title" = "已接受";
-"companion.inbox.accepted.message" = "你们的对话已建立,可以开始聊聊行程啦。";
+"companion.inbox.accepted.message" = "你们的对话已建立，可以开始聊聊行程啦。";
 
 /* ============================================================
  * Send request / common request labels
  * ============================================================ */
 "companion.request.sheet.title" = "发送同伴请求";
 "companion.request.post.header" = "对方的同伴帖";
-"companion.request.note.header" = "附言(可选)";
-"companion.request.note.placeholder" = "简单介绍一下自己,或说说你为什么想约一起...";
+"companion.request.note.header" = "附言（可选）";
+"companion.request.note.placeholder" = "简单介绍一下自己，或说说你为什么想约一起...";
 "companion.request.note.footer" = "请保持友好。粗鲁或骚扰行为会被举报。";
 "companion.request.send" = "发送请求";
 "companion.request.send.action" = "发送";
@@ -709,8 +716,8 @@
 "companion.report.reason.fake_profile" = "虚假资料";
 "companion.report.reason.inappropriate_content" = "不合适的内容";
 "companion.report.reason.other" = "其他";
-"companion.report.details.header" = "补充说明(可选)";
-"companion.report.details.placeholder" = "请提供更多信息,帮助我们处理...";
+"companion.report.details.header" = "补充说明（可选）";
+"companion.report.details.placeholder" = "请提供更多信息，帮助我们处理...";
 "companion.report.submit" = "提交举报";
 "companion.report.submitting" = "提交中...";
 "companion.report.success.title" = "感谢你的反馈";
@@ -722,27 +729,27 @@
  * Block (拉黑)
  * ============================================================ */
 "companion.block.title" = "屏蔽用户";
-"companion.block.confirm.title" = "确认屏蔽?";
-"companion.block.confirm.message" = "屏蔽后你将不会再看到对方的任何内容,对方也无法联系你。";
+"companion.block.confirm.title" = "确认屏蔽？";
+"companion.block.confirm.message" = "屏蔽后你将不会再看到对方的任何内容，对方也无法联系你。";
 "companion.block.confirm.action" = "屏蔽";
 
 /* ============================================================
  * Safety consent (CompanionSafetyConsentSheet)
  * ============================================================ */
 "companion.safety.title" = "开始使用前";
-"companion.safety.heading" = "Solo Compass 是旅行同伴 app,不是相亲软件。";
-"companion.safety.subtitle" = "请阅读并接受以下条款,让大家都能安心使用。";
+"companion.safety.heading" = "Solo Compass 是旅行同伴 app，不是相亲软件。";
+"companion.safety.subtitle" = "请阅读并接受以下条款，让大家都能安心使用。";
 "companion.safety.age.header" = "年龄";
 "companion.safety.age.body" = "你必须年满 18 岁才能使用同伴功能。";
 "companion.safety.age.confirm" = "我已年满 18 岁";
 "companion.safety.privacy.header" = "隐私";
-"companion.safety.privacy.body" = "你的精确位置永远不会被分享。仅在你开启在线状态时,展示 ~600 米的模糊网格中心。";
+"companion.safety.privacy.body" = "你的精确位置永远不会被分享。仅在你开启在线状态时，展示 ~600 米的模糊网格中心。";
 "companion.safety.rules.header" = "基本规则";
 "companion.safety.rule.meetInPublic" = "约见请选在公共场所。";
 "companion.safety.rule.noPreciseLocation" = "不要分享住址或精确位置。";
 "companion.safety.rule.noObligation" = "你有权拒绝任何请求或随时停止聊天。";
-"companion.safety.rule.reportSuspicious" = "遇到任何让你不舒服的人请举报,我们会加权处理。";
-"companion.safety.rule.emergency" = "若感觉不对劲,请立即离开并拨打当地紧急电话。";
+"companion.safety.rule.reportSuspicious" = "遇到任何让你不舒服的人请举报，我们会加权处理。";
+"companion.safety.rule.emergency" = "若感觉不对劲，请立即离开并拨打当地紧急电话。";
 "companion.safety.rules.confirm" = "我已了解并会遵守以上规则";
 "companion.safety.legal.footer" = "点击接受即表示你同意服务条款与社区准则。";
 "companion.safety.accept" = "接受并继续";
@@ -756,19 +763,19 @@
 "itinerary.addTo.createFirst" = "先创建一个行程";
 "itinerary.addTo.createNew" = "新建行程";
 "itinerary.addTo.noItineraries" = "还没有行程";
-"itinerary.addTo.noItineraries.hint" = "创建你的第一个行程,把心仪的体验都收进去。";
+"itinerary.addTo.noItineraries.hint" = "创建你的第一个行程，把心仪的体验都收进去。";
 
 /* ============================================================
  * Itinerary — Import from favorites
  * ============================================================ */
 "itinerary.detail.importFavorites" = "从收藏导入";
-"itinerary.detail.importFavorites.confirm.title" = "导入收藏?";
+"itinerary.detail.importFavorites.confirm.title" = "导入收藏？";
 "itinerary.detail.importFavorites.confirm.message" = "已收藏的体验将被添加到这个行程中。已存在的不会重复添加。";
 "itinerary.detail.importFavorites.confirm.action" = "导入";
 "itinerary.detail.importFavorites.toast" = "已导入 %d 项";
 
 /* US-012 — 同伴（实验中）设置区 */
-"settings.companion.header" = "同伴 (实验中)";
+"settings.companion.header" = "同伴 （实验中）";
 "settings.companion.toggle" = "启用同伴功能";
 "settings.companion.footer" = "实验功能。打开后可与其他独行旅行者发现彼此并组群；关闭则隐藏所有同伴相关入口。";
 "settings.companion.profile" = "同伴档案";
@@ -820,6 +827,8 @@
 
 /* AI hints */
 "ai.now.hint" = "当下最适合的地方";
+/* US-015 — BottomInfoSheet now-mode headline */
+"sheet.now.headline" = "此刻最适合的好去处";
 
 /* AI Provider settings */
 "ai.provider.settings.title" = "AI 提供商";
@@ -844,6 +853,12 @@
 /* Approval queue */
 "approval.queue.title" = "待审批申请";
 "approval.queue.trust.line" = "已走过 %d 条 · 拼团 %d 次";
+/* US-032 — per-requester trust micro-stats */
+"approval.queue.signal.optin.yes" = "已开启";
+"approval.queue.signal.optin.no" = "未开启";
+"approval.queue.signal.optin.a11y" = "结伴开关：%@";
+"approval.queue.signal.walked.a11y" = "已走过 %@ 条路线";
+"approval.queue.signal.group.a11y" = "拼团 %@ 次";
 "approval.queue.decline" = "拒绝";
 "approval.queue.accept" = "接受";
 "approval.queue.empty" = "暂无待处理申请。";
@@ -1002,6 +1017,8 @@
 "join.message.label" = "自我介绍";
 "join.message.placeholder" = "向主理人介绍自己…";
 "join.submit" = "提交申请";
+"join.error.pace.missing" = "请选择配速匹配";
+"join.error.message.missing" = "请填写自我介绍";
 
 /* Location */
 "location.copied" = "已复制！";
@@ -1072,6 +1089,10 @@
 "sheet.nearby.smartPick.a11y" = "AI 推荐";
 "sheet.routes.section.title" = "路线";
 
+/* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */
+"sheet.section.routes" = "路线";
+"sheet.section.nearby" = "附近";
+
 /* Solo breakdown */
 "solo.breakdown.toggle" = "各维度评分";
 "solo.breakdown.expand.hint" = "展开或收起六维评分详情";
@@ -1080,12 +1101,20 @@
 "solo.excellent.a11y" = "非常适合独行旅行者";
 "solo.radar.weakest" = "最弱项：%@ — 这是一个权衡点";
 "solo.radar.weakest.a11y" = "注意：%@ 是最弱的维度 — 这是一个权衡点。";
+"solo.radar.strongest" = "独行最佳：%@";
+"solo.radar.strongest.a11y" = "独行最佳：%@。";
 
 /* Sort */
 "sort.smart" = "智能";
 "sort.distance" = "距离";
 "sort.soloScore" = "Solo 评分";
 "sort.now" = "此刻";
+
+/* US-030 — 排序按钮 VoiceOver accessibilityValue（朗读当前排序方式） */
+"sort.value.smart" = "按智能排序";
+"sort.value.distance" = "按距离排序";
+"sort.value.soloScore" = "按 Solo 评分排序";
+"sort.value.now" = "按此刻排序";
 
 /* Stops */
 "stops.start" = "出发";
@@ -1114,3 +1143,6 @@
 "voiceAgent.permissionDenied" = "需要麦克风权限 — 请在设置中开启";
 "voiceAgent.error.streaming" = "连接中断 — 请重试";
 "voiceAgent.tts.fallback" = "回复已准备好";
+"a11y.empty.nearby" = "附近没有体验";
+"a11y.empty.filterResults" = "此筛选没有结果";
+"a11y.empty.list" = "没有可显示的体验";

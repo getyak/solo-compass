@@ -1,4 +1,3 @@
-import Foundation
 
 /// CompanionBlock — a block record between two users (US-014).
 ///

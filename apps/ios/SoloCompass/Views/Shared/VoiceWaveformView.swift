@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 /// Siri-like waveform that responds to speaking amplitude.
 /// Renders 3 layered gradient ripples via Canvas + TimelineView(.animation).

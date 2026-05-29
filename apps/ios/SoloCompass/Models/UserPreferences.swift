@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 import StoreKit
 import UIKit
 
@@ -11,6 +12,9 @@ import UIKit
 /// limit on UserDefaults.
 @Observable
 public final class UserPreferences {
+    private static let logger = Logger(subsystem: "com.solocompass", category: "UserPreferences")
+
+    /// The traveler's self-described style, used to tailor experience recommendations.
     public enum SoloTravelStyle: String, Codable, CaseIterable, Identifiable {
         case explorer, worker, foodie, cultureSeeker
         public var id: String { rawValue }
@@ -389,9 +393,7 @@ public final class UserPreferences {
         do {
             return try JSONDecoder.iso8601Decoder.decode(Snapshot.self, from: data)
         } catch {
-            #if DEBUG
-            print("[UserPreferences] decode error — returning defaults. error=\(error)")
-            #endif
+            logger.error("decode error — returning defaults. error=\(String(describing: error), privacy: .public)")
             return Snapshot()
         }
     }
@@ -440,9 +442,7 @@ public final class UserPreferences {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)
             defaults.set(data, forKey: Self.storageKey)
         } catch {
-            #if DEBUG
-            print("[UserPreferences] encode error: \(error)")
-            #endif
+            Self.logger.error("encode error: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -510,6 +510,7 @@ public final class UserPreferences {
 
     // MARK: - Convenience mutations
 
+    /// Records that the user finished an experience, updating completion and visit history.
     public func markCompleted(_ id: String, at date: Date = Date()) {
         completedExperiences.insert(id)
         visitHistory[id] = date
@@ -538,6 +539,7 @@ public final class UserPreferences {
         }
     }
 
+    /// Adds or removes an experience from the user's favorites.
     public func toggleFavorite(_ id: String, at date: Date = Date()) {
         let nowFavorited: Bool
         if favoritedExperiences.contains(id) {
@@ -560,6 +562,7 @@ public final class UserPreferences {
         }
     }
 
+    /// Marks the first-run onboarding flow as finished so it won't be shown again.
     public func completeOnboarding() {
         hasCompletedOnboarding = true
     }
@@ -635,10 +638,12 @@ public final class UserPreferences {
         return completedExperiences.contains(id)
     }
 
+    /// Tracks that the user arrived at an experience but hasn't yet confirmed a check-in.
     public func recordPendingCheckIn(_ id: String, at date: Date = Date()) {
         pendingCheckIns[id] = date
     }
 
+    /// Removes a pending check-in once it has been resolved or dismissed.
     public func clearPendingCheckIn(_ id: String) {
         pendingCheckIns.removeValue(forKey: id)
     }

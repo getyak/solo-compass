@@ -65,6 +65,8 @@ public final class ExperienceService {
 
     // MARK: - Filtering
 
+    /// Narrow the visible experiences by category and/or proximity to a
+    /// point, updating `filteredExperiences` for the map and list.
     public func filter(by category: ExperienceCategory?, near location: CLLocationCoordinate2D?, maxDistance: Double) {
         filteredExperiences = allExperiences.filter { exp in
             if let category, exp.category != category { return false }
@@ -77,6 +79,7 @@ public final class ExperienceService {
         }
     }
 
+    /// Fetch experiences within a radius of a point, sorted nearest-first.
     public func getExperiences(near location: CLLocationCoordinate2D, radiusKm: Double) -> [Experience] {
         let radiusMeters = radiusKm * 1000
         return allExperiences
@@ -89,16 +92,21 @@ public final class ExperienceService {
             .map { $0.0 }
     }
 
+    /// Look up a single experience by its identifier, if loaded.
     public func getExperience(id: String) -> Experience? {
         allExperiences.first(where: { $0.id == id })
     }
 
+    /// Nearby experiences whose best-time window is open right now — what
+    /// the traveler should do at this moment.
     public func getBestNowExperiences(at date: Date, near location: CLLocationCoordinate2D) -> [Experience] {
         getExperiences(near: location, radiusKm: 5.0).filter { $0.isBestNow(at: date) }
     }
 
     // MARK: - Mutations — write through repo
 
+    /// Log that the traveler completed an experience, bumping its
+    /// completion count and persisting a completion record.
     public func markCompleted(_ id: String) {
         // Bump in-memory stats so observers see it immediately. The
         // authoritative count comes from UserCompletionRecord rows
@@ -121,6 +129,7 @@ public final class ExperienceService {
         repository.recordCompletion(experienceId: id)
     }
 
+    /// Add or remove an experience from the traveler's saved favorites.
     public func toggleFavorite(_ id: String, in preferences: UserPreferences) {
         preferences.toggleFavorite(id)
     }

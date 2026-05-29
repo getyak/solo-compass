@@ -1,5 +1,6 @@
 import Foundation
 
+/// The backend service used for AI-powered recommendations and extraction.
 public enum AIProvider: String, CaseIterable, Codable, Identifiable {
     case deepseek
     case openai

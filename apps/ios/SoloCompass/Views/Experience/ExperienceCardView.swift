@@ -202,7 +202,13 @@ public struct ExperienceCardView: View {
                             .scaleEffect(favorited ? 1.15 : 1.0)
                             .symbolEffect(.bounce, value: heartBounce)
                     }
+                    // US-019: keep the visible heart 32×32 but expand the
+                    // tappable region to the 44pt HIG minimum.
                     .frame(width: 32, height: 32)
+                    .frame(
+                        minWidth: HitTargetMetrics.minimum,
+                        minHeight: HitTargetMetrics.minimum
+                    )
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -486,14 +492,18 @@ public struct ExperienceCardView: View {
 // MARK: - BestNowBadge
 
 private struct BestNowBadge: View {
-    /// The experience to query for live countdown; passed so the live timer can call
-    /// minutesLeftInBestWindow() on each TimelineView tick.
+    /// The experience to query for live countdown; the shared `BestNowClock`
+    /// drives recomputation of `minutesLeftInBestWindow()` once a minute.
     var experience: Experience
 
     private static let gold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
 
     @State private var pulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Single 60s clock shared across every badge (US-023). Replaces the
+    /// per-badge `TimelineView(.periodic(by: 60))` so 20+ badges no longer spin
+    /// up 20+ concurrent timelines.
+    @Environment(BestNowClock.self) private var clock
 
     private func labelText(at date: Date) -> String {
         if let minutes = experience.minutesLeftInBestWindow(at: date) {
@@ -512,18 +522,20 @@ private struct BestNowBadge: View {
     var body: some View {
         Group {
             if reduceMotion {
-                badgeLabel(at: Date())
-                    .accessibilityLabel(a11yText(at: Date()))
+                badgeLabel(at: clock.tick)
+                    .accessibilityLabel(a11yText(at: clock.tick))
             } else {
-                TimelineView(.periodic(from: Date(), by: 60)) { context in
-                    badgeLabel(at: context.date)
-                        .accessibilityLabel(a11yText(at: context.date))
-                }
-                .onAppear {
-                    withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
-                        pulse = true
+                // Reading `clock.tick` here makes this badge a SwiftUI observer
+                // of the shared clock: the once-a-minute advance invalidates the
+                // body and recomputes the countdown — same cadence the old
+                // per-badge TimelineView gave, with one timer for all badges.
+                badgeLabel(at: clock.tick)
+                    .accessibilityLabel(a11yText(at: clock.tick))
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                            pulse = true
+                        }
                     }
-                }
             }
         }
     }
@@ -560,6 +572,7 @@ private struct BestNowBadge: View {
         .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
         .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview")!))
         .environment(locationService)
+        .environment(BestNowClock())
         .environment(AIService()))
     } else {
         return AnyView(Text("No seed data"))

@@ -1,4 +1,3 @@
-import AuthenticationServices
 import SwiftData
 import SwiftUI
 
@@ -894,10 +893,13 @@ public struct SettingsView: View {
 /// Replaces the US-012 stub with live SwiftData reads.
 struct CompanionConversationsListView: View {
     @Environment(\.modelContext) private var modelContext
+    // Use an explicit SortDescriptor array rather than the bare KeyPath +
+    // `order:` overload of @Query. Under SWIFT_STRICT_CONCURRENCY=complete the
+    // KeyPath overload triggers a "sending KeyPath risks data races" warning;
+    // SortDescriptor is Sendable, so this form is clean.
     @Query(
         filter: #Predicate<ConversationRecord> { $0.type == "groupRoute" },
-        sort: \ConversationRecord.createdAt,
-        order: .reverse
+        sort: [SortDescriptor(\ConversationRecord.createdAt, order: .reverse)]
     ) private var records: [ConversationRecord]
 
     private var currentUserId: String? {

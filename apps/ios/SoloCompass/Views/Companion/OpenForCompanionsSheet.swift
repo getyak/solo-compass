@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 /// US-039 — Host converts a private itinerary into a recruiting route.
 ///

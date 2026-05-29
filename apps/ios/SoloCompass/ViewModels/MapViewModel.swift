@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import MapKit
 import Observation
+import os
 import SwiftUI
 
 /// State + intent for the root `CompassMapView`.
@@ -26,6 +27,12 @@ public final class MapViewModel {
     private let foursquareService: FoursquareService
     private let geocodeService: any ReverseGeocoding
     private let preferences: UserPreferences
+
+    @ObservationIgnored
+    private let logger = Logger(subsystem: "com.solocompass", category: "MapViewModel")
+
+    /// Static logger for type-level analytics emission (see `emitMultiRingCompleted`).
+    private static let analyticsLogger = Logger(subsystem: "com.solocompass", category: "Analytics")
 
     /// Lazily built deep-dive orchestrator. Reuses the existing channel
     /// services and adds an Apple MapKit source. `@ObservationIgnored` so the
@@ -146,7 +153,31 @@ public final class MapViewModel {
 
     /// Currently selected city code (e.g. "cmi"), nil = all cities.
     /// Custom locations use the format `custom_{lat}_{lon}`.
-    public var selectedCity: String?
+    ///
+    /// V-002: any change here keeps `cameraPosition` in agreement with the
+    /// city header label, so the rendered map region never disagrees with the
+    /// name shown to the user. Custom-pin selections (`custom_…`) are skipped
+    /// because their camera is driven by `customCoordinates` in
+    /// `selectCustomLocation`. The first set during `init` does NOT trigger
+    /// `didSet` (Swift initializer semantics), so `init` performs the same
+    /// sync explicitly after all stored properties are set.
+    public var selectedCity: String? {
+        didSet {
+            guard selectedCity != oldValue else { return }
+            invalidateCityCache()
+            syncCameraToSelectedCity()
+        }
+    }
+
+    /// Move `cameraPosition` to the selected city's center. Custom-pin
+    /// selections keep their existing camera (set in `selectCustomLocation`).
+    private func syncCameraToSelectedCity() {
+        if selectedCity?.hasPrefix("custom_") == true { return }
+        cameraPosition = .region(MKCoordinateRegion(
+            center: defaultCenterForSelectedCity,
+            span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+        ))
+    }
 
     /// Coordinate for a custom-pin location set via LocationPickerSheet.
     /// Non-nil when `selectedCity` starts with "custom_".
@@ -185,6 +216,29 @@ public final class MapViewModel {
     /// previous Explore sessions (Epic C US-016/017). Discovered cities
     /// override seed-derived names when the codes match.
     public var availableCities: [(code: String, name: String, center: CLLocationCoordinate2D)] { // swiftlint:disable:this large_tuple
+        // US-017: cache the result so `body` re-renders don't re-traverse
+        // `allExperiences` (O(n)) on every invocation. Invalidated whenever
+        // the experience set or selected city changes (see invalidateCityCache).
+        if let cached = _cachedCities { return cached }
+        let computed = computeAvailableCities()
+        _cachedCities = computed
+        return computed
+    }
+
+    /// Backing store for `availableCities` (US-017). `@ObservationIgnored`
+    /// so the `@Observable` macro doesn't treat reads of the cache as a
+    /// tracked dependency — invalidation is explicit via `invalidateCityCache`.
+    @ObservationIgnored private var _cachedCities: [(code: String, name: String, center: CLLocationCoordinate2D)]? // swiftlint:disable:this large_tuple
+
+    /// Drop the cached city list. Called whenever the underlying inputs
+    /// (`allExperiences`, discovered cities, or `selectedCity`) change.
+    private func invalidateCityCache() {
+        _cachedCities = nil
+    }
+
+    /// The actual O(n) derivation, split out of `availableCities` so the
+    /// getter can serve a memoized result. See `availableCities` docs.
+    private func computeAvailableCities() -> [(code: String, name: String, center: CLLocationCoordinate2D)] { // swiftlint:disable:this large_tuple
         var cityExperiences: [String: [CLLocationCoordinate2D]] = [:]
         for exp in experienceService.allExperiences {
             guard let coord = exp.coordinate else { continue }
@@ -220,13 +274,57 @@ public final class MapViewModel {
         "cmi": "Chiang Mai",
     ]
 
+    /// Well-known city centers keyed by both their seed/discovered codes and
+    /// their human-readable slugs. Used as a fallback in
+    /// `defaultCenterForSelectedCity` so the camera can still resolve a sane
+    /// region for a selection that has no matching experiences yet (e.g. a
+    /// persisted `lastSelectedCity` on a cold start, before any pins load).
+    static let knownCityCenters: [String: CLLocationCoordinate2D] = [
+        "cmi": CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
+        "chiang-mai": CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
+        "san-francisco": CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+    ]
+
+    /// V-004: human-readable city slugs (used by the city header / persisted
+    /// `lastSelectedCity`) mapped to the compact seed `cityCode` they share a
+    /// location with. The cold-start empty state happened because a persisted
+    /// slug like `chiang-mai` never `==` matched the seed's `cmi` cityCode in
+    /// `applyFilters`, so every seed row was filtered out. `cityCodeMatches`
+    /// consults this table both directions so either form selects the city.
+    static let cityCodeAliases: [String: String] = [
+        "chiang-mai": "cmi",
+        "vientiane": "VTE",
+    ]
+
+    /// True when `seedCityCode` (an experience's `location.cityCode`) belongs to
+    /// the same city as `selectedCode` (the header / persisted selection),
+    /// resolving slug↔seed-code aliases in both directions. Case-insensitive so
+    /// the upper-cased seed codes (`VTE`) match lower-cased slugs.
+    static func cityCodeMatches(_ seedCityCode: String, selected selectedCode: String) -> Bool {
+        if seedCityCode.caseInsensitiveCompare(selectedCode) == .orderedSame { return true }
+        if let alias = cityCodeAliases[selectedCode.lowercased()],
+           alias.caseInsensitiveCompare(seedCityCode) == .orderedSame { return true }
+        if let alias = cityCodeAliases[seedCityCode.lowercased()],
+           alias.caseInsensitiveCompare(selectedCode) == .orderedSame { return true }
+        return false
+    }
+
     /// Center coordinate for the selected city, or the default if none selected.
+    /// Resolution order: live `availableCities` (seed + discovered) → the static
+    /// `knownCityCenters` slug catalog → the global default (Chiang Mai).
     public var defaultCenterForSelectedCity: CLLocationCoordinate2D {
-        guard let code = selectedCity,
-              let city = availableCities.first(where: { $0.code == code }) else {
-            return Self.defaultCenter
+        guard let code = selectedCity else { return Self.defaultCenter }
+        // V-004: match alias-aware so a header slug (`chiang-mai`, `vientiane`)
+        // resolves to the seed-coded city's centroid — exact `==` left slug
+        // selections falling through to the global default (Chiang Mai), which
+        // mis-anchored both the camera and the nearby query origin.
+        if let city = availableCities.first(where: { Self.cityCodeMatches($0.code, selected: code) }) {
+            return city.center
         }
-        return city.center
+        if let known = Self.knownCityCenters[code] {
+            return known
+        }
+        return Self.defaultCenter
     }
 
     /// Selects a preset city, recenters the map, and reloads experiences.
@@ -294,8 +392,28 @@ public final class MapViewModel {
     public var selectedCustomTag: String?
     public var visibleExperiences: [Experience] = []
 
+    /// US-021: read-only passthrough to the full seeded/synced experience set.
+    /// `MapViewModelEagerInitTest` reads this on the launch path to prove the
+    /// eagerly-built view model is live before any `onAppear` fires.
+    public var allExperiences: [Experience] { experienceService.allExperiences }
+
+    /// US-018: cached count of visible experiences at their best time right
+    /// now. Recomputed only by `recomputeNowCount()` — called at the end of
+    /// `loadNearbyExperiences`, `refreshForLocation`, and `updateBottomInfo`
+    /// (the only places `visibleExperiences` changes or is re-read for info).
+    /// This avoids an O(n) `isBestNow()` scan on every SwiftUI render of
+    /// `BottomInfoSheet` / `FilterBarView`.
+    @ObservationIgnored private var _nowCount: Int = 0
+
     /// Number of currently visible experiences that are at their best time right now.
-    public var nowCount: Int { visibleExperiences.filter { $0.isBestNow() }.count }
+    public var nowCount: Int { _nowCount }
+
+    /// Single source of truth for `_nowCount`. The only place that scans
+    /// `visibleExperiences` for `isBestNow()`. Call after any mutation of
+    /// `visibleExperiences`.
+    private func recomputeNowCount() {
+        _nowCount = visibleExperiences.filter { $0.isBestNow() }.count
+    }
 
     // MARK: - Empty-state progression (US-012)
 
@@ -330,6 +448,44 @@ public final class MapViewModel {
     // True when a "Now" filter is active (best-now experiences only).
     public var isNowFilter: Bool = false
 
+    // MARK: - Location error surfacing (US-026)
+
+    /// Tracks the most recent `LocationService.lastError` we already reported to
+    /// Sentry, so observing the banner text repeatedly doesn't re-capture the
+    /// same failure. `@ObservationIgnored` because it's bookkeeping, not UI state.
+    @ObservationIgnored private var reportedLocationError: NSError?
+
+    /// Derived, dismissible banner copy for a GPS failure. Returns the localized
+    /// `location.error.banner` string when `LocationService.lastError` is set,
+    /// or nil when GPS is healthy. Reading this also reports the warning to
+    /// Sentry once per distinct error. Reading `locationService.lastError` keeps
+    /// SwiftUI's dependency tracking intact (LocationService is `@Observable`),
+    /// so the banner appears/disappears reactively.
+    public var locationErrorBannerText: String? {
+        guard let error = locationService.lastError else {
+            reportedLocationError = nil
+            return nil
+        }
+        let nsError = error as NSError
+        if reportedLocationError != nsError {
+            reportedLocationError = nsError
+            // `level:` defaults to `.warning` in SentryService.capture(message:),
+            // so we don't reference SentryLevel here (no Sentry import needed).
+            SentryService.capture(
+                message: "LocationService.lastError surfaced",
+                context: [
+                    "domain": nsError.domain,
+                    "code": nsError.code,
+                    "description": nsError.localizedDescription
+                ]
+            )
+        }
+        return NSLocalizedString(
+            "location.error.banner",
+            comment: "Banner shown when GPS fails and the map falls back to a default region"
+        )
+    }
+
     // MARK: - Voice processing feedback
 
     public var isProcessingVoiceIntent: Bool = false
@@ -356,6 +512,8 @@ public final class MapViewModel {
         pendingCheckIn = (id: id, title: title)
     }
 
+    /// Mark the pending geofence check-in as visited when the user confirms
+    /// they arrived, then advance to any next queued check-in.
     public func confirmCheckIn() {
         guard let pending = pendingCheckIn else { return }
         preferences.markCompleted(pending.id)
@@ -364,6 +522,8 @@ public final class MapViewModel {
         checkForPendingCheckIns()
     }
 
+    /// Dismiss the pending check-in prompt without marking it visited, then
+    /// advance to any next queued check-in.
     public func dismissCheckIn() {
         guard let pending = pendingCheckIn else { return }
         preferences.clearPendingCheckIn(pending.id)
@@ -421,6 +581,11 @@ public final class MapViewModel {
             center: initialCenter,
             span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
         ))
+        // V-002: `didSet` does not fire for the `selectedCity` set above
+        // (initializer semantics), so apply the same camera↔city sync here so
+        // a cold start with a persisted city lands the camera on that city's
+        // center — including slug-only selections resolved via knownCityCenters.
+        syncCameraToSelectedCity()
         loadNearbyExperiences()
         updateBottomInfo()
     }
@@ -433,10 +598,14 @@ public final class MapViewModel {
         loadNearbyExperiences()
     }
 
+    /// Recompute the experiences shown on the map for the current origin,
+    /// distance, and active filters, refreshing markers and the info bar.
     public func loadNearbyExperiences() {
-        let center = customCoordinates
-            ?? locationService.currentLocation?.coordinate
-            ?? defaultCenterForSelectedCity
+        // US-017: the experience set (and thus discovered cities) may have
+        // changed since the last load — e.g. after an Explore added pins.
+        // Drop the city cache so the next `availableCities` read recomputes.
+        invalidateCityCache()
+        let center = nearbyQueryOrigin
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: center, radiusKm: radiusKm)
         withAnimation(Self.markerSetAnimation) {
@@ -444,14 +613,84 @@ public final class MapViewModel {
             nearbySoloCount = computeNearbySoloCount(in: nearby)
         }
         aiSmartPickIds = []
+        recomputeNowCount()
         updateBottomInfo()
+        scheduleColdStartEmptyWatchdog()
+    }
+
+    /// V-004: origin for the nearby query. A *preset* city selection drives the
+    /// origin from that city's center, NOT live GPS — otherwise a cold start in
+    /// the simulator (GPS defaults to San Francisco) queries thousands of km from
+    /// the selected city and returns zero seed experiences. Custom pins keep
+    /// their explicit coordinate; with no city selected we follow live GPS (or
+    /// the default center) as before.
+    private var nearbyQueryOrigin: CLLocationCoordinate2D {
+        if let custom = customCoordinates { return custom }
+        if let city = selectedCity, !city.hasPrefix("custom_") {
+            return defaultCenterForSelectedCity
+        }
+        return locationService.currentLocation?.coordinate ?? defaultCenterForSelectedCity
+    }
+
+    // MARK: - Cold-start empty-state watchdog (V-004 / US-033)
+
+    /// Seconds a selected city may stay empty before we report it to Sentry.
+    static let coldStartEmptyWatchdogSeconds: UInt64 = 5
+
+    /// Set true once we've reported a given empty cold start so the watchdog
+    /// doesn't spam Sentry on every subsequent reload while the map stays empty.
+    @ObservationIgnored private var reportedColdStartEmpty = false
+
+    /// In-flight watchdog so repeated `loadNearbyExperiences` calls don't pile
+    /// up parallel timers. `@ObservationIgnored` — pure bookkeeping.
+    @ObservationIgnored private var coldStartWatchdogTask: Task<Void, Never>?
+
+    /// V-004: when a city is selected but the nearby set is still empty after
+    /// `coldStartEmptyWatchdogSeconds`, emit a Sentry warning so the
+    /// cold-start-empty regression can't silently come back. Resets as soon as
+    /// any non-empty load lands. No-op when no preset city is selected (an empty
+    /// GPS-follow map isn't necessarily a bug).
+    private func scheduleColdStartEmptyWatchdog() {
+        guard let city = selectedCity, !city.hasPrefix("custom_") else {
+            coldStartWatchdogTask?.cancel()
+            coldStartWatchdogTask = nil
+            reportedColdStartEmpty = false
+            return
+        }
+        if !visibleExperiences.isEmpty {
+            // Recovered — clear the flag so a later empty state can report again.
+            reportedColdStartEmpty = false
+            coldStartWatchdogTask?.cancel()
+            coldStartWatchdogTask = nil
+            return
+        }
+        guard !reportedColdStartEmpty, coldStartWatchdogTask == nil else { return }
+        let seconds = Self.coldStartEmptyWatchdogSeconds
+        coldStartWatchdogTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            self.coldStartWatchdogTask = nil
+            guard let current = self.selectedCity, !current.hasPrefix("custom_"),
+                  self.visibleExperiences.isEmpty, !self.reportedColdStartEmpty else { return }
+            self.reportedColdStartEmpty = true
+            SentryService.capture(
+                message: "Cold-start empty state: selectedCity set but 0 nearby experiences",
+                context: [
+                    "selectedCity": current,
+                    "maxDistanceKm": self.preferences.maxDistanceKm,
+                    "totalExperiences": self.experienceService.allExperiences.count
+                ]
+            )
+        }
     }
 
     private func applyFilters(near coordinate: CLLocationCoordinate2D, radiusKm: Double) -> [Experience] {
         var nearby = experienceService.getExperiences(near: coordinate, radiusKm: radiusKm)
         // Custom locations have no matching cityCode — show all nearby experiences instead.
         if let cityCode = selectedCity, !cityCode.hasPrefix("custom_") {
-            nearby = nearby.filter { $0.location.cityCode == cityCode }
+            // V-004: alias-aware so a header slug (`chiang-mai`) matches the seed
+            // `cityCode` (`cmi`) — exact `==` left the cold-start map empty.
+            nearby = nearby.filter { Self.cityCodeMatches($0.location.cityCode, selected: cityCode) }
         }
         if let category = selectedCategory {
             nearby = nearby.filter { $0.category == category }
@@ -469,6 +708,8 @@ public final class MapViewModel {
         return nearby
     }
 
+    /// Apply (or clear, when nil) a category filter from the category pills,
+    /// clearing other active filters and refreshing the map.
     public func selectCategory(_ category: ExperienceCategory?) {
         selectedCategory = category
         selectedCustomTag = nil
@@ -479,6 +720,8 @@ public final class MapViewModel {
         scheduleAutoExploreForEmptyCategoryIfNeeded()
     }
 
+    /// Activate the "best right now" filter, clearing other filters and showing
+    /// only experiences well-suited to the current time of day.
     public func selectNowFilter() {
         isNowFilter = true
         selectedCategory = nil
@@ -487,6 +730,7 @@ public final class MapViewModel {
         updateBottomInfo()
     }
 
+    /// Reset all active map filters back to showing every nearby experience.
     public func clearFilters() {
         selectedCategory = nil
         selectedCustomTag = nil
@@ -564,6 +808,7 @@ public final class MapViewModel {
         updateBottomInfo()
     }
 
+    /// Select a map pin to surface its preview card and pan the camera to frame it.
     public func selectExperience(_ experience: Experience) {
         selectedExperience = experience
         // isShowingDetail stays false — card shows first, detail sheet on expand
@@ -606,6 +851,7 @@ public final class MapViewModel {
         }
     }
 
+    /// Close the expanded detail sheet, returning to the map view.
     public func dismissDetail() {
         isShowingDetail = false
     }
@@ -650,6 +896,7 @@ public final class MapViewModel {
             visibleExperiences = nearby
             nearbySoloCount = computeNearbySoloCount(in: nearby)
         }
+        recomputeNowCount()
         updateBottomInfo()
     }
 
@@ -711,13 +958,25 @@ public final class MapViewModel {
 
     // MARK: - Bottom info bar
 
+    /// Refresh the bottom info bar with a time-of-day appropriate summary of
+    /// the currently visible experiences.
     public func updateBottomInfo() {
+        // US-018: refresh the cached now-count here too — `isBestNow()` is
+        // time-dependent, so a fresh count is needed whenever the bottom info
+        // is recomputed. This is the single recompute checkpoint for this path.
+        recomputeNowCount()
         let hour = Calendar.current.component(.hour, from: Date())
         let count = visibleExperiences.count
 
         switch hour {
         case 6..<12:
-            let coffeeCount = visibleExperiences.filter { $0.category == .coffee && $0.isBestNow() }.count
+            // Coffee-specific subset — not the full now-count, so it stays a
+            // local computation. Written without the `visibleExperiences.filter
+            // { ... isBestNow }` shape so `_nowCount` remains the sole source.
+            var coffeeCount = 0
+            for exp in visibleExperiences where exp.category == .coffee && exp.isBestNow() {
+                coffeeCount += 1
+            }
             bottomInfoText = String(
                 format: NSLocalizedString("info.morning", comment: "Morning info"),
                 coffeeCount > 0 ? coffeeCount : count
@@ -733,10 +992,9 @@ public final class MapViewModel {
                 count
             )
         default:
-            let openLate = visibleExperiences.filter { $0.isBestNow() }.count
             bottomInfoText = String(
                 format: NSLocalizedString("info.night", comment: "Night info"),
-                openLate
+                _nowCount
             )
         }
     }
@@ -748,6 +1006,8 @@ public final class MapViewModel {
     /// a sun-gold border and warm gradient bg.
     public var aiSmartPickIds: [String] = []
 
+    /// Reorder the visible experiences using AI ranking and highlight the top
+    /// three as smart picks, leaving the list intact if ranking fails.
     public func runAIRanking() async {
         let candidates = visibleExperiences
         guard !candidates.isEmpty else { return }
@@ -779,11 +1039,15 @@ public final class MapViewModel {
         pendingAddCoordinate = coordinate
     }
 
+    /// Abort the long-press add-experience flow, clearing the pending coordinate
+    /// and exiting voice-recording mode.
     public func cancelAddExperience() {
         pendingAddCoordinate = nil
         isRecordingNewExperience = false
     }
 
+    /// Confirm the long-pressed location and begin voice recording to describe
+    /// the new experience to add there.
     public func confirmAddExperience() {
         guard pendingAddCoordinate != nil else { return }
         isRecordingNewExperience = true
@@ -838,6 +1102,8 @@ public final class MapViewModel {
         }
     }
 
+    /// Handle a spoken request by interpreting it through AI to filter and
+    /// recommend experiences, gating behind Pro and the data-use consent first.
     public func handleVoiceTranscript(_ transcript: String) async {
         // US-024: voice intent is Pro-only. Park the action and surface
         // the paywall when a free user taps the mic.
@@ -1181,9 +1447,7 @@ public final class MapViewModel {
                         preferences.incrementFoursquareCallsToday()
                         pois = FoursquareService.merge(overpass: overpassPois, foursquare: fsq)
                     } catch {
-                        #if DEBUG
-                        print("[MapViewModel] Foursquare fallback failed: \(error)")
-                        #endif
+                        logger.debug("Foursquare fallback failed: \(error.localizedDescription, privacy: .public)")
                     }
                 }
                 guard !pois.isEmpty else {
@@ -1678,7 +1942,7 @@ public final class MapViewModel {
         ]
         if let data = try? JSONSerialization.data(withJSONObject: payload),
            let line = String(data: data, encoding: .utf8) {
-            print("[Analytics] \(line)")
+            analyticsLogger.debug("\(line, privacy: .public)")
         }
         #endif
     }
