@@ -133,12 +133,12 @@
 
 **Bundle ID**: `com.solocompass.app` · 启动无 crash · 5 张截图共 7.1 MB。
 
-| Shot | 时点 | 内容 |
-|---|---|---|
-| 01-launch | T+0s | Privacy onboarding sheet over map |
-| 02-after-3s | T+3s | 同上（idle） |
-| 03-after-8s | T+8s | 同上（still idle） |
-| 04-after-13s | T+13s | 主地图 + "No experiences nearby (5km)" empty state |
+| Shot         | 时点  | 内容                                                |
+| ------------ | ----- | --------------------------------------------------- |
+| 01-launch    | T+0s  | Privacy onboarding sheet over map                   |
+| 02-after-3s  | T+3s  | 同上（idle）                                        |
+| 03-after-8s  | T+8s  | 同上（still idle）                                  |
+| 04-after-13s | T+13s | 主地图 + "No experiences nearby (5km)" empty state  |
 | 05-after-18s | T+18s | 主地图 + "No experiences nearby (25km)" empty state |
 
 **6 条真机视觉/产品逻辑问题**（EVAL_REPORT 源码扫描完全没覆盖）：
