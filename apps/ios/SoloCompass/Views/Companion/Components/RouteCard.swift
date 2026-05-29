@@ -38,6 +38,10 @@ public struct RouteCard: View {
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+
+                if !stopColors.isEmpty {
+                    stopStrip
+                }
             }
 
             Spacer(minLength: 4)
@@ -51,6 +55,39 @@ public struct RouteCard: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(route.title + ", " + monoBaseline))
+    }
+
+    // MARK: - Stop-strip breadcrumb (CompareCanvas A-001)
+
+    /// One disc per stop (one per `experienceIds` entry). The first stop takes the
+    /// route's primary-category color; later stops cycle the `CategoryVisual` palette
+    /// so the journey reads as a sequence at a glance. Exposed for tests.
+    var stopColors: [Color] {
+        guard !route.experienceIds.isEmpty else { return [] }
+        let palette = ExperienceCategory.allCases
+        let startIndex = palette.firstIndex(of: primaryCategory) ?? 0
+        return route.experienceIds.indices.map { offset in
+            let category = palette[(startIndex + offset) % palette.count]
+            return CategoryVisual.colorPair(for: category).0
+        }
+    }
+
+    /// Horizontal breadcrumb: colored discs joined by 1px `CT.fgSubtle` connectors.
+    private var stopStrip: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(stopColors.enumerated()), id: \.offset) { offset, color in
+                if offset > 0 {
+                    Rectangle()
+                        .fill(CT.fgSubtle)
+                        .frame(width: 8, height: 1)
+                }
+                Circle()
+                    .fill(color)
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .padding(.top, 2)
+        .accessibilityHidden(true)
     }
 
     // MARK: - Cover square
@@ -77,7 +114,7 @@ public struct RouteCard: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
-        .background(Capsule().fill(Color.accentColor))
+        .background(Capsule().fill(CT.accent))
     }
 
     // MARK: - Derive primary category from route tags or fallback
