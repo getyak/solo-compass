@@ -7,6 +7,8 @@ public struct VoiceButton: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private let maxRecordingDuration: TimeInterval = 60
+
     @State private var isRecording = false
     @State private var liveTranscript: String = ""
     @State private var showPermissionAlert = false
@@ -15,6 +17,8 @@ public struct VoiceButton: View {
     @State private var streamTask: Task<Void, Never>?
     @State private var elapsed: TimeInterval = 0
     @State private var timerTask: Task<Void, Never>?
+    @State private var didAutoStop = false
+    @State private var autoStopMessage: String? = nil
 
     // Retained generators — prepare() pre-warms the Taptic Engine to eliminate first-fire latency.
     private let recordStartGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -83,13 +87,20 @@ public struct VoiceButton: View {
         .overlay(alignment: .top) {
             if isRecording {
                 VStack(spacing: 4) {
-                    Text(formattedElapsed)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(elapsed >= 50
-                            ? AnyShapeStyle(Color.orange)
-                            : AnyShapeStyle(Color.secondary))
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: elapsed >= 50)
-                        .accessibilityHidden(true)
+                    if let message = autoStopMessage {
+                        Text(message)
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(AnyShapeStyle(Color.orange))
+                            .accessibilityHidden(true)
+                    } else {
+                        Text(formattedElapsed)
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(elapsed >= 50
+                                ? AnyShapeStyle(Color.orange)
+                                : AnyShapeStyle(Color.secondary))
+                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: elapsed >= 50)
+                            .accessibilityHidden(true)
+                    }
 
                     let displayText = liveTranscript.isEmpty
                         ? NSLocalizedString("chat.voice.listening", comment: "Listening placeholder")
@@ -134,6 +145,8 @@ public struct VoiceButton: View {
                 if !reduceMotion { pulse = true }
                 liveTranscript = ""
                 elapsed = 0
+                didAutoStop = false
+                autoStopMessage = nil
                 recordStartGenerator.impactOccurred()
                 startElapsedTimer()
                 let stream = try voiceService.startListening()
@@ -187,6 +200,12 @@ public struct VoiceButton: View {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { break }
                 elapsed += 1
+                if elapsed >= maxRecordingDuration && !didAutoStop {
+                    didAutoStop = true
+                    autoStopMessage = NSLocalizedString("voice.recording.maxReached", comment: "Maximum recording length reached")
+                    stopRecording()
+                    break
+                }
             }
         }
     }
@@ -195,6 +214,7 @@ public struct VoiceButton: View {
         timerTask?.cancel()
         timerTask = nil
         elapsed = 0
+        autoStopMessage = nil
     }
 }
 
