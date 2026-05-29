@@ -20,7 +20,29 @@ public struct OnboardingView: View {
             default: welcomeStep
             }
         }
+        .overlay(alignment: .topTrailing) {
+            skipButton
+        }
         .animation(.easeInOut(duration: 0.3), value: step)
+    }
+
+    // MARK: - Skip the whole flow
+
+    /// Completes onboarding immediately from any step (returning users / QA).
+    private var skipButton: some View {
+        Button {
+            preferences.completeOnboarding()
+            onComplete()
+        } label: {
+            Text(NSLocalizedString("onboarding.skip", comment: "Skip the entire onboarding flow"))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+        }
+        .padding(.top, 8)
+        .padding(.trailing, 8)
+        .accessibilityIdentifier("onboarding.skip")
     }
 
     // MARK: - Step indicator

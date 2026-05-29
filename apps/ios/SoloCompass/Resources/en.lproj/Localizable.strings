@@ -354,6 +354,7 @@
 "onboarding.style.subtitle" = "This shapes which experiences float to the top. You can change it anytime.";
 "onboarding.style.cta" = "Start exploring";
 "onboarding.style.skip" = "Decide later";
+"onboarding.skip" = "Skip";
 
 /* Favorites list */
 "favorites.title" = "Favorites";

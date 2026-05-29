@@ -274,6 +274,7 @@
 "onboarding.style.subtitle" = "这会决定哪些体验优先出现。随时可改。";
 "onboarding.style.cta" = "开始探索";
 "onboarding.style.skip" = "稍后决定";
+"onboarding.skip" = "跳过";
 
 /* Favorites list */
 "favorites.title" = "收藏";
