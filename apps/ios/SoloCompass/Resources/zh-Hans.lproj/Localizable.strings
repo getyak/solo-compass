@@ -94,6 +94,8 @@
 "ai.error.request" = "AI 请求失败(状态 %d)。";
 "ai.fallback.explanation" = "推荐给独行旅人:座位安静、员工不打扰、本地信号强。";
 "ai.fallback.voice" = "正在显示附近适合独行的体验。";
+"ai.skeleton.pill" = "数据有限";
+"ai.skeleton.pill.a11y" = "占位内容";
 
 /* Common */
 "common.ok" = "好";
@@ -1059,6 +1061,7 @@
 "sheet.sort.button" = "排序";
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";
+"sheet.handle" = "面板把手，上下滑动可调整高度";
 "sheet.nearby.section.title" = "附近";
 "sheet.nearby.smartPick.a11y" = "AI 推荐";
 "sheet.routes.section.title" = "路线";

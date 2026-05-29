@@ -170,8 +170,16 @@ public struct MyRequestsListView: View {
     private func localWithdraw(request: JoinRequest, from route: Route) {
         let store = storeProvider()
         var updated = route
-        guard let idx = updated.companion?.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
-        updated.companion!.joinRequests[idx].status = .withdrawn
+        guard var companion = updated.companion else {
+            SentryService.capture(
+                message: "MyRequestsListView.localWithdraw: route.companion was nil; no-op",
+                context: ["routeId": route.id.rawValue]
+            )
+            return
+        }
+        guard let idx = companion.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
+        companion.joinRequests[idx].status = .withdrawn
+        updated.companion = companion
         store.save(updated)
         refreshToken = UUID()
     }

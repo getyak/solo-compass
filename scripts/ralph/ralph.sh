@@ -111,8 +111,30 @@ else:
     PROGRESS_TAIL="(no prior iterations on this story — fresh start)"
   fi
 
+  # Optional Linux/no-Xcode mode: injected at the top of every prompt so the
+  # implementing agent skips xcodebuild / Simulator / VoiceOver / Instruments
+  # acceptance items it cannot execute, and marks them for follow-up locally.
+  LINUX_BANNER=""
+  if [ "${RALPH_LINUX_MODE:-0}" = "1" ]; then
+    LINUX_BANNER="🐧 LINUX-MODE ENABLED — no Xcode toolchain available on this host.
+
+You MUST:
+  - SKIP any acceptance criterion that requires xcodebuild, xcrun simctl, the iOS Simulator, VoiceOver, Accessibility Inspector, or Instruments. Do NOT attempt to invoke them — they will hang.
+  - STILL apply the code edits the story requires (Swift sources, tests, Localizable.strings, project.yml, etc).
+  - When committing, append a single line at the END of the commit message body:
+    \`pending-local-verification: <comma-separated list of skipped AC items, short>\`
+    Example: \`pending-local-verification: xcodebuild build, Simulator manual run, VoiceOver focus check\`
+  - Replace any 'xcodebuild build/test' AC with a static check you CAN run:
+    * grep for the symbol you added in the target file
+    * \`python3 -c \"import json; json.load(open('Resources/en.lproj/Localizable.strings'))\"\` for strings sanity (use plutil if available)
+    * \`swift -parse <file>\` if a Swift toolchain is installed (don't require it)
+  - Treat AC as PASSED if (a) the code change is in place AND (b) every static check you CAN run passes AND (c) the pending-local-verification line is in the commit. The maintainer will run xcodebuild + Simulator locally before merge.
+
+"
+  fi
+
   # Build the Claude Code prompt
-  PROMPT="You are implementing a SINGLE user story for the Solo Compass Progressive Explore + Enrichment PRD.
+  PROMPT="${LINUX_BANNER}You are implementing a SINGLE user story for the Solo Compass Progressive Explore + Enrichment PRD.
 
 PROJECT: Solo Compass (独行罗盘) — map-first companion app for solo travelers.
 Current PRD: Progressive Explore + cross-channel compilation + agent orchestration — small-radius-first ladder (5→10→25→100km) that auto-expands when sparse, incrementally drops map pins, cross-compiles each place across OSM/Foursquare/MapKit/web, and is drivable by natural-language chat/voice. Source: tasks/prd-progressive-explore-enrichment.md.

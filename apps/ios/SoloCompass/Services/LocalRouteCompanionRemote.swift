@@ -27,7 +27,14 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
     }
 
     public func sendJoinRequest(routeId: RouteId, message: String, pace: String) async throws {
-        guard var route = store.get(routeId), route.companion != nil else { return }
+        guard var route = store.get(routeId) else { return }
+        guard var companion = route.companion else {
+            SentryService.capture(
+                message: "LocalRouteCompanionRemote.sendJoinRequest: route.companion was nil; no-op",
+                context: ["routeId": routeId.rawValue]
+            )
+            return
+        }
         let request = JoinRequest(
             id: JoinRequestId(rawValue: UUID().uuidString),
             requesterId: DeviceIdentityService.shared.deviceID,
@@ -35,7 +42,8 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
             status: .pending,
             createdAt: ISO8601DateFormatter().string(from: Date())
         )
-        route.companion!.joinRequests.append(request)
+        companion.joinRequests.append(request)
+        route.companion = companion
         store.save(route)
     }
 
@@ -114,27 +122,50 @@ public final class LocalRouteCompanionRemote: RouteCompanionRemote {
     }
 
     public func decline(_ request: JoinRequest, route: Route) async throws {
-        guard var updated = store.get(route.id),
-              let idx = updated.companion?.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
-        updated.companion!.joinRequests[idx].status = .declined
+        guard var updated = store.get(route.id) else { return }
+        guard var companion = updated.companion else {
+            SentryService.capture(
+                message: "LocalRouteCompanionRemote.decline: route.companion was nil; no-op",
+                context: ["routeId": route.id.rawValue]
+            )
+            return
+        }
+        guard let idx = companion.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
+        companion.joinRequests[idx].status = .declined
+        updated.companion = companion
         store.save(updated)
     }
 
     public func withdraw(_ request: JoinRequest, route: Route) async throws {
-        guard var updated = store.get(route.id),
-              let idx = updated.companion?.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
-        updated.companion!.joinRequests[idx].status = .withdrawn
+        guard var updated = store.get(route.id) else { return }
+        guard var companion = updated.companion else {
+            SentryService.capture(
+                message: "LocalRouteCompanionRemote.withdraw: route.companion was nil; no-op",
+                context: ["routeId": route.id.rawValue]
+            )
+            return
+        }
+        guard let idx = companion.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
+        companion.joinRequests[idx].status = .withdrawn
+        updated.companion = companion
         store.save(updated)
     }
 
     public func markCompleted(routeId: RouteId) async throws {
-        guard var route = store.get(routeId),
-              let companion = route.companion else { return }
+        guard var route = store.get(routeId) else { return }
+        guard var companion = route.companion else {
+            SentryService.capture(
+                message: "LocalRouteCompanionRemote.markCompleted: route.companion was nil; no-op",
+                context: ["routeId": routeId.rawValue]
+            )
+            return
+        }
         let newStatus = try RouteCompanionStateMachine.transition(
             state: companion.status,
             event: .markCompleted
         )
-        route.companion!.status = newStatus
+        companion.status = newStatus
+        route.companion = companion
         let newMembers = companion.confirmedMembers
         route.verification.status = .verified
         route.verification.walkedByCount += newMembers.count

@@ -39,4 +39,16 @@ final class StringsParityTests: XCTestCase {
         XCTAssertTrue(onlyInZh.isEmpty,
             "Keys in zh-Hans but missing in en (\(onlyInZh.count)):\n\(onlyInZh.joined(separator: "\n"))")
     }
+
+    /// US-004: the SkeletonBadgeView keys must be present in both localizations.
+    func testSkeletonBadgeKeysPresentInBothLocalizations() throws {
+        guard let enKeys = loadKeys(localization: "en"),
+              let zhKeys = loadKeys(localization: "zh-Hans") else {
+            throw XCTSkip("Localizable.strings not found in test host bundle")
+        }
+        for key in ["ai.skeleton.pill", "ai.skeleton.pill.a11y"] {
+            XCTAssertTrue(enKeys.contains(key), "en.lproj missing \(key)")
+            XCTAssertTrue(zhKeys.contains(key), "zh-Hans.lproj missing \(key)")
+        }
+    }
 }

@@ -307,8 +307,16 @@ public struct ApprovalQueueView: View {
         let ctx = contextProvider()
         let store = RouteStore(context: ctx)
         var updated = routeState
-        guard let idx = updated.companion?.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
-        updated.companion!.joinRequests[idx].status = .declined
+        guard var companion = updated.companion else {
+            SentryService.capture(
+                message: "ApprovalQueueView.localDecline: route.companion was nil; no-op",
+                context: ["routeId": routeState.id.rawValue]
+            )
+            return
+        }
+        guard let idx = companion.joinRequests.firstIndex(where: { $0.id == request.id }) else { return }
+        companion.joinRequests[idx].status = .declined
+        updated.companion = companion
         routeState = updated
         store.save(updated)
     }

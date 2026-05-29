@@ -72,15 +72,29 @@ public struct CompassMapView: View {
 
     public init() {}
 
+    @ViewBuilder
     public var body: some View {
-        AnyView(mapContent)
+        mapContent
     }
+
+    #if DEBUG
+    /// US-005 test hook: the dynamic type name of `body` once the view is
+    /// installed in a SwiftUI graph with its environment injected. Asserting
+    /// on this string proves the root returns a concrete opaque view (no
+    /// `AnyView` erasure), which is what lets SwiftUI diff this heavy view
+    /// incrementally. DEBUG-only and read-only — never affects production
+    /// rendering. Captured lazily inside `mapContent.onAppear`.
+    @MainActor static var debugBodyTypeName: String = ""
+    #endif
 
     @ViewBuilder
     private var mapContent: some View {
         mapZStack
             .background(themeService.currentTheme.background)
             .onAppear {
+                #if DEBUG
+                Self.debugBodyTypeName = String(describing: type(of: body))
+                #endif
                 locationService.requestPermission()
                 if viewModel == nil {
                     // Production-only: opt into the SwiftData-backed Overpass

@@ -130,6 +130,8 @@
 "ai.error.request" = "AI request failed (status %d).";
 "ai.fallback.explanation" = "Recommended for solo travelers based on quiet seating, low staff pressure, and a strong local signal.";
 "ai.fallback.voice" = "Showing solo-friendly experiences nearby.";
+"ai.skeleton.pill" = "Limited data";
+"ai.skeleton.pill.a11y" = "placeholder content";
 
 /* Common */
 "common.ok" = "OK";
@@ -959,6 +961,9 @@
 "sheet.sort.button" = "Sort";
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";
+
+/* US-006 — BottomInfoSheet drag handle */
+"sheet.handle" = "Sheet handle, swipe up or down to adjust";
 
 /* US-019 — BottomInfoSheet nearby section */
 "sheet.nearby.section.title" = "附近";
