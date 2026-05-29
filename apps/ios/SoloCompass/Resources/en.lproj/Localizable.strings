@@ -367,6 +367,7 @@
 "favorites.proximity.near" = "walkable";
 "favorites.proximity.mid" = "short ride";
 "favorites.proximity.far" = "far";
+"favorites.row.directions" = "Directions";
 
 /* Generic actions */
 "action.undo" = "Undo";
