@@ -15,6 +15,7 @@ public struct DiscoverListView: View {
     @State private var requestSentPostId: String?
     @State private var reportTarget: DiscoverPost?
     @State private var errorMessage: String?
+    @State private var showPostSheet = false
 
     public init(cityCode: String, service: CompanionService = .shared) {
         self.cityCode = cityCode
@@ -69,6 +70,21 @@ public struct DiscoverListView: View {
                 Task { await sendRequest(to: post, note: note) }
             }
         }
+        .sheet(isPresented: $showPostSheet) {
+            OpenForCompanionsSheet(itinerary: Itinerary(
+                id: ItineraryId(rawValue: "discover_cta_\(cityCode)"),
+                ownerId: DeviceIdentityService.shared.deviceID,
+                title: cityCode,
+                cityCode: cityCode,
+                startDate: "",
+                endDate: "",
+                experienceIds: [],
+                note: nil,
+                openToCompanions: true,
+                createdAt: "",
+                updatedAt: ""
+            ))
+        }
         .sheet(item: $reportTarget) { post in
             ReportBlockSheet(
                 targetUserId: post.id,
@@ -120,11 +136,19 @@ public struct DiscoverListView: View {
         } description: {
             Text(NSLocalizedString("companion.discover.empty.description", comment: "No companions found description"))
         } actions: {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(spacing: 16) {
                 Text(NSLocalizedString("companion.discover.coldstart.tip", comment: "Cold start tip"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                Button {
+                    Haptics.impact(.light)
+                    showPostSheet = true
+                } label: {
+                    Text(NSLocalizedString("companion.discover.empty.cta", comment: "Post your availability CTA"))
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityHint(NSLocalizedString("companion.discover.empty.cta.hint", comment: "Post your availability accessibility hint"))
             }
         }
     }

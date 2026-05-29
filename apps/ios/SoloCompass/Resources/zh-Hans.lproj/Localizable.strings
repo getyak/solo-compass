@@ -649,6 +649,8 @@
 "companion.discover.empty.title" = "暂无同伴";
 "companion.discover.empty.description" = "这座城市目前没有公开找同伴的旅行者。";
 "companion.discover.coldstart.tip" = "试着发一条自己的同伴帖,让其他人发现你。";
+"companion.discover.empty.cta" = "抢先发布 — 分享你的行程";
+"companion.discover.empty.cta.hint" = "打开表单，发布你在这座城市的出行时间";
 
 /* ============================================================
  * Request inbox (RequestInboxView)
