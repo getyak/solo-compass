@@ -11,6 +11,7 @@ public struct FavoritesListView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onSelectExperience: (Experience) -> Void
+    var onExplore: (() -> Void)? = nil
 
     @State private var lastUnfavorited: (id: String, title: String, date: Date)?
     @State private var undoDismissTask: Task<Void, Never>?
@@ -124,7 +125,7 @@ public struct FavoritesListView: View {
         NavigationStack {
             Group {
                 if sortedFavorites.isEmpty && lastUnfavorited == nil {
-                    EmptyFavoritesView()
+                    EmptyFavoritesView(onExplore: onExplore)
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
                 } else if filteredFavorites.isEmpty {
                     NoSearchResultsView(query: searchText, onClear: { searchText = "" })
@@ -226,6 +227,8 @@ public struct FavoritesListView: View {
 }
 
 private struct EmptyFavoritesView: View {
+    var onExplore: (() -> Void)? = nil
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
 
@@ -248,6 +251,17 @@ private struct EmptyFavoritesView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            if let onExplore {
+                Button {
+                    Haptics.selection()
+                    onExplore()
+                } label: {
+                    Label(NSLocalizedString("favorites.empty.cta", comment: "Explore the map button in empty favorites state"), systemImage: "map")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .padding(.top, 4)
+            }
         }
         .padding(32)
         .onAppear {

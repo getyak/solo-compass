@@ -505,11 +505,14 @@ public struct CompassMapView: View {
 
     @ViewBuilder
     private var favoritesSheetContent: some View {
-        FavoritesListView { exp in
-            isShowingFavorites = false
-            viewModel?.selectExperience(exp)
-            viewModel?.isShowingDetail = true
-        }
+        FavoritesListView(
+            onSelectExperience: { exp in
+                isShowingFavorites = false
+                viewModel?.selectExperience(exp)
+                viewModel?.isShowingDetail = true
+            },
+            onExplore: { isShowingFavorites = false }
+        )
         .environment(experienceService)
         .environment(preferences)
     }
