@@ -1,5 +1,8 @@
 import SwiftUI
 import CoreLocation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - SortMode
 
@@ -23,13 +26,69 @@ public enum SortMode: String, CaseIterable, Identifiable {
 
 // MARK: - Constants
 
-private let peekHeight: CGFloat = 170
-private let midHeight: CGFloat = 500
-private let fullHeight: CGFloat = 800
-private let minHeight: CGFloat = 120
-private let maxHeight: CGFloat = 830
+/// Unscaled (base, @ default Dynamic Type) detent heights. The effective
+/// heights are derived from these via `BottomSheetDetent.scaledHeight` so that
+/// at large Dynamic Type sizes (up to AX5) the sheet grows enough to show its
+/// content without clipping.
+private let basePeekHeight: CGFloat = 170
+private let baseMidHeight: CGFloat = 500
+private let baseFullHeight: CGFloat = 800
+private let baseMinHeight: CGFloat = 120
+/// Headroom above the largest detent so a drag can overshoot `full` slightly.
+private let detentMaxHeadroom: CGFloat = 30
 private let sheetCornerRadius: CGFloat = 20
 private let scrimMaxOpacity: CGFloat = 0.18
+
+/// Dynamic-Type scale factor applied to detent heights, derived from
+/// `UIFontMetrics`. At the default content size this is 1.0; at AX5 it grows so
+/// sheet content (rows, headers, toolbars) keeps pace with the enlarged text.
+///
+/// Exposed for tests so detent heights can be validated at extreme sizes.
+enum BottomSheetDetentScale {
+    /// Multiplier for the current (or supplied) trait collection's Dynamic Type
+    /// size. Clamped to ≥1.0 so detents never shrink below their base height.
+    static func factor(
+        for traits: UITraitCollection? = nil
+    ) -> CGFloat {
+        #if canImport(UIKit)
+        let metrics = UIFontMetrics.default
+        let scaled: CGFloat
+        if let traits {
+            scaled = metrics.scaledValue(for: 1.0, compatibleWith: traits)
+        } else {
+            scaled = metrics.scaledValue(for: 1.0)
+        }
+        return max(1.0, scaled)
+        #else
+        return 1.0
+        #endif
+    }
+}
+
+#if canImport(UIKit)
+extension DynamicTypeSize {
+    /// Maps a SwiftUI `DynamicTypeSize` to the equivalent UIKit
+    /// `UIContentSizeCategory`, so a trait collection can be built for
+    /// `UIFontMetrics`-based scaling. SwiftUI does not expose this conversion.
+    var uiContentSizeCategory: UIContentSizeCategory {
+        switch self {
+        case .xSmall:                       return .extraSmall
+        case .small:                        return .small
+        case .medium:                       return .medium
+        case .large:                        return .large
+        case .xLarge:                       return .extraLarge
+        case .xxLarge:                      return .extraExtraLarge
+        case .xxxLarge:                     return .extraExtraExtraLarge
+        case .accessibility1:               return .accessibilityMedium
+        case .accessibility2:               return .accessibilityLarge
+        case .accessibility3:               return .accessibilityExtraLarge
+        case .accessibility4:               return .accessibilityExtraExtraLarge
+        case .accessibility5:               return .accessibilityExtraExtraExtraLarge
+        @unknown default:                   return .large
+        }
+    }
+}
+#endif
 
 // MARK: - Metrics
 
@@ -47,17 +106,29 @@ enum BottomSheetMetrics {
 public enum BottomSheetDetent: CaseIterable {
     case peek, mid, full
 
-    var height: CGFloat {
+    /// Unscaled base height @ default Dynamic Type.
+    var baseHeight: CGFloat {
         switch self {
-        case .peek: return peekHeight
-        case .mid: return midHeight
-        case .full: return fullHeight
+        case .peek: return basePeekHeight
+        case .mid: return baseMidHeight
+        case .full: return baseFullHeight
         }
     }
 
-    static func nearest(to height: CGFloat) -> BottomSheetDetent {
+    /// Detent height scaled for the given (or current) Dynamic Type size so
+    /// content does not clip at large accessibility text sizes.
+    func scaledHeight(for traits: UITraitCollection? = nil) -> CGFloat {
+        baseHeight * BottomSheetDetentScale.factor(for: traits)
+    }
+
+    static func nearest(
+        to height: CGFloat,
+        traits: UITraitCollection? = nil
+    ) -> BottomSheetDetent {
         let all: [BottomSheetDetent] = [.peek, .mid, .full]
-        return all.min(by: { abs($0.height - height) < abs($1.height - height) }) ?? .peek
+        return all.min(by: {
+            abs($0.scaledHeight(for: traits) - height) < abs($1.scaledHeight(for: traits) - height)
+        }) ?? .peek
     }
 
     /// Next detent in the peek → mid → full ladder, clamped at .full.
@@ -86,6 +157,7 @@ public struct BottomInfoSheet<Content: View>: View {
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
     @State var sortMode: SortMode = .smart
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private let aiHint: String
     private let count: Int
@@ -104,15 +176,41 @@ public struct BottomInfoSheet<Content: View>: View {
         self.content = content
     }
 
-    private var baseHeight: CGFloat { currentDetent.height }
+    /// Trait collection reflecting the current SwiftUI Dynamic Type size so
+    /// detent heights scale via `UIFontMetrics` for accessibility text sizes.
+    private var dynamicTypeTraits: UITraitCollection {
+        UITraitCollection(preferredContentSizeCategory: dynamicTypeSize.uiContentSizeCategory)
+    }
+
+    private var detentBaseHeight: CGFloat {
+        currentDetent.scaledHeight(for: dynamicTypeTraits)
+    }
+
+    private var scaledMinHeight: CGFloat {
+        baseMinHeight * BottomSheetDetentScale.factor(for: dynamicTypeTraits)
+    }
+
+    private var scaledMaxHeight: CGFloat {
+        BottomSheetDetent.full.scaledHeight(for: dynamicTypeTraits) + detentMaxHeadroom
+    }
+
+    private var scaledPeekHeight: CGFloat {
+        BottomSheetDetent.peek.scaledHeight(for: dynamicTypeTraits)
+    }
+
+    private var scaledFullHeight: CGFloat {
+        BottomSheetDetent.full.scaledHeight(for: dynamicTypeTraits)
+    }
 
     private var displayHeight: CGFloat {
-        let h = baseHeight - dragOffset
-        return max(minHeight, min(maxHeight, h))
+        let h = detentBaseHeight - dragOffset
+        return max(scaledMinHeight, min(scaledMaxHeight, h))
     }
 
     private var scrimOpacity: CGFloat {
-        let fraction = (displayHeight - peekHeight) / (fullHeight - peekHeight)
+        let span = scaledFullHeight - scaledPeekHeight
+        guard span > 0 else { return 0 }
+        let fraction = (displayHeight - scaledPeekHeight) / span
         return max(0, min(1, fraction)) * scrimMaxOpacity
     }
 
@@ -175,9 +273,9 @@ public struct BottomInfoSheet<Content: View>: View {
                 }
                 .onEnded { value in
                     isDragging = false
-                    let projectedHeight = baseHeight - value.predictedEndTranslation.height
-                    let clampedHeight = max(minHeight, min(maxHeight, projectedHeight))
-                    currentDetent = BottomSheetDetent.nearest(to: clampedHeight)
+                    let projectedHeight = detentBaseHeight - value.predictedEndTranslation.height
+                    let clampedHeight = max(scaledMinHeight, min(scaledMaxHeight, projectedHeight))
+                    currentDetent = BottomSheetDetent.nearest(to: clampedHeight, traits: dynamicTypeTraits)
                     dragOffset = 0
                 }
         )
