@@ -160,6 +160,14 @@
 "solo.a11y" = "Solo Score %@ of 10";
 "solo.excellent.a11y" = "Excellent for solo travelers";
 
+/* Empty filter banner (below FilterBarView) */
+"filter.empty.title" = "No matches";
+"filter.empty.message" = "Nothing matches \"%@\" in this area.";
+"filter.empty.showAll" = "Show all";
+"filter.empty.title.a11y" = "No matches for %@";
+"filter.empty.message.a11y" = "Nothing matches the active filter in this area. Double tap Show all to reset.";
+"filter.empty.showAll.a11y" = "Show all experiences";
+
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";
 "map.empty.hint" = "Try clearing filters or moving the map.";

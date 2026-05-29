@@ -786,9 +786,21 @@ private struct MapOverlayView: View {
     @Binding var isMapPanning: Bool
 
     @State private var checkInCelebrationTrigger = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isFilterActive: Bool {
         viewModel.selectedCategory != nil || viewModel.selectedCustomTag != nil || viewModel.isNowFilter
+    }
+
+    private var activeFilterName: String {
+        if let category = viewModel.selectedCategory {
+            return category.localizedTitle
+        } else if let tag = viewModel.selectedCustomTag {
+            return tag
+        } else if viewModel.isNowFilter {
+            return NSLocalizedString("filter.now", comment: "Now filter label")
+        }
+        return ""
     }
 
     var body: some View {
@@ -813,6 +825,21 @@ private struct MapOverlayView: View {
                 resultCount: viewModel.visibleExperiences.count
             )
             .padding(.top, 4)
+
+            let showEmptyFilterBanner = isFilterActive && viewModel.visibleExperiences.isEmpty
+            if showEmptyFilterBanner {
+                EmptyFilterBanner(
+                    filterName: activeFilterName,
+                    onShowAll: {
+                        viewModel.clearFilters()
+                    }
+                )
+                .padding(.top, 2)
+                .transition(reduceMotion
+                    ? .opacity
+                    : .move(edge: .top).combined(with: .opacity)
+                )
+            }
 
             if isFilterActive {
                 filterResultBadge
@@ -961,6 +988,7 @@ private struct MapOverlayView: View {
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFilterActive)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.visibleExperiences.count)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.visibleExperiences.isEmpty && isFilterActive)
     }
 
     @ViewBuilder
@@ -1126,6 +1154,65 @@ private struct MapOverlayView: View {
         }
         .accessibilityLabel(Text(cityName))
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
+    }
+}
+
+private struct EmptyFilterBanner: View {
+    let filterName: String
+    let onShowAll: () -> Void
+
+    var body: some View {
+        GlassmorphismCapsule(
+            horizontalPadding: 12,
+            verticalPadding: 8,
+            shadowRadius: 6,
+            shadowY: 3
+        ) {
+            HStack(spacing: 8) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(String(
+                    format: NSLocalizedString("filter.empty.message", comment: "No experiences match filter name"),
+                    filterName
+                ))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                Spacer(minLength: 4)
+                Button {
+                    UISelectionFeedbackGenerator().selectionChanged()
+                    onShowAll()
+                } label: {
+                    Text(NSLocalizedString("filter.empty.showAll", comment: "Show all experiences button"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(NSLocalizedString("filter.empty.showAll.a11y", comment: "Show all experiences")))
+            }
+        }
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(String(
+            format: NSLocalizedString("filter.empty.title.a11y", comment: "VoiceOver: no matches for filter"),
+            filterName
+        )))
+        .accessibilityHint(Text(NSLocalizedString("filter.empty.message.a11y", comment: "VoiceOver hint for empty filter banner")))
+        .onAppear {
+            guard UIAccessibility.isVoiceOverRunning else { return }
+            let message = String(
+                format: NSLocalizedString("filter.empty.title.a11y", comment: "VoiceOver: no matches for filter"),
+                filterName
+            )
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: NSAttributedString(
+                    string: message,
+                    attributes: [.accessibilitySpeechQueueAnnouncement: true]
+                )
+            )
+        }
     }
 }
 
