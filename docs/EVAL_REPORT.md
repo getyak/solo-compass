@@ -125,6 +125,37 @@
 
 ---
 
+## 4.5 真机截图证据（v2 e2e-runner · 2026-05-29）
+
+第一次 e2e agent (`aba9c19…`) 在 build/launch 阶段 stall 600s 失败，0 截图。
+重启 v2 agent (`a16a636…`)，限定只做 install + launch + 5 张截图，
+成功收齐证据（保存于 `/tmp/sc-eval-shots/01..05.png`，未入仓）。
+
+**Bundle ID**: `com.solocompass.app` · 启动无 crash · 5 张截图共 7.1 MB。
+
+| Shot | 时点 | 内容 |
+|---|---|---|
+| 01-launch | T+0s | Privacy onboarding sheet over map |
+| 02-after-3s | T+3s | 同上（idle） |
+| 03-after-8s | T+8s | 同上（still idle） |
+| 04-after-13s | T+13s | 主地图 + "No experiences nearby (5km)" empty state |
+| 05-after-18s | T+18s | 主地图 + "No experiences nearby (25km)" empty state |
+
+**6 条真机视觉/产品逻辑问题**（EVAL_REPORT 源码扫描完全没覆盖）：
+
+- **[P0-V1]** Onboarding 文案截断：sheet 显示 "Solo Compass talks to two services on your behal…" 缺末尾 "lf"。sheet 高度裁掉 subtitle 末字。可能位置：`Views/Onboarding/PrivacyAcknowledgementSheet.swift`（建议 grep "talks to two services" 定位）。
+- **[P0-V2]** City 标签与地图区域不同步：header 标 "Chiang Mai"，地图却渲染 San Francisco（NORTH BEACH / SOMA / Mission Bay / Broadway 街区可见）。冷启动下 selectedCity 与 mapCameraPosition 状态发散。位置：`ViewModels/MapViewModel.swift` 的 `selectedCity` 与 `defaultCenterForSelectedCity` 接线。
+- **[P0-V3]** 半翻译界面：底部抽屉同一屏出现 "Good spots for right now" (EN) 与 "智能 ⌄" / "附近 0" (zh-Hans)。CLAUDE.md 硬规约违反。位置：`Views/Map/BottomInfoSheet.swift` 与 `Views/Filter/FilterBarView.swift`（前者部分文案漏走 NSLocalizedString）。
+- **[P1-V4]** 冷启动空状态自相矛盾：5km 与 25km 都 "No experiences nearby"，但 header 是 "Chiang Mai"、地图渲 SF——三者矛盾。要么 SQLite seed 没装好，要么城市切换没触发 reload。位置：`ExperienceService.swift` seed import + `MapViewModel.loadNearbyExperiences`。
+- **[P1-V5]** 顶部 filter chip 右侧溢出裁断：`Now / All / 🏛 / 🌳 / 🍴 / 🍰 / 💻 / …` 最后一个 chip 在右屏外被裁，没有 "more" affordance。位置：`Views/Filter/FilterBarView.swift` ScrollView fade gradient 或 chevron。
+- **[P2-V6]** 地图顶部色块缺街道：NORTH BEACH 以上是纯深蓝带，无街道渲染。可能是 MapKit tile 还在加载，也可能是搜索框的 backdrop blur 覆盖了底层 tile。位置：`Views/Map/CompassMapView.swift` 顶部 overlay 层与 MapStyle。
+
+**结论**：5 张截图把 EVAL_REPORT 从纯源码扫描升级为**源码 + 真机交叉验证**。
+6 条新发现里 3 条 P0 + 2 条 P1 + 1 条 P2，全部纳入
+`tasks/prd-full-fix-roadmap.md` 的 V-Stories（V1..V6）。
+
+---
+
 ## 5. 测评方法学
 
 1. **多 agent 并行**：5 个 reviewer subagent 同时跑（code-explorer / a11y-architect / performance-optimizer / silent-failure-hunter / code-reviewer），各自独立审查避免互相 bias。
