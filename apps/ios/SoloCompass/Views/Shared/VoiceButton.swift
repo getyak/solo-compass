@@ -14,6 +14,7 @@ public struct VoiceButton: View {
     @State private var showPermissionAlert = false
     @State private var recognitionError: String? = nil
     @State private var pulse = false
+    @State private var ringPulse = false
     @State private var streamTask: Task<Void, Never>?
     @State private var elapsed: TimeInterval = 0
     @State private var timerTask: Task<Void, Never>?
@@ -43,6 +44,25 @@ public struct VoiceButton: View {
                         reduceMotion ? nil : .easeOut(duration: 1.0).repeatForever(autoreverses: false),
                         value: pulse
                     )
+
+                let progress = CGFloat(min(elapsed / maxRecordingDuration, 1.0))
+                let nearEnd = elapsed >= 50
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        nearEnd ? Color.orange : Color.red.opacity(0.6),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .frame(width: 64, height: 64)
+                    .rotationEffect(.degrees(-90))
+                    .scaleEffect(nearEnd && !reduceMotion ? (ringPulse ? 1.06 : 1.0) : 1.0)
+                    .animation(reduceMotion ? nil : .linear(duration: 1), value: progress)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: nearEnd)
+                    .animation(
+                        nearEnd && !reduceMotion ? .easeInOut(duration: 0.7).repeatForever(autoreverses: true) : nil,
+                        value: ringPulse
+                    )
+                    .accessibilityHidden(true)
             }
 
             Circle()
@@ -216,6 +236,9 @@ public struct VoiceButton: View {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { break }
                 elapsed += 1
+                if elapsed >= 50 && !ringPulse && !reduceMotion {
+                    ringPulse = true
+                }
                 if elapsed >= maxRecordingDuration && !didAutoStop {
                     didAutoStop = true
                     autoStopMessage = NSLocalizedString("voice.recording.maxReached", comment: "Maximum recording length reached")
@@ -231,6 +254,7 @@ public struct VoiceButton: View {
         timerTask = nil
         elapsed = 0
         autoStopMessage = nil
+        ringPulse = false
     }
 }
 
