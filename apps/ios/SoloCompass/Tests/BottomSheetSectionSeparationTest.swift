@@ -62,6 +62,10 @@ final class BottomSheetSectionSeparationTest: XCTestCase {
             }
         }
         .frame(width: 390, height: BottomSheetDetent.mid.baseHeight)
+        // BottomInfoSheet reads @Environment(BestNowClock.self); the app injects it
+        // at the root, so the rendered view must too — otherwise ImageRenderer traps
+        // with "No Observable object of type BestNowClock" and crashes the host.
+        .environment(BestNowClock.shared)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
