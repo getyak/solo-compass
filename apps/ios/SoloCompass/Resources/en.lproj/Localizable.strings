@@ -1140,6 +1140,8 @@
 "profile.walkedRoutes.empty.title" = "No routes walked yet";
 "profile.walkedRoutes.empty.hint" = "Complete a companion route to see your journeys here.";
 "profile.walkedRoutes.empty.cta" = "Discover routes";
+/* Footer count in MyWalkedRoutesListView */
+"profile.walkedRoutes.count" = "%d routes walked";
 
 /* US-032 — DiscoverRecruitingRoutesView */
 "discover.recruiting.title" = "发现招募路线";

@@ -18,16 +18,31 @@ public struct MyWalkedRoutesListView: View {
             if routes.isEmpty {
                 WalkedRoutesEmptyState(onExplore: onExplore)
             } else {
-                List(routes) { route in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(route.title)
-                            .font(.headline)
-                        Text(route.summary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                VStack(spacing: 0) {
+                    List {
+                        ForEach(routes) { route in
+                            NavigationLink {
+                                RouteDetailView(route: route)
+                            } label: {
+                                RouteCard(route: route)
+                                    .padding(.horizontal, -16)
+                            }
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        }
                     }
-                    .padding(.vertical, 4)
+                    .listStyle(.insetGrouped)
+
+                    Text(String(format: NSLocalizedString(
+                        "profile.walkedRoutes.count",
+                        comment: "Footer showing total walked routes count"
+                    ), routes.count))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .contentTransition(.numericText())
+                    .animation(.easeInOut, value: routes.count)
                 }
             }
         }
