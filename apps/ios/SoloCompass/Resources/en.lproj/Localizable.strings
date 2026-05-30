@@ -904,6 +904,8 @@
 "companion.inbox.error.retry.hint" = "Reloads the inbox";
 "companion.inbox.pending.count" = "%d pending";
 "companion.inbox.pending.count.a11y" = "%d requests awaiting your reply";
+"companion.inbox.declined.undo" = "Request declined";
+"companion.inbox.declined.announcement" = "Request declined. Undo available.";
 
 /* Companion — chat (US-013) */
 "companion.chat.title" = "Chat";
