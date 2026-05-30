@@ -8,8 +8,10 @@ public struct PendingCheckInBanner: View {
     var onConfirm: () -> Void
     var onDismiss: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dragOffset: CGFloat = 0
     @State private var crossedThreshold = false
+    @State private var pulse = false
     private let dismissThreshold: CGFloat = 80
 
     public var body: some View {
@@ -42,6 +44,8 @@ public struct PendingCheckInBanner: View {
                         .padding(.vertical, 6)
                         .background(Capsule().fill(.blue))
                         .foregroundStyle(.white)
+                        .scaleEffect(reduceMotion ? 1.0 : (pulse ? 1.04 : 1.0))
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 1.3).repeatForever(autoreverses: true), value: pulse)
                 }
                 .buttonStyle(.plain)
 
@@ -92,6 +96,19 @@ public struct PendingCheckInBanner: View {
                     }
                 }
         )
+        .onAppear {
+            #if canImport(UIKit)
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: String(
+                    format: NSLocalizedString("checkin.banner.a11yAnnouncement", comment: "VoiceOver announcement when check-in banner appears"),
+                    experienceTitle
+                )
+            )
+            #endif
+            guard !reduceMotion else { return }
+            pulse = true
+        }
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(String(
