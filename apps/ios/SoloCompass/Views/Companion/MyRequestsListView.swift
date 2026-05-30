@@ -18,6 +18,8 @@ public struct MyRequestsListView: View {
     @State private var refreshToken: UUID = UUID()
     @State private var pulse = false
     @State private var showDiscover = false
+    @State private var celebratedRequestIds: Set<String> = []
+    @State private var poppedRequestIds: Set<String> = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(
@@ -139,7 +141,7 @@ public struct MyRequestsListView: View {
                 RouteCard(route: route)
                     .padding(.horizontal, -16)
 
-                statusChip(for: request.status)
+                statusChip(for: request.status, requestId: request.id.rawValue)
                     .padding(.leading, 54)
                     .padding(.bottom, 4)
             }
@@ -150,9 +152,14 @@ public struct MyRequestsListView: View {
     // MARK: - Status chip
 
     @ViewBuilder
-    private func statusChip(for status: JoinRequestStatus) -> some View {
+    private func statusChip(for status: JoinRequestStatus, requestId: String) -> some View {
         let (label, color, symbol) = chipAttributes(for: status)
         let isPending = status == .pending
+        let isAccepted = status == .accepted
+        let isPopped = poppedRequestIds.contains(requestId)
+        let celebrateLabel = isAccepted && !celebratedRequestIds.contains(requestId)
+            ? NSLocalizedString("my.requests.status.accepted.celebrate", comment: "Celebratory accepted chip accessibility label")
+            : label
         HStack(spacing: 4) {
             Image(systemName: symbol)
                 .font(.system(size: 10, weight: .semibold))
@@ -164,6 +171,8 @@ public struct MyRequestsListView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(color.opacity(0.15), in: Capsule())
+        .shadow(color: isAccepted && isPopped ? color.opacity(0.45) : .clear, radius: 6, x: 0, y: 0)
+        .scaleEffect(isAccepted && !reduceMotion ? (isPopped ? 1.0 : 0.6) : 1.0)
         .opacity(isPending && !reduceMotion ? (pulse ? 1.0 : 0.6) : 1.0)
         .animation(
             isPending && !reduceMotion
@@ -171,10 +180,21 @@ public struct MyRequestsListView: View {
                 : .none,
             value: pulse
         )
-        .accessibilityLabel(label)
+        .accessibilityLabel(celebrateLabel)
         .onAppear {
-            guard isPending, !reduceMotion, !pulse else { return }
-            pulse = true
+            if isPending {
+                guard !reduceMotion, !pulse else { return }
+                pulse = true
+            } else if isAccepted {
+                if !celebratedRequestIds.contains(requestId) {
+                    celebratedRequestIds.insert(requestId)
+                    Haptics.notify(.success)
+                }
+                guard !reduceMotion, !poppedRequestIds.contains(requestId) else { return }
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) {
+                    poppedRequestIds.insert(requestId)
+                }
+            }
         }
     }
 
