@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 @testable import SoloCompass
 
 /// US-020: Cold-start TTI must not block on a serial main-thread init chain.

@@ -74,6 +74,7 @@ final class CompassMapViewLayerToggleTests: XCTestCase {
             .environment(SubscriptionService())
             .environment(CompanionService())
             .environment(PresenceService())
+            .environment(BestNowClock.shared)
 
         let host = UIHostingController(rootView: rootView)
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 874))

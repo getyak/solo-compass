@@ -1,4 +1,5 @@
 import XCTest
+import SwiftUI
 @testable import SoloCompass
 
 // MARK: - US-023: shared BestNowClock across BestNowBadge instances

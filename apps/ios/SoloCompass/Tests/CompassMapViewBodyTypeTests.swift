@@ -29,6 +29,7 @@ final class CompassMapViewBodyTypeTests: XCTestCase {
             .environment(SubscriptionService())
             .environment(CompanionService())
             .environment(PresenceService())
+            .environment(BestNowClock.shared)
 
         let host = UIHostingController(rootView: rootView)
         // `onAppear` only fires once the view is in a real window hierarchy,
