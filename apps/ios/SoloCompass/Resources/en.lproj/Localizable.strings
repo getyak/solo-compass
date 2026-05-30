@@ -682,6 +682,7 @@
 "offline.banner" = "Offline mode · showing cached data";
 "offline.banner.retry" = "Tap to retry";
 "offline.banner.retry.hint" = "Double tap to retry connection";
+"offline.banner.retry.failed" = "Retry failed — still offline";
 
 /* Theme picker (US-039) */
 "settings.appearance" = "Appearance";

@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Amber pill banner shown in CompassMapView when the app is offline and showing cached data (US-041).
 /// When `onRetry` is non-nil the banner becomes a tappable button that re-runs the experience load.
@@ -8,6 +11,8 @@ struct OfflineBanner: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPulsing = false
     @State private var isRetrying = false
+    @State private var shakeOffset: CGFloat = 0
+    @State private var retryFailed = false
 
     var body: some View {
         pillContent
@@ -40,10 +45,15 @@ struct OfflineBanner: View {
                 isRetrying = true
                 Task {
                     await onRetry()
+                    let stillOffline = await MainActor.run { !NetworkMonitor.shared.isConnected }
+                    if stillOffline {
+                        await handleRetryFailure()
+                    }
                     isRetrying = false
                 }
             } label: {
                 capsuleView
+                    .offset(x: shakeOffset)
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(.isButton)
@@ -52,6 +62,33 @@ struct OfflineBanner: View {
             capsuleView
         }
     }
+
+    @MainActor
+    private func handleRetryFailure() async {
+        Haptics.notify(.warning)
+
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: NSLocalizedString("offline.banner.retry.failed", comment: "Retry failed — still offline")
+        )
+
+        retryFailed = true
+
+        if !reduceMotion {
+            let steps: [(CGFloat, Double)] = [(-6, 0.07), (6, 0.07), (-4, 0.07), (4, 0.07), (0, 0.07)]
+            for (offset, duration) in steps {
+                withAnimation(.easeInOut(duration: duration)) {
+                    shakeOffset = offset
+                }
+                try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+            }
+        }
+
+        try? await Task.sleep(nanoseconds: 600_000_000)
+        retryFailed = false
+    }
+
+    private var failureColor: Color { retryFailed ? .red : .orange }
 
     @ViewBuilder
     private var capsuleView: some View {
@@ -66,7 +103,7 @@ struct OfflineBanner: View {
                     } else {
                         Image(systemName: "wifi.slash")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.orange)
+                            .foregroundStyle(failureColor)
                             .scaleEffect(isPulsing ? 1.12 : 0.96)
                             .opacity(isPulsing ? 1.0 : 0.65)
                     }
@@ -76,14 +113,14 @@ struct OfflineBanner: View {
                 HStack(spacing: 4) {
                     Text(NSLocalizedString("offline.banner", comment: "Offline mode banner"))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.orange)
+                        .foregroundStyle(failureColor)
                     if onRetry != nil && !isRetrying {
                         Text("·")
                             .font(.caption)
-                            .foregroundStyle(Color.orange.opacity(0.7))
+                            .foregroundStyle(failureColor.opacity(0.7))
                         Text(NSLocalizedString("offline.banner.retry", comment: "Tap to retry connection"))
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.orange.opacity(0.85))
+                            .foregroundStyle(failureColor.opacity(0.85))
                     }
                 }
             }

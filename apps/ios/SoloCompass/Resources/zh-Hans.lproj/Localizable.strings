@@ -1222,6 +1222,7 @@
 /* Offline banner */
 "offline.banner.retry" = "点击重试";
 "offline.banner.retry.hint" = "双击重试连接";
+"offline.banner.retry.failed" = "重试失败 — 仍处于离线状态";
 
 /* Profile walked routes */
 "profile.walkedRoutes.empty.cta" = "发现路线";
