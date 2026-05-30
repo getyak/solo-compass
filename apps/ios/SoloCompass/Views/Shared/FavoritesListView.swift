@@ -752,6 +752,7 @@ private extension FavoritesListView {
         let prox = proximity(for: exp)
         let isDone = preferences.completedExperiences.contains(exp.id)
         Button {
+            Haptics.selection()
             onSelectExperience(exp)
         } label: {
             HStack(spacing: 12) {
@@ -806,7 +807,7 @@ private extension FavoritesListView {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableRowStyle(reduceMotion: reduceMotion))
         .accessibilityLabel({
             let doneWord = isDone ? ", \(NSLocalizedString("favorites.row.done.a11y", comment: "Completed row suffix"))" : ""
             if let distInfo {
@@ -857,6 +858,20 @@ private extension FavoritesListView {
             Haptics.impact(.light)
             NavigationLauncher.open(app: app, coordinate: coord, name: exp.title)
         }
+    }
+}
+
+private struct PressableRowStyle: ButtonStyle {
+    let reduceMotion: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect((!reduceMotion && configuration.isPressed) ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .animation(
+                reduceMotion ? nil : .easeOut(duration: 0.12),
+                value: configuration.isPressed
+            )
     }
 }
 
