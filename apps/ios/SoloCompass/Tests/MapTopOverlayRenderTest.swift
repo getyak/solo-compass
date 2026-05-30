@@ -45,6 +45,11 @@ final class MapTopOverlayRenderTest: XCTestCase {
             .environment(SubscriptionService())
             .environment(CompanionService())
             .environment(PresenceService())
+            // CompassMapView's subviews (ExperienceCardView / BottomInfoSheet) read
+            // @Environment(BestNowClock.self); the app injects it at the root, so the
+            // test must too — otherwise body evaluation traps with "No Observable
+            // object of type BestNowClock", crashing and restarting the XCTest host.
+            .environment(BestNowClock.shared)
 
         let host = UIHostingController(rootView: view)
         let window = UIWindow(frame: CGRect(origin: .zero, size: Self.windowSize))
