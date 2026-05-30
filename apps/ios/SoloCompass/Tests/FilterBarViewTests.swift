@@ -44,4 +44,16 @@ final class FilterBarViewTests: XCTestCase {
         XCTAssertEqual(reloaded.visibleCategories, trimmed)
         XCTAssertFalse(reloaded.visibleCategories.contains(.nightlife))
     }
+
+    // MARK: - Toggle-off routing (pill clear behaviour)
+
+    func testResolvesToClearWhenPillIsSelected() {
+        XCTAssertTrue(FilterBarView.resolvesToClear(isSelected: true),
+                      "Re-tapping an active pill must resolve to clear")
+    }
+
+    func testDoesNotResolveToClearWhenPillIsUnselected() {
+        XCTAssertFalse(FilterBarView.resolvesToClear(isSelected: false),
+                       "Tapping an inactive pill must not resolve to clear")
+    }
 }
