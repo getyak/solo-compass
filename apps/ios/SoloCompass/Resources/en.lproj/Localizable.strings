@@ -281,6 +281,12 @@
 "journey.progress.milestone.a11y" = "Completed %d of %d experiences. Milestone reached!";
 "journey.progress.a11y" = "Completed %d of %d experiences";
 
+/* Journey category breakdown bar */
+/* Single item in the VoiceOver summary, e.g. "3 coffee" — arg 1 is count, arg 2 is category name */
+"journey.breakdown.a11y.item" = "%1$d %2$@";
+/* Full VoiceOver label for the breakdown bar, arg is a comma-joined list of items */
+"journey.breakdown.a11y.label" = "Category breakdown: %@";
+
 /* Settings */
 "settings.title" = "Preferences";
 "settings.done" = "Done";

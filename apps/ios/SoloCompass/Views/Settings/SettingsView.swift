@@ -425,9 +425,26 @@ public struct SettingsView: View {
         }
     }
 
+    /// Groups completed experience IDs by category, sorted descending by count.
+    private var categoryCounts: [(ExperienceCategory, Int)] {
+        var counts: [ExperienceCategory: Int] = [:]
+        for id in preferences.completedExperiences {
+            guard let exp = experienceService.getExperience(id: id) else { continue }
+            counts[exp.category, default: 0] += 1
+        }
+        return counts
+            .filter { $0.value > 0 }
+            .sorted { $0.value > $1.value }
+            .map { ($0.key, $0.value) }
+    }
+
     private var statsSection: some View {
         Section {
             journeyProgressCard
+
+            if !categoryCounts.isEmpty {
+                CategoryBreakdownBar(categoryCounts: categoryCounts)
+            }
 
             Button {
                 onShowFavorites?()
@@ -994,6 +1011,106 @@ extension UserPreferences.SoloTravelStyle {
     }
 }
 
+// MARK: - Category Breakdown Bar
+
+private struct CategoryBreakdownBar: View {
+    let categoryCounts: [(ExperienceCategory, Int)]
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+
+    private var total: Int { categoryCounts.reduce(0) { $0 + $1.1 } }
+
+    private var a11yLabel: String {
+        let parts = categoryCounts.map { cat, count in
+            String(format: NSLocalizedString(
+                "journey.breakdown.a11y.item",
+                comment: "Category count accessibility item, e.g. '3 coffee'"
+            ), count, cat.localizedTitle)
+        }
+        return String(
+            format: NSLocalizedString(
+                "journey.breakdown.a11y.label",
+                comment: "Category breakdown accessibility label"
+            ),
+            parts.joined(separator: ", ")
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Proportional segmented bar
+            GeometryReader { geo in
+                HStack(spacing: 2) {
+                    ForEach(categoryCounts, id: \.0) { category, count in
+                        let fraction = total > 0 ? Double(count) / Double(total) : 0
+                        let width = geo.size.width * (appeared ? fraction : 0)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(category.color)
+                            .frame(width: max(width, appeared ? 2 : 0), height: 12)
+                            .animation(
+                                reduceMotion ? nil : .easeInOut(duration: 0.45).delay(0.05),
+                                value: appeared
+                            )
+                    }
+                }
+                .clipShape(Capsule())
+            }
+            .frame(height: 12)
+
+            // Legend chips — top categories
+            let topCounts = Array(categoryCounts.prefix(5))
+            FlexibleLegend(items: topCounts)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(a11yLabel)
+        .onAppear {
+            if reduceMotion {
+                appeared = true
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    appeared = true
+                }
+            }
+        }
+        .onChange(of: categoryCounts.map { $0.1 }) { _, _ in
+            appeared = false
+            if reduceMotion {
+                appeared = true
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    appeared = true
+                }
+            }
+        }
+    }
+}
+
+private struct FlexibleLegend: View {
+    let items: [(ExperienceCategory, Int)]
+
+    var body: some View {
+        // Wrapping row via a simple flow approach using fixed-size chips
+        HStack(alignment: .center, spacing: 6) {
+            ForEach(items, id: \.0) { category, count in
+                HStack(spacing: 3) {
+                    Image(systemName: category.symbol)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(category.color)
+                    Text("\(count)")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(category.color)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(category.color.opacity(0.12), in: Capsule())
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 // MARK: - Journey Progress Card
 
 private struct JourneyProgressCard: View {
@@ -1146,6 +1263,26 @@ private extension Color {
         JourneyProgressCard(completed: 5, milestone: 10, caption: "You're on a roll!")
         JourneyProgressCard(completed: 0, milestone: 3, caption: "Every journey starts here.")
         JourneyProgressCard(completed: 25, milestone: 50, caption: "A seasoned solo traveler.")
+    }
+    .listStyle(.insetGrouped)
+}
+
+#Preview("Category Breakdown Bar — populated") {
+    List {
+        CategoryBreakdownBar(categoryCounts: [
+            (.coffee, 5),
+            (.culture, 3),
+            (.food, 2),
+            (.nature, 1),
+        ])
+    }
+    .listStyle(.insetGrouped)
+}
+
+#Preview("Category Breakdown Bar — empty (not shown)") {
+    List {
+        Text("Bar is hidden when categoryCounts is empty.")
+            .foregroundStyle(.secondary)
     }
     .listStyle(.insetGrouped)
 }
