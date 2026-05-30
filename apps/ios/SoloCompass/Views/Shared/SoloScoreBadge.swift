@@ -185,6 +185,20 @@ private struct SoloScorePopoverContent: View {
             ForEach(Array(dimensions.enumerated()), id: \.offset) { index, row in
                 dimensionRow(label: NSLocalizedString(row.labelKey, comment: ""), value: row.value, index: index)
             }
+
+            if score.basedOnCount > 0 {
+                Divider()
+                HStack(spacing: 6) {
+                    Image(systemName: "person.2.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(String(format: NSLocalizedString("solo.basedOn", comment: "Based on N solo travelers"), score.basedOnCount))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text(String(format: NSLocalizedString("solo.basedOn", comment: "Based on N solo travelers"), score.basedOnCount)))
+            }
         }
         .padding()
         .frame(minWidth: 240)
