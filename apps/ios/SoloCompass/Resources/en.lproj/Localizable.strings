@@ -421,6 +421,9 @@
 "favorites.remaining.show.a11y" = "Show remaining experiences";
 "favorites.remaining.active.a11y" = "Showing remaining, tap to show all";
 "favorites.remaining.hint" = "Filters the list to not-yet-completed favorites";
+"favorites.remaining.allDone.title" = "You've done them all";
+"favorites.remaining.allDone.hint" = "Every favorite here is checked off. Nice work.";
+"favorites.remaining.allDone.cta" = "Show all favorites";
 "favorites.nearby.walkBudget" = "~%dm on foot";
 "favorites.nearby.walkBudget.a11y" = "About %d minutes of walking across nearby favorites";
 
