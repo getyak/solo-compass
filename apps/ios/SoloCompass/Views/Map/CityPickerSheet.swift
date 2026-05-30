@@ -9,6 +9,7 @@ public struct CityPickerSheet: View {
     let onDismiss: () -> Void
     @State private var userLocation: CLLocation?
     @State private var justSelectedCode: String? = nil
+    @State private var citySearchText = ""
 
     private func selectCity(_ code: String?) {
         Haptics.impact(.light)
@@ -29,56 +30,63 @@ public struct CityPickerSheet: View {
                     CityEmptyStateView()
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
                 } else {
-                    List {
-                        // "All Cities" option
-                        Button {
-                            selectCity(nil)
-                        } label: {
-                            HStack {
-                                Text(NSLocalizedString("city.all", comment: "All cities option"))
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                if viewModel.selectedCity == nil {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.tint)
-                                        .font(.body.weight(.semibold))
-                                        .scaleEffect(justSelectedCode == "all" ? 1.3 : 1.0)
-                                        .symbolEffect(.bounce, value: justSelectedCode)
-                                }
-                            }
-                        }
-
-                        // US-019: Sort by distance ascending, then alphabetical
-                        ForEach(sortedCities, id: \.code) { city in
-                            Button {
-                                selectCity(city.code)
-                            } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(city.name)
-                                            .font(.headline)
+                    let filtered = filteredSortedCities
+                    if filtered.isEmpty {
+                        ContentUnavailableView.search(text: citySearchText)
+                    } else {
+                        List {
+                            // "All Cities" option — hidden while a search query is active
+                            if citySearchText.trimmingCharacters(in: .whitespaces).isEmpty {
+                                Button {
+                                    selectCity(nil)
+                                } label: {
+                                    HStack {
+                                        Text(NSLocalizedString("city.all", comment: "All cities option"))
+                                            .font(.body)
                                             .foregroundStyle(.primary)
-                                        Text(String(
-                                            format: NSLocalizedString("city.experienceCount", comment: "Experience count in city"),
-                                            viewModel.experienceCount(for: city.code)
-                                        ))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                    VStack(alignment: .trailing, spacing: 2) {
-                                        if viewModel.selectedCity == city.code {
+                                        Spacer()
+                                        if viewModel.selectedCity == nil {
                                             Image(systemName: "checkmark")
                                                 .foregroundStyle(.tint)
                                                 .font(.body.weight(.semibold))
-                                                .scaleEffect(justSelectedCode == city.code ? 1.3 : 1.0)
+                                                .scaleEffect(justSelectedCode == "all" ? 1.3 : 1.0)
                                                 .symbolEffect(.bounce, value: justSelectedCode)
                                         }
-                                        Text(distanceLabel(for: city.center))
-                                            .font(.caption)
-                                            .foregroundStyle(.tertiary)
-                                            .monospacedDigit()
+                                    }
+                                }
+                            }
+
+                            // US-019: Sort by distance ascending, then alphabetical
+                            ForEach(filtered, id: \.code) { city in
+                                Button {
+                                    selectCity(city.code)
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(city.name)
+                                                .font(.headline)
+                                                .foregroundStyle(.primary)
+                                            Text(String(
+                                                format: NSLocalizedString("city.experienceCount", comment: "Experience count in city"),
+                                                viewModel.experienceCount(for: city.code)
+                                            ))
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            if viewModel.selectedCity == city.code {
+                                                Image(systemName: "checkmark")
+                                                    .foregroundStyle(.tint)
+                                                    .font(.body.weight(.semibold))
+                                                    .scaleEffect(justSelectedCode == city.code ? 1.3 : 1.0)
+                                                    .symbolEffect(.bounce, value: justSelectedCode)
+                                            }
+                                            Text(distanceLabel(for: city.center))
+                                                .font(.caption)
+                                                .foregroundStyle(.tertiary)
+                                                .monospacedDigit()
+                                        }
                                     }
                                 }
                             }
@@ -86,6 +94,11 @@ public struct CityPickerSheet: View {
                     }
                 }
             }
+            .searchable(
+                text: $citySearchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: NSLocalizedString("city.search.prompt", comment: "Search cities prompt")
+            )
             .animation(.easeInOut, value: viewModel.availableCities.isEmpty)
             .navigationTitle(NSLocalizedString("city.picker.title", comment: "City picker sheet title"))
             .navigationBarTitleDisplayMode(.inline)
@@ -103,6 +116,12 @@ public struct CityPickerSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    private var filteredSortedCities: [(code: String, name: String, center: CLLocationCoordinate2D)] {
+        let query = citySearchText.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return sortedCities }
+        return sortedCities.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
 
     private var sortedCities: [(code: String, name: String, center: CLLocationCoordinate2D)] {
@@ -177,7 +196,7 @@ private struct CityEmptyStateView: View {
     )
 }
 
-#Preview("Empty state") {
+#Preview("Empty state — no discovered cities") {
     CityPickerSheet(
         viewModel: MapViewModel(
             locationService: LocationService.shared,
@@ -187,4 +206,17 @@ private struct CityEmptyStateView: View {
         ),
         onDismiss: {}
     )
+}
+
+#Preview("Search — no matches") {
+    let sheet = CityPickerSheet(
+        viewModel: MapViewModel(
+            locationService: LocationService.shared,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: UserPreferences()
+        ),
+        onDismiss: {}
+    )
+    return sheet
 }
