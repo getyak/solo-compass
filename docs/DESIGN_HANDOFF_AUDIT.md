@@ -15,13 +15,13 @@
 
 本次为 `CT` 补全了缺失 token，并修正了 status tone 的取值：
 
-| 设计 token | CT 成员 | 值 |
-|---|---|---|
-| --surface-white / --surface-sunken | CT.surfaceWhite / CT.surfaceSunken | #FFF / #F3EEE6 |
-| --border-subtle / --border-default | CT.borderSubtle / CT.borderDefault | #EDE8DF / #D6CEC0 |
-| --sun-gold / -deep / -soft | CT.sunGold / sunGoldDeep / sunGoldSoft | #C9A677 / #A07F4B / #F5E9D2 |
-| verified green / dot | CT.verifiedGreen / verifiedGreenDot | #1F7B4D / #2FA46A |
-| status tone open/forming/closed/completed | CT.toneOpen/Forming/Closed/Completed | accent / #B57420 / #1F7B4D / fgMuted |
+| 设计 token                                | CT 成员                                | 值                                   |
+| ----------------------------------------- | -------------------------------------- | ------------------------------------ |
+| --surface-white / --surface-sunken        | CT.surfaceWhite / CT.surfaceSunken     | #FFF / #F3EEE6                       |
+| --border-subtle / --border-default        | CT.borderSubtle / CT.borderDefault     | #EDE8DF / #D6CEC0                    |
+| --sun-gold / -deep / -soft                | CT.sunGold / sunGoldDeep / sunGoldSoft | #C9A677 / #A07F4B / #F5E9D2          |
+| verified green / dot                      | CT.verifiedGreen / verifiedGreenDot    | #1F7B4D / #2FA46A                    |
+| status tone open/forming/closed/completed | CT.toneOpen/Forming/Closed/Completed   | accent / #B57420 / #1F7B4D / fgMuted |
 
 既有保留：bgWarm #FAF8F6 · fgPrimary/Muted/Subtle · accent #5D3000 / accentHover / accentSoft / accentBorder。
 
@@ -29,16 +29,16 @@
 
 并行 agent 审计（7 域）+ 对抗式验证，产出 **66 个已验证差距**；按文件级隔离并行修复。
 
-| 域 / 文件 | 关键修复 |
-|---|---|
-| FilterBarView | NOW pill 改 sun-gold 边/点/计数；分类 disc 34×34 全不透明边；rail padding 6/5 |
-| CompassMapView（city pill） | 文字 accent 色 + 暖白 0.78 半透明底 |
-| RouteCard | 重构为纵向卡：route-tag 头部 + now-pill + 22×22 stop-strip + 脉冲 recruit-mini + 卡片边/影/按压 |
-| VerifiedBadge | badge 32px 圆底 + 绿色；inline 0.12 绿；header 绿渐变 + 发光点 + 常量环；AvatarStack 5/24 |
-| AvatarStack | 重叠 -size×0.32；环 1.5pt；+N 气泡 sunken 底 muted 字 |
-| StopsList | 序号 "01/02" mono；disc 30×30；连接线 1.5/borderDefault；顶部 hairline；字号/chevron 修正 |
-| RecruitingModule | status-pill 品牌色+大写；host 头像 36；空槽虚线边；host-msg 引用卡；CTA accent 实底胶囊 |
-| RouteDetailView | meta-row 底边线；AI 洞察 locked 虚线卡；tags pill 区；dock 状态机 CTA（开始/申请/审批/等待/群聊）|
+| 域 / 文件                   | 关键修复                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------- |
+| FilterBarView               | NOW pill 改 sun-gold 边/点/计数；分类 disc 34×34 全不透明边；rail padding 6/5                     |
+| CompassMapView（city pill） | 文字 accent 色 + 暖白 0.78 半透明底                                                               |
+| RouteCard                   | 重构为纵向卡：route-tag 头部 + now-pill + 22×22 stop-strip + 脉冲 recruit-mini + 卡片边/影/按压   |
+| VerifiedBadge               | badge 32px 圆底 + 绿色；inline 0.12 绿；header 绿渐变 + 发光点 + 常量环；AvatarStack 5/24         |
+| AvatarStack                 | 重叠 -size×0.32；环 1.5pt；+N 气泡 sunken 底 muted 字                                             |
+| StopsList                   | 序号 "01/02" mono；disc 30×30；连接线 1.5/borderDefault；顶部 hairline；字号/chevron 修正         |
+| RecruitingModule            | status-pill 品牌色+大写；host 头像 36；空槽虚线边；host-msg 引用卡；CTA accent 实底胶囊           |
+| RouteDetailView             | meta-row 底边线；AI 洞察 locked 虚线卡；tags pill 区；dock 状态机 CTA（开始/申请/审批/等待/群聊） |
 
 新增 localization key（en + zh-Hans 同步）：`route.card.tag/now`、`route.detail.aiInsight.title/locked/unlock`、`route.detail.tags.title`、`route.detail.start`、`route.detail.cta.requestJoin/review/waiting/groupChat`。
 
@@ -51,6 +51,7 @@
 ## 已知预存测试失败（与本次改动无关）
 
 main 基线 iOS CI 当前为红（build scope 错误，已由并行修复解决）。测试套件中以下用例为数据/环境驱动的预存失败，相关源文件本次均未改动：
+
 - `EmptyStateAnnouncementTest`（en strings bundle 加载 / NearbySection 反射）
 - `MapViewModelCityRegionSyncTests.testColdStartCameraMatchesSelectedCity`（城市坐标）
 - `NowCountCacheTests.testInitialCountIsZero`（缓存初值）
