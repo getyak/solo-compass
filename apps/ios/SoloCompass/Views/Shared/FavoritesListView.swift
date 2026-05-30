@@ -88,13 +88,6 @@ public struct FavoritesListView: View {
         }
     }
 
-    private static let metersFormatter: MeasurementFormatter = {
-        let f = MeasurementFormatter()
-        f.unitOptions = .providedUnit
-        f.numberFormatter.maximumFractionDigits = 0
-        return f
-    }()
-
     private static let kilometersFormatter: MeasurementFormatter = {
         let f = MeasurementFormatter()
         f.unitOptions = .providedUnit
@@ -103,17 +96,25 @@ public struct FavoritesListView: View {
         return f
     }()
 
-    private func distanceString(for experience: Experience) -> String? {
+    private static let walkThresholdMeters = 1500.0
+    private static let walkMetersPerMin = 80.0
+
+    private func distanceInfo(for experience: Experience) -> (text: String, symbol: String)? {
         guard let userLocation = LocationService.shared.currentLocation,
               let coord = experience.coordinate else { return nil }
         let meters = userLocation.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
-        if meters < 1000 {
-            let rounded = (meters / 50).rounded() * 50
-            let measurement = Measurement(value: max(50, rounded), unit: UnitLength.meters)
-            return Self.metersFormatter.string(from: measurement)
+        if meters < Self.walkThresholdMeters {
+            let minutes = Int((meters / Self.walkMetersPerMin).rounded(.up))
+            let label: String
+            if minutes < 1 {
+                label = NSLocalizedString("card.distance.walkSub1", comment: "Distance less than 1 min walk")
+            } else {
+                label = String(format: NSLocalizedString("card.distance.walk", comment: "Distance in walk minutes"), minutes)
+            }
+            return (label, "figure.walk")
         } else {
             let measurement = Measurement(value: meters / 1000, unit: UnitLength.kilometers)
-            return Self.kilometersFormatter.string(from: measurement)
+            return (Self.kilometersFormatter.string(from: measurement), "location.fill")
         }
     }
 
@@ -622,7 +623,7 @@ private extension FavoritesListView {
 
     @ViewBuilder
     func favoriteRow(_ exp: Experience) -> some View {
-        let distStr = distanceString(for: exp)
+        let distInfo = distanceInfo(for: exp)
         let prox = proximity(for: exp)
         let isDone = preferences.completedExperiences.contains(exp.id)
         Button {
@@ -655,7 +656,7 @@ private extension FavoritesListView {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
-                    if let distStr {
+                    if let distInfo {
                         HStack(spacing: 3) {
                             if let prox {
                                 Circle()
@@ -663,7 +664,7 @@ private extension FavoritesListView {
                                     .frame(width: 7, height: 7)
                                     .accessibilityHidden(true)
                             }
-                            Text(distStr)
+                            Label(distInfo.text, systemImage: distInfo.symbol)
                                 .font(.caption2)
                                 .monospacedDigit()
                         }
@@ -683,9 +684,9 @@ private extension FavoritesListView {
         .buttonStyle(.plain)
         .accessibilityLabel({
             let doneWord = isDone ? ", \(NSLocalizedString("favorites.row.done.a11y", comment: "Completed row suffix"))" : ""
-            if let distStr {
+            if let distInfo {
                 let awayFmt = NSLocalizedString("favorites.row.distance.a11y", comment: "Distance away accessibility label")
-                let distLabel = String(format: awayFmt, distStr)
+                let distLabel = String(format: awayFmt, distInfo.text)
                 if let prox {
                     return Text("\(exp.title), \(exp.oneLiner), \(distLabel), \(prox.a11yWord)\(doneWord)")
                 }
