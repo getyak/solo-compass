@@ -139,8 +139,8 @@ public struct FavoritesListView: View {
 
     private var nearestFavorite: Experience? {
         sortedFavorites
-            .filter { proximity(for: $0) == .near }
-            .min { (distanceMeters(for: $0) ?? .greatestFiniteMagnitude) < (distanceMeters(for: $1) ?? .greatestFiniteMagnitude) }
+            .filter { distanceMeters(for: $0) != nil }
+            .min(by: { (distanceMeters(for: $0) ?? .greatestFiniteMagnitude) < (distanceMeters(for: $1) ?? .greatestFiniteMagnitude) })
     }
 
     @ViewBuilder
@@ -293,6 +293,32 @@ public struct FavoritesListView: View {
                                             walkBudgetChipContent(mins: mins)
                                                 .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.walkBudget.a11y", comment: "Walk budget chip accessibility label"), mins))
                                         }
+                                    }
+
+                                    let availableApps = NavigationLauncher.availableApps()
+                                    if let nearest = nearestFavorite,
+                                       let app = availableApps.first {
+                                        Button {
+                                            Haptics.impact(.light)
+                                            guard let coord = nearest.coordinate else { return }
+                                            NavigationLauncher.open(app: app, coordinate: coord, name: nearest.title)
+                                        } label: {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
+                                                    .accessibilityHidden(true)
+                                                Text(NSLocalizedString("favorites.nearby.go", comment: "Go button: launch directions to nearest favorite"))
+                                            }
+                                            .font(.caption2)
+                                            .foregroundStyle(Color.green)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(Color.green.opacity(0.12), in: Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.go.a11y", comment: "Directions to nearest favorite accessibility label"), nearest.title))
+                                        .accessibilityHint(NSLocalizedString("favorites.nearby.go.hint", comment: "Go button accessibility hint"))
+                                        .accessibilityAddTraits(.isButton)
+                                        .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                                     }
                                 }
                             }
