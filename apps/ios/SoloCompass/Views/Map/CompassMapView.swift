@@ -411,8 +411,10 @@ struct CompassMapContentView: View {
                 // Offline banner (US-041): amber pill when network is unavailable
                 if !networkMonitor.isConnected {
                     VStack {
-                        OfflineBanner()
-                            .padding(.top, 8)
+                        OfflineBanner(onRetry: {
+                            viewModel.loadNearbyExperiences()
+                        })
+                        .padding(.top, 8)
                         Spacer()
                     }
                     .animation(.easeInOut, value: networkMonitor.isConnected)
