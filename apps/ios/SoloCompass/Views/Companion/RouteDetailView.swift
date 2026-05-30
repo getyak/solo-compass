@@ -151,12 +151,9 @@ public struct RouteDetailView: View {
 
     private var contentStack: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Mono baseline
-            Text(monoBaseline)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+            // Mono baseline — quiet JetBrains-Mono line with a bottom hairline
+            // (border-subtle), per .sc-meta-row.
+            metaRow
 
             // VerifiedBadge
             VerifiedBadge(route: liveRoute)
@@ -181,9 +178,108 @@ public struct RouteDetailView: View {
 
             // StopsList
             StopsList(route: liveRoute, onTapStop: onTapStop)
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(CT.surfaceWhite)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
+                )
                 .padding(.horizontal, 16)
+
+            // AI insight — locked Pro card (.sc-locked: dashed border, lock glyph, unlock CTA)
+            aiInsightLocked
+                .padding(.horizontal, 20)
+
+            // Route tags (.sc-tag-row) — accent-soft pills, only when the route has tags
+            if !liveRoute.tags.isEmpty {
+                tagRow
+                    .padding(.horizontal, 20)
+            }
+        }
+    }
+
+    // MARK: - Meta row (.sc-meta-row)
+
+    private var metaRow: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(monoBaseline)
+                .font(CT.mono(12))
+                .foregroundStyle(CT.fgMuted)
+                .padding(.vertical, 14)
+            Rectangle()
+                .fill(CT.borderSubtle)
+                .frame(height: 0.5)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+    }
+
+    // MARK: - AI insight locked card (.sc-locked)
+
+    private var aiInsightLocked: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(NSLocalizedString("route.detail.aiInsight.title", comment: "AI insight section title"))
+                .font(CT.display(12, .bold))
+                .tracking(0.8)
+                .textCase(.uppercase)
+                .foregroundStyle(CT.fgMuted)
+
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(CT.surfaceWhite)
+                        .frame(width: 28, height: 28)
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(CT.fgMuted)
+                }
+                Text(NSLocalizedString("route.detail.aiInsight.locked", comment: "AI insight unlock copy"))
+                    .font(CT.body(12))
+                    .foregroundStyle(CT.fgMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+                Text(NSLocalizedString("route.detail.aiInsight.unlock", comment: "Unlock CTA"))
+                    .font(CT.body(12, .semibold))
+                    .foregroundStyle(CT.accent)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(CT.surfaceSunken)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(
+                        CT.borderDefault,
+                        style: StrokeStyle(lineWidth: 0.5, dash: [4, 3])
+                    )
+            )
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Tag row (.sc-tag-row)
+
+    private var tagRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(NSLocalizedString("route.detail.tags.title", comment: "Route tags section title"))
+                .font(CT.display(12, .bold))
+                .tracking(0.8)
+                .textCase(.uppercase)
+                .foregroundStyle(CT.fgMuted)
+
+            FlowLayout(spacing: 6) {
+                ForEach(liveRoute.tags, id: \.self) { tag in
+                    Text(tag)
+                        .font(CT.body(12))
+                        .foregroundStyle(CT.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(CT.accentSoft))
+                        .overlay(Capsule().strokeBorder(CT.accentBorder, lineWidth: 1))
+                }
+            }
         }
     }
 
@@ -193,45 +289,122 @@ public struct RouteDetailView: View {
         viewerIsHost && liveRoute.companion?.status == .closed
     }
 
-    private var bottomDock: some View {
-        VStack(spacing: 0) {
-            Divider()
-            VStack(spacing: 8) {
-                if showMarkCompleted {
-                    Button {
-                        showCompletionMoment = true
-                    } label: {
-                        Text(NSLocalizedString("completion.mark.done", comment: ""))
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.1, green: 0.7, blue: 0.5))
-                }
-                HStack(spacing: 12) {
-                    Button {
-                        isSaved.toggle()
-                    } label: {
-                        Label(
-                            NSLocalizedString("route.detail.save", comment: ""),
-                            systemImage: isSaved ? "bookmark.fill" : "bookmark"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(isSaved ? .accentColor : .secondary)
+    /// Resolved primary-CTA for the dock — label, SF symbol, disabled flag and
+    /// action vary by companion state, mirroring route.jsx's dock logic:
+    /// no-companion → 开始路线; viewer open/forming → 申请加入; host open/forming →
+    /// 审批 N; hasMyRequest → 等待确认(disabled); closed/completed → 进入群聊.
+    private struct PrimaryCTA {
+        let label: String
+        let systemImage: String
+        let isDisabled: Bool
+        let action: () -> Void
+    }
 
-                    Button {
-                        isFavorited.toggle()
-                    } label: {
-                        Label(
-                            NSLocalizedString("route.detail.favorite", comment: ""),
-                            systemImage: isFavorited ? "heart.fill" : "heart"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(isFavorited ? .pink : .accentColor)
+    private var primaryCTA: PrimaryCTA {
+        // Host of a closed route gets the "mark completed" celebration CTA.
+        if showMarkCompleted {
+            return PrimaryCTA(
+                label: NSLocalizedString("completion.mark.done", comment: ""),
+                systemImage: "checkmark.seal.fill",
+                isDisabled: false,
+                action: { showCompletionMoment = true }
+            )
+        }
+
+        guard preferences.companionEnabled, let companion = liveRoute.companion else {
+            return PrimaryCTA(
+                label: NSLocalizedString("route.detail.start", comment: ""),
+                systemImage: "location.north.line.fill",
+                isDisabled: false,
+                action: {}
+            )
+        }
+
+        let isRecruiting = companion.status == .open || companion.status == .forming
+
+        if isRecruiting && viewerIsHost {
+            let pending = companion.joinRequests.filter { $0.status == .pending }.count
+            return PrimaryCTA(
+                label: String(format: NSLocalizedString("route.detail.cta.review", comment: ""), pending),
+                systemImage: "person.2.fill",
+                isDisabled: false,
+                action: { showApprovalQueue = true }
+            )
+        }
+        if isRecruiting && hasMyRequest {
+            return PrimaryCTA(
+                label: NSLocalizedString("route.detail.cta.waiting", comment: ""),
+                systemImage: "clock.fill",
+                isDisabled: true,
+                action: {}
+            )
+        }
+        if isRecruiting {
+            return PrimaryCTA(
+                label: NSLocalizedString("route.detail.cta.requestJoin", comment: ""),
+                systemImage: "person.2.fill",
+                isDisabled: false,
+                action: { showJoinSheet = true }
+            )
+        }
+        // closed / completed → group chat entry (falls back to completion replay
+        // for a host on a completed route).
+        return PrimaryCTA(
+            label: NSLocalizedString("route.detail.cta.groupChat", comment: ""),
+            systemImage: "message.fill",
+            isDisabled: companion.status == .completed && !viewerIsHost,
+            action: {
+                if companion.status == .completed { showCompletionMoment = true }
+            }
+        )
+    }
+
+    private var bottomDock: some View {
+        let cta = primaryCTA
+        return VStack(spacing: 0) {
+            Rectangle().fill(CT.borderSubtle).frame(height: 0.5)
+            HStack(spacing: 12) {
+                // Ghost button — favorite
+                Button {
+                    isFavorited.toggle()
+                } label: {
+                    Image(systemName: isFavorited ? "heart.fill" : "heart")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(isFavorited ? CT.toneClosed : CT.fgMuted)
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(CT.surfaceSunken))
                 }
+                .accessibilityLabel(Text(NSLocalizedString("route.detail.favorite", comment: "")))
+
+                // Ghost button — add to itinerary
+                Button {
+                    isSaved.toggle()
+                } label: {
+                    Image(systemName: isSaved ? "calendar.badge.checkmark" : "calendar.badge.plus")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(isSaved ? CT.accent : CT.fgMuted)
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(CT.surfaceSunken))
+                }
+                .accessibilityLabel(Text(NSLocalizedString("route.detail.save", comment: "")))
+
+                // Primary CTA — accent fill, state-dependent label.
+                Button(action: cta.action) {
+                    HStack(spacing: 6) {
+                        Image(systemName: cta.systemImage)
+                            .font(.system(size: 15, weight: .semibold))
+                        Text(cta.label)
+                            .font(CT.body(15, .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .foregroundStyle(cta.isDisabled ? CT.fgMuted : CT.surfaceWhite)
+                    .background(
+                        Capsule().fill(cta.isDisabled ? CT.surfaceSunken : CT.accent)
+                    )
+                }
+                .disabled(cta.isDisabled)
+                .accessibilityLabel(Text(cta.label))
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)

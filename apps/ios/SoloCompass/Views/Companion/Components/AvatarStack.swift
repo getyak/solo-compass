@@ -22,7 +22,7 @@ public struct AvatarStack: View {
     var size: CGFloat = 24
     var ring: Color = .white
 
-    private let overlap: CGFloat = 6
+    private var overlap: CGFloat { size * 0.32 }
 
     private var visible: [String] {
         Array(ids.prefix(maxVisible))
@@ -64,22 +64,22 @@ public struct AvatarStack: View {
             .frame(width: size, height: size)
             .overlay(
                 Circle()
-                    .strokeBorder(ring, lineWidth: 2)
+                    .strokeBorder(ring, lineWidth: 1.5)
             )
     }
 
     private var overflowBubble: some View {
         ZStack {
             Circle()
-                .fill(Color(.systemGray4))
+                .fill(CT.surfaceSunken)
                 .frame(width: size, height: size)
                 .overlay(
                     Circle()
-                        .strokeBorder(ring, lineWidth: 2)
+                        .strokeBorder(ring, lineWidth: 1.5)
                 )
             Text("+\(overflow)")
                 .font(.system(size: size * 0.38, weight: .semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(CT.fgMuted)
         }
     }
 }

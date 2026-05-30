@@ -2,11 +2,11 @@ import SwiftUI
 
 // MARK: - RouteCard
 
-/// Single row in the 路线 section of BottomInfoSheet.
+/// Single card in the 路线 section of BottomInfoSheet.
 ///
-/// Layout: 44×44 gradient cover (left) | title + mono baseline (right) |
-/// small verified corner pill when route.verification.status == .verified.
-/// P0: no companion info shown.
+/// Vertical layout (mirrors styles.css `.sc-route-card` / route.jsx `RouteCard`):
+/// head row (category dot + uppercase tag + verified-mini chip / now-pill) →
+/// title → stop-strip breadcrumb → foot (walked-by row or recruit-mini strip).
 public struct RouteCard: View {
     let route: Route
     /// Whether the companion layer is active. When off (or the route has no
@@ -14,62 +14,143 @@ public struct RouteCard: View {
     /// of the recruit-mini strip.
     var companionOn: Bool = false
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulse = false
+    @State private var pressed = false
+
     public init(route: Route, companionOn: Bool = false) {
         self.route = route
         self.companionOn = companionOn
     }
 
     private var monoBaseline: String {
-        let dur = route.estimatedDuration >= 60
-            ? String(format: "%dh%02dm", route.estimatedDuration / 60, route.estimatedDuration % 60)
-            : "\(route.estimatedDuration)min"
         let dist = route.distanceMeters >= 1000
             ? String(format: "%.1fkm", Double(route.distanceMeters) / 1000)
             : "\(route.distanceMeters)m"
-        return "\(dur) · \(dist) · \(route.pace.localizedLabel)"
+        return "\(durationLabel) · \(dist) · \(route.pace.localizedLabel)"
     }
 
-    private var isVerified: Bool {
+    /// Compact duration label (e.g. `1h30m` / `90min`) used in the head tag.
+    private var durationLabel: String {
+        route.estimatedDuration >= 60
+            ? String(format: "%dh%02dm", route.estimatedDuration / 60, route.estimatedDuration % 60)
+            : "\(route.estimatedDuration)min"
+    }
+
+    /// Uppercase head tag: "路线 · N 站 · DURATION".
+    private var tagLabel: String {
+        String(
+            format: NSLocalizedString("route.card.tag", comment: "路线 · N 站 · DURATION"),
+            route.experienceIds.count,
+            durationLabel
+        )
+    }
+
+    var isVerified: Bool {
         route.verification.status == .verified
     }
 
     public var body: some View {
-        HStack(spacing: 10) {
-            coverSquare
+        VStack(alignment: .leading, spacing: 0) {
+            headRow
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(route.title)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
+            Text(route.title)
+                .font(CT.body(16, .semibold))
+                .foregroundStyle(CT.fgPrimary)
+                .lineLimit(2)
+                .padding(.bottom, 10)
+
+            if !stopColors.isEmpty {
+                stopStrip
+                    .padding(.bottom, 11)
+            }
+
+            if showWalkedBy {
+                walkedByRow
+            } else if let mini = recruitMini {
+                recruitMiniStrip(mini)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 13)
+        .padding(.bottom, 11)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(CT.surfaceWhite)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
+        .scaleEffect(pressed ? 0.985 : 1)
+        .animation(.easeOut(duration: 0.18), value: pressed)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(route.title + ", " + monoBaseline))
+        .onAppear {
+            guard !reduceMotion else { return }
+            pulse = true
+        }
+    }
+
+    // MARK: - Head row (category dot + tag + verified-mini / now-pill)
+
+    private var headRow: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(primaryCategory.color)
+                    .frame(width: 6, height: 6)
+
+                Text(tagLabel)
+                    .font(CT.display(10, .bold))
+                    .tracking(1.2)
+                    .textCase(.uppercase)
+                    .foregroundStyle(CT.fgMuted)
                     .lineLimit(1)
 
-                Text(monoBaseline)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
-                if !stopColors.isEmpty {
-                    stopStrip
-                }
-
-                if showWalkedBy {
-                    walkedByRow
-                } else if let mini = recruitMini {
-                    recruitMiniStrip(mini)
+                if isVerified {
+                    verifiedMini
                 }
             }
 
             Spacer(minLength: 4)
 
-            if isVerified {
-                verifiedPill
+            if route.bestNow {
+                nowPill
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(route.title + ", " + monoBaseline))
+        .padding(.bottom, 7)
+    }
+
+    /// Verified-mini green chip next to the tag.
+    private var verifiedMini: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 9.5, weight: .semibold))
+            Text(NSLocalizedString("route.card.verified", comment: "Verified pill"))
+                .font(CT.mono(9.5, .semibold))
+        }
+        .foregroundStyle(CT.verifiedGreen)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Capsule().fill(CT.verifiedGreen.opacity(0.12)))
+    }
+
+    /// "此刻" now-pill shown when the route is best right now.
+    private var nowPill: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 10, weight: .bold))
+            Text(NSLocalizedString("route.card.now", comment: "此刻 now pill"))
+                .font(CT.display(10, .bold))
+                .tracking(0.6)
+        }
+        .foregroundStyle(CT.sunGoldDeep)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .background(Capsule().fill(CT.sunGoldSoft))
     }
 
     // MARK: - Stop-strip breadcrumb (CompareCanvas A-001)
@@ -87,22 +168,36 @@ public struct RouteCard: View {
         }
     }
 
-    /// Horizontal breadcrumb: colored discs joined by 1px `CT.fgSubtle` connectors.
+    /// Horizontal breadcrumb: 22×22 colored discs (white ring) joined by 16pt
+    /// connectors with a small arrowhead.
     private var stopStrip: some View {
         HStack(spacing: 0) {
             ForEach(Array(stopColors.enumerated()), id: \.offset) { offset, color in
                 if offset > 0 {
-                    Rectangle()
-                        .fill(CT.fgSubtle)
-                        .frame(width: 8, height: 1)
+                    connector
                 }
                 Circle()
                     .fill(color)
-                    .frame(width: 7, height: 7)
+                    .frame(width: 22, height: 22)
+                    .overlay(
+                        Circle().strokeBorder(.white, lineWidth: 1.5)
+                    )
             }
         }
-        .padding(.top, 2)
         .accessibilityHidden(true)
+    }
+
+    /// 16pt connector line + small arrowhead, in `CT.borderDefault`.
+    private var connector: some View {
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(CT.borderDefault)
+                .frame(width: 16, height: 1.5)
+            Image(systemName: "arrowtriangle.right.fill")
+                .font(.system(size: 5))
+                .foregroundStyle(CT.borderDefault)
+                .offset(x: -2)
+        }
     }
 
     // MARK: - Recruit-mini inline state (CompareCanvas A-002)
@@ -146,21 +241,61 @@ public struct RouteCard: View {
         }
     }
 
-    /// Inline strip below the title: host color dot + status-toned line, so the
-    /// recruiting state reads at a glance in the route list.
+    /// Inline strip in the foot: accent-soft card with a (pulsing) status dot +
+    /// status-toned line. Formed → verified-green wash, completed → sunken surface.
     private func recruitMiniStrip(_ mini: RecruitMini) -> some View {
-        HStack(spacing: 5) {
-            Circle()
-                .fill(mini.tone)
-                .frame(width: 6, height: 6)
+        let isFormed = mini.tone == CT.toneClosed
+        let isCompleted = mini.tone == CT.toneCompleted
+        let bg: Color = isFormed
+            ? CT.verifiedGreenDot.opacity(0.06)
+            : (isCompleted ? CT.surfaceSunken : CT.accentSoft)
+        let border: Color = isFormed
+            ? CT.verifiedGreenDot.opacity(0.3)
+            : (isCompleted ? CT.borderSubtle : CT.accentBorder)
+        let dotColor: Color = isFormed
+            ? CT.verifiedGreenDot
+            : (isCompleted ? CT.fgSubtle : CT.accent)
+
+        return HStack(spacing: 8) {
+            statusDot(dotColor, pulsing: !isCompleted)
             Text(mini.text)
-                .font(CT.body(11, .medium))
+                .font(CT.body(11.5, .regular))
                 .foregroundStyle(mini.tone)
-                .lineLimit(1)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.top, 2)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous).fill(bg)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(border, lineWidth: 0.5)
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(mini.text))
+    }
+
+    /// Status dot with an optional pulsing ring (gated on reduce-motion).
+    private func statusDot(_ color: Color, pulsing: Bool) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: 7, height: 7)
+            .overlay {
+                if pulsing {
+                    Circle()
+                        .strokeBorder(color.opacity(0.2), lineWidth: 1.5)
+                        .frame(width: 13, height: 13)
+                        .scaleEffect(reduceMotion ? 1 : (pulse ? 1.15 : 0.85))
+                        .animation(
+                            reduceMotion
+                                ? nil
+                                : .easeInOut(duration: 1.3).repeatForever(autoreverses: true),
+                            value: pulse
+                        )
+                }
+            }
     }
 
     // MARK: - Walked-by social-proof row (CompareCanvas A-003)
@@ -190,49 +325,28 @@ public struct RouteCard: View {
         )
     }
 
-    /// Avatar stack (max 4, CT.fgSubtle ring) + count + chevron, reading the
+    /// Foot row with a top border: avatar stack + count + chevron, reading the
     /// social proof for the route at a glance.
     private var walkedByRow: some View {
-        HStack(spacing: 6) {
-            AvatarStack(ids: walkedByIds, maxVisible: 4, size: 18, ring: CT.fgSubtle)
+        HStack(spacing: 8) {
+            AvatarStack(ids: walkedByIds, maxVisible: 4, size: 18, ring: CT.surfaceWhite)
             Text(walkedByLabel)
-                .font(CT.body(11, .medium))
+                .font(CT.mono(11, .regular))
                 .foregroundStyle(CT.fgMuted)
                 .lineLimit(1)
+            Spacer(minLength: 4)
             Image(systemName: "chevron.right")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(CT.fgSubtle)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(CT.fgMuted)
         }
-        .padding(.top, 2)
+        .padding(.top, 9)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(CT.borderSubtle)
+                .frame(height: 0.5)
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(walkedByLabel))
-    }
-
-    // MARK: - Cover square
-
-    private var coverSquare: some View {
-        ZStack {
-            CategoryVisual.gradient(for: primaryCategory)
-            Text(CategoryVisual.emoji(for: primaryCategory))
-                .font(.system(size: 20))
-        }
-        .frame(width: 44, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-
-    // MARK: - Verified corner pill
-
-    private var verifiedPill: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 10, weight: .semibold))
-            Text(NSLocalizedString("route.card.verified", comment: "Verified pill"))
-                .font(.system(size: 10, weight: .semibold))
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .background(Capsule().fill(CT.accent))
     }
 
     // MARK: - Derive primary category from route tags or fallback
@@ -270,7 +384,7 @@ public struct RouteCard: View {
     )
     RouteCard(route: route)
         .padding()
-        .background(Color(.systemBackground))
+        .background(CT.bgWarm)
 }
 
 #Preview("RouteCard — recruit-mini all states") {
@@ -297,14 +411,14 @@ public struct RouteCard: View {
             )
         )
     }
-    return VStack(spacing: 0) {
-        RouteCard(route: route(.open, members: ["maya"]))
-        RouteCard(route: route(.forming, members: ["maya", "leon"]))
-        RouteCard(route: route(.closed, members: ["maya", "leon", "rina"]))
-        RouteCard(route: route(.completed, members: ["maya", "leon", "rina", "tom"]))
+    return VStack(spacing: 10) {
+        RouteCard(route: route(.open, members: ["maya"]), companionOn: true)
+        RouteCard(route: route(.forming, members: ["maya", "leon"]), companionOn: true)
+        RouteCard(route: route(.closed, members: ["maya", "leon", "rina"]), companionOn: true)
+        RouteCard(route: route(.completed, members: ["maya", "leon", "rina", "tom"]), companionOn: true)
     }
     .padding()
-    .background(Color(.systemBackground))
+    .background(CT.bgWarm)
 }
 
 #Preview("RouteCard — walked-by row") {
@@ -324,7 +438,7 @@ public struct RouteCard: View {
             verification: RouteVerification(status: .walkedBy, walkedByCount: walkers, walkedBy: ids)
         )
     }
-    return VStack(spacing: 0) {
+    return VStack(spacing: 10) {
         RouteCard(route: route("w0", walkers: 0, ids: []))
         RouteCard(route: route("w3", walkers: 3, ids: ["maya", "leon", "rina"]))
         RouteCard(route: route("w12", walkers: 12, ids: ["a", "b", "c", "d", "e", "f"]))
@@ -350,5 +464,5 @@ public struct RouteCard: View {
     )
     RouteCard(route: route)
         .padding()
-        .background(Color(.systemBackground))
+        .background(CT.bgWarm)
 }

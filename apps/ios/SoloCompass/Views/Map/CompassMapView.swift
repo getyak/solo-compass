@@ -1342,10 +1342,10 @@ private struct MapOverlayView: View {
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
             }
-            .foregroundStyle(.primary)
+            .foregroundStyle(CT.accent)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(.regularMaterial, in: Capsule())
+            .background(CT.surfaceWhite.opacity(0.78), in: Capsule())
             .frame(
                 minWidth: MapOverlayMetrics.cityPillHitTarget,
                 minHeight: MapOverlayMetrics.cityPillHitTarget

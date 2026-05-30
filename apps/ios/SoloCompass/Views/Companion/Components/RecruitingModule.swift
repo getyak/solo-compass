@@ -32,13 +32,6 @@ public struct RecruitingModule: View {
     let onRequestJoin: () -> Void
     let onViewRequests: () -> Void
 
-    // Sun-gold accent shared across neutral and strong variants.
-    private static let sunGold = Color(red: 0.95, green: 0.76, blue: 0.20)
-    // Light cream tint for neutral background.
-    private static let creamTint = Color(red: 1.0, green: 0.98, blue: 0.92)
-    // Warm sun-gold-soft for strong background.
-    private static let sunGoldSoft = Color(red: 1.0, green: 0.94, blue: 0.72)
-
     public var body: some View {
         if let companion = route.companion {
             cardContent(companion: companion)
@@ -58,7 +51,9 @@ public struct RecruitingModule: View {
             }
             ctaButton(companion: companion)
         }
-        .padding(16)
+        .padding(.top, 14)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 12)
         .background(cardBackground)
         .overlay(cardBorder)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -70,11 +65,11 @@ public struct RecruitingModule: View {
     private var cardBackground: some View {
         switch strength {
         case .restrained:
-            Color(.systemBackground)
+            CT.surfaceWhite
         case .neutral:
-            Self.creamTint
+            CT.accentSoft
         case .strong:
-            Self.sunGoldSoft
+            CT.sunGoldSoft
         }
     }
 
@@ -83,17 +78,13 @@ public struct RecruitingModule: View {
         switch strength {
         case .restrained:
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color(.separator).opacity(0.45), lineWidth: 1)
+                .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
         case .neutral:
-            HStack(spacing: 0) {
-                Self.sunGold
-                    .frame(width: 3)
-                Spacer()
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(CT.accentBorder, lineWidth: 0.5)
         case .strong:
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Self.sunGold.opacity(0.6), lineWidth: 1)
+                .strokeBorder(CT.accent, lineWidth: 1.5)
         }
     }
 
@@ -112,12 +103,14 @@ public struct RecruitingModule: View {
 
     private func statusCapsule(status: CompanionStatus) -> some View {
         Text(status.localizedLabel)
-            .font(.system(size: 11, weight: .semibold))
+            .font(CT.display(10, .bold))
+            .tracking(0.1)
+            .textCase(.uppercase)
             .foregroundStyle(status.toneColor)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(
-                Capsule().fill(status.toneColor.opacity(0.12))
+                Capsule().fill(status.pillBackground)
             )
     }
 
@@ -127,10 +120,10 @@ public struct RecruitingModule: View {
         HStack(spacing: 10) {
             Circle()
                 .fill(UserDirectory.color(forId: hostId))
-                .frame(width: 28, height: 28)
+                .frame(width: 36, height: 36)
                 .overlay(
                     Text(String(hostId.prefix(1)).uppercased())
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(CT.display(15, .bold))
                         .foregroundStyle(.white)
                 )
 
@@ -195,7 +188,10 @@ public struct RecruitingModule: View {
     private var emptySlot: some View {
         ZStack {
             Circle()
-                .strokeBorder(Color(.separator), lineWidth: 1)
+                .strokeBorder(
+                    CT.borderDefault,
+                    style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])
+                )
                 .frame(width: 22, height: 22)
             Image(systemName: "plus")
                 .font(.system(size: 9, weight: .medium))
@@ -207,10 +203,19 @@ public struct RecruitingModule: View {
 
     private func hostMessageView(_ message: String) -> some View {
         Text("\u{201C}\(message)\u{201D}")
-            .font(.system(size: 13).italic())
-            .foregroundStyle(.secondary)
+            .font(CT.body(12.5).italic())
+            .foregroundStyle(CT.fgPrimary)
             .lineLimit(3)
             .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .background(CT.accentSoft)
+            .overlay(alignment: .leading) {
+                CT.accent.frame(width: 2)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .padding(.top, 7)
     }
 
     // MARK: - CTA button
@@ -219,34 +224,28 @@ public struct RecruitingModule: View {
         let config = ctaConfig(companion: companion)
         return Button(action: config.action) {
             Text(config.label)
-                .font(.system(size: 14, weight: strength == .strong ? .bold : .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(ctaBackground(isDisabled: config.isDisabled))
                 .foregroundStyle(ctaForeground(isDisabled: config.isDisabled))
+                .clipShape(Capsule())
         }
         .disabled(config.isDisabled)
         .accessibilityLabel(config.label)
     }
 
+    @ViewBuilder
     private func ctaBackground(isDisabled: Bool) -> some View {
-        Group {
-            if isDisabled {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color(.systemGray5))
-            } else if strength == .strong {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Self.sunGold)
-            } else {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.12))
-            }
+        if isDisabled {
+            CT.surfaceSunken
+        } else {
+            CT.accent
         }
     }
 
     private func ctaForeground(isDisabled: Bool) -> Color {
-        if isDisabled { return Color(.tertiaryLabel) }
-        return strength == .strong ? Color(.systemBackground) : Color.accentColor
+        isDisabled ? CT.fgMuted : .white
     }
 
     // MARK: - CTA config
@@ -296,10 +295,18 @@ public struct RecruitingModule: View {
 private extension CompanionStatus {
     var toneColor: Color {
         switch self {
-        case .open:      return .green
-        case .forming:   return .orange
-        case .closed:    return Color(.systemGray)
-        case .completed: return .blue
+        case .open:      return CT.toneOpen
+        case .forming:   return CT.toneForming
+        case .closed:    return CT.toneClosed
+        case .completed: return CT.toneCompleted
+        }
+    }
+
+    var pillBackground: Color {
+        switch self {
+        case .open:      return CT.accentSoft
+        case .completed: return CT.surfaceSunken
+        default:         return toneColor.opacity(0.12)
         }
     }
 

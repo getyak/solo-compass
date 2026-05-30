@@ -1067,12 +1067,23 @@
 /* US-025 — RouteCard / RoutesSection */
 "sheet.routes.section.title" = "路线";
 "route.card.verified" = "已验证";
+"route.card.tag" = "路线 · %1$d 站 · %2$@";
+"route.card.now" = "此刻";
 
 /* US-024 — RouteDetailView */
 "route.detail.save" = "保存到我的行程";
 "route.detail.favorite" = "加入收藏";
 "route.detail.bestNow.yes" = "此刻最佳";
 "route.detail.bestNow.no" = "非此刻";
+"route.detail.aiInsight.title" = "AI 洞察";
+"route.detail.aiInsight.locked" = "订阅 Pro 解锁路线分析 · 结合当前天气、人流、季节";
+"route.detail.aiInsight.unlock" = "解锁 →";
+"route.detail.tags.title" = "路线标签";
+"route.detail.start" = "开始路线";
+"route.detail.cta.requestJoin" = "申请加入";
+"route.detail.cta.review" = "审批 %d 个申请";
+"route.detail.cta.waiting" = "等待主理人确认";
+"route.detail.cta.groupChat" = "进入群聊";
 "route.detail.pace.relaxed" = "Relaxed";
 "route.detail.pace.standard" = "Standard";
 "route.detail.pace.packed" = "Packed";
