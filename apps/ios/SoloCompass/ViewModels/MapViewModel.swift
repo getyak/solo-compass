@@ -935,8 +935,9 @@ public final class MapViewModel {
     /// The soonest experience (across all loaded experiences in the current city)
     /// that is not yet at its best but starts within 180 minutes.
     /// Used by the "Now" filter empty state to offer a one-tap next action.
-    public var nextBestExperience: (experience: Experience, minutesUntil: Int)? {
-        let now = Date()
+    /// `now` is injectable so callers (e.g. a `TimelineView`) can drive the
+    /// recompute from a clock tick and so unit tests can pin a deterministic instant.
+    public func nextBestExperience(now: Date = Date()) -> (experience: Experience, minutesUntil: Int)? {
         let cityCode = selectedCity
         let candidates = experienceService.allExperiences.filter { exp in
             guard !exp.isBestNow(at: now) else { return false }

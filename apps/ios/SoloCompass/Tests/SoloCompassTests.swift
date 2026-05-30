@@ -3806,7 +3806,7 @@ final class SoloCompassTests: XCTestCase {
             preferences: UserPreferences()
         )
         // At hour ≤ 20 the window is at least 3 h away, beyond the 180-min cap.
-        XCTAssertNil(vm.nextBestExperience)
+        XCTAssertNil(vm.nextBestExperience())
     }
 
     /// `nextBestExperience` returns the soonest experience within 180 min.
@@ -3844,7 +3844,7 @@ final class SoloCompassTests: XCTestCase {
             aiService: AIService(),
             preferences: UserPreferences()
         )
-        let next = vm.nextBestExperience
+        let next = vm.nextBestExperience()
         XCTAssertNotNil(next)
         XCTAssertEqual(next?.experience.id, "soon", "must pick the soonest, not the first in array")
         XCTAssertLessThanOrEqual(next?.minutesUntil ?? Int.max, 180)

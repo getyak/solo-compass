@@ -1208,54 +1208,62 @@ private struct MapOverlayView: View {
         }()
 
         if count == 0 {
-            if viewModel.isNowFilter, let next = viewModel.nextBestExperience {
+            if viewModel.isNowFilter, let next = viewModel.nextBestExperience() {
                 // "Now" filter is active, nothing is at its best, but something
-                // is coming up soon — offer a one-tap jump to it.
-                let idleText = NSLocalizedString("filter.now.empty.idle", comment: "Nothing's at its best now")
-                let upcomingText = String(
-                    format: NSLocalizedString("filter.now.empty.upcoming", comment: "%@ in %dm"),
-                    next.experience.title, next.minutesUntil
-                )
-                let a11yText = String(
-                    format: NSLocalizedString("filter.now.empty.a11y", comment: ""),
-                    next.experience.title, next.minutesUntil
-                )
+                // is coming up soon — offer a one-tap jump to it. Wrap in a
+                // TimelineView so the countdown decrements every minute without
+                // user interaction, matching every other BestNow surface.
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    let tickedNext = viewModel.nextBestExperience(now: context.date) ?? next
+                    let minutesUntil = tickedNext.minutesUntil
+                    let idleText = NSLocalizedString("filter.now.empty.idle", comment: "Nothing's at its best now")
+                    let upcomingText = String(
+                        format: NSLocalizedString("filter.now.empty.upcoming", comment: "%@ in %dm"),
+                        tickedNext.experience.title, minutesUntil
+                    )
+                    let a11yText = String(
+                        format: NSLocalizedString("filter.now.empty.a11y", comment: ""),
+                        tickedNext.experience.title, minutesUntil
+                    )
 
-                GlassmorphismCapsule(
-                    horizontalPadding: 12,
-                    verticalPadding: 6,
-                    shadowRadius: 6,
-                    shadowY: 3
-                ) {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(accentGold)
-                            .frame(width: 8, height: 8)
-                        Text(idleText)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.primary)
-                        Text("·")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(upcomingText)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(accentGold)
+                    GlassmorphismCapsule(
+                        horizontalPadding: 12,
+                        verticalPadding: 6,
+                        shadowRadius: 6,
+                        shadowY: 3
+                    ) {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(accentGold)
+                                .frame(width: 8, height: 8)
+                            Text(idleText)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.primary)
+                            Text("·")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(upcomingText)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(accentGold)
+                                .contentTransition(.numericText())
+                                .animation(reduceMotion ? nil : .easeInOut, value: minutesUntil)
+                        }
                     }
-                }
-                .contentTransition(.opacity)
-                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(a11yText))
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    viewModel.focusOnExperience(next.experience)
-                    viewModel.selectExperience(next.experience)
-                }
-                .onTapGesture {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    viewModel.focusOnExperience(next.experience)
-                    viewModel.selectExperience(next.experience)
+                    .contentTransition(.opacity)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(a11yText))
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        viewModel.focusOnExperience(tickedNext.experience)
+                        viewModel.selectExperience(tickedNext.experience)
+                    }
+                    .onTapGesture {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        viewModel.focusOnExperience(tickedNext.experience)
+                        viewModel.selectExperience(tickedNext.experience)
+                    }
                 }
             } else {
                 let noMatchText = NSLocalizedString("filter.matches.none", comment: "No matches")
