@@ -22,6 +22,10 @@ public struct ExperienceDetailView: View {
     /// experience; the parent is responsible for opening ChatSheet bound to
     /// that experience via `VoiceAgentOrchestrator.rebindContext(_:)`.
     var onAskSolo: ((_ experience: Experience) -> Void)?
+    /// When non-nil, nearby carousel cards are tappable — tapping one fires
+    /// this closure so the parent can re-bind the detail sheet to the chosen
+    /// experience. When nil the cards render as plain non-interactive views.
+    var onSelectExperience: ((_ experience: Experience) -> Void)?
 
     @Environment(\.themeService) private var themeService
     @Environment(LocationService.self) private var locationService
@@ -45,12 +49,14 @@ public struct ExperienceDetailView: View {
         viewModel: ExperienceDetailViewModel,
         onClose: @escaping () -> Void = {},
         onMarkDone: ((_ experience: Experience) -> Void)? = nil,
-        onAskSolo: ((_ experience: Experience) -> Void)? = nil
+        onAskSolo: ((_ experience: Experience) -> Void)? = nil,
+        onSelectExperience: ((_ experience: Experience) -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self.onClose = onClose
         self.onMarkDone = onMarkDone
         self.onAskSolo = onAskSolo
+        self.onSelectExperience = onSelectExperience
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -957,30 +963,79 @@ public struct ExperienceDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(viewModel.nearbyExperiences) { exp in
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Image(systemName: exp.category.symbol)
-                                    .foregroundStyle(.white)
-                                    .padding(6)
-                                    .background(Circle().fill(exp.category.color))
-                                Spacer()
-                                SoloScoreBadge(score: exp.soloScore, style: .compact)
-                            }
-                            Text(exp.title)
-                                .font(.caption.bold())
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(10)
-                        .frame(width: 180, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.gray.opacity(0.08))
+                        NearbyCard(
+                            exp: exp,
+                            onSelectExperience: onSelectExperience,
+                            reduceMotion: reduceMotion
                         )
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - Nearby card
+
+    private struct NearbyCard: View {
+        let exp: Experience
+        let onSelectExperience: ((Experience) -> Void)?
+        let reduceMotion: Bool
+
+        private var baseCard: some View {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Image(systemName: exp.category.symbol)
+                        .foregroundStyle(.white)
+                        .padding(6)
+                        .background(Circle().fill(exp.category.color))
+                    Spacer()
+                    SoloScoreBadge(score: exp.soloScore, style: .compact)
+                }
+                Text(exp.title)
+                    .font(.caption.bold())
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(10)
+            .frame(width: 180, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.08))
+            )
+        }
+
+        var body: some View {
+            if let onSelect = onSelectExperience {
+                let scoreStr = String(format: "%.1f", exp.soloScore.overall)
+                let a11yLabel = String(
+                    format: NSLocalizedString("detail.nearby.open.a11y", comment: "Nearby card accessibility label: title and Solo Score"),
+                    exp.title, scoreStr
+                )
+                let a11yHint = NSLocalizedString("detail.nearby.open.hint", comment: "Opens experience detail")
+                Button {
+                    Haptics.impact(.light)
+                    onSelect(exp)
+                } label: {
+                    baseCard
+                }
+                .buttonStyle(NearbyCardButtonStyle(reduceMotion: reduceMotion))
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(Text(a11yLabel))
+                .accessibilityHint(Text(a11yHint))
+            } else {
+                baseCard
+            }
+        }
+    }
+
+    private struct NearbyCardButtonStyle: ButtonStyle {
+        let reduceMotion: Bool
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+                .scaleEffect((!reduceMotion && configuration.isPressed) ? 0.96 : 1.0)
+                .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
         }
     }
 
