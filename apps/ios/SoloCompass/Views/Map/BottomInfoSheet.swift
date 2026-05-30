@@ -738,6 +738,9 @@ struct NearbySection: View {
     let referenceCoordinate: CLLocationCoordinate2D?
     let sortMode: SortMode
     let onSelectExperience: (Experience) -> Void
+    /// When non-nil, passed through to EmptySheetListView to render the
+    /// 'Explore another area' CTA that zooms the map out.
+    let onExploreElsewhere: (() -> Void)?
 
     init(
         experiences: [Experience],
@@ -745,6 +748,7 @@ struct NearbySection: View {
         referenceCoordinate: CLLocationCoordinate2D?,
         sortMode: SortMode = .smart,
         showsSectionDivider: Bool = false,
+        onExploreElsewhere: (() -> Void)? = nil,
         onSelectExperience: @escaping (Experience) -> Void
     ) {
         self.experiences = experiences
@@ -752,6 +756,7 @@ struct NearbySection: View {
         self.referenceCoordinate = referenceCoordinate
         self.sortMode = sortMode
         self.showsSectionDivider = showsSectionDivider
+        self.onExploreElsewhere = onExploreElsewhere
         self.onSelectExperience = onSelectExperience
     }
 
@@ -771,7 +776,7 @@ struct NearbySection: View {
                 // US-050: empty Nearby list. Announce on appear so VoiceOver
                 // users learn the list is empty rather than thinking the sheet
                 // froze; a visible row keeps the state legible to everyone.
-                EmptySheetListView()
+                EmptySheetListView(onExploreElsewhere: onExploreElsewhere)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -836,6 +841,11 @@ struct EmptySheetListView: View {
     /// announcement. Exposed via the same key the test asserts on.
     static let announcementKey = "a11y.empty.nearby"
 
+    /// When non-nil, renders an 'Explore another area' CTA that fires this
+    /// callback on tap (after a selection haptic). Omit in previews / tests
+    /// where no map action is wired up.
+    var onExploreElsewhere: (() -> Void)? = nil
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var breathing = false
 
@@ -844,22 +854,42 @@ struct EmptySheetListView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "mappin.slash")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-                .scaleEffect(breathing ? 1.08 : 1.0)
-                .opacity(breathing ? 0.7 : 1.0)
-            Text(localizedEmptyText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        VStack(spacing: 16) {
+            VStack(spacing: 8) {
+                Image(systemName: "mappin.slash")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+                    .scaleEffect(breathing ? 1.08 : 1.0)
+                    .opacity(breathing ? 0.7 : 1.0)
+                Text(localizedEmptyText)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            if let explore = onExploreElsewhere {
+                Button {
+                    #if canImport(UIKit)
+                    Haptics.selection()
+                    #endif
+                    explore()
+                } label: {
+                    Label(
+                        NSLocalizedString("empty.nearby.cta", comment: "CTA to zoom map out when Nearby list is empty"),
+                        systemImage: "arrow.up.left.and.arrow.down.right"
+                    )
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 9)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityHint(Text(NSLocalizedString("empty.nearby.cta", comment: "CTA to zoom map out when Nearby list is empty")))
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
         .padding(.horizontal, 16)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(localizedEmptyText))
+        .accessibilityElement(children: .contain)
         .onAppear {
             #if canImport(UIKit)
             UIAccessibility.post(notification: .announcement, argument: localizedEmptyText)
