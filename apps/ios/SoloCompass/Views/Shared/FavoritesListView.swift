@@ -26,6 +26,7 @@ public struct FavoritesListView: View {
     @State private var hintDismissTask: Task<Void, Never>?
     @AppStorage("favorites.swipeHintSeen") private var swipeHintSeen = false
     @State private var ringDidCelebrate = false
+    @State private var showRemainingOnly = false
 
     private var undoDismissSeconds: Double { voiceOverOn ? 12 : 4 }
 
@@ -118,11 +119,17 @@ public struct FavoritesListView: View {
 
     private var filteredFavorites: [Experience] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return sortedFavorites }
-        return sortedFavorites.filter {
-            $0.title.localizedCaseInsensitiveContains(query) ||
-            $0.oneLiner.localizedCaseInsensitiveContains(query)
+        let afterSearch: [Experience]
+        if query.isEmpty {
+            afterSearch = sortedFavorites
+        } else {
+            afterSearch = sortedFavorites.filter {
+                $0.title.localizedCaseInsensitiveContains(query) ||
+                $0.oneLiner.localizedCaseInsensitiveContains(query)
+            }
         }
+        guard showRemainingOnly else { return afterSearch }
+        return afterSearch.filter { !preferences.completedExperiences.contains($0.id) }
     }
 
     private var nearbyCount: Int {
@@ -167,12 +174,43 @@ public struct FavoritesListView: View {
                                     .contentTransition(.numericText())
                                 Spacer()
                                 if showCompletedChip {
-                                    CompletionRing(
+                                    let isAllDone = completedCount == sortedFavorites.count
+                                    let ringView = CompletionRing(
                                         done: completedCount,
                                         total: sortedFavorites.count,
                                         didCelebrate: $ringDidCelebrate
                                     )
-                                    .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                                    if isAllDone {
+                                        ringView
+                                            .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                                    } else {
+                                        Button {
+                                            Haptics.selection()
+                                            withAnimation(reduceMotion ? nil : .easeInOut) {
+                                                showRemainingOnly.toggle()
+                                            }
+                                        } label: {
+                                            ringView
+                                                .padding(.horizontal, showRemainingOnly ? 6 : 0)
+                                                .padding(.vertical, showRemainingOnly ? 4 : 0)
+                                                .background(
+                                                    showRemainingOnly
+                                                        ? Color.green.opacity(0.12)
+                                                        : Color.clear,
+                                                    in: Capsule()
+                                                )
+                                                .animation(reduceMotion ? nil : .easeInOut, value: showRemainingOnly)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel(
+                                            showRemainingOnly
+                                                ? NSLocalizedString("favorites.remaining.active.a11y", comment: "Completion ring active filter accessibility label")
+                                                : NSLocalizedString("favorites.remaining.show.a11y", comment: "Completion ring show remaining accessibility label")
+                                        )
+                                        .accessibilityHint(NSLocalizedString("favorites.remaining.hint", comment: "Completion ring accessibility hint"))
+                                        .accessibilityAddTraits(.isButton)
+                                        .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                                    }
                                 }
                                 if showNearbyChip {
                                     Button {
@@ -278,6 +316,13 @@ public struct FavoritesListView: View {
         .animation(.easeInOut, value: lastUnfavorited != nil)
         .onChange(of: lastUnfavorited == nil) { _, isNil in
             if isNil { undoDragOffset = 0 }
+        }
+        .onChange(of: completedCount) { _, _ in
+            let allDone = completedCount == sortedFavorites.count
+            let remainingCount = sortedFavorites.filter { !preferences.completedExperiences.contains($0.id) }.count
+            if showRemainingOnly && (allDone || remainingCount == 0) {
+                withAnimation(reduceMotion ? nil : .easeInOut) { showRemainingOnly = false }
+            }
         }
     }
 }

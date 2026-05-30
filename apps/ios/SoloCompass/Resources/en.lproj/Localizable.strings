@@ -418,6 +418,9 @@
 "favorites.completed.count.a11y" = "%1$d of %2$d favorites completed";
 "favorites.completed.allDone.a11y" = "All saved experiences completed";
 "favorites.row.done.a11y" = "completed";
+"favorites.remaining.show.a11y" = "Show remaining experiences";
+"favorites.remaining.active.a11y" = "Showing remaining, tap to show all";
+"favorites.remaining.hint" = "Filters the list to not-yet-completed favorites";
 
 /* Generic actions */
 "action.undo" = "Undo";
