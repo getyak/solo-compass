@@ -29,7 +29,7 @@ public struct ItineraryListView: View {
         NavigationStack {
             Group {
                 if itineraries.isEmpty {
-                    EmptyItineraryView()
+                    EmptyItineraryView(onCreate: { showingCreateForm = true })
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
                 } else {
                     List(itineraries) { itinerary in
@@ -221,6 +221,8 @@ private struct ItineraryRow: View {
 // MARK: - Empty state
 
 private struct EmptyItineraryView: View {
+    var onCreate: (() -> Void)? = nil
+
     @State private var isBreathing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -246,6 +248,17 @@ private struct EmptyItineraryView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            if let onCreate {
+                Button {
+                    Haptics.selection()
+                    onCreate()
+                } label: {
+                    Label(NSLocalizedString("itinerary.empty.cta", comment: "Plan a trip button in empty itinerary state"), systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .padding(.top, 4)
+            }
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -289,7 +302,9 @@ private func iso8601Date(_ string: String) -> Date? {
 }
 
 #Preview("Empty state") {
-    ItineraryListView(store: ItineraryStore(context: ModelContext(SoloCompassModelContainer.makeInMemory())))
-        .environment(ExperienceService(seed: []))
-        .environment(UserPreferences())
+    EmptyItineraryView(onCreate: { })
+}
+
+#Preview("Empty state — no CTA") {
+    EmptyItineraryView()
 }
