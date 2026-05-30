@@ -4,7 +4,8 @@ import SwiftUI
 ///
 /// US-012: Users can accept (→ creates Conversation) or decline requests.
 /// Accepted requests open a Conversation; declined requests are removed with
-/// no further action.
+/// no further action. Declining shows an undo bar for a few seconds before
+/// the decline is committed to CompanionService.
 public struct RequestInboxView: View {
     @State private var service: CompanionService
     @State private var acceptedConversation: Conversation?
@@ -12,7 +13,12 @@ public struct RequestInboxView: View {
     @State private var reportTarget: CompanionRequest?
     @State private var errorMessage: String?
     @State private var pulse = false
+    @State private var lastDeclined: CompanionRequest?
+    @State private var undoDismissTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
+
+    private var undoDismissSeconds: Double { voiceOverOn ? 12 : 4 }
 
     public init(service: CompanionService = .shared) {
         _service = State(initialValue: service)
@@ -102,6 +108,16 @@ public struct RequestInboxView: View {
             }
         }
         .animation(.easeInOut, value: errorMessage)
+        .overlay(alignment: .bottom) {
+            if lastDeclined != nil {
+                undoBar
+                    .transition(reduceMotion
+                        ? .opacity
+                        : .move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 16)
+            }
+        }
+        .animation(.easeInOut, value: lastDeclined != nil)
         .sheet(item: $reportTarget) { request in
             ReportBlockSheet(
                 targetUserId: request.requesterId,
@@ -145,7 +161,7 @@ public struct RequestInboxView: View {
                     Task { await acceptRequest(request) }
                 },
                 onDecline: {
-                    Task { await service.declineRequest(request) }
+                    declineWithUndo(request)
                 },
                 onReport: {
                     reportTarget = request
@@ -174,6 +190,72 @@ public struct RequestInboxView: View {
                 try? await Task.sleep(for: .seconds(3))
                 errorMessage = nil
             }
+        }
+    }
+
+    private func declineWithUndo(_ request: CompanionRequest) {
+        // Cancel any in-flight dismiss from a prior decline
+        undoDismissTask?.cancel()
+        // If there was already a pending decline, commit it immediately
+        if let previous = lastDeclined {
+            Task { await service.declineRequest(previous) }
+        }
+        // Optimistically remove from inbox
+        withAnimation(.easeInOut) {
+            service.inboxRequests.removeAll { $0.id == request.id }
+        }
+        lastDeclined = request
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: NSLocalizedString("companion.inbox.declined.announcement", comment: "VoiceOver: request declined, undo available")
+        )
+        let dismissSeconds = undoDismissSeconds
+        undoDismissTask = Task {
+            try? await Task.sleep(for: .seconds(dismissSeconds))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeInOut) { lastDeclined = nil }
+            }
+            await service.declineRequest(request)
+        }
+    }
+
+    private func performUndo() {
+        guard let request = lastDeclined else { return }
+        undoDismissTask?.cancel()
+        undoDismissTask = nil
+        Haptics.impact(.light)
+        withAnimation(.easeInOut) {
+            // Re-insert sorted by createdAt descending (same order as fetchInbox)
+            var requests = service.inboxRequests
+            requests.append(request)
+            service.inboxRequests = requests.sorted { $0.createdAt > $1.createdAt }
+            lastDeclined = nil
+        }
+    }
+
+    private var undoBar: some View {
+        HStack {
+            Text(NSLocalizedString("companion.inbox.declined.undo", comment: "Request declined undo banner"))
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+            Spacer()
+            Button {
+                performUndo()
+            } label: {
+                Text(NSLocalizedString("action.undo", comment: "Undo action"))
+                    .font(.subheadline.weight(.semibold))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.regularMaterial, in: Capsule())
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(NSLocalizedString("companion.inbox.declined.undo", comment: "Request declined undo banner")))
+        .accessibilityAction(named: Text(NSLocalizedString("action.undo", comment: "Undo action"))) {
+            performUndo()
         }
     }
 }

@@ -669,6 +669,8 @@
 "companion.inbox.request.from" = "来自";
 "companion.inbox.accepted.title" = "已接受";
 "companion.inbox.accepted.message" = "你们的对话已建立，可以开始聊聊行程啦。";
+"companion.inbox.declined.undo" = "请求已拒绝";
+"companion.inbox.declined.announcement" = "请求已拒绝。可撤销。";
 
 /* ============================================================
  * Send request / common request labels
