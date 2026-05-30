@@ -1,4 +1,3 @@
-
 /// CompanionProfile — the user's public-facing companion identity.
 ///
 /// Mirrors `packages/core/src/companion.ts`. Keep field names in sync.

@@ -1,4 +1,3 @@
-
 /// Bidirectional converters between Itinerary and Route.
 ///
 /// Story #US-005. Route is becoming the canonical core; Itinerary is the

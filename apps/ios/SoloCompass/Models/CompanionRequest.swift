@@ -1,4 +1,3 @@
-
 /// CompanionRequest — a request from one user to another to travel together.
 ///
 /// Mirrors `packages/core/src/companion.ts`. Keep field names in sync.
