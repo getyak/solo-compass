@@ -428,6 +428,9 @@
 "favorites.nearby.walkBudget" = "~%dm on foot";
 "favorites.nearby.walkBudget.a11y" = "About %d minutes of walking across nearby favorites";
 "favorites.nearby.walkBudget.start.a11y" = "Walk to nearest favorite, %@, about %d minutes";
+"favorites.nearby.go" = "Go";
+"favorites.nearby.go.a11y" = "Directions to nearest favorite, %@";
+"favorites.nearby.go.hint" = "Opens turn-by-turn directions in Maps";
 
 /* Generic actions */
 "action.undo" = "Undo";
