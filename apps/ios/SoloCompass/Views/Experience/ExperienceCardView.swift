@@ -20,6 +20,8 @@ public struct ExperienceCardView: View {
     @State private var arrivedPulse = false
     @State private var didFireArrival = false
     @State private var arrivalGlow = false
+    @State private var didFireOnCourse = false
+    @State private var onCourseSnap = false
 
     private static let arrivedThresholdMeters = 75.0
 
@@ -54,6 +56,15 @@ public struct ExperienceCardView: View {
     private var relativeBearingDegrees: Double? {
         guard let coord = experience.coordinate else { return nil }
         return locationService.relativeBearing(to: coord)
+    }
+
+    /// True when the experience is within ±15° of the user's current heading.
+    private var isOnCourse: Bool {
+        guard let bearing = relativeBearingDegrees else { return false }
+        // Normalize to -180...180 so ±179° readings don't falsely trigger.
+        let normalized = bearing.truncatingRemainder(dividingBy: 360)
+        let clamped = normalized > 180 ? normalized - 360 : normalized < -180 ? normalized + 360 : normalized
+        return abs(clamped) <= 15
     }
 
     /// Maps a bearing in degrees to a localized compass direction string (8 sectors).
@@ -362,13 +373,15 @@ public struct ExperienceCardView: View {
     @ViewBuilder
     private func distancePill(_ label: String, symbol: String) -> some View {
         let relBearing = relativeBearingDegrees
-        let arrowTint = distanceMeters.map { proximityTint(for: $0) } ?? Color.secondary
+        let proximityColor = distanceMeters.map { proximityTint(for: $0) } ?? Color.secondary
+        let arrowTint = isOnCourse ? Color.green : proximityColor
         HStack(spacing: 4) {
             if let relBearing {
                 Image(systemName: "location.north.fill")
                     .font(.caption2)
                     .foregroundStyle(arrowTint)
                     .rotationEffect(.degrees(relBearing))
+                    .scaleEffect(onCourseSnap ? 1.25 : 1.0)
                     .animation(
                         reduceMotion ? nil : .easeInOut(duration: 0.25),
                         value: relBearing
@@ -376,6 +389,10 @@ public struct ExperienceCardView: View {
                     .animation(
                         reduceMotion ? nil : .easeInOut(duration: 0.3),
                         value: distanceMeters
+                    )
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.5),
+                        value: onCourseSnap
                     )
                     .accessibilityHidden(true)
             }
@@ -386,6 +403,22 @@ public struct ExperienceCardView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(Capsule().fill(Color.secondary.opacity(0.12)))
+        .onChange(of: isOnCourse) { _, onCourse in
+            if onCourse {
+                guard !didFireOnCourse else { return }
+                didFireOnCourse = true
+                Haptics.impact(.light)
+                if !reduceMotion {
+                    onCourseSnap = true
+                    Task {
+                        try? await Task.sleep(nanoseconds: 300_000_000)
+                        onCourseSnap = false
+                    }
+                }
+            } else {
+                didFireOnCourse = false
+            }
+        }
         .accessibilityLabel({
             var text = label
             if let relBearing {
@@ -394,6 +427,9 @@ public struct ExperienceCardView: View {
             }
             if let meters = distanceMeters, ProximityTint.from(meters: meters) == .near {
                 text += ". " + NSLocalizedString("card.distance.proximity.near", comment: "VoiceOver proximity cue when close")
+            }
+            if isOnCourse {
+                text += ". " + NSLocalizedString("card.distance.onCourse.a11y", comment: "On course accessibility label appended to distance pill")
             }
             return text
         }())
