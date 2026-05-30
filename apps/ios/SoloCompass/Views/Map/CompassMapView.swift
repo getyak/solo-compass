@@ -902,7 +902,9 @@ struct CompassMapContentView: View {
         .environment(BestNowClock.shared)
 }
 
-private extension String {
+// Internal (not `private`) so module siblings such as `VoiceProcessingToast`
+// can reuse the same single-line truncation helper.
+extension String {
     func truncated(limit: Int) -> String {
         guard count > limit else { return self }
         return String(prefix(limit)) + "…"
@@ -1103,7 +1105,7 @@ private struct MapOverlayView: View {
                 .transition(.opacity)
             }
 
-            if let progressText = CompassMapView.progressText(for: viewModel.exploreProgress) {
+            if let progressText = CompassMapContentView.progressText(for: viewModel.exploreProgress) {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
@@ -1456,7 +1458,7 @@ private struct MapControlBar: View {
     let voiceService: VoiceService
     let preferences: UserPreferences
     @Binding var voiceOrchestrator: VoiceAgentOrchestrator?
-    let onOpenChat: (CompassMapView.ChatStartMode) -> Void
+    let onOpenChat: (CompassMapContentView.ChatStartMode) -> Void
 
     var body: some View {
         HStack(alignment: .bottom) {

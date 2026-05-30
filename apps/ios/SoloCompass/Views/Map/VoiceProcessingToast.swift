@@ -10,7 +10,14 @@ import SwiftUI
 struct VoiceProcessingToast: View {
     let text: String
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Preview-only override that forces the static-spinner branch. `nil` in
+    /// production so the live `@Environment` value drives the choice; previews
+    /// can't override the read-only `accessibilityReduceMotion` env key.
+    var forceReduceMotion: Bool? = nil
+
+    @Environment(\.accessibilityReduceMotion) private var environmentReduceMotion
+
+    private var reduceMotion: Bool { forceReduceMotion ?? environmentReduceMotion }
 
     /// Builds the localized toast string for a given (possibly long) voice
     /// transcript, truncating it to keep the capsule to a single line.
@@ -44,10 +51,10 @@ struct VoiceProcessingToast: View {
         .accessibilityAddTraits(.updatesFrequently)
         .accessibilityLabel(Text(text))
         .onAppear {
-            UIAccessibility.post(.announcement, argument: text)
+            UIAccessibility.post(notification: .announcement, argument: text)
         }
         .onChange(of: text) { _, newValue in
-            UIAccessibility.post(.announcement, argument: newValue)
+            UIAccessibility.post(notification: .announcement, argument: newValue)
         }
     }
 }
@@ -99,7 +106,13 @@ private struct ThinkingDots: View {
 }
 
 #Preview("Reduce Motion") {
-    VoiceProcessingToast(text: "Thinking about \"coffee near me\"…")
-        .environment(\.accessibilityReduceMotion, true)
-        .padding()
+    // `accessibilityReduceMotion` is a read-only EnvironmentValues key (it
+    // reflects the system setting), so it can't be overridden via
+    // `.environment(_:_:)`, which needs a WritableKeyPath. Drive the static
+    // spinner branch directly via the `forceReduceMotion` preview hook instead.
+    VoiceProcessingToast(
+        text: "Thinking about \"coffee near me\"…",
+        forceReduceMotion: true
+    )
+    .padding()
 }
