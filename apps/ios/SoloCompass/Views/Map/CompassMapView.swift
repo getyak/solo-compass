@@ -1012,6 +1012,7 @@ private struct MapOverlayView: View {
                 nowCount: viewModel.nowCount,
                 onSelectNow: { viewModel.selectNowFilter() },
                 onSelectAll: { viewModel.clearFilters() },
+                onClear: { viewModel.clearFilters() },
                 onSelectCategory: { viewModel.selectCategory($0) },
                 onSelectCustomTag: { viewModel.selectCustomTag($0) },
                 isMapPanning: $isMapPanning,

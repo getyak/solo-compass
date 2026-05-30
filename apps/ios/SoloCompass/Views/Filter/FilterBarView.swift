@@ -13,6 +13,8 @@ public struct FilterBarView: View {
     let selectedCustomTag: String?
     let onSelectNow: () -> Void
     let onSelectAll: () -> Void
+    /// Called when the user re-taps an already-active pill to deselect it back to 'All'.
+    let onClear: () -> Void
     let onSelectCategory: (ExperienceCategory) -> Void
     /// Tap handler for one of the user-defined `customTags` pills. US-008.
     let onSelectCustomTag: (String) -> Void
@@ -40,10 +42,22 @@ public struct FilterBarView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPulsing: Bool = false
 
-    private func fireSelectionHaptic(alreadySelected: Bool) {
-        guard !alreadySelected else { return }
-        Haptics.selection()
+    /// Routes a pill tap to either deselect (toggle-off) or select, with distinct haptics.
+    /// When `isSelected` is true the active pill is tapped again — call `onClear` with a
+    /// light-impact (deselect) haptic. Otherwise call `select` with a selection haptic.
+    private func handleTap(isSelected: Bool, select: () -> Void) {
+        if isSelected {
+            Haptics.impact(.light)
+            onClear()
+        } else {
+            Haptics.selection()
+            select()
+        }
     }
+
+    /// Pure helper: returns true when a tap on a pill with `isSelected` state should
+    /// resolve to a clear (toggle-off) rather than a selection. Used in unit tests.
+    static func resolvesToClear(isSelected: Bool) -> Bool { isSelected }
 
     public init(
         selectedCategory: ExperienceCategory?,
@@ -52,6 +66,7 @@ public struct FilterBarView: View {
         nowCount: Int = 0,
         onSelectNow: @escaping () -> Void,
         onSelectAll: @escaping () -> Void,
+        onClear: @escaping () -> Void = {},
         onSelectCategory: @escaping (ExperienceCategory) -> Void,
         onSelectCustomTag: @escaping (String) -> Void = { _ in },
         isMapPanning: Binding<Bool> = .constant(false),
@@ -63,6 +78,7 @@ public struct FilterBarView: View {
         self.nowCount = nowCount
         self.onSelectNow = onSelectNow
         self.onSelectAll = onSelectAll
+        self.onClear = onClear
         self.onSelectCategory = onSelectCategory
         self.onSelectCustomTag = onSelectCustomTag
         self._isMapPanning = isMapPanning
@@ -241,8 +257,7 @@ public struct FilterBarView: View {
             : label
 
         return Button {
-            fireSelectionHaptic(alreadySelected: isSelected)
-            action()
+            handleTap(isSelected: isSelected, select: action)
         } label: {
             HStack(spacing: 5) {
                 Circle()
@@ -290,6 +305,7 @@ public struct FilterBarView: View {
         .accessibilityLabel(Text(a11yLabel))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
+        .accessibilityHint(isSelected ? Text(NSLocalizedString("filter.pill.clear.hint", comment: "Double tap to clear this filter")) : Text(""))
         .onAppear {
             guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
@@ -343,8 +359,7 @@ public struct FilterBarView: View {
 
     private func iconPill(category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            fireSelectionHaptic(alreadySelected: isSelected)
-            action()
+            handleTap(isSelected: isSelected, select: action)
         } label: {
             Image(systemName: category.symbol)
                 .font(.body.weight(.semibold))
@@ -380,6 +395,7 @@ public struct FilterBarView: View {
         .accessibilityLabel(Text(category.localizedTitle))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
+        .accessibilityHint(isSelected ? Text(NSLocalizedString("filter.pill.clear.hint", comment: "Double tap to clear this filter")) : Text(""))
     }
 
     /// Pill rendered for each entry in `UserPreferences.customTags`. Same
@@ -387,8 +403,7 @@ public struct FilterBarView: View {
     /// it visually reads as part of the same filter row. US-008.
     private func customTagPill(tag: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            fireSelectionHaptic(alreadySelected: isSelected)
-            action()
+            handleTap(isSelected: isSelected, select: action)
         } label: {
             Image(systemName: "tag.fill")
                 .font(.body.weight(.semibold))
@@ -417,6 +432,7 @@ public struct FilterBarView: View {
         .accessibilityLabel(Text(tag))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
+        .accessibilityHint(isSelected ? Text(NSLocalizedString("filter.pill.clear.hint", comment: "Double tap to clear this filter")) : Text(""))
     }
 
     @ViewBuilder
