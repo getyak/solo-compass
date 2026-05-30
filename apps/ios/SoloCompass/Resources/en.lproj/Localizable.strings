@@ -1212,3 +1212,7 @@
 
 /* Empty Nearby CTA — nudges the traveler to recenter/zoom out */
 "empty.nearby.cta" = "Explore another area";
+
+/* Compass direction overlay in ExperienceDetailView hero */
+"compass.pointing.title" = "Pointing toward";
+"compass.direction.a11y" = "%1$@ away, pointing %2$@";

@@ -59,6 +59,7 @@ public struct ExperienceDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 heroSection
+                compassDirectionView
                 askSoloSection
                 if let coord = viewModel.experience.location.clCoordinate {
                     LocationCard(
@@ -348,6 +349,35 @@ public struct ExperienceDetailView: View {
                     return label
                 }()))
             }
+        }
+    }
+
+    // MARK: - Compass Direction Overlay
+
+    /// Live compass ring that rotates to point toward the selected experience.
+    /// Rendered only when a GPS fix is available — gracefully absent otherwise.
+    @ViewBuilder
+    private var compassDirectionView: some View {
+        if locationService.currentLocation != nil,
+           let coord = viewModel.experience.location.clCoordinate {
+            let relBearing = relativeBearing(to: coord) ?? 0
+            let distStr = Self.formatDistance(locationService.distance(to: coord))
+            let cardinalDir = Self.compassDirection(for: relBearing)
+            let a11yLabel = String(
+                format: NSLocalizedString("compass.direction.a11y", comment: "Distance + cardinal direction accessibility label"),
+                distStr,
+                cardinalDir
+            )
+            CompassDirectionView(
+                relBearing: relBearing,
+                distanceString: distStr,
+                cardinalDirection: cardinalDir,
+                reduceMotion: reduceMotion
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(a11yLabel))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
         }
     }
 
@@ -1129,6 +1159,81 @@ public struct ExperienceDetailView: View {
     private func format(window: TimeWindow) -> String {
         String(format: "%02d:00 – %02d:00", window.startHour, window.endHour)
     }
+}
+
+// MARK: - Compass Direction View
+
+private struct CompassDirectionView: View {
+    let relBearing: Double
+    let distanceString: String
+    let cardinalDirection: String
+    let reduceMotion: Bool
+
+    private let ringSize: CGFloat = 120
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                // Cardinal tick marks and labels
+                ForEach(["N", "E", "S", "W"], id: \.self) { label in
+                    let angle: Double = label == "N" ? 0 : label == "E" ? 90 : label == "S" ? 180 : 270
+                    VStack(spacing: 2) {
+                        Text(label)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                    }
+                    .frame(width: ringSize, height: ringSize)
+                    .rotationEffect(.degrees(angle))
+                }
+
+                // Outer ring
+                Circle()
+                    .strokeBorder(Color.secondary.opacity(0.25), lineWidth: 1.5)
+                    .frame(width: ringSize, height: ringSize)
+
+                // Arrow pointing toward the experience
+                Image(systemName: "location.north.fill")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .rotationEffect(.degrees(relBearing))
+                    .animation(
+                        reduceMotion ? nil : .easeInOut(duration: 0.25),
+                        value: relBearing
+                    )
+                    .accessibilityHidden(true)
+
+                // Distance label inside the ring
+                VStack(spacing: 2) {
+                    Spacer()
+                    Text(distanceString)
+                        .font(.system(size: 10, weight: .medium).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: ringSize * 0.6, height: ringSize * 0.6)
+            }
+
+            // "Pointing toward" + cardinal direction label below the ring
+            HStack(spacing: 4) {
+                Text(NSLocalizedString("compass.pointing.title", comment: "Compass pointing toward label"))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Text(cardinalDirection)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+#Preview("CompassDirectionView") {
+    CompassDirectionView(
+        relBearing: 45,
+        distanceString: "1.2 km",
+        cardinalDirection: "northeast",
+        reduceMotion: false
+    )
+    .padding()
 }
 
 // MARK: - Best Time Window Row
