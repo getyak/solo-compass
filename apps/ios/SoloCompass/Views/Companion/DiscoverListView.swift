@@ -12,7 +12,7 @@ public struct DiscoverListView: View {
     @Environment(UserPreferences.self) private var preferences
     @State private var service: CompanionService
     @State private var selectedPost: DiscoverPost?
-    @State private var requestSentPostId: String?
+    @State private var sentRequestIds: Set<String> = []
     @State private var reportTarget: DiscoverPost?
     @State private var errorMessage: String?
     @State private var successMessage: String?
@@ -164,7 +164,7 @@ public struct DiscoverListView: View {
         List(service.discoverPosts) { post in
             DiscoverPostRow(
                 post: post,
-                hasSentRequest: requestSentPostId == post.id,
+                hasSentRequest: sentRequestIds.contains(post.id),
                 onSendRequest: { selectedPost = post },
                 onReport: { reportTarget = post }
             )
@@ -216,7 +216,7 @@ public struct DiscoverListView: View {
         )
         switch result {
         case .success:
-            requestSentPostId = post.id
+            withAnimation(.easeInOut) { sentRequestIds.insert(post.id) }
             Haptics.notify(.success)
             let msg = NSLocalizedString("companion.request.sent.confirm", comment: "Companion request sent confirmation toast")
             successMessage = msg
