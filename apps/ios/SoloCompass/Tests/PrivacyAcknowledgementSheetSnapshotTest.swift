@@ -30,8 +30,8 @@ final class PrivacyAcknowledgementSheetSnapshotTest: XCTestCase {
 
     func testSnapshotAtAccessibilityMedium() throws {
         let image = try XCTUnwrap(
-            render(.accessibilityMedium),
-            "Sheet must render at .accessibilityMedium"
+            render(.accessibility1),
+            "Sheet must render at .accessibility1 (AX1)"
         )
         XCTAssertGreaterThan(image.size.width, 0)
         XCTAssertGreaterThan(image.size.height, 0)
@@ -39,8 +39,8 @@ final class PrivacyAcknowledgementSheetSnapshotTest: XCTestCase {
 
     func testSnapshotAtAccessibilityExtraExtraExtraLarge() throws {
         let image = try XCTUnwrap(
-            render(.accessibilityExtraExtraExtraLarge),
-            "Sheet must render at AX5 (.accessibilityExtraExtraExtraLarge)"
+            render(.accessibility5),
+            "Sheet must render at AX5 (.accessibility5)"
         )
         XCTAssertGreaterThan(image.size.width, 0)
         XCTAssertGreaterThan(image.size.height, 0)
@@ -51,12 +51,12 @@ final class PrivacyAcknowledgementSheetSnapshotTest: XCTestCase {
     /// taller than at the default-ish accessibility size. If the subtitle were
     /// truncated (single line, fixed height) this ordering would not hold.
     func testSubtitleExpandsAtLargerDynamicType() throws {
-        let medium = try XCTUnwrap(render(.accessibilityMedium))
-        let ax5 = try XCTUnwrap(render(.accessibilityExtraExtraExtraLarge))
+        let medium = try XCTUnwrap(render(.accessibility1))
+        let ax5 = try XCTUnwrap(render(.accessibility5))
         XCTAssertGreaterThan(
             ax5.size.height,
             medium.size.height,
-            "AX5 render must be taller than AX-medium — proves text grows/wraps instead of truncating"
+            "AX5 render must be taller than AX1 — proves text grows/wraps instead of truncating"
         )
     }
 

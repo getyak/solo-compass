@@ -1,4 +1,3 @@
-
 /// CompanionPost — a discoverable post signalling openness to meeting companions.
 ///
 /// Mirrors `packages/core/src/companion.ts`. Keep field names in sync.

@@ -1,4 +1,3 @@
-
 /// Itinerary — a named trip plan owned by one user.
 ///
 /// Mirrors `packages/core/src/companion.ts`. Keep field names in sync.
