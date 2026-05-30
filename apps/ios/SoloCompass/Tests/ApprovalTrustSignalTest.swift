@@ -1,4 +1,5 @@
 import XCTest
+import SwiftUI
 @testable import SoloCompass
 
 /// US-032: The approval queue renders three trust micro-stats per requester —
