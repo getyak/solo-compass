@@ -8,27 +8,6 @@ import XCTest
 @MainActor
 final class VoiceButtonA11yTests: XCTestCase {
 
-    // MARK: - Stub VoiceService
-
-    /// Minimal stub so startRecording / stopRecording can be called without a real
-    /// microphone or speech recognizer.
-    final class StubVoiceService: VoiceService {
-        var startListeningCallCount = 0
-        var stopListeningCallCount = 0
-        var permissionResult = true
-
-        override func requestPermission() async -> Bool { permissionResult }
-
-        override func startListening() throws -> AsyncThrowingStream<String, Error> {
-            startListeningCallCount += 1
-            return AsyncThrowingStream { _ in }
-        }
-
-        override func stopListening() {
-            stopListeningCallCount += 1
-        }
-    }
-
     // MARK: - Toggle harness
 
     /// Lightweight harness that mirrors VoiceButton's isRecording toggle logic
