@@ -325,8 +325,7 @@ public struct FilterBarView: View {
 
     private func pill(id: String, label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
         Button {
-            fireSelectionHaptic(alreadySelected: isSelected)
-            action()
+            handleTap(isSelected: isSelected, select: action)
         } label: {
             Text(label)
                 .font(.subheadline.weight(.medium))
