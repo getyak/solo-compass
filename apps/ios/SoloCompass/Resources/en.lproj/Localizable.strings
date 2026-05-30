@@ -363,6 +363,7 @@
 "checkin.banner.title" = "Did you visit?";
 "checkin.banner.yes" = "Yes!";
 "checkin.banner.a11y" = "Did you visit %@?";
+"checkin.banner.a11yAnnouncement" = "You just passed %@ — did you visit?";
 
 /* Experience detail overflow */
 "detail.report" = "Report an issue";
