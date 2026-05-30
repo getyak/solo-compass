@@ -137,6 +137,12 @@ public struct FavoritesListView: View {
         sortedFavorites.filter { proximity(for: $0) == .near }.count
     }
 
+    private var nearestFavorite: Experience? {
+        sortedFavorites
+            .filter { proximity(for: $0) == .near }
+            .min { (distanceMeters(for: $0) ?? .greatestFiniteMagnitude) < (distanceMeters(for: $1) ?? .greatestFiniteMagnitude) }
+    }
+
     private var nearbyWalkMinutesTotal: Int? {
         guard locationService.currentLocation != nil else { return nil }
         let total = sortedFavorites
@@ -249,7 +255,7 @@ public struct FavoritesListView: View {
                                     .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
 
                                     if let mins = nearbyWalkMinutesTotal {
-                                        HStack(spacing: 4) {
+                                        let chipContent = HStack(spacing: 4) {
                                             Image(systemName: "figure.walk")
                                                 .accessibilityHidden(true)
                                             Text(String(format: NSLocalizedString("favorites.nearby.walkBudget", comment: "Walk budget chip: ~Xm on foot"), mins))
@@ -259,9 +265,25 @@ public struct FavoritesListView: View {
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 5)
                                         .background(Color.green.opacity(0.12), in: Capsule())
-                                        .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.walkBudget.a11y", comment: "Walk budget chip accessibility label"), mins))
                                         .animation(.easeInOut, value: nearbyWalkMinutesTotal)
                                         .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+
+                                        if let nearest = nearestFavorite,
+                                           let coord = nearest.coordinate,
+                                           let app = NavigationLauncher.availableApps().first {
+                                            Button {
+                                                Haptics.impact(.light)
+                                                NavigationLauncher.open(app: app, coordinate: coord, name: nearest.title)
+                                            } label: {
+                                                chipContent
+                                            }
+                                            .buttonStyle(.plain)
+                                            .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.walkBudget.start.a11y", comment: "Walk to nearest favorite button accessibility label"), nearest.title, mins))
+                                            .accessibilityAddTraits(.isButton)
+                                        } else {
+                                            chipContent
+                                                .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.walkBudget.a11y", comment: "Walk budget chip accessibility label"), mins))
+                                        }
                                     }
                                 }
                             }

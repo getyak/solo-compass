@@ -423,6 +423,7 @@
 "favorites.remaining.hint" = "Filters the list to not-yet-completed favorites";
 "favorites.nearby.walkBudget" = "~%dm on foot";
 "favorites.nearby.walkBudget.a11y" = "About %d minutes of walking across nearby favorites";
+"favorites.nearby.walkBudget.start.a11y" = "Walk to nearest favorite, %@, about %d minutes";
 
 /* Generic actions */
 "action.undo" = "Undo";
