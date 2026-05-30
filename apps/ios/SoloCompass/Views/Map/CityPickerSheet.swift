@@ -58,6 +58,9 @@ public struct CityPickerSheet: View {
 
                             // US-019: Sort by distance ascending, then alphabetical
                             ForEach(filtered, id: \.code) { city in
+                                let prox = proximity(for: city.center)
+                                let expCount = viewModel.experienceCount(for: city.code)
+                                let distLabel = distanceLabel(for: city.center)
                                 Button {
                                     selectCity(city.code)
                                 } label: {
@@ -68,7 +71,7 @@ public struct CityPickerSheet: View {
                                                 .foregroundStyle(.primary)
                                             Text(String(
                                                 format: NSLocalizedString("city.experienceCount", comment: "Experience count in city"),
-                                                viewModel.experienceCount(for: city.code)
+                                                expCount
                                             ))
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
@@ -82,13 +85,31 @@ public struct CityPickerSheet: View {
                                                     .scaleEffect(justSelectedCode == city.code ? 1.3 : 1.0)
                                                     .symbolEffect(.bounce, value: justSelectedCode)
                                             }
-                                            Text(distanceLabel(for: city.center))
-                                                .font(.caption)
-                                                .foregroundStyle(.tertiary)
-                                                .monospacedDigit()
+                                            HStack(spacing: 3) {
+                                                if let prox {
+                                                    Circle()
+                                                        .fill(prox.color)
+                                                        .frame(width: 7, height: 7)
+                                                        .accessibilityHidden(true)
+                                                }
+                                                Text(distLabel)
+                                                    .font(.caption)
+                                                    .monospacedDigit()
+                                            }
+                                            .foregroundStyle(.tertiary)
                                         }
                                     }
                                 }
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel({
+                                    let countStr = String(format: NSLocalizedString("city.experienceCount", comment: "Experience count in city"), expCount)
+                                    let awayFmt = NSLocalizedString("city.distanceAway.a11y", comment: "Distance away accessibility label")
+                                    let distA11y = String(format: awayFmt, distLabel)
+                                    if let prox {
+                                        return Text("\(city.name), \(countStr), \(distA11y), \(prox.a11yWord)")
+                                    }
+                                    return Text("\(city.name), \(countStr), \(distA11y)")
+                                }())
                             }
                         }
                     }
@@ -136,6 +157,38 @@ public struct CityPickerSheet: View {
             if abs(dA - dB) < 1_000 { return a.name < b.name }
             return dA < dB
         }
+    }
+
+    private enum CityProximity {
+        case near, mid, far
+
+        static func from(meters: CLLocationDistance) -> CityProximity {
+            if meters <= 25_000 { return .near }
+            if meters <= 150_000 { return .mid }
+            return .far
+        }
+
+        var color: Color {
+            switch self {
+            case .near: return .green
+            case .mid: return .orange
+            case .far: return Color(.tertiaryLabel)
+            }
+        }
+
+        var a11yWord: String {
+            switch self {
+            case .near: return NSLocalizedString("favorites.proximity.near", comment: "Proximity: walkable")
+            case .mid: return NSLocalizedString("favorites.proximity.mid", comment: "Proximity: short ride")
+            case .far: return NSLocalizedString("favorites.proximity.far", comment: "Proximity: far away")
+            }
+        }
+    }
+
+    private func proximity(for coord: CLLocationCoordinate2D) -> CityProximity? {
+        guard let userLoc = userLocation else { return nil }
+        let cityLoc = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
+        return CityProximity.from(meters: userLoc.distance(from: cityLoc))
     }
 
     private func distanceLabel(for coord: CLLocationCoordinate2D) -> String {
