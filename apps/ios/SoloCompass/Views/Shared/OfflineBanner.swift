@@ -36,7 +36,7 @@ struct OfflineBanner: View {
         if let onRetry {
             Button {
                 guard !isRetrying else { return }
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
                 isRetrying = true
                 Task {
                     await onRetry()

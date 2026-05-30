@@ -470,7 +470,7 @@ public struct ChatSheet: View {
         VStack(spacing: 8) {
             ForEach(Array(Self.starterPrompts.enumerated()), id: \.offset) { index, prompt in
                 Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                     handleSend(prompt)
                 } label: {
                     Text(prompt)
@@ -542,7 +542,7 @@ public struct ChatSheet: View {
         switch outcome {
         case .accepted:
             clearSendHint()
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.impact(.light)
         case .empty:
             // The input bar already guards on empty; nothing to do.
             break
@@ -570,7 +570,7 @@ public struct ChatSheet: View {
             if orchestrator.restartIfNeeded(),
                orchestrator.handleTextInput(text) == .accepted {
                 clearSendHint()
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             } else {
                 showSendHint(
                     NSLocalizedString(
@@ -667,7 +667,7 @@ public struct ChatSheet: View {
             do {
                 liveTranscript = ""
                 let stream = try voiceService.startListening()
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
                 voiceStreamTask = Task { @MainActor in
                     do {
                         for try await text in stream {
@@ -699,7 +699,7 @@ public struct ChatSheet: View {
         guard send, !final.isEmpty else { return }
         lastUserTranscript = final
         orchestrator.handleTranscript(final)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptics.impact(.light)
     }
 
     private func teardownVoiceStream() {

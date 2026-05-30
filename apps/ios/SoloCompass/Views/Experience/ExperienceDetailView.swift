@@ -432,7 +432,7 @@ public struct ExperienceDetailView: View {
     private var askSoloSection: some View {
         if let onAskSolo {
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
                 switch Self.askSoloAction(canAskSolo: viewModel.canAskSolo) {
                 case .openChat:
                     onAskSolo(viewModel.experience)
@@ -922,7 +922,7 @@ public struct ExperienceDetailView: View {
                 }
             }
             .simultaneousGesture(TapGesture().onEnded {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             })
             .accessibilityAddTraits(.isLink)
             .accessibilityHint(Text(NSLocalizedString("detail.source.openHint", comment: "Opens the original source")))
