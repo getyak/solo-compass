@@ -96,6 +96,8 @@
 "section.soloScore" = "Solo Score";
 "section.sources" = "Sources";
 "section.nearby" = "Nearby experiences";
+"detail.nearby.open.a11y" = "%@, Solo Score %@";
+"detail.nearby.open.hint" = "Opens experience detail";
 "section.duration" = "Typical: %d–%d minutes";
 
 /* Celebration */

@@ -621,6 +621,9 @@ struct CompassMapContentView: View {
                         chatStartMode = .text
                         ensureOrchestrator(viewModel: viewModel)
                         voiceOrchestrator?.rebindContext(experience)
+                    },
+                    onSelectExperience: { experience in
+                        viewModel.selectExperience(experience)
                     }
                 )
             }
