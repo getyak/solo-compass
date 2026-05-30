@@ -137,6 +137,15 @@ public struct FavoritesListView: View {
         sortedFavorites.filter { proximity(for: $0) == .near }.count
     }
 
+    private var nearbyWalkMinutesTotal: Int? {
+        guard locationService.currentLocation != nil else { return nil }
+        let total = sortedFavorites
+            .filter { proximity(for: $0) == .near }
+            .compactMap { distanceMeters(for: $0) }
+            .reduce(0) { $0 + Int(($1 / Self.walkMetersPerMin).rounded(.up)) }
+        return total > 0 ? total : nil
+    }
+
     private var completedCount: Int {
         sortedFavorites.filter { preferences.completedExperiences.contains($0.id) }.count
     }
@@ -238,6 +247,22 @@ public struct FavoritesListView: View {
                                     .accessibilityHint(NSLocalizedString("favorites.nearby.hint", comment: "Nearby chip sorts by distance"))
                                     .accessibilityAddTraits(.isButton)
                                     .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+
+                                    if let mins = nearbyWalkMinutesTotal {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "figure.walk")
+                                                .accessibilityHidden(true)
+                                            Text(String(format: NSLocalizedString("favorites.nearby.walkBudget", comment: "Walk budget chip: ~Xm on foot"), mins))
+                                        }
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.green)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(Color.green.opacity(0.12), in: Capsule())
+                                        .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.walkBudget.a11y", comment: "Walk budget chip accessibility label"), mins))
+                                        .animation(.easeInOut, value: nearbyWalkMinutesTotal)
+                                        .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                                    }
                                 }
                             }
                             .padding(.horizontal, 16)

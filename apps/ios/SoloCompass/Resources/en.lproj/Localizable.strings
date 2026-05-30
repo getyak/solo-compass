@@ -421,6 +421,8 @@
 "favorites.remaining.show.a11y" = "Show remaining experiences";
 "favorites.remaining.active.a11y" = "Showing remaining, tap to show all";
 "favorites.remaining.hint" = "Filters the list to not-yet-completed favorites";
+"favorites.nearby.walkBudget" = "~%dm on foot";
+"favorites.nearby.walkBudget.a11y" = "About %d minutes of walking across nearby favorites";
 
 /* Generic actions */
 "action.undo" = "Undo";
