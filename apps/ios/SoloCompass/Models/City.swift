@@ -1,4 +1,3 @@
-
 /// Canonical city record mirroring packages/core/src/city.ts.
 /// geonameId is the stable deduplication key across language variants.
 public struct City: Codable, Identifiable, Hashable {

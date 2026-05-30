@@ -1,4 +1,3 @@
-
 /// CompanionReport — a safety report filed against another user.
 ///
 /// Mirrors `packages/core/src/companion.ts`. Keep field names in sync.

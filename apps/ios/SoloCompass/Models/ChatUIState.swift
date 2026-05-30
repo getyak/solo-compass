@@ -1,4 +1,3 @@
-
 /// Strict state machine for the chat overlay UI.
 /// Each case maps to a distinct visual presentation in ChatStateModifier.
 public enum ChatUIState: Equatable {

@@ -1,4 +1,3 @@
-
 /// CompanionBlock — a block record between two users (US-014).
 ///
 /// Mirrors the `companion_blocks` table in 0003_companion.sql.

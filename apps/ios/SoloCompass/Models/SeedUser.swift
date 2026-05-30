@@ -1,4 +1,3 @@
-
 /// A lightweight user fixture loaded from `seed_users.json`.
 ///
 /// Used only by `UserDirectory` for in-memory lookup during development and

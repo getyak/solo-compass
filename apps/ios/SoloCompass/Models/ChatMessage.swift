@@ -1,4 +1,3 @@
-
 /// ChatMessage — a single message within a Conversation.
 ///
 /// Mirrors `packages/core/src/companion.ts`. Keep field names in sync.
