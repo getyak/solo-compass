@@ -641,6 +641,7 @@
 "city.distanceAway" = "%.1f km away";
 "city.distanceAway.mi" = "%.1f mi away";
 "city.distanceUnknown" = "Distance unknown";
+"city.distanceAway.a11y" = "%@ away";
 
 
 /* AgentRouter fallback replies (US-034) */
