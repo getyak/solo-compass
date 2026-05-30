@@ -1155,6 +1155,7 @@
 "my.requests.empty.cta" = "Find a route to join";
 "my.requests.status.pending" = "Pending";
 "my.requests.status.accepted" = "Accepted";
+"my.requests.status.accepted.celebrate" = "Accepted — you're in!";
 "my.requests.status.declined" = "Declined";
 "my.requests.status.withdrawn" = "Withdrawn";
 "my.requests.withdraw" = "Withdraw";
