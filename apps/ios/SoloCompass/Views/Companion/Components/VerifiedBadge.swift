@@ -43,15 +43,22 @@ public struct VerifiedBadge: View {
     private var badgeBody: some View {
         HStack(spacing: 10) {
             glyphIcon
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(isVerified ? CT.accent : CT.fgMuted)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(isVerified ? CT.verifiedGreen : CT.fgMuted)
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle()
+                        .fill(isVerified
+                            ? CT.verifiedGreen.opacity(0.14)
+                            : CT.surfaceSunken)
+                )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(isVerified
                     ? NSLocalizedString("verified.title.verified", comment: "")
                     : NSLocalizedString("verified.title.watching", comment: ""))
                     .font(CT.display(13, .semibold))
-                    .foregroundStyle(CT.fgPrimary)
+                    .foregroundStyle(isVerified ? CT.verifiedGreen : CT.fgPrimary)
 
                 Text(String(
                     format: NSLocalizedString("verified.subtitle", comment: ""),
@@ -64,7 +71,7 @@ public struct VerifiedBadge: View {
             Spacer(minLength: 0)
 
             if !walkedByIds.isEmpty {
-                AvatarStack(ids: walkedByIds, maxVisible: 4, size: 22)
+                AvatarStack(ids: walkedByIds, maxVisible: 5, size: 24)
             }
         }
         .padding(.horizontal, 12)
@@ -85,31 +92,40 @@ public struct VerifiedBadge: View {
     private var headerBody: some View {
         HStack(spacing: 8) {
             Circle()
-                .fill(Color.white)
-                .frame(width: 6, height: 6)
+                .fill(isVerified ? CT.verifiedGreenDot : Color.white)
+                .frame(width: 7, height: 7)
+                .overlay(
+                    Circle()
+                        .strokeBorder(
+                            isVerified
+                                ? CT.verifiedGreenDot.opacity(0.18)
+                                : Color.clear,
+                            lineWidth: 3
+                        )
+                )
 
             Text(isVerified
                 ? NSLocalizedString("verified.title.verified", comment: "")
                 : NSLocalizedString("verified.title.watching", comment: ""))
                 .font(CT.display(12, .semibold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(isVerified ? CT.verifiedGreen : CT.fgMuted)
 
             Spacer(minLength: 4)
 
             if !walkedByIds.isEmpty {
-                AvatarStack(ids: walkedByIds, maxVisible: 4, size: 18, ring: isVerified ? CT.toneCompleted : CT.fgMuted)
+                AvatarStack(ids: walkedByIds, maxVisible: 4, size: 18, ring: Self.headerRing)
             }
             Text(String(
                 format: NSLocalizedString("verified.subtitle", comment: ""),
                 walkedByCount
             ))
                 .font(CT.mono(10, .medium))
-                .foregroundStyle(Color.white.opacity(0.85))
+                .foregroundStyle((isVerified ? CT.verifiedGreen : CT.fgMuted).opacity(0.85))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isVerified ? CT.toneCompleted : CT.fgMuted)
+        .background(headerBackground)
         .accessibilityElement(children: .combine)
     }
 
@@ -128,13 +144,36 @@ public struct VerifiedBadge: View {
             ))
                 .font(CT.body(11, .medium))
         }
-        .foregroundStyle(isVerified ? CT.toneCompleted : CT.fgMuted)
+        .foregroundStyle(isVerified ? CT.verifiedGreen : CT.fgMuted)
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(
-            Capsule().fill((isVerified ? CT.toneCompleted : CT.fgMuted).opacity(0.10))
+            Capsule().fill(isVerified
+                ? CT.verifiedGreen.opacity(0.12)
+                : CT.surfaceSunken)
         )
         .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Header helpers
+
+    /// Constant warm ring around header avatars, both verified and unverified states.
+    private static let headerRing = Color(red: 250.0 / 255.0, green: 250.0 / 255.0, blue: 247.0 / 255.0) // #FAFAF7
+
+    @ViewBuilder
+    private var headerBackground: some View {
+        if isVerified {
+            LinearGradient(
+                colors: [
+                    CT.verifiedGreen.opacity(0.12),
+                    CT.verifiedGreen.opacity(0.04)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        } else {
+            CT.surfaceWhite
+        }
     }
 
     private var glyphIcon: Image {

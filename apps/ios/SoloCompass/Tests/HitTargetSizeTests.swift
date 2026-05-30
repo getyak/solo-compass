@@ -24,9 +24,9 @@ final class HitTargetSizeTests: XCTestCase {
     }
 
     private let controls: [Control] = [
-        // FilterBarView.iconPill — 36×36 visible chip.
+        // FilterBarView.iconPill — 34×34 visible chip.
         Control(name: "FilterBar icon pill",
-                visibleWidth: 36, visibleHeight: 36,
+                visibleWidth: 34, visibleHeight: 34,
                 hitTarget: HitTargetMetrics.minimum),
         // ExperienceCardView favorite heart — 32×32 visible heart.
         Control(name: "Favorite heart",
@@ -67,8 +67,8 @@ final class HitTargetSizeTests: XCTestCase {
     /// The visible element must remain its original (smaller) size — the fix
     /// expands only the *hit* area, not the chip/heart/glyph appearance.
     func testVisibleSizesArePreserved() {
-        XCTAssertEqual(controls[0].visibleWidth, 36, "filter chip stays 36×36")
-        XCTAssertEqual(controls[0].visibleHeight, 36, "filter chip stays 36×36")
+        XCTAssertEqual(controls[0].visibleWidth, 34, "filter chip stays 34×34")
+        XCTAssertEqual(controls[0].visibleHeight, 34, "filter chip stays 34×34")
         XCTAssertEqual(controls[1].visibleWidth, 32, "favorite heart stays 32×32")
         XCTAssertEqual(controls[1].visibleHeight, 32, "favorite heart stays 32×32")
     }

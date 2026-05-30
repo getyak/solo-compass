@@ -142,8 +142,8 @@ public struct FilterBarView: View {
                             .id("tag-\(tag)")
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 5)
                     .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectionID)
                 }
                 .onAppear {
@@ -246,7 +246,7 @@ public struct FilterBarView: View {
         } label: {
             HStack(spacing: 5) {
                 Circle()
-                    .fill(isSelected ? Color.white : Self.selectedFill)
+                    .fill(isSelected ? Color.white : CT.sunGold)
                     .frame(width: 6, height: 6)
                     .scaleEffect(isPulsing ? 1.4 : 1.0)
                     .opacity(isPulsing ? 0.5 : 1.0)
@@ -260,13 +260,13 @@ public struct FilterBarView: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(
-                            Capsule().fill(isSelected ? Color.white.opacity(0.3) : Self.selectedFill.opacity(0.25))
+                            Capsule().fill(isSelected ? Color.white.opacity(0.28) : CT.sunGold.opacity(0.2))
                         )
                 }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .foregroundStyle(isSelected ? .white : .primary)
+            .foregroundStyle(isSelected ? .white : CT.accent)
             .background {
                 if isSelected {
                     Capsule()
@@ -275,7 +275,7 @@ public struct FilterBarView: View {
                 }
             }
             .overlay(
-                Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
+                Capsule().stroke(isSelected ? Color.clear : CT.sunGold, lineWidth: 1)
             )
             .overlay(alignment: .topTrailing) {
                 if isSelected && resultCount > 0 {
@@ -348,7 +348,7 @@ public struct FilterBarView: View {
         } label: {
             Image(systemName: category.symbol)
                 .font(.body.weight(.semibold))
-                .frame(width: 36, height: 36)
+                .frame(width: 34, height: 34)
                 .foregroundStyle(isSelected ? .white : category.color)
                 .background {
                     if isSelected {
@@ -358,7 +358,7 @@ public struct FilterBarView: View {
                     }
                 }
                 .overlay(
-                    Circle().stroke(isSelected ? Color.clear : category.color.opacity(0.4), lineWidth: 1)
+                    Circle().stroke(isSelected ? Color.clear : category.color, lineWidth: 1)
                 )
                 .overlay(alignment: .topTrailing) {
                     if isSelected && resultCount > 0 {

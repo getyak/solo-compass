@@ -45,6 +45,7 @@ final class MapTopOverlayRenderTest: XCTestCase {
             .environment(SubscriptionService())
             .environment(CompanionService())
             .environment(PresenceService())
+            .environment(BestNowClock.shared)
 
         let host = UIHostingController(rootView: view)
         let window = UIWindow(frame: CGRect(origin: .zero, size: Self.windowSize))

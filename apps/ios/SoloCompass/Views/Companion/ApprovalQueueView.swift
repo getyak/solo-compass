@@ -172,21 +172,24 @@ public struct ApprovalQueueView: View {
     /// Placeholder shown for any stat we don't actually know.
     static let unknownValue = "—"
 
-    @ViewBuilder
-    private static func optInBadge(_ optedIn: Bool?) -> some View {
-        let (text, color): (String, Color)
+    /// Resolves the opt-in badge's label and tint. Split out of the
+    /// `@ViewBuilder` below so that builder's body stays a single view
+    /// expression — a leading `let` + `switch` makes the result builder infer
+    /// `()` and fail to conform to `View`.
+    private static func optInBadgeStyle(_ optedIn: Bool?) -> (text: String, color: Color) {
         switch optedIn {
         case .some(true):
-            text = NSLocalizedString("approval.queue.signal.optin.yes", comment: "Opt-in badge — opted in")
-            color = .green
+            return (NSLocalizedString("approval.queue.signal.optin.yes", comment: "Opt-in badge — opted in"), .green)
         case .some(false):
-            text = NSLocalizedString("approval.queue.signal.optin.no", comment: "Opt-in badge — not opted in")
-            color = .secondary
+            return (NSLocalizedString("approval.queue.signal.optin.no", comment: "Opt-in badge — not opted in"), .secondary)
         case .none:
-            text = unknownValue
-            color = .secondary
+            return (unknownValue, .secondary)
         }
-        HStack(spacing: 4) {
+    }
+
+    private static func optInBadge(_ optedIn: Bool?) -> some View {
+        let (text, color) = optInBadgeStyle(optedIn)
+        return HStack(spacing: 4) {
             Image(systemName: "checkmark.shield.fill")
                 .font(.system(size: 11, weight: .semibold))
             Text(text)

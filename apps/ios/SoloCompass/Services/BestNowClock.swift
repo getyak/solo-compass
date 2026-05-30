@@ -24,7 +24,15 @@ public final class BestNowClock {
     /// Backing timer. Exactly one is allocated per clock instance — the test
     /// `BestNowBadgeClockTest` asserts on `Self.activeTimerCount` to prove that
     /// sharing one clock across N badges allocates only this single timer.
-    private var timer: Timer?
+    ///
+    /// `nonisolated(unsafe)` so the nonisolated `deinit` can invalidate it
+    /// without an actor hop, while the main-actor `start()` can still assign it.
+    /// Plain `nonisolated` won't compile here (the `timer = t` write in
+    /// `start()` runs on the main actor); the same pattern is used for
+    /// `SyncService.foregroundTimer` and `SubscriptionService.transactionListenerTask`.
+    /// `Timer.invalidate()` is thread-safe and every other access stays on the
+    /// main actor, so the unchecked annotation is sound.
+    private nonisolated(unsafe) var timer: Timer?
 
     /// Process-wide count of live `BestNowClock` timers. Used only by tests to
     /// verify that many badges sharing one clock never spin up more than one

@@ -27,6 +27,7 @@ public struct StopsList: View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(stops.enumerated()), id: \.offset) { index, experience in
                 StopRow(
+                    index: index,
                     experience: experience,
                     distanceText: distanceLabel(index: index),
                     isLast: index == stops.count - 1
@@ -61,11 +62,12 @@ public struct StopsList: View {
 // MARK: - StopRow
 
 private struct StopRow: View {
+    let index: Int
     let experience: Experience
     let distanceText: String
     let isLast: Bool
 
-    private let discSize: CGFloat = 36
+    private let discSize: CGFloat = 30
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -74,8 +76,17 @@ private struct StopRow: View {
             Spacer(minLength: 0)
             chevron
         }
-        .padding(.vertical, 10)
+        .padding(.top, index == 0 ? 6 : 12)
+        .padding(.bottom, 12)
         .padding(.horizontal, 16)
+        .overlay(alignment: .top) {
+            if index > 0 {
+                Rectangle()
+                    .fill(CT.borderSubtle)
+                    .frame(height: 0.5)
+                    .padding(.horizontal, 16)
+            }
+        }
     }
 
     /// Left-column: disc + vertical line below it (omitted for the last stop).
@@ -84,13 +95,11 @@ private struct StopRow: View {
             categoryDisc
             if !isLast {
                 Rectangle()
-                    .fill(Color(.separator))
-                    .frame(width: 1)
-                    .frame(maxHeight: .infinity)
-                    .padding(.vertical, 2)
+                    .fill(CT.borderDefault)
+                    .frame(width: 1.5, height: 12)
             }
         }
-        .frame(width: discSize)
+        .frame(width: 30)
     }
 
     private var categoryDisc: some View {
@@ -98,8 +107,8 @@ private struct StopRow: View {
             Circle()
                 .fill(experience.category.color)
                 .frame(width: discSize, height: discSize)
-            Image(systemName: experience.category.symbol)
-                .font(.system(size: 15, weight: .semibold))
+            Text(String(format: "%02d", index + 1))
+                .font(CT.mono(11, .semibold))
                 .foregroundStyle(.white)
         }
     }
@@ -109,13 +118,13 @@ private struct StopRow: View {
     private var textColumn: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(experience.title)
-                .font(.system(size: 14, weight: .semibold))
+                .font(CT.body(14.5, .semibold))
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let romanized = experience.location.placeNameRomanized {
                 Text(romanized)
-                    .font(.system(size: 12))
+                    .font(CT.body(11.5))
                     .foregroundStyle(.secondary)
             }
 
@@ -128,8 +137,8 @@ private struct StopRow: View {
 
     private var chevron: some View {
         Image(systemName: "chevron.right")
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(Color(.tertiaryLabel))
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(CT.fgSubtle)
             .padding(.top, 4)
     }
 }

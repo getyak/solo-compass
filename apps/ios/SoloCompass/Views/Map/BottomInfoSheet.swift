@@ -704,23 +704,21 @@ struct RoutesSection: View {
         let items = displayed
         Group {
             if !items.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 10) {
                     // US-036: Routes is the first section, so its header omits the
                     // leading inset divider (the sheet must not open with a rule).
+                    // RouteCard now carries its own card chrome (.sc-route-card:
+                    // white fill, border, shadow), so rows are separated by 10pt
+                    // spacing rather than full-bleed dividers.
                     SheetSectionSeparator(titleKey: "sheet.section.routes", showsDivider: false)
-                    Divider()
-                        .padding(.horizontal, 16)
                     ForEach(items) { route in
                         Button { onSelectRoute(route) } label: {
                             RouteCard(route: route)
                         }
                         .buttonStyle(.plain)
-                        if route.id != items.last?.id {
-                            Divider()
-                                .padding(.leading, 70)
-                        }
                     }
                 }
+                .padding(.horizontal, 16)
                 .padding(.top, 8)
             }
         }
