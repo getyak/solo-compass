@@ -1228,6 +1228,7 @@
 "profile.walkedRoutes.empty.cta" = "发现路线";
 "profile.walkedRoutes.empty.hint" = "完成一条同伴路线后，你的旅程会显示在这里。";
 "profile.walkedRoutes.empty.title" = "还没有走过的路线";
+"profile.walkedRoutes.count" = "已走过 %d 条路线";
 
 /* Route card recruit (mirrors en.lproj's Chinese values) */
 "route.card.recruit.closed" = "已成团 · %d 人 · 出发中";
