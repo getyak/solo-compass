@@ -1161,3 +1161,102 @@
 "a11y.empty.nearby" = "附近没有体验";
 "a11y.empty.filterResults" = "此筛选没有结果";
 "a11y.empty.list" = "没有可显示的体验";
+
+/* US-042: zh-Hans parity backfill — keys that existed only in en.lproj */
+
+/* Card / compass */
+"card.distance.proximity.near" = "即将到达";
+"compass.direction.a11y" = "距离 %1$@，朝向 %2$@";
+"compass.pointing.title" = "正指向";
+
+/* Celebration */
+"celebration.milestone.count" = "已探索 %d 处";
+"celebration.milestone.first" = "你的第 1 次体验！";
+
+/* Companion inbox */
+"companion.inbox.pending.count" = "%d 个待处理";
+"companion.inbox.pending.count.a11y" = "%d 个申请等待你回复";
+"companion.inbox.request.received" = "收到于 %@";
+
+/* Detail nearby */
+"detail.nearby.open.a11y" = "%@，独行评分 %@";
+"detail.nearby.open.hint" = "打开体验详情";
+
+/* Empty states */
+"empty.nearby.cta" = "探索其他区域";
+
+/* Favorites */
+"favorites.completed.allDone.a11y" = "已收藏的体验全部完成";
+"favorites.completed.count" = "已完成 %1$d / %2$d";
+"favorites.completed.count.a11y" = "已完成 %1$d / %2$d 个收藏";
+"favorites.empty.cta" = "去地图探索";
+"favorites.nearby.count" = "附近 %d 个";
+"favorites.nearby.count.a11y" = "附近 %d 个收藏";
+"favorites.nearby.hint" = "按距离排序收藏";
+"favorites.row.directions" = "导航";
+"favorites.row.done.a11y" = "已完成";
+"favorites.undo.announcement" = "已移除 %@。可撤销。";
+
+/* Filter empty */
+"filter.empty.message" = "此区域内没有匹配\"%@\"的体验。";
+"filter.empty.message.a11y" = "此区域内没有匹配当前筛选的体验。双击「显示全部」重置。";
+"filter.empty.showAll" = "显示全部";
+"filter.empty.showAll.a11y" = "显示全部体验";
+"filter.empty.title" = "无匹配结果";
+"filter.empty.title.a11y" = "没有匹配 %@ 的结果";
+"filter.pill.clear.hint" = "双击清除此筛选";
+
+/* Itinerary */
+"itinerary.empty.cta" = "规划一次行程";
+
+/* Journey breakdown */
+"journey.breakdown.a11y.item" = "%1$d 个 %2$@";
+"journey.breakdown.a11y.label" = "类别分布：%@";
+
+/* Map loading */
+"map.loadingPOIs.a11yAnnouncement" = "正在查找附近地点";
+
+/* My requests */
+"my.requests.empty.cta" = "找一条路线加入";
+
+/* Offline banner */
+"offline.banner.retry" = "点击重试";
+"offline.banner.retry.hint" = "双击重试连接";
+
+/* Profile walked routes */
+"profile.walkedRoutes.empty.cta" = "发现路线";
+"profile.walkedRoutes.empty.hint" = "完成一条同伴路线后，你的旅程会显示在这里。";
+"profile.walkedRoutes.empty.title" = "还没有走过的路线";
+
+/* Route card recruit (mirrors en.lproj's Chinese values) */
+"route.card.recruit.closed" = "已成团 · %d 人 · 出发中";
+"route.card.recruit.completed" = "已完成 · 路线升级";
+"route.card.recruit.recruiting" = "%1$@ 招募 · %2$d/%3$d · %4$@";
+"route.card.walkedBy" = "%d 位旅人走过";
+
+/* Solo score breakdown */
+"solo.breakdown.title" = "独行评分";
+"solo.compact.a11y.hint" = "双击查看评分明细";
+"solo.dim.ambiance" = "氛围契合";
+"solo.dim.portioning" = "适合一人份量";
+"solo.dim.pressure" = "员工不打扰";
+"solo.dim.ratio" = "独行顾客比例";
+"solo.dim.safety" = "安全";
+"solo.dim.seating" = "座位友好";
+
+/* Sort subtitles */
+"sort.subtitle.distance" = "由近到远";
+"sort.subtitle.now" = "此刻适合";
+"sort.subtitle.smart" = "为你调校的 AI 优选";
+"sort.subtitle.soloScore" = "最适合独行";
+
+/* Voice */
+"voice.a11y.toggle" = "开始/停止语音输入";
+"voice.announcement.listening" = "正在聆听…";
+"voice.announcement.stopped" = "已停止录音";
+"voice.button.hint" = "双击开始录音，再次双击停止";
+"voice.button.value.idle" = "空闲";
+"voice.button.value.recording" = "录音中";
+"voice.recording.maxReached" = "已达最大时长";
+"voice.recording.maxReached.a11y" = "已达最大录音时长 — 转写已保存";
+"voice.recording.timer.a11y" = "录音中 — 已 %d 秒";
