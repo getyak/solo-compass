@@ -161,13 +161,16 @@ public struct DiscoverListView: View {
     }
 
     private var postList: some View {
-        List(service.discoverPosts) { post in
-            DiscoverPostRow(
-                post: post,
-                hasSentRequest: sentRequestIds.contains(post.id),
-                onSendRequest: { selectedPost = post },
-                onReport: { reportTarget = post }
-            )
+        List {
+            ForEach(Array(service.discoverPosts.enumerated()), id: \.element.id) { index, post in
+                DiscoverPostRow(
+                    post: post,
+                    index: index,
+                    hasSentRequest: sentRequestIds.contains(post.id),
+                    onSendRequest: { selectedPost = post },
+                    onReport: { reportTarget = post }
+                )
+            }
         }
         .listStyle(.insetGrouped)
         .refreshable { await loadPosts() }
@@ -240,9 +243,14 @@ public struct DiscoverListView: View {
 
 private struct DiscoverPostRow: View {
     let post: DiscoverPost
+    let index: Int
     let hasSentRequest: Bool
     let onSendRequest: () -> Void
     let onReport: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+    @State private var pressed = false
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -279,6 +287,17 @@ private struct DiscoverPostRow: View {
             sendButton
         }
         .padding(.vertical, 4)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 12)
+        .onAppear {
+            if reduceMotion {
+                appeared = true
+            } else {
+                withAnimation(.easeOut(duration: 0.3).delay(min(Double(index) * 0.05, 0.4))) {
+                    appeared = true
+                }
+            }
+        }
         .contextMenu {
             Button(role: .destructive) {
                 onReport()
@@ -310,6 +329,7 @@ private struct DiscoverPostRow: View {
 
     private var sendButton: some View {
         Button {
+            Haptics.selection()
             onSendRequest()
         } label: {
             Label(
@@ -324,6 +344,18 @@ private struct DiscoverPostRow: View {
         .buttonStyle(.bordered)
         .tint(hasSentRequest ? .green : .accentColor)
         .disabled(hasSentRequest)
+        .scaleEffect(pressed ? 0.96 : 1)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    guard !reduceMotion, !pressed else { return }
+                    withAnimation(.easeOut(duration: 0.12)) { pressed = true }
+                }
+                .onEnded { _ in
+                    guard !reduceMotion else { return }
+                    withAnimation(.easeOut(duration: 0.12)) { pressed = false }
+                }
+        )
     }
 
     private func formattedDateRange(from: String, to: String) -> String {
