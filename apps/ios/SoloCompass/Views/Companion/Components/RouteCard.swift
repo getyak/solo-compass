@@ -83,8 +83,21 @@ public struct RouteCard: View {
                 .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
-        .scaleEffect(pressed ? 0.985 : 1)
-        .animation(.easeOut(duration: 0.18), value: pressed)
+        .scaleEffect(reduceMotion ? 1 : (pressed ? 0.985 : 1))
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: pressed)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    guard !pressed else { return }
+                    pressed = true
+                    #if canImport(UIKit)
+                    if !reduceMotion { Haptics.impact(.soft) }
+                    #endif
+                }
+                .onEnded { _ in
+                    pressed = false
+                }
+        )
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(route.title + ", " + monoBaseline))
