@@ -26,6 +26,10 @@ public struct SoloScoreRadarChart: View {
         Self.axes.map { score.breakdown[keyPath: $0.keyPath] }
     }
 
+    private func animatedValue(_ raw: Double) -> Int {
+        Int((raw * drawProgress).rounded())
+    }
+
     private var variance: Double {
         let vals = values
         let mean = vals.reduce(0, +) / Double(vals.count)
@@ -162,10 +166,12 @@ public struct SoloScoreRadarChart: View {
                         Image(systemName: axis.symbol)
                             .font(.system(size: size * 0.065))
                             .foregroundStyle(iconColor)
-                        // Always display final values — animation only affects opacity
-                        Text(String(format: "%.0f", values[i]))
+                        Text(String(animatedValue(values[i])))
                             .font(.system(size: size * 0.055, weight: fontWeight, design: .rounded))
                             .foregroundStyle(textColor)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                            .animation(reduceMotion ? nil : .spring(response: Self.springDuration, dampingFraction: 0.75), value: animatedValue(values[i]))
                     }
                     .opacity(labelOpacity)
                     .position(pos)
@@ -343,10 +349,12 @@ public struct SoloScoreRadarChart: View {
                         }
                     }
                     .frame(height: 6)
-                    Text(String(format: "%.0f", val))
+                    Text(String(animatedValue(val)))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(textColor)
                         .fontWeight((isWeakest || isStrongest) ? .bold : .regular)
+                        .contentTransition(.numericText())
+                        .animation(reduceMotion ? nil : .spring(response: Self.springDuration, dampingFraction: 0.75), value: animatedValue(val))
                         .frame(width: 24, alignment: .trailing)
                         .accessibilityHidden(true)
                 }
