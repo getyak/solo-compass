@@ -178,6 +178,12 @@ public struct FavoritesListView: View {
                 if sortedFavorites.isEmpty && lastUnfavorited == nil {
                     EmptyFavoritesView(onExplore: onExplore)
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
+                } else if filteredFavorites.isEmpty && showRemainingOnly && searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+                    AllRemainingDoneView(onShowAll: {
+                        Haptics.selection()
+                        withAnimation(reduceMotion ? nil : .easeInOut) { showRemainingOnly = false }
+                    })
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else if filteredFavorites.isEmpty {
                     NoSearchResultsView(query: searchText, onClear: { searchText = "" })
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
@@ -496,6 +502,49 @@ private struct EmptyFavoritesView: View {
         .onAppear {
             guard !isBreathing, !reduceMotion else { return }
             isBreathing = true
+        }
+    }
+}
+
+private struct AllRemainingDoneView: View {
+    let onShowAll: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(Color.green)
+                .accessibilityHidden(true)
+            Text(NSLocalizedString("favorites.remaining.allDone.title", comment: "All remaining favorites done title"))
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            Text(NSLocalizedString("favorites.remaining.allDone.hint", comment: "All remaining favorites done caption"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button {
+                onShowAll()
+            } label: {
+                Label(NSLocalizedString("favorites.remaining.allDone.cta", comment: "Show all favorites button in all-done state"), systemImage: "heart.fill")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .padding(.top, 4)
+        }
+        .padding(32)
+        .scaleEffect(appeared ? 1 : 0.85)
+        .opacity(appeared ? 1 : 0)
+        .onAppear {
+            guard !reduceMotion else {
+                appeared = true
+                return
+            }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                appeared = true
+            }
         }
     }
 }
