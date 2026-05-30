@@ -18,6 +18,13 @@ public struct PendingCheckInBanner: View {
     @State private var autoDismissTask: Task<Void, Never>?
     private let dismissThreshold: CGFloat = 80
 
+    // Pause/resume interaction tracking
+    @State private var isInteracting = false
+    /// Snapshot of countdownProgress taken when interaction begins; 1 = full bar.
+    @State private var progressAtPause: CGFloat = 1
+    /// Guards pauseCountdown() so it fires only on the first-touch, not every drag event.
+    @State private var wasPaused = false
+
     /// 12 s under VoiceOver (reader needs more time), 6 s otherwise.
     var autoDismissSeconds: Double { voiceOverOn ? 12 : 6 }
 
@@ -107,6 +114,12 @@ public struct PendingCheckInBanner: View {
                     } else if !overThreshold && crossedThreshold {
                         crossedThreshold = false
                     }
+                    // Pause on first touch; guard prevents repeated calls per drag event.
+                    if !wasPaused {
+                        wasPaused = true
+                        isInteracting = true
+                        pauseCountdown()
+                    }
                 }
                 .onEnded { gesture in
                     if gesture.translation.height < -dismissThreshold {
@@ -121,6 +134,10 @@ public struct PendingCheckInBanner: View {
                     } else {
                         crossedThreshold = false
                         withAnimation(.spring(response: 0.3)) { dragOffset = 0 }
+                        // Resume countdown from where it left off.
+                        isInteracting = false
+                        wasPaused = false
+                        startCountdown(remainingFraction: progressAtPause)
                     }
                 }
         )
@@ -136,18 +153,11 @@ public struct PendingCheckInBanner: View {
             #endif
             guard !reduceMotion else {
                 pulse = true
-                scheduleAutoDismiss()
+                scheduleAutoDismiss(remainingFraction: 1)
                 return
             }
             pulse = true
-
-            let seconds = autoDismissSeconds
-            if !voiceOverOn {
-                withAnimation(.linear(duration: seconds)) {
-                    countdownProgress = 0
-                }
-            }
-            scheduleAutoDismiss()
+            startCountdown(remainingFraction: 1)
         }
         .onDisappear {
             autoDismissTask?.cancel()
@@ -161,8 +171,35 @@ public struct PendingCheckInBanner: View {
         )))
     }
 
-    private func scheduleAutoDismiss() {
-        let seconds = autoDismissSeconds
+    /// Starts (or resumes) the animated countdown bar and the auto-dismiss task.
+    /// `remainingFraction` is in [0, 1] where 1 means full duration remaining.
+    private func startCountdown(remainingFraction: CGFloat) {
+        guard !voiceOverOn else {
+            // VoiceOver: no bar, just arm the dismiss task.
+            scheduleAutoDismiss(remainingFraction: remainingFraction)
+            return
+        }
+        let remaining = autoDismissSeconds * Double(remainingFraction)
+        withAnimation(.linear(duration: remaining)) {
+            countdownProgress = 0
+        }
+        scheduleAutoDismiss(remainingFraction: remainingFraction)
+    }
+
+    /// Cancels the auto-dismiss task and freezes the countdown bar at its current value.
+    private func pauseCountdown() {
+        autoDismissTask?.cancel()
+        autoDismissTask = nil
+        // Snapshot the current progress fraction so resume can animate from here.
+        progressAtPause = countdownProgress
+        // Stop the running animation by re-asserting the current value with zero duration.
+        withAnimation(.linear(duration: 0)) {
+            countdownProgress = progressAtPause
+        }
+    }
+
+    private func scheduleAutoDismiss(remainingFraction: CGFloat) {
+        let seconds = autoDismissSeconds * Double(remainingFraction)
         autoDismissTask = Task {
             try? await Task.sleep(for: .seconds(seconds))
             guard !Task.isCancelled else { return }
