@@ -11,10 +11,15 @@ public struct RequestInboxView: View {
     @State private var showingAcceptedConfirm = false
     @State private var reportTarget: CompanionRequest?
     @State private var errorMessage: String?
+    @State private var pulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(service: CompanionService = .shared) {
         _service = State(initialValue: service)
+    }
+
+    private var pendingCount: Int {
+        service.inboxRequests.filter { $0.status == .pending }.count
     }
 
     public var body: some View {
@@ -35,6 +40,32 @@ public struct RequestInboxView: View {
         .navigationTitle(NSLocalizedString("companion.inbox.title", comment: "Inbox nav title"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
+            if pendingCount > 0 {
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bell.badge.fill")
+                            .accessibilityHidden(true)
+                        Text(String(format: NSLocalizedString("companion.inbox.pending.count", comment: "Pending request count pill"), pendingCount))
+                            .contentTransition(.numericText())
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.orange)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.orange.opacity(0.15), in: Capsule())
+                    .opacity(!reduceMotion ? (pulse ? 1.0 : 0.65) : 1.0)
+                    .animation(
+                        !reduceMotion ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true) : .none,
+                        value: pulse
+                    )
+                    .animation(.easeInOut, value: pendingCount)
+                    .accessibilityLabel(String(format: NSLocalizedString("companion.inbox.pending.count.a11y", comment: "VoiceOver: pending requests count"), pendingCount))
+                    .onAppear {
+                        guard !pulse, !reduceMotion else { return }
+                        pulse = true
+                    }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await service.fetchInbox() }

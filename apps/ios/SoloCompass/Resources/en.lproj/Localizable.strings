@@ -902,6 +902,8 @@
 "companion.inbox.error.title" = "Could not load inbox";
 "companion.inbox.error.retry" = "Try again";
 "companion.inbox.error.retry.hint" = "Reloads the inbox";
+"companion.inbox.pending.count" = "%d pending";
+"companion.inbox.pending.count.a11y" = "%d requests awaiting your reply";
 
 /* Companion — chat (US-013) */
 "companion.chat.title" = "Chat";
