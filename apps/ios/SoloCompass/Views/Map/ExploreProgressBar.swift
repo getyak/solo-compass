@@ -10,7 +10,7 @@ struct ExploreProgressBar: View {
 
     /// Derive display text; nil means the capsule should be hidden.
     var text: String? {
-        CompassMapView.progressText(for: progress)
+        CompassMapContentView.progressText(for: progress)
     }
 
     var body: some View {
