@@ -877,6 +877,7 @@
 /* Companion — send request (US-012) */
 "companion.request.send" = "Send request";
 "companion.request.sent" = "Request sent";
+"companion.request.sent.confirm" = "Request sent — they'll be notified";
 "companion.request.send.action" = "Send";
 "companion.request.sheet.title" = "Send Companion Request";
 "companion.request.post.header" = "Traveling with";

@@ -15,6 +15,7 @@ public struct DiscoverListView: View {
     @State private var requestSentPostId: String?
     @State private var reportTarget: DiscoverPost?
     @State private var errorMessage: String?
+    @State private var successMessage: String?
     @State private var showPostSheet = false
 
     public init(cityCode: String, service: CompanionService = .shared) {
@@ -65,6 +66,24 @@ public struct DiscoverListView: View {
             }
         }
         .animation(.easeInOut, value: errorMessage)
+        .overlay(alignment: .bottom) {
+            if let msg = successMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text(msg)
+                        .font(.subheadline)
+                        .lineLimit(2)
+                }
+                .foregroundStyle(.green)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(.regularMaterial, in: Capsule())
+                .padding(.bottom, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .accessibilityLabel(msg)
+            }
+        }
+        .animation(.easeInOut, value: successMessage)
         .sheet(item: $selectedPost) { post in
             SendRequestSheet(post: post) { note in
                 Task { await sendRequest(to: post, note: note) }
@@ -198,6 +217,14 @@ public struct DiscoverListView: View {
         switch result {
         case .success:
             requestSentPostId = post.id
+            Haptics.notify(.success)
+            let msg = NSLocalizedString("companion.request.sent.confirm", comment: "Companion request sent confirmation toast")
+            successMessage = msg
+            UIAccessibility.post(notification: .announcement, argument: msg)
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                successMessage = nil
+            }
         case .failure(let err):
             errorMessage = err.localizedDescription
             Haptics.notify(.error)

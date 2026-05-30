@@ -683,6 +683,7 @@
 "companion.request.send" = "发送请求";
 "companion.request.send.action" = "发送";
 "companion.request.sent" = "请求已发送";
+"companion.request.sent.confirm" = "请求已发送 — 对方将收到通知";
 "companion.request.accept" = "接受";
 "companion.request.decline" = "拒绝";
 
