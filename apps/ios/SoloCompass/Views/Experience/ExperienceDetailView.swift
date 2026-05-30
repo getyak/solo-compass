@@ -206,7 +206,6 @@ public struct ExperienceDetailView: View {
             }
         }
         .task {
-            locationService.startUpdating()
             await viewModel.loadAIExplanation()
             await viewModel.loadRemoteSoloScore()
         }
@@ -1171,7 +1170,6 @@ private struct CompassDirectionView: View {
     let reduceMotion: Bool
 
     private let ringSize: CGFloat = 120
-    private let tickLength: CGFloat = 8
 
     var body: some View {
         VStack(spacing: 6) {
@@ -1180,7 +1178,7 @@ private struct CompassDirectionView: View {
                 ForEach(["N", "E", "S", "W"], id: \.self) { label in
                     let angle: Double = label == "N" ? 0 : label == "E" ? 90 : label == "S" ? 180 : 270
                     VStack(spacing: 2) {
-                        Text(NSLocalizedString("compass.\(label)", comment: "Cardinal direction"))
+                        Text(label)
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(.tertiary)
                         Spacer()
