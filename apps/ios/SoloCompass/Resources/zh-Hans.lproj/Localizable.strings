@@ -145,6 +145,7 @@
 "city.experienceCount" = "%d 处体验";
 "city.empty.title" = "暂无城市";
 "city.empty.hint" = "探索地图时，城市会陆续出现在这里。";
+"city.search.prompt" = "搜索城市";
 
 /* Action bar */
 "action.favorite" = "添加到收藏";

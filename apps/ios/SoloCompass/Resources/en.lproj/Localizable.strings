@@ -218,6 +218,7 @@
 "city.experienceCount" = "%d experiences";
 "city.empty.title" = "No cities yet";
 "city.empty.hint" = "Cities appear here as you explore the map.";
+"city.search.prompt" = "Search cities";
 
 /* Action bar */
 "action.favorite" = "Add to favorites";
