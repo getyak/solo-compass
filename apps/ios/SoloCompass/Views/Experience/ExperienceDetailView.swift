@@ -32,7 +32,7 @@ public struct ExperienceDetailView: View {
     @State private var isShowingReport: Bool = false
     @State private var showingRadarTooltip: Bool = false
     @State private var exportMarkdown: String? = nil
-    @State private var heartPop = false
+    @State private var heartBurstTrigger = 0
     @State private var celebrationTrigger = 0
     @State private var celebrationMilestone: Int? = nil
     @State private var isShowingNavPicker = false
@@ -1086,9 +1086,9 @@ public struct ExperienceDetailView: View {
                 let willFavorite = !viewModel.isFavorited
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
                     viewModel.toggleFavorite()
-                    heartPop.toggle()
                 }
                 if willFavorite {
+                    heartBurstTrigger += 1
                     Haptics.notify(.success)
                 } else {
                     Haptics.impact(.light)
@@ -1102,6 +1102,9 @@ public struct ExperienceDetailView: View {
                     .animation(.spring(response: 0.3, dampingFraction: 0.45), value: viewModel.isFavorited)
                     .frame(width: 50, height: 50)
                     .background(Circle().fill(.regularMaterial))
+                    .overlay {
+                        HeartBurstView(trigger: heartBurstTrigger)
+                    }
             }
             .accessibilityLabel(Text(viewModel.isFavorited
                 ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
