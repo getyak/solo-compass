@@ -84,12 +84,25 @@ final class NowCountCacheTests: XCTestCase {
         return (vm, service)
     }
 
-    /// Before any load the cache is its initial value (0).
-    func testInitialCountIsZero() {
+    /// With no visible best-now experiences the cache is 0. The view model's
+    /// `init` runs the documented `loadNearbyExperiences` checkpoint (V-004: a
+    /// cold start must anchor on the selected city, not the simulator's default
+    /// GPS), so we can't observe a "before any load" state. Instead we anchor on
+    /// a city with no seeded experiences nearby (San Francisco, while the only
+    /// fixture sits in Chiang Mai), so the load filters everything out and the
+    /// now-best subset — hence the cached count — is genuinely 0.
+    func testCountIsZeroWhenNoVisibleBestNow() {
         let (vm, _) = makeViewModel(seed: [
             makeExperience(id: "cmi_1", cityCode: "cmi", lon: 98.99, lat: 18.79, bestNow: true),
         ])
-        XCTAssertEqual(vm.nowCount, 0, "nowCount must be 0 before the first load")
+        vm.selectedCity = "san-francisco"
+        vm.loadNearbyExperiences()
+
+        XCTAssertTrue(
+            vm.visibleExperiences.isEmpty,
+            "the lone Chiang Mai fixture must be filtered out when anchored on San Francisco"
+        )
+        XCTAssertEqual(vm.nowCount, 0, "nowCount must be 0 when no visible experience is best now")
     }
 
     /// `loadNearbyExperiences` is a documented checkpoint: it recomputes the
