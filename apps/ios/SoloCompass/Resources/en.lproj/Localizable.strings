@@ -38,6 +38,10 @@
 "confidence.lastVerified" = "Verified %@";
 "confidence.a11y.label" = "%@, level %d, %d signals";
 "confidence.a11y.hint" = "Double tap to see trust signals";
+"confidence.strongest" = "Mainly backed by %@";
+"confidence.strength.strong" = "strong";
+"confidence.strength.medium" = "medium";
+"confidence.strength.weak" = "weak";
 
 /* Solo Score */
 "solo.label" = "Solo";
