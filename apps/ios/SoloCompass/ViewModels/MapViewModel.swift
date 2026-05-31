@@ -310,19 +310,28 @@ public final class MapViewModel {
     }
 
     /// Center coordinate for the selected city, or the default if none selected.
-    /// Resolution order: live `availableCities` (seed + discovered) → the static
-    /// `knownCityCenters` slug catalog → the global default (Chiang Mai).
+    /// Resolution order: the static `knownCityCenters` catalog (a city's stable
+    /// authoritative center, by slug or seed-code alias) → live `availableCities`
+    /// (seed + discovered) centroid → the global default (Chiang Mai).
+    ///
+    /// V-002: `knownCityCenters` is consulted FIRST for cities it covers because
+    /// the seed centroid is just the mean of however many sample pins exist
+    /// (the 5 Chiang Mai seeds average ~2.6 km off the city center) and drifts
+    /// as seeds are added/removed — an unstable camera anchor. The authoritative
+    /// center keeps a cold start landing on the city proper; the centroid only
+    /// anchors cities the catalog doesn't cover (discovered / Explore-added).
     public var defaultCenterForSelectedCity: CLLocationCoordinate2D {
         guard let code = selectedCity else { return Self.defaultCenter }
-        // V-004: match alias-aware so a header slug (`chiang-mai`, `vientiane`)
-        // resolves to the seed-coded city's centroid — exact `==` left slug
-        // selections falling through to the global default (Chiang Mai), which
-        // mis-anchored both the camera and the nearby query origin.
+        // Try the slug directly, then the alias-resolved seed code, so both a
+        // header slug (`chiang-mai`) and a seed code (`cmi`) hit the catalog.
+        if let known = Self.knownCityCenters[code]
+            ?? Self.cityCodeAliases[code.lowercased()].flatMap({ Self.knownCityCenters[$0] }) {
+            return known
+        }
+        // V-004: match alias-aware so a header slug resolves to the seed-coded
+        // city's centroid for cities the catalog doesn't cover.
         if let city = availableCities.first(where: { Self.cityCodeMatches($0.code, selected: code) }) {
             return city.center
-        }
-        if let known = Self.knownCityCenters[code] {
-            return known
         }
         return Self.defaultCenter
     }
