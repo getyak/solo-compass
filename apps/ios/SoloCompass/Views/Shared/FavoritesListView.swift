@@ -190,6 +190,14 @@ public struct FavoritesListView: View {
                 } else {
                     VStack(spacing: 0) {
                         if sortedFavorites.count > 0 {
+                            FavoritesJourneyHeader(
+                                total: sortedFavorites.count,
+                                completed: completedCount,
+                                nearbyCount: nearbyCount
+                            )
+                            .padding(.horizontal, 16)
+                            .padding(.top, 12)
+
                             // Footer reflects the active search filter when one is present.
                             let countLabel: String = {
                                 let query = searchText.trimmingCharacters(in: .whitespaces)
@@ -405,6 +413,61 @@ public struct FavoritesListView: View {
             let remainingCount = sortedFavorites.filter { !preferences.completedExperiences.contains($0.id) }.count
             if showRemainingOnly && (allDone || remainingCount == 0) {
                 withAnimation(reduceMotion ? nil : .easeInOut) { showRemainingOnly = false }
+            }
+        }
+    }
+}
+
+private struct FavoritesJourneyHeader: View {
+    let total: Int
+    let completed: Int
+    let nearbyCount: Int
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour < 12 {
+            return NSLocalizedString("favorites.greeting.morning", comment: "Morning greeting in favorites header")
+        } else if hour < 17 {
+            return NSLocalizedString("favorites.greeting.afternoon", comment: "Afternoon greeting in favorites header")
+        } else {
+            return NSLocalizedString("favorites.greeting.evening", comment: "Evening greeting in favorites header")
+        }
+    }
+
+    private var journeySummary: String {
+        if completed == total {
+            return NSLocalizedString("favorites.journey.allDone", comment: "All favorites explored")
+        } else if completed > 0 {
+            return String(format: NSLocalizedString("favorites.journey.progress", comment: "N of M explored"), completed, total)
+        } else {
+            return String(format: NSLocalizedString("favorites.journey.awaiting", comment: "N places waiting"), total)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(greeting)
+                .font(.headline)
+                .foregroundStyle(.primary)
+            Text(journeySummary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .contentTransition(.numericText())
+                .animation(.easeInOut, value: completed)
+                .animation(.easeInOut, value: total)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : (reduceMotion ? 0 : 6))
+        .accessibilityElement(children: .combine)
+        .onAppear {
+            if reduceMotion {
+                appeared = true
+            } else {
+                withAnimation(.easeOut(duration: 0.3)) { appeared = true }
             }
         }
     }
