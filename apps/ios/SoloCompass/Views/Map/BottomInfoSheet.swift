@@ -139,6 +139,14 @@ public enum BottomSheetDetent: CaseIterable {
         baseHeight * BottomSheetDetentScale.factor(for: traits)
     }
 
+    /// Effective `peek` detent height for the supplied Dynamic Type traits.
+    /// Exposed so floating overlays (e.g. the selected-experience card) can sit
+    /// clear of the sheet's resting height at any text size instead of relying
+    /// on a hard-coded inset that clips at large Dynamic Type.
+    static func peekHeight(for traits: UITraitCollection? = nil) -> CGFloat {
+        BottomSheetDetent.peek.scaledHeight(for: traits)
+    }
+
     static func nearest(
         to height: CGFloat,
         traits: UITraitCollection? = nil

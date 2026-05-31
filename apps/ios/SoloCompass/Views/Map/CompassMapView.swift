@@ -75,6 +75,8 @@ struct CompassMapContentView: View {
     private let companionService: CompanionService
     private let presenceService: PresenceService
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @State private var viewModel: MapViewModel
     @State private var voiceService = VoiceService()
     @State private var dismissedAIError: String? = nil
@@ -174,6 +176,21 @@ struct CompassMapContentView: View {
         )
         vm.attachSubscriptionService(subscriptionService)
         _viewModel = State(initialValue: vm)
+    }
+
+    /// Bottom inset for the floating selected-experience card so it rests
+    /// clear of the `BottomInfoSheet` at its `peek` height — at any Dynamic
+    /// Type size, since the peek height itself scales with `UIFontMetrics`.
+    /// The old hard-coded `80pt` clipped the card's Solo-Score row behind the
+    /// sheet (the peek height is ≥170pt). `cardSheetGap` is the breathing room
+    /// between the card's lower edge and the sheet's top, so the layering reads
+    /// as "card floating above sheet" rather than "card jammed against it".
+    private var cardBottomInset: CGFloat {
+        let traits = UITraitCollection(
+            preferredContentSizeCategory: dynamicTypeSize.uiContentSizeCategory
+        )
+        let cardSheetGap: CGFloat = 12
+        return BottomSheetDetent.peekHeight(for: traits) + cardSheetGap
     }
 
     @ViewBuilder
@@ -381,19 +398,6 @@ struct CompassMapContentView: View {
                     }
                 }
 
-                if let selected = viewModel.selectedExperience, !viewModel.isShowingDetail {
-                    VStack {
-                        Spacer()
-                        ExperienceCardView(
-                            experience: selected,
-                            onExpand: { viewModel.isShowingDetail = true },
-                            onDismiss: { viewModel.selectedExperience = nil }
-                        )
-                        .padding(.bottom, 80)
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-
                 if viewModel.visibleExperiences.isEmpty && !isFilterActive {
                     EmptyStateOverlay(
                         viewModel: viewModel,
@@ -494,6 +498,24 @@ struct CompassMapContentView: View {
                             .environment(experienceService)
                         }
                     }
+                }
+
+                // Selected-experience card floats ABOVE the BottomInfoSheet
+                // (declared after it → higher z-order) and rests on a Dynamic-
+                // Type-aware inset so its Solo-Score row is never clipped by the
+                // sheet's peek height. Previously declared before the sheet with
+                // a fixed 80pt inset, which let the sheet occlude its lower edge.
+                if let selected = viewModel.selectedExperience, !viewModel.isShowingDetail {
+                    VStack {
+                        Spacer()
+                        ExperienceCardView(
+                            experience: selected,
+                            onExpand: { viewModel.isShowingDetail = true },
+                            onDismiss: { viewModel.selectedExperience = nil }
+                        )
+                        .padding(.bottom, cardBottomInset)
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
         }
     }

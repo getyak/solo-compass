@@ -280,7 +280,11 @@ public struct ExperienceCardView: View {
                     .accessibilityHidden(true)
                 RoundedRectangle(cornerRadius: 20)
                     .fill(.regularMaterial)
-                    .shadow(color: .black.opacity(0.1), radius: 12, y: -2)
+                    // Card now floats ABOVE the BottomInfoSheet, so it casts a
+                    // soft downward shadow onto the sheet to read as "lifted",
+                    // instead of the former upward (y:-2) shadow that suited a
+                    // card pinned to the screen bottom.
+                    .shadow(color: .black.opacity(0.16), radius: 16, y: 6)
             }
         )
         .offset(y: totalOffset)
