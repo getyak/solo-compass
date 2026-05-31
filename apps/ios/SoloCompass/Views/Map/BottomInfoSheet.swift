@@ -522,8 +522,66 @@ struct NearbyExperienceRow: View {
 
     @State private var pressed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(LocationService.self) private var locationService
 
     private static let sunGold = Color(red: 1.0, green: 0.80, blue: 0.2)
+
+    // MARK: Proximity helpers (mirrors FavoritesListView.Proximity)
+
+    private enum Proximity {
+        case near, mid, far
+
+        static func from(meters: Double) -> Proximity {
+            if meters <= 1000 { return .near }
+            if meters <= 5000 { return .mid }
+            return .far
+        }
+
+        var dotColor: Color {
+            switch self {
+            case .near: return .green
+            case .mid: return .orange
+            case .far: return Color(.tertiaryLabel)
+            }
+        }
+    }
+
+    private var proximity: Proximity? {
+        guard let m = distanceMeters else { return nil }
+        return Proximity.from(meters: m)
+    }
+
+    // MARK: Bearing helpers
+
+    private var relativeBearing: Double? {
+        guard let coord = experience.coordinate else { return nil }
+        return locationService.relativeBearing(to: coord)
+    }
+
+    /// 8-point compass label derived from an absolute bearing (0 = N, clockwise).
+    private func compassPoint(for absoluteBearing: Double) -> String {
+        let points = [
+            NSLocalizedString("compass.N",  comment: "Compass point: North"),
+            NSLocalizedString("compass.NE", comment: "Compass point: North-East"),
+            NSLocalizedString("compass.E",  comment: "Compass point: East"),
+            NSLocalizedString("compass.SE", comment: "Compass point: South-East"),
+            NSLocalizedString("compass.S",  comment: "Compass point: South"),
+            NSLocalizedString("compass.SW", comment: "Compass point: South-West"),
+            NSLocalizedString("compass.W",  comment: "Compass point: West"),
+            NSLocalizedString("compass.NW", comment: "Compass point: North-West"),
+        ]
+        let index = Int((absoluteBearing + 22.5) / 45) % 8
+        return points[index]
+    }
+
+    private var compassDirectionSuffix: String? {
+        guard let coord = experience.coordinate,
+              let absolute = locationService.bearing(to: coord) else { return nil }
+        let point = compassPoint(for: absolute)
+        let fmt = NSLocalizedString("nearby.direction.suffix",
+                                    comment: "Compass direction suffix, e.g. 'to the North'")
+        return String(format: fmt, point)
+    }
 
     var body: some View {
         Button {
@@ -605,15 +663,25 @@ struct NearbyExperienceRow: View {
     }
 
     private var distancePill: some View {
-        HStack(spacing: 3) {
+        let bearing = relativeBearing
+        let hasLiveBearing = bearing != nil
+        return HStack(spacing: 3) {
             if let meters = distanceMeters {
+                if let prox = proximity {
+                    Circle()
+                        .fill(prox.dotColor)
+                        .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+                }
                 Text(formattedDistance(meters))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
             Image(systemName: "location.north.line.fill")
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(hasLiveBearing ? Color.secondary : Color.tertiary)
+                .rotationEffect(.degrees(bearing ?? 0))
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
         }
     }
 
@@ -637,6 +705,9 @@ struct NearbyExperienceRow: View {
         var label = experience.title
         if let meters = distanceMeters {
             label += ", \(formattedDistance(meters))"
+        }
+        if let dirSuffix = compassDirectionSuffix {
+            label += ", \(dirSuffix)"
         }
         if isSmartPick {
             label += ", " + NSLocalizedString("sheet.nearby.smartPick.a11y", comment: "AI pick")
@@ -934,5 +1005,6 @@ struct EmptySheetListView: View {
             }
         }
         .environment(BestNowClock.shared)
+        .environment(LocationService.shared)
     }
 }

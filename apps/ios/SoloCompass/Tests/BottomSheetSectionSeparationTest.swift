@@ -63,6 +63,7 @@ final class BottomSheetSectionSeparationTest: XCTestCase {
         }
         .frame(width: 390, height: BottomSheetDetent.mid.baseHeight)
         .environment(BestNowClock.shared)
+        .environment(LocationService.shared)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2

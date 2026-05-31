@@ -107,6 +107,7 @@ final class BottomSheetDetentDynamicTypeTest: XCTestCase {
         .frame(width: 390, height: detent.scaledHeight(for: UITraitCollection(preferredContentSizeCategory: size.uiContentSizeCategory)))
         .dynamicTypeSize(size)
         .environment(BestNowClock.shared)
+        .environment(LocationService.shared)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
