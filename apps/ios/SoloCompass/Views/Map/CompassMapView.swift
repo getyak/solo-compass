@@ -186,11 +186,27 @@ struct CompassMapContentView: View {
     /// between the card's lower edge and the sheet's top, so the layering reads
     /// as "card floating above sheet" rather than "card jammed against it".
     private var cardBottomInset: CGFloat {
+        let cardSheetGap: CGFloat = 12
+        return sheetPeekClearance + cardSheetGap
+    }
+
+    /// Bottom inset for the map's floating control bar (filter, explore, and the
+    /// `+` FAB) so they rest clear of the `BottomInfoSheet` peek instead of being
+    /// half-occluded by it. Same root cause as the card: a fixed `80pt` inset sat
+    /// below the ≥170pt peek height. Slightly smaller gap than the card so the
+    /// controls hug the sheet without crowding it.
+    private var controlBarBottomInset: CGFloat {
+        let controlSheetGap: CGFloat = 8
+        return sheetPeekClearance + controlSheetGap
+    }
+
+    /// The `BottomInfoSheet` peek height at the current Dynamic Type size — the
+    /// vertical space any bottom-anchored floating overlay must clear.
+    private var sheetPeekClearance: CGFloat {
         let traits = UITraitCollection(
             preferredContentSizeCategory: dynamicTypeSize.uiContentSizeCategory
         )
-        let cardSheetGap: CGFloat = 12
-        return BottomSheetDetent.peekHeight(for: traits) + cardSheetGap
+        return BottomSheetDetent.peekHeight(for: traits)
     }
 
     @ViewBuilder
@@ -387,7 +403,8 @@ struct CompassMapContentView: View {
                             // correct when the sheet content is first evaluated.
                             chatStartMode = mode
                             ensureOrchestrator(viewModel: viewModel)
-                        }
+                        },
+                        bottomInset: controlBarBottomInset
                     )
                 }
                 .onChange(of: isCompanionLayerOn) { _, on in
@@ -1495,6 +1512,10 @@ private struct MapControlBar: View {
     let preferences: UserPreferences
     @Binding var voiceOrchestrator: VoiceAgentOrchestrator?
     let onOpenChat: (CompassMapContentView.ChatStartMode) -> Void
+    /// Bottom inset that keeps the controls clear of the BottomInfoSheet peek.
+    /// Dynamic-Type-aware (peek height + gap), replacing a fixed 80pt that let
+    /// the sheet occlude the lower half of these buttons.
+    let bottomInset: CGFloat
 
     var body: some View {
         HStack(alignment: .bottom) {
@@ -1509,7 +1530,7 @@ private struct MapControlBar: View {
             }
             .buttonStyle(FABButtonStyle())
             .padding(.leading, 20)
-            .padding(.bottom, 80)
+            .padding(.bottom, bottomInset)
             .accessibilityLabel(Text(NSLocalizedString("settings.title", comment: "Settings")))
 
             Button {
@@ -1535,7 +1556,7 @@ private struct MapControlBar: View {
             }
             .buttonStyle(FABButtonStyle())
             .padding(.leading, 12)
-            .padding(.bottom, 80)
+            .padding(.bottom, bottomInset)
             .disabled(viewModel.isExploring || viewModel.isExploringFreeMode)
 
             Spacer()
@@ -1548,7 +1569,7 @@ private struct MapControlBar: View {
                 onLongPress: { onOpenChat(.voice) }
             )
             .padding(.trailing, 20)
-            .padding(.bottom, 80)
+            .padding(.bottom, bottomInset)
         }
     }
 }
