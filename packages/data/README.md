@@ -14,10 +14,6 @@ Data layer: ingestion, storage, query.
 - AI generation logic (that's `packages/ai`)
 - Domain types (those are `packages/core`)
 
-## Status
-
-✅ Schema migration + typed Supabase client implemented.
-
 ## Running migrations locally
 
 **Prerequisites**: Supabase CLI installed (`brew install supabase/tap/supabase`) and a project configured.
