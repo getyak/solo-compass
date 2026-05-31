@@ -1168,6 +1168,7 @@
 "card.distance.proximity.near" = "即将到达";
 "compass.direction.a11y" = "距离 %1$@，朝向 %2$@";
 "compass.pointing.title" = "正指向";
+"nearby.direction.suffix" = "在%@方向";
 
 /* Celebration */
 "celebration.milestone.count" = "已探索 %d 处";
