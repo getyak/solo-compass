@@ -13,13 +13,23 @@ final class EmptyStateAnnouncementTest: XCTestCase {
     /// StringsParityTests does, so we assert against the shipped keys rather
     /// than relying on the test host's main-bundle lookup.
     private func englishStrings() -> [String: String]? {
-        guard let url = Bundle(for: type(of: self)).url(
-            forResource: "Localizable",
-            withExtension: "strings",
-            subdirectory: nil,
-            localization: "en"
-        ) else { return nil }
-        return NSDictionary(contentsOf: url) as? [String: String]
+        // The .strings files ship in the app bundle (the test host), not the
+        // test bundle — so search both, the same way StringsParityTests does.
+        // Looking up only `Bundle(for: self)` returns nil under the test host
+        // (the resource isn't in the test bundle), which previously tripped the
+        // XCTFail in testEmptyAnnouncementKeysExistInEnglish.
+        let searchBundles = [Bundle.main, Bundle(for: type(of: self))]
+        for bundle in searchBundles {
+            if let url = bundle.url(
+                forResource: "Localizable",
+                withExtension: "strings",
+                subdirectory: nil,
+                localization: "en"
+            ), let dict = NSDictionary(contentsOf: url) as? [String: String] {
+                return dict
+            }
+        }
+        return nil
     }
 
     // MARK: - Keys exist and resolve
@@ -109,15 +119,44 @@ final class EmptyStateAnnouncementTest: XCTestCase {
 
     // MARK: - Reflection helper
 
+    /// The "base name" of a metatype: module prefix and generic parameters
+    /// stripped. `SoloCompass.NearbyExperienceRow` → `NearbyExperienceRow`;
+    /// `_ConditionalContent<EmptySheetListView, ScrollView<…>>` →
+    /// `_ConditionalContent`.
+    ///
+    /// This is the crux of the fix. A SwiftUI `if/else` compiles to
+    /// `_ConditionalContent<TrueBranch, FalseBranch>`, so the *unselected*
+    /// branch's type name (e.g. `…NearbyExperienceRow…`) is baked into the
+    /// container's full type-name string even when only the other branch is
+    /// rendered. A `contains(typeName)` substring match therefore reports the
+    /// else-branch view as "present" in an empty list — a false positive. By
+    /// matching against the generic-parameter-free base name we only ever match
+    /// a node that is *actually that view instance* (its base name == typeName),
+    /// never an ancestor whose static type signature merely mentions it.
+    private static func typeBaseName(_ type: Any.Type) -> String {
+        var name = String(describing: type)
+        if let angle = name.firstIndex(of: "<") {
+            name = String(name[..<angle])
+        }
+        if let dot = name.lastIndex(of: ".") {
+            name = String(name[name.index(after: dot)...])
+        }
+        return name
+    }
+
     /// Recursive Mirror walk that returns true if any node in the reflected
-    /// structure has a type whose name contains `typeName`. This only inspects
-    /// Mirror children — it never evaluates a SwiftUI `body` — so it is safe to
-    /// run against trees containing primitive views (Text/Image) whose body is
-    /// `Never` and would trap if accessed.
+    /// structure is itself an instance of a view whose base type name equals
+    /// `typeName`. This only inspects Mirror children — it never evaluates a
+    /// SwiftUI `body` — so it is safe to run against trees containing primitive
+    /// views (Text/Image) whose body is `Never` and would trap if accessed.
+    ///
+    /// Crucially it matches the *base name* (see `typeBaseName`), not a substring
+    /// of the full generic type signature, so the unselected branch of a
+    /// `_ConditionalContent` is never mistaken for a rendered view.
     private static func viewTreeContains(_ root: Any, typeName: String, depth: Int = 0) -> Bool {
         if depth > 60 { return false }
         let mirror = Mirror(reflecting: root)
-        if String(describing: mirror.subjectType).contains(typeName) {
+        if typeBaseName(mirror.subjectType) == typeName {
             return true
         }
         for child in mirror.children {

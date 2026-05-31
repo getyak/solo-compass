@@ -75,6 +75,8 @@ struct CompassMapContentView: View {
     private let companionService: CompanionService
     private let presenceService: PresenceService
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @State private var viewModel: MapViewModel
     @State private var voiceService = VoiceService()
     @State private var dismissedAIError: String? = nil
@@ -174,6 +176,37 @@ struct CompassMapContentView: View {
         )
         vm.attachSubscriptionService(subscriptionService)
         _viewModel = State(initialValue: vm)
+    }
+
+    /// Bottom inset for the floating selected-experience card so it rests
+    /// clear of the `BottomInfoSheet` at its `peek` height — at any Dynamic
+    /// Type size, since the peek height itself scales with `UIFontMetrics`.
+    /// The old hard-coded `80pt` clipped the card's Solo-Score row behind the
+    /// sheet (the peek height is ≥170pt). `cardSheetGap` is the breathing room
+    /// between the card's lower edge and the sheet's top, so the layering reads
+    /// as "card floating above sheet" rather than "card jammed against it".
+    private var cardBottomInset: CGFloat {
+        let cardSheetGap: CGFloat = 12
+        return sheetPeekClearance + cardSheetGap
+    }
+
+    /// Bottom inset for the map's floating control bar (filter, explore, and the
+    /// `+` FAB) so they rest clear of the `BottomInfoSheet` peek instead of being
+    /// half-occluded by it. Same root cause as the card: a fixed `80pt` inset sat
+    /// below the ≥170pt peek height. Slightly smaller gap than the card so the
+    /// controls hug the sheet without crowding it.
+    private var controlBarBottomInset: CGFloat {
+        let controlSheetGap: CGFloat = 8
+        return sheetPeekClearance + controlSheetGap
+    }
+
+    /// The `BottomInfoSheet` peek height at the current Dynamic Type size — the
+    /// vertical space any bottom-anchored floating overlay must clear.
+    private var sheetPeekClearance: CGFloat {
+        let traits = UITraitCollection(
+            preferredContentSizeCategory: dynamicTypeSize.uiContentSizeCategory
+        )
+        return BottomSheetDetent.peekHeight(for: traits)
     }
 
     @ViewBuilder
@@ -370,7 +403,8 @@ struct CompassMapContentView: View {
                             // correct when the sheet content is first evaluated.
                             chatStartMode = mode
                             ensureOrchestrator(viewModel: viewModel)
-                        }
+                        },
+                        bottomInset: controlBarBottomInset
                     )
                 }
                 .onChange(of: isCompanionLayerOn) { _, on in
@@ -379,19 +413,6 @@ struct CompassMapContentView: View {
                     } else {
                         nearbyCells = []
                     }
-                }
-
-                if let selected = viewModel.selectedExperience, !viewModel.isShowingDetail {
-                    VStack {
-                        Spacer()
-                        ExperienceCardView(
-                            experience: selected,
-                            onExpand: { viewModel.isShowingDetail = true },
-                            onDismiss: { viewModel.selectedExperience = nil }
-                        )
-                        .padding(.bottom, 80)
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
                 if viewModel.visibleExperiences.isEmpty && !isFilterActive {
@@ -494,6 +515,24 @@ struct CompassMapContentView: View {
                             .environment(experienceService)
                         }
                     }
+                }
+
+                // Selected-experience card floats ABOVE the BottomInfoSheet
+                // (declared after it → higher z-order) and rests on a Dynamic-
+                // Type-aware inset so its Solo-Score row is never clipped by the
+                // sheet's peek height. Previously declared before the sheet with
+                // a fixed 80pt inset, which let the sheet occlude its lower edge.
+                if let selected = viewModel.selectedExperience, !viewModel.isShowingDetail {
+                    VStack {
+                        Spacer()
+                        ExperienceCardView(
+                            experience: selected,
+                            onExpand: { viewModel.isShowingDetail = true },
+                            onDismiss: { viewModel.selectedExperience = nil }
+                        )
+                        .padding(.bottom, cardBottomInset)
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
         }
     }
@@ -1473,6 +1512,10 @@ private struct MapControlBar: View {
     let preferences: UserPreferences
     @Binding var voiceOrchestrator: VoiceAgentOrchestrator?
     let onOpenChat: (CompassMapContentView.ChatStartMode) -> Void
+    /// Bottom inset that keeps the controls clear of the BottomInfoSheet peek.
+    /// Dynamic-Type-aware (peek height + gap), replacing a fixed 80pt that let
+    /// the sheet occlude the lower half of these buttons.
+    let bottomInset: CGFloat
 
     var body: some View {
         HStack(alignment: .bottom) {
@@ -1487,7 +1530,7 @@ private struct MapControlBar: View {
             }
             .buttonStyle(FABButtonStyle())
             .padding(.leading, 20)
-            .padding(.bottom, 80)
+            .padding(.bottom, bottomInset)
             .accessibilityLabel(Text(NSLocalizedString("settings.title", comment: "Settings")))
 
             Button {
@@ -1513,7 +1556,7 @@ private struct MapControlBar: View {
             }
             .buttonStyle(FABButtonStyle())
             .padding(.leading, 12)
-            .padding(.bottom, 80)
+            .padding(.bottom, bottomInset)
             .disabled(viewModel.isExploring || viewModel.isExploringFreeMode)
 
             Spacer()
@@ -1526,7 +1569,7 @@ private struct MapControlBar: View {
                 onLongPress: { onOpenChat(.voice) }
             )
             .padding(.trailing, 20)
-            .padding(.bottom, 80)
+            .padding(.bottom, bottomInset)
         }
     }
 }

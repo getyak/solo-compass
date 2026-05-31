@@ -231,6 +231,11 @@ public struct PendingCheckInBanner: View {
             onDismiss: {}
         )
         .padding(.bottom, 40)
-        .environment(\.accessibilityReduceMotion, true)
+        // NOTE: `accessibilityReduceMotion` is a READ-ONLY EnvironmentValue —
+        // SwiftUI exposes no writable setter, so it cannot be injected here.
+        // To preview the reduce-motion path, toggle the Simulator's
+        // Settings → Accessibility → Motion → Reduce Motion. The previous
+        // `.environment(\.accessibilityReduceMotion, true)` broke the build
+        // (KeyPath is not a WritableKeyPath).
     }
 }
