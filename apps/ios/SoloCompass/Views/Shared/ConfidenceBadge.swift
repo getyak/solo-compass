@@ -90,6 +90,59 @@ public struct ConfidenceBadge: View {
 private struct PopoverContent: View {
     let confidence: Confidence
     @State private var appeared = false
+    @State private var barsFilled = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // Normalized 0...1 strength per signal
+    private var aiScrapeStrength: Double {
+        max(0, 1 - Double(confidence.signals.aiScrapeAgeDays) / 90)
+    }
+    private var gpsStrength: Double {
+        min(1, Double(confidence.signals.passiveGpsHits30d) / 30)
+    }
+    private var reportsStrength: Double {
+        min(1, Double(confidence.signals.activeReports30d) / 10)
+    }
+    private var verificationsStrength: Double {
+        min(1, Double(confidence.signals.trustedVerifications) / 3)
+    }
+
+    private struct SignalDescriptor {
+        let symbol: String
+        let label: String
+        let value: String
+        let strength: Double
+        let index: Int
+    }
+
+    private var signalDescriptors: [SignalDescriptor] {
+        [
+            SignalDescriptor(symbol: "sparkles",
+                             label: NSLocalizedString("confidence.aiScrape", comment: ""),
+                             value: "\(confidence.signals.aiScrapeAgeDays)d",
+                             strength: aiScrapeStrength,
+                             index: 0),
+            SignalDescriptor(symbol: "location.fill",
+                             label: NSLocalizedString("confidence.gps", comment: ""),
+                             value: "\(confidence.signals.passiveGpsHits30d)",
+                             strength: gpsStrength,
+                             index: 1),
+            SignalDescriptor(symbol: "flag.fill",
+                             label: NSLocalizedString("confidence.reports", comment: ""),
+                             value: "\(confidence.signals.activeReports30d)",
+                             strength: reportsStrength,
+                             index: 2),
+            SignalDescriptor(symbol: "checkmark.seal.fill",
+                             label: NSLocalizedString("confidence.trusted", comment: ""),
+                             value: "\(confidence.signals.trustedVerifications)",
+                             strength: verificationsStrength,
+                             index: 3)
+        ]
+    }
+
+    private var strongestIndex: Int {
+        signalDescriptors.max(by: { $0.strength < $1.strength })?.index ?? 0
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -133,31 +186,36 @@ private struct PopoverContent: View {
                 }
             }
 
+            // Strongest signal caption
+            let strongest = signalDescriptors[strongestIndex]
+            HStack(spacing: 4) {
+                Image(systemName: "star.fill")
+                    .font(.caption2)
+                    .foregroundStyle(confidence.health.color)
+                Text(String(format: NSLocalizedString("confidence.strongest", comment: ""), strongest.label))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
             Divider()
 
             // Signal rows
-            Group {
-                signalRow(
-                    symbol: "sparkles",
-                    label: NSLocalizedString("confidence.aiScrape", comment: ""),
-                    value: "\(confidence.signals.aiScrapeAgeDays)d"
-                )
-                signalRow(
-                    symbol: "location.fill",
-                    label: NSLocalizedString("confidence.gps", comment: ""),
-                    value: "\(confidence.signals.passiveGpsHits30d)"
-                )
-                signalRow(
-                    symbol: "flag.fill",
-                    label: NSLocalizedString("confidence.reports", comment: ""),
-                    value: "\(confidence.signals.activeReports30d)"
-                )
-                signalRow(
-                    symbol: "checkmark.seal.fill",
-                    label: NSLocalizedString("confidence.trusted", comment: ""),
-                    value: "\(confidence.signals.trustedVerifications)"
-                )
+            GeometryReader { geo in
+                VStack(spacing: 8) {
+                    ForEach(signalDescriptors, id: \.index) { descriptor in
+                        signalRow(
+                            symbol: descriptor.symbol,
+                            label: descriptor.label,
+                            value: descriptor.value,
+                            strength: descriptor.strength,
+                            isStrongest: descriptor.index == strongestIndex,
+                            barWidth: geo.size.width,
+                            rowIndex: descriptor.index
+                        )
+                    }
+                }
             }
+            .frame(height: CGFloat(signalDescriptors.count) * 44)
             .font(.caption)
         }
         .padding()
@@ -168,6 +226,13 @@ private struct PopoverContent: View {
             withAnimation(.easeIn(duration: 0.2)) {
                 appeared = true
             }
+            if reduceMotion {
+                barsFilled = true
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    barsFilled = true
+                }
+            }
         }
     }
 
@@ -175,15 +240,59 @@ private struct PopoverContent: View {
         confidenceRelativeVerifiedString(confidence)
     }
 
-    private func signalRow(symbol: String, label: String, value: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: symbol)
-                .frame(width: 20)
-                .foregroundStyle(.secondary)
-            Text(label).foregroundStyle(.secondary)
-            Spacer()
-            Text(value).fontWeight(.medium)
+    private func a11yStrengthLabel(_ strength: Double) -> String {
+        if strength >= 0.6 {
+            return NSLocalizedString("confidence.strength.strong", comment: "")
+        } else if strength >= 0.25 {
+            return NSLocalizedString("confidence.strength.medium", comment: "")
+        } else {
+            return NSLocalizedString("confidence.strength.weak", comment: "")
         }
+    }
+
+    private func signalRow(
+        symbol: String,
+        label: String,
+        value: String,
+        strength: Double,
+        isStrongest: Bool,
+        barWidth: CGFloat,
+        rowIndex: Int
+    ) -> some View {
+        let fillWidth = barsFilled ? barWidth * strength : 0
+        let springDelay = reduceMotion ? 0.0 : Double(rowIndex) * 0.07
+        let animation = reduceMotion
+            ? Animation.linear(duration: 0)
+            : Animation.spring(response: 0.45, dampingFraction: 0.72).delay(springDelay)
+
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Image(systemName: symbol)
+                    .frame(width: 20)
+                    .foregroundStyle(.secondary)
+                if isStrongest {
+                    Text(label)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                } else {
+                    Text(label).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(value).fontWeight(.medium)
+            }
+            // Strength bar
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(height: 3)
+                Capsule()
+                    .fill(confidence.health.color.opacity(0.7))
+                    .frame(width: fillWidth, height: 3)
+                    .animation(animation, value: barsFilled)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(Text("\(value), \(a11yStrengthLabel(strength))"))
     }
 }
 
