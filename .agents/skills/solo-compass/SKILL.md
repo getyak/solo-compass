@@ -1,110 +1,71 @@
-````markdown
-# solo-compass Development Patterns
+---
+name: solo-compass
+description: Repository-specific development guide for the solo-compass monorepo. Use when implementing, debugging, reviewing, or testing changes in this repository, especially SwiftUI iOS work, TypeScript workspace changes, schema parity updates, localization, or XcodeGen project changes.
+---
 
-> Auto-generated skill from repository analysis
+# Solo Compass Development Guide
 
-## Overview
+## Product Boundaries
 
-This skill teaches you the core development patterns and conventions used in the `solo-compass` Swift codebase. You'll learn about file naming, import/export styles, commit message conventions, and how to write and run tests. While no automated workflows were detected, this guide provides suggested commands and step-by-step instructions for common development tasks.
+- Treat `Experience`, not `Place`, as the core product unit.
+- Keep the map as the iOS home screen. Do not introduce tabs or drawers without an explicit product decision.
+- Keep `packages/core` platform-agnostic and free of UI dependencies.
+- Apps may import shared packages; apps must not import each other.
 
-## Coding Conventions
+Read `docs/PRODUCT_BRIEF.md`, `docs/PHASES.md`, and `docs/ARCHITECTURE.md` before changing product behavior or package boundaries.
 
-### File Naming
+## TypeScript Conventions
 
-- Use **PascalCase** for all file names.
-  - Example: `LocationManager.swift`, `CompassView.swift`
+- Preserve `strict: true` and `noUncheckedIndexedAccess: true`.
+- Use branded ID types instead of plain strings.
+- Represent coordinates as `[longitude, latitude]`; convert external `[latitude, longitude]` values at integration boundaries.
+- Store timestamps as ISO 8601 UTC strings and convert to local time for display.
+- Prefer `interface` for object shapes and `type` for unions.
 
-### Import Style
+## iOS Conventions
 
-- Use **relative imports** within the project.
-  - Example:
-    ```swift
-    import Foundation
-    import ../Utilities/MathHelpers
-    ```
+- The native app lives under `apps/ios/SoloCompass`.
+- Use SwiftUI and MapKit with MVVM-style boundaries: `Views/`, `ViewModels/`, `Models/`, `Services/`, and `Persistence/`.
+- Preserve complete Swift concurrency checking. Follow existing `@MainActor` and `@Observable` patterns for services and view models.
+- Avoid force unwraps in production paths; prefer `guard let` and explicit error handling.
+- Route user-facing text through `NSLocalizedString` and update both English and Simplified Chinese resources.
+- Add focused XCTest coverage under `apps/ios/SoloCompass/Tests`.
+- Treat `apps/ios/SoloCompass.xcodeproj` as generated output. Update `apps/ios/project.yml` and run `xcodegen` when project configuration changes.
 
-### Export Style
+## Verification
 
-- Use **named exports** for classes, structs, and functions.
-  - Example:
-    ```swift
-    public class CompassView: UIView {
-        // ...
-    }
-    ```
+Run the checks that match the changed surface:
 
-### Commit Message Conventions
+```bash
+# TypeScript workspace
+pnpm typecheck
+pnpm test
 
-- Use **conventional commit** types.
-- Supported prefixes: `chore`, `fix`
-- Keep commit messages concise (average ~50 characters).
-  - Example:
-    ```
-    fix: correct heading calculation in CompassView
-    chore: update dependencies to latest version
-    ```
+# Shared schema parity
+pnpm parity:check
 
-## Workflows
+# Localization
+pnpm localization:check
+./scripts/check-hardcoded-strings.sh
+./scripts/check-zh-punctuation.sh
 
-### Creating a New Feature
-
-**Trigger:** When adding a new feature or component  
-**Command:** `/create-feature`
-
-1. Create a new Swift file using PascalCase (e.g., `NewFeature.swift`).
-2. Use relative imports for dependencies.
-3. Export your class/struct/function using named exports.
-4. Write or update tests in a corresponding `*.test.*` file.
-5. Commit your changes using a conventional commit message.
-
-### Fixing a Bug
-
-**Trigger:** When addressing a bug or issue  
-**Command:** `/fix-bug`
-
-1. Identify the file(s) where the bug exists.
-2. Make the necessary code changes.
-3. Update or add tests in the relevant `*.test.*` file.
-4. Commit your changes with a `fix:` prefix and a concise description.
-
-### Running Tests
-
-**Trigger:** To verify code correctness  
-**Command:** `/run-tests`
-
-1. Locate all test files matching the `*.test.*` pattern.
-2. Use the project's preferred method (e.g., Xcode, CLI) to run tests.
-3. Review test results and address any failures.
-
-## Testing Patterns
-
-- Test files follow the `*.test.*` naming pattern (e.g., `CompassView.test.swift`).
-- The specific testing framework is unknown; use standard Swift/XCTest patterns unless otherwise specified.
-- Place tests alongside or near the code they test for clarity and maintainability.
-
-  Example test file:
-
-  ```swift
-  import XCTest
-  @testable import solo_compass
-
-  class CompassViewTests: XCTestCase {
-      func testHeadingCalculation() {
-          let compass = CompassView()
-          XCTAssertEqual(compass.calculateHeading(), 90)
-      }
-  }
-  ```
-````
-
-## Commands
-
-| Command         | Purpose                             |
-| --------------- | ----------------------------------- |
-| /create-feature | Scaffold a new feature or component |
-| /fix-bug        | Start the bug fixing workflow       |
-| /run-tests      | Run all tests in the codebase       |
-
+# iOS project generation, build, and tests
+cd apps/ios
+xcodegen
+xcodebuild build \
+  -project SoloCompass.xcodeproj -scheme SoloCompass \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'
+xcodebuild test \
+  -project SoloCompass.xcodeproj -scheme SoloCompass \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'
 ```
 
-```
+- Run `pnpm parity:check` for shared model or schema changes.
+- Run iOS build and relevant XCTest cases for native changes.
+- Visually verify iOS UI changes in Simulator; previews alone are insufficient.
+
+## Git Workflow
+
+- Preserve unrelated worktree changes.
+- Use conventional commits with lowercase scopes, such as `fix(ios): restore map sheet presentation`.
+- Keep commit subjects at or below 72 characters.
