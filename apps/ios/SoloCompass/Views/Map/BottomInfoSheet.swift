@@ -526,6 +526,14 @@ struct NearbyExperienceRow: View {
 
     private static let sunGold = Color(red: 1.0, green: 0.80, blue: 0.2)
 
+    private static let distanceFormatter: MeasurementFormatter = {
+        let f = MeasurementFormatter()
+        f.unitOptions = .naturalScale
+        f.unitStyle = .short
+        f.numberFormatter.maximumFractionDigits = 1
+        return f
+    }()
+
     // MARK: Proximity helpers (mirrors FavoritesListView.Proximity)
 
     private enum Proximity {
@@ -716,11 +724,7 @@ struct NearbyExperienceRow: View {
     }
 
     private func formattedDistance(_ meters: Double) -> String {
-        if meters < 1000 {
-            return String(format: "%dm", Int(meters))
-        } else {
-            return String(format: "%.1fkm", meters / 1000)
-        }
+        Self.distanceFormatter.string(from: Measurement(value: meters, unit: UnitLength.meters))
     }
 }
 
