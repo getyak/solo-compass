@@ -1216,6 +1216,8 @@
 
 /* Map loading */
 "map.loadingPOIs.a11yAnnouncement" = "正在查找附近地点";
+/* Shown after ~6 s when the Overpass fetch is still running — reassures the user the app is not stuck */
+"map.loadingPOIs.slow" = "仍在搜索附近…";
 
 /* My requests */
 "my.requests.empty.cta" = "找一条路线加入";
