@@ -260,6 +260,7 @@ private struct CityPickerHeader: View {
 
     @ViewBuilder
     private var nudgeCapsule: some View {
+        // Capsule color derives from proximity so dot, text, chevron, and tint read as one honest signal.
         HStack(spacing: 4) {
             Circle()
                 .fill(proximityColor)
@@ -267,15 +268,15 @@ private struct CityPickerHeader: View {
                 .accessibilityHidden(true)
             Text(nudgeLabel)
                 .font(.caption2)
-                .foregroundStyle(Color.green)
+                .foregroundStyle(proximityColor)
             Image(systemName: "chevron.right.circle.fill")
                 .font(.caption2)
-                .foregroundStyle(Color.green)
+                .foregroundStyle(proximityColor)
                 .accessibilityHidden(true)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Color.green.opacity(0.12), in: Capsule())
+        .background(proximityColor.opacity(0.12), in: Capsule())
         .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
     }
 
