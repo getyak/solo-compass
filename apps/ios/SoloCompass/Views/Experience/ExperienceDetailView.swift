@@ -545,37 +545,59 @@ public struct ExperienceDetailView: View {
         let isNow = viewModel.experience.isBestNow(at: now)
         let hint = viewModel.experience.bestTimeHint(at: now)
         let minutesLeft = viewModel.experience.minutesLeftInBestWindow(at: now)
+        let closingSoon = isNow && (minutesLeft ?? .max) <= 45
         let label: String
         let symbol: String
         let background: Color
+        let tint: Color
         if isNow {
-            if let minutesLeft {
+            if closingSoon, let mins = minutesLeft {
+                label = String(
+                    format: NSLocalizedString("bestTimes.now.pill.closing", comment: "Closing soon pill in best times detail"),
+                    mins
+                )
+                symbol = "clock.badge.exclamationmark"
+                background = Color.orange.opacity(0.15)
+                tint = Color.orange
+            } else if let minutesLeft {
                 label = String(
                     format: NSLocalizedString("bestTimes.now.pill.left", comment: "Good now with minutes left pill"),
                     minutesLeft
                 )
+                symbol = "clock.badge.checkmark"
+                background = Color.green.opacity(0.15)
+                tint = Color.green
             } else {
                 label = NSLocalizedString("bestTimes.now.pill", comment: "Good time now pill")
+                symbol = "clock.badge.checkmark"
+                background = Color.green.opacity(0.15)
+                tint = Color.green
             }
-            symbol = "clock.badge.checkmark"
-            background = Color.green.opacity(0.15)
         } else if let hint {
             label = String(format: NSLocalizedString("bestTimes.next.pill", comment: "Better at time pill"), hint)
             symbol = "clock"
             background = Color(.tertiarySystemFill)
+            tint = Color.secondary
         } else {
             return AnyView(EmptyView())
         }
         let a11yLabel: String
-        if isNow, let minutesLeft {
-            a11yLabel = String(
-                format: NSLocalizedString("bestTimes.now.pill.left.a11y", comment: "Good now accessibility with minutes left"),
-                minutesLeft
-            )
+        if isNow {
+            if closingSoon, let mins = minutesLeft {
+                a11yLabel = String(
+                    format: NSLocalizedString("bestTimes.now.pill.closing.a11y", comment: "Closing soon accessibility label in best times detail"),
+                    mins
+                )
+            } else if let minutesLeft {
+                a11yLabel = String(
+                    format: NSLocalizedString("bestTimes.now.pill.left.a11y", comment: "Good now accessibility with minutes left"),
+                    minutesLeft
+                )
+            } else {
+                a11yLabel = NSLocalizedString("timeline.now.good", comment: "")
+            }
         } else {
-            a11yLabel = isNow
-                ? NSLocalizedString("timeline.now.good", comment: "")
-                : NSLocalizedString("timeline.now.off", comment: "")
+            a11yLabel = NSLocalizedString("timeline.now.off", comment: "")
         }
         let scrollHint = NSLocalizedString("bestTimes.pill.scrollHint", comment: "Scrolls to the time-of-day timeline")
         return AnyView(
@@ -596,7 +618,7 @@ public struct ExperienceDetailView: View {
                         .contentTransition(.numericText())
                         .animation(reduceMotion ? nil : .easeInOut, value: minutesLeft)
                 }
-                .foregroundStyle(isNow ? Color.green : Color.secondary)
+                .foregroundStyle(tint)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Capsule().fill(background))
