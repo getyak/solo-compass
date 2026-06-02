@@ -495,6 +495,7 @@ private struct CompletionRing: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animatedFraction: CGFloat = 0
     @State private var bloomScale: CGFloat = 1
+    @State private var celebrationBurst = 0
 
     private var isAllDone: Bool { total > 0 && done == total }
     private var fraction: CGFloat { total > 0 ? CGFloat(done) / CGFloat(total) : 0 }
@@ -507,6 +508,7 @@ private struct CompletionRing: View {
 
     var body: some View {
         ZStack {
+            HeartBurstView(trigger: celebrationBurst)
             Circle()
                 .stroke(Color.green.opacity(0.15), lineWidth: 2.5)
             Circle()
@@ -556,6 +558,7 @@ private struct CompletionRing: View {
     private func triggerCelebration() {
         didCelebrate = true
         Haptics.notify(.success)
+        celebrationBurst += 1
         guard !reduceMotion else { return }
         withAnimation(.easeOut(duration: 0.15)) { bloomScale = 1.15 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
