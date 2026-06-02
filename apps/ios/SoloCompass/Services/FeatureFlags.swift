@@ -95,7 +95,23 @@ public enum FeatureFlags {
     ///
     /// Default off in Phase 1 beta — local-first invariant (PRD G7).
     public static var companion: Bool {
-        readBool("FF_COMPANION", default: false)
+        #if DEBUG
+        if UserDefaults.standard.object(forKey: "FF_COMPANION") != nil {
+            return UserDefaults.standard.bool(forKey: "FF_COMPANION")
+        }
+        #endif
+        return readBool("FF_COMPANION", default: false)
+    }
+
+    /// DEBUG-only: feed the companion discovery with local mock posts instead of
+    /// hitting the (undeployed) Edge Function, so the nearby map layer renders
+    /// for demos. Requires `companion` to also be on. Compiled out of Release.
+    public static var companionMock: Bool {
+        #if DEBUG
+        return UserDefaults.standard.bool(forKey: "FF_COMPANION_MOCK")
+        #else
+        return false
+        #endif
     }
 
     /// US-009: Master gate for the in-map Companion *layer* toggle (the

@@ -87,6 +87,47 @@ public extension Array where Element == DiscoverPost {
     }
 }
 
+#if DEBUG
+public extension DiscoverPost {
+    /// Local demo posts for the companion "nearby" layer when no backend is
+    /// deployed. Geohash-6 cells are placed around the requested city's centre
+    /// so the blurred annotations render on the map. DEBUG-only.
+    static func mockNearby(cityCode: String) -> [DiscoverPost] {
+        // Geohash-6 cells (~600m) clustered around a few well-known cities.
+        // Default to San Francisco when the city isn't in the table.
+        let cells: [String]
+        switch cityCode.uppercased() {
+        case "TYO", "TOKYO":
+            cells = ["xn76gg", "xn774c", "xn76uv"]
+        default: // San Francisco area
+            cells = ["9q8yyk", "9q8yy8", "9q8yvz", "9q8yyn"]
+        }
+        let handles = ["🧭", "☕️", "🥾", "📷"]
+        let blurbs = [
+            "Up for a sunset walk along the water.",
+            "Coffee crawl this afternoon — join?",
+            "Hiking the hills, slow pace, good chats.",
+            "Looking for a photo-walk buddy.",
+        ]
+        return cells.enumerated().map { i, gh in
+            DiscoverPost(
+                id: "mock_\(gh)",
+                handle: handles[i % handles.count],
+                blurb: blurbs[i % blurbs.count],
+                categories: ["coffee", "nature"],
+                cityCode: cityCode,
+                mode: "nearby",
+                activeFrom: nil,
+                activeTo: nil,
+                geohash6: gh,
+                expiresAt: nil,
+                reporterWeight: 1.0
+            )
+        }
+    }
+}
+#endif
+
 /// Params for companion-discover Edge Function.
 public struct CompanionDiscoverParams: Sendable {
     public let cityCode: String
@@ -140,6 +181,18 @@ public final class CompanionService {
             discoverPosts = []
             return
         }
+
+        #if DEBUG
+        // Local mock for demoing the companion layer without a deployed backend.
+        // Enable with `FF_COMPANION_MOCK` (UserDefaults). Returns a few nearby
+        // posts with real geohash-6 cells around the requested city so the map
+        // layer renders. Never runs in release builds.
+        if FeatureFlags.companionMock {
+            discoverPosts = DiscoverPost.mockNearby(cityCode: params.cityCode)
+            lastError = nil
+            return
+        }
+        #endif
 
         isLoading = true
         lastError = nil

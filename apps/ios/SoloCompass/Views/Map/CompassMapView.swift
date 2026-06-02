@@ -410,6 +410,12 @@ struct CompassMapContentView: View {
                         .onAppear {
                             #if DEBUG
                             CompassMapView.debugCompanionLayerToggleRendered = true
+                            // Demo mode: auto-activate presence + open the layer so
+                            // the mock nearby cells render without manual taps.
+                            if FeatureFlags.companionMock {
+                                Task { await presenceService.enable() }
+                                if !isCompanionLayerOn { isCompanionLayerOn = true }
+                            }
                             #endif
                         }
                     }
@@ -752,14 +758,12 @@ struct CompassMapContentView: View {
         await companionService.fetchDiscovery(
             params: CompanionDiscoverParams(cityCode: cityCode, mode: .nearby)
         )
-        // DiscoverPost doesn't expose geohash6 yet — build NearbyCell from
-        // city centroid as a placeholder until the Edge Function returns geohash6.
-        // When the backend returns geohash6, map post.geohash6 → NearbyCell(geohash:).
+        // Map each nearby-mode discovery hit to its blurred geohash-6 cell centre.
+        // `DiscoverPost.geohash6` now exists, so resolve it directly; posts
+        // without a geohash6 (itinerary mode) are dropped.
         nearbyCells = companionService.discoverPosts.compactMap { post in
-            // Use the post id as a synthetic geohash placeholder when geohash6
-            // is not yet in the DiscoverPost model. This keeps the layer compilable
-            // while the full geohash6 field lands in a follow-up backend deploy.
-            nil // placeholder — real mapping done once DiscoverPost.geohash6 is added
+            guard let gh = post.geohash6 else { return nil }
+            return NearbyCell(geohash: gh)
         }
     }
 
