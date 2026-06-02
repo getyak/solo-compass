@@ -440,12 +440,14 @@
 "favorites.nearby.go.hint" = "Opens turn-by-turn directions in Maps";
 
 /* Favorites journey header */
+"favorites.greeting.night" = "Still up?";
 "favorites.greeting.morning" = "Good morning";
 "favorites.greeting.afternoon" = "Good afternoon";
 "favorites.greeting.evening" = "Good evening";
 "favorites.journey.allDone" = "You've explored them all";
 "favorites.journey.progress" = "%1$d of %2$d explored";
 "favorites.journey.awaiting" = "%d place(s) waiting for you";
+"favorites.journey.nearbyNow" = "%d within walking distance";
 
 /* Generic actions */
 "action.undo" = "Undo";

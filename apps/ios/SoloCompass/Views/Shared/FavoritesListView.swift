@@ -428,7 +428,9 @@ private struct FavoritesJourneyHeader: View {
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
-        if hour < 12 {
+        if hour < 5 {
+            return NSLocalizedString("favorites.greeting.night", comment: "Late-night greeting in favorites header")
+        } else if hour < 12 {
             return NSLocalizedString("favorites.greeting.morning", comment: "Morning greeting in favorites header")
         } else if hour < 17 {
             return NSLocalizedString("favorites.greeting.afternoon", comment: "Afternoon greeting in favorites header")
@@ -447,6 +449,16 @@ private struct FavoritesJourneyHeader: View {
         }
     }
 
+    @ViewBuilder
+    private var nearbyNudge: some View {
+        if nearbyCount > 0 {
+            Text(String(format: NSLocalizedString("favorites.journey.nearbyNow", comment: "N favorites within walking distance nudge"), nearbyCount))
+                .font(.caption2)
+                .foregroundStyle(Color.green)
+                .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(greeting)
@@ -458,6 +470,8 @@ private struct FavoritesJourneyHeader: View {
                 .contentTransition(.numericText())
                 .animation(.easeInOut, value: completed)
                 .animation(.easeInOut, value: total)
+            nearbyNudge
+                .animation(reduceMotion ? nil : .easeInOut, value: nearbyCount)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(appeared ? 1 : 0)
