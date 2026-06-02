@@ -85,6 +85,8 @@
 "bestTimes.now.pill" = "Good time now";
 "bestTimes.now.pill.left" = "Good now · %d min left";
 "bestTimes.now.pill.left.a11y" = "Good time now, %d minutes left in this window";
+"bestTimes.now.pill.closing" = "Closing in %dm — go now";
+"bestTimes.now.pill.closing.a11y" = "Closing soon, %d minutes left in this window — go now";
 "bestTimes.next.pill" = "Better at %@";
 "bestTimes.window.active.a11y" = "happening now";
 "bestTimes.pill.scrollHint" = "Scrolls to the time-of-day timeline";
