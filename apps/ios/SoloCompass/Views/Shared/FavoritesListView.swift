@@ -842,6 +842,17 @@ private struct EmptyFavoritesView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
+    @State private var tipIndex = 0
+    @State private var rotateTask: Task<Void, Never>?
+
+    private var tips: [String] {
+        [
+            NSLocalizedString("favorites.empty.tip1", comment: "Empty favorites tip 1"),
+            NSLocalizedString("favorites.empty.tip2", comment: "Empty favorites tip 2"),
+            NSLocalizedString("favorites.empty.tip3", comment: "Empty favorites tip 3"),
+            NSLocalizedString("favorites.empty.tip4", comment: "Empty favorites tip 4"),
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -858,10 +869,14 @@ private struct EmptyFavoritesView: View {
             }
             Text(NSLocalizedString("favorites.empty.title", comment: "No favorites yet"))
                 .font(.headline)
-            Text(NSLocalizedString("favorites.empty.hint", comment: "Tap the heart on any experience"))
+            Text(tips[tipIndex])
+                .id(tipIndex)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+                .frame(minHeight: 36)
+                .transition(.opacity)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.4), value: tipIndex)
             if let onExplore {
                 Button {
                     Haptics.selection()
@@ -875,9 +890,22 @@ private struct EmptyFavoritesView: View {
             }
         }
         .padding(32)
+        .accessibilityElement(children: .combine)
         .onAppear {
             guard !isBreathing, !reduceMotion else { return }
             isBreathing = true
+            rotateTask = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(4))
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        withAnimation { tipIndex = (tipIndex + 1) % tips.count }
+                    }
+                }
+            }
+        }
+        .onDisappear {
+            rotateTask?.cancel()
         }
     }
 }
