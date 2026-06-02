@@ -232,7 +232,14 @@ public struct FavoritesListView: View {
                                     Haptics.selection()
                                     withAnimation(reduceMotion ? nil : .easeInOut) { sortMode = .nearest }
                                 } : nil,
-                                momentumLine: momentumLine
+                                momentumLine: momentumLine,
+                                closestTitle: locationService.currentLocation != nil && nearbyCount == 0 ? nearestFavorite?.title : nil,
+                                closestDistanceText: locationService.currentLocation != nil && nearbyCount == 0 ? nearestFavorite.flatMap { distanceInfo(for: $0)?.text } : nil,
+                                closestProximityColor: locationService.currentLocation != nil && nearbyCount == 0 ? nearestFavorite.flatMap { proximity(for: $0)?.color } : nil,
+                                onTapClosest: locationService.currentLocation != nil && nearbyCount == 0 && nearestFavorite != nil ? {
+                                    Haptics.selection()
+                                    withAnimation(reduceMotion ? nil : .easeInOut) { sortMode = .nearest }
+                                } : nil
                             )
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
@@ -463,6 +470,10 @@ private struct FavoritesJourneyHeader: View {
     let nearbyCount: Int
     var onTapNearby: (() -> Void)? = nil
     var momentumLine: String? = nil
+    var closestTitle: String? = nil
+    var closestDistanceText: String? = nil
+    var closestProximityColor: Color? = nil
+    var onTapClosest: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -526,6 +537,63 @@ private struct FavoritesJourneyHeader: View {
         }
     }
 
+    @ViewBuilder
+    private var closestNudge: some View {
+        if nearbyCount == 0,
+           let title = closestTitle,
+           let distanceText = closestDistanceText {
+            let dotColor = closestProximityColor ?? Color(.tertiaryLabel)
+            let pillContent = HStack(spacing: 4) {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 7, height: 7)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(dotColor)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text("·")
+                    .font(.caption2)
+                    .foregroundStyle(dotColor)
+                    .accessibilityHidden(true)
+                Text(distanceText)
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(dotColor)
+                if onTapClosest != nil {
+                    Image(systemName: "chevron.right.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(dotColor)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(.horizontal, onTapClosest != nil ? 8 : 0)
+            .padding(.vertical, onTapClosest != nil ? 4 : 0)
+            .background(onTapClosest != nil ? dotColor.opacity(0.12) : Color.clear, in: Capsule())
+            .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+
+            let a11yLabel = String(
+                format: NSLocalizedString("favorites.journey.closest.a11y", comment: "Closest nudge accessibility label"),
+                title,
+                distanceText
+            )
+
+            if let onTap = onTapClosest {
+                Button {
+                    onTap()
+                } label: {
+                    pillContent
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(a11yLabel)
+                .accessibilityHint(NSLocalizedString("favorites.journey.closest.hint", comment: "Closest nudge sorts by distance hint"))
+            } else {
+                pillContent
+                    .accessibilityLabel(a11yLabel)
+            }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(greeting)
@@ -538,6 +606,8 @@ private struct FavoritesJourneyHeader: View {
                 .animation(.easeInOut, value: completed)
                 .animation(.easeInOut, value: total)
             nearbyNudge
+                .animation(reduceMotion ? nil : .easeInOut, value: nearbyCount)
+            closestNudge
                 .animation(reduceMotion ? nil : .easeInOut, value: nearbyCount)
             if let line = momentumLine {
                 Text(line)
