@@ -984,11 +984,17 @@ private extension FavoritesListView {
         }
     }
 
+    private func isGoodNow(_ exp: Experience) -> Bool {
+        guard !exp.bestTimes.isEmpty else { return false }
+        return exp.isBestNow()
+    }
+
     @ViewBuilder
     func favoriteRow(_ exp: Experience) -> some View {
         let distInfo = distanceInfo(for: exp)
         let prox = proximity(for: exp)
         let isDone = preferences.completedExperiences.contains(exp.id)
+        let goodNow = !isDone && isGoodNow(exp)
         Button {
             Haptics.selection()
             onSelectExperience(exp)
@@ -1035,6 +1041,21 @@ private extension FavoritesListView {
                         .foregroundStyle(.tertiary)
                         .padding(.top, 1)
                     }
+                    if goodNow {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.badge.checkmark")
+                                .accessibilityHidden(true)
+                            Text(NSLocalizedString("favorites.row.goodNow", comment: "Good time now pill in favorites row"))
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(exp.category.color)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(exp.category.color.opacity(0.12), in: Capsule())
+                        .padding(.top, 2)
+                        .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                        .accessibilityHidden(true)
+                    }
                 }
 
                 Spacer()
@@ -1048,15 +1069,16 @@ private extension FavoritesListView {
         .buttonStyle(PressableRowStyle(reduceMotion: reduceMotion))
         .accessibilityLabel({
             let doneWord = isDone ? ", \(NSLocalizedString("favorites.row.done.a11y", comment: "Completed row suffix"))" : ""
+            let goodNowWord = goodNow ? ", \(NSLocalizedString("favorites.row.goodNow.a11y", comment: "Good time now accessibility suffix"))" : ""
             if let distInfo {
                 let awayFmt = NSLocalizedString("favorites.row.distance.a11y", comment: "Distance away accessibility label")
                 let distLabel = String(format: awayFmt, distInfo.text)
                 if let prox {
-                    return Text("\(exp.title), \(exp.oneLiner), \(distLabel), \(prox.a11yWord)\(doneWord)")
+                    return Text("\(exp.title), \(exp.oneLiner), \(distLabel), \(prox.a11yWord)\(doneWord)\(goodNowWord)")
                 }
-                return Text("\(exp.title), \(exp.oneLiner), \(distLabel)\(doneWord)")
+                return Text("\(exp.title), \(exp.oneLiner), \(distLabel)\(doneWord)\(goodNowWord)")
             }
-            return Text("\(exp.title), \(exp.oneLiner)\(doneWord)")
+            return Text("\(exp.title), \(exp.oneLiner)\(doneWord)\(goodNowWord)")
         }())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
