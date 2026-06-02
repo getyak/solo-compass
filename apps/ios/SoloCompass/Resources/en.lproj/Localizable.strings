@@ -380,6 +380,12 @@
 /* US-004: Ask Solo about this experience (Pro chat) */
 "experience.askSolo.cta" = "Ask Solo about this";
 
+/* Companion entry on the experience detail page (feature-flagged) */
+"experience.companion.title" = "Go with someone";
+"experience.companion.prompt" = "Want company at this spot? See who else is around or post that you're open to meeting up.";
+"experience.companion.cta" = "Find companions here";
+"experience.companion.cta.a11y" = "Opens the companion discovery list for this city";
+
 /* Onboarding */
 "onboarding.welcome.title" = "Places worth being alone.";
 "onboarding.welcome.subtitle" = "A map of things worth doing solo, wherever you are.";

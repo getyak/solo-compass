@@ -266,6 +266,12 @@
 /* US-004: Ask Solo about this experience (Pro chat) */
 "experience.askSolo.cta" = "向 Solo 提问";
 
+/* Companion entry on the experience detail page (feature-flagged) */
+"experience.companion.title" = "结伴同行";
+"experience.companion.prompt" = "想找人一起来这里？看看附近还有谁，或发布你愿意一起出行的信息。";
+"experience.companion.cta" = "在这里找同伴";
+"experience.companion.cta.a11y" = "打开本城市的同伴发现列表";
+
 /* Onboarding */
 "onboarding.welcome.title" = "值得独处的地方。";
 "onboarding.welcome.subtitle" = "一张地图，记录适合一人前往的体验。";

@@ -29,6 +29,12 @@ public struct ExperienceDetailView: View {
 
     @Environment(\.themeService) private var themeService
     @Environment(LocationService.self) private var locationService
+    /// Companion service is injected at the app root (and re-injected in
+    /// CompassMapView). Used only by the feature-flagged companion section to
+    /// hand a shared instance to DiscoverListView so it doesn't spin up a
+    /// second service. The whole section is gated behind FeatureFlags.companion,
+    /// so this is inert in production where the flag is off.
+    @Environment(CompanionService.self) private var companionService
     @State private var isShowingReport: Bool = false
     @State private var showingRadarTooltip: Bool = false
     @State private var exportMarkdown: String? = nil
@@ -44,6 +50,9 @@ public struct ExperienceDetailView: View {
     /// US-025: drives the paywall sheet when a free-tier user taps the gated
     /// "Ask Solo" CTA instead of leaving them on a dead toast.
     @State private var isShowingPaywall: Bool = false
+    /// Drives the companion discovery sheet from the feature-flagged companion
+    /// section. Inert when FeatureFlags.companion is off (section never renders).
+    @State private var isShowingCompanionDiscover: Bool = false
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -67,6 +76,7 @@ public struct ExperienceDetailView: View {
                 heroSection
                 compassDirectionView
                 askSoloSection
+                companionSection
                 if let coord = viewModel.experience.location.clCoordinate {
                     LocationCard(
                         coordinate: coord,
@@ -206,6 +216,26 @@ public struct ExperienceDetailView: View {
                 PaywallView(onUnlocked: { isShowingPaywall = false })
             }
             .accessibilityIdentifier("experience.askSolo.paywall")
+        }
+        // Companion discovery, scoped to this experience's city. Reuses the
+        // shared CompanionService from the environment so the sheet shares the
+        // same discovery state as the rest of the app. Only reachable when
+        // FeatureFlags.companion is on (the section that toggles this is gated).
+        .sheet(isPresented: $isShowingCompanionDiscover) {
+            NavigationStack {
+                DiscoverListView(
+                    cityCode: viewModel.experience.location.cityCode,
+                    service: companionService
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(NSLocalizedString("common.close", comment: "Close")) {
+                            isShowingCompanionDiscover = false
+                        }
+                    }
+                }
+            }
+            .accessibilityIdentifier("experience.companion.discover")
         }
         .overlay(alignment: .bottom) {
             if let itin = addedItineraryToast {
@@ -481,6 +511,75 @@ public struct ExperienceDetailView: View {
                 "experience.askSolo.cta",
                 comment: "Open Solo chat scoped to this experience"
             )))
+        }
+    }
+
+    // MARK: - Companion (feature-flagged)
+
+    /// Lightweight entry into Companion Mode from the detail page. Gated behind
+    /// `FeatureFlags.companion` so it is completely absent in production (flag
+    /// defaults off) — mirroring the `companionLayerEnabled` gating style used
+    /// on the map. Tapping opens the existing `DiscoverListView` scoped to this
+    /// experience's city via a sheet; we deliberately do NOT re-implement the
+    /// discovery list here.
+    @ViewBuilder
+    private var companionSection: some View {
+        if FeatureFlags.companion {
+            sectionContainer(title: NSLocalizedString(
+                "experience.companion.title",
+                comment: "Companion section title on the experience detail page"
+            )) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(NSLocalizedString(
+                        "experience.companion.prompt",
+                        comment: "Prompt inviting the user to find travel companions for this spot"
+                    ))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        Haptics.impact(.light)
+                        isShowingCompanionDiscover = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.2.wave.2")
+                                .font(.subheadline.weight(.semibold))
+                            Text(NSLocalizedString(
+                                "experience.companion.cta",
+                                comment: "Open companion discovery list for this city"
+                            ))
+                            .font(.subheadline.weight(.semibold))
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.accentColor.opacity(0.12))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1)
+                        )
+                        .foregroundStyle(Color.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("experience.companion.cta")
+                    .accessibilityLabel(Text(NSLocalizedString(
+                        "experience.companion.cta",
+                        comment: "Open companion discovery list for this city"
+                    )))
+                    .accessibilityHint(Text(NSLocalizedString(
+                        "experience.companion.cta.a11y",
+                        comment: "Companion CTA accessibility hint"
+                    )))
+                }
+            }
         }
     }
 
@@ -1557,6 +1656,7 @@ private struct BestTimesTimeline: View {
             ExperienceDetailView(viewModel: vm) {}
         }
         .environment(LocationService())
+        .environment(CompanionService())
     } else {
         Text("No seed data")
     }
@@ -1574,6 +1674,7 @@ private struct BestTimesTimeline: View {
             ExperienceDetailView(viewModel: vm) {}
         }
         .environment(LocationService())
+        .environment(CompanionService())
         .environment(\.dynamicTypeSize, .accessibility3)
     } else {
         Text("No seed data")
@@ -1627,6 +1728,7 @@ private extension RealInconvenience.Severity {
             ExperienceDetailView(viewModel: vm) {}
         }
         .environment(LocationService())
+        .environment(CompanionService())
     } else {
         Text("No seed data")
     }
