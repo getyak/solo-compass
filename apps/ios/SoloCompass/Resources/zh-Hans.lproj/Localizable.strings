@@ -1166,6 +1166,8 @@
 
 /* Card / compass */
 "card.distance.proximity.near" = "即将到达";
+"card.eta" = "预计 ~%@ 到达";
+"card.eta.a11y" = "预计到达时间 %@";
 "compass.direction.a11y" = "距离 %1$@，朝向 %2$@";
 "compass.pointing.title" = "正指向";
 "nearby.direction.suffix" = "在%@方向";
