@@ -172,6 +172,35 @@ public struct FavoritesListView: View {
         sortedFavorites.filter { preferences.completedExperiences.contains($0.id) }.count
     }
 
+    private var momentumLine: String? {
+        let favIds = preferences.favoritedExperiences
+        let completedFavIds = favIds.filter { preferences.completedExperiences.contains($0) }
+        let cutoff = Date().addingTimeInterval(-86_400)
+        let recentlyDone = completedFavIds
+            .compactMap { id -> (id: String, date: Date)? in
+                guard let date = preferences.visitHistory[id], date >= cutoff else { return nil }
+                return (id: id, date: date)
+            }
+            .max(by: { $0.date < $1.date })
+
+        if let done = recentlyDone,
+           let exp = experienceService.getExperience(id: done.id) {
+            return String(
+                format: NSLocalizedString("favorites.momentum.justDid", comment: "Momentum: recently completed favorite"),
+                exp.title
+            )
+        }
+
+        if let nearest = nearestFavorite {
+            return String(
+                format: NSLocalizedString("favorites.momentum.closest", comment: "Momentum: nearest favorite nudge"),
+                nearest.title
+            )
+        }
+
+        return nil
+    }
+
     public var body: some View {
         NavigationStack {
             Group {
@@ -197,7 +226,8 @@ public struct FavoritesListView: View {
                                 onTapNearby: locationService.currentLocation != nil && nearbyCount > 0 ? {
                                     Haptics.selection()
                                     withAnimation(reduceMotion ? nil : .easeInOut) { sortMode = .nearest }
-                                } : nil
+                                } : nil,
+                                momentumLine: momentumLine
                             )
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
@@ -427,6 +457,7 @@ private struct FavoritesJourneyHeader: View {
     let completed: Int
     let nearbyCount: Int
     var onTapNearby: (() -> Void)? = nil
+    var momentumLine: String? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -503,6 +534,15 @@ private struct FavoritesJourneyHeader: View {
                 .animation(.easeInOut, value: total)
             nearbyNudge
                 .animation(reduceMotion ? nil : .easeInOut, value: nearbyCount)
+            if let line = momentumLine {
+                Text(line)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
+                    .animation(.easeInOut, value: line)
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : (reduceMotion ? 0 : 6))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(appeared ? 1 : 0)

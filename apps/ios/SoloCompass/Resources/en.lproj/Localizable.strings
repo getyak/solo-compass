@@ -468,6 +468,10 @@
 "favorites.journey.nearbyNow.a11y" = "%d favorites within walking distance";
 "favorites.journey.nearbyNow.hint" = "Sorts favorites by distance";
 
+/* Favorites momentum line in journey header */
+"favorites.momentum.justDid" = "Nice — you just did %@";
+"favorites.momentum.closest" = "%@ is closest — go?";
+
 /* Generic actions */
 "action.undo" = "Undo";
 "favorites.undo.swipeHint" = "Swipe down to dismiss";
