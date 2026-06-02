@@ -718,6 +718,11 @@
 "city.distanceUnknown" = "Distance unknown";
 "city.distanceAway.a11y" = "%@ away";
 
+/* City picker hero header */
+"city.header.nearest" = "Nearest: %@";
+"city.header.nearest.a11y" = "Nearest city %@, %@ away, %d experiences. Tap to select.";
+"city.header.nearest.hint" = "Selects the closest discovered city";
+
 
 /* AgentRouter fallback replies (US-034) */
 "router.fallback.find" = "I found some nearby spots — check the map!";
