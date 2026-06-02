@@ -113,6 +113,11 @@ public struct FavoritesListView: View {
             }
             return (label, "figure.walk")
         } else {
+            if Locale.current.measurementSystem == .us {
+                let mi = (meters / 1000) * 0.621371
+                let text = String(format: NSLocalizedString("favorites.distance.mi", comment: "Distance in miles"), mi)
+                return (text, "location.fill")
+            }
             let measurement = Measurement(value: meters / 1000, unit: UnitLength.kilometers)
             return (Self.kilometersFormatter.string(from: measurement), "location.fill")
         }
