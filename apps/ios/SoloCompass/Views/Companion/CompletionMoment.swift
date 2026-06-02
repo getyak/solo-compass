@@ -12,6 +12,7 @@ public struct CompletionMoment: View {
     private let remoteProvider: @MainActor () -> any RouteCompanionRemote
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var pulse: Bool = false
     @State private var appeared: Bool = false
@@ -42,17 +43,28 @@ public struct CompletionMoment: View {
                 Spacer()
             }
             .padding(.horizontal, 28)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(String(
+                format: NSLocalizedString("completion.a11y", comment: ""),
+                route.verification.walkedByCount,
+                route.companion?.confirmedMembers.count ?? 0
+            ))
 
             closeButton
         }
         .ignoresSafeArea()
         .onAppear {
-            withAnimation(.easeIn(duration: 0.4)) { appeared = true }
-            withAnimation(
-                .easeInOut(duration: 1.2)
-                .repeatForever(autoreverses: true)
-            ) {
-                pulse = true
+            if reduceMotion {
+                appeared = true
+                pulse = false
+            } else {
+                withAnimation(.easeIn(duration: 0.4)) { appeared = true }
+                withAnimation(
+                    .easeInOut(duration: 1.2)
+                    .repeatForever(autoreverses: true)
+                ) {
+                    pulse = true
+                }
             }
             markCompleted()
         }
