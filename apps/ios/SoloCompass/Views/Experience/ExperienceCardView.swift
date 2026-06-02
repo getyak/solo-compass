@@ -663,8 +663,8 @@ private struct BestNowBadge: View {
                 isClosingSoon: true,
                 tint: .orange,
                 symbol: "clock.badge.exclamationmark",
-                text: String(format: NSLocalizedString("favorites.row.closingSoon", comment: "Closing soon pill in favorites row"), mins),
-                a11yText: String(format: NSLocalizedString("favorites.row.closingSoon.a11y", comment: "Closing soon accessibility suffix"), mins)
+                text: String(format: NSLocalizedString("experience.bestNow.closingSoon", comment: "Closing soon with countdown"), mins),
+                a11yText: String(format: NSLocalizedString("experience.bestNow.closingSoon.a11y", comment: "Closing soon accessibility with countdown"), mins)
             )
         }
         let text: String
@@ -693,7 +693,13 @@ private struct BestNowBadge: View {
                 badgeLabel(style: style)
                     .accessibilityLabel(style.a11yText)
                     .onAppear {
-                        withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                        withAnimation(.easeInOut(duration: style.isClosingSoon ? 0.7 : 1.1).repeatForever(autoreverses: true)) {
+                            pulse = true
+                        }
+                    }
+                    .onChange(of: style.isClosingSoon) { _, isClosingSoon in
+                        pulse = false
+                        withAnimation(.easeInOut(duration: isClosingSoon ? 0.7 : 1.1).repeatForever(autoreverses: true)) {
                             pulse = true
                         }
                     }
