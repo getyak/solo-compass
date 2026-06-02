@@ -102,11 +102,14 @@ public struct ExperienceDetailView: View {
                 if !viewModel.nearbyExperiences.isEmpty {
                     nearbySection
                 }
-                Spacer(minLength: 80)
+                Spacer(minLength: 8)
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 80) // room for floating action bar
+            // No manual bottom padding: `safeAreaInset(edge: .bottom)` reserves
+            // the action bar's height automatically, so content can't scroll
+            // behind it (was a hardcoded 80pt that under-reserved on devices
+            // with a home indicator).
         }
         .coordinateSpace(name: "detailScroll")
         .onPreferenceChange(HeroTitleOffsetKey.self) { offset in
@@ -121,7 +124,7 @@ public struct ExperienceDetailView: View {
             }
         }
         .background(themeService.currentTheme.background)
-        .overlay(alignment: .bottom) { actionBar }
+        .safeAreaInset(edge: .bottom, spacing: 0) { actionBar }
         .navigationTitle(heroTitleVisible ? "" : viewModel.experience.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1115,7 +1118,11 @@ public struct ExperienceDetailView: View {
                     Haptics.impact(.light)
                     isShowingNavPicker = true
                 } label: {
-                    Image(systemName: "arrow.triangle.turn.up.right.diagonal")
+                    // `arrow.triangle.turn.up.right.diagonal` is NOT a real SF
+                    // Symbol — it rendered blank (empty circle). Use the same
+                    // turn-arrow as LocationCard's Navigate button for both
+                    // correctness and visual consistency.
+                    Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
                         .font(.title3)
                         .foregroundStyle(.primary)
                         .frame(width: 50, height: 50)
@@ -1169,14 +1176,19 @@ public struct ExperienceDetailView: View {
                 : NSLocalizedString("action.markDone", comment: "Mark as done")))
         }
         .padding(.horizontal, 16)
+        .padding(.top, 10)
         .padding(.bottom, 12)
         .background(
-            // Faint material strip behind the floating action bar so content
-            // scrolling underneath stays readable.
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea(edges: .bottom)
-                .opacity(0.6)
+            // Opaque bar via safeAreaInset: the bar reserves its own space in the
+            // ScrollView (no manual bottom padding), so content never scrolls
+            // behind it. A solid material + hairline top divider keeps it legible
+            // over any content; it extends into the home-indicator safe area.
+            ZStack(alignment: .top) {
+                Rectangle()
+                    .fill(.regularMaterial)
+                    .ignoresSafeArea(edges: .bottom)
+                Divider().opacity(0.5)
+            }
         )
         .confirmationDialog(
             NSLocalizedString("location.navigate", comment: ""),

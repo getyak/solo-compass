@@ -679,7 +679,7 @@ struct NearbyExperienceRow: View {
             }
             Image(systemName: "location.north.line.fill")
                 .font(.caption2)
-                .foregroundStyle(hasLiveBearing ? Color.secondary : Color.tertiary)
+                .foregroundStyle(hasLiveBearing ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
                 .rotationEffect(.degrees(bearing ?? 0))
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
         }
