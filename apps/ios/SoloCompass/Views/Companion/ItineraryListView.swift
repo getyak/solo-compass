@@ -221,6 +221,61 @@ public struct ItineraryListView: View {
     }
 }
 
+// MARK: - TripStatus
+
+private enum TripStatus {
+    case active
+    case today
+    case soon(Int)
+    case upcoming(Int)
+    case past
+
+    static func from(startDate: String, endDate: String, now: Date = Date()) -> TripStatus {
+        guard
+            let start = iso8601Date(startDate),
+            let end = iso8601Date(endDate)
+        else { return .upcoming(0) }
+
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: now)
+        let startDay = cal.startOfDay(for: start)
+        let endDay = cal.startOfDay(for: end)
+
+        if today >= startDay && today <= endDay {
+            if startDay == today { return .today }
+            return .active
+        }
+        if today > endDay { return .past }
+
+        let daysUntil = cal.dateComponents([.day], from: today, to: startDay).day ?? 0
+        if daysUntil <= 7 { return .soon(daysUntil) }
+        return .upcoming(daysUntil)
+    }
+
+    var label: String {
+        switch self {
+        case .active:
+            return NSLocalizedString("itinerary.status.active", comment: "Trip status: active now")
+        case .today:
+            return NSLocalizedString("itinerary.status.today", comment: "Trip status: starts today")
+        case .soon(let d):
+            return String(format: NSLocalizedString("itinerary.status.soon", comment: "Trip status: in N days (≤7)"), d)
+        case .upcoming(let d):
+            return String(format: NSLocalizedString("itinerary.status.upcoming", comment: "Trip status: in N days (>7)"), d)
+        case .past:
+            return NSLocalizedString("itinerary.status.past", comment: "Trip status: past")
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .active, .today: return .green
+        case .soon: return .accentColor
+        case .upcoming, .past: return Color(.tertiaryLabel)
+        }
+    }
+}
+
 // MARK: - Row
 
 private struct ItineraryRow: View {
@@ -239,6 +294,10 @@ private struct ItineraryRow: View {
             let end = iso8601Date(itinerary.endDate)
         else { return "\(itinerary.startDate) – \(itinerary.endDate)" }
         return "\(Self.dateFormatter.string(from: start)) – \(Self.dateFormatter.string(from: end))"
+    }
+
+    private var tripStatus: TripStatus {
+        TripStatus.from(startDate: itinerary.startDate, endDate: itinerary.endDate)
     }
 
     var body: some View {
@@ -262,9 +321,20 @@ private struct ItineraryRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text(dateRangeText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(dateRangeText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    let status = tripStatus
+                    Text(status.label)
+                        .font(.caption2.weight(.medium))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(status.color.opacity(0.15), in: Capsule())
+                        .foregroundStyle(status.color)
+                        .accessibilityHidden(true)
+                }
 
                 Text(String(
                     format: NSLocalizedString("itinerary.experienceCount", comment: "N experiences"),
@@ -280,7 +350,7 @@ private struct ItineraryRow: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(
-            "\(itinerary.title), \(itinerary.cityCode), \(dateRangeText)"
+            "\(itinerary.title), \(itinerary.cityCode), \(dateRangeText), \(tripStatus.label)"
         ))
     }
 }
@@ -350,14 +420,28 @@ private func iso8601Date(_ string: String) -> Date? {
 #Preview("With itineraries") {
     let container = SoloCompassModelContainer.makeInMemory()
     let store = ItineraryStore(context: ModelContext(container))
-    try? store.save(.sample)
+    // Active now: spans today (2026-06-02)
+    try? store.save(Itinerary(
+        id: ItineraryId(rawValue: "itin_preview_active"),
+        ownerId: "user_preview",
+        title: "Tokyo Spring 2026",
+        cityCode: "TYO",
+        startDate: "2026-05-30",
+        endDate: "2026-06-05",
+        experienceIds: [],
+        note: "Focus on cherry blossom spots and quiet cafes.",
+        openToCompanions: true,
+        createdAt: "2026-01-15T09:00:00Z",
+        updatedAt: "2026-01-15T09:00:00Z"
+    ))
+    // Upcoming: starts in 10 days (2026-06-12), shows gray "In 10 days" pill
     try? store.save(Itinerary(
         id: ItineraryId(rawValue: "itin_preview_2"),
         ownerId: "user_preview",
         title: "Kyoto Autumn",
         cityCode: "KYT",
-        startDate: "2026-11-01",
-        endDate: "2026-11-07",
+        startDate: "2026-06-12",
+        endDate: "2026-06-18",
         experienceIds: ["exp_1", "exp_2", "exp_3"],
         openToCompanions: false,
         createdAt: "2026-02-01T09:00:00Z",

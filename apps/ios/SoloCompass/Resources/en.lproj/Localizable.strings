@@ -853,6 +853,13 @@
 "itinerary.undo.named" = "Removed \"%@\"";
 "itinerary.undo.named.a11y" = "Removed itinerary \"%@\". Tap Undo to restore.";
 
+/* Itinerary row status pills */
+"itinerary.status.active" = "Active now";
+"itinerary.status.today" = "Starts today";
+"itinerary.status.soon" = "In %dd";
+"itinerary.status.upcoming" = "In %d days";
+"itinerary.status.past" = "Past";
+
 /* Itinerary detail (US-004) */
 "itinerary.detail.city" = "City";
 "itinerary.detail.startDate" = "Start";
