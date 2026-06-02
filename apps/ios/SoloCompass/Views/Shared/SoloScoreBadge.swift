@@ -183,6 +183,8 @@ private struct SoloScorePopoverContent: View {
     @State private var barsFilled = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private let weakestThreshold: Double = 5.0
+
     private struct DimensionRow {
         let labelKey: String
         let value: Double
@@ -197,6 +199,18 @@ private struct SoloScorePopoverContent: View {
             DimensionRow(labelKey: "solo.dim.ambiance",   value: score.breakdown.ambianceFit),
             DimensionRow(labelKey: "solo.dim.safety",     value: score.breakdown.safety),
         ]
+    }
+
+    private var weakestIndex: Int {
+        dimensions.enumerated().min(by: { $0.element.value < $1.element.value })?.offset ?? 0
+    }
+
+    private var weakestLabel: String {
+        NSLocalizedString(dimensions[weakestIndex].labelKey, comment: "")
+    }
+
+    private var showWeakestCaption: Bool {
+        dimensions[weakestIndex].value < weakestThreshold
     }
 
     var body: some View {
@@ -217,10 +231,29 @@ private struct SoloScorePopoverContent: View {
                     .foregroundStyle(.secondary)
             }
 
+            if showWeakestCaption {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+                    Text(String(format: NSLocalizedString("solo.weakest", comment: ""), weakestLabel))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text(String(format: NSLocalizedString("solo.weakest.a11y", comment: ""), weakestLabel)))
+            }
+
             Divider()
 
             ForEach(Array(dimensions.enumerated()), id: \.offset) { index, row in
-                dimensionRow(label: NSLocalizedString(row.labelKey, comment: ""), value: row.value, index: index)
+                dimensionRow(
+                    label: NSLocalizedString(row.labelKey, comment: ""),
+                    value: row.value,
+                    index: index,
+                    isWeakest: index == weakestIndex && showWeakestCaption
+                )
             }
 
             if score.basedOnCount > 0 {
@@ -254,13 +287,20 @@ private struct SoloScorePopoverContent: View {
         }
     }
 
-    private func dimensionRow(label: String, value: Double, index: Int) -> some View {
+    private func dimensionRow(label: String, value: Double, index: Int, isWeakest: Bool) -> some View {
         let clamped = max(0, min(10, value))
+        let barColor: Color = isWeakest ? .orange.opacity(0.8) : score.scoreColor.opacity(0.8)
         return VStack(alignment: .leading, spacing: 3) {
             HStack {
+                if isWeakest {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+                }
                 Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(isWeakest ? .caption.bold() : .caption)
+                    .foregroundStyle(isWeakest ? .primary : .secondary)
                 Spacer()
                 Text(String(format: "%.1f", value))
                     .font(.caption.weight(.medium))
@@ -271,7 +311,7 @@ private struct SoloScorePopoverContent: View {
                     .fill(Color.secondary.opacity(0.2))
                     .overlay(alignment: .leading) {
                         Capsule()
-                            .fill(score.scoreColor.opacity(0.8))
+                            .fill(barColor)
                             .frame(width: barsFilled ? geo.size.width * CGFloat(clamped / 10) : 0)
                             .animation(
                                 reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.8)
@@ -282,6 +322,9 @@ private struct SoloScorePopoverContent: View {
             }
             .frame(height: 4)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(label))
+        .accessibilityValue(Text(String(format: "%.1f", value)))
     }
 }
 
@@ -348,8 +391,19 @@ private struct SoloScorePopoverContent: View {
         hint: "Corner seats by the window are ideal.",
         basedOnCount: 11
     )
-    SoloScorePopoverContent(score: score)
-        .padding()
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding()
+    let cautionScore = SoloScore(
+        overall: 3.1,
+        breakdown: .init(seatingFriendly: 2, soloPatronRatio: 3, staffPressure: 4, soloPortioning: 3, ambianceFit: 3, safety: 4),
+        hint: "Can feel exposed as a solo diner.",
+        basedOnCount: 7
+    )
+    VStack(spacing: 24) {
+        SoloScorePopoverContent(score: score)
+            .padding()
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        SoloScorePopoverContent(score: cautionScore)
+            .padding()
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+    .padding()
 }

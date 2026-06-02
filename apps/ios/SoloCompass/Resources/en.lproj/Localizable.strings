@@ -197,6 +197,8 @@
 "solo.dim.portioning" = "Solo Portioning";
 "solo.dim.ambiance" = "Ambiance Fit";
 "solo.dim.safety" = "Safety";
+"solo.weakest" = "Watch: %@";
+"solo.weakest.a11y" = "Watch out: %@ is the weakest dimension for this place.";
 
 /* Empty filter banner (below FilterBarView) */
 "filter.empty.title" = "No matches";
