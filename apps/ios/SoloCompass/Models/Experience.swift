@@ -180,6 +180,18 @@ public struct RealInconvenience: Codable, Hashable, Identifiable {
             case .other:                               return .low
             }
         }
+
+        public var label: String {
+            switch self {
+            case .safety:    return NSLocalizedString("inconvenience.category.safety", comment: "Inconvenience category: safety")
+            case .scam:      return NSLocalizedString("inconvenience.category.scam", comment: "Inconvenience category: scam")
+            case .crowds:    return NSLocalizedString("inconvenience.category.crowds", comment: "Inconvenience category: crowds")
+            case .logistics: return NSLocalizedString("inconvenience.category.logistics", comment: "Inconvenience category: logistics")
+            case .weather:   return NSLocalizedString("inconvenience.category.weather", comment: "Inconvenience category: weather")
+            case .etiquette: return NSLocalizedString("inconvenience.category.etiquette", comment: "Inconvenience category: etiquette")
+            case .other:     return NSLocalizedString("inconvenience.category.other", comment: "Inconvenience category: note/other")
+            }
+        }
     }
 
     public let category: Category
