@@ -24,6 +24,8 @@ public struct PendingCheckInBanner: View {
     @State private var progressAtPause: CGFloat = 1
     /// Guards pauseCountdown() so it fires only on the first-touch, not every drag event.
     @State private var wasPaused = false
+    /// True when ~2 s remain; drives amber color shift on the bar and Yes button.
+    @State private var isExpiringSoon = false
 
     /// 12 s under VoiceOver (reader needs more time), 6 s otherwise.
     var autoDismissSeconds: Double { voiceOverOn ? 12 : 6 }
@@ -59,7 +61,7 @@ public struct PendingCheckInBanner: View {
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Capsule().fill(.blue))
+                            .background(Capsule().fill(isExpiringSoon ? Color.orange : Color.blue))
                             .foregroundStyle(.white)
                             .scaleEffect(reduceMotion ? 1.0 : (pulse ? 1.04 : 1.0))
                             .animation(reduceMotion ? nil : .easeInOut(duration: 1.3).repeatForever(autoreverses: true), value: pulse)
@@ -88,7 +90,7 @@ public struct PendingCheckInBanner: View {
             if !reduceMotion {
                 GeometryReader { geo in
                     Capsule()
-                        .fill(Color.blue)
+                        .fill(isExpiringSoon ? Color.orange : Color.blue)
                         .frame(width: geo.size.width * countdownProgress, height: 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -174,6 +176,7 @@ public struct PendingCheckInBanner: View {
     /// Starts (or resumes) the animated countdown bar and the auto-dismiss task.
     /// `remainingFraction` is in [0, 1] where 1 means full duration remaining.
     private func startCountdown(remainingFraction: CGFloat) {
+        isExpiringSoon = false
         guard !voiceOverOn else {
             // VoiceOver: no bar, just arm the dismiss task.
             scheduleAutoDismiss(remainingFraction: remainingFraction)
@@ -190,6 +193,7 @@ public struct PendingCheckInBanner: View {
     private func pauseCountdown() {
         autoDismissTask?.cancel()
         autoDismissTask = nil
+        isExpiringSoon = false
         // Snapshot the current progress fraction so resume can animate from here.
         progressAtPause = countdownProgress
         // Stop the running animation by re-asserting the current value with zero duration.
@@ -201,7 +205,18 @@ public struct PendingCheckInBanner: View {
     private func scheduleAutoDismiss(remainingFraction: CGFloat) {
         let seconds = autoDismissSeconds * Double(remainingFraction)
         autoDismissTask = Task {
-            try? await Task.sleep(for: .seconds(seconds))
+            // Arm the amber warning ~2 s before auto-dismiss (skip under reduceMotion or VoiceOver).
+            if seconds > 2 && !reduceMotion && !voiceOverOn {
+                try? await Task.sleep(for: .seconds(seconds - 2))
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    withAnimation(.easeInOut) { isExpiringSoon = true }
+                    #if canImport(UIKit)
+                    Haptics.impact(.soft)
+                    #endif
+                }
+            }
+            try? await Task.sleep(for: .seconds(seconds > 2 && !reduceMotion && !voiceOverOn ? 2 : seconds))
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 onDismiss()
