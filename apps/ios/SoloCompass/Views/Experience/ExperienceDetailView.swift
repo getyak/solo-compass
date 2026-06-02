@@ -60,6 +60,7 @@ public struct ExperienceDetailView: View {
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(BestNowClock.self) private var bestNowClock
 
     public var body: some View {
         ScrollView {
@@ -535,13 +536,22 @@ public struct ExperienceDetailView: View {
     }
 
     private var bestTimeStatusPill: some View {
-        let isNow = viewModel.experience.isBestNow()
-        let hint = viewModel.experience.bestTimeHint()
+        let now = bestNowClock.tick
+        let isNow = viewModel.experience.isBestNow(at: now)
+        let hint = viewModel.experience.bestTimeHint(at: now)
+        let minutesLeft = viewModel.experience.minutesLeftInBestWindow(at: now)
         let label: String
         let symbol: String
         let background: Color
         if isNow {
-            label = NSLocalizedString("bestTimes.now.pill", comment: "Good time now pill")
+            if let minutesLeft {
+                label = String(
+                    format: NSLocalizedString("bestTimes.now.pill.left", comment: "Good now with minutes left pill"),
+                    minutesLeft
+                )
+            } else {
+                label = NSLocalizedString("bestTimes.now.pill", comment: "Good time now pill")
+            }
             symbol = "clock.badge.checkmark"
             background = Color.green.opacity(0.15)
         } else if let hint {
@@ -551,9 +561,17 @@ public struct ExperienceDetailView: View {
         } else {
             return AnyView(EmptyView())
         }
-        let a11yLabel = isNow
-            ? NSLocalizedString("timeline.now.good", comment: "")
-            : NSLocalizedString("timeline.now.off", comment: "")
+        let a11yLabel: String
+        if isNow, let minutesLeft {
+            a11yLabel = String(
+                format: NSLocalizedString("bestTimes.now.pill.left.a11y", comment: "Good now accessibility with minutes left"),
+                minutesLeft
+            )
+        } else {
+            a11yLabel = isNow
+                ? NSLocalizedString("timeline.now.good", comment: "")
+                : NSLocalizedString("timeline.now.off", comment: "")
+        }
         return AnyView(
             HStack(spacing: 4) {
                 Image(systemName: symbol)
@@ -561,6 +579,8 @@ public struct ExperienceDetailView: View {
                     .symbolEffect(.pulse, isActive: isNow && !reduceMotion)
                 Text(label)
                     .font(.caption.weight(.semibold))
+                    .contentTransition(.numericText())
+                    .animation(reduceMotion ? nil : .easeInOut, value: minutesLeft)
             }
             .foregroundStyle(isNow ? Color.green : Color.secondary)
             .padding(.horizontal, 8)
