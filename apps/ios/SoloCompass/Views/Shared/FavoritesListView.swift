@@ -9,6 +9,7 @@ public struct FavoritesListView: View {
     @Environment(ExperienceService.self) private var experienceService
     @Environment(UserPreferences.self) private var preferences
     @Environment(LocationService.self) private var locationService
+    @Environment(BestNowClock.self) private var bestNowClock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
     let onSelectExperience: (Experience) -> Void
@@ -984,17 +985,20 @@ private extension FavoritesListView {
         }
     }
 
-    private func isGoodNow(_ exp: Experience) -> Bool {
+    private func isGoodNow(_ exp: Experience, at date: Date) -> Bool {
         guard !exp.bestTimes.isEmpty else { return false }
-        return exp.isBestNow()
+        return exp.isBestNow(at: date)
     }
 
     @ViewBuilder
     func favoriteRow(_ exp: Experience) -> some View {
+        let now = bestNowClock.tick
         let distInfo = distanceInfo(for: exp)
         let prox = proximity(for: exp)
         let isDone = preferences.completedExperiences.contains(exp.id)
-        let goodNow = !isDone && isGoodNow(exp)
+        let goodNow = !isDone && isGoodNow(exp, at: now)
+        let minutesLeft = goodNow ? exp.minutesLeftInBestWindow(at: now) : nil
+        let closingSoon = (minutesLeft ?? .max) <= 45
         let bestHint = (!isDone && !goodNow) ? exp.bestTimeHint() : nil
         Button {
             Haptics.selection()
@@ -1043,19 +1047,35 @@ private extension FavoritesListView {
                         .padding(.top, 1)
                     }
                     if goodNow {
-                        HStack(spacing: 4) {
-                            Image(systemName: "clock.badge.checkmark")
-                                .accessibilityHidden(true)
-                            Text(NSLocalizedString("favorites.row.goodNow", comment: "Good time now pill in favorites row"))
+                        if closingSoon, let mins = minutesLeft {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock.badge.exclamationmark")
+                                    .accessibilityHidden(true)
+                                Text(String(format: NSLocalizedString("favorites.row.closingSoon", comment: "Closing soon pill in favorites row"), mins))
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(Color.orange)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.orange.opacity(0.12), in: Capsule())
+                            .padding(.top, 2)
+                            .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                            .accessibilityHidden(true)
+                        } else {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock.badge.checkmark")
+                                    .accessibilityHidden(true)
+                                Text(NSLocalizedString("favorites.row.goodNow", comment: "Good time now pill in favorites row"))
+                            }
+                            .font(.caption2)
+                            .foregroundStyle(exp.category.color)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(exp.category.color.opacity(0.12), in: Capsule())
+                            .padding(.top, 2)
+                            .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                            .accessibilityHidden(true)
                         }
-                        .font(.caption2)
-                        .foregroundStyle(exp.category.color)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(exp.category.color.opacity(0.12), in: Capsule())
-                        .padding(.top, 2)
-                        .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
-                        .accessibilityHidden(true)
                     } else if let hint = bestHint {
                         HStack(spacing: 4) {
                             Image(systemName: "clock")
@@ -1084,7 +1104,15 @@ private extension FavoritesListView {
         .buttonStyle(PressableRowStyle(reduceMotion: reduceMotion))
         .accessibilityLabel({
             let doneWord = isDone ? ", \(NSLocalizedString("favorites.row.done.a11y", comment: "Completed row suffix"))" : ""
-            let goodNowWord = goodNow ? ", \(NSLocalizedString("favorites.row.goodNow.a11y", comment: "Good time now accessibility suffix"))" : ""
+            let timingWord: String = {
+                if goodNow {
+                    if closingSoon, let mins = minutesLeft {
+                        return ", \(String(format: NSLocalizedString("favorites.row.closingSoon.a11y", comment: "Closing soon accessibility suffix"), mins))"
+                    }
+                    return ", \(NSLocalizedString("favorites.row.goodNow.a11y", comment: "Good time now accessibility suffix"))"
+                }
+                return ""
+            }()
             let bestAtWord: String = {
                 guard let hint = bestHint else { return "" }
                 return ", \(String(format: NSLocalizedString("favorites.row.bestAt.a11y", comment: "Best at time accessibility suffix"), hint))"
@@ -1093,11 +1121,11 @@ private extension FavoritesListView {
                 let awayFmt = NSLocalizedString("favorites.row.distance.a11y", comment: "Distance away accessibility label")
                 let distLabel = String(format: awayFmt, distInfo.text)
                 if let prox {
-                    return Text("\(exp.title), \(exp.oneLiner), \(distLabel), \(prox.a11yWord)\(doneWord)\(goodNowWord)\(bestAtWord)")
+                    return Text("\(exp.title), \(exp.oneLiner), \(distLabel), \(prox.a11yWord)\(doneWord)\(timingWord)\(bestAtWord)")
                 }
-                return Text("\(exp.title), \(exp.oneLiner), \(distLabel)\(doneWord)\(goodNowWord)\(bestAtWord)")
+                return Text("\(exp.title), \(exp.oneLiner), \(distLabel)\(doneWord)\(timingWord)\(bestAtWord)")
             }
-            return Text("\(exp.title), \(exp.oneLiner)\(doneWord)\(goodNowWord)\(bestAtWord)")
+            return Text("\(exp.title), \(exp.oneLiner)\(doneWord)\(timingWord)\(bestAtWord)")
         }())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
@@ -1184,4 +1212,5 @@ private struct DirectionsSwipeModifier: ViewModifier {
         .environment(ExperienceService())
         .environment(UserPreferences())
         .environment(LocationService.shared)
+        .environment(BestNowClock.shared)
 }
