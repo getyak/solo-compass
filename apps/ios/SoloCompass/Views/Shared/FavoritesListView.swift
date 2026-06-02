@@ -476,7 +476,6 @@ private struct FavoritesJourneyHeader: View {
 
             if let onTap = onTapNearby {
                 Button {
-                    Haptics.selection()
                     onTap()
                 } label: {
                     nudgeContent
@@ -484,7 +483,6 @@ private struct FavoritesJourneyHeader: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(String(format: NSLocalizedString("favorites.journey.nearbyNow.a11y", comment: "Nearby nudge button accessibility label"), nearbyCount))
                 .accessibilityHint(NSLocalizedString("favorites.journey.nearbyNow.hint", comment: "Nearby nudge button sorts by distance hint"))
-                .accessibilityAddTraits(.isButton)
             } else {
                 nudgeContent
                     .accessibilityLabel(label)
