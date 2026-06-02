@@ -193,7 +193,11 @@ public struct FavoritesListView: View {
                             FavoritesJourneyHeader(
                                 total: sortedFavorites.count,
                                 completed: completedCount,
-                                nearbyCount: nearbyCount
+                                nearbyCount: nearbyCount,
+                                onTapNearby: locationService.currentLocation != nil && nearbyCount > 0 ? {
+                                    Haptics.selection()
+                                    withAnimation(reduceMotion ? nil : .easeInOut) { sortMode = .nearest }
+                                } : nil
                             )
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
@@ -422,6 +426,7 @@ private struct FavoritesJourneyHeader: View {
     let total: Int
     let completed: Int
     let nearbyCount: Int
+    var onTapNearby: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -452,10 +457,36 @@ private struct FavoritesJourneyHeader: View {
     @ViewBuilder
     private var nearbyNudge: some View {
         if nearbyCount > 0 {
-            Text(String(format: NSLocalizedString("favorites.journey.nearbyNow", comment: "N favorites within walking distance nudge"), nearbyCount))
-                .font(.caption2)
-                .foregroundStyle(Color.green)
-                .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+            let label = String(format: NSLocalizedString("favorites.journey.nearbyNow", comment: "N favorites within walking distance nudge"), nearbyCount)
+            let nudgeContent = HStack(spacing: 4) {
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(Color.green)
+                if onTapNearby != nil {
+                    Image(systemName: "chevron.right.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(Color.green)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(.horizontal, onTapNearby != nil ? 8 : 0)
+            .padding(.vertical, onTapNearby != nil ? 4 : 0)
+            .background(onTapNearby != nil ? Color.green.opacity(0.12) : Color.clear, in: Capsule())
+            .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+
+            if let onTap = onTapNearby {
+                Button {
+                    onTap()
+                } label: {
+                    nudgeContent
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(format: NSLocalizedString("favorites.journey.nearbyNow.a11y", comment: "Nearby nudge button accessibility label"), nearbyCount))
+                .accessibilityHint(NSLocalizedString("favorites.journey.nearbyNow.hint", comment: "Nearby nudge button sorts by distance hint"))
+            } else {
+                nudgeContent
+                    .accessibilityLabel(label)
+            }
         }
     }
 

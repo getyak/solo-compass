@@ -450,6 +450,8 @@
 "favorites.journey.progress" = "%1$d of %2$d explored";
 "favorites.journey.awaiting" = "%d place(s) waiting for you";
 "favorites.journey.nearbyNow" = "%d within walking distance";
+"favorites.journey.nearbyNow.a11y" = "%d favorites within walking distance";
+"favorites.journey.nearbyNow.hint" = "Sorts favorites by distance";
 
 /* Generic actions */
 "action.undo" = "Undo";
