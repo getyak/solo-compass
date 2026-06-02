@@ -83,6 +83,8 @@
 "timeline.a11y" = "Best between %@. %@";
 "timeline.now.tick" = "now";
 "bestTimes.now.pill" = "Good time now";
+"bestTimes.now.pill.left" = "Good now · %d min left";
+"bestTimes.now.pill.left.a11y" = "Good time now, %d minutes left in this window";
 "bestTimes.next.pill" = "Better at %@";
 "bestTimes.window.active.a11y" = "happening now";
 
