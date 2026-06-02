@@ -11,6 +11,8 @@ public struct SoloScoreRadarChart: View {
     @State private var isReplaying: Bool = false
     @State private var selectedAxis: Int? = nil
     @State private var tooltipDismissTask: Task<Void, Never>? = nil
+    @State private var showReplayHint: Bool = false
+    @AppStorage("radar.replayHintSeen") private var replayHintSeen: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let springDuration: Double = 0.7
@@ -71,8 +73,20 @@ public struct SoloScoreRadarChart: View {
                     fallbackBars
                 }
             }
+            .accessibilityAction(named: Text(NSLocalizedString("solo.radar.replay.a11y", comment: ""))) {
+                guard !reduceMotion else { return }
+                replay()
+            }
 
             weakestCaption
+
+            if showReplayHint {
+                Label(NSLocalizedString("solo.radar.replay.hint", comment: ""), systemImage: "arrow.clockwise")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.92).combined(with: .opacity))
+                    .accessibilityHidden(true)
+            }
 
             if let idx = selectedAxis {
                 axisDimensionTooltip(for: idx)
@@ -85,6 +99,7 @@ public struct SoloScoreRadarChart: View {
             }
         }
         .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.3, dampingFraction: 0.75), value: selectedAxis)
+        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.3, dampingFraction: 0.75), value: showReplayHint)
         .onAppear {
             if reduceMotion {
                 drawProgress = 1
@@ -96,6 +111,14 @@ public struct SoloScoreRadarChart: View {
                 HapticService.shared.prepare(style: .soft)
                 DispatchQueue.main.asyncAfter(deadline: .now() + Self.springDuration) {
                     Haptics.impact(.soft)
+                    if !replayHintSeen && !isReplaying {
+                        showReplayHint = true
+                        replayHintSeen = true
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 3_000_000_000)
+                            withAnimation { showReplayHint = false }
+                        }
+                    }
                 }
             }
         }
@@ -278,6 +301,7 @@ public struct SoloScoreRadarChart: View {
     // MARK: - Replay
 
     private func replay() {
+        showReplayHint = false
         isReplaying = true
         drawProgress = 0
         withAnimation(.spring(response: Self.springDuration, dampingFraction: 0.75)) {

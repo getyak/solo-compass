@@ -62,6 +62,8 @@
 "solo.basedOn" = "Based on %d solo travelers";
 "solo.radar.a11y" = "Solo Score radar";
 "solo.radar.replayHint" = "Tap to replay the draw-in animation";
+"solo.radar.replay.hint" = "Tap to replay";
+"solo.radar.replay.a11y" = "Replay score animation";
 "solo.radar.weakest" = "Weakest: %@ — expect it to be a tradeoff";
 "solo.radar.weakest.a11y" = "Note: %@ is the weakest dimension — expect it to be a tradeoff.";
 "solo.radar.strongest" = "Great for solo %@";
