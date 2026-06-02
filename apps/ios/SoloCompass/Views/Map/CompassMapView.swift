@@ -1131,7 +1131,9 @@ private struct MapOverlayView: View {
 
             if let exploreError = viewModel.lastExploreError, exploreError != dismissedExploreError {
                 DismissibleBanner(
-                    systemImage: "airplane.slash",
+                    // `airplane.slash` is not a real SF Symbol (rendered blank);
+                    // match the sibling error banners' warning glyph.
+                    systemImage: "exclamationmark.triangle.fill",
                     text: exploreError,
                     color: .orange,
                     onDismiss: { dismissedExploreError = exploreError }
