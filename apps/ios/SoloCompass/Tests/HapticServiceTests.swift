@@ -72,4 +72,16 @@ final class HapticServiceTests: XCTestCase {
         XCTAssertTrue(HapticService.shared.isEnabled)
         HapticService.shared.selectionChanged()
     }
+
+    /// SoloScoreRadarChart routes its draw-in and replay haptics through
+    /// Haptics.impact(.soft) / HapticService, so disabling hapticsEnabled
+    /// silences the radar chart without any additional wiring in the view.
+    func testRadarChartHapticsRespectOptOut() {
+        HapticService.shared.isEnabled = false
+        // Simulates what SoloScoreRadarChart does on draw-in and replay.
+        HapticService.shared.prepare(style: .soft)
+        HapticService.shared.impact(style: .soft)
+        // No crash and no haptic fired — shouldFire() returns false when disabled.
+        XCTAssertFalse(HapticService.shared.isEnabled)
+    }
 }

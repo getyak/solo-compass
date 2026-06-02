@@ -10,7 +10,6 @@ public struct SoloScoreRadarChart: View {
     @State private var isReplaying: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let haptic = UIImpactFeedbackGenerator(style: .soft)
     private static let springDuration: Double = 0.7
 
     private static let axes: [(label: String, symbol: String, keyPath: KeyPath<SoloScore.Breakdown, Double>)] = [
@@ -78,9 +77,10 @@ public struct SoloScoreRadarChart: View {
                 withAnimation(.spring(response: Self.springDuration, dampingFraction: 0.75)) {
                     drawProgress = 1
                 }
-                haptic.prepare()
+                // Route through HapticService so the user's haptics opt-out is respected.
+                HapticService.shared.prepare(style: .soft)
                 DispatchQueue.main.asyncAfter(deadline: .now() + Self.springDuration) {
-                    haptic.impactOccurred()
+                    Haptics.impact(.soft)
                 }
             }
         }
@@ -268,9 +268,9 @@ public struct SoloScoreRadarChart: View {
         withAnimation(.spring(response: Self.springDuration, dampingFraction: 0.75)) {
             drawProgress = 1
         }
-        haptic.prepare()
+        HapticService.shared.prepare(style: .soft)
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.springDuration) {
-            haptic.impactOccurred()
+            Haptics.impact(.soft)
             isReplaying = false
         }
     }
