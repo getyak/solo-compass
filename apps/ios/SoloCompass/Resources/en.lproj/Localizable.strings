@@ -480,6 +480,11 @@
 "favorites.row.bestAt" = "Best ~%@";
 "favorites.row.bestAt.a11y" = "best around %@";
 
+/* Favorites journey header — good now nudge */
+"favorites.journey.goodNow" = "%d great to do right now";
+"favorites.journey.goodNow.a11y" = "%d favorites are great to visit right now";
+"favorites.journey.goodNow.hint" = "Sorts those favorites to the top of the list";
+
 /* Favorites journey header */
 "favorites.greeting.night" = "Still up?";
 "favorites.greeting.morning" = "Good morning";
