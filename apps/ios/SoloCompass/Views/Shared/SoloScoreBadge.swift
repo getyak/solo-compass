@@ -11,6 +11,7 @@ public struct SoloScoreBadge: View {
     @State private var appeared = false
     @State private var showBreakdown = false
     @State private var twinkle = false
+    @State private var cautionPulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(score: SoloScore, style: Style = .compact) {
@@ -46,6 +47,10 @@ public struct SoloScoreBadge: View {
                     Image(systemName: "person.fill.questionmark")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.95))
+                        .scaleEffect(cautionPulse && !reduceMotion ? 1.12 : 1.0)
+                        .opacity(cautionPulse && !reduceMotion ? 1.0 : 0.78)
+                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: cautionPulse)
+                        .accessibilityHidden(true)
                 }
                 Text(NSLocalizedString("solo.label", comment: "Solo"))
                     .font(.caption2)
@@ -74,6 +79,9 @@ public struct SoloScoreBadge: View {
             if isExcellent && !reduceMotion {
                 twinkle = true
             }
+            if isCaution && !reduceMotion {
+                cautionPulse = true
+            }
         }
         .accessibilityLabel(Text(
             isExcellent
@@ -95,6 +103,13 @@ public struct SoloScoreBadge: View {
                 twinkle = true
             } else if !nowExcellent {
                 twinkle = false
+            }
+            let nowCaution = newValue < 4.0
+            if nowCaution && !reduceMotion {
+                cautionPulse = false
+                cautionPulse = true
+            } else if !nowCaution {
+                cautionPulse = false
             }
         }
     }
