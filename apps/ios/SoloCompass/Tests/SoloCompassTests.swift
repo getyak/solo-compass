@@ -96,6 +96,31 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertTrue(reloaded.companionEnabled, "companionEnabled=true must persist across instantiation")
     }
 
+    /// US-020: reproduces exactly what the safety-consent "Accept & Continue"
+    /// button does (`acceptCompanionConsent()` + `companionEnabled = true`) and
+    /// asserts BOTH survive a reload. Guards the "enable failed" symptom: the
+    /// feature must actually stick on after the consent flow, not silently
+    /// revert to off.
+    func testAcceptingCompanionConsentEnablesAndPersists() throws {
+        let suite = "us020.companionConsentAccept.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let prefs = UserPreferences(defaults: defaults)
+        XCTAssertFalse(prefs.hasAcceptedCompanionConsent)
+        XCTAssertFalse(prefs.companionEnabled)
+
+        // Mirror CompanionSafetyConsentSheet.consentButton + the SettingsView
+        // onAccepted handler.
+        prefs.acceptCompanionConsent()
+        prefs.companionEnabled = true
+
+        let reloaded = UserPreferences(defaults: defaults)
+        XCTAssertTrue(reloaded.hasAcceptedCompanionConsent, "consent must persist")
+        XCTAssertNotNil(reloaded.companionConsentGivenAt, "consent timestamp must persist")
+        XCTAssertTrue(reloaded.companionEnabled, "companion must stay enabled after accept")
+    }
+
     /// `UserPreferences.customTags` defaults to empty and survives a
     /// UserDefaults reload.
     func testUserPreferencesCustomTagsPersistsAcrossReload() throws {
