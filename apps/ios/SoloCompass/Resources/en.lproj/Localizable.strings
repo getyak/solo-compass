@@ -190,6 +190,10 @@
 /* Bottom info accessibility */
 "info.nearbySolo.a11y" = "%d solo travelers passed nearby today";
 
+/* Early estimate badge — shown in breakdown popover when basedOnCount is 1–3 */
+"solo.earlyEstimate" = "Early estimate";
+"solo.earlyEstimate.a11y" = "Early estimate, based on few solo travelers — score may shift";
+
 /* Solo score accessibility */
 "solo.a11y" = "Solo Score %@ of 10";
 "solo.excellent.a11y" = "Excellent for solo travelers";
