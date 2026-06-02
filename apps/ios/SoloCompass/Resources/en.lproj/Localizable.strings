@@ -52,6 +52,13 @@
 "solo.portioning" = "Portioning";
 "solo.ambiance" = "Ambiance";
 "solo.safety" = "Safety";
+"solo.seating.desc" = "Counter seats, bar stools, or small tables a solo diner can claim without awkwardness.";
+"solo.staff.desc" = "Staff leave you alone — no hovering, no 'is anyone joining you?', no rushed service.";
+"solo.patrons.desc" = "How many other people here are also solo — the higher, the more normal it feels.";
+"solo.ambiance.desc" = "The vibe works for one: not couple-only, not a group party, not a place that feels lonely to enter alone.";
+"solo.safety.desc" = "It's safe to be here by yourself at the time of day most travelers visit.";
+"solo.portioning.desc" = "You can order a full, satisfying meal without a sharing menu or a minimum spend for two.";
+"solo.axis.tap.hint" = "Tap for a plain-language explanation of this dimension";
 "solo.basedOn" = "Based on %d solo travelers";
 "solo.radar.a11y" = "Solo Score radar";
 "solo.radar.replayHint" = "Tap to replay the draw-in animation";
