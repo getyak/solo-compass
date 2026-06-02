@@ -597,6 +597,9 @@ public struct ExperienceCardView: View {
             let isHighSeverity = category == .safety || category == .scam
             let tint = isHighSeverity ? Color.red : Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
             let count = experience.realInconveniences.count
+            let a11yFormat = isHighSeverity
+                ? NSLocalizedString("inconvenience.card.count.a11y.high", comment: "High-severity inconvenience pill accessibility label")
+                : NSLocalizedString("inconvenience.card.count.a11y.normal", comment: "Normal inconvenience pill accessibility label")
             Label(
                 String(format: NSLocalizedString("inconvenience.card.count", comment: "Inconvenience count on card"), count),
                 systemImage: category.symbol
@@ -606,6 +609,8 @@ public struct ExperienceCardView: View {
             .padding(.vertical, 4)
             .foregroundStyle(tint)
             .background(Capsule().fill(tint.opacity(0.12)))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(String(format: a11yFormat, count, category.label))
         }
     }
 }

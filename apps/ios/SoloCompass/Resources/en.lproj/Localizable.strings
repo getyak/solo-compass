@@ -92,14 +92,19 @@
 "inconvenience.category.logistics" = "Logistics";
 "inconvenience.category.weather" = "Weather";
 "inconvenience.category.etiquette" = "Etiquette";
-"inconvenience.category.safety" = "Safety";
-"inconvenience.category.other" = "Heads up";
+"inconvenience.category.safety" = "Safety concern";
+"inconvenience.category.other" = "Note";
 /* Accessibility label for each inconvenience row: "Heads up: <category> — <text>" */
 "inconvenience.a11y.prefix" = "Heads up: %@ — %@";
 /* Inconvenience pill on floating card: visible count label */
 "inconvenience.card.count" = "%d";
 /* VoiceOver suffix appended to the card's accessibilityLabel when inconveniences exist */
 "inconvenience.card.a11y" = "Heads up: %d things to know";
+/* VoiceOver label for the inconvenience pill itself — arg 1: count, arg 2: category label */
+/* High severity (safety / scam): "Important: 2 safety concerns to know before you go" */
+"inconvenience.card.count.a11y.high" = "Important: %1$d %2$@ to know before you go";
+/* Normal severity: "1 crowds heads-up" */
+"inconvenience.card.count.a11y.normal" = "%1$d %2$@ heads-up";
 
 /* Sections */
 "section.whyItMatters" = "Why it matters";
