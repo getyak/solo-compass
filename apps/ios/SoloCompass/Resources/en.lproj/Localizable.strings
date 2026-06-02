@@ -87,6 +87,7 @@
 "bestTimes.now.pill.left.a11y" = "Good time now, %d minutes left in this window";
 "bestTimes.next.pill" = "Better at %@";
 "bestTimes.window.active.a11y" = "happening now";
+"bestTimes.pill.scrollHint" = "Scrolls to the time-of-day timeline";
 
 /* Inconvenience categories */
 "inconvenience.category.scam" = "Scam risk";

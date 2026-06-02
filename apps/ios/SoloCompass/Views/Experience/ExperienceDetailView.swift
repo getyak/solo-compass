@@ -62,7 +62,10 @@ public struct ExperienceDetailView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(BestNowClock.self) private var bestNowClock
 
+    @State private var scrollProxy: ScrollViewProxy? = nil
+
     public var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 heroSection
@@ -113,6 +116,8 @@ public struct ExperienceDetailView: View {
             // with a home indicator).
         }
         .coordinateSpace(name: "detailScroll")
+        .onAppear { scrollProxy = proxy }
+        } // ScrollViewReader
         .onPreferenceChange(HeroTitleOffsetKey.self) { offset in
             let visible = offset > 0
             guard visible != heroTitleVisible else { return }
@@ -572,22 +577,34 @@ public struct ExperienceDetailView: View {
                 ? NSLocalizedString("timeline.now.good", comment: "")
                 : NSLocalizedString("timeline.now.off", comment: "")
         }
+        let scrollHint = NSLocalizedString("bestTimes.pill.scrollHint", comment: "Scrolls to the time-of-day timeline")
         return AnyView(
-            HStack(spacing: 4) {
-                Image(systemName: symbol)
-                    .font(.caption2.weight(.semibold))
-                    .symbolEffect(.pulse, isActive: isNow && !reduceMotion)
-                Text(label)
-                    .font(.caption.weight(.semibold))
-                    .contentTransition(.numericText())
-                    .animation(reduceMotion ? nil : .easeInOut, value: minutesLeft)
+            Button {
+                Haptics.selection()
+                if let proxy = scrollProxy {
+                    withAnimation(reduceMotion ? nil : .easeInOut) {
+                        proxy.scrollTo("bestTimesTimeline", anchor: .center)
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: symbol)
+                        .font(.caption2.weight(.semibold))
+                        .symbolEffect(.pulse, isActive: isNow && !reduceMotion)
+                    Text(label)
+                        .font(.caption.weight(.semibold))
+                        .contentTransition(.numericText())
+                        .animation(reduceMotion ? nil : .easeInOut, value: minutesLeft)
+                }
+                .foregroundStyle(isNow ? Color.green : Color.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(background))
             }
-            .foregroundStyle(isNow ? Color.green : Color.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(background))
+            .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Text(a11yLabel))
+            .accessibilityHint(Text(scrollHint))
         )
     }
 
@@ -626,6 +643,7 @@ public struct ExperienceDetailView: View {
                 if !viewModel.experience.bestTimes.isEmpty {
                     HStack { Spacer(); bestTimeStatusPill }
                     BestTimesTimeline(experience: viewModel.experience)
+                        .id("bestTimesTimeline")
                         .padding(.bottom, 4)
                     TimelineView(.periodic(from: .now, by: 60)) { context in
                         let currentHour = Calendar.current.component(.hour, from: context.date)
