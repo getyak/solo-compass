@@ -488,6 +488,11 @@
 "favorites.momentum.justDid" = "Nice — you just did %@";
 "favorites.momentum.closest" = "%@ is closest — go?";
 
+/* Favorites journey header — closest pill (shown when nearbyCount == 0) */
+"favorites.journey.closest" = "%1$@ · %2$@";
+"favorites.journey.closest.a11y" = "Closest favorite: %1$@, %2$@ away";
+"favorites.journey.closest.hint" = "Sorts favorites by distance";
+
 /* Generic actions */
 "action.undo" = "Undo";
 "favorites.undo.swipeHint" = "Swipe down to dismiss";
