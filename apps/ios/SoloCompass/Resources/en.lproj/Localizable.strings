@@ -186,6 +186,7 @@
 /* Solo score accessibility */
 "solo.a11y" = "Solo Score %@ of 10";
 "solo.excellent.a11y" = "Excellent for solo travelers";
+"solo.caution.a11y" = "may feel exposed for solo travelers";
 "solo.compact.a11y.hint" = "Double tap to see score breakdown";
 
 /* Solo Score breakdown popover */
