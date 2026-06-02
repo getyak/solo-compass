@@ -402,6 +402,7 @@
 /* Pending check-in banner */
 "checkin.banner.title" = "Did you visit?";
 "checkin.banner.yes" = "Yes!";
+"checkin.banner.confirmed.a11y" = "Visit confirmed";
 "checkin.banner.a11y" = "Did you visit %@?";
 "checkin.banner.a11yAnnouncement" = "You just passed %@ — did you visit?";
 

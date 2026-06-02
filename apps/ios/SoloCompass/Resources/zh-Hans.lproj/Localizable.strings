@@ -257,6 +257,7 @@
 /* Pending check-in banner */
 "checkin.banner.title" = "你来过了吗？";
 "checkin.banner.yes" = "来过！";
+"checkin.banner.confirmed.a11y" = "已确认到访";
 "checkin.banner.a11y" = "你来过 %@ 吗？";
 
 /* Experience detail overflow */
