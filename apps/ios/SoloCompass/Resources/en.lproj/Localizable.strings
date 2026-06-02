@@ -265,6 +265,10 @@
 "card.distance.arrived.a11y" = "You're here";
 "card.distance.bearing.a11y" = "toward the %@";
 
+/* ETA pill shown while walking toward an experience (<1500 m, not yet arrived) */
+"card.eta" = "arriving ~%@";
+"card.eta.a11y" = "Estimated arrival at %@";
+
 /* Proximity cue appended to bearing arrow a11y label when user is ≤300 m away */
 "card.distance.proximity.near" = "getting close";
 

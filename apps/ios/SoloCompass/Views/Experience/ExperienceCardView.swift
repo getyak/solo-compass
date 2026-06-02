@@ -30,6 +30,7 @@ public struct ExperienceCardView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(LocationService.self) private var locationService
     @Environment(AIService.self) private var aiService
+    @Environment(BestNowClock.self) private var clock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// True when the most recent synthesis degraded to skeleton placeholders.
@@ -130,6 +131,13 @@ public struct ExperienceCardView: View {
 
     private static let walkThresholdMeters = 1500.0
     private static let walkMetersPerMin = 80.0
+
+    private static let etaFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        f.dateStyle = .none
+        return f
+    }()
 
     /// Returns a (text, SF Symbol name) pair for the distance pill.
     /// Under 1 500 m → walk-minutes + figure.walk; otherwise → formatted distance + location.fill.
@@ -267,6 +275,9 @@ public struct ExperienceCardView: View {
                 }
                 .contentTransition(.numericText())
                 .animation(.spring(response: 0.4), value: distanceMeters)
+                if let meters = distanceMeters, !isArrived, meters < Self.walkThresholdMeters {
+                    etaPill(meters: meters)
+                }
                 if !experience.realInconveniences.isEmpty {
                     inconveniencePill
                 } else if experience.isBestNow() {
@@ -474,6 +485,23 @@ public struct ExperienceCardView: View {
             }
             return text
         }())
+    }
+
+    @ViewBuilder
+    private func etaPill(meters: Double) -> some View {
+        let minutes = Int((meters / Self.walkMetersPerMin).rounded(.up))
+        let arrival = clock.tick.addingTimeInterval(Double(minutes) * 60)
+        let timeString = Self.etaFormatter.string(from: arrival)
+        let label = String(format: NSLocalizedString("card.eta", comment: "ETA pill"), timeString)
+        let a11y = String(format: NSLocalizedString("card.eta.a11y", comment: "ETA pill accessibility"), timeString)
+        Label(label, systemImage: "figure.walk.arrival")
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(Color.green)
+            .background(Capsule().fill(Color.green.opacity(0.12)))
+            .contentTransition(reduceMotion ? .identity : .numericText())
+            .accessibilityLabel(a11y)
     }
 
     @ViewBuilder
