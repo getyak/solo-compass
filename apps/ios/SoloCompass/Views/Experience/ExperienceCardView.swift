@@ -24,6 +24,8 @@ public struct ExperienceCardView: View {
     @State private var onCourseSnap = false
     @State private var lastProximityBand: ProximityTint?
     @State private var proximityPop = false
+    @State private var bestTimeAppeared = false
+    @State private var clockNudge = false
 
     private static let arrivedThresholdMeters = 75.0
 
@@ -579,6 +581,19 @@ public struct ExperienceCardView: View {
         .padding(.vertical, 4)
         .foregroundStyle(Color.secondary)
         .background(Capsule().fill(Color.secondary.opacity(0.12)))
+        .symbolEffect(.bounce, value: clockNudge)
+        .scaleEffect(bestTimeAppeared ? 1 : 0.85)
+        .opacity(bestTimeAppeared ? 1 : 0)
+        .onAppear {
+            if reduceMotion {
+                bestTimeAppeared = true
+            } else {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                    bestTimeAppeared = true
+                }
+                clockNudge.toggle()
+            }
+        }
     }
 
     // Severity order: safety > scam > weather > crowds > logistics > etiquette > other
