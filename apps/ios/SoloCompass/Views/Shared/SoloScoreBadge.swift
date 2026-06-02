@@ -59,14 +59,8 @@ public struct SoloScoreBadge: View {
         .scaleEffect(appeared ? 1 : 0.7)
         .opacity(appeared ? 1 : 0)
         .onAppear {
-            if reduceMotion {
-                appeared = true
-                animatedScore = score.overall
-            } else {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
-                    appeared = true
-                }
-            }
+            appeared = true
+            updateAnimatedScore()
         }
         .accessibilityLabel(Text(
             isExcellent
@@ -77,13 +71,8 @@ public struct SoloScoreBadge: View {
         .accessibilityHint(Text(NSLocalizedString("solo.compact.a11y.hint", comment: "Double tap to see score breakdown")))
         .accessibilityAddTraits(.isButton)
         .onChange(of: score.overall) { _, _ in
-            if reduceMotion {
-                animatedScore = score.overall
-            } else {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
-                    appeared = true
-                }
-            }
+            appeared = true
+            updateAnimatedScore()
         }
     }
 
@@ -123,6 +112,16 @@ public struct SoloScoreBadge: View {
             }
         }
         .onChange(of: score.overall) { triggerAnimation() }
+    }
+
+    private func updateAnimatedScore() {
+        if reduceMotion {
+            animatedScore = score.overall
+        } else {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
+                animatedScore = score.overall
+            }
+        }
     }
 
     private func triggerAnimation() {
