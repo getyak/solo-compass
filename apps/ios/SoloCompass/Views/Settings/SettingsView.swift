@@ -90,6 +90,24 @@ public struct SettingsView: View {
             .task {
                 isAnonymous = await SupabaseClient.shared.isAnonymous
             }
+            // US-020: Companion safety consent. Anchored to the stable List —
+            // NOT to `companionSection` — so List row recycling can't tear
+            // down the presentation source mid-transition. Accepting flips
+            // `companionEnabled`, which grows that Section from 1 row to 6;
+            // when the sheet was anchored to the Section, that row churn
+            // destroyed its own presentation anchor and crashed on device,
+            // leaving the flag unwritten ("enable failed").
+            .sheet(isPresented: $showingCompanionConsent) {
+                // Cancel path: companionEnabled stays false (only accept
+                // writes it). The Toggle re-reads from preferences and
+                // auto-rolls-back. The sheet dismisses itself via the
+                // environment `dismiss`, which resets this binding — so we
+                // only flip the persisted flag here (no double dismissal).
+                CompanionSafetyConsentSheet(onAccepted: {
+                    preferences.companionEnabled = true
+                })
+                .environment(preferences)
+            }
         }
     }
 
@@ -891,15 +909,6 @@ public struct SettingsView: View {
             )
         } footer: {
             Text(NSLocalizedString("settings.companion.footer", comment: "Companion section footer"))
-        }
-        .sheet(isPresented: $showingCompanionConsent) {
-            // Cancel path: companionEnabled stays false (only accept writes
-            // it). The Toggle re-reads from preferences and auto-rollbacks.
-            CompanionSafetyConsentSheet(onAccepted: {
-                preferences.companionEnabled = true
-                showingCompanionConsent = false
-            })
-            .environment(preferences)
         }
     }
 }
