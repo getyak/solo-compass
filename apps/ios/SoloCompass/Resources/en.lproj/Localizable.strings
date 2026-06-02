@@ -475,6 +475,7 @@
 /* Generic actions */
 "action.undo" = "Undo";
 "favorites.undo.swipeHint" = "Swipe down to dismiss";
+"favorites.undo.tapHint" = "Double tap to restore";
 "favorites.undo.announcement" = "Removed %@. Undo available.";
 
 /* Notifications */

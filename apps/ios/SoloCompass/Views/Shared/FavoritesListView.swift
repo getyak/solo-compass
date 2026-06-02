@@ -808,28 +808,31 @@ private extension FavoritesListView {
 
     var undoBar: some View {
         ZStack(alignment: .bottom) {
-            HStack {
-                Text(String(format: NSLocalizedString("favorites.undo.named", comment: "Removed named experience undo banner"), lastUnfavorited?.title ?? ""))
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Spacer()
-                Button {
-                    performUndo()
-                } label: {
+            Button {
+                performUndo()
+            } label: {
+                HStack {
+                    Text(String(format: NSLocalizedString("favorites.undo.named", comment: "Removed named experience undo banner"), lastUnfavorited?.title ?? ""))
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Spacer()
                     Text(NSLocalizedString("action.undo", comment: "Undo action"))
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.accentColor)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 14)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 14)
+            .buttonStyle(.plain)
 
             if !reduceMotion {
                 GeometryReader { geo in
                     Capsule()
-                        .fill(Color.accentColor)
+                        .fill(countdownLineColor)
                         .frame(width: geo.size.width * undoProgress, height: 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -870,7 +873,7 @@ private extension FavoritesListView {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(String(format: NSLocalizedString("favorites.undo.named", comment: "Removed named experience undo banner"), lastUnfavorited?.title ?? "")))
-        .accessibilityHint(Text(NSLocalizedString("favorites.undo.swipeHint", comment: "Swipe down to dismiss undo bar")))
+        .accessibilityHint(Text(NSLocalizedString("favorites.undo.tapHint", comment: "Double tap to restore removed favorite")))
         .accessibilityAction(named: Text(NSLocalizedString("action.undo", comment: "Undo action"))) {
             performUndo()
         }
@@ -882,6 +885,15 @@ private extension FavoritesListView {
                     undoProgress = 0
                 }
             }
+        }
+    }
+
+    private var countdownLineColor: Color {
+        guard !reduceMotion else { return .accentColor }
+        if #available(iOS 18, *) {
+            return Color.accentColor.mix(with: .orange, by: 1 - undoProgress)
+        } else {
+            return .accentColor
         }
     }
 
