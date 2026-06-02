@@ -22,6 +22,8 @@ public struct ExperienceCardView: View {
     @State private var arrivalGlow = false
     @State private var didFireOnCourse = false
     @State private var onCourseSnap = false
+    @State private var lastProximityBand: ProximityTint?
+    @State private var proximityPop = false
 
     private static let arrivedThresholdMeters = 75.0
 
@@ -84,8 +86,20 @@ public struct ExperienceCardView: View {
         return directions[index]
     }
 
-    private enum ProximityTint {
-        case near, mid, far
+    private enum ProximityTint: Comparable {
+        case far, mid, near
+
+        private var rank: Int {
+            switch self {
+            case .far: return 0
+            case .mid: return 1
+            case .near: return 2
+            }
+        }
+
+        static func < (lhs: ProximityTint, rhs: ProximityTint) -> Bool {
+            lhs.rank < rhs.rank
+        }
 
         static func from(meters: Double) -> ProximityTint {
             if meters <= 300 { return .near }
@@ -407,6 +421,29 @@ public struct ExperienceCardView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(Capsule().fill(Color.secondary.opacity(0.12)))
+        .scaleEffect(proximityPop && !reduceMotion ? 1.18 : 1.0)
+        .animation(.spring(response: 0.25, dampingFraction: 0.5), value: proximityPop)
+        .onChange(of: distanceMeters) { _, meters in
+            guard let meters else { return }
+            let current = ProximityTint.from(meters: meters)
+            defer { lastProximityBand = current }
+            guard let last = lastProximityBand, current > last else { return }
+            let style: UIImpactFeedbackGenerator.FeedbackStyle = current == .near ? .medium : .light
+            Haptics.impact(style)
+            if current == .near {
+                UIAccessibility.post(
+                    notification: .announcement,
+                    argument: NSLocalizedString("card.proximity.closer", comment: "VoiceOver announcement when user enters the near proximity band")
+                )
+            }
+            if !reduceMotion {
+                proximityPop = true
+                Task {
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    proximityPop = false
+                }
+            }
+        }
         .onChange(of: isOnCourse) { _, onCourse in
             if onCourse {
                 guard !didFireOnCourse else { return }
