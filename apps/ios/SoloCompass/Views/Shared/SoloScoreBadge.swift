@@ -26,6 +26,7 @@ public struct SoloScoreBadge: View {
     }
 
     private var isExcellent: Bool { score.overall >= 8.5 }
+    private var isCaution: Bool { score.overall < 4.0 }
 
     private var compactView: some View {
         Button {
@@ -41,6 +42,10 @@ public struct SoloScoreBadge: View {
                         .scaleEffect(twinkle && !reduceMotion ? 1.12 : 1.0)
                         .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: twinkle)
                         .accessibilityHidden(true)
+                } else if isCaution {
+                    Image(systemName: "person.fill.questionmark")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.95))
                 }
                 Text(NSLocalizedString("solo.label", comment: "Solo"))
                     .font(.caption2)
@@ -74,7 +79,10 @@ public struct SoloScoreBadge: View {
             isExcellent
                 ? String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"), formatted(score.overall))
                     + ", " + NSLocalizedString("solo.excellent.a11y", comment: "Excellent for solo travelers")
-                : String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"), formatted(score.overall))
+                : isCaution
+                    ? String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"), formatted(score.overall))
+                        + ", " + NSLocalizedString("solo.caution.a11y", comment: "may feel exposed for solo travelers")
+                    : String(format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"), formatted(score.overall))
         ))
         .accessibilityHint(Text(NSLocalizedString("solo.compact.a11y.hint", comment: "Double tap to see score breakdown")))
         .accessibilityAddTraits(.isButton)
@@ -275,9 +283,16 @@ private struct SoloScorePopoverContent: View {
         hint: nil,
         basedOnCount: 3
     )
+    let cautionScore = SoloScore(
+        overall: 3.1,
+        breakdown: .init(seatingFriendly: 2, soloPatronRatio: 3, staffPressure: 4, soloPortioning: 3, ambianceFit: 3, safety: 4),
+        hint: "Can feel exposed as a solo diner.",
+        basedOnCount: 7
+    )
     VStack(spacing: 24) {
         SoloScoreBadge(score: excellentScore, style: .compact)
         SoloScoreBadge(score: midScore, style: .compact)
+        SoloScoreBadge(score: cautionScore, style: .compact)
         SoloScoreBadge(score: excellentScore, style: .full)
             .padding()
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
