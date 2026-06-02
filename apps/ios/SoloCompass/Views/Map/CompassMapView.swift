@@ -53,6 +53,19 @@ public struct CompassMapView: View {
     /// gates the toggle out, which lets `CompassMapViewLayerToggleTests` assert
     /// the control is / is not in the view hierarchy. DEBUG-only and read-only.
     @MainActor static var debugCompanionLayerToggleRendered: Bool = false
+
+    /// Regression hook for the bottom-left settings FAB. Set to `true` the
+    /// moment `settingsSheetContent` is evaluated — which only happens when the
+    /// `.sheet(isPresented: settingsSheetBinding)` modifier is actually wired
+    /// into the view tree AND `isShowingSettings` is true. Commit 6655422 once
+    /// dropped that modifier, leaving the FAB inert; this hook lets
+    /// `SettingsSheetPresentationTests` prove the wiring is back. DEBUG-only.
+    @MainActor static var debugSettingsSheetRendered: Bool = false
+
+    /// Test-only switch: when `true`, `CompassMapContentView`'s first `onAppear`
+    /// flips `isShowingSettings` so the settings sheet presents without a tap.
+    /// Paired with `debugSettingsSheetRendered` to regression-test the FAB wiring.
+    @MainActor static var debugForceShowSettings: Bool = false
     #endif
 }
 
@@ -232,6 +245,12 @@ struct CompassMapContentView: View {
             .onAppear {
                 #if DEBUG
                 CompassMapView.debugBodyTypeName = String(describing: type(of: body))
+                // Regression test entry point: lets SettingsSheetPresentationTests
+                // drive the private `isShowingSettings` state without a tap, so it
+                // can assert the settings `.sheet` modifier is wired into the tree.
+                if CompassMapView.debugForceShowSettings {
+                    viewModel.isShowingSettings = true
+                }
                 #endif
                 locationService.requestPermission()
                 // US-021: `viewModel` is built eagerly in `init`, so there is no
@@ -327,6 +346,10 @@ struct CompassMapContentView: View {
                 chatSheetContent(orch)
             }
             .sheet(isPresented: paywallSheetBinding, onDismiss: { viewModel.onPaywallUnlocked = nil }) { paywallSheetContent }
+            // US-025 regression: the Routes-section commit (6655422) accidentally
+            // dropped this line, leaving the bottom-left settings FAB inert — its
+            // `isShowingSettings = true` had no presenter to observe it.
+            .sheet(isPresented: settingsSheetBinding) { settingsSheetContent }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
     }
@@ -592,6 +615,9 @@ struct CompassMapContentView: View {
         )
         .environment(preferences)
         .environment(notificationService)
+        #if DEBUG
+        .onAppear { CompassMapView.debugSettingsSheetRendered = true }
+        #endif
     }
 
     @ViewBuilder
