@@ -672,6 +672,11 @@ private struct FavoritesJourneyHeader: View {
                 .contentTransition(.numericText())
                 .animation(.easeInOut, value: completed)
                 .animation(.easeInOut, value: total)
+            if total > 0 {
+                JourneyProgressBar(completed: completed, total: total)
+                    .padding(.top, 4)
+                    .accessibilityHidden(true)
+            }
             goodNowNudge
                 .animation(reduceMotion ? nil : .easeInOut, value: goodNowCount)
             nearbyNudge
@@ -697,6 +702,56 @@ private struct FavoritesJourneyHeader: View {
                 appeared = true
             } else {
                 withAnimation(.easeOut(duration: 0.3)) { appeared = true }
+            }
+        }
+    }
+}
+
+private struct JourneyProgressBar: View {
+    let completed: Int
+    let total: Int
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var animatedFraction: CGFloat = 0
+
+    private var targetFraction: CGFloat {
+        total > 0 ? CGFloat(completed) / CGFloat(total) : 0
+    }
+
+    private var isAllDone: Bool { total > 0 && completed == total }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.green.opacity(0.15))
+                    .frame(height: 4)
+                Capsule()
+                    .fill(isAllDone ? Color.green : Color.green.opacity(0.75))
+                    .frame(width: geo.size.width * animatedFraction, height: 4)
+                    .shadow(
+                        color: isAllDone ? Color.green.opacity(0.4) : Color.clear,
+                        radius: 3
+                    )
+            }
+        }
+        .frame(height: 4)
+        .onAppear {
+            if reduceMotion {
+                animatedFraction = targetFraction
+            } else {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    animatedFraction = targetFraction
+                }
+            }
+        }
+        .onChange(of: completed) { _, _ in
+            if reduceMotion {
+                animatedFraction = targetFraction
+            } else {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    animatedFraction = targetFraction
+                }
             }
         }
     }
