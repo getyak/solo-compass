@@ -1099,6 +1099,7 @@ private struct MapOverlayView: View {
             if showEmptyFilterBanner {
                 EmptyFilterBanner(
                     filterName: activeFilterName,
+                    category: viewModel.selectedCategory,
                     onShowAll: {
                         viewModel.clearFilters()
                     }
@@ -1439,7 +1440,11 @@ private struct MapOverlayView: View {
 
 private struct EmptyFilterBanner: View {
     let filterName: String
+    let category: ExperienceCategory?
     let onShowAll: () -> Void
+
+    @State private var nudge: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GlassmorphismCapsule(
@@ -1449,9 +1454,15 @@ private struct EmptyFilterBanner: View {
             shadowY: 3
         ) {
             HStack(spacing: 8) {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                if let cat = category {
+                    Image(systemName: cat.symbol)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(cat.color.opacity(0.7))
+                } else {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
                 Text(String(
                     format: NSLocalizedString("filter.empty.message", comment: "No experiences match filter name"),
                     filterName
@@ -1472,6 +1483,7 @@ private struct EmptyFilterBanner: View {
                 .accessibilityLabel(Text(NSLocalizedString("filter.empty.showAll.a11y", comment: "Show all experiences")))
             }
         }
+        .offset(x: nudge)
         .padding(.horizontal, 16)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(String(
@@ -1480,6 +1492,11 @@ private struct EmptyFilterBanner: View {
         )))
         .accessibilityHint(Text(NSLocalizedString("filter.empty.message.a11y", comment: "VoiceOver hint for empty filter banner")))
         .onAppear {
+            if !reduceMotion {
+                withAnimation(.easeOut(duration: 0.09)) { nudge = -5 }
+                withAnimation(.easeInOut(duration: 0.09).delay(0.09)) { nudge = 5 }
+                withAnimation(.easeIn(duration: 0.09).delay(0.18)) { nudge = 0 }
+            }
             guard UIAccessibility.isVoiceOverRunning else { return }
             let message = String(
                 format: NSLocalizedString("filter.empty.title.a11y", comment: "VoiceOver: no matches for filter"),
