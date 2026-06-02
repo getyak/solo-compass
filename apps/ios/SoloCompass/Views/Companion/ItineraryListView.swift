@@ -124,34 +124,45 @@ public struct ItineraryListView: View {
         loadItineraries()
     }
 
+    private var countdownLineColor: Color {
+        guard !reduceMotion else { return .accentColor }
+        if #available(iOS 18, *) {
+            return Color.accentColor.mix(with: .orange, by: 1 - undoProgress)
+        } else {
+            return .accentColor
+        }
+    }
+
     private var undoBar: some View {
         ZStack(alignment: .bottom) {
-            HStack {
-                Text(String(
-                    format: NSLocalizedString("itinerary.undo.named", comment: "Removed named itinerary undo banner"),
-                    lastDeleted?.title ?? ""
-                ))
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                Spacer()
-                Button {
-                    performUndo()
-                } label: {
+            Button {
+                performUndo()
+            } label: {
+                HStack {
+                    Text(String(
+                        format: NSLocalizedString("itinerary.undo.named", comment: "Removed named itinerary undo banner"),
+                        lastDeleted?.title ?? ""
+                    ))
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    Spacer()
                     Text(NSLocalizedString("action.undo", comment: "Undo action"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.accentColor)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 14)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 14)
+            .buttonStyle(.plain)
 
             if !reduceMotion {
                 GeometryReader { geo in
                     Capsule()
-                        .fill(Color.accentColor)
+                        .fill(countdownLineColor)
                         .frame(width: geo.size.width * undoProgress, height: 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
