@@ -3,22 +3,26 @@ import SwiftUI
 /// Radar chart visualising the six SoloScore dimensions.
 /// Falls back to highlighted progress bars when dimension variance < 0.5.
 /// Tap the chart to replay the draw-in animation (Reduce Motion: no replay, no haptic).
+/// Tap any axis label to see a plain-language tooltip for that dimension.
 public struct SoloScoreRadarChart: View {
     let score: SoloScore
 
     @State private var drawProgress: Double = 0
     @State private var isReplaying: Bool = false
+    @State private var selectedAxis: Int? = nil
+    @State private var tooltipDismissTask: Task<Void, Never>? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let springDuration: Double = 0.7
+    private static let tooltipAutoDismissSeconds: Double = 4
 
-    private static let axes: [(label: String, symbol: String, keyPath: KeyPath<SoloScore.Breakdown, Double>)] = [
-        (NSLocalizedString("solo.seating",    comment: ""), "chair",              \.seatingFriendly),
-        (NSLocalizedString("solo.staff",      comment: ""), "person.crop.circle", \.staffPressure),
-        (NSLocalizedString("solo.patrons",    comment: ""), "person.2",           \.soloPatronRatio),
-        (NSLocalizedString("solo.ambiance",   comment: ""), "sparkles",           \.ambianceFit),
-        (NSLocalizedString("solo.safety",     comment: ""), "shield",             \.safety),
-        (NSLocalizedString("solo.portioning", comment: ""), "fork.knife",         \.soloPortioning),
+    private static let axes: [(label: String, symbol: String, keyPath: KeyPath<SoloScore.Breakdown, Double>, descKey: String)] = [
+        (NSLocalizedString("solo.seating",    comment: ""), "chair",              \.seatingFriendly, "solo.seating.desc"),
+        (NSLocalizedString("solo.staff",      comment: ""), "person.crop.circle", \.staffPressure,   "solo.staff.desc"),
+        (NSLocalizedString("solo.patrons",    comment: ""), "person.2",           \.soloPatronRatio, "solo.patrons.desc"),
+        (NSLocalizedString("solo.ambiance",   comment: ""), "sparkles",           \.ambianceFit,     "solo.ambiance.desc"),
+        (NSLocalizedString("solo.safety",     comment: ""), "shield",             \.safety,          "solo.safety.desc"),
+        (NSLocalizedString("solo.portioning", comment: ""), "fork.knife",         \.soloPortioning,  "solo.portioning.desc"),
     ]
 
     private var values: [Double] {
@@ -69,7 +73,18 @@ public struct SoloScoreRadarChart: View {
             }
 
             weakestCaption
+
+            if let idx = selectedAxis {
+                axisDimensionTooltip(for: idx)
+                    .transition(
+                        reduceMotion
+                            ? .opacity
+                            : .scale(scale: 0.92).combined(with: .opacity)
+                    )
+                    .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.3, dampingFraction: 0.75), value: selectedAxis)
+            }
         }
+        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.3, dampingFraction: 0.75), value: selectedAxis)
         .onAppear {
             if reduceMotion {
                 drawProgress = 1
@@ -175,15 +190,15 @@ public struct SoloScoreRadarChart: View {
                     }
                     .opacity(labelOpacity)
                     .position(pos)
-                    .accessibilityHidden(true) // covered by radarAccessibilityLabel below
+                    .onTapGesture { tapAxis(i) }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHint(Text(NSLocalizedString("solo.axis.tap.hint", comment: "")))
+                    .accessibilityLabel(Text(axis.label))
                 }
             }
         }
         .aspectRatio(1, contentMode: .fit)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(radarAccessibilityLabel)
-        .accessibilityValue(radarAccessibilityValue)
-        .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "Tap to replay the draw-in animation")))
+        .accessibilityElement(children: .contain)
         .onTapGesture {
             guard !reduceMotion, !isReplaying else { return }
             replay()
@@ -358,16 +373,68 @@ public struct SoloScoreRadarChart: View {
                         .frame(width: 24, alignment: .trailing)
                         .accessibilityHidden(true)
                 }
+                .onTapGesture { tapAxis(i) }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint(Text(NSLocalizedString("solo.axis.tap.hint", comment: "")))
+                .accessibilityLabel(Text(axis.label))
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(radarAccessibilityLabel)
-        .accessibilityValue(radarAccessibilityValue)
-        .accessibilityHint(reduceMotion ? Text("") : Text(NSLocalizedString("solo.radar.replayHint", comment: "")))
-        .onTapGesture {
-            guard !reduceMotion, !isReplaying else { return }
-            replay()
+        .accessibilityElement(children: .contain)
+    }
+}
+
+// MARK: - Axis tooltip
+
+extension SoloScoreRadarChart {
+    @MainActor
+    private func tapAxis(_ index: Int) {
+        tooltipDismissTask?.cancel()
+        if selectedAxis == index {
+            selectedAxis = nil
+        } else {
+            selectedAxis = index
+            Haptics.selection()
+            let task = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: UInt64(Self.tooltipAutoDismissSeconds * 1_000_000_000))
+                if !Task.isCancelled {
+                    selectedAxis = nil
+                }
+            }
+            tooltipDismissTask = task
         }
+    }
+
+    @ViewBuilder
+    private func axisDimensionTooltip(for index: Int) -> some View {
+        let axis = Self.axes[index]
+        let val = Int(values[index].rounded())
+        let desc = NSLocalizedString(axis.descKey, comment: "")
+        GlassmorphismCapsule(
+            horizontalPadding: 14,
+            verticalPadding: 8,
+            shadowRadius: 6,
+            shadowY: 3
+        ) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: axis.symbol)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(score.scoreColor)
+                    Text(axis.label)
+                        .font(.caption.weight(.semibold))
+                    Spacer()
+                    Text("\(val)/10")
+                        .font(.caption.monospacedDigit().weight(.bold))
+                        .foregroundStyle(score.scoreColor)
+                }
+                Text(desc)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(axis.label), \(val) of 10. \(desc)"))
     }
 }
 
