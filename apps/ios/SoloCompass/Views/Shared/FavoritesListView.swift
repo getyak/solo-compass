@@ -27,6 +27,7 @@ public struct FavoritesListView: View {
     @AppStorage("favorites.swipeHintSeen") private var swipeHintSeen = false
     @State private var ringDidCelebrate = false
     @State private var showRemainingOnly = false
+    @State private var prioritizeGoodNow = false
 
     private var undoDismissSeconds: Double { voiceOverOn ? 12 : 4 }
 
@@ -69,15 +70,16 @@ public struct FavoritesListView: View {
     private var sortedFavorites: [Experience] {
         let ids = preferences.favoritedExperiences
         let experiences = ids.compactMap { experienceService.getExperience(id: $0) }
+        let base: [Experience]
         switch sortMode {
         case .recent:
-            return experiences.sorted { lhs, rhs in
+            base = experiences.sorted { lhs, rhs in
                 let lDate = preferences.favoritedAt[lhs.id] ?? .distantPast
                 let rDate = preferences.favoritedAt[rhs.id] ?? .distantPast
                 return lDate > rDate
             }
         case .nearest:
-            return experiences.sorted { lhs, rhs in
+            base = experiences.sorted { lhs, rhs in
                 let lDist = distanceMeters(for: lhs) ?? .greatestFiniteMagnitude
                 let rDist = distanceMeters(for: rhs) ?? .greatestFiniteMagnitude
                 if lDist != rDist { return lDist < rDist }
@@ -86,6 +88,10 @@ public struct FavoritesListView: View {
                 return lDate > rDate
             }
         }
+        guard prioritizeGoodNow else { return base }
+        let good = base.filter { !preferences.completedExperiences.contains($0.id) && $0.isBestNow() && !$0.bestTimes.isEmpty }
+        let rest = base.filter { exp in !good.contains(where: { $0.id == exp.id }) }
+        return good + rest
     }
 
     private static let kilometersFormatter: MeasurementFormatter = {
@@ -146,6 +152,13 @@ public struct FavoritesListView: View {
         sortedFavorites
             .filter { distanceMeters(for: $0) != nil }
             .min(by: { (distanceMeters(for: $0) ?? .greatestFiniteMagnitude) < (distanceMeters(for: $1) ?? .greatestFiniteMagnitude) })
+    }
+
+    private var goodNowCount: Int {
+        sortedFavorites.filter { exp in
+            guard !exp.bestTimes.isEmpty else { return false }
+            return !preferences.completedExperiences.contains(exp.id) && exp.isBestNow()
+        }.count
     }
 
     @ViewBuilder
@@ -239,6 +252,11 @@ public struct FavoritesListView: View {
                                 onTapClosest: locationService.currentLocation != nil && nearbyCount == 0 && nearestFavorite != nil ? {
                                     Haptics.selection()
                                     withAnimation(reduceMotion ? nil : .easeInOut) { sortMode = .nearest }
+                                } : nil,
+                                goodNowCount: goodNowCount,
+                                onTapGoodNow: goodNowCount > 0 ? {
+                                    Haptics.selection()
+                                    withAnimation(reduceMotion ? nil : .easeInOut) { prioritizeGoodNow = true }
                                 } : nil
                             )
                             .padding(.horizontal, 16)
@@ -461,6 +479,11 @@ public struct FavoritesListView: View {
                 withAnimation(reduceMotion ? nil : .easeInOut) { showRemainingOnly = false }
             }
         }
+        .onChange(of: goodNowCount) { _, newCount in
+            if newCount == 0 && prioritizeGoodNow {
+                withAnimation(reduceMotion ? nil : .easeInOut) { prioritizeGoodNow = false }
+            }
+        }
     }
 }
 
@@ -474,6 +497,8 @@ private struct FavoritesJourneyHeader: View {
     var closestDistanceText: String? = nil
     var closestProximityColor: Color? = nil
     var onTapClosest: (() -> Void)? = nil
+    var goodNowCount: Int = 0
+    var onTapGoodNow: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -498,6 +523,47 @@ private struct FavoritesJourneyHeader: View {
             return String(format: NSLocalizedString("favorites.journey.progress", comment: "N of M explored"), completed, total)
         } else {
             return String(format: NSLocalizedString("favorites.journey.awaiting", comment: "N places waiting"), total)
+        }
+    }
+
+    @ViewBuilder
+    private var goodNowNudge: some View {
+        if goodNowCount > 0 {
+            let label = String(format: NSLocalizedString("favorites.journey.goodNow", comment: "N favorites great right now nudge"), goodNowCount)
+            let pillContent = HStack(spacing: 4) {
+                Image(systemName: "clock.badge.checkmark")
+                    .font(.caption2)
+                    .foregroundStyle(Color.green)
+                    .accessibilityHidden(true)
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(Color.green)
+                if onTapGoodNow != nil {
+                    Image(systemName: "chevron.right.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(Color.green)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.green.opacity(0.12), in: Capsule())
+            .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+
+            if let onTap = onTapGoodNow {
+                Button {
+                    onTap()
+                } label: {
+                    pillContent
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(format: NSLocalizedString("favorites.journey.goodNow.a11y", comment: "Good now nudge button accessibility label"), goodNowCount))
+                .accessibilityHint(NSLocalizedString("favorites.journey.goodNow.hint", comment: "Good now nudge sorts those favorites to top"))
+                .accessibilityAddTraits(.isButton)
+            } else {
+                pillContent
+                    .accessibilityLabel(String(format: NSLocalizedString("favorites.journey.goodNow.a11y", comment: "Good now nudge accessibility label"), goodNowCount))
+            }
         }
     }
 
@@ -605,6 +671,8 @@ private struct FavoritesJourneyHeader: View {
                 .contentTransition(.numericText())
                 .animation(.easeInOut, value: completed)
                 .animation(.easeInOut, value: total)
+            goodNowNudge
+                .animation(reduceMotion ? nil : .easeInOut, value: goodNowCount)
             nearbyNudge
                 .animation(reduceMotion ? nil : .easeInOut, value: nearbyCount)
             closestNudge
