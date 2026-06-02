@@ -638,8 +638,7 @@ private struct BestNowBadge: View {
     var experience: Experience
 
     private static let gold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
-    private static let amber = Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
-    private static let closingSoonThresholdMinutes = 45
+    private static let closingSoonThreshold = 45
 
     @State private var pulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -648,52 +647,53 @@ private struct BestNowBadge: View {
     /// up 20+ concurrent timelines.
     @Environment(BestNowClock.self) private var clock
 
-    private func isClosingSoon(at date: Date) -> Bool {
-        (experience.minutesLeftInBestWindow(at: date) ?? .max) <= Self.closingSoonThresholdMinutes
+    private struct BadgeStyle {
+        let isClosingSoon: Bool
+        let tint: Color
+        let symbol: String
+        let text: String
+        let a11yText: String
     }
 
-    private func labelText(at date: Date) -> String {
-        if let minutes = experience.minutesLeftInBestWindow(at: date) {
-            if isClosingSoon(at: date) {
-                return String(format: NSLocalizedString("experience.bestNow.closingSoon", comment: "Closing soon with countdown"), minutes)
-            }
-            return String(format: NSLocalizedString("experience.bestNow.countdown", comment: "Best now with countdown"), minutes)
+    private func badgeStyle(at date: Date) -> BadgeStyle {
+        let minutesLeft = experience.minutesLeftInBestWindow(at: date)
+        let isClosingSoon = (minutesLeft ?? .max) <= Self.closingSoonThreshold
+        if isClosingSoon, let mins = minutesLeft {
+            return BadgeStyle(
+                isClosingSoon: true,
+                tint: .orange,
+                symbol: "clock.badge.exclamationmark",
+                text: String(format: NSLocalizedString("favorites.row.closingSoon", comment: "Closing soon pill in favorites row"), mins),
+                a11yText: String(format: NSLocalizedString("favorites.row.closingSoon.a11y", comment: "Closing soon accessibility suffix"), mins)
+            )
         }
-        return NSLocalizedString("experience.bestNow", comment: "Best now label")
-    }
-
-    private func a11yText(at date: Date) -> String {
-        if let minutes = experience.minutesLeftInBestWindow(at: date) {
-            if isClosingSoon(at: date) {
-                return String(format: NSLocalizedString("experience.bestNow.closingSoon.a11y", comment: "Closing soon accessibility with countdown"), minutes)
-            }
-            return String(format: NSLocalizedString("experience.bestNow.countdown.a11y", comment: "Best now accessibility with countdown"), minutes)
+        let text: String
+        let a11y: String
+        if let mins = minutesLeft {
+            text = String(format: NSLocalizedString("experience.bestNow.countdown", comment: "Best now with countdown"), mins)
+            a11y = String(format: NSLocalizedString("experience.bestNow.countdown.a11y", comment: "Best now accessibility with countdown"), mins)
+        } else {
+            text = NSLocalizedString("experience.bestNow", comment: "Best now label")
+            a11y = NSLocalizedString("experience.bestNow", comment: "Best now label")
         }
-        return NSLocalizedString("experience.bestNow", comment: "Best now label")
+        return BadgeStyle(isClosingSoon: false, tint: Self.gold, symbol: "sparkle", text: text, a11yText: a11y)
     }
 
     var body: some View {
-        let closingSoon = isClosingSoon(at: clock.tick)
-        let pulseDuration = closingSoon ? 0.7 : 1.1
+        let style = badgeStyle(at: clock.tick)
         Group {
             if reduceMotion {
-                badgeLabel(at: clock.tick)
-                    .accessibilityLabel(a11yText(at: clock.tick))
+                badgeLabel(style: style)
+                    .accessibilityLabel(style.a11yText)
             } else {
                 // Reading `clock.tick` here makes this badge a SwiftUI observer
                 // of the shared clock: the once-a-minute advance invalidates the
                 // body and recomputes the countdown — same cadence the old
                 // per-badge TimelineView gave, with one timer for all badges.
-                badgeLabel(at: clock.tick)
-                    .accessibilityLabel(a11yText(at: clock.tick))
+                badgeLabel(style: style)
+                    .accessibilityLabel(style.a11yText)
                     .onAppear {
-                        withAnimation(.easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)) {
-                            pulse = true
-                        }
-                    }
-                    .onChange(of: closingSoon) { _, _ in
-                        pulse = false
-                        withAnimation(.easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)) {
+                        withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
                             pulse = true
                         }
                     }
@@ -701,18 +701,15 @@ private struct BestNowBadge: View {
         }
     }
 
-    private func badgeLabel(at date: Date) -> some View {
-        let closingSoon = isClosingSoon(at: date)
-        let tint = closingSoon ? Self.amber : Self.gold
-        let symbol = closingSoon ? "clock.badge.exclamationmark" : "sparkle"
-        return Label(labelText(at: date), systemImage: symbol)
+    private func badgeLabel(style: BadgeStyle) -> some View {
+        Label(style.text, systemImage: style.symbol)
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Capsule().fill(tint.opacity(0.2)))
-            .foregroundStyle(tint)
+            .background(Capsule().fill(style.tint.opacity(0.2)))
+            .foregroundStyle(style.tint)
             .scaleEffect(pulse ? 1.06 : 1.0)
-            .shadow(color: tint.opacity(pulse ? 0.55 : 0.0), radius: pulse ? 8 : 0)
+            .shadow(color: style.tint.opacity(pulse ? 0.55 : 0.0), radius: pulse ? 8 : 0)
             .contentTransition(.numericText())
     }
 }
