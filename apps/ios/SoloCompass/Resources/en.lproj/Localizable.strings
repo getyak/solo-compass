@@ -475,6 +475,8 @@
 "favorites.nearby.go.hint" = "Opens turn-by-turn directions in Maps";
 "favorites.row.goodNow" = "Good time now";
 "favorites.row.goodNow.a11y" = "good time to visit now";
+"favorites.row.bestAt" = "Best ~%@";
+"favorites.row.bestAt.a11y" = "best around %@";
 
 /* Favorites journey header */
 "favorites.greeting.night" = "Still up?";

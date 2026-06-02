@@ -1203,6 +1203,8 @@
 "favorites.nearby.hint" = "按距离排序收藏";
 "favorites.row.directions" = "导航";
 "favorites.row.done.a11y" = "已完成";
+"favorites.row.bestAt" = "%@ 最佳";
+"favorites.row.bestAt.a11y" = "约 %@ 最佳";
 "favorites.undo.announcement" = "已移除 %@。可撤销。";
 
 /* Filter empty */
