@@ -934,6 +934,7 @@
 "completion.stat.walked" = "走过";
 "completion.stat.travelers" = "旅人";
 "completion.tagline" = "这条路线现在为下一批旅人发光";
+"completion.a11y" = "路线完成 — 已有 %d 位旅人走过，%d 位同伴加入";
 
 /* Confidence */
 "confidence.lastVerified" = "验证于 %@";

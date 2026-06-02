@@ -1250,6 +1250,7 @@
 "completion.stat.walked" = "走过";
 "completion.stat.travelers" = "旅人";
 "completion.tagline" = "这条路线现在为下一批旅人发光";
+"completion.a11y" = "Route complete — walked by %d travelers, %d companions joined";
 
 /* US-039 — OpenForCompanionsSheet */
 "openForCompanions.button" = "开为招募路线 ->";
