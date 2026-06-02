@@ -11,6 +11,7 @@ public struct PendingCheckInBanner: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
+    @State private var confirmed = false
     @State private var dragOffset: CGFloat = 0
     @State private var crossedThreshold = false
     @State private var pulse = false
@@ -50,23 +51,39 @@ public struct PendingCheckInBanner: View {
 
                 HStack(spacing: 8) {
                     Button {
-                        #if canImport(UIKit)
-                        Haptics.notify(.success)
-                        #endif
+                        guard !confirmed else { return }
+                        confirmed = true
                         autoDismissTask?.cancel()
                         autoDismissTask = nil
-                        onConfirm()
+                        #if canImport(UIKit)
+                        Haptics.notify(.success)
+                        UIAccessibility.post(
+                            notification: .announcement,
+                            argument: NSLocalizedString("checkin.banner.confirmed.a11y", comment: "Visit confirmed")
+                        )
+                        #endif
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { onConfirm() }
                     } label: {
-                        Text(NSLocalizedString("checkin.banner.yes", comment: "Yes!"))
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Capsule().fill(isExpiringSoon ? Color.orange : Color.blue))
-                            .foregroundStyle(.white)
-                            .scaleEffect(reduceMotion ? 1.0 : (pulse ? 1.04 : 1.0))
-                            .animation(reduceMotion ? nil : .easeInOut(duration: 1.3).repeatForever(autoreverses: true), value: pulse)
+                        Group {
+                            if confirmed {
+                                Image(systemName: "checkmark")
+                                    .font(.caption.weight(.semibold))
+                                    .contentTransition(.symbolEffect(.replace))
+                            } else {
+                                Text(NSLocalizedString("checkin.banner.yes", comment: "Yes!"))
+                                    .font(.caption.weight(.semibold))
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(confirmed ? Color.green : (isExpiringSoon ? Color.orange : Color.blue)))
+                        .foregroundStyle(.white)
+                        .scaleEffect(reduceMotion ? 1.0 : (confirmed ? 1.0 : (pulse ? 1.04 : 1.0)))
+                        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6), value: confirmed)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 1.3).repeatForever(autoreverses: true), value: pulse)
                     }
                     .buttonStyle(.plain)
+                    .disabled(confirmed)
 
                     Button {
                         autoDismissTask?.cancel()
@@ -80,6 +97,7 @@ public struct PendingCheckInBanner: View {
                             .background(Circle().fill(Color(.secondarySystemFill)))
                     }
                     .buttonStyle(.plain)
+                    .disabled(confirmed)
                     .accessibilityLabel(Text(NSLocalizedString("common.dismiss", comment: "Dismiss")))
                 }
             }
@@ -106,6 +124,7 @@ public struct PendingCheckInBanner: View {
         .gesture(
             DragGesture()
                 .onChanged { gesture in
+                    guard !confirmed else { return }
                     dragOffset = min(0, gesture.translation.height * 0.85)
                     let overThreshold = -gesture.translation.height > dismissThreshold
                     if overThreshold && !crossedThreshold {
@@ -124,6 +143,7 @@ public struct PendingCheckInBanner: View {
                     }
                 }
                 .onEnded { gesture in
+                    guard !confirmed else { return }
                     if gesture.translation.height < -dismissThreshold {
                         #if canImport(UIKit)
                         Haptics.impact(.soft)
