@@ -1103,6 +1103,8 @@
 "sheet.handle" = "面板把手，上下滑动可调整高度";
 "sheet.nearby.section.title" = "附近";
 "sheet.nearby.smartPick.a11y" = "AI 推荐";
+"sheet.nearby.openNow" = "此刻开放";
+"sheet.nearby.openNow.a11y" = "此刻开放";
 "sheet.routes.section.title" = "路线";
 
 /* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */

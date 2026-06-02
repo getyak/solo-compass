@@ -1124,6 +1124,8 @@
 /* US-019 — BottomInfoSheet nearby section */
 "sheet.nearby.section.title" = "附近";
 "sheet.nearby.smartPick.a11y" = "AI recommended";
+"sheet.nearby.openNow" = "Open now";
+"sheet.nearby.openNow.a11y" = "Open now";
 
 /* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */
 "sheet.section.routes" = "Routes";
