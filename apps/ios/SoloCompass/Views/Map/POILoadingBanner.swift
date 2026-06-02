@@ -7,6 +7,13 @@ import SwiftUI
 struct POILoadingBanner: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPulsing = false
+    @State private var isSlow: Bool
+    @State private var slowTask: Task<Void, Never>?
+
+    // `previewSlow` is only used in #Preview blocks to skip the 6-second wait.
+    init(previewSlow: Bool = false) {
+        _isSlow = State(initialValue: previewSlow)
+    }
 
     var body: some View {
         GlassmorphismCapsule(
@@ -18,14 +25,20 @@ struct POILoadingBanner: View {
                     .opacity(isPulsing ? 1.0 : 0.6)
             },
             content: {
-                Text(NSLocalizedString("map.loadingPOIs", comment: "Loading nearby places banner"))
+                Text(isSlow
+                     ? NSLocalizedString("map.loadingPOIs.slow", comment: "Reassurance shown when POI fetch exceeds ~6 s")
+                     : NSLocalizedString("map.loadingPOIs", comment: "Loading nearby places banner"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
+                    .animation(reduceMotion ? nil : .easeInOut, value: isSlow)
             }
         )
         .transition(.move(edge: .top).combined(with: .opacity))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(NSLocalizedString("map.loadingPOIs", comment: "Loading nearby places banner")))
+        .accessibilityLabel(Text(isSlow
+            ? NSLocalizedString("map.loadingPOIs.slow", comment: "Reassurance shown when POI fetch exceeds ~6 s")
+            : NSLocalizedString("map.loadingPOIs", comment: "Loading nearby places banner")))
         .onAppear {
             UIAccessibility.post(
                 notification: .announcement,
@@ -35,6 +48,22 @@ struct POILoadingBanner: View {
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                 isPulsing = true
             }
+            guard !isSlow else { return }
+            slowTask = Task {
+                try? await Task.sleep(for: .seconds(6))
+                guard !Task.isCancelled else { return }
+                withAnimation(reduceMotion ? nil : .easeInOut) {
+                    isSlow = true
+                }
+                UIAccessibility.post(
+                    notification: .announcement,
+                    argument: NSLocalizedString("map.loadingPOIs.slow", comment: "Reassurance shown when POI fetch exceeds ~6 s")
+                )
+            }
+        }
+        .onDisappear {
+            slowTask?.cancel()
+            slowTask = nil
         }
         .onChange(of: reduceMotion) { _, reduced in
             if reduced {
@@ -52,6 +81,14 @@ struct POILoadingBanner: View {
     ZStack {
         Color(.systemBackground).ignoresSafeArea()
         POILoadingBanner()
+            .padding(.top, 60)
+    }
+}
+
+#Preview("Slow") {
+    ZStack {
+        Color(.systemBackground).ignoresSafeArea()
+        POILoadingBanner(previewSlow: true)
             .padding(.top, 60)
     }
 }
