@@ -134,6 +134,17 @@ public struct SoloScoreRadarChart: View {
             let radius = size * 0.38
 
             ZStack {
+                // Summary accessibility element — VoiceOver lands here first
+                Rectangle().fill(.clear).frame(height: 0)
+                    .accessibilityElement()
+                    .accessibilityLabel(radarAccessibilityLabel)
+                    .accessibilityValue(radarAccessibilityValue)
+                    .accessibilityAddTraits(.isImage)
+                    .accessibilityAction(named: Text(NSLocalizedString("solo.radar.replay.a11y", comment: ""))) {
+                        guard !reduceMotion else { return }
+                        replay()
+                    }
+
                 // Grid rings (static scaffold)
                 ForEach([0.25, 0.5, 0.75, 1.0], id: \.self) { fraction in
                     radarPolygon(
@@ -221,7 +232,6 @@ public struct SoloScoreRadarChart: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
-        .accessibilityElement(children: .contain)
         .onTapGesture {
             guard !reduceMotion, !isReplaying else { return }
             replay()
@@ -357,6 +367,17 @@ public struct SoloScoreRadarChart: View {
 
     private var fallbackBars: some View {
         VStack(spacing: 8) {
+            // Summary accessibility element — VoiceOver lands here first
+            Rectangle().fill(.clear).frame(height: 0)
+                .accessibilityElement()
+                .accessibilityLabel(radarAccessibilityLabel)
+                .accessibilityValue(radarAccessibilityValue)
+                .accessibilityAddTraits(.isImage)
+                .accessibilityAction(named: Text(NSLocalizedString("solo.radar.replay.a11y", comment: ""))) {
+                    guard !reduceMotion else { return }
+                    replay()
+                }
+
             ForEach(0..<Self.axes.count, id: \.self) { i in
                 let axis = Self.axes[i]
                 let val = values[i]
@@ -403,7 +424,6 @@ public struct SoloScoreRadarChart: View {
                 .accessibilityLabel(Text(axis.label))
             }
         }
-        .accessibilityElement(children: .contain)
     }
 }
 
