@@ -518,6 +518,8 @@ struct NearbyExperienceRow: View {
     let isSmartPick: Bool
     /// Distance in meters from the user's current location (or map center).
     let distanceMeters: Double?
+    /// True when the experience's bestTimes include the current clock hour (Now sort mode only).
+    let isOpenNow: Bool
     let onTap: () -> Void
 
     @State private var pressed = false
@@ -656,7 +658,30 @@ struct NearbyExperienceRow: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
+
+            if isOpenNow {
+                openNowPill
+                    .transition(
+                        reduceMotion ? .identity :
+                            .scale(scale: 0.8).combined(with: .opacity)
+                    )
+            }
         }
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: isOpenNow)
+    }
+
+    private var openNowPill: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "sunset.fill")
+                .font(.caption2)
+                .foregroundStyle(.green)
+            Text(NSLocalizedString("sheet.nearby.openNow", comment: "Open now pill label"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.green)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Capsule().fill(Color.green.opacity(0.12)))
     }
 
     private var subtitleText: String {
@@ -719,6 +744,9 @@ struct NearbyExperienceRow: View {
         }
         if isSmartPick {
             label += ", " + NSLocalizedString("sheet.nearby.smartPick.a11y", comment: "AI pick")
+        }
+        if isOpenNow {
+            label += ", " + NSLocalizedString("sheet.nearby.openNow.a11y", comment: "Open now accessibility")
         }
         return Text(label)
     }
@@ -823,6 +851,8 @@ struct NearbySection: View {
     /// 'Explore another area' CTA that zooms the map out.
     let onExploreElsewhere: (() -> Void)?
 
+    @Environment(BestNowClock.self) private var clock
+
     init(
         experiences: [Experience],
         smartPickIds: [String],
@@ -866,6 +896,7 @@ struct NearbySection: View {
                                 experience: exp,
                                 isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
                                 distanceMeters: distance(to: exp),
+                                isOpenNow: sortMode == .now && isOpenNow(exp),
                                 onTap: { onSelectExperience(exp) }
                             )
                             Divider()
@@ -892,7 +923,7 @@ struct NearbySection: View {
         case .soloScore:
             return experiences.sorted { $0.soloScore.overall > $1.soloScore.overall }
         case .now:
-            let hour = Calendar.current.component(.hour, from: Date())
+            let hour = Calendar.current.component(.hour, from: clock.tick)
             return experiences.sorted { lhs, rhs in
                 let lhsNow = lhs.bestTimes.contains { $0.contains(hour: hour) }
                 let rhsNow = rhs.bestTimes.contains { $0.contains(hour: hour) }
@@ -900,6 +931,11 @@ struct NearbySection: View {
                 return distance(to: lhs) ?? .infinity < distance(to: rhs) ?? .infinity
             }
         }
+    }
+
+    private func isOpenNow(_ experience: Experience) -> Bool {
+        let hour = Calendar.current.component(.hour, from: clock.tick)
+        return experience.bestTimes.contains { $0.contains(hour: hour) }
     }
 
     private func distance(to experience: Experience) -> Double? {
