@@ -10,6 +10,7 @@ public struct SoloScoreBadge: View {
     @State private var animatedScore: Double = 0
     @State private var appeared = false
     @State private var showBreakdown = false
+    @State private var twinkle = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(score: SoloScore, style: Style = .compact) {
@@ -36,6 +37,10 @@ public struct SoloScoreBadge: View {
                     Image(systemName: "star.fill")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.95))
+                        .symbolEffect(.variableColor.iterative.hideInactive, options: .repeating, isActive: twinkle && !reduceMotion)
+                        .scaleEffect(twinkle && !reduceMotion ? 1.12 : 1.0)
+                        .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: twinkle)
+                        .accessibilityHidden(true)
                 }
                 Text(NSLocalizedString("solo.label", comment: "Solo"))
                     .font(.caption2)
@@ -61,6 +66,9 @@ public struct SoloScoreBadge: View {
         .onAppear {
             appeared = true
             updateAnimatedScore()
+            if isExcellent && !reduceMotion {
+                twinkle = true
+            }
         }
         .accessibilityLabel(Text(
             isExcellent
@@ -70,9 +78,16 @@ public struct SoloScoreBadge: View {
         ))
         .accessibilityHint(Text(NSLocalizedString("solo.compact.a11y.hint", comment: "Double tap to see score breakdown")))
         .accessibilityAddTraits(.isButton)
-        .onChange(of: score.overall) { _, _ in
+        .onChange(of: score.overall) { _, newValue in
             appeared = true
             updateAnimatedScore()
+            let nowExcellent = newValue >= 8.5
+            if nowExcellent && !reduceMotion {
+                twinkle = false
+                twinkle = true
+            } else if !nowExcellent {
+                twinkle = false
+            }
         }
     }
 
