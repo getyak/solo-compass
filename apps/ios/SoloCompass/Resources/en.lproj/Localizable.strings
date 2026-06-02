@@ -395,6 +395,7 @@
 "report.reason.vibe_different" = "Vibe is very different";
 "report.reason.factually_wrong" = "Factually incorrect";
 "report.reason.other" = "Something else";
+"report.reason.hint" = "Selects this reason and reveals an optional details field.";
 
 /* Pending check-in banner */
 "checkin.banner.title" = "Did you visit?";

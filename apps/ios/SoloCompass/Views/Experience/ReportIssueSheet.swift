@@ -94,10 +94,12 @@ public struct ReportIssueSheet: View {
                     Image(systemName: reason.symbol)
                         .frame(width: 24)
                         .foregroundStyle(reason == selectedReason ? .red : .secondary)
+                        .accessibilityHidden(true)
                     Text(reason.label)
                     Spacer()
                     if reason == selectedReason {
                         Image(systemName: "checkmark").foregroundStyle(.red).fontWeight(.semibold)
+                            .accessibilityHidden(true)
                     }
                 }
                 .contentShape(Rectangle())
@@ -105,6 +107,9 @@ public struct ReportIssueSheet: View {
                     selectedReason = reason
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(reason == selectedReason ? [.isButton, .isSelected] : .isButton)
+                .accessibilityHint(NSLocalizedString("report.reason.hint", comment: "Describes that selecting a reason reveals an optional details field"))
                 .listRowBackground(reason == selectedReason
                     ? Color.red.opacity(0.06)
                     : Color(.secondarySystemGroupedBackground))
