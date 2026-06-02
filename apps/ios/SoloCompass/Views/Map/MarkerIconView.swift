@@ -254,12 +254,17 @@ public struct MarkerIconView: View {
                 .background(Circle().fill(.white))
                 .offset(x: 12, y: -12)
         case .upcoming(let minutes):
-            Text("\(minutes)")
-                .font(.caption2.bold())
-                .foregroundStyle(.white)
-                .frame(width: 18, height: 18)
-                .background(Circle().fill(Color.black.opacity(0.85)))
-                .offset(x: 12, y: -12)
+            HStack(spacing: 2) {
+                Image(systemName: "clock.fill")
+                    .font(.caption2)
+                Text(Self.upcomingLabel(minutes: minutes))
+                    .font(.caption2.bold().monospacedDigit())
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(upcomingTint(minutes: minutes)))
+            .offset(x: 12, y: -12)
         case .footprinted:
             Image(systemName: "figure.walk")
                 .font(.caption2)
@@ -269,6 +274,19 @@ public struct MarkerIconView: View {
                 .offset(x: 12, y: 12)
         case .bestNow, .default:
             EmptyView()
+        }
+    }
+
+    static func upcomingLabel(minutes: Int) -> String {
+        let m = max(0, minutes)
+        return m < 60 ? "\(m)m" : "\(m / 60)h"
+    }
+
+    private func upcomingTint(minutes: Int) -> Color {
+        switch minutes {
+        case ...15: return .red
+        case ...45: return .orange
+        default:    return Color.black.opacity(0.85)
         }
     }
 
