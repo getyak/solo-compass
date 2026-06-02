@@ -712,6 +712,7 @@
 "offline.banner.retry" = "Tap to retry";
 "offline.banner.retry.hint" = "Double tap to retry connection";
 "offline.banner.retry.failed" = "Retry failed — still offline";
+"offline.banner.recovered" = "Back online";
 
 /* Theme picker (US-039) */
 "settings.appearance" = "Appearance";

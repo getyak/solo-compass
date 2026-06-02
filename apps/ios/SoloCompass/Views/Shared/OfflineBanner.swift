@@ -13,6 +13,11 @@ struct OfflineBanner: View {
     @State private var isRetrying = false
     @State private var shakeOffset: CGFloat = 0
     @State private var retryFailed = false
+    @State private var bannerState: BannerState = .offline
+
+    private enum BannerState {
+        case offline, retrying, recovered
+    }
 
     var body: some View {
         pillContent
@@ -28,21 +33,47 @@ struct OfflineBanner: View {
             .onChange(of: reduceMotion) { _, reduced in
                 if reduced {
                     withAnimation(.default) { isPulsing = false }
-                } else {
+                } else if bannerState == .offline {
                     withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
                         isPulsing = true
                     }
                 }
             }
+            .onChange(of: NetworkMonitor.shared.isConnected) { wasConnected, isConnected in
+                guard !wasConnected, isConnected, bannerState != .recovered else { return }
+                Task { await handleRecovery() }
+            }
+    }
+
+    @MainActor
+    private func handleRecovery() async {
+        withAnimation(.default) {
+            isPulsing = false
+            bannerState = .recovered
+        }
+
+        Haptics.notify(.success)
+
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: NSLocalizedString("offline.banner.recovered", comment: "Back online — connectivity restored")
+        )
+
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        // Parent dismiss logic will remove the banner; fade out as fallback if still visible
+        withAnimation(.easeOut(duration: 0.3)) {
+            bannerState = .offline
+        }
     }
 
     @ViewBuilder
     private var pillContent: some View {
-        if let onRetry {
+        if let onRetry, bannerState != .recovered {
             Button {
                 guard !isRetrying else { return }
                 Haptics.impact(.light)
                 isRetrying = true
+                bannerState = .retrying
                 Task {
                     await onRetry()
                     let stillOffline = await MainActor.run { !NetworkMonitor.shared.isConnected }
@@ -50,6 +81,7 @@ struct OfflineBanner: View {
                         await handleRetryFailure()
                     }
                     isRetrying = false
+                    if bannerState == .retrying { bannerState = .offline }
                 }
             } label: {
                 capsuleView
@@ -88,7 +120,13 @@ struct OfflineBanner: View {
         retryFailed = false
     }
 
-    private var failureColor: Color { retryFailed ? .red : .orange }
+    private var bannerColor: Color {
+        switch bannerState {
+        case .offline: return retryFailed ? .red : .orange
+        case .retrying: return .orange
+        case .recovered: return .green
+        }
+    }
 
     @ViewBuilder
     private var capsuleView: some View {
@@ -100,10 +138,14 @@ struct OfflineBanner: View {
                         ProgressView()
                             .controlSize(.mini)
                             .tint(Color.orange)
+                    } else if bannerState == .recovered {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(bannerColor)
                     } else {
                         Image(systemName: "wifi.slash")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(failureColor)
+                            .foregroundStyle(bannerColor)
                             .scaleEffect(isPulsing ? 1.12 : 0.96)
                             .opacity(isPulsing ? 1.0 : 0.65)
                     }
@@ -111,16 +153,22 @@ struct OfflineBanner: View {
             },
             content: {
                 HStack(spacing: 4) {
-                    Text(NSLocalizedString("offline.banner", comment: "Offline mode banner"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(failureColor)
-                    if onRetry != nil && !isRetrying {
-                        Text("·")
-                            .font(.caption)
-                            .foregroundStyle(failureColor.opacity(0.7))
-                        Text(NSLocalizedString("offline.banner.retry", comment: "Tap to retry connection"))
+                    if bannerState == .recovered {
+                        Text(NSLocalizedString("offline.banner.recovered", comment: "Back online — connectivity restored"))
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(failureColor.opacity(0.85))
+                            .foregroundStyle(bannerColor)
+                    } else {
+                        Text(NSLocalizedString("offline.banner", comment: "Offline mode banner"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(bannerColor)
+                        if onRetry != nil && !isRetrying {
+                            Text("·")
+                                .font(.caption)
+                                .foregroundStyle(bannerColor.opacity(0.7))
+                            Text(NSLocalizedString("offline.banner.retry", comment: "Tap to retry connection"))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(bannerColor.opacity(0.85))
+                        }
                     }
                 }
             }
