@@ -109,6 +109,10 @@ public struct FilterBarView: View {
     /// equal — sub-pixel layout rounding shouldn't trigger a spurious fade.
     static let overflowTolerance: CGFloat = 1.0
 
+    /// Clamps a count for display in a pill badge to prevent 3-digit values from
+    /// overflowing the single-line pill bar layout.
+    static func compactCount(_ n: Int) -> String { n > 99 ? "99+" : "\(n)" }
+
     /// Pure, testable overflow predicate driving the right-edge scroll fade.
     /// Returns true only when the pill content is meaningfully wider than the
     /// visible viewport (i.e. some chips are off-screen to the right). A zero
@@ -270,7 +274,7 @@ public struct FilterBarView: View {
                     .font(.subheadline.weight(.medium))
 
                 if nowCount > 0 {
-                    Text("\(nowCount)")
+                    Text(Self.compactCount(nowCount))
                         .font(.caption2.monospacedDigit().weight(.semibold))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
@@ -436,7 +440,7 @@ public struct FilterBarView: View {
 
     @ViewBuilder
     private func countBadge(count: Int, tint: Color) -> some View {
-        Text("\(count)")
+        Text(Self.compactCount(count))
             .font(.caption2.weight(.semibold).monospacedDigit())
             .foregroundStyle(.white)
             .padding(.horizontal, 5)

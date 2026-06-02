@@ -45,6 +45,24 @@ final class FilterBarViewTests: XCTestCase {
         XCTAssertFalse(reloaded.visibleCategories.contains(.nightlife))
     }
 
+    // MARK: - compactCount badge formatter
+
+    func testCompactCountZero() {
+        XCTAssertEqual(FilterBarView.compactCount(0), "0")
+    }
+
+    func testCompactCountAtLimit() {
+        XCTAssertEqual(FilterBarView.compactCount(99), "99")
+    }
+
+    func testCompactCountJustOverLimit() {
+        XCTAssertEqual(FilterBarView.compactCount(100), "99+")
+    }
+
+    func testCompactCountLargeNumber() {
+        XCTAssertEqual(FilterBarView.compactCount(1234), "99+")
+    }
+
     // MARK: - Toggle-off routing (pill clear behaviour)
 
     func testResolvesToClearWhenPillIsSelected() {
