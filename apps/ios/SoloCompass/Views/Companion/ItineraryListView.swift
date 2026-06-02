@@ -80,6 +80,9 @@ public struct ItineraryListView: View {
             }
         }
         .animation(reduceMotion ? nil : .easeInOut, value: lastDeleted != nil)
+        .onChange(of: lastDeleted == nil) { _, isNil in
+            if isNil { undoDragOffset = 0 }
+        }
     }
 
     private func loadItineraries() {
@@ -122,27 +125,71 @@ public struct ItineraryListView: View {
     }
 
     private var undoBar: some View {
-        HStack {
-            Text(String(
-                format: NSLocalizedString("itinerary.undo.named", comment: "Removed named itinerary undo banner"),
-                lastDeleted?.title ?? ""
-            ))
-            .font(.subheadline)
-            .foregroundStyle(.primary)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            Spacer()
-            Button {
-                performUndo()
-            } label: {
-                Text(NSLocalizedString("action.undo", comment: "Undo action"))
-                    .font(.subheadline.weight(.semibold))
+        ZStack(alignment: .bottom) {
+            HStack {
+                Text(String(
+                    format: NSLocalizedString("itinerary.undo.named", comment: "Removed named itinerary undo banner"),
+                    lastDeleted?.title ?? ""
+                ))
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                Spacer()
+                Button {
+                    performUndo()
+                } label: {
+                    Text(NSLocalizedString("action.undo", comment: "Undo action"))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.accentColor)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 14)
+
+            if !reduceMotion {
+                GeometryReader { geo in
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(width: geo.size.width * undoProgress, height: 2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(height: 2)
+                .padding(.horizontal, 2)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 16)
+        .offset(y: undoDragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { gesture in
+                    undoDragOffset = max(0, gesture.translation.height * 0.85)
+                    let overThreshold = gesture.translation.height > 80
+                    if overThreshold && !undoDragCrossedThreshold {
+                        undoDragCrossedThreshold = true
+                        Haptics.selection()
+                    } else if !overThreshold && undoDragCrossedThreshold {
+                        undoDragCrossedThreshold = false
+                    }
+                }
+                .onEnded { gesture in
+                    undoDragCrossedThreshold = false
+                    if gesture.translation.height > 80 {
+                        Haptics.impact(.soft)
+                        withAnimation(.easeOut(duration: 0.2)) { undoDragOffset = 300 }
+                        undoDismissTask?.cancel()
+                        undoDismissTask = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            withAnimation(.easeInOut) { lastDeleted = nil }
+                            undoDragOffset = 0
+                        }
+                    } else {
+                        withAnimation(.spring(response: 0.3)) { undoDragOffset = 0 }
+                    }
+                }
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(String(
             format: NSLocalizedString("itinerary.undo.named.a11y", comment: "Accessibility label for itinerary undo banner"),
@@ -150,6 +197,15 @@ public struct ItineraryListView: View {
         )))
         .accessibilityAction(named: Text(NSLocalizedString("action.undo", comment: "Undo action"))) {
             performUndo()
+        }
+        .onAppear {
+            undoProgress = 1
+            undoDragOffset = 0
+            if !reduceMotion {
+                withAnimation(.linear(duration: 4)) {
+                    undoProgress = 0
+                }
+            }
         }
     }
 }
