@@ -483,6 +483,10 @@
 "favorites.row.closingSoon.a11y" = "closing soon, %d minutes left";
 "favorites.row.bestAt" = "Best ~%@";
 "favorites.row.bestAt.a11y" = "best around %@";
+"favorites.row.markVisited" = "Mark visited";
+"favorites.row.markNotVisited" = "Mark not visited";
+"favorites.row.markVisited.announcement" = "Marked %@ as visited";
+"favorites.row.markNotVisited.announcement" = "Marked as not visited";
 
 /* Favorites journey header — good now nudge */
 "favorites.journey.goodNow" = "%d great to do right now";

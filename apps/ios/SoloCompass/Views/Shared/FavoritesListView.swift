@@ -1281,7 +1281,60 @@ private extension FavoritesListView {
                       systemImage: "heart.slash")
             }
         }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button {
+                if isDone {
+                    Haptics.selection()
+                    withAnimation(.easeInOut) {
+                        preferences.completedExperiences.remove(exp.id)
+                        preferences.visitHistory.removeValue(forKey: exp.id)
+                    }
+                    UIAccessibility.post(
+                        notification: .announcement,
+                        argument: NSLocalizedString("favorites.row.markNotVisited.announcement", comment: "VoiceOver announcement after marking as not visited")
+                    )
+                } else {
+                    Haptics.notify(.success)
+                    withAnimation(.easeInOut) {
+                        preferences.markCompleted(exp.id)
+                    }
+                    UIAccessibility.post(
+                        notification: .announcement,
+                        argument: String(format: NSLocalizedString("favorites.row.markVisited.announcement", comment: "VoiceOver announcement after marking as visited"), exp.title)
+                    )
+                }
+            } label: {
+                Label(
+                    isDone
+                        ? NSLocalizedString("favorites.row.markNotVisited", comment: "Swipe action to un-complete a favorite")
+                        : NSLocalizedString("favorites.row.markVisited", comment: "Swipe action to mark a favorite as visited"),
+                    systemImage: isDone ? "arrow.uturn.backward" : "checkmark.circle"
+                )
+            }
+            .tint(.green)
+        }
         .modifier(DirectionsSwipeModifier(exp: exp))
+        .accessibilityAction(named: Text(isDone
+            ? NSLocalizedString("favorites.row.markNotVisited", comment: "Swipe action to un-complete a favorite")
+            : NSLocalizedString("favorites.row.markVisited", comment: "Swipe action to mark a favorite as visited")
+        )) {
+            if isDone {
+                Haptics.selection()
+                preferences.completedExperiences.remove(exp.id)
+                preferences.visitHistory.removeValue(forKey: exp.id)
+                UIAccessibility.post(
+                    notification: .announcement,
+                    argument: NSLocalizedString("favorites.row.markNotVisited.announcement", comment: "VoiceOver announcement after marking as not visited")
+                )
+            } else {
+                Haptics.notify(.success)
+                preferences.markCompleted(exp.id)
+                UIAccessibility.post(
+                    notification: .announcement,
+                    argument: String(format: NSLocalizedString("favorites.row.markVisited.announcement", comment: "VoiceOver announcement after marking as visited"), exp.title)
+                )
+            }
+        }
         .accessibilityAction(named: Text(NSLocalizedString("favorites.row.directions", comment: "Directions accessibility action"))) {
             guard let coord = exp.coordinate,
                   let app = NavigationLauncher.availableApps().first else { return }
