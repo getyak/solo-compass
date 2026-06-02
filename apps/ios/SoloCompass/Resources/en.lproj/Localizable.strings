@@ -264,6 +264,9 @@
 /* Proximity cue appended to bearing arrow a11y label when user is ≤300 m away */
 "card.distance.proximity.near" = "getting close";
 
+/* VoiceOver announcement posted once when the user enters the near proximity band (≤300 m) */
+"card.proximity.closer" = "Getting closer";
+
 /* On-course cue appended to bearing arrow a11y label when user faces the experience within ±15° */
 "card.distance.onCourse.a11y" = "On course";
 
