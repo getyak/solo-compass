@@ -23,6 +23,11 @@ public struct CityPickerSheet: View {
         }
     }
 
+    private var nearestCity: (code: String, name: String, center: CLLocationCoordinate2D)? {
+        guard userLocation != nil else { return nil }
+        return sortedCities.first
+    }
+
     public var body: some View {
         NavigationStack {
             Group {
@@ -34,6 +39,20 @@ public struct CityPickerSheet: View {
                     if filtered.isEmpty {
                         ContentUnavailableView.search(text: citySearchText)
                     } else {
+                        VStack(spacing: 0) {
+                            if citySearchText.trimmingCharacters(in: .whitespaces).isEmpty,
+                               !viewModel.availableCities.isEmpty,
+                               let nearest = nearestCity {
+                                CityPickerHeader(
+                                    cityName: nearest.name,
+                                    distanceLabel: distanceLabel(for: nearest.center),
+                                    proximityColor: proximity(for: nearest.center)?.color ?? Color(.tertiaryLabel),
+                                    experienceCount: viewModel.experienceCount(for: nearest.code),
+                                    onTapNearest: { selectCity(nearest.code) }
+                                )
+                                .padding(.horizontal, 16)
+                                .padding(.top, 12)
+                            }
                         List {
                             // "All Cities" option — hidden while a search query is active
                             if citySearchText.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -112,6 +131,7 @@ public struct CityPickerSheet: View {
                                 }())
                             }
                         }
+                        } // VStack
                     }
                 }
             }
@@ -202,6 +222,101 @@ public struct CityPickerSheet: View {
             return String(format: NSLocalizedString("city.distanceAway.mi", comment: ""), mi)
         }
         return String(format: NSLocalizedString("city.distanceAway", comment: ""), km)
+    }
+}
+
+private struct CityPickerHeader: View {
+    let cityName: String
+    let distanceLabel: String
+    let proximityColor: Color
+    let experienceCount: Int
+    var onTapNearest: (() -> Void)? = nil
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour < 5 {
+            return NSLocalizedString("favorites.greeting.night", comment: "Late-night greeting in favorites header")
+        } else if hour < 12 {
+            return NSLocalizedString("favorites.greeting.morning", comment: "Morning greeting in favorites header")
+        } else if hour < 17 {
+            return NSLocalizedString("favorites.greeting.afternoon", comment: "Afternoon greeting in favorites header")
+        } else {
+            return NSLocalizedString("favorites.greeting.evening", comment: "Evening greeting in favorites header")
+        }
+    }
+
+    private var nudgeLabel: String {
+        String(
+            format: NSLocalizedString("city.header.nearest", comment: "Nearest city nudge"),
+            cityName
+        ) + " · \(distanceLabel) · " + String(
+            format: NSLocalizedString("city.experienceCount", comment: "Experience count in city"),
+            experienceCount
+        )
+    }
+
+    @ViewBuilder
+    private var nudgeCapsule: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(proximityColor)
+                .frame(width: 7, height: 7)
+                .accessibilityHidden(true)
+            Text(nudgeLabel)
+                .font(.caption2)
+                .foregroundStyle(Color.green)
+            Image(systemName: "chevron.right.circle.fill")
+                .font(.caption2)
+                .foregroundStyle(Color.green)
+                .accessibilityHidden(true)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.green.opacity(0.12), in: Capsule())
+        .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(greeting)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            if let onTap = onTapNearest {
+                Button {
+                    onTap()
+                } label: {
+                    nudgeCapsule
+                }
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(
+                    String(
+                        format: NSLocalizedString("city.header.nearest.a11y", comment: "Nearest city capsule accessibility label"),
+                        cityName, distanceLabel, experienceCount
+                    )
+                )
+                .accessibilityHint(NSLocalizedString("city.header.nearest.hint", comment: "Selects the closest discovered city"))
+                .accessibilityAddTraits(.isButton)
+            } else {
+                nudgeCapsule
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(nudgeLabel)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : (reduceMotion ? 0 : 6))
+        .onAppear {
+            if reduceMotion {
+                appeared = true
+            } else {
+                withAnimation(.easeOut(duration: 0.3)) { appeared = true }
+            }
+        }
     }
 }
 
