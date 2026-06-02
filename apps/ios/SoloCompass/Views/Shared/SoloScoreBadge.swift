@@ -185,6 +185,8 @@ private struct SoloScorePopoverContent: View {
 
     private let weakestThreshold: Double = 5.0
 
+    private var isEarlyEstimate: Bool { score.basedOnCount > 0 && score.basedOnCount <= 3 }
+
     private struct DimensionRow {
         let labelKey: String
         let value: Double
@@ -261,13 +263,33 @@ private struct SoloScorePopoverContent: View {
                 HStack(spacing: 6) {
                     Image(systemName: "person.2.fill")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isEarlyEstimate ? Color.orange.opacity(0.9) : .secondary)
                     Text(String(format: NSLocalizedString("solo.basedOn", comment: "Based on N solo travelers"), score.basedOnCount))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isEarlyEstimate ? Color.orange.opacity(0.9) : .secondary)
+                    if isEarlyEstimate {
+                        HStack(spacing: 3) {
+                            Image(systemName: "hourglass")
+                                .font(.system(size: 9, weight: .medium))
+                                .accessibilityHidden(true)
+                            Text(NSLocalizedString("solo.earlyEstimate", comment: "Early estimate"))
+                                .font(.caption2.weight(.medium))
+                        }
+                        .foregroundStyle(Color.orange.opacity(0.9))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.12), in: Capsule())
+                        .scaleEffect(appeared && !reduceMotion ? 1 : (reduceMotion ? 1 : 0.85))
+                        .opacity(appeared ? 1 : 0)
+                    }
                 }
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text(String(format: NSLocalizedString("solo.basedOn", comment: "Based on N solo travelers"), score.basedOnCount)))
+                .accessibilityLabel(Text(
+                    isEarlyEstimate
+                        ? String(format: NSLocalizedString("solo.basedOn", comment: "Based on N solo travelers"), score.basedOnCount)
+                            + ", " + NSLocalizedString("solo.earlyEstimate.a11y", comment: "Early estimate, based on few solo travelers — score may shift")
+                        : String(format: NSLocalizedString("solo.basedOn", comment: "Based on N solo travelers"), score.basedOnCount)
+                ))
             }
         }
         .padding()
@@ -406,4 +428,17 @@ private struct SoloScorePopoverContent: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
     .padding()
+}
+
+#Preview("Early Estimate (basedOnCount: 2)") {
+    let earlyScore = SoloScore(
+        overall: 6.4,
+        breakdown: .init(seatingFriendly: 7, soloPatronRatio: 6, staffPressure: 7, soloPortioning: 6, ambianceFit: 6, safety: 7),
+        hint: "Score based on very few reports — may shift.",
+        basedOnCount: 2
+    )
+    SoloScorePopoverContent(score: earlyScore)
+        .padding()
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding()
 }
