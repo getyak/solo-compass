@@ -49,6 +49,7 @@
 "timeline.now.tick" = "现在";
 "bestTimes.now.pill" = "此刻最佳";
 "bestTimes.next.pill" = "%@ 更好";
+"bestTimes.pill.scrollHint" = "滚动至时段时间轴";
 
 /* Sections */
 "section.whyItMatters" = "为什么值得";
