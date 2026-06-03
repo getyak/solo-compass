@@ -1255,7 +1255,8 @@
 /* Route card recruit (mirrors en.lproj's Chinese values) */
 "route.card.recruit.closed" = "已成团 · %d 人 · 出发中";
 "route.card.recruit.completed" = "已完成 · 路线升级";
-"route.card.recruit.recruiting" = "%1$@ 招募 · %2$d/%3$d · %4$@";
+"route.card.recruit.recruiting" = "%1$@ 招募 · %2$d/%3$d 已确认 · %4$@";
+"route.card.recruit.view" = "查看";
 "route.card.walkedBy" = "%d 位旅人走过";
 
 /* Solo score breakdown */

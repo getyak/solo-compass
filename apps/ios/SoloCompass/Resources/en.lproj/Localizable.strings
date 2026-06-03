@@ -1250,9 +1250,11 @@
 "recruiting.cta.requestJoinForming" = "申请加入(最后 %d 位)";
 
 /* US-057 — RouteCard recruit-mini inline state (CompareCanvas A-002) */
-"route.card.recruit.recruiting" = "%1$@ 招募 · %2$d/%3$d · %4$@";
+"route.card.recruit.recruiting" = "%1$@ 招募 · %2$d/%3$d 已確認 · %4$@";
 "route.card.recruit.closed" = "已成团 · %d 人 · 出发中";
 "route.card.recruit.completed" = "已完成 · 路线升级";
+/* Trailing affordance on a joinable recruit strip */
+"route.card.recruit.view" = "查看";
 
 /* US-058 — RouteCard walked-by row (CompareCanvas A-003) */
 "route.card.walkedBy" = "%d 位旅人走过";
