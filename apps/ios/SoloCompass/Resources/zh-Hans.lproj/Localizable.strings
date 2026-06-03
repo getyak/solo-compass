@@ -1109,6 +1109,14 @@
 "sheet.nearby.openNow.a11y" = "此刻开放";
 "sheet.routes.section.title" = "路线";
 
+/* NearbyExperienceRow card chips — walk-time, Solo score, 此刻最佳, proximity word */
+"nearby.chip.walkMin" = "%d 分钟";
+"nearby.chip.solo" = "Solo %.1f";
+"nearby.chip.bestNow" = "此刻最佳";
+"nearby.proximity.sparse" = "稀疏";
+"nearby.proximity.moderate" = "中等";
+"nearby.proximity.far" = "较远";
+
 /* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */
 "sheet.section.routes" = "路线";
 /* Now-context (此刻适合) header for the routes section */

@@ -511,8 +511,12 @@ struct SortModeSheet: View {
 
 // MARK: - NearbyExperienceRow
 
-/// Single row in the '附近' section of the BottomInfoSheet.
-/// Layout: 36×36 category disc | title + romanized + local | mono distance + compass arrow
+/// Single card in the '附近' section of the BottomInfoSheet.
+///
+/// Card layout (mirrors the route-card chrome so the list reads as a stack of
+/// discrete cards rather than ruled rows): a left category color-bar, a filled
+/// category disc, the title + romanized·local subtitle, a chip row
+/// (walk-time · Solo score · 此刻最佳), and a trailing distance + compass arrow.
 struct NearbyExperienceRow: View {
     let experience: Experience
     let isSmartPick: Bool
@@ -525,8 +529,6 @@ struct NearbyExperienceRow: View {
     @State private var pressed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(LocationService.self) private var locationService
-
-    private static let sunGold = Color(red: 1.0, green: 0.80, blue: 0.2)
 
     private static let distanceFormatter: MeasurementFormatter = {
         let f = MeasurementFormatter()
@@ -549,9 +551,19 @@ struct NearbyExperienceRow: View {
 
         var dotColor: Color {
             switch self {
-            case .near: return .green
-            case .mid: return .orange
-            case .far: return Color(.tertiaryLabel)
+            case .near: return CT.verifiedGreenDot
+            case .mid: return CT.toneForming
+            case .far: return CT.fgSubtle
+            }
+        }
+
+        /// Localized density word shown next to the chip row (稀疏 / 中等 / 较远),
+        /// mirroring the screenshot's proximity caption.
+        var labelKey: String {
+            switch self {
+            case .near: return "nearby.proximity.sparse"
+            case .mid:  return "nearby.proximity.moderate"
+            case .far:  return "nearby.proximity.far"
             }
         }
     }
@@ -606,25 +618,37 @@ struct NearbyExperienceRow: View {
             #endif
             onTap()
         } label: {
-            HStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
                 categoryDisc
-                titleStack
-                Spacer(minLength: 4)
-                distancePill
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(rowBackground)
-            .overlay(alignment: .leading) {
-                if isSmartPick {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Self.sunGold)
-                        .frame(width: 3)
+                VStack(alignment: .leading, spacing: 7) {
+                    titleStack
+                    chipRow
                 }
+                Spacer(minLength: 4)
+                distanceColumn
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(isSmartPick ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
+            )
+            .overlay(alignment: .leading) {
+                // Left color-bar: golden for smart picks, else the category tint.
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 14, bottomLeadingRadius: 14,
+                    bottomTrailingRadius: 0, topTrailingRadius: 0,
+                    style: .continuous
+                )
+                .fill(isSmartPick ? CT.sunGold : experience.category.color)
+                .frame(width: 3)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
         }
         .buttonStyle(.plain)
-        .scaleEffect(pressed ? 0.86 : 1.0)
+        .scaleEffect(pressed ? 0.97 : 1.0)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
@@ -635,53 +659,102 @@ struct NearbyExperienceRow: View {
     private var categoryDisc: some View {
         ZStack {
             Circle()
-                .fill(experience.category.color.opacity(0.18))
-                .frame(width: 36, height: 36)
+                .fill(experience.category.color)
+                .frame(width: 40, height: 40)
             Image(systemName: experience.category.symbol)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(experience.category.color)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.white)
         }
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder
     private var titleStack: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(experience.title)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.primary)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(CT.fgPrimary)
                 .lineLimit(1)
 
             let sub = subtitleText
             if !sub.isEmpty {
                 Text(sub)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(CT.fgMuted)
                     .lineLimit(1)
             }
+        }
+    }
 
+    /// Horizontal chip row: walk-time · Solo score · (此刻最佳) · proximity word.
+    private var chipRow: some View {
+        HStack(spacing: 6) {
+            if let meters = distanceMeters, meters < 1500 {
+                walkTimeChip(meters: meters)
+            }
+            soloScoreChip
             if isOpenNow {
-                openNowPill
+                bestNowChip
                     .transition(
                         reduceMotion ? .identity :
                             .scale(scale: 0.8).combined(with: .opacity)
                     )
             }
+            if let prox = proximity {
+                Text(NSLocalizedString(prox.labelKey, comment: "Proximity density word"))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(prox.dotColor)
+            }
         }
         .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: isOpenNow)
     }
 
-    private var openNowPill: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "sunset.fill")
-                .font(.caption2)
-                .foregroundStyle(.green)
-            Text(NSLocalizedString("sheet.nearby.openNow", comment: "Open now pill label"))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.green)
+    /// Neutral chip: estimated walk minutes (≈ 80 m/min) for nearby experiences.
+    private func walkTimeChip(meters: Double) -> some View {
+        let minutes = max(1, Int((meters / 80).rounded()))
+        let label = String(
+            format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 分钟'"),
+            minutes
+        )
+        return HStack(spacing: 3) {
+            Image(systemName: "figure.walk")
+                .font(.system(size: 9.5, weight: .semibold))
+            Text(label)
+                .font(.caption2.weight(.medium))
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(Capsule().fill(Color.green.opacity(0.12)))
+        .foregroundStyle(CT.fgMuted)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(CT.surfaceSunken))
+    }
+
+    /// Green chip: Solo score (e.g. "Solo 7.5").
+    private var soloScoreChip: some View {
+        Text(
+            String(
+                format: NSLocalizedString("nearby.chip.solo", comment: "Solo score chip, e.g. 'Solo 7.5'"),
+                experience.soloScore.overall
+            )
+        )
+        .font(.caption2.weight(.bold))
+        .foregroundStyle(CT.verifiedGreen)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(CT.verifiedGreen.opacity(0.12)))
+    }
+
+    /// Golden chip: 此刻最佳 — shown when the experience is open in the current hour.
+    private var bestNowChip: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 9, weight: .semibold))
+            Text(NSLocalizedString("nearby.chip.bestNow", comment: "此刻最佳 chip"))
+                .font(.caption2.weight(.semibold))
+        }
+        .foregroundStyle(CT.sunGoldDeep)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(CT.sunGoldSoft))
     }
 
     private var subtitleText: String {
@@ -695,47 +768,41 @@ struct NearbyExperienceRow: View {
         return parts.joined(separator: " · ")
     }
 
-    private var distancePill: some View {
+    /// Trailing column: compass arrow over the formatted distance, right-aligned.
+    private var distanceColumn: some View {
         let bearing = relativeBearing
         let hasLiveBearing = bearing != nil
-        return HStack(spacing: 3) {
-            if let meters = distanceMeters {
-                if let prox = proximity {
-                    Circle()
-                        .fill(prox.dotColor)
-                        .frame(width: 6, height: 6)
-                        .accessibilityHidden(true)
-                }
-                Text(formattedDistance(meters))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
+        return VStack(alignment: .trailing, spacing: 4) {
             Image(systemName: "location.north.line.fill")
                 .font(.caption2)
-                .foregroundStyle(hasLiveBearing ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
+                .foregroundStyle(hasLiveBearing ? AnyShapeStyle(CT.fgMuted) : AnyShapeStyle(CT.fgSubtle))
                 .rotationEffect(.degrees(bearing ?? 0))
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
+            if let meters = distanceMeters {
+                Text(formattedDistance(meters))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(CT.fgSubtle)
+            }
         }
+        .accessibilityHidden(true)
     }
 
-    @ViewBuilder
-    private var rowBackground: some View {
-        if isSmartPick {
-            LinearGradient(
-                colors: [
-                    Self.sunGold.opacity(0.10),
-                    Self.sunGold.opacity(0.04)
-                ],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        } else {
-            Color.clear
-        }
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(isSmartPick ? AnyShapeStyle(smartPickGradient) : AnyShapeStyle(CT.surfaceWhite))
+    }
+
+    private var smartPickGradient: LinearGradient {
+        LinearGradient(
+            colors: [CT.sunGoldSoft.opacity(0.55), CT.surfaceWhite],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 
     private var accessibilityLabel: Text {
         var label = experience.title
+        label += ", Solo \(String(format: "%.1f", experience.soloScore.overall))"
         if let meters = distanceMeters {
             label += ", \(formattedDistance(meters))"
         }
@@ -926,16 +993,17 @@ struct NearbySection: View {
             // US-036: inset divider + localized "Nearby" header separates this
             // section from Routes above (showsDivider gated by composition).
             SheetSectionSeparator(titleKey: "sheet.section.nearby", showsDivider: showsSectionDivider)
-            Divider()
-                .padding(.horizontal, 16)
             if experiences.isEmpty {
                 // US-050: empty Nearby list. Announce on appear so VoiceOver
                 // users learn the list is empty rather than thinking the sheet
                 // froze; a visible row keeps the state legible to everyone.
                 EmptySheetListView(onExploreElsewhere: onExploreElsewhere)
             } else {
+                // Each row now carries its own card chrome, so we separate them
+                // with a 10pt gap (matching RoutesSection) rather than full-bleed
+                // dividers — the list reads as a stack of discrete cards.
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    LazyVStack(spacing: 10) {
                         ForEach(sortedExperiences) { exp in
                             NearbyExperienceRow(
                                 experience: exp,
@@ -944,10 +1012,11 @@ struct NearbySection: View {
                                 isOpenNow: sortMode == .now && isOpenNow(exp),
                                 onTap: { onSelectExperience(exp) }
                             )
-                            Divider()
-                                .padding(.leading, 62)
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 8)
                 }
             }
         }
