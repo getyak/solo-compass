@@ -27,6 +27,8 @@ public final class RouteRecord {
     public var authorId: String?
     public var bestStartHour: Double?
     public var bestNow: Bool
+    /// Short human reason shown as the "此刻理由" banner in now-context.
+    public var reasonNow: String?
     /// Raw value of `VerificationStatus`.
     public var verificationStatus: String
     public var walkedByCount: Int
@@ -53,6 +55,7 @@ public final class RouteRecord {
         authorId: String?,
         bestStartHour: Double?,
         bestNow: Bool,
+        reasonNow: String?,
         verificationStatus: String,
         walkedByCount: Int,
         experienceIdsBlob: Data,
@@ -72,6 +75,7 @@ public final class RouteRecord {
         self.authorId = authorId
         self.bestStartHour = bestStartHour
         self.bestNow = bestNow
+        self.reasonNow = reasonNow
         self.verificationStatus = verificationStatus
         self.walkedByCount = walkedByCount
         self.experienceIdsBlob = experienceIdsBlob
@@ -115,6 +119,7 @@ extension RouteRecord {
             authorId: route.authorId,
             bestStartHour: route.bestStartHour,
             bestNow: route.bestNow,
+            reasonNow: route.reasonNow,
             verificationStatus: route.verification.status.rawValue,
             walkedByCount: route.verification.walkedByCount,
             experienceIdsBlob: experienceIdsBlob,
@@ -160,6 +165,7 @@ extension RouteRecord {
             authorId: authorId,
             bestStartHour: bestStartHour,
             bestNow: bestNow,
+            reasonNow: reasonNow,
             verification: RouteVerification(
                 status: statusValue,
                 walkedByCount: walkedByCount,

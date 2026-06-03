@@ -1167,6 +1167,8 @@
 
 /* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */
 "sheet.section.routes" = "Routes";
+/* Now-context (此刻適合) header for the routes section */
+"sheet.section.routes.now" = "Routes · Best Right Now";
 "sheet.section.nearby" = "Nearby";
 
 /* US-020 — Sort mode sheet */

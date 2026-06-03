@@ -13,14 +13,19 @@ public struct RouteCard: View {
     /// companion slot), the card surfaces a social-proof walked-by row instead
     /// of the recruit-mini strip.
     var companionOn: Bool = false
+    /// Whether the card is rendered in the 此刻適合 (now) context. When true and
+    /// the route carries a `reasonNow`, a golden "此刻理由" banner is shown on top
+    /// and the card border shifts to the warm accent tone (`.sc-route-card.is-now`).
+    var nowContext: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
     @State private var pressed = false
 
-    public init(route: Route, companionOn: Bool = false) {
+    public init(route: Route, companionOn: Bool = false, nowContext: Bool = false) {
         self.route = route
         self.companionOn = companionOn
+        self.nowContext = nowContext
     }
 
     private var monoBaseline: String {
@@ -50,8 +55,18 @@ public struct RouteCard: View {
         route.verification.status == .verified
     }
 
+    /// Whether the golden "此刻理由" banner should surface: only in now-context
+    /// and when the route carries a non-empty `reasonNow`.
+    var showsNowReason: Bool {
+        nowContext && !(route.reasonNow ?? "").isEmpty
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if showsNowReason, let reason = route.reasonNow {
+                nowReasonBanner(reason)
+            }
+
             headRow
 
             Text(route.title)
@@ -80,7 +95,8 @@ public struct RouteCard: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
+                // `.sc-route-card.is-now` warms the border to the accent tone.
+                .strokeBorder(nowContext ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
         .scaleEffect(reduceMotion ? 1 : (pressed ? 0.985 : 1))
@@ -105,6 +121,32 @@ public struct RouteCard: View {
             guard !reduceMotion else { return }
             pulse = true
         }
+    }
+
+    // MARK: - Now-reason banner (此刻理由)
+
+    /// Golden banner explaining *why* the route is surfaced right now, e.g.
+    /// "日落將至 · 30 分鐘後是最佳光線". Mirrors styles.css `.sc-route-card .now-reason`:
+    /// sun-gold-soft fill, sun-gold-deep text, 9pt radius, 11pt bottom gap.
+    private func nowReasonBanner(_ reason: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 11, weight: .semibold))
+            Text(reason)
+                .font(CT.body(11.5, .semibold))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .foregroundStyle(CT.sunGoldDeep)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous).fill(CT.sunGoldSoft)
+        )
+        .padding(.bottom, 11)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(reason))
     }
 
     // MARK: - Head row (category dot + tag + verified-mini / now-pill)
@@ -396,6 +438,29 @@ public struct RouteCard: View {
         verification: RouteVerification(status: .verified, walkedByCount: 12, walkedBy: [])
     )
     RouteCard(route: route)
+        .padding()
+        .background(CT.bgWarm)
+}
+
+#Preview("RouteCard — now-context (此刻理由)") {
+    let route = Route(
+        id: RouteId(rawValue: "r-now"),
+        title: "Mekong Sunset Walk",
+        summary: "Promenade along the river.",
+        experienceIds: ["e1", "e2", "e3"],
+        cityCode: "VTE",
+        region: "Riverfront",
+        estimatedDuration: 90,
+        distanceMeters: 1200,
+        pace: .relaxed,
+        tags: ["nature"],
+        source: .editorial,
+        bestStartHour: 17.0,
+        bestNow: true,
+        reasonNow: "日落將至 · 30 分鐘後是最佳光線",
+        verification: RouteVerification(status: .verified, walkedByCount: 12, walkedBy: [])
+    )
+    return RouteCard(route: route, nowContext: true)
         .padding()
         .background(CT.bgWarm)
 }

@@ -1111,6 +1111,8 @@
 
 /* US-036 — BottomInfoSheet section separation (Routes / Nearby headers) */
 "sheet.section.routes" = "路线";
+/* Now-context (此刻适合) header for the routes section */
+"sheet.section.routes.now" = "路线 · 此刻适合";
 "sheet.section.nearby" = "附近";
 
 /* Solo breakdown */

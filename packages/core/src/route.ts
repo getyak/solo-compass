@@ -41,6 +41,11 @@ export interface Route {
   readonly bestStartHour?: number;
   /** Whether the route is currently inside its preferred window. */
   readonly bestNow: boolean;
+  /**
+   * Short human reason explaining why this route is surfaced right now,
+   * shown as the "此刻理由" banner in now-context (e.g. "日落將至 · 30 分鐘後是最佳光線").
+   */
+  readonly reasonNow?: string;
   readonly verification: RouteVerification;
   readonly companion?: RouteCompanion;
 }
