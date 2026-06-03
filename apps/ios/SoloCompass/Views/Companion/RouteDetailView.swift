@@ -15,10 +15,15 @@ import SwiftUI
 public struct RouteDetailView: View {
     let route: Route
     var onTapStop: (Experience) -> Void
+    /// Called when the traveler taps "开始路线" — the host screen draws the route
+    /// on the map and dismisses this detail. Defaults to a no-op so the other
+    /// presentation sites (chat, requests, walked-routes) need no changes.
+    var onStartRoute: (Route) -> Void
 
     @Environment(ExperienceService.self) private var service
     @Environment(UserPreferences.self) private var preferences
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @State private var isSaved = false
     @State private var isFavorited = false
     @State private var showJoinSheet = false
@@ -27,10 +32,15 @@ public struct RouteDetailView: View {
     // Refreshes whenever RouteStore.didChange fires (join request submitted, accepted, etc.)
     @State private var liveRoute: Route
 
-    public init(route: Route, onTapStop: @escaping (Experience) -> Void = { _ in }) {
+    public init(
+        route: Route,
+        onTapStop: @escaping (Experience) -> Void = { _ in },
+        onStartRoute: @escaping (Route) -> Void = { _ in }
+    ) {
         self.route = route
         self._liveRoute = State(initialValue: route)
         self.onTapStop = onTapStop
+        self.onStartRoute = onStartRoute
     }
 
     // MARK: - Companion recruiting helpers
@@ -316,7 +326,12 @@ public struct RouteDetailView: View {
                 label: NSLocalizedString("route.detail.start", comment: ""),
                 systemImage: "location.north.line.fill",
                 isDisabled: false,
-                action: {}
+                action: {
+                    // Hand the route up to the map host (draws the polyline +
+                    // numbered stops, frames the camera) and close this sheet.
+                    onStartRoute(liveRoute)
+                    dismiss()
+                }
             )
         }
 

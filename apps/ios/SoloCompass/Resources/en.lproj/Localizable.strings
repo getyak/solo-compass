@@ -1273,6 +1273,11 @@
 "route.create.selectedCount" = "已選 %d";
 "route.create.save" = "保存";
 
+/* Active route drawn on the map (start route) */
+"route.active.stops" = "%d 站 · 路線中";
+"route.active.stop.a11y" = "Stop %d";
+"route.active.end" = "結束路線";
+
 /* US-058 — RouteCard walked-by row (CompareCanvas A-003) */
 "route.card.walkedBy" = "%d 位旅人走过";
 

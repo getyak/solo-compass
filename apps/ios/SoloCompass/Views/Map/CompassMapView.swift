@@ -114,6 +114,9 @@ struct CompassMapContentView: View {
     @State private var selectedRoute: Route? = nil
     @State private var isShowingRouteDetail: Bool = false
     @State private var isShowingCreateRoute: Bool = false
+    // The route currently drawn on the map (polyline + numbered stops), set when
+    // the traveler taps "开始路线" in RouteDetailView. nil = no active route.
+    @State private var activeRoute: ActiveRoute? = nil
 
     // Single chat sheet (replaces former plus-menu + voice-overlay split).
     // Presentation is driven by `voiceOrchestrator` via `.sheet(item:)`.
@@ -538,11 +541,18 @@ struct CompassMapContentView: View {
                 .sheet(isPresented: $isShowingRouteDetail) {
                     if let route = selectedRoute {
                         NavigationStack {
-                            RouteDetailView(route: route) { exp in
-                                isShowingRouteDetail = false
-                                viewModel.selectExperience(exp)
-                                viewModel.isShowingDetail = true
-                            }
+                            RouteDetailView(
+                                route: route,
+                                onTapStop: { exp in
+                                    isShowingRouteDetail = false
+                                    viewModel.selectExperience(exp)
+                                    viewModel.isShowingDetail = true
+                                },
+                                onStartRoute: { route in
+                                    isShowingRouteDetail = false
+                                    startRouteOnMap(route)
+                                }
+                            )
                             .environment(experienceService)
                         }
                     }
@@ -580,6 +590,24 @@ struct CompassMapContentView: View {
                         .padding(.bottom, cardBottomInset)
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                // Active-route banner: a top pill naming the walk with an end
+                // button. Floats above the map; tapping ⨯ clears the polyline.
+                if let active = activeRoute {
+                    VStack {
+                        ActiveRouteBanner(
+                            title: active.route.title,
+                            stopCount: active.coordinates.count,
+                            onEnd: {
+                                withAnimation(.easeInOut(duration: 0.25)) { activeRoute = nil }
+                            }
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        Spacer()
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
         }
     }
@@ -738,6 +766,50 @@ struct CompassMapContentView: View {
         )
         .environment(experienceService)
         .environment(preferences)
+    }
+
+    // MARK: - Start route on map
+
+    /// Resolve a route's stops to coordinates, store them as the active route so
+    /// the map draws the polyline + numbered pins, and frame the camera around
+    /// the whole walk. Called when the traveler taps "开始路线".
+    private func startRouteOnMap(_ route: Route) {
+        let coords = route.experienceIds
+            .compactMap { experienceService.getExperience(id: $0)?.coordinate }
+        guard !coords.isEmpty else {
+            // No geocoded stops at all — nothing to show. Clear any prior route.
+            activeRoute = nil
+            return
+        }
+        // 1 stop → no polyline (handled by the Map's count>=2 guard) but we still
+        // mark the stop and fly there, so "start" always gives visible feedback.
+        activeRoute = ActiveRoute(route: route, coordinates: coords)
+        viewModel.cameraPosition = .region(Self.region(enclosing: coords))
+        HapticService.shared.impact(style: .medium)
+    }
+
+    /// A region that comfortably encloses all `coords`, with ~30% padding so the
+    /// end pins aren't flush against the screen edge. Falls back to a tight box
+    /// for a single point (shouldn't happen — callers require ≥2).
+    private static func region(enclosing coords: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
+        let lats = coords.map(\.latitude)
+        let lons = coords.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(),
+              let minLon = lons.min(), let maxLon = lons.max() else {
+            return MKCoordinateRegion(
+                center: coords.first ?? CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            )
+        }
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((maxLat - minLat) * 1.3, 0.005),
+            longitudeDelta: max((maxLon - minLon) * 1.3, 0.005)
+        )
+        return MKCoordinateRegion(center: center, span: span)
     }
 
     @ViewBuilder
@@ -914,6 +986,22 @@ struct CompassMapContentView: View {
                     MapCircle(center: ring.center, radius: ring.radiusMeters)
                         .foregroundStyle(Color.accentColor.opacity(0.08))
                         .stroke(Color.accentColor.opacity(0.35), lineWidth: 1.5)
+                }
+
+                // Active route: a connecting polyline plus numbered stop pins so
+                // the walk reads as an ordered sequence on the map. Drawn last so
+                // the line and numbers sit above the radius ring.
+                if let active = activeRoute, active.coordinates.count >= 2 {
+                    MapPolyline(coordinates: active.coordinates, contourStyle: .straight)
+                        .stroke(
+                            Color.accentColor,
+                            style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
+                        )
+                    ForEach(Array(active.coordinates.enumerated()), id: \.offset) { index, coord in
+                        Annotation("", coordinate: coord) {
+                            RouteStopBadge(number: index + 1)
+                        }
+                    }
                 }
             }
             .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
