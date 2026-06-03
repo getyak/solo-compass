@@ -25,6 +25,13 @@ on:
         required: false
         type: string
 
+# Serialize TestFlight deploys: a burst of main pushes should queue, not run
+# in parallel on the scarce macOS runners. Don't cancel an in-flight upload —
+# it may already be talking to App Store Connect.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: read

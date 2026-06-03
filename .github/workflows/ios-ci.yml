@@ -1,8 +1,11 @@
 name: iOS CI
 
 on:
+  # Only run on main pushes — feature/dual-agent branches are validated via
+  # their pull_request. Pushing CI on every '**' branch flooded the scarce
+  # macOS runner queue (each distinct ref = its own concurrency group).
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
