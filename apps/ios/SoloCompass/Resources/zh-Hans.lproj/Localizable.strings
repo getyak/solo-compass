@@ -1259,6 +1259,23 @@
 "route.card.recruit.view" = "查看";
 "route.card.walkedBy" = "%d 位旅人走过";
 
+/* AI route generation — fallback copy when the model is unavailable */
+"route.generate.fallback.summary" = "串联附近地点的一段轻松独行散步。";
+"route.generate.fallback.title" = "附近散步";
+"route.generate.fallback.titleFormat" = "%1$@ → %2$@";
+
+/* Create-route entry card + flow */
+"route.create.entry.title" = "创建你自己的路线";
+"route.create.entry.subtitle" = "串联几个地点 · 可选择招募同伴一起走";
+"route.create.title" = "创建路线";
+"route.create.ai" = "✨ 让 AI 帮我串成路线";
+"route.create.titleLabel" = "路线名称";
+"route.create.titlePlaceholder" = "例如：湄公河日落散步";
+"route.create.paceLabel" = "节奏";
+"route.create.pickLabel" = "选择地点（按点选顺序串联）";
+"route.create.selectedCount" = "已选 %d";
+"route.create.save" = "保存";
+
 /* Solo score breakdown */
 "solo.breakdown.title" = "独行评分";
 "solo.compact.a11y.hint" = "双击查看评分明细";

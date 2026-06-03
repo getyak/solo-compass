@@ -1256,6 +1256,23 @@
 /* Trailing affordance on a joinable recruit strip */
 "route.card.recruit.view" = "查看";
 
+/* AI route generation — fallback copy when the model is unavailable */
+"route.generate.fallback.summary" = "A short solo walk linking nearby spots.";
+"route.generate.fallback.title" = "Nearby Walk";
+"route.generate.fallback.titleFormat" = "%1$@ → %2$@";
+
+/* Create-route entry card + flow */
+"route.create.entry.title" = "創建你自己的路線";
+"route.create.entry.subtitle" = "串聯幾個地點 · 可選擇招募同伴一起走";
+"route.create.title" = "創建路線";
+"route.create.ai" = "✨ 讓 AI 幫我串成路線";
+"route.create.titleLabel" = "路線名稱";
+"route.create.titlePlaceholder" = "例如：湄公河日落散步";
+"route.create.paceLabel" = "節奏";
+"route.create.pickLabel" = "選擇地點（按點選順序串聯）";
+"route.create.selectedCount" = "已選 %d";
+"route.create.save" = "保存";
+
 /* US-058 — RouteCard walked-by row (CompareCanvas A-003) */
 "route.card.walkedBy" = "%d 位旅人走过";
 
