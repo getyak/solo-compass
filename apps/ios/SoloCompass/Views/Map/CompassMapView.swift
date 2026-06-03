@@ -113,6 +113,7 @@ struct CompassMapContentView: View {
     @State private var nearbyRoutes: [Route] = []
     @State private var selectedRoute: Route? = nil
     @State private var isShowingRouteDetail: Bool = false
+    @State private var isShowingCreateRoute: Bool = false
 
     // Single chat sheet (replaces former plus-menu + voice-overlay split).
     // Presentation is driven by `voiceOrchestrator` via `.sheet(item:)`.
@@ -495,6 +496,13 @@ struct CompassMapContentView: View {
                                     }
                                 )
 
+                                // Create-your-own-route entry, between Routes and Nearby.
+                                CreateRouteEntryCard {
+                                    isShowingCreateRoute = true
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.top, 8)
+
                                 NearbySection(
                                     experiences: viewModel.visibleExperiences,
                                     smartPickIds: viewModel.aiSmartPickIds,
@@ -538,6 +546,22 @@ struct CompassMapContentView: View {
                             .environment(experienceService)
                         }
                     }
+                }
+                .sheet(isPresented: $isShowingCreateRoute) {
+                    CreateRouteView(
+                        candidates: viewModel.visibleExperiences,
+                        cityCode: viewModel.selectedCity ?? "",
+                        userCoordinate: locationService.currentLocation?.coordinate
+                            ?? viewModel.defaultCenterForSelectedCity
+                    ) { route in
+                        // Persist + open the new route's detail; RouteStore.didChange
+                        // refreshes the sheet's routes section automatically.
+                        routeStore.save(route)
+                        selectedRoute = route
+                        isShowingRouteDetail = true
+                    }
+                    .environment(aiService)
+                    .environment(experienceService)
                 }
 
                 // Selected-experience card floats ABOVE the BottomInfoSheet

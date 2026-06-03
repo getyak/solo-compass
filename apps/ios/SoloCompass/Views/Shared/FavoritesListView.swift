@@ -1047,7 +1047,7 @@ private extension FavoritesListView {
                     Spacer()
                     Text(NSLocalizedString("action.undo", comment: "Undo action"))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)

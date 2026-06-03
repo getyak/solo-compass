@@ -39,7 +39,7 @@ public struct SoloScoreBadge: View {
                     Image(systemName: "star.fill")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.95))
-                        .symbolEffect(.variableColor.iterative.hideInactive, options: .repeating, isActive: twinkle && !reduceMotion)
+                        .symbolEffect(.variableColor.iterative, isActive: twinkle && !reduceMotion)
                         .scaleEffect(twinkle && !reduceMotion ? 1.12 : 1.0)
                         .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: twinkle)
                         .accessibilityHidden(true)

@@ -48,57 +48,28 @@ public struct DiscoverRecruitingRoutesView: View {
     // MARK: - Subviews
 
     private var routeList: some View {
-        List(sortedRoutes) { route in
-            NavigationLink {
-                RouteDetailView(route: route)
-            } label: {
-                recruitingRow(route: route)
+        // A plain ScrollView + LazyVStack of self-chromed RouteCards (matching the
+        // bottom-sheet routes section) rather than an inset-grouped List. The old
+        // List wrapped each already-carded RouteCard in a second grouped-cell
+        // background and used a -16 negative-inset hack to claw the card back to
+        // full width — a fragile double-card look. RouteCard already surfaces the
+        // recruit slot (host · N/M · departure · 查看), so the separate slot chip
+        // is dropped as redundant.
+        ScrollView {
+            LazyVStack(spacing: 10) {
+                ForEach(sortedRoutes) { route in
+                    NavigationLink {
+                        RouteDetailView(route: route)
+                    } label: {
+                        RouteCard(route: route, companionOn: true)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .listStyle(.insetGrouped)
-    }
-
-    private func recruitingRow(route: Route) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            RouteCard(route: route)
-                .padding(.horizontal, -16)  // cancel List row insets already applied
-
-            if let companion = route.companion {
-                slotChip(companion)
-                    .padding(.leading, 54)   // align under the title (past 44px cover + 10px gap)
-                    .padding(.bottom, 4)
-            }
-        }
-    }
-
-    private func slotChip(_ companion: RouteCompanion) -> some View {
-        let filled = companion.confirmedMembers.count
-        let max = companion.maxMembers
-        let label = companion.departureLabel
-
-        return Text(
-            String(
-                format: NSLocalizedString(
-                    "discover.recruiting.chip",
-                    comment: "Slot chip: '{filled}/{max} · {departureLabel}'"
-                ),
-                filled, max, label
-            )
-        )
-        .font(.system(size: 11, weight: .medium, design: .monospaced))
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(
-            Capsule().fill(Color.secondary.opacity(0.12))
-        )
-        .accessibilityLabel(
-            String(format: NSLocalizedString(
-                "discover.recruiting.chip.a11y",
-                comment: "Slot chip accessibility: '{filled} of {max} members · {departureLabel}'"
-            ), filled, max, label)
-        )
+        .background(CT.bgWarm)
     }
 
     private var emptyState: some View {

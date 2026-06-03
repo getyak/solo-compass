@@ -311,6 +311,11 @@ public struct RouteCard: View {
             ? CT.verifiedGreenDot
             : (isCompleted ? CT.fgSubtle : CT.accent)
 
+        // Open / forming slots are joinable, so the strip carries a trailing
+        // "查看 >" affordance hinting the card opens the recruit detail. Closed /
+        // completed states are terminal, so they omit the chevron.
+        let showsChevron = !isFormed && !isCompleted
+
         return HStack(spacing: 8) {
             statusDot(dotColor, pulsing: !isCompleted)
             Text(mini.text)
@@ -318,6 +323,16 @@ public struct RouteCard: View {
                 .foregroundStyle(mini.tone)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            if showsChevron {
+                HStack(spacing: 2) {
+                    Text(NSLocalizedString("route.card.recruit.view", comment: "查看 — open recruit detail"))
+                        .font(CT.mono(10.5, .semibold))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .foregroundStyle(mini.tone)
+                .layoutPriority(1)
+            }
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 9)
