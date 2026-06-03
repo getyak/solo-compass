@@ -6,6 +6,8 @@
 /// arrive in later stories. Mirrors the route shape planned for
 /// `packages/core/src/route.ts` — keep field names in sync when that lands.
 
+import Foundation
+
 // MARK: - RouteId
 
 /// Strongly-typed identifier for a Route, preventing raw-string ID mix-ups.
@@ -225,6 +227,9 @@ public struct Route: Identifiable, Codable, Sendable {
     public var bestStartHour: Double?
     /// Whether the route is currently inside its preferred window.
     public var bestNow: Bool
+    /// Short human reason explaining why this route is surfaced right now,
+    /// shown as the "此刻理由" banner in now-context (e.g. "日落將至 · 30 分鐘後是最佳光線").
+    public var reasonNow: String?
     public var verification: RouteVerification
     public var companion: RouteCompanion?
 
@@ -243,6 +248,7 @@ public struct Route: Identifiable, Codable, Sendable {
         authorId: String? = nil,
         bestStartHour: Double? = nil,
         bestNow: Bool = false,
+        reasonNow: String? = nil,
         verification: RouteVerification = RouteVerification(),
         companion: RouteCompanion? = nil
     ) {
@@ -260,7 +266,31 @@ public struct Route: Identifiable, Codable, Sendable {
         self.authorId = authorId
         self.bestStartHour = bestStartHour
         self.bestNow = bestNow
+        self.reasonNow = reasonNow
         self.verification = verification
         self.companion = companion
+    }
+
+    // MARK: - Runtime now-window check
+
+    /// How many hours after `bestStartHour` the route still counts as "best now".
+    /// Sunset/golden-hour style windows read as ~3h; tune here if needed.
+    private static let nowWindowHours: Double = 3
+
+    /// Runtime "best right now" check derived from `bestStartHour`, mirroring the
+    /// intent of `Experience.isBestNow(at:)`. When a `bestStartHour` is set, the
+    /// route is best-now while the current hour falls inside
+    /// `[bestStartHour, bestStartHour + nowWindowHours)` (wrapping past midnight).
+    /// Falls back to the static `bestNow` field when no `bestStartHour` is present
+    /// — so seed data that only carries the boolean still behaves as before.
+    public func isBestNow(at date: Date = Date()) -> Bool {
+        guard let start = bestStartHour else { return bestNow }
+        let hour = Double(Calendar.current.component(.hour, from: date))
+        let end = start + Self.nowWindowHours
+        if end <= 24 {
+            return hour >= start && hour < end
+        }
+        // Window wraps past midnight (e.g. start 22 → end 25 ⇒ 22..24 or 0..1).
+        return hour >= start || hour < (end - 24)
     }
 }

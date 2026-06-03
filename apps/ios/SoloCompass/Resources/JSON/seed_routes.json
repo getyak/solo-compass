@@ -14,6 +14,7 @@
     "authorId": "editorial-team",
     "bestStartHour": 17.0,
     "bestNow": false,
+    "reasonNow": "日落將至 · 30 分鐘後是最佳光線",
     "verification": {
       "status": "walkedBy",
       "walkedByCount": 12,
@@ -66,6 +67,7 @@
     "authorId": "editorial-team",
     "bestStartHour": 8.0,
     "bestNow": false,
+    "reasonNow": "上午正好 · 咖啡館人少、光線柔和",
     "verification": {
       "status": "proposed",
       "walkedByCount": 5,
@@ -103,6 +105,7 @@
     "authorId": "editorial-team",
     "bestStartHour": 6.0,
     "bestNow": false,
+    "reasonNow": "清晨時段 · 市場剛開、空氣最清爽",
     "verification": {
       "status": "proposed",
       "walkedByCount": 0,
@@ -129,6 +132,7 @@
     "authorId": "editorial-team",
     "bestStartHour": 8.0,
     "bestNow": false,
+    "reasonNow": "上午涼爽 · 適合慢走看古蹟，避開正午曝曬",
     "verification": {
       "status": "verified",
       "walkedByCount": 28,
