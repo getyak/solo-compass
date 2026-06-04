@@ -257,8 +257,31 @@ public struct BottomInfoSheet<Content: View>: View {
                 SortCountToolbar(count: count, isNowMode: isNowMode, sortMode: $sortMode)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
-                content(currentDetent, $sortMode)
-                Spacer(minLength: 0)
+                // Single unified scroll layer for all sheet sections (Routes →
+                // Create-route → Nearby). Previously the sheet header rows were
+                // non-scrollable and only Nearby carried its own inner ScrollView,
+                // which meant a long Routes list pushed Nearby off-screen and could
+                // never be scrolled away — the two regions fought over one viewport.
+                // Hosting the whole content closure in one ScrollView makes the
+                // sections a continuous, naturally scrollable stream (like Apple
+                // Maps / Find My). At .peek the closure is empty, so the ScrollView
+                // is a cheap no-op. `Spacer` is gone: the ScrollView expands to fill
+                // the remaining sheet height itself.
+                ScrollView {
+                    content(currentDetent, $sortMode)
+                        // Pin content to the top so a changing viewport height
+                        // (during a drag) never re-centres the column — without
+                        // this the rows visibly jump frame-to-frame as the sheet
+                        // grows/shrinks, reading as a flicker.
+                        .frame(maxWidth: .infinity, alignment: .top)
+                }
+                // While the handle is being dragged, freeze the ScrollView. The
+                // sheet's height animates every frame; an active ScrollView would
+                // re-clamp its contentOffset against that moving viewport and
+                // fight the drag gesture, producing the flicker. Re-enabled the
+                // moment the drag ends.
+                .scrollDisabled(isDragging)
+                .scrollDismissesKeyboard(.interactively)
             }
             .frame(maxWidth: .infinity)
             .frame(height: displayHeight)
@@ -272,7 +295,15 @@ public struct BottomInfoSheet<Content: View>: View {
                 .fill(.ultraThinMaterial)
             )
         }
-        .animation(isDragging ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: displayHeight)
+        // Animate ONLY the discrete detent settle (which changes once, on release),
+        // never the continuously finger-driven `displayHeight`. Watching
+        // `displayHeight` here meant every drag frame nudged a value an active
+        // spring was tracking, so the spring kept restarting-then-being-interrupted
+        // frame-to-frame — the sheet edge jittered larger/smaller (the "flicker").
+        // With the value pinned to `currentDetent`, the drag is pure, immediate
+        // finger-tracking (no animation), and only the release-to-nearest-detent
+        // gets the spring.
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: currentDetent)
     }
 
     // MARK: - Drag Handle
@@ -1002,22 +1033,27 @@ struct NearbySection: View {
                 // Each row now carries its own card chrome, so we separate them
                 // with a 10pt gap (matching RoutesSection) rather than full-bleed
                 // dividers — the list reads as a stack of discrete cards.
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(sortedExperiences) { exp in
-                            NearbyExperienceRow(
-                                experience: exp,
-                                isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
-                                distanceMeters: distance(to: exp),
-                                isOpenNow: sortMode == .now && isOpenNow(exp),
-                                onTap: { onSelectExperience(exp) }
-                            )
-                        }
+                //
+                // No inner ScrollView: the host BottomInfoSheet wraps the whole
+                // content closure in one ScrollView, so Nearby lays its rows out
+                // inline as part of that single scroll stream. A nested ScrollView
+                // here would re-introduce the two-viewport conflict that hid this
+                // list when the Routes section above grew long. LazyVStack keeps
+                // rows lazily realized for long lists.
+                LazyVStack(spacing: 10) {
+                    ForEach(sortedExperiences) { exp in
+                        NearbyExperienceRow(
+                            experience: exp,
+                            isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
+                            distanceMeters: distance(to: exp),
+                            isOpenNow: sortMode == .now && isOpenNow(exp),
+                            onTap: { onSelectExperience(exp) }
+                        )
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-                    .padding(.bottom, 8)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
             }
         }
         .padding(.top, 8)
