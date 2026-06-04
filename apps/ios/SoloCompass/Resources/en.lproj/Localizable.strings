@@ -228,6 +228,8 @@
 "filter.empty.message.a11y" = "Nothing matches the active filter in this area. Double tap Show all to reset.";
 "filter.empty.showAll.a11y" = "Show all experiences";
 
+"map.recenter" = "Recenter on my location";
+
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";
 "map.empty.hint" = "Try clearing filters or moving the map.";

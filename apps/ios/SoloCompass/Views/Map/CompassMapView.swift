@@ -1083,9 +1083,16 @@ struct CompassMapContentView: View {
                 }
             }
             .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+            // Only keep the compass (which auto-hides unless the map is
+            // rotated). The built-in MapUserLocationButton is intentionally
+            // dropped: because the map sets `.ignoresSafeArea()` to bleed tiles
+            // under the status bar, MapKit lays the control out against the
+            // ignored margins and pins it into the status-bar strip, where it
+            // collided with the system battery glyph. A custom recenter button
+            // (see `recenterButton` in the overlay) gives us a safe-area-aware,
+            // fully controllable placement instead.
             .mapControls {
                 MapCompass()
-                MapUserLocationButton()
             }
             .onMapCameraChange(frequency: .continuous) { _ in
                 isMapPanning = true
@@ -1255,6 +1262,13 @@ private struct MapOverlayView: View {
                 cityPill
                     .padding(.leading, 12)
                 Spacer()
+                // Custom "locate me" button — replaces the built-in
+                // MapUserLocationButton, which MapKit pinned into the status bar
+                // (it collided with the battery glyph) because the map ignores
+                // the top safe area. Living in this safe-area-respecting overlay
+                // row keeps it clear of the status bar, on the city-pill line.
+                recenterButton
+                    .padding(.trailing, 12)
             }
             .frame(height: MapOverlayMetrics.cityPillRowHeight)
             .padding(.top, MapOverlayMetrics.cityPillTopPadding)
@@ -1627,6 +1641,27 @@ private struct MapOverlayView: View {
         }
         .accessibilityLabel(Text(cityName))
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
+    }
+
+    /// Custom "locate me" control. Recenters the camera on the user's current
+    /// location. Shows a filled arrow when a GPS fix is available, an outline
+    /// (and disabled) when not. Visual treatment matches the bottom FAB cluster
+    /// (.regularMaterial circle + soft shadow) so the controls read as one set.
+    private var recenterButton: some View {
+        let located = viewModel.hasUserLocation
+        return Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            viewModel.recenterOnUser()
+        } label: {
+            Image(systemName: located ? "location.fill" : "location")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(located ? CT.accent : CT.fgSubtle)
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(.regularMaterial))
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
+        }
+        .disabled(!located)
+        .accessibilityLabel(Text(NSLocalizedString("map.recenter", comment: "Recenter map on my location")))
     }
 }
 

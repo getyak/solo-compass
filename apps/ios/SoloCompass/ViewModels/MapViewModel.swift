@@ -132,6 +132,21 @@ public final class MapViewModel {
         autoExploreIfEmpty(at: coordinate)
     }
 
+    /// Whether a GPS fix is available right now — drives the custom recenter
+    /// button's enabled state in the map overlay.
+    public var hasUserLocation: Bool {
+        locationService.currentLocation != nil
+    }
+
+    /// Recenter the camera on the user's current location on demand (the custom
+    /// "locate me" button). Unlike `bindToLocation` this ignores the
+    /// `hasAutoCentered` guard, so the user can re-center any time after panning
+    /// away. No-op when there is no GPS fix yet.
+    public func recenterOnUser() {
+        guard let coordinate = locationService.currentLocation?.coordinate else { return }
+        recenter(on: coordinate)
+    }
+
     /// Auto-trigger Explore when the user lands in a data-sparse area
     /// (e.g. Vientiane with zero seed data). Fires once after the first
     /// GPS fix. Skips when there's already ≥3 experiences within 5 km,
