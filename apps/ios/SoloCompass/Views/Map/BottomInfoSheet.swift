@@ -48,7 +48,7 @@ public enum SortMode: String, CaseIterable, Identifiable {
 /// heights are derived from these via `BottomSheetDetent.scaledHeight` so that
 /// at large Dynamic Type sizes (up to AX5) the sheet grows enough to show its
 /// content without clipping.
-private let basePeekHeight: CGFloat = 170
+private let basePeekHeight: CGFloat = 240
 private let baseMidHeight: CGFloat = 500
 private let baseFullHeight: CGFloat = 800
 private let baseMinHeight: CGFloat = 120
@@ -188,17 +188,31 @@ public struct BottomInfoSheet<Content: View>: View {
     private let aiHint: String
     private let count: Int
     private let isNowMode: Bool
+    /// The experience featured in the peek summary card ("此刻最值得去"). When
+    /// nil, the peek state shows `PeekEmptyCard` instead.
+    private let peekExperience: Experience?
+    /// Whether `peekExperience` is the AI smart pick (gold treatment + AI tag).
+    private let isSmartPick: Bool
+    /// Reference coordinate (user location or map center) for the peek card's
+    /// distance + compass bearing.
+    private let referenceCoordinate: CLLocationCoordinate2D?
     private let content: (BottomSheetDetent, Binding<SortMode>) -> Content
 
     public init(
         aiHint: String,
         count: Int,
         isNowMode: Bool,
+        peekExperience: Experience? = nil,
+        isSmartPick: Bool = false,
+        referenceCoordinate: CLLocationCoordinate2D? = nil,
         @ViewBuilder content: @escaping (BottomSheetDetent, Binding<SortMode>) -> Content
     ) {
         self.aiHint = aiHint
         self.count = count
         self.isNowMode = isNowMode
+        self.peekExperience = peekExperience
+        self.isSmartPick = isSmartPick
+        self.referenceCoordinate = referenceCoordinate
         self.content = content
     }
 
@@ -251,37 +265,18 @@ public struct BottomInfoSheet<Content: View>: View {
             // Sheet
             VStack(spacing: 0) {
                 dragHandleArea
-                NowHintRow(hint: aiHint)
+                peekContentArea
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
-                SortCountToolbar(count: count, isNowMode: isNowMode, sortMode: $sortMode)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                // Single unified scroll layer for all sheet sections (Routes →
-                // Create-route → Nearby). Previously the sheet header rows were
-                // non-scrollable and only Nearby carried its own inner ScrollView,
-                // which meant a long Routes list pushed Nearby off-screen and could
-                // never be scrolled away — the two regions fought over one viewport.
-                // Hosting the whole content closure in one ScrollView makes the
-                // sections a continuous, naturally scrollable stream (like Apple
-                // Maps / Find My). At .peek the closure is empty, so the ScrollView
-                // is a cheap no-op. `Spacer` is gone: the ScrollView expands to fill
-                // the remaining sheet height itself.
-                ScrollView {
-                    content(currentDetent, $sortMode)
-                        // Pin content to the top so a changing viewport height
-                        // (during a drag) never re-centres the column — without
-                        // this the rows visibly jump frame-to-frame as the sheet
-                        // grows/shrinks, reading as a flicker.
-                        .frame(maxWidth: .infinity, alignment: .top)
+                // The sort/count toolbar only belongs above the *list*; in the
+                // peek state the summary card stands alone, so it is gated out.
+                if currentDetent != .peek {
+                    SortCountToolbar(count: count, isNowMode: isNowMode, sortMode: $sortMode)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
                 }
-                // While the handle is being dragged, freeze the ScrollView. The
-                // sheet's height animates every frame; an active ScrollView would
-                // re-clamp its contentOffset against that moving viewport and
-                // fight the drag gesture, producing the flicker. Re-enabled the
-                // moment the drag ends.
-                .scrollDisabled(isDragging)
-                .scrollDismissesKeyboard(.interactively)
+                content(currentDetent, $sortMode)
+                Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
             .frame(height: displayHeight)
@@ -295,15 +290,73 @@ public struct BottomInfoSheet<Content: View>: View {
                 .fill(.ultraThinMaterial)
             )
         }
-        // Animate ONLY the discrete detent settle (which changes once, on release),
-        // never the continuously finger-driven `displayHeight`. Watching
-        // `displayHeight` here meant every drag frame nudged a value an active
-        // spring was tracking, so the spring kept restarting-then-being-interrupted
-        // frame-to-frame — the sheet edge jittered larger/smaller (the "flicker").
-        // With the value pinned to `currentDetent`, the drag is pure, immediate
-        // finger-tracking (no animation), and only the release-to-nearest-detent
-        // gets the spring.
-        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: currentDetent)
+        .animation(isDragging ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: displayHeight)
+    }
+
+    // MARK: - Peek content
+
+    /// Peek state shows the "此刻最值得去" summary card (or the empty card);
+    /// every other detent reverts to the compact now-hint row above the list.
+    @ViewBuilder
+    private var peekContentArea: some View {
+        if currentDetent == .peek {
+            peekSummaryArea
+        } else {
+            NowHintRow(hint: aiHint)
+        }
+    }
+
+    /// Golden section label + the summary card. Tapping anywhere in this area —
+    /// the label, the card, or the surrounding whitespace — expands the sheet to
+    /// `.mid`. `currentDetent` is assigned directly; the outer ZStack's
+    /// `.animation(value:)` provides the spring, so no `withAnimation` wrapper is
+    /// used here (that would fight the implicit animation).
+    @ViewBuilder
+    private var peekSummaryArea: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            peekHeaderLabel
+            if let experience = peekExperience {
+                PeekSummaryCard(
+                    experience: experience,
+                    isSmartPick: isSmartPick,
+                    referenceCoordinate: referenceCoordinate,
+                    onTap: {
+                        currentDetent = .mid
+                        #if canImport(UIKit)
+                        Haptics.selection()
+                        #endif
+                    }
+                )
+            } else {
+                PeekEmptyCard()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            currentDetent = .mid
+            #if canImport(UIKit)
+            Haptics.selection()
+            #endif
+        }
+    }
+
+    /// Golden "此刻最值得去" header, mirroring `RouteNowSectionHeader`'s left side
+    /// (sparkles + uppercase sun-gold-deep display text).
+    private var peekHeaderLabel: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(CT.sunGoldDeep)
+            Text(NSLocalizedString("peek.pick.header", comment: "此刻最值得去 peek section header"))
+                .font(CT.display(11, .bold))
+                .tracking(1.3)
+                .textCase(.uppercase)
+                .foregroundStyle(CT.sunGoldDeep)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 4)
+        .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Drag Handle
@@ -336,8 +389,20 @@ public struct BottomInfoSheet<Content: View>: View {
                     dragOffset = 0
                 }
         )
+        // A discrete tap on the handle steps up one detent. `DragGesture`'s
+        // `minimumDistance: 4` means a tap never registers as a drag, so the two
+        // gestures coexist without conflict.
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                currentDetent = currentDetent.nextHigher
+                #if canImport(UIKit)
+                Haptics.selection()
+                #endif
+            }
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(NSLocalizedString("sheet.handle", comment: "Bottom sheet drag handle")))
+        .accessibilityHint(Text(NSLocalizedString("sheet.handle.hint", comment: "Tap to expand, drag to resize")))
         .accessibilityAddTraits(.allowsDirectInteraction)
         .accessibilityAdjustableAction { direction in
             switch direction {
@@ -1033,27 +1098,22 @@ struct NearbySection: View {
                 // Each row now carries its own card chrome, so we separate them
                 // with a 10pt gap (matching RoutesSection) rather than full-bleed
                 // dividers — the list reads as a stack of discrete cards.
-                //
-                // No inner ScrollView: the host BottomInfoSheet wraps the whole
-                // content closure in one ScrollView, so Nearby lays its rows out
-                // inline as part of that single scroll stream. A nested ScrollView
-                // here would re-introduce the two-viewport conflict that hid this
-                // list when the Routes section above grew long. LazyVStack keeps
-                // rows lazily realized for long lists.
-                LazyVStack(spacing: 10) {
-                    ForEach(sortedExperiences) { exp in
-                        NearbyExperienceRow(
-                            experience: exp,
-                            isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
-                            distanceMeters: distance(to: exp),
-                            isOpenNow: sortMode == .now && isOpenNow(exp),
-                            onTap: { onSelectExperience(exp) }
-                        )
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(sortedExperiences) { exp in
+                            NearbyExperienceRow(
+                                experience: exp,
+                                isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
+                                distanceMeters: distance(to: exp),
+                                isOpenNow: sortMode == .now && isOpenNow(exp),
+                                onTap: { onSelectExperience(exp) }
+                            )
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
             }
         }
         .padding(.top, 8)
@@ -1187,7 +1247,10 @@ struct EmptySheetListView: View {
         BottomInfoSheet(
             aiHint: NSLocalizedString("ai.now.hint", comment: "AI now hint"),
             count: 7,
-            isNowMode: false
+            isNowMode: false,
+            peekExperience: ExperienceService.hardcodedSeed.first,
+            isSmartPick: true,
+            referenceCoordinate: ExperienceService.hardcodedSeed.first?.coordinate
         ) { detent, _ in
             if detent != .peek {
                 Text("Nearby list goes here")
