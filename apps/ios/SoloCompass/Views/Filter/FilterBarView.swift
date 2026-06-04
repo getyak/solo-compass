@@ -541,16 +541,8 @@ private struct FilterViewportWidthKey: PreferenceKey {
     }
 }
 
-// MARK: - PressableButtonStyle
-
-/// Scales down ~8% on press and springs back, giving pills a physical feel.
-private struct PressableButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
-    }
-}
+// MARK: - PressableButtonStyle moved to Views/Shared/PressableButtonStyle.swift
+// (shared with ChatInputBar to avoid duplication)
 
 #Preview {
     VStack {

@@ -229,6 +229,29 @@ struct CompassMapContentView: View {
         return BottomSheetDetent.peekHeight(for: traits)
     }
 
+    /// The single experience featured in the BottomInfoSheet's peek summary card
+    /// ("此刻最值得去"). Prefers the first visible AI smart pick, else the nearest
+    /// visible experience to the user (or the selected city's centre when GPS is
+    /// unavailable). Resolved by the pure `PeekPickResolver` so the rule is unit-
+    /// tested independently of the view graph.
+    private var peekExperience: Experience? {
+        PeekPickResolver.resolve(
+            experiences: viewModel.visibleExperiences,
+            smartPickIds: viewModel.aiSmartPickIds,
+            referenceCoordinate: locationService.currentLocation?.coordinate
+                ?? viewModel.defaultCenterForSelectedCity
+        )
+    }
+
+    /// Whether `peekExperience` is the AI smart pick — drives the peek card's
+    /// gold gradient and "AI Pick" tag.
+    private var peekExperienceIsSmartPick: Bool {
+        PeekPickResolver.isSmartPick(
+            resolved: peekExperience,
+            smartPickIds: viewModel.aiSmartPickIds
+        )
+    }
+
     @ViewBuilder
     var body: some View {
         mapContent
@@ -502,7 +525,11 @@ struct CompassMapContentView: View {
                         count: viewModel.isNowFilter
                             ? viewModel.nowCount
                             : viewModel.visibleExperiences.count,
-                        isNowMode: viewModel.isNowFilter
+                        isNowMode: viewModel.isNowFilter,
+                        peekExperience: peekExperience,
+                        isSmartPick: peekExperienceIsSmartPick,
+                        referenceCoordinate: locationService.currentLocation?.coordinate
+                            ?? viewModel.defaultCenterForSelectedCity
                     ) { detent, sortMode in
                         if detent != .peek {
                             VStack(spacing: 0) {

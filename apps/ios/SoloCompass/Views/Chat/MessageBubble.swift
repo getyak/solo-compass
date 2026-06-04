@@ -17,9 +17,11 @@ public struct MessageBubble: View {
     /// For tool rows: the tool name (e.g. "explore_nearby"). Ignored for
     /// user/assistant rows.
     public let toolName: String?
-    /// When true, renders a soft pulse on the trailing edge to signal that
+    /// When true, renders a blinking caret on the trailing edge to signal that
     /// content is still arriving from the model.
     public let isStreaming: Bool
+
+    @Environment(\.colorScheme) private var colorScheme
 
     public init(
         role: VoiceAgentSession.Role,
@@ -57,7 +59,9 @@ public struct MessageBubble: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 9)
-                .background(Color.accentColor, in: bubbleShape)
+                .background(CT.accent, in: bubbleShape)
+                .overlay(bubbleShape.strokeBorder(CT.accentBorder, lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
                 .accessibilityLabel(Text(String(
                     format: NSLocalizedString("chat.bubble.user.a11y", comment: "You said: %@"),
                     text
@@ -82,14 +86,21 @@ public struct MessageBubble: View {
 
     private var assistantBubble: some View {
         HStack(alignment: .top, spacing: 8) {
-            assistantAvatar
+            AssistantAvatar()
             VStack(alignment: .leading, spacing: 0) {
                 Text(text.isEmpty ? " " : text)
                     .font(.body)
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
-                    .background(.thinMaterial, in: bubbleShape)
+                    // background{shape.fill.shadow} lets the soft shadow escape
+                    // the rounded clip instead of being chopped by it.
+                    .background {
+                        bubbleShape
+                            .fill(MessageBubble.assistantFill(colorScheme))
+                            .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
+                    }
+                    .overlay(bubbleShape.strokeBorder(CT.borderSubtle, lineWidth: 0.5))
                     .overlay(alignment: .trailing) {
                         if isStreaming {
                             StreamingCursor()
@@ -120,16 +131,10 @@ public struct MessageBubble: View {
         }
     }
 
-    private var assistantAvatar: some View {
-        Circle()
-            .fill(Color.accentColor.opacity(0.15))
-            .frame(width: 28, height: 28)
-            .overlay {
-                Image(systemName: "location.north.line.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
-            }
-            .accessibilityHidden(true)
+    /// AI bubble fill: warm white in light mode, the dark token in dark mode so
+    /// the parchment surface doesn't glare on a near-black background.
+    static func assistantFill(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? CT.chatAIBubbleBgDark : CT.surfaceWhite
     }
 
     private var toolIndicator: some View {
@@ -143,13 +148,13 @@ public struct MessageBubble: View {
                 .foregroundStyle(.secondary)
             Spacer()
         }
-        .padding(.leading, 36) // align under assistant avatar
+        .padding(.leading, 40) // align under assistant avatar (32 + 8 spacing)
         .padding(.trailing, 16)
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
     }
 
-    private var bubbleShape: some Shape {
+    private var bubbleShape: some InsettableShape {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
     }
 
@@ -206,11 +211,34 @@ public struct MessageBubble: View {
     }
 }
 
+/// Shared compass-mark avatar for the assistant. Used by both `MessageBubble`
+/// and `TypingIndicatorBubble` so the two stay visually in sync and we don't
+/// duplicate the styling.
+@MainActor
+struct AssistantAvatar: View {
+    var body: some View {
+        Circle()
+            .fill(CT.sunGoldSoft)
+            .frame(width: 32, height: 32)
+            .overlay {
+                Image(systemName: "location.north.line.fill")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(CT.sunGoldDeep)
+            }
+            .overlay(Circle().strokeBorder(CT.accentBorder, lineWidth: 0.5))
+            .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
+            .accessibilityHidden(true)
+    }
+}
+
 /// Animated three-dot 'typing' bubble shown while the agent is thinking or
 /// executing a tool and no streamed text has arrived yet.
+@MainActor
 public struct TypingIndicatorBubble: View {
     /// Optional localized step label (e.g. "🔍 Searching nearby…").
     public let label: String?
+
+    @Environment(\.colorScheme) private var colorScheme
 
     public init(label: String? = nil) {
         self.label = label
@@ -218,8 +246,8 @@ public struct TypingIndicatorBubble: View {
 
     public var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            assistantAvatar
-            VStack(alignment: .leading, spacing: 4) {
+            AssistantAvatar()
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 5) {
                     ForEach(0..<3, id: \.self) { index in
                         BouncingDot(delay: Double(index) * 0.18)
@@ -227,13 +255,24 @@ public struct TypingIndicatorBubble: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .background {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(MessageBubble.assistantFill(colorScheme))
+                        .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
+                }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
+                )
 
                 if let label, !label.isEmpty {
                     Text(label)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .padding(.leading, 4)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(stepPillFill, in: Capsule())
+                        .overlay(Capsule().strokeBorder(CT.borderSubtle, lineWidth: 0.5))
                         .transition(.opacity)
                 }
             }
@@ -246,56 +285,55 @@ public struct TypingIndicatorBubble: View {
         )))
     }
 
-    private var assistantAvatar: some View {
-        Circle()
-            .fill(Color.accentColor.opacity(0.15))
-            .frame(width: 28, height: 28)
-            .overlay {
-                Image(systemName: "location.north.line.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
-            }
-            .accessibilityHidden(true)
+    private var stepPillFill: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceSunken
     }
 }
 
 /// Single dot in the typing indicator, bouncing with a staggered delay.
 private struct BouncingDot: View {
     let delay: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var bouncing = false
 
     var body: some View {
         Circle()
-            .fill(Color.secondary.opacity(0.6))
+            .fill(CT.fgSubtle)
             .frame(width: 7, height: 7)
             .offset(y: bouncing ? -4 : 0)
             .opacity(bouncing ? 1.0 : 0.5)
             .animation(
-                .easeInOut(duration: 0.5)
-                    .repeatForever(autoreverses: true)
-                    .delay(delay),
+                reduceMotion
+                    ? nil
+                    : .easeInOut(duration: 0.5)
+                        .repeatForever(autoreverses: true)
+                        .delay(delay),
                 value: bouncing
             )
-            .onAppear { bouncing = true }
+            .onAppear { if !reduceMotion { bouncing = true } }
             .accessibilityHidden(true)
     }
 }
 
-/// Soft pulsing dot rendered on the trailing edge of a streaming bubble.
-/// Pure visual — has no semantic meaning for VoiceOver.
+/// Blinking caret rendered on the trailing edge of a streaming bubble, echoing
+/// a text-cursor so the live response reads as "still typing". Pure visual —
+/// no semantic meaning for VoiceOver.
 private struct StreamingCursor: View {
-    @State private var pulse = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var visible = true
 
     var body: some View {
-        Circle()
-            .fill(Color.accentColor)
-            .frame(width: 6, height: 6)
-            .opacity(pulse ? 0.3 : 1.0)
+        RoundedRectangle(cornerRadius: 1, style: .continuous)
+            .fill(CT.accent)
+            .frame(width: 2, height: 14)
+            .opacity(visible ? 1.0 : 0.15)
             .animation(
-                .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
-                value: pulse
+                reduceMotion
+                    ? nil
+                    : .easeInOut(duration: 0.55).repeatForever(autoreverses: true),
+                value: visible
             )
-            .onAppear { pulse = true }
+            .onAppear { if !reduceMotion { visible = false } }
             .accessibilityHidden(true)
     }
 }
@@ -307,6 +345,7 @@ private struct StreamingCursor: View {
     }
     .padding()
     .frame(maxWidth: .infinity, alignment: .leading)
+    .background(CT.bgWarm)
 }
 
 #Preview("Conversation") {
@@ -330,4 +369,5 @@ private struct StreamingCursor: View {
     }
     .padding()
     .frame(maxWidth: .infinity, alignment: .leading)
+    .background(CT.bgWarm)
 }

@@ -1309,3 +1309,11 @@
 "voice.recording.maxReached" = "已达最大时长";
 "voice.recording.maxReached.a11y" = "已达最大录音时长 — 转写已保存";
 "voice.recording.timer.a11y" = "录音中 — 已 %d 秒";
+
+/* BottomInfoSheet 底部 sheet peek 摘要卡 */
+"peek.pick.header" = "此刻最值得去";
+"peek.empty.hint" = "移动地图发现附近地点";
+"peek.card.hint" = "双击查看附近全部地点";
+"peek.card.aiPick" = "AI 精选";
+"peek.card.aiPick.a11y" = "此刻 AI 精选";
+"sheet.handle.hint" = "点击展开，拖动调整";

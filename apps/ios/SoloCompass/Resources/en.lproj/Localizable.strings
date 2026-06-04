@@ -1383,3 +1383,11 @@
 "compass.pointing.title" = "Pointing toward";
 "compass.direction.a11y" = "%1$@ away, pointing %2$@";
 "nearby.direction.suffix" = "to the %@";
+
+/* BottomInfoSheet peek summary card ("此刻最值得去") */
+"peek.pick.header" = "Best for right now";
+"peek.empty.hint" = "Move the map to discover nearby spots";
+"peek.card.hint" = "Double tap to see all nearby spots";
+"peek.card.aiPick" = "AI Pick";
+"peek.card.aiPick.a11y" = "AI pick for right now";
+"sheet.handle.hint" = "Tap to expand, drag to resize";
