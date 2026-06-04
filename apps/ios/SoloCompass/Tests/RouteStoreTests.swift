@@ -167,6 +167,17 @@ final class RouteStoreTests: XCTestCase {
         XCTAssertTrue(store.nearby(cityCode: "tyo", limit: -1).isEmpty)
     }
 
+    /// `nearby` sorts by title so the Routes section order is stable across
+    /// restarts. Saving out of alphabetical order must still return sorted.
+    func testNearbySortsByTitleForStableOrder() {
+        store.save(makeRoute(id: "route_c", title: "Charlie", cityCode: "tyo"))
+        store.save(makeRoute(id: "route_a", title: "Alpha", cityCode: "tyo"))
+        store.save(makeRoute(id: "route_b", title: "Bravo", cityCode: "tyo"))
+
+        let titles = store.nearby(cityCode: "tyo", limit: 10).map(\.title)
+        XCTAssertEqual(titles, ["Alpha", "Bravo", "Charlie"])
+    }
+
     // MARK: - didChange notification
 
     func testSavePostsDidChangeNotification() {

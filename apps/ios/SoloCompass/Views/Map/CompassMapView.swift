@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import os
 
 /// THE root view. Map-first means: this is what the app *is*. No tabs. No
 /// drawer. Filters and the bottom info bar overlay it; an experience card
@@ -267,6 +268,13 @@ struct CompassMapContentView: View {
                     if preferences.lastSelectedCity == nil && locationService.currentLocation == nil {
                         isShowingCityPicker = true
                     }
+                    // Populate the Routes section for the initial city. `selectedCity`
+                    // is resolved in the view model's init (from a persisted city or
+                    // the -startCity override), so `onChange(of:selectedCity)` never
+                    // fires for that initial value — without this, a cold start that
+                    // lands directly on a city with seeded routes shows an empty
+                    // Routes section, and 开始路线 is unreachable from the map.
+                    refreshNearbyRoutes(cityCode: viewModel.selectedCity)
                 }
                 viewModel.checkForPendingCheckIns()
             }
@@ -314,6 +322,13 @@ struct CompassMapContentView: View {
             }
             .onChange(of: viewModel.selectedCity) { _, cityCode in
                 refreshNearbyRoutes(cityCode: cityCode)
+                // Clear an active route that belongs to the city we just left —
+                // otherwise its polyline + numbered pins stay drawn at the old
+                // city's coordinates while the camera and experiences have moved
+                // to the new city (an orphan walk floating over the wrong map).
+                if let active = activeRoute, active.route.cityCode != cityCode {
+                    activeRoute = nil
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { _ in
                 refreshNearbyRoutes(cityCode: viewModel.selectedCity)
@@ -592,8 +607,12 @@ struct CompassMapContentView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                // Active-route banner: a top pill naming the walk with an end
-                // button. Floats above the map; tapping ⨯ clears the polyline.
+                // Active-route banner: a pill naming the walk with an end button.
+                // Floats above the map; tapping ⨯ clears the polyline. It sits
+                // BELOW the city pill + filter bar (offset by the filter bar's
+                // bottom edge) so it never overlaps the top controls — including
+                // at large Dynamic Type, where a top-pinned banner would collide.
+                // `.zIndex` keeps it above every other overlay layer.
                 if let active = activeRoute {
                     VStack {
                         ActiveRouteBanner(
@@ -604,10 +623,12 @@ struct CompassMapContentView: View {
                             }
                         )
                         .padding(.horizontal, 16)
-                        .padding(.top, 8)
+                        .padding(.top, MapOverlayMetrics.filterBarTopOffset
+                            + MapOverlayMetrics.filterBarHeight + 8)
                         Spacer()
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(10)
                 }
         }
     }
@@ -770,16 +791,38 @@ struct CompassMapContentView: View {
 
     // MARK: - Start route on map
 
+    private static let routeLog = OSLog(subsystem: "com.solocompass.app", category: "RouteOnMap")
+
     /// Resolve a route's stops to coordinates, store them as the active route so
     /// the map draws the polyline + numbered pins, and frame the camera around
     /// the whole walk. Called when the traveler taps "开始路线".
     private func startRouteOnMap(_ route: Route) {
-        let coords = route.experienceIds
-            .compactMap { experienceService.getExperience(id: $0)?.coordinate }
+        let resolved = route.experienceIds
+            .map { (id: $0, coord: experienceService.getExperience(id: $0)?.coordinate) }
+        let coords = resolved.compactMap(\.coord)
         guard !coords.isEmpty else {
-            // No geocoded stops at all — nothing to show. Clear any prior route.
+            // No geocoded stops at all — nothing to draw. Clear any prior route and
+            // surface the failure (a stale/broken route) instead of a silent no-op,
+            // which reads to the user as "开始路线 did nothing".
+            os_log(
+                "startRouteOnMap: route %{public}@ has 0 resolvable stops (ids=%{public}@) — nothing drawn",
+                log: Self.routeLog, type: .error,
+                route.id.rawValue, route.experienceIds.joined(separator: ",")
+            )
             activeRoute = nil
             return
+        }
+        // Partial resolution: the polyline silently bridges the gap (stop 1 → stop 3
+        // if stop 2 is missing), which misrepresents the walk. We still draw what we
+        // can but log the dropped stops so the data drift is visible, not silent.
+        let missing = resolved.filter { $0.coord == nil }.map(\.id)
+        if !missing.isEmpty {
+            os_log(
+                "startRouteOnMap: route %{public}@ drew %d/%d stops; unresolved=%{public}@",
+                log: Self.routeLog, type: .info,
+                route.id.rawValue, coords.count, route.experienceIds.count,
+                missing.joined(separator: ",")
+            )
         }
         // 1 stop → no polyline (handled by the Map's count>=2 guard) but we still
         // mark the stop and fly there, so "start" always gives visible feedback.
@@ -788,9 +831,15 @@ struct CompassMapContentView: View {
         HapticService.shared.impact(style: .medium)
     }
 
+    /// Minimum half-comfortable region span (~1.1 km at the equator). Used as the
+    /// floor for a route's bounding box so a single-stop route — or stops that sit
+    /// almost on top of each other — frames at a sensible street-level zoom rather
+    /// than slamming all the way in.
+    private static let minRegionSpan: CLLocationDegrees = 0.01
+
     /// A region that comfortably encloses all `coords`, with ~30% padding so the
-    /// end pins aren't flush against the screen edge. Falls back to a tight box
-    /// for a single point (shouldn't happen — callers require ≥2).
+    /// end pins aren't flush against the screen edge. A single point (1-stop route)
+    /// frames at `minRegionSpan` so the lone pin reads at street level.
     private static func region(enclosing coords: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
         let lats = coords.map(\.latitude)
         let lons = coords.map(\.longitude)
@@ -798,7 +847,7 @@ struct CompassMapContentView: View {
               let minLon = lons.min(), let maxLon = lons.max() else {
             return MKCoordinateRegion(
                 center: coords.first ?? CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                span: MKCoordinateSpan(latitudeDelta: minRegionSpan, longitudeDelta: minRegionSpan)
             )
         }
         let center = CLLocationCoordinate2D(
@@ -806,8 +855,8 @@ struct CompassMapContentView: View {
             longitude: (minLon + maxLon) / 2
         )
         let span = MKCoordinateSpan(
-            latitudeDelta: max((maxLat - minLat) * 1.3, 0.005),
-            longitudeDelta: max((maxLon - minLon) * 1.3, 0.005)
+            latitudeDelta: max((maxLat - minLat) * 1.3, minRegionSpan),
+            longitudeDelta: max((maxLon - minLon) * 1.3, minRegionSpan)
         )
         return MKCoordinateRegion(center: center, span: span)
     }

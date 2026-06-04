@@ -71,12 +71,14 @@ public final class RouteStore {
     }
 
     /// Routes in a given city, capped at `limit` results. Non-positive
-    /// `limit` returns an empty array. Order is unspecified beyond the city
-    /// filter — sort at the call site if needed.
+    /// `limit` returns an empty array. Sorted by `title` so the Routes section
+    /// shows a stable, deterministic order across app restarts (the fetch is
+    /// otherwise unordered, which made the list shuffle on each cold start).
     public func nearby(cityCode: String, limit: Int) -> [Route] {
         guard limit > 0 else { return [] }
         var descriptor = FetchDescriptor<RouteRecord>(
-            predicate: #Predicate { $0.cityCode == cityCode }
+            predicate: #Predicate { $0.cityCode == cityCode },
+            sortBy: [SortDescriptor(\.title)]
         )
         descriptor.fetchLimit = limit
         return (try? context.fetch(descriptor))?.map(\.asValue) ?? []
