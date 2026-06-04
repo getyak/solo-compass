@@ -139,7 +139,7 @@ struct CompassMapContentView: View {
     private let networkMonitor = NetworkMonitor.shared
 
     private var isFilterActive: Bool {
-        (viewModel.selectedCategory != nil) || (viewModel.selectedCustomTag != nil) || viewModel.isNowFilter
+        (viewModel.selectedCategory != nil) || (viewModel.selectedCustomTag != nil) || viewModel.isNowFilter || viewModel.isFavoriteFilter
     }
 
     private var activeFilterName: String {
@@ -149,6 +149,8 @@ struct CompassMapContentView: View {
             return tag
         } else if viewModel.isNowFilter {
             return NSLocalizedString("filter.now", comment: "Now filter label")
+        } else if viewModel.isFavoriteFilter {
+            return NSLocalizedString("filter.saved", comment: "Saved filter label")
         }
         return ""
     }
@@ -1239,9 +1241,11 @@ private struct MapOverlayView: View {
                 selectedCategory: viewModel.selectedCategory,
                 isNowSelected: viewModel.isNowFilter,
                 selectedCustomTag: viewModel.selectedCustomTag,
+                isFavoriteSelected: viewModel.isFavoriteFilter,
                 nowCount: viewModel.nowCount,
                 onSelectNow: { viewModel.selectNowFilter() },
                 onSelectAll: { viewModel.clearFilters() },
+                onSelectFavorite: { viewModel.selectFavoriteFilter() },
                 onClear: { viewModel.clearFilters() },
                 onSelectCategory: { viewModel.selectCategory($0) },
                 onSelectCustomTag: { viewModel.selectCustomTag($0) },

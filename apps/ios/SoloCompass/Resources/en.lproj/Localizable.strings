@@ -11,6 +11,8 @@
 /* Filters */
 "filter.now" = "Now";
 "filter.all" = "All";
+"filter.saved" = "Saved";
+"filter.saved.a11y" = "Saved, %d favourited experiences";
 "filter.pill.clear.hint" = "Double tap to clear this filter";
 "filter.now.a11y" = "Now, %d experiences at their best";
 "filter.matches.one" = "%d match";

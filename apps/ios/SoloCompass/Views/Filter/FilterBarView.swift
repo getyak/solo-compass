@@ -11,8 +11,12 @@ public struct FilterBarView: View {
     /// Currently-selected custom tag pill (mirrors `MapViewModel.selectedCustomTag`).
     /// nil when no custom tag is active. US-008.
     let selectedCustomTag: String?
+    /// True when the "Saved" filter is active (mirrors `MapViewModel.isFavoriteFilter`).
+    let isFavoriteSelected: Bool
     let onSelectNow: () -> Void
     let onSelectAll: () -> Void
+    /// Tap handler for the "Saved" pill — shows only favourited experiences.
+    let onSelectFavorite: () -> Void
     /// Called when the user re-taps an already-active pill to deselect it back to 'All'.
     let onClear: () -> Void
     let onSelectCategory: (ExperienceCategory) -> Void
@@ -63,9 +67,11 @@ public struct FilterBarView: View {
         selectedCategory: ExperienceCategory?,
         isNowSelected: Bool,
         selectedCustomTag: String? = nil,
+        isFavoriteSelected: Bool = false,
         nowCount: Int = 0,
         onSelectNow: @escaping () -> Void,
         onSelectAll: @escaping () -> Void,
+        onSelectFavorite: @escaping () -> Void = {},
         onClear: @escaping () -> Void = {},
         onSelectCategory: @escaping (ExperienceCategory) -> Void,
         onSelectCustomTag: @escaping (String) -> Void = { _ in },
@@ -75,9 +81,11 @@ public struct FilterBarView: View {
         self.selectedCategory = selectedCategory
         self.isNowSelected = isNowSelected
         self.selectedCustomTag = selectedCustomTag
+        self.isFavoriteSelected = isFavoriteSelected
         self.nowCount = nowCount
         self.onSelectNow = onSelectNow
         self.onSelectAll = onSelectAll
+        self.onSelectFavorite = onSelectFavorite
         self.onClear = onClear
         self.onSelectCategory = onSelectCategory
         self.onSelectCustomTag = onSelectCustomTag
@@ -88,6 +96,7 @@ public struct FilterBarView: View {
     /// Stable string ID for the currently selected pill — drives matchedGeometryEffect.
     private var selectionID: String {
         if isNowSelected { return "now" }
+        if isFavoriteSelected { return "saved" }
         if let tag = selectedCustomTag { return "tag-\(tag)" }
         if let cat = selectedCategory { return cat.rawValue }
         return "all"
@@ -139,10 +148,17 @@ public struct FilterBarView: View {
                             id: "all",
                             label: NSLocalizedString("filter.all", comment: "All"),
                             isSelected: !isNowSelected && selectedCategory == nil && selectedCustomTag == nil,
-                            color: Color.primary,
+                            // Use the shared brown selected-fill (same as Now and
+                            // category chips) so the active 'All' filter carries
+                            // real visual weight. The old Color.primary fill was
+                            // near-invisible on the dark glass bar — the currently
+                            // active filter read as the least prominent chip.
+                            color: Self.selectedFill,
                             action: onSelectAll
                         )
                         .id("all")
+                        favoritePill(isSelected: isFavoriteSelected, action: onSelectFavorite)
+                            .id("saved")
                         ForEach(visibleCategories) { category in
                             iconPill(
                                 category: category,
@@ -331,31 +347,89 @@ public struct FilterBarView: View {
         Button {
             handleTap(isSelected: isSelected, select: action)
         } label: {
-            Text(label)
-                .font(.subheadline.weight(.medium))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .foregroundStyle(isSelected ? .white : .primary)
-                .background {
-                    if isSelected {
-                        Capsule()
-                            .fill(color)
-                            .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
-                    }
+            HStack(spacing: 5) {
+                Text(label)
+                    .font(.subheadline.weight(.medium))
+
+                // Inline result count — mirrors the Now pill's inline badge so
+                // every filter chip speaks one visual language. Replaces the old
+                // floating topTrailing badge, which read as a stray dot hovering
+                // off the chip's corner.
+                if isSelected && resultCount > 0 {
+                    Text(Self.compactCount(resultCount))
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.28)))
+                        .transition(.scale.combined(with: .opacity))
                 }
-                .overlay(
-                    Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
-                )
-                .overlay(alignment: .topTrailing) {
-                    if isSelected && resultCount > 0 {
-                        countBadge(count: resultCount, tint: color)
-                            .offset(x: 6, y: -6)
-                            .transition(.scale.combined(with: .opacity))
-                    }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundStyle(isSelected ? .white : .primary)
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(color)
+                        .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
                 }
-                .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
+            }
+            .overlay(
+                Capsule().stroke(isSelected ? Color.clear : Color.primary.opacity(0.2), lineWidth: 1)
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
         }
         .buttonStyle(PressableButtonStyle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
+    }
+
+    /// "Saved" pill — a heart glyph + localized label that filters the map to
+    /// the user's favourited experiences. It toggles (the parent's
+    /// `onSelectFavorite` flips `isFavoriteFilter`), so we always route taps to
+    /// `action` rather than the All-reverting `onClear` path. Selected state uses
+    /// a warm red fill that matches the heart-favourite affordance elsewhere in
+    /// the app; the inline count mirrors the All/Now chips' visual language.
+    private func favoritePill(isSelected: Bool, action: @escaping () -> Void) -> some View {
+        let label = NSLocalizedString("filter.saved", comment: "Saved (favourites filter)")
+        let tint = Color(red: 0xE0/255, green: 0x3A/255, blue: 0x3A/255)
+        return Button {
+            Haptics.selection()
+            action()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: isSelected ? "heart.fill" : "heart")
+                    .font(.caption.weight(.semibold))
+
+                Text(label)
+                    .font(.subheadline.weight(.medium))
+
+                if isSelected && resultCount > 0 {
+                    Text(Self.compactCount(resultCount))
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.28)))
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundStyle(isSelected ? .white : tint)
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(tint)
+                        .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
+                }
+            }
+            .overlay(
+                Capsule().stroke(isSelected ? Color.clear : tint.opacity(0.7), lineWidth: 1)
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(Text(label))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
     }

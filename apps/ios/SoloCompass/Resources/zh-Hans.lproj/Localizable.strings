@@ -11,6 +11,8 @@
 /* Filters */
 "filter.now" = "此刻";
 "filter.all" = "全部";
+"filter.saved" = "收藏";
+"filter.saved.a11y" = "收藏，%d 个已收藏的体验";
 "filter.a11y.resultsAnnounce" = "%1$@：找到 %2$d 个";
 "filter.a11y.noResultsAnnounce" = "%@：无匹配结果";
 
