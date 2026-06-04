@@ -283,6 +283,13 @@ public final class MapViewModel {
         "cmi": CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
         "chiang-mai": CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
         "san-francisco": CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+        // V-006: Vientiane (VTE) seeds existed (5 experiences + 4 routes) but the
+        // city had no authoritative center, so a cold start on VTE fell through to
+        // the live centroid — unstable, and empty if `availableCities` hasn't
+        // populated yet during init. Pin the city proper, keyed by both seed code
+        // and slug like the other cities.
+        "VTE": CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331),
+        "vientiane": CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331),
     ]
 
     /// V-004: human-readable city slugs (used by the city header / persisted
@@ -566,9 +573,19 @@ public final class MapViewModel {
         self.foursquareService = foursquareService
         self.geocodeService = geocodeService
         self.preferences = preferences
-        self.selectedCity = preferences.lastSelectedCity
+        // DEBUG-only: `-startCity <cityCode>` launch argument forces the initial
+        // city (e.g. VTE) so UI tests / manual verification can land directly on
+        // a seeded city without persisting through the picker. Release builds and
+        // launches without the flag fall back to the persisted last-selected city.
+        #if DEBUG
+        let resolvedStartCity = UserDefaults.standard.string(forKey: "startCity")
+            ?? preferences.lastSelectedCity
+        #else
+        let resolvedStartCity = preferences.lastSelectedCity
+        #endif
+        self.selectedCity = resolvedStartCity
         let initialCenter: CLLocationCoordinate2D
-        if let savedCity = preferences.lastSelectedCity {
+        if let savedCity = resolvedStartCity {
             // Resolve center lazily — availableCities depends on experienceService which is set above.
             // We compute inline here since computed properties aren't accessible before init ends.
             var cityExps: [String: [CLLocationCoordinate2D]] = [:]

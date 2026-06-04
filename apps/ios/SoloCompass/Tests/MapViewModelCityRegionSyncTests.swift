@@ -68,4 +68,44 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
             "Camera must center on San Francisco within 1 km after switching"
         )
     }
+
+    // MARK: - V-006: Vientiane (VTE) center resolution
+
+    /// The seed code `VTE` must resolve to the authoritative Vientiane center
+    /// (added in V-006). A cold start here previously fell through to the live
+    /// centroid, which was empty during init → black screen.
+    func testDefaultCenterForVTESeedCodeResolvesCatalog() throws {
+        let vm = makeViewModel(startingCity: "VTE")
+        let expected = try XCTUnwrap(MapViewModel.knownCityCenters["VTE"])
+        XCTAssertLessThan(
+            distanceKm(vm.defaultCenterForSelectedCity, expected), 0.1,
+            "VTE must resolve to the catalog Vientiane center"
+        )
+        // ~17.96°N, 102.6°E — Vientiane proper.
+        XCTAssertEqual(vm.defaultCenterForSelectedCity.latitude, 17.9757, accuracy: 0.05)
+        XCTAssertEqual(vm.defaultCenterForSelectedCity.longitude, 102.6331, accuracy: 0.05)
+    }
+
+    /// The human slug `vientiane` resolves to the same center via the catalog's
+    /// slug key (kept in lockstep with the `VTE` seed code).
+    func testDefaultCenterForVientianeSlugResolvesCatalog() throws {
+        let vm = makeViewModel(startingCity: "vientiane")
+        let vte = try XCTUnwrap(MapViewModel.knownCityCenters["VTE"])
+        XCTAssertLessThan(
+            distanceKm(vm.defaultCenterForSelectedCity, vte), 0.1,
+            "vientiane slug must resolve to the same center as the VTE seed code"
+        )
+    }
+
+    /// A city the catalog doesn't cover and that has no seeded experiences falls
+    /// back to the global default center rather than crashing or returning NaN.
+    func testDefaultCenterForUnknownCityFallsBackToDefault() throws {
+        let vm = makeViewModel(startingCity: "zzz-nonexistent")
+        let center = vm.defaultCenterForSelectedCity
+        XCTAssertTrue(CLLocationCoordinate2DIsValid(center))
+        XCTAssertLessThan(
+            distanceKm(center, MapViewModel.defaultCenter), 0.1,
+            "Unknown, unseeded city must fall back to the default center"
+        )
+    }
 }
