@@ -24,6 +24,12 @@ public enum CT {
     public static let sunGoldDeep   = rgb(0xA0, 0x7F, 0x4B)
     public static let sunGoldSoft   = rgb(0xF5, 0xE9, 0xD2)
 
+    // Chat surface tokens. All light-fixed values — pair with a colorScheme
+    // check at the call site so the warm tints don't fight dark mode.
+    public static let chatInputBg         = rgb(0xF5, 0xF0, 0xEB) // warm input-field fill
+    public static let bannerError         = rgb(0xC0, 0x3B, 0x1E) // #C03B1E — banner error tone
+    public static let chatAIBubbleBgDark  = rgb(0x28, 0x24, 0x1E) // dark-mode AI bubble fill
+
     // Verified green (路线已验证 / closed companion) — #1F7B4D text, #2FA46A dot.
     public static let verifiedGreen    = rgb(0x1F, 0x7B, 0x4D)
     public static let verifiedGreenDot = rgb(0x2F, 0xA4, 0x6A)

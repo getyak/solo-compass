@@ -132,6 +132,21 @@ public final class MapViewModel {
         autoExploreIfEmpty(at: coordinate)
     }
 
+    /// Whether a GPS fix is available right now — drives the custom recenter
+    /// button's enabled state in the map overlay.
+    public var hasUserLocation: Bool {
+        locationService.currentLocation != nil
+    }
+
+    /// Recenter the camera on the user's current location on demand (the custom
+    /// "locate me" button). Unlike `bindToLocation` this ignores the
+    /// `hasAutoCentered` guard, so the user can re-center any time after panning
+    /// away. No-op when there is no GPS fix yet.
+    public func recenterOnUser() {
+        guard let coordinate = locationService.currentLocation?.coordinate else { return }
+        recenter(on: coordinate)
+    }
+
     /// Auto-trigger Explore when the user lands in a data-sparse area
     /// (e.g. Vientiane with zero seed data). Fires once after the first
     /// GPS fix. Skips when there's already ≥3 experiences within 5 km,
@@ -464,6 +479,13 @@ public final class MapViewModel {
     // True when a "Now" filter is active (best-now experiences only).
     public var isNowFilter: Bool = false
 
+    /// True when the "Saved" filter is active — keeps only experiences the user
+    /// has favourited. Mutually exclusive with `selectedCategory`,
+    /// `selectedCustomTag`, and `isNowFilter` (selecting any of those clears
+    /// this, and vice-versa). The favourite set already exists end-to-end
+    /// (`preferences.favoritedExperiences`); this is the map filter entry point.
+    public var isFavoriteFilter: Bool = false
+
     // MARK: - Location error surfacing (US-026)
 
     /// Tracks the most recent `LocationService.lastError` we already reported to
@@ -727,6 +749,10 @@ public final class MapViewModel {
         if isNowFilter {
             nearby = nearby.filter { $0.isBestNow() }
         }
+        if isFavoriteFilter {
+            let favorites = preferences.favoritedExperiences
+            nearby = nearby.filter { favorites.contains($0.id) }
+        }
         if !preferences.dislikedCategories.isEmpty {
             let disliked = Set(preferences.dislikedCategories)
             nearby = nearby.filter { !disliked.contains($0.category) }
@@ -740,6 +766,7 @@ public final class MapViewModel {
         selectedCategory = category
         selectedCustomTag = nil
         isNowFilter = false
+        isFavoriteFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
         // US-011: empty category inside a seeded city → debounced auto-Explore.
@@ -752,6 +779,24 @@ public final class MapViewModel {
         isNowFilter = true
         selectedCategory = nil
         selectedCustomTag = nil
+        isFavoriteFilter = false
+        loadNearbyExperiences()
+        updateBottomInfo()
+    }
+
+    /// Toggle the "Saved" filter. Tapping it again clears it (back to All),
+    /// matching the toggle behaviour of the category/Now pills. Activating it
+    /// clears every other active filter so the four filter modes stay mutually
+    /// exclusive. The favourite set lives in `preferences.favoritedExperiences`.
+    public func selectFavoriteFilter() {
+        if isFavoriteFilter {
+            isFavoriteFilter = false
+        } else {
+            isFavoriteFilter = true
+            selectedCategory = nil
+            selectedCustomTag = nil
+            isNowFilter = false
+        }
         loadNearbyExperiences()
         updateBottomInfo()
     }
@@ -761,6 +806,7 @@ public final class MapViewModel {
         selectedCategory = nil
         selectedCustomTag = nil
         isNowFilter = false
+        isFavoriteFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
     }
@@ -829,6 +875,7 @@ public final class MapViewModel {
             selectedCustomTag = tag
             selectedCategory = nil
             isNowFilter = false
+            isFavoriteFilter = false
         }
         loadNearbyExperiences()
         updateBottomInfo()

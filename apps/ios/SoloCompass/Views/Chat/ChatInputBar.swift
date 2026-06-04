@@ -43,6 +43,12 @@ public struct ChatInputBar: View {
     /// (usually re-running the last user transcript).
     public let onRetry: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Drives the soft pulse on the "Listening" status dot.
+    @State private var listeningPulse: Bool = false
+
     public init(
         draftText: Binding<String>,
         micState: MicState,
@@ -64,7 +70,12 @@ public struct ChatInputBar: View {
     public var body: some View {
         VStack(spacing: 8) {
             if let errorMessage {
-                errorBanner(errorMessage)
+                InlineBanner(
+                    tone: .error,
+                    title: errorMessage,
+                    ctaLabel: NSLocalizedString("chat.error.retry", comment: "Retry"),
+                    onCTA: onRetry
+                )
             }
 
             stateLabel
@@ -77,7 +88,15 @@ public struct ChatInputBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.bar)
+        .background(alignment: .top) {
+            // Hairline top divider + opaque surface (replaces `.bar`).
+            ZStack(alignment: .top) {
+                Color(.systemBackground)
+                Rectangle()
+                    .fill(CT.borderDefault)
+                    .frame(height: 0.5)
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -88,14 +107,24 @@ public struct ChatInputBar: View {
         case .listening:
             HStack(spacing: 6) {
                 Circle()
-                    .fill(Color.red)
+                    .fill(CT.sunGold)
                     .frame(width: 8, height: 8)
+                    .scaleEffect(listeningPulse ? 1.35 : 1.0)
+                    .opacity(listeningPulse ? 0.5 : 1.0)
+                    .animation(
+                        reduceMotion
+                            ? nil
+                            : .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
+                        value: listeningPulse
+                    )
                 Text(NSLocalizedString("chat.state.listening", comment: "Listening — release to send"))
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(CT.sunGoldDeep)
                 Spacer()
             }
             .transition(.opacity)
+            .onAppear { if !reduceMotion { listeningPulse = true } }
+            .onDisappear { listeningPulse = false }
         case .thinking:
             HStack(spacing: 6) {
                 ProgressView()
@@ -111,6 +140,16 @@ public struct ChatInputBar: View {
         }
     }
 
+    /// Light mode uses the warm input fill; dark mode falls back to a system
+    /// semantic surface so the parchment tint doesn't glow on black.
+    private var inputFieldFill: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : CT.chatInputBg
+    }
+
+    private var inputBorder: Color {
+        colorScheme == .dark ? Color(.separator) : CT.borderSubtle
+    }
+
     private var textField: some View {
         // Multi-line growth comes free with `axis: .vertical` + lineLimit range.
         TextField(
@@ -124,7 +163,11 @@ public struct ChatInputBar: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(inputFieldFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(inputBorder, lineWidth: 0.5)
         )
         .submitLabel(.send)
         .onSubmit(submitDraft)
@@ -136,10 +179,10 @@ public struct ChatInputBar: View {
         let canSend = !trimmed.isEmpty
         return Button(action: submitDraft) {
             Image(systemName: "arrow.up.circle.fill")
-                .font(.title)
-                .foregroundStyle(canSend ? Color.accentColor : Color.secondary.opacity(0.5))
+                .font(.title2)
+                .foregroundStyle(canSend ? CT.accent : Color.secondary.opacity(0.5))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle(pressedScale: 0.88))
         .disabled(!canSend)
         .accessibilityLabel(Text(NSLocalizedString("chat.input.send.a11y", comment: "Send")))
     }
@@ -151,18 +194,26 @@ public struct ChatInputBar: View {
         // gesture below handles toggle mode.
         let micColor: Color = {
             switch micState {
-            case .listening: return .red
-            case .thinking: return .blue
-            case .error: return .orange
-            case .idle: return .primary
+            case .listening: return CT.sunGoldDeep
+            case .thinking:  return CT.accent
+            case .error:     return CT.bannerError
+            case .idle:      return .primary
             }
         }()
+        let isListening = micState == .listening
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
 
         return ZStack {
-            Circle()
-                .fill(Color(.tertiarySystemBackground))
+            shape
+                .fill(isListening ? CT.sunGoldSoft : Color(.tertiarySystemBackground))
                 .frame(width: 40, height: 40)
-            Image(systemName: micState == .listening ? "waveform" : "mic.fill")
+                .overlay(
+                    shape.strokeBorder(
+                        isListening ? CT.sunGold : CT.borderSubtle,
+                        lineWidth: isListening ? 1 : 0.5
+                    )
+                )
+            Image(systemName: isListening ? "waveform" : "mic.fill")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(micColor)
                 .symbolEffect(
@@ -170,9 +221,9 @@ public struct ChatInputBar: View {
                     isActive: micState == .listening || micState == .thinking
                 )
         }
-        .scaleEffect(micState == .listening ? 1.1 : 1.0)
+        .scaleEffect(isListening ? 1.08 : 1.0)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: micState)
-        .contentShape(Circle())
+        .contentShape(shape)
         .onLongPressGesture(
             minimumDuration: 0.0,
             maximumDistance: .infinity,
@@ -190,27 +241,6 @@ public struct ChatInputBar: View {
         .accessibilityLabel(Text(NSLocalizedString("chat.input.mic.a11y", comment: "Voice")))
         .accessibilityHint(Text(NSLocalizedString("chat.input.mic.hint", comment: "Tap to start or stop voice, hold to push-to-talk")))
         .accessibilityAddTraits(.startsMediaSession)
-    }
-
-    private func errorBanner(_ message: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.primary)
-                .lineLimit(2)
-            Spacer()
-            Button(action: onRetry) {
-                Text(NSLocalizedString("chat.error.retry", comment: "Retry"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tint)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private func submitDraft() {

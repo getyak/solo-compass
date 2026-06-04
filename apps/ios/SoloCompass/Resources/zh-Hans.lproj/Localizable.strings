@@ -11,6 +11,8 @@
 /* Filters */
 "filter.now" = "此刻";
 "filter.all" = "全部";
+"filter.saved" = "收藏";
+"filter.saved.a11y" = "收藏，%d 个已收藏的体验";
 "filter.a11y.resultsAnnounce" = "%1$@：找到 %2$d 个";
 "filter.a11y.noResultsAnnounce" = "%@：无匹配结果";
 
@@ -122,6 +124,8 @@
 
 /* Solo score accessibility */
 "solo.a11y" = "独行评分 %@ / 10";
+
+"map.recenter" = "回到我的位置";
 
 /* Map empty / loading */
 "map.empty.title" = "附近暂无体验";
@@ -1307,3 +1311,11 @@
 "voice.recording.maxReached" = "已达最大时长";
 "voice.recording.maxReached.a11y" = "已达最大录音时长 — 转写已保存";
 "voice.recording.timer.a11y" = "录音中 — 已 %d 秒";
+
+/* BottomInfoSheet 底部 sheet peek 摘要卡 */
+"peek.pick.header" = "此刻最值得去";
+"peek.empty.hint" = "移动地图发现附近地点";
+"peek.card.hint" = "双击查看附近全部地点";
+"peek.card.aiPick" = "AI 精选";
+"peek.card.aiPick.a11y" = "此刻 AI 精选";
+"sheet.handle.hint" = "点击展开，拖动调整";

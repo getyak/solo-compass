@@ -45,6 +45,12 @@ public struct ChatSheet: View {
     /// classic chat list with a single tap.
     @State private var showVoiceSurface: Bool = false
     @State private var starterPromptsAppeared: Bool = false
+    /// Drives the sun-gold pulse dot on the live-transcript bubble while the
+    /// mic is hot. Toggled in begin/endPushToTalk; reduceMotion-guarded.
+    @State private var recordingPulse: Bool = false
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let starterPrompts: [String] = [
         NSLocalizedString("chat.empty.prompt.nearby",  comment: "Starter chip — what's good around me"),
@@ -117,56 +123,33 @@ public struct ChatSheet: View {
         )
     }
 
-    /// Inline amber card surfaced when the orchestrator started in the
+    /// Inline card surfaced when the orchestrator started in the
     /// `.unconfigured` state (no DeepSeek key and no Edge proxy). Without it
     /// the user can type, hit send, and get no reaction at all.
     private var unconfiguredBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "key.fill")
-                .foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(NSLocalizedString(
-                    "chat.unconfigured.title",
-                    comment: "Title shown when no AI key is configured"
-                ))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.primary)
-                Text(NSLocalizedString(
-                    "chat.unconfigured.subtitle",
-                    comment: "Subtitle explaining the user needs to add a key"
-                ))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        InlineBanner(
+            tone: .permission,
+            title: NSLocalizedString(
+                "chat.unconfigured.title",
+                comment: "Title shown when no AI key is configured"
+            ),
+            subtitle: NSLocalizedString(
+                "chat.unconfigured.subtitle",
+                comment: "Subtitle explaining the user needs to add a key"
+            ),
+            icon: "key.fill"
+        )
         .padding(.horizontal, 12)
         .padding(.bottom, 6)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     /// Slim transient banner used to surface non-fatal send failures (e.g.
     /// the orchestrator is still seeding the system prompt). Pinned above
     /// the input bar so the user sees it without losing the text field.
     private func sendHintBanner(_ message: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "info.circle.fill")
-                .foregroundStyle(.tint)
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.primary)
-                .lineLimit(2)
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal, 12)
-        .padding(.bottom, 4)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        InlineBanner(tone: .info, title: message)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 4)
     }
 
     /// First real user/assistant message → drop the voice surface so the
@@ -191,9 +174,11 @@ public struct ChatSheet: View {
                 .font(.headline)
             Spacer()
             Button(action: closeSheet) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title3)
+                Image(systemName: "xmark")
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .background(closeButtonFill, in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text(NSLocalizedString("common.close", comment: "Close")))
@@ -203,58 +188,34 @@ public struct ChatSheet: View {
     }
 
     private var permissionDeniedBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "mic.slash.fill")
-                .foregroundStyle(.orange)
-            Text(NSLocalizedString("voiceAgent.permissionDenied", comment: "Microphone access needed — enable in Settings"))
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.primary)
-            Spacer()
-            Button {
+        InlineBanner(
+            tone: .permission,
+            title: NSLocalizedString("voiceAgent.permissionDenied", comment: "Microphone access needed — enable in Settings"),
+            icon: "mic.slash.fill",
+            ctaLabel: NSLocalizedString("common.settings", comment: "Settings"),
+            onCTA: {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
-            } label: {
-                Text(NSLocalizedString("common.settings", comment: "Settings"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tint)
             }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        )
         .padding(.horizontal, 12)
         .padding(.top, 8)
-        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     /// US-027: dismissible toast surfaced when the live voice stream ends via an
     /// error instead of being silently dropped. Tappable / has an explicit
     /// close affordance, and auto-dismisses after a few seconds.
     private func voiceInterruptionBanner(_ message: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "waveform.slash")
-                .foregroundStyle(.orange)
-            Text(message)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.primary)
-                .lineLimit(3)
-            Spacer(minLength: 4)
-            Button(action: dismissVoiceInterruptionToast) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(NSLocalizedString("common.dismiss", comment: "Dismiss")))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        InlineBanner(
+            tone: .warning,
+            title: message,
+            icon: "waveform.slash",
+            onDismiss: dismissVoiceInterruptionToast
+        )
         .padding(.horizontal, 12)
         .padding(.top, 8)
-        .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isStaticText)
-        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     @ViewBuilder
@@ -287,13 +248,17 @@ public struct ChatSheet: View {
                         if !liveTranscript.isEmpty {
                             // Mirror the live transcript as a tentative
                             // user bubble so the chat shows what's being
-                            // captured in real time.
+                            // captured in real time, with a small sun-gold
+                            // pulse dot marking that the mic is still hot.
                             MessageBubble(
                                 role: .user,
                                 text: liveTranscript
                             )
                             .id(Self.liveTranscriptID)
-                            .opacity(0.6)
+                            .opacity(0.85)
+                            .overlay(alignment: .topLeading) {
+                                recordingPulseDot
+                            }
                         }
 
                         if isAgentWorking {
@@ -312,6 +277,8 @@ public struct ChatSheet: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 12)
                 }
+                .scrollContentBackground(.hidden)
+                .background(messageListBackground)
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: visibleMessages.count) { _, _ in
                     scrollToBottom(proxy: proxy)
@@ -444,8 +411,12 @@ public struct ChatSheet: View {
         VStack(spacing: 14) {
             Spacer()
             Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(CT.accent)
+                .frame(width: 64, height: 64)
+                .background(CT.accentSoft, in: Circle())
+                .overlay(Circle().strokeBorder(CT.accentBorder, lineWidth: 0.5))
+                .shadow(color: CT.accent.opacity(0.12), radius: 8, y: 3)
             Text(NSLocalizedString("chat.empty.title", comment: "Ask me anything about places near you"))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.primary)
@@ -473,26 +444,103 @@ public struct ChatSheet: View {
                     Haptics.impact(.light)
                     handleSend(prompt)
                 } label: {
-                    Text(prompt)
-                        .font(.body)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(Capsule())
+                    starterPromptCard(index: index, prompt: prompt)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableButtonStyle())
                 .accessibilityLabel(prompt)
                 .opacity(starterPromptsAppeared ? 1 : 0)
                 .offset(y: starterPromptsAppeared ? 0 : 8)
                 .animation(
-                    .easeOut(duration: 0.35).delay(Double(index) * 0.08),
+                    reduceMotion
+                        ? nil
+                        : .easeOut(duration: 0.35).delay(Double(index) * 0.08),
                     value: starterPromptsAppeared
                 )
             }
         }
-        .padding(.horizontal, 32)
+        .padding(.horizontal, 28)
         .padding(.top, 4)
+    }
+
+    private func starterPromptCard(index: Int, prompt: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: promptIcon(for: index))
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(promptIconColor(for: index))
+                .frame(width: 22)
+            Text(prompt)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(CT.fgSubtle)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(starterCardFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(starterCardBorder, lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+    }
+
+    private func promptIcon(for index: Int) -> String {
+        switch index {
+        case 0:  return "mappin.and.ellipse"
+        case 1:  return "cup.and.saucer.fill"
+        default: return "moon.stars.fill"
+        }
+    }
+
+    private func promptIconColor(for index: Int) -> Color {
+        switch index {
+        case 0:  return CT.accent
+        case 1:  return CT.sunGoldDeep
+        default: return .indigo
+        }
+    }
+
+    // MARK: - Visual helpers (dark-mode aware)
+
+    /// Warm parchment in light mode; system grouped background in dark so the
+    /// CT tint doesn't glow on a near-black sheet.
+    private var messageListBackground: Color {
+        colorScheme == .dark ? Color(.systemBackground) : CT.bgWarm
+    }
+
+    private var closeButtonFill: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceSunken
+    }
+
+    private var starterCardFill: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceSunken
+    }
+
+    private var starterCardBorder: Color {
+        colorScheme == .dark ? Color(.separator) : CT.borderDefault
+    }
+
+    /// Small sun-gold pulse marking that the mic is hot while the tentative
+    /// live-transcript bubble is shown. reduceMotion drops the pulse to a
+    /// static dot.
+    private var recordingPulseDot: some View {
+        Circle()
+            .fill(CT.sunGold)
+            .frame(width: 8, height: 8)
+            .scaleEffect(recordingPulse ? 1.4 : 1.0)
+            .opacity(recordingPulse ? 0.4 : 1.0)
+            .animation(
+                reduceMotion
+                    ? nil
+                    : .easeInOut(duration: 0.7).repeatForever(autoreverses: true),
+                value: recordingPulse
+            )
+            .offset(x: -2, y: -2)
+            .accessibilityHidden(true)
     }
 
     // MARK: - Derived state
@@ -667,6 +715,7 @@ public struct ChatSheet: View {
             do {
                 liveTranscript = ""
                 let stream = try voiceService.startListening()
+                if !reduceMotion { recordingPulse = true }
                 Haptics.impact(.light)
                 voiceStreamTask = Task { @MainActor in
                     do {
@@ -692,6 +741,7 @@ public struct ChatSheet: View {
 
     private func endPushToTalk(send: Bool) {
         voiceService.stopListening()
+        recordingPulse = false
         voiceStreamTask?.cancel()
         voiceStreamTask = nil
         let final = liveTranscript
@@ -714,6 +764,7 @@ public struct ChatSheet: View {
         if voiceService.isListening {
             voiceService.stopListening()
         }
+        recordingPulse = false
         liveTranscript = ""
     }
 
