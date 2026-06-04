@@ -1276,6 +1276,11 @@
 "route.create.selectedCount" = "已选 %d";
 "route.create.save" = "保存";
 
+/* Active route drawn on the map (start route) */
+"route.active.stops" = "%d 站 · 路线中";
+"route.active.stop.a11y" = "第 %d 站";
+"route.active.end" = "结束路线";
+
 /* Solo score breakdown */
 "solo.breakdown.title" = "独行评分";
 "solo.compact.a11y.hint" = "双击查看评分明细";

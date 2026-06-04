@@ -62,6 +62,7 @@
 		337CAFC8B35CF36D175B27CF /* CompareTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53F836182A03FC067C4A9AB9 /* CompareTokens.swift */; };
 		352247C1FBF4C8F901D17F32 /* ApprovalTrustSignalTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804618047547A9D7F3F8EAAA /* ApprovalTrustSignalTest.swift */; };
 		371DDBAF4C385267248ABC83 /* AgentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38E5736BF6DF5644D687637 /* AgentRouter.swift */; };
+		3889A861FFD32BE4EEE4F19F /* ActiveRouteOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CEA4BFADFDB1575F6655E48 /* ActiveRouteOverlay.swift */; };
 		391D6B5C48997AD74F367C0C /* GeneratedSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5642EDC714993C8EE0ECDD83 /* GeneratedSecrets.swift */; };
 		397C20402788F9B63F06A01A /* City.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DFBC1C003B8745713588A23 /* City.swift */; };
 		3A91B128119A6288C6C9A9D9 /* CompassMapViewLayerToggleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0535B15C19B134898D9880BE /* CompassMapViewLayerToggleTests.swift */; };
@@ -339,6 +340,7 @@
 		2891DAE62909FE55324494D7 /* VerifiedBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifiedBadge.swift; sourceTree = "<group>"; };
 		295A9108AFAF3BEE4EFF7524 /* HeartBurstView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartBurstView.swift; sourceTree = "<group>"; };
 		2C7919EAFDE363B49C4B4C47 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		2CEA4BFADFDB1575F6655E48 /* ActiveRouteOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveRouteOverlay.swift; sourceTree = "<group>"; };
 		2CEFD2E522C2D9FFF8EF0B0B /* ConversationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationTests.swift; sourceTree = "<group>"; };
 		2D52E68EDCAB1AEF0737B201 /* AvatarStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarStack.swift; sourceTree = "<group>"; };
 		2DA6E405C780A5A12A9FC1D6 /* MicroSurveySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroSurveySheet.swift; sourceTree = "<group>"; };
@@ -660,6 +662,7 @@
 		2A5B2A9CBB684C51EA76313E /* Map */ = {
 			isa = PBXGroup;
 			children = (
+				2CEA4BFADFDB1575F6655E48 /* ActiveRouteOverlay.swift */,
 				04709B5AD986143D04CA0A08 /* BottomInfoSheet.swift */,
 				873ACB737A9B43254C17B238 /* CityPickerSheet.swift */,
 				BA6A3144D85CDAD01FA0FECB /* CompassMapView.swift */,
@@ -1330,6 +1333,7 @@
 				D699D4E3E20FE7A7C0ED7E66 /* AIService.swift in Sources */,
 				F34C1A42668EF5151AFEE3C3 /* AISynthesisCacheRecord.swift in Sources */,
 				464746A44182622D4F617462 /* AIUsageRecord.swift in Sources */,
+				3889A861FFD32BE4EEE4F19F /* ActiveRouteOverlay.swift in Sources */,
 				8D5DD4E0CD6237FA70C7F99F /* AddToItinerarySheet.swift in Sources */,
 				D825B4D4C81AC33373DA1437 /* AgentMessage.swift in Sources */,
 				371DDBAF4C385267248ABC83 /* AgentRouter.swift in Sources */,
