@@ -9,9 +9,6 @@ import CoreLocation
 struct CreateRouteEntryCard: View {
     let onTap: () -> Void
 
-    @State private var pressed = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 14) {
@@ -50,14 +47,13 @@ struct CreateRouteEntryCard: View {
                     )
             )
         }
-        .buttonStyle(.plain)
-        .scaleEffect(pressed ? 0.985 : 1)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: pressed)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in pressed = true }
-                .onEnded { _ in pressed = false }
-        )
+        // PressableButtonStyle drives the press-scale via the system's own tap
+        // recognizer. The previous `.simultaneousGesture(DragGesture(minimumDistance: 0))`
+        // press-feedback hack swallowed the tap inside the BottomInfoSheet's
+        // ScrollView — a zero-distance drag claims the touch and the host scroll
+        // view classifies the release as a drag, so the Button action never fired
+        // and the card was un-tappable. See [[project_dead_fab_sheet_wiring]] kin.
+        .buttonStyle(PressableButtonStyle(pressedScale: 0.985))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(NSLocalizedString("route.create.entry.title", comment: "Create your own route")))
         .accessibilityHint(Text(NSLocalizedString("route.create.entry.subtitle", comment: "Create route hint")))

@@ -179,7 +179,19 @@ public enum BottomSheetDetent: CaseIterable {
 // MARK: - BottomInfoSheet
 
 public struct BottomInfoSheet<Content: View>: View {
-    @State private var currentDetent: BottomSheetDetent = .peek
+    @State private var currentDetent: BottomSheetDetent = BottomInfoSheet.initialDetent
+
+    /// Resting detent on appear. DEBUG-only `-expandSheet` launch argument forces
+    /// the sheet to open at `.mid` on cold start so UI automation (idb/XCUITest)
+    /// can reach the Routes/Nearby cards without synthesising an unreliable drag
+    /// gesture to expand it (the custom drag-driven detent ignores idb swipes).
+    /// Release builds always rest at `.peek`. Mirrors the `-startCity` debug hook.
+    private static var initialDetent: BottomSheetDetent {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-expandSheet") { return .mid }
+        #endif
+        return .peek
+    }
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
     @State var sortMode: SortMode = .smart
@@ -1054,7 +1066,12 @@ struct RoutesSection: View {
                         Button { onSelectRoute(route) } label: {
                             RouteCard(route: route, nowContext: isNowFilter)
                         }
-                        .buttonStyle(.plain)
+                        // PressableButtonStyle drives the press-scale via the
+                        // system tap recognizer. RouteCard no longer owns a local
+                        // zero-distance DragGesture (which swallowed the tap inside
+                        // this ScrollView — see RouteCard), so the tap now reaches
+                        // this Button's action and opens the route detail.
+                        .buttonStyle(PressableButtonStyle(pressedScale: 0.985))
                     }
                 }
                 .padding(.horizontal, 16)
