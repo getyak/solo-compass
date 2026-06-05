@@ -505,29 +505,49 @@ public struct Experience: Codable, Hashable, Identifiable {
         )
     }
 
+    /// The representative "ideal start hour" for this experience: the earliest
+    /// `startHour` across all `bestTimes` windows, or `nil` when there are none.
+    /// Used as the Gaussian center for `HourOfDaySignal`.
+    public var bestStartHour: Int? {
+        bestTimes.map(\.startHour).min()
+    }
+
     /// A continuous timeliness score in `[0, 1]` for the given date.
     ///
-    /// v1 only consults `bestTimes`:
-    /// - in an open window → `1.0`
-    /// - out of every window → `0.0`
-    /// - empty `bestTimes` → `0.5` (neutral; no timing signal to judge by)
+    /// Iterates the registered signals (`bestTimes` × 0.4, `hourOfDay` × 0.2)
+    /// and produces a weight-normalized average of their values, concatenating
+    /// each signal's reason with ` · `. An empty signal list yields `0.5`.
     public func nowScore(at date: Date = Date()) -> NowScore {
-        guard !bestTimes.isEmpty else {
-            return NowScore(value: 0.5, reason: "no bestTimes", breakdown: ["bestTimes": 0.5])
+        let signals: [(key: String, contribution: NowSignalContribution)] = [
+            (BestTimesSignal.key, BestTimesSignal().evaluate(for: self, at: date)),
+            (HourOfDaySignal.key, HourOfDaySignal().evaluate(for: self, at: date)),
+        ]
+        return Self.composeNowScore(from: signals)
+    }
+
+    /// Weight-normalized composition of signal contributions, shared by
+    /// `nowScore(at:)` and `NowSignalCompositionTests`.
+    /// Empty input → neutral `0.5`.
+    static func composeNowScore(
+        from signals: [(key: String, contribution: NowSignalContribution)]
+    ) -> NowScore {
+        guard !signals.isEmpty else {
+            return NowScore(value: 0.5, reason: nil, breakdown: [:])
         }
-        let hour = Calendar.current.component(.hour, from: date)
-        let weekday = Calendar.current.component(.weekday, from: date) - 1 // Sun=0
-        let month = Calendar.current.component(.month, from: date)
-        let isOpen = bestTimes.contains { window in
-            if let days = window.dayOfWeek, !days.isEmpty, !days.contains(weekday) { return false }
-            if let seasons = window.season, !seasons.isEmpty, !seasons.contains(month) { return false }
-            return window.contains(hour: hour)
+        let totalWeight = signals.reduce(0.0) { $0 + $1.contribution.weight }
+        let value = totalWeight > 0
+            ? signals.reduce(0.0) { $0 + $1.contribution.value * $1.contribution.weight } / totalWeight
+            : 0.5
+        var breakdown: [String: Double] = [:]
+        var reasons: [String] = []
+        for signal in signals {
+            breakdown[signal.key] = signal.contribution.value
+            if let reason = signal.contribution.reason { reasons.append(reason) }
         }
-        let value = isOpen ? 1.0 : 0.0
         return NowScore(
             value: value,
-            reason: isOpen ? "in bestTimes window" : "out of bestTimes window",
-            breakdown: ["bestTimes": value]
+            reason: reasons.isEmpty ? nil : reasons.joined(separator: " · "),
+            breakdown: breakdown
         )
     }
 

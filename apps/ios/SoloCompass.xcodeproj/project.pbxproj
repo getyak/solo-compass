@@ -68,6 +68,7 @@
 		3889A861FFD32BE4EEE4F19F /* ActiveRouteOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CEA4BFADFDB1575F6655E48 /* ActiveRouteOverlay.swift */; };
 		391D6B5C48997AD74F367C0C /* GeneratedSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5642EDC714993C8EE0ECDD83 /* GeneratedSecrets.swift */; };
 		397C20402788F9B63F06A01A /* City.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DFBC1C003B8745713588A23 /* City.swift */; };
+		39EC6B2274C399652ECD5E9E /* NowSignalCompositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F0DD079D640DF68659C6483 /* NowSignalCompositionTests.swift */; };
 		3A91B128119A6288C6C9A9D9 /* CompassMapViewLayerToggleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0535B15C19B134898D9880BE /* CompassMapViewLayerToggleTests.swift */; };
 		3AA7B0463C3B8084D954C3AA /* ChatStateModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E9EE8B07B66490112B696A /* ChatStateModifier.swift */; };
 		3B2C16B114CAAADE0862AF7B /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99AF76F1B505EF8AF6EF2470 /* ShareSheet.swift */; };
@@ -173,6 +174,7 @@
 		98245881AB35CB7BB16688FC /* JoinRouteRequestSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099B762F3026466B64C18015 /* JoinRouteRequestSheet.swift */; };
 		987A873E2C50C8064135E1EF /* ShareCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5895B058A34A2634E816A72F /* ShareCardModel.swift */; };
 		98DC71F30B967806B525E8F0 /* VoiceButtonA11yTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8E84778A6C646142DDE3841 /* VoiceButtonA11yTests.swift */; };
+		9A6B147D089D0942438D8972 /* BestTimesSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3645957E10E52142EBF468C0 /* BestTimesSignal.swift */; };
 		9A7AAC7B68BA10A53CAC0A8B /* VoiceServiceActorIsolationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F10413877E80238BD52F34C /* VoiceServiceActorIsolationTest.swift */; };
 		9B906CA9BF24104FB2BF7773 /* RouteCardWalkedByTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9FE3BB447D84732CCE0B07 /* RouteCardWalkedByTest.swift */; };
 		9C8CC563D33FDBB3DF57A841 /* RecentExploreRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9748B0A808BC06F6EDED3C3B /* RecentExploreRegion.swift */; };
@@ -186,6 +188,7 @@
 		A5D3EF6A05AD9B93FA5ACD8A /* PrivacyAcknowledgementSheetSnapshotTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A267CD0DA0A8053B0AB072BC /* PrivacyAcknowledgementSheetSnapshotTest.swift */; };
 		A5F3AA050EDA3E3133A1612F /* RouteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B88A8CA4BEE6CDF6D7C5DEF /* RouteCard.swift */; };
 		A75EEA586481D5A86B7FCFDA /* MapKitPOIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B7D586552E9F1EA44F5657 /* MapKitPOIService.swift */; };
+		A7E46B29DC0DF3EE5203B699 /* HourOfDaySignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B95FD264D171F4F70DFEB26 /* HourOfDaySignal.swift */; };
 		A84320715E7CBDA91FC3F26F /* ExperienceDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE16BF3B189BB0F17E4CE92 /* ExperienceDetailViewModel.swift */; };
 		A93EEDF38B969D10CC369C59 /* CompletionCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2294AF173D063B1F55894696 /* CompletionCelebrationView.swift */; };
 		AA5C5AEBFB7B2266A4781877 /* ConversationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CEFD2E522C2D9FFF8EF0B0B /* ConversationTests.swift */; };
@@ -239,6 +242,7 @@
 		C9DAF262896CB6CFBA6F97D3 /* IOS18AvailabilityGuardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFF9ECB175F4D2219406952 /* IOS18AvailabilityGuardTest.swift */; };
 		CA06289D4E0D0C24C2079B40 /* VoiceWaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D0CBFD5114CC6728D6AA876 /* VoiceWaveformView.swift */; };
 		CA89195562C759E6F118465B /* TodoIssueReferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331B2AE74EFAD9589AF60498 /* TodoIssueReferenceTests.swift */; };
+		CC29AD50727EA68C4064F56F /* NowSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97FCA9C12D9640983F75474E /* NowSignal.swift */; };
 		CD73E1A29E0D2EB8D8AC93AC /* OpenForCompanionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B5D9508FCA9CDB8EA088D76 /* OpenForCompanionsSheet.swift */; };
 		CE1A6A1D5EB25B2BEA5B29DA /* MapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFFA243BC698EF20C6BC1EF /* MapViewModel.swift */; };
 		CE75A768DA8AD2A14C3046AF /* SavedCity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FCE40A39EEEDA3A22E17689 /* SavedCity.swift */; };
@@ -375,6 +379,7 @@
 		35E8F519A353F18BDE4C3307 /* FilterChipContrastTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterChipContrastTest.swift; sourceTree = "<group>"; };
 		362DB30A847EE598631A10B2 /* HitTargetSizeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HitTargetSizeTests.swift; sourceTree = "<group>"; };
 		363714672D8A0FA8F7C39887 /* ExperienceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceCardView.swift; sourceTree = "<group>"; };
+		3645957E10E52142EBF468C0 /* BestTimesSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BestTimesSignal.swift; sourceTree = "<group>"; };
 		36E41DCA29798B5D8E49B7CA /* BottomSheetUnifiedScrollGuardTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomSheetUnifiedScrollGuardTest.swift; sourceTree = "<group>"; };
 		377590D8F67E082E58EDEAB9 /* StartRouteCoordinateResolutionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartRouteCoordinateResolutionTests.swift; sourceTree = "<group>"; };
 		37C75D64D462A03DBEFFC4EB /* FilterNowMapSyncTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterNowMapSyncTest.swift; sourceTree = "<group>"; };
@@ -474,6 +479,7 @@
 		88553B5578C07FA890183A0D /* BottomInfoSheetHandleHitTargetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomInfoSheetHandleHitTargetTests.swift; sourceTree = "<group>"; };
 		88863482E2CD46BBE315B59D /* LocationErrorSurfaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationErrorSurfaceTests.swift; sourceTree = "<group>"; };
 		8964F4628C43BB7311B48D38 /* ApprovalQueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalQueueView.swift; sourceTree = "<group>"; };
+		8B95FD264D171F4F70DFEB26 /* HourOfDaySignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourOfDaySignal.swift; sourceTree = "<group>"; };
 		8C1DD2BA0AF4E693B9E36F90 /* CompiledPlace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompiledPlace.swift; sourceTree = "<group>"; };
 		8C8D88BCFAC97E436BE97274 /* seed_users.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = seed_users.json; sourceTree = "<group>"; };
 		8D0CBFD5114CC6728D6AA876 /* VoiceWaveformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceWaveformView.swift; sourceTree = "<group>"; };
@@ -488,6 +494,7 @@
 		9748B0A808BC06F6EDED3C3B /* RecentExploreRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentExploreRegion.swift; sourceTree = "<group>"; };
 		977F66FB36894EA4088C2905 /* WebSearchEnrichmentSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSearchEnrichmentSource.swift; sourceTree = "<group>"; };
 		97E92D314B6B62ED3B6EA2AE /* ShareCardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardComponents.swift; sourceTree = "<group>"; };
+		97FCA9C12D9640983F75474E /* NowSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowSignal.swift; sourceTree = "<group>"; };
 		9945A4E03F4C75ED89674594 /* SoloCompass.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SoloCompass.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		999E8DA69CB660A94E71D02A /* BottomSheetSectionSeparationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomSheetSectionSeparationTest.swift; sourceTree = "<group>"; };
 		99AF76F1B505EF8AF6EF2470 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
@@ -497,6 +504,7 @@
 		9DA531A7BAD8A34652BA4801 /* CompanionCrossTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionCrossTests.swift; sourceTree = "<group>"; };
 		9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceButton.swift; sourceTree = "<group>"; };
 		9EDF4F9F84F50797290FF9E0 /* VoiceProcessingToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceProcessingToast.swift; sourceTree = "<group>"; };
+		9F0DD079D640DF68659C6483 /* NowSignalCompositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowSignalCompositionTests.swift; sourceTree = "<group>"; };
 		9F10413877E80238BD52F34C /* VoiceServiceActorIsolationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceServiceActorIsolationTest.swift; sourceTree = "<group>"; };
 		9F32B7DE32405561C4159843 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		A00295FF044E4D732D1EB2EA /* ColorExtensionScopeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorExtensionScopeTest.swift; sourceTree = "<group>"; };
@@ -767,6 +775,7 @@
 				CE95C3399C8616CBDE8B44BE /* NoProductionPrintTests.swift */,
 				F1D68F42114231582501CB90 /* NowCountCacheTests.swift */,
 				0C04A7D4DE12B98E4801D7C4 /* NowScoreTests.swift */,
+				9F0DD079D640DF68659C6483 /* NowSignalCompositionTests.swift */,
 				FF7D0A1F8E3B8909F465194C /* ObsidianThemeContrastTest.swift */,
 				61D000D2E41CDD0DBF2B54C1 /* OnboardingA11yOrderTest.swift */,
 				C7BCDB936C9D0BE9138C617B /* OnboardingSkipTest.swift */,
@@ -973,6 +982,7 @@
 				7A49D3BA616DE54B8E6F4B7C /* Agents */,
 				CD349A8744520E6EB084B41A /* Cache */,
 				4889864C3C5478D1001C73B3 /* Context */,
+				973D4D4AD77D0925665D49AE /* NowScore */,
 				7E78DD425BF25E90036C6E0B /* Themes */,
 			);
 			path = Services;
@@ -1042,6 +1052,16 @@
 				C14A22A40550CF207AB36C18 /* SettingsView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		973D4D4AD77D0925665D49AE /* NowScore */ = {
+			isa = PBXGroup;
+			children = (
+				3645957E10E52142EBF468C0 /* BestTimesSignal.swift */,
+				8B95FD264D171F4F70DFEB26 /* HourOfDaySignal.swift */,
+				97FCA9C12D9640983F75474E /* NowSignal.swift */,
+			);
+			path = NowScore;
 			sourceTree = "<group>";
 		};
 		993B6773487C7744097F4175 /* Views */ = {
@@ -1328,6 +1348,7 @@
 				B42207A02271655D3498B723 /* NoProductionPrintTests.swift in Sources */,
 				C3A87993F509B921A9F7FE06 /* NowCountCacheTests.swift in Sources */,
 				A49A16341F3F09EEF317FA03 /* NowScoreTests.swift in Sources */,
+				39EC6B2274C399652ECD5E9E /* NowSignalCompositionTests.swift in Sources */,
 				546A552C93C3537B9A070220 /* ObsidianThemeContrastTest.swift in Sources */,
 				1DAB805A68DF18F2AC776160 /* OnboardingA11yOrderTest.swift in Sources */,
 				E7454BEAD925FCC11C83D83E /* OnboardingSkipTest.swift in Sources */,
@@ -1394,6 +1415,7 @@
 				4B4EE06B93E099D8EEDE6631 /* ApprovalQueueView.swift in Sources */,
 				11A994FC5FFCF2618FBD7A3A /* AvatarStack.swift in Sources */,
 				FC5971A3C5E9DDB7F88E58E8 /* BestNowClock.swift in Sources */,
+				9A6B147D089D0942438D8972 /* BestTimesSignal.swift in Sources */,
 				8004F51AA0F117D38EC71610 /* BilingualCityRow.swift in Sources */,
 				5C05B87EA78458094612AC01 /* BottomInfoBar.swift in Sources */,
 				585930C5FA9368923ADB2D43 /* BottomInfoSheet.swift in Sources */,
@@ -1457,6 +1479,7 @@
 				26BDD8E9011EE16C9FB5931C /* Haptics.swift in Sources */,
 				DD2D33487360F16C48C55EE8 /* HeartBurstView.swift in Sources */,
 				E36B474221A5D2A355D1226C /* HitTargetMetrics.swift in Sources */,
+				A7E46B29DC0DF3EE5203B699 /* HourOfDaySignal.swift in Sources */,
 				E6A3296293F74FFD51E56B4C /* InlineBanner.swift in Sources */,
 				D28FA83853E30AF27C34876F /* IntentAgent.swift in Sources */,
 				3E24606FB907D7BB18E3C496 /* Itinerary.swift in Sources */,
@@ -1490,6 +1513,7 @@
 				6AA87132BC6ACDDDC6D98735 /* NetworkMonitor.swift in Sources */,
 				C53DB60CA9E95907A2CBF2C0 /* NotificationService.swift in Sources */,
 				842E955B0ED4DC5255816199 /* NowScore.swift in Sources */,
+				CC29AD50727EA68C4064F56F /* NowSignal.swift in Sources */,
 				4F41DD68CF55AD05090B0AF9 /* ObsidianTheme.swift in Sources */,
 				BF6359994CAD4D857DE384EE /* OfflineBanner.swift in Sources */,
 				C81007F6A39364D0872736B2 /* OnboardingView.swift in Sources */,
