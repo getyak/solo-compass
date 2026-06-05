@@ -229,6 +229,7 @@
 "filter.empty.showAll.a11y" = "Show all experiences";
 
 "map.recenter" = "Recenter on my location";
+"map.userLocation.label" = "Your location";
 
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";

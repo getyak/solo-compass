@@ -901,6 +901,13 @@ struct CompassMapContentView: View {
         HapticService.shared.impact(style: .medium)
     }
 
+    /// Radius (meters) of the translucent circle drawn around the traveler's
+    /// own location marker. ~120m reads as a comfortable "right here" bubble at
+    /// typical street-level zoom without swallowing nearby POI markers. The
+    /// marker dot itself is a fixed on-screen size (`UserLocationMarker`); this
+    /// circle is the one that scales with the map to convey real distance.
+    private static let userRadiusMeters: CLLocationDistance = 120
+
     /// Minimum half-comfortable region span (~1.1 km at the equator). Used as the
     /// floor for a route's bounding box so a single-stop route — or stops that sit
     /// almost on top of each other — frames at a sensible street-level zoom rather
@@ -1033,7 +1040,23 @@ struct CompassMapContentView: View {
 
         MapReader { proxy in
             Map(position: bindingCamera) {
-                UserAnnotation()
+                // The traveler's own location. The built-in `UserAnnotation()`
+                // blue dot is too small to find among the POI markers, so we
+                // draw two composed layers instead (decision: "两者结合"):
+                //   1. A translucent geographic radius circle (~120m) that
+                //      scales with the map, giving a real sense of "near me".
+                //   2. A fixed-size, high-contrast `UserLocationMarker` at the
+                //      exact coordinate so the center is always easy to spot.
+                // Only drawn once GPS has a fix; otherwise nothing renders
+                // (no marker stranded at 0,0).
+                if let here = locationService.currentLocation {
+                    MapCircle(center: here.coordinate, radius: Self.userRadiusMeters)
+                        .foregroundStyle(Color.accentColor.opacity(0.12))
+                        .stroke(Color.accentColor.opacity(0.4), lineWidth: 1.5)
+                    Annotation("", coordinate: here.coordinate) {
+                        UserLocationMarker()
+                    }
+                }
                 ForEach(viewModel.visibleExperiences) { exp in
                     if let coord = exp.coordinate {
                         // US-016: compute the marker state once per ForEach

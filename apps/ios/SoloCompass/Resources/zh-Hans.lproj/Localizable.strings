@@ -126,6 +126,7 @@
 "solo.a11y" = "独行评分 %@ / 10";
 
 "map.recenter" = "回到我的位置";
+"map.userLocation.label" = "你的位置";
 
 /* Map empty / loading */
 "map.empty.title" = "附近暂无体验";
