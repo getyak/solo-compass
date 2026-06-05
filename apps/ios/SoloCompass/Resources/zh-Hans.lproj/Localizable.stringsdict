@@ -12,10 +12,8 @@
             <string>NSStringPluralRuleType</string>
             <key>NSStringFormatValueTypeKey</key>
             <string>d</string>
-            <key>one</key>
-            <string>%d saved</string>
             <key>other</key>
-            <string>%d saved</string>
+            <string>已收藏 %d 个</string>
         </dict>
     </dict>
     <key>nowscore.sunset.before_min</key>
@@ -28,26 +26,22 @@
             <string>NSStringPluralRuleType</string>
             <key>NSStringFormatValueTypeKey</key>
             <string>d</string>
-            <key>one</key>
-            <string>Sunset in %d min</string>
             <key>other</key>
-            <string>Sunset in %d min</string>
+            <string>日落 %d 分钟后</string>
         </dict>
     </dict>
     <key>nowscore.sunset.blue_hour</key>
     <dict>
         <key>NSStringLocalizedFormatKey</key>
-        <string>%#@min@ · blue hour</string>
+        <string>%#@min@ · 蓝调时刻</string>
         <key>min</key>
         <dict>
             <key>NSStringFormatSpecTypeKey</key>
             <string>NSStringPluralRuleType</string>
             <key>NSStringFormatValueTypeKey</key>
             <string>d</string>
-            <key>one</key>
-            <string>%d min after sunset</string>
             <key>other</key>
-            <string>%d min after sunset</string>
+            <string>日落 %d 分钟后</string>
         </dict>
     </dict>
     <key>nowscore.sunset.after_min</key>
@@ -60,10 +54,8 @@
             <string>NSStringPluralRuleType</string>
             <key>NSStringFormatValueTypeKey</key>
             <string>d</string>
-            <key>one</key>
-            <string>Sunset was %d min ago</string>
             <key>other</key>
-            <string>Sunset was %d min ago</string>
+            <string>日落已过 %d 分钟</string>
         </dict>
     </dict>
 </dict>

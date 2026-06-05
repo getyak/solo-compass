@@ -505,6 +505,78 @@ public struct Experience: Codable, Hashable, Identifiable {
         )
     }
 
+    /// The representative "ideal start hour" for this experience: the earliest
+    /// `startHour` across all `bestTimes` windows, or `nil` when there are none.
+    /// Used as the Gaussian center for `HourOfDaySignal`.
+    public var bestStartHour: Int? {
+        bestTimes.map(\.startHour).min()
+    }
+
+    /// A continuous timeliness score in `[0, 1]` for the given date.
+    ///
+    /// Iterates the registered signals (`bestTimes` × 0.4, `hourOfDay` × 0.2)
+    /// and produces a weight-normalized average of their values, concatenating
+    /// each signal's reason with ` · `. An empty signal list yields `0.5`.
+    public func nowScore(at date: Date = Date()) -> NowScore {
+        // Delegates to the shared engine. The synchronous path runs the two pure,
+        // local signals; the failure-tolerant async path (`NowScoreEngine.evaluate`)
+        // is used once network-backed signals (weather, sunset) join the registry.
+        NowScoreEngine.evaluateSync(for: self, at: date)
+    }
+
+    /// Weight-normalized composition of signal contributions, shared by
+    /// `nowScore(at:)` and `NowSignalCompositionTests`.
+    /// Empty input → neutral `0.5`.
+    static func composeNowScore(
+        from signals: [(key: String, contribution: NowSignalContribution)]
+    ) -> NowScore {
+        guard !signals.isEmpty else {
+            return NowScore(value: 0.5, reason: nil, breakdown: [:])
+        }
+        let totalWeight = signals.reduce(0.0) { $0 + $1.contribution.weight }
+        let value = totalWeight > 0
+            ? signals.reduce(0.0) { $0 + $1.contribution.value * $1.contribution.weight } / totalWeight
+            : 0.5
+        var breakdown: [String: Double] = [:]
+        for signal in signals {
+            breakdown[signal.key] = signal.contribution.value
+        }
+        // US-007: order reasons by contribution strength (weight × value) so the
+        // most decisive signal leads the human-readable reason. The original
+        // index is a stable tiebreaker for equal strengths, preserving input
+        // order (and the existing composition-test assertions).
+        var ranked: [(rank: Double, order: Int, text: String)] = []
+        for (idx, signal) in signals.enumerated() {
+            guard let reason = signal.contribution.reason else { continue }
+            let strength = signal.contribution.weight * signal.contribution.value
+            ranked.append((rank: strength, order: idx, text: reason))
+        }
+        ranked.sort { lhs, rhs in
+            lhs.rank != rhs.rank ? lhs.rank > rhs.rank : lhs.order < rhs.order
+        }
+        let reasons = ranked.map(\.text)
+        return NowScore(
+            value: value,
+            reason: reasons.isEmpty ? nil : reasons.joined(separator: " · "),
+            breakdown: breakdown
+        )
+    }
+
+    /// US-007: condenses a `NowScore.reason` into a one-line badge subtitle.
+    ///
+    /// The reason already arrives sorted by contribution strength (weight ×
+    /// value) from `composeNowScore`; here we keep the top-3 ` · `-separated
+    /// segments and ellipsize when the rejoined text exceeds `maxChars`.
+    /// Returns `nil` when the score has no reason, letting the caller fall back
+    /// to a localized "此刻" label.
+    static func nowReasonSubtitle(for score: NowScore, maxChars: Int = 28) -> String? {
+        guard let reason = score.reason, !reason.isEmpty else { return nil }
+        let segments = reason.components(separatedBy: " · ").prefix(3)
+        let combined = segments.joined(separator: " · ")
+        guard combined.count > maxChars else { return combined }
+        return String(combined.prefix(maxChars - 1)) + "…"
+    }
+
     /// Returns a copy of `source`'s richer content (title, copy, signals,
     /// sources, confidence) re-keyed onto THIS experience's identity. Used by
     /// the deep-dive re-compile flow: the place stays the same entry (same id,
@@ -537,14 +609,7 @@ public struct Experience: Codable, Hashable, Identifiable {
 
     /// Is any of this experience's `bestTimes` open right now?
     public func isBestNow(at date: Date = Date()) -> Bool {
-        let hour = Calendar.current.component(.hour, from: date)
-        let weekday = Calendar.current.component(.weekday, from: date) - 1 // Sun=0
-        let month = Calendar.current.component(.month, from: date)
-        return bestTimes.contains { window in
-            if let days = window.dayOfWeek, !days.isEmpty, !days.contains(weekday) { return false }
-            if let seasons = window.season, !seasons.isEmpty, !seasons.contains(month) { return false }
-            return window.contains(hour: hour)
-        }
+        return nowScore(at: date).value >= 0.7
     }
 
     /// Minutes remaining in the currently-active bestTimes window, or nil when not best now.

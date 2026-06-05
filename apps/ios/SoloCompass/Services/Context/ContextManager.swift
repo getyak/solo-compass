@@ -3,8 +3,12 @@ import MapKit
 
 // MARK: - Supporting types (Swift mirror of packages/core/src/llm-context.ts)
 
-/// Current weather conditions used to tailor recommendations to the moment.
-public struct WeatherSnapshot: Codable, Sendable {
+/// Current weather conditions used to tailor LLM recommendations to the moment.
+///
+/// Distinct from `WeatherSnapshot` (US-003, `WeatherService.swift`): this type
+/// mirrors `packages/core/src/llm-context.ts` and feeds the LLM prompt context,
+/// whereas `WeatherSnapshot` carries the structured NowScore weather signal.
+public struct LLMWeatherSnapshot: Codable, Sendable {
     public let condition: String
     public let tempCelsius: Double
     /// 0–1
@@ -55,7 +59,7 @@ public struct LLMContext: Codable, Sendable {
     public let preferences: LLMContextPreferences
     /// ISO 8601 local time.
     public let localTime: String
-    public let weather: WeatherSnapshot?
+    public let weather: LLMWeatherSnapshot?
 
     public init(
         location: [Double]?,
@@ -63,7 +67,7 @@ public struct LLMContext: Codable, Sendable {
         viewportPois: [String],
         preferences: LLMContextPreferences,
         localTime: String,
-        weather: WeatherSnapshot? = nil
+        weather: LLMWeatherSnapshot? = nil
     ) {
         self.location = location
         self.viewportBBox = viewportBBox

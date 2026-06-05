@@ -136,6 +136,8 @@
 
 /* Experience */
 "experience.bestNow" = "Best now";
+/* US-007: fallback reason subtitle beneath the best-now badge when NowScore has no explanation */
+"badge.now.fallback" = "Now";
 "experience.bestNow.countdown" = "Best now · %dm left";
 "experience.bestNow.countdown.a11y" = "Best now, %d minutes left";
 "experience.bestNow.closingSoon" = "Closing soon · %dm left";
@@ -1410,3 +1412,16 @@
 "peek.card.aiPick" = "AI Pick";
 "peek.card.aiPick.a11y" = "AI pick for right now";
 "sheet.handle.hint" = "Tap to expand, drag to resize";
+
+/* NowScore weather signal (US-005) — %d is the temperature in whole °C. */
+"nowscore.weather.sunny" = "Clear · %d°C · Great for it";
+"nowscore.weather.cloudy" = "Cloudy · %d°C · Fine";
+"nowscore.weather.rain" = "Rain · %d°C · Maybe stay in";
+"nowscore.weather.storm" = "Storm warning · Not advised outdoors";
+"nowscore.weather.indoor" = "Indoor · Weather doesn't matter";
+
+/* NowScore sunset signal (US-006) — %d is whole minutes. Plural-aware variants
+   live in Localizable.stringsdict; these are the fallbacks. */
+"nowscore.sunset.before_min" = "Sunset in %d min";
+"nowscore.sunset.blue_hour" = "%d min after sunset · blue hour";
+"nowscore.sunset.after_min" = "Sunset was %d min ago";

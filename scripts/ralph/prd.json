@@ -1,20 +1,18 @@
 {
   "project": "Solo Compass",
-  "branchName": "ralph/nowscore-v1-10us",
-  "description": "NowScore v1 — upgrade Experience.isBestNow() from a static boolean (driven by bestTimes: [TimeWindow]) to a continuous nowScore in [0, 1] composed from multiple NowSignal implementations (BestTimes / HourOfDay / Weather / Sunset) with human-readable reason text. Differentiator: BestNowBadge moves from '此刻' to '日落 23 分钟后 · 晴 · 适合' — Google/Apple Maps won't do this. Source: tasks/prd-now-score-v1.md. Parallel to ralph/full-fix-roadmap-58us; coordinate US-NS-007 / US-NS-008 with that PRD's US-P1-003 / US-P2-035 (both touch nowCount + Filter Now). Strict acceptance: every story keeps the 100+ existing BestNow*Tests green, p95 < 5ms, offline-safe, Sentry-instrumented. File:line anchors against main @ a9afa18.",
+  "branchName": "ralph/companion-v2-trustworthy-personal",
+  "description": "Companion v2 — 从工具到伙伴(可信 × 懂你)。数据源框架通电 + 诚实降级 + 跨会话记忆 + 用户画像 + 信号回流,从可用到好用。源 PRD: tasks/prd-companion-v2-trustworthy-personal.md",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Introduce NowScore value type and Experience.nowScore(at:) method",
-      "description": "As an iOS engineer, I need a NowScore value type and an Experience.nowScore(at:) method so downstream views/viewmodels read a continuous [0,1] score instead of a Bool, while preserving isBestNow() semantics for backward compatibility.",
+      "title": "扩展 Candidate 携带 sourceWeight 与结构化 signals",
+      "description": "As a developer, I want Candidate to carry sourceWeight and structured signals so that downstream fusion and honest-degradation have the data they need.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Models/NowScore.swift with `public struct NowScore: Sendable { public let value: Double /* [0,1] */; public let reason: String?; public let breakdown: [String: Double] }`",
-        "Add `public func nowScore(at date: Date) -> NowScore` to apps/ios/SoloCompass/Models/Experience.swift next to existing isBestNow() at line 472. v1 only consults bestTimes: in-window → value=1.0, out-of-window → value=0.0, empty bestTimes → value=0.5 (neutral)",
-        "Keep `isBestNow(at:)` signature unchanged; rewrite body to `return nowScore(at: date).value >= 0.7`",
-        "Add NowScoreTests in apps/ios/SoloCompass/Tests/ covering: in-window → 1.0, out-of-window → 0.0, empty bestTimes → 0.5",
-        "All existing BestNow*Tests (search `grep -rn 'BestNow' apps/ios/SoloCompass/Tests`) still pass",
-        "Typecheck passes",
-        "Tests pass"
+        "在 packages/sources/core/src/types.ts 的 Candidate 接口增加可选 readonly sourceWeight?: number",
+        "增加可选 readonly signals?: { rating?: number; ratingCount?: number; priceLevel?: number; openingHours?: string; liveStatus?: 'open' | 'closed' | 'unknown' }",
+        "所有字段均为可选,现有 adapter 不填也能编译(向后兼容)",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
       ],
       "priority": 1,
       "passes": false,
@@ -22,18 +20,15 @@
     },
     {
       "id": "US-002",
-      "title": "Define NowSignal protocol + register BestTimesSignal and HourOfDaySignal",
-      "description": "As an iOS engineer, I want a NowSignal protocol so future signal contributors (weather, sunset, crowd) plug in without touching Experience.nowScore itself.",
+      "title": "BudgetTracker 预算计数跨运行持久化",
+      "description": "As a developer, I want the Google Places BudgetTracker to persist its daily spend across script runs so that multi-run batch jobs do not reset and overspend.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Services/NowScore/NowSignal.swift defining `public protocol NowSignal { static var key: String { get }; func score(for experience: Experience, at date: Date) async -> NowSignalContribution }`",
-        "Same file defines `public struct NowSignalContribution: Sendable { public let value: Double /* [0,1] */; public let weight: Double; public let reason: String? }`",
-        "Create apps/ios/SoloCompass/Services/NowScore/BestTimesSignal.swift implementing the protocol; key='bestTimes', weight=0.4; logic mirrors US-001 in-window/out-of-window check",
-        "Create apps/ios/SoloCompass/Services/NowScore/HourOfDaySignal.swift; key='hourOfDay', weight=0.2; gaussian decay centered on experience.bestStartHour with sigma=90min (full width)",
-        "Refactor Experience.nowScore(at:) to iterate registered signals (`[BestTimesSignal(), HourOfDaySignal()]`) and produce weighted average value + concatenated reason. Empty signal list → value=0.5",
-        "Add NowSignalCompositionTests: both signals max → 1.0; only one max → roughly its weight share; both 0 → 0.0; reason text concatenated with ' · '",
-        "All existing BestNow*Tests + US-001 NowScoreTests still pass",
-        "Typecheck passes",
-        "Tests pass"
+        "packages/sources/google-places/src/budget.ts 的 BudgetTracker 支持从持久化存储(本地 JSON 文件或注入的 store)读写当日已花费",
+        "保持现有 in-process 行为为默认,持久化为可选注入,不破坏现有调用",
+        "UTC 跨天仍正确归零",
+        "单测覆盖:跨实例重建后已花费金额保留、跨天归零",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
       ],
       "priority": 2,
       "passes": false,
@@ -41,21 +36,16 @@
     },
     {
       "id": "US-003",
-      "title": "Build WeatherService with 12-hour SwiftData cache",
-      "description": "As an iOS engineer, I need a WeatherService that fetches and caches current weather for any coordinate so NowScore can read weather without one network call per marker.",
+      "title": "structureExperience 接收 Candidate 并写入 attribution",
+      "description": "As a developer, I want structureExperience to accept a Candidate and record sourceName/fetchedAt into Experience.sources so that data provenance is preserved.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Services/WeatherService.swift with `@MainActor @Observable public final class WeatherService` exposing `public func current(at coord: CLLocationCoordinate2D) async throws -> WeatherSnapshot`",
-        "Same file defines `public struct WeatherSnapshot: Sendable { public let tempC: Double; public let condition: WeatherCondition; public let precipChancePct: Int; public let windKph: Double; public let observedAt: Date }` and `public enum WeatherCondition: String, Sendable, Codable { case clear, partlyCloudy, cloudy, rain, storm, snow, fog }`",
-        "Same file defines `public enum WeatherError: Error { case noAPIKey, networkUnavailable, decodingFailed }`",
-        "API key sourced from `Secrets.openWeatherAPIKey`. If nil → throw WeatherError.noAPIKey (callers must handle gracefully)",
-        "Create apps/ios/SoloCompass/Persistence/Models/WeatherCacheRecord.swift as `@Model public final class WeatherCacheRecord { @Attribute(.unique) public var coordKey: String /* '\\(lat.rounded(2))_\\(lon.rounded(2))' */; public var snapshotJSON: Data; public var observedAt: Date; ... }`",
-        "TTL = 12 hours: cache hit if `Date().timeIntervalSince(record.observedAt) < 12 * 3600`",
-        "If NetworkMonitor.shared.isOnline == false → only read cache, return nil snapshot when miss (do not throw)",
-        "Register WeatherCacheRecord in the ModelContainer schema (find existing container init via `grep -rn 'ModelContainer' apps/ios/SoloCompass/App` and add to schema array)",
-        "Add WeatherServiceTests with a mock URLSessionProtocol injection: first call hits network, second call hits cache (verify by asserting URLSession mock call count == 1)",
-        "Add WeatherCacheTTLTests: insert a 13-hour-old record → second call hits network again",
-        "Typecheck passes",
-        "Tests pass"
+        "packages/ai 的 structureExperience 增加接收 Candidate 的调用形态,保持旧的 raw text 调用兼容(可选参数)",
+        "将 Candidate.sourceName + fetchedAt 写入 Experience.sources(attribution)",
+        "多源命中同一地点时 sources 数组累计",
+        "若触碰 packages/core/experience.ts 则 pnpm parity:check 通过",
+        "单测:mock candidate,断言 sources 正确写入",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
       ],
       "priority": 3,
       "passes": false,
@@ -63,18 +53,15 @@
     },
     {
       "id": "US-004",
-      "title": "Offline + error degradation + Sentry instrumentation in NowScoreEngine",
-      "description": "As a user, I want NowScore to keep working when offline (only bestTimes/hourOfDay signals contribute) and never crash or surface a stack trace, with unexpected errors visible in Sentry.",
+      "title": "编译 pipeline 骨架跑通(仅 OSM,支持 dry-run)",
+      "description": "As a developer, I want scripts/compile-experiences.ts to call getActiveAdapters with OSM and structure+upsert results so that the sources framework is finally wired.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Services/NowScore/NowScoreEngine.swift with `@MainActor public final class NowScoreEngine` holding the registered [any NowSignal] array",
-        "Move the signal-iteration + weighted-average logic from Experience.nowScore(at:) into NowScoreEngine.evaluate(for:at:); Experience.nowScore(at:) delegates to the shared engine",
-        "If any individual signal throws or returns an error → engine catches, substitutes `NowSignalContribution(value: 0.5, weight: 0.0, reason: nil)` for that signal, and continues",
-        "Known errors (WeatherError.noAPIKey, WeatherError.networkUnavailable) → silently degrade, no Sentry report",
-        "Unexpected errors → `SentryService.capture(error, context: \"NowScoreEngine.\\(signalKey)\")`",
-        "Add NowScoreOfflineDegradeTest: inject a throwing WeatherSignal stub → engine returns nowScore that excludes weather dimension, no crash",
-        "Add NowScoreSentryReportTest: inject a signal that throws a custom error → verify a SentryService mock receives the capture call with the right context string",
-        "Typecheck passes",
-        "Tests pass"
+        "新增 scripts/compile-experiences.ts,以 cityCode 入参调用 getActiveAdapters",
+        "仅启用 OsmAdapter,fetch({ cityCode, maxResults }) 返回 Candidate[]",
+        "Candidate 经 structureExperience 结构化后通过复用 seed-load 的 upsert 逻辑落 Supabase",
+        "支持 --dry-run:只打印结构化结果不落库",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
       ],
       "priority": 4,
       "passes": false,
@@ -82,20 +69,15 @@
     },
     {
       "id": "US-005",
-      "title": "WeatherSignal — NowSignal implementation that downgrades outdoor scores in bad weather",
-      "description": "As a user, I want the NowScore to drop when it's raining hard or there's a storm so the app doesn't suggest a 'perfect now' outdoor experience in a thunderstorm.",
+      "title": "pipeline 接入 Wikivoyage 指南源",
+      "description": "As a user, I want experience descriptions grounded in real travel guides so that content is more trustworthy.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Services/NowScore/WeatherSignal.swift implementing NowSignal; key='weather', weight=0.15",
-        "Constructor takes WeatherService dependency (so it's injectable for tests)",
-        "score(for:at:) logic: outdoor categories (.nature; .nightlife only if experience.tags contains 'rooftop') consult weather, indoor categories (.coffee, .work, .wellness, .culture, .food) always return value=1.0 with reason=nil",
-        "For outdoor: clear/partlyCloudy → 1.0, cloudy with precipChancePct<30 → 0.9, rain (precipChancePct ≥ 30) → 0.5, storm OR windKph ≥ 30 OR precipChancePct ≥ 70 → 0.0",
-        "reason text examples: '晴 · 27°C · 适合' (clear), '雷雨预警 · 不建议外出' (storm); use NSLocalizedString",
-        "Add localization keys nowscore.weather.sunny / nowscore.weather.cloudy / nowscore.weather.rain / nowscore.weather.storm / nowscore.weather.indoor to both en.lproj and zh-Hans.lproj Localizable.strings",
-        "If WeatherService returns nil snapshot (offline cache miss) → return value=0.5, weight=0.0, reason=nil (neutral, no UI bleed)",
-        "Add WeatherSignalTests covering: indoor → 1.0 regardless; outdoor + clear → 1.0; outdoor + rain → 0.5; outdoor + storm → 0.0; offline+miss → (0.5, 0.0, nil)",
-        "StringsParityTests passes (en + zh-Hans key sets match)",
-        "Typecheck passes",
-        "Tests pass"
+        "compile-experiences.ts 的 adapters 列表加入 WikivoyageAdapter,经 enabled 名单可灰度",
+        "Wikivoyage 的 rawText 进入 structureExperience",
+        "其 sourceName/fetchedAt 正确进入 Experience.sources",
+        "单测:mock Wikivoyage fetch,断言 attribution 写入",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
       ],
       "priority": 5,
       "passes": false,
@@ -103,20 +85,15 @@
     },
     {
       "id": "US-006",
-      "title": "SolarEvents pure-function module + SunsetSignal",
-      "description": "As a solo traveler, I want viewpoints / parks / rooftop bars to score highest in the 90 minutes before sunset so I'm nudged 'depart now · sunset in 23 min' at the right moment.",
+      "title": "pipeline 接入 Google Places + 预算控制 + signals 填充",
+      "description": "As a user, I want real ratings and opening hours so that I can judge whether a place is open and worth visiting.",
       "acceptanceCriteria": [
-        "Create apps/ios/SoloCompass/Services/SolarEvents.swift with `public enum SolarEvents { public static func sunset(at coord: CLLocationCoordinate2D, on date: Date) -> Date?; public static func sunrise(at coord: CLLocationCoordinate2D, on date: Date) -> Date? }`. Implement using NREL Solar Position Algorithm simplified for civil sunset/sunrise (one local file, < 150 lines, NO new SPM dependency)",
-        "Add SolarEventsTests with two latitude/date fixtures: Vientiane (17.97°N, 102.60°E) on 2024-06-21 → sunset within ±5 min of 18:50 local; Beijing (39.90°N, 116.41°E) on 2024-12-22 → sunset within ±5 min of 16:50 local",
-        "Create apps/ios/SoloCompass/Services/NowScore/SunsetSignal.swift implementing NowSignal; key='sunset', weight=0.25",
-        "score(for:at:) only contributes (weight=0.25) for experiences with category ∈ [.nature, .nightlife] OR tags containing 'sunset_friendly'; other experiences return weight=0, value=0.5, reason=nil",
-        "Scoring curve for eligible experiences: 90→30 min before sunset → 1.0; 30→0 min → gaussian decay to 0.7; 0→30 min after sunset (blue hour) → 0.6; otherwise → 0.4",
-        "reason text uses NSLocalizedString; examples: '日落 23 分钟后', '日落 8 分钟后 · 蓝调时刻', '日落已过 47 分钟'. Use stringsdict for plural-aware minute formatting where needed",
-        "Add localization keys nowscore.sunset.before_min / nowscore.sunset.blue_hour / nowscore.sunset.after_min to both locales",
-        "Add SunsetSignalTests sampling at sunset - 60min / -30 / -5 / 0 / +20 / +60 → assert value within expected band",
-        "StringsParityTests passes",
-        "Typecheck passes",
-        "Tests pass"
+        "compile-experiences.ts 加入 GooglePlacesAdapter,绑定 BudgetTracker(读 GOOGLE_PLACES_DAILY_CAP_USD,使用 US-002 的持久化)",
+        "GooglePlacesAdapter 填充 Candidate.signals(rating/ratingCount/priceLevel/openingHours/liveStatus)",
+        "超预算时 adapter 静默跳过并记录日志,pipeline 不崩",
+        "集成测:dry-run 断言不超预算",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
       ],
       "priority": 6,
       "passes": false,
@@ -124,18 +101,14 @@
     },
     {
       "id": "US-007",
-      "title": "BestNowBadge renders NowScore reason as subtitle",
-      "description": "As a user looking at an experience card, I want the 'best now' badge to show a one-line reason like '日落 23 分钟后 · 晴 · 适合' so I understand WHY this is recommended right now.",
+      "title": "AI 合成缺数据时输出 null 而非占位符",
+      "description": "As a user, I do not want to be misled by a fake '9-21' opening time, so missing data should be null not invented.",
       "acceptanceCriteria": [
-        "Edit apps/ios/SoloCompass/Views/Experience/ExperienceCardView.swift BestNowBadge (currently at lines 267-289). When `experience.nowScore(at: .now).value >= 0.7`, render a subtitle Text below the existing badge label using `nowScore.reason ?? NSLocalizedString(\"badge.now.fallback\", ...)` (existing '此刻' string is the fallback)",
-        "Reason text style: CT.body(11, .medium) in CT.fgMuted color (secondary, does not steal focus from main title)",
-        "Reason composition rule: top-3 contributing signals by weight × value, joined with ' · '; if combined text > 28 chars truncate with '…'",
-        "If `nowScore.value < 0.7` → render NOTHING (badge fully hidden, current behavior preserved)",
-        "Add BestNowBadgeReasonTests with three snapshots: short reason (1 signal), medium reason (2 signals), long reason that requires truncation",
-        "All existing BestNowBadge tests still pass",
+        "改造 apps/ios 的 AIService 合成 prompt,移除营业时间 '9-21' 与评分 7.0-8.0 的硬编码降级",
+        "无真实信号时对应字段输出 null;solo-score 缺真实来源的维度标记为 AI 推测",
+        "单测:构造仅 OSM 无信号输入,断言 hours/rating 为 null",
         "Typecheck passes",
-        "Tests pass",
-        "Verify in iPhone 17 Pro Simulator: launch app at a time when a marker satisfies nowScore ≥ 0.7 → screenshot the badge showing the new reason subtitle"
+        "iOS xcodebuild build 通过"
       ],
       "priority": 7,
       "passes": false,
@@ -143,16 +116,15 @@
     },
     {
       "id": "US-008",
-      "title": "MapViewModel.nowCount + markerState sort consume nowScore",
-      "description": "As an iOS engineer, I want MapViewModel.nowCount and markerState sorting to drive off nowScore.value ≥ 0.7 instead of the legacy isBestNow() so the entire app reflects the continuous model.",
+      "title": "可信度徽章升级为人话三档",
+      "description": "As a user, I want to tell at a glance whether data is AI-guessed, multi-source verified, or user verified so that I know how much to trust it.",
       "acceptanceCriteria": [
-        "Edit apps/ios/SoloCompass/ViewModels/MapViewModel.swift nowCount property (line 298): change body to `visibleExperiences.filter { $0.nowScore(at: .now).value >= 0.7 }.count`",
-        "Edit markerState sort order: experiences with nowScore.value ≥ 0.7 come first, then sort by nowScore.value descending, then by distance ascending",
-        "If prd-full-fix-roadmap.md US-P1-003 (nowCount caching) has already merged when this story runs, preserve its caching pattern: invalidate the `_nowCount` cache whenever visibleExperiences changes, then recompute using the new nowScore predicate",
-        "Add MapViewModelNowScoreSortTest injecting 3 mock experiences (scores 0.9 / 0.7 / 0.5) and asserting their order matches",
-        "All existing MarkerIconViewTests and MapViewModelCityCacheTests still pass",
+        "apps/ios 的 ConfidenceBadge 把裸 L{level} 升级为三档可读标签:AI 推测 / 多源印证 / 用户验证",
+        "映射基于 confidence.level(0-5)+ packages/core 的 healthFromConfidence,不新造评级逻辑",
+        "缺数据字段在卡片上显示'未验证'而非空白或假值",
+        "新增/更新 SwiftUI #Preview 覆盖三档状态",
         "Typecheck passes",
-        "Tests pass"
+        "iOS xcodebuild build 通过,并用 Simulator 视觉验证三档徽章"
       ],
       "priority": 8,
       "passes": false,
@@ -160,16 +132,14 @@
     },
     {
       "id": "US-009",
-      "title": "Filter 'Now' mode visually grades markers by nowScore intensity",
-      "description": "As a user, when 'Now' filter is on, I want markers visually graded by nowScore intensity (full color / semi / faded) instead of just shown/hidden so I can pick the BEST 'now' option, not just any.",
+      "title": "徽章详情弹窗:来源/样本量/最近验证时间",
+      "description": "As a user, I want to tap the trust badge to see why a place has that confidence so that I can dig into provenance.",
       "acceptanceCriteria": [
-        "Edit MarkerIconView (find via `grep -rn 'MarkerIconView' apps/ios/SoloCompass/Views/Map`) so that when MapViewModel's filter is in Now mode, the marker opacity = `min(1.0, max(0.5, nowScore.value))` (floor at 0.5 so markers stay visible)",
-        "Markers with nowScore.value ≥ 0.9 additionally get a 0.6s-cycle pulse animation ring in CT.accent (opacity 0.7 → 1.0)",
-        "Add FilterNowGradientHighlightTest using XCTest + a snapshot of three markers at scores 0.95 / 0.75 / 0.55 in Now mode",
-        "All existing FilterBarViewTests and CompassMapView snapshot tests still pass",
+        "点击 ConfidenceBadge 展开详情:信号来源列表、样本量(ratingCount/basedOnCount)、最近验证时间",
+        "数据全部来自现有 confidence.signals,不新增数据获取",
+        "无信号时显示友好空态文案",
         "Typecheck passes",
-        "Tests pass",
-        "Verify in iPhone 17 Pro Simulator: toggle Now filter on → screenshot showing the gradient + pulse highlight on top markers"
+        "iOS xcodebuild build 通过,并用 Simulator 视觉验证弹窗"
       ],
       "priority": 9,
       "passes": false,
@@ -177,18 +147,187 @@
     },
     {
       "id": "US-010",
-      "title": "NowScore p95 latency < 5ms with in-memory caches",
-      "description": "As an iOS engineer, I want NowScore evaluation to stay under 5ms p95 so it doesn't tank scrolling perf on a list of 100 markers.",
+      "title": "卡片展示真实营业状态",
+      "description": "As a user, I want to know if a place is open now so that I do not make a wasted trip.",
       "acceptanceCriteria": [
-        "Add an in-memory LRU dict (size 100) inside WeatherService for hot-path cache hits — avoids SwiftData fetch on every nowScore call",
-        "Add an in-memory dict inside SolarEvents keyed by `'\\(lat.rounded(1))_\\(lon.rounded(1))_\\(date.formatted(.iso8601.year().month().day()))'` to memoize same-day same-coord sunset/sunrise",
-        "Add NowScorePerformanceTest in apps/ios/SoloCompass/Tests/: construct 100 fixture experiences spanning all categories, call `nowScore(at: .now)` 1000 times, measure with `measure(metrics: [XCTClockMetric()])` and assert p95 < 5ms",
-        "On test failure, the test message must include a per-signal timing breakdown so developers see which signal regressed",
-        "All other tests still pass",
+        "体验卡片展示来自编译腿的真实营业时间;无数据显示'营业时间未知'",
+        "若有 liveStatus 显示'营业中/已打烊'状态点",
+        "数据来源标注与 US-008 徽章一致",
         "Typecheck passes",
-        "Tests pass"
+        "iOS xcodebuild build 通过,并用 Simulator 视觉验证营业状态展示"
       ],
       "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "agent 每轮刷新实时上下文(LIVE CONTEXT)",
+      "description": "As a user, I want the agent to respond based on my current location and time, not the snapshot from when the chat opened.",
+      "acceptanceCriteria": [
+        "VoiceAgentOrchestrator 在每轮模型调用前注入/更新一条 LIVE CONTEXT system 消息(location/localTime/viewportBBox)",
+        "该消息每轮覆盖、不计入 messagesMaxCount、不堆积",
+        "system prompt 的静态 CONTEXT SNAPSHOT 退化为只放不变信息",
+        "单测:会话中改变 location/time,断言下一轮 LIVE CONTEXT 反映新值",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "会话压缩改结构化事实抽取(SessionFacts)",
+      "description": "As a user, I want my key constraints (e.g. cannot walk far) to survive a long conversation instead of being truncated away.",
+      "acceptanceCriteria": [
+        "VoiceAgentSession.compactIfNeeded 改为抽取 SessionFacts(约束类事实),而非朴素截断",
+        "抽取用规则/关键词,零额外 LLM 调用",
+        "单测:11+ 条消息触发压缩后,断言关键约束仍保留在 SessionFacts",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "新增 AgentMessageRecord 持久化模型",
+      "description": "As a developer, I need a SwiftData model to persist agent conversation messages so that conversations can be restored later.",
+      "acceptanceCriteria": [
+        "新增 @Model AgentMessageRecord { conversationId: String, role: String, content: String, toolCallsJSON: String?, createdAt: Date }",
+        "注册进 SwiftData ModelContainer schema",
+        "新建 .swift 文件后运行 xcodegen 重新生成工程",
+        "单测:写入/读取一条记录成功",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过(测试 Executed N>0)"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "ConversationStore 读写与恢复",
+      "description": "As a developer, I need a store that persists and restores agent conversations by scope key so that the agent remembers the last chat.",
+      "acceptanceCriteria": [
+        "新增 Services/Memory/ConversationStore.swift,会话 key = scopedExperience?.id ?? 'global'(global 与 per-card 各自独立线程)",
+        "恢复时最近 N 条原样恢复,更旧轮用 US-012 的 SessionFacts 摘要成一条 system 消息",
+        "单测:写入会话→重建 store→断言最近 N 条恢复、旧轮被摘要",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "跨会话对话恢复接入 Orchestrator",
+      "description": "As a user, I want the voice agent to remember where we left off when I close and reopen it.",
+      "acceptanceCriteria": [
+        "VoiceAgentSession seed/恢复钩子接入 ConversationStore:开场时按 scope key 恢复历史",
+        "每轮消息写入 AgentMessageRecord",
+        "重开同 scope 会话时正确恢复上下文",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 验证:关闭 sheet 重开后 agent 引用上次内容"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "UserProfileService 合成用户画像",
+      "description": "As a developer, I need to aggregate siloed behavior records into an injectable traveler profile.",
+      "acceptanceCriteria": [
+        "新增 Services/Memory/UserProfileService.swift(@MainActor,纯本地)",
+        "snapshot() 聚合 UserCompletionRecord / UserFavoriteRecord / MicroSurveyRecord,category 由 experienceId 反查 ExperienceRecord",
+        "暴露 comfort/pressure 均值、completion 计数、disliked 品类等可复用聚合结果",
+        "renderForPrompt() 产出 ≤300 tokens 的紧凑画像;无记录返回 nil",
+        "单测:构造 fixtures 断言画像内容;空数据返回 nil",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "用户画像注入 system prompt",
+      "description": "As a user, I want the agent to know my long-term preferences without re-explaining them every time.",
+      "acceptanceCriteria": [
+        "VoiceAgentOrchestrator.buildSystemPrompt 在 CONTEXT SNAPSHOT 后追加 TRAVELER PROFILE 区块(来自 UserProfileService)",
+        "画像不含坐标(沿用现有约定)",
+        "画像为 nil 时 prompt 完全退回当前行为(零风险降级)",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "懂你的个性化推荐语",
+      "description": "As a user, I want recommendation reasons tailored to me (you liked a quiet cafe last time) rather than generic praise.",
+      "acceptanceCriteria": [
+        "排序/推荐文案在画像存在时引用用户历史偏好生成个性化一句话",
+        "新用户(无画像)回退到当前通用推荐语,无突兀空引用",
+        "文案口吻遵循现有 calm/factual、无 amazing/感叹号 约定",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 验证有历史账号看到个性化推荐语"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "用户验证覆盖 AI 的 solo-score",
+      "description": "As a user, real solo-traveler feedback should outweigh AI guesses when there is enough of it.",
+      "acceptanceCriteria": [
+        "当某体验的 MicroSurveyRecord 样本量达阈值(初定 ≥5)时,用户聚合 solo-score 覆盖 AI solo-score,复用 US-016 的聚合层",
+        "覆盖后 confidence.level 相应提升(用户验证层),徽章随之变'用户验证'",
+        "样本不足时保留 AI 评分并标'AI 推测'",
+        "若涉及 core soloScore 字段则 pnpm parity:check 通过",
+        "单测:跨阈值前后断言评分来源切换 + confidence 提升",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "行为反推偏好建议(不静默覆盖 + 隐私开关)",
+      "description": "As a user, when the system notices I often visit a category, it should suggest updating my preferences rather than silently changing my settings.",
+      "acceptanceCriteria": [
+        "UserProfileService 计算 inferred(行为)vs declared(自报)偏好偏差",
+        "偏差显著时在 UI 给出建议(如'发现你常去咖啡馆,加入偏好?'),用户确认才生效,绝不静默覆盖 UserPreferences",
+        "提供隐私开关(默认开,可关),关闭后不做行为推断",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 验证多次 completion 后出现建议入口"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "L5 语义记忆 embedding 接口铺路",
+      "description": "As a developer, I want to reserve the embedding contract and data column for future pgvector semantic memory without shipping retrieval UI.",
+      "acceptanceCriteria": [
+        "定义 embedding 数据契约:对 completed/favorited experience 与画像 snapshot 预留可选 embedding 字段(后端侧 schema/列)",
+        "UserProfileService.snapshot() 输出对齐为 embedding 输入源(接口对齐,不实现实际检索)",
+        "在 docs/architecture 注明 L5 接口契约与本版本边界",
+        "仅铺接口与数据列,不交付任何用户可见的语义检索功能",
+        "pnpm typecheck 通过"
+      ],
+      "priority": 21,
       "passes": false,
       "notes": ""
     }

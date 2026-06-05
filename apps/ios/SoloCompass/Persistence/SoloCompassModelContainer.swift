@@ -32,6 +32,7 @@ public enum SoloCompassSchemaV1: VersionedSchema {
             ItineraryRecord.self,
             RouteRecord.self,
             ConversationRecord.self,
+            WeatherCacheRecord.self,
         ]
     }
 }
@@ -62,6 +63,7 @@ public enum SoloCompassSchemaV1_1: VersionedSchema {
             ItineraryRecord.self,
             RouteRecord.self,
             ConversationRecord.self,
+            WeatherCacheRecord.self,
         ]
     }
 }
@@ -121,6 +123,7 @@ public enum SoloCompassModelContainer {
                 ItineraryRecord.self,
                 RouteRecord.self,
                 ConversationRecord.self,
+                WeatherCacheRecord.self,
                 configurations: config
             )
         } catch {
@@ -153,6 +156,7 @@ public enum SoloCompassModelContainer {
                 ItineraryRecord.self,
                 RouteRecord.self,
                 ConversationRecord.self,
+                WeatherCacheRecord.self,
                 configurations: config
             )
         } catch {
