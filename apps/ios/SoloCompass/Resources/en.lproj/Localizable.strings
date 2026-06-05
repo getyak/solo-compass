@@ -584,6 +584,7 @@
 "paywall.restore" = "Restore purchases";
 "paywall.manage" = "Manage subscription";
 "paywall.error.title" = "Purchase didn't complete";
+"paywall.error.unavailable" = "Subscriptions aren't available right now. Please check your connection and try again in a moment.";
 "paywall.close" = "Close";
 "paywall.continueFree" = "Continue with Free";
 
@@ -783,6 +784,15 @@
 "share.style.twitterLandscape" = "Twitter 1.91:1";
 "share.style.instagramSquare" = "Square 1:1";
 "share.style.minimalText" = "Minimal 9:16";
+/* Route share sheet (route detail → share). */
+"route.share.title" = "Share Route";
+"route.share.kicker" = "Route · Solo Compass";
+"route.share.mode.card" = "Card";
+"route.share.mode.text" = "Text";
+"route.share.min" = "min";
+"route.share.stops" = "stops";
+/* %d = number of travelers who have walked this route. */
+"route.share.walkedBy" = "Walked by %d travelers";
 /* Share-card image brand label (US-038) — kept as "Solo Compass" in both locales, but routed through l10n. */
 "sharecard.brand" = "Solo Compass";
 /* Share-card score suffix (US-039) — rendered after the numeric Solo Score on the share card. */

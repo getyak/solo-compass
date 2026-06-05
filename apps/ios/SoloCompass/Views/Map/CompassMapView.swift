@@ -2,6 +2,24 @@ import SwiftUI
 import MapKit
 import os
 
+/// Which route-related sheet is currently presented over the map. A single
+/// `.sheet(item:)` keyed on this enum replaces the two stacked
+/// `.sheet(isPresented:)` modifiers that SwiftUI silently collapsed (only the
+/// last won), which left route cards un-tappable.
+enum RouteSheet: Identifiable {
+    /// Open a route's detail view.
+    case detail(Route)
+    /// Open the create-your-own-route flow.
+    case create
+
+    var id: String {
+        switch self {
+        case .detail(let route): return "detail-\(route.id.rawValue)"
+        case .create:            return "create"
+        }
+    }
+}
+
 /// THE root view. Map-first means: this is what the app *is*. No tabs. No
 /// drawer. Filters and the bottom info bar overlay it; an experience card
 /// floats up when a marker is tapped.
@@ -112,9 +130,12 @@ struct CompassMapContentView: View {
     // US-025: Routes section in BottomInfoSheet
     @State private var routeStore = RouteStore()
     @State private var nearbyRoutes: [Route] = []
-    @State private var selectedRoute: Route? = nil
-    @State private var isShowingRouteDetail: Bool = false
-    @State private var isShowingCreateRoute: Bool = false
+    // Single source of truth for the route detail / create-route sheets. Two
+    // separate `.sheet(isPresented:)` modifiers on the same view silently
+    // collapse to only the last one in SwiftUI — which is why tapping a route
+    // card used to do nothing (the create-route sheet shadowed the detail one).
+    // A single `.sheet(item:)` driven by this enum presents whichever is active.
+    @State private var routeSheet: RouteSheet? = nil
     // The route currently drawn on the map (polyline + numbered stops), set when
     // the traveler taps "开始路线" in RouteDetailView. nil = no active route.
     @State private var activeRoute: ActiveRoute? = nil
@@ -538,14 +559,13 @@ struct CompassMapContentView: View {
                                     routes: nearbyRoutes,
                                     isNowFilter: viewModel.isNowFilter,
                                     onSelectRoute: { route in
-                                        selectedRoute = route
-                                        isShowingRouteDetail = true
+                                        routeSheet = .detail(route)
                                     }
                                 )
 
                                 // Create-your-own-route entry, between Routes and Nearby.
                                 CreateRouteEntryCard {
-                                    isShowingCreateRoute = true
+                                    routeSheet = .create
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.top, 8)
@@ -582,40 +602,43 @@ struct CompassMapContentView: View {
                     }
                 }
                 .ignoresSafeArea(edges: .bottom)
-                .sheet(isPresented: $isShowingRouteDetail) {
-                    if let route = selectedRoute {
+                // One sheet for both route flows. Driven by `routeSheet` so the
+                // detail and create presentations never shadow each other.
+                .sheet(item: $routeSheet) { sheet in
+                    switch sheet {
+                    case .detail(let route):
                         NavigationStack {
                             RouteDetailView(
                                 route: route,
                                 onTapStop: { exp in
-                                    isShowingRouteDetail = false
+                                    routeSheet = nil
                                     viewModel.selectExperience(exp)
                                     viewModel.isShowingDetail = true
                                 },
                                 onStartRoute: { route in
-                                    isShowingRouteDetail = false
+                                    routeSheet = nil
                                     startRouteOnMap(route)
                                 }
                             )
                             .environment(experienceService)
                         }
+                    case .create:
+                        CreateRouteView(
+                            candidates: viewModel.visibleExperiences,
+                            cityCode: viewModel.selectedCity ?? "",
+                            userCoordinate: locationService.currentLocation?.coordinate
+                                ?? viewModel.defaultCenterForSelectedCity
+                        ) { route in
+                            // Persist + open the new route's detail; RouteStore.didChange
+                            // refreshes the sheet's routes section automatically.
+                            // Swapping `routeSheet` from .create → .detail replaces
+                            // the sheet's content in place.
+                            routeStore.save(route)
+                            routeSheet = .detail(route)
+                        }
+                        .environment(aiService)
+                        .environment(experienceService)
                     }
-                }
-                .sheet(isPresented: $isShowingCreateRoute) {
-                    CreateRouteView(
-                        candidates: viewModel.visibleExperiences,
-                        cityCode: viewModel.selectedCity ?? "",
-                        userCoordinate: locationService.currentLocation?.coordinate
-                            ?? viewModel.defaultCenterForSelectedCity
-                    ) { route in
-                        // Persist + open the new route's detail; RouteStore.didChange
-                        // refreshes the sheet's routes section automatically.
-                        routeStore.save(route)
-                        selectedRoute = route
-                        isShowingRouteDetail = true
-                    }
-                    .environment(aiService)
-                    .environment(experienceService)
                 }
 
                 // Selected-experience card floats ABOVE the BottomInfoSheet
