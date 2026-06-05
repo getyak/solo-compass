@@ -1,4 +1,5 @@
 # Solo Compass — Ralph Progress Log
 Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-Target: ralph/nowscore-v1-10us
+Target: ralph/companion-v2-trustworthy-personal
 Tool: claude
+[2026-06-05T16:51:12Z] Story #US-001: Introduce NowScore value type and Experience.nowScore(at:) method — PASSED
