@@ -138,7 +138,7 @@
         "Verify in iPhone 17 Pro Simulator: launch app at a time when a marker satisfies nowScore \u2265 0.7 \u2192 screenshot the badge showing the new reason subtitle"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
