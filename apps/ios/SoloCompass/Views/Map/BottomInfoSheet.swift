@@ -275,8 +275,43 @@ public struct BottomInfoSheet<Content: View>: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
                 }
-                content(currentDetent, $sortMode)
-                Spacer(minLength: 0)
+                // Single unified scroll layer for every sheet section (Routes →
+                // Create-route → Nearby). The sheet header rows above (handle,
+                // peek/now-hint, toolbar) stay pinned; only the content closure
+                // scrolls. Previously this was a bare `content + Spacer`, so the
+                // Routes + Create-route rows were non-scrollable and only Nearby
+                // carried its own inner ScrollView — a long Routes list pushed
+                // Nearby off-screen with no way to scroll it back, and dragging up
+                // to mid left the route cards stuck (the user's "滑不动"). Hosting
+                // the whole closure in one ScrollView makes the sections a
+                // continuous, naturally scrollable stream (like Apple Maps / Find
+                // My) at *any* detent — mid scrolls the full list, no need to first
+                // expand to full. At .peek the closure is empty, so this is a cheap
+                // no-op.
+                ScrollView {
+                    content(currentDetent, $sortMode)
+                        // Pin content to the top so a changing viewport height
+                        // (mid→full during a drag) never re-centres the column —
+                        // without this the rows visibly jump frame-to-frame as the
+                        // sheet grows/shrinks, reading as a flicker.
+                        .frame(maxWidth: .infinity, alignment: .top)
+                        // Trailing breathing room so the last card never sits flush
+                        // against the sheet's lower edge / home indicator.
+                        .padding(.bottom, 28)
+                }
+                // Freeze the ScrollView while the handle is being dragged. The
+                // sheet height animates every frame during a settle; an active
+                // ScrollView would re-clamp its contentOffset against that moving
+                // viewport and fight the drag, producing flicker. Re-enabled the
+                // instant the drag ends.
+                .scrollDisabled(isDragging)
+                .scrollDismissesKeyboard(.interactively)
+                // Show the indicator at mid/full as an affordance that more
+                // content lies below; peek has no scroll content so it stays clean.
+                .scrollIndicators(currentDetent == .peek ? .hidden : .automatic)
+                // Suppress the empty bottom rubber-band when content is shorter
+                // than the viewport, so a short list doesn't feel "loose".
+                .scrollBounceBehavior(.basedOnSize)
             }
             .frame(maxWidth: .infinity)
             .frame(height: displayHeight)
@@ -290,7 +325,15 @@ public struct BottomInfoSheet<Content: View>: View {
                 .fill(.ultraThinMaterial)
             )
         }
-        .animation(isDragging ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: displayHeight)
+        // Animate ONLY the discrete detent settle (which changes once, on
+        // release), never the continuously finger-driven `displayHeight`.
+        // Watching `displayHeight` meant every drag frame nudged a value an
+        // active spring was tracking, so the spring kept restarting-then-being-
+        // interrupted frame to frame — the sheet edge jittered larger/smaller
+        // (the "flicker"). Pinned to `currentDetent`, the drag is pure immediate
+        // finger-tracking (no animation) and only the release-to-nearest-detent
+        // gets the spring.
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: currentDetent)
     }
 
     // MARK: - Peek content
@@ -385,8 +428,19 @@ public struct BottomInfoSheet<Content: View>: View {
                     isDragging = false
                     let projectedHeight = detentBaseHeight - value.predictedEndTranslation.height
                     let clampedHeight = max(scaledMinHeight, min(scaledMaxHeight, projectedHeight))
-                    currentDetent = BottomSheetDetent.nearest(to: clampedHeight, traits: dynamicTypeTraits)
-                    dragOffset = 0
+                    // Settle to the nearest detent with an EXPLICIT spring. Both
+                    // `currentDetent` and `dragOffset` feed `displayHeight`, but the
+                    // implicit `.animation(value: currentDetent)` only fires when the
+                    // detent actually changes. On a small drag that lands back on the
+                    // same detent, `currentDetent` is unchanged, so zeroing
+                    // `dragOffset` outside an animation would snap the sheet back with
+                    // no spring (the "生硬" settle). Wrapping the state collapse in
+                    // `withAnimation` guarantees the release always springs home —
+                    // whether or not the detent changed.
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        currentDetent = BottomSheetDetent.nearest(to: clampedHeight, traits: dynamicTypeTraits)
+                        dragOffset = 0
+                    }
                 }
         )
         // A discrete tap on the handle steps up one detent. `DragGesture`'s
@@ -1098,22 +1152,28 @@ struct NearbySection: View {
                 // Each row now carries its own card chrome, so we separate them
                 // with a 10pt gap (matching RoutesSection) rather than full-bleed
                 // dividers — the list reads as a stack of discrete cards.
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(sortedExperiences) { exp in
-                            NearbyExperienceRow(
-                                experience: exp,
-                                isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
-                                distanceMeters: distance(to: exp),
-                                isOpenNow: sortMode == .now && isOpenNow(exp),
-                                onTap: { onSelectExperience(exp) }
-                            )
-                        }
+                //
+                // No inner ScrollView: the host BottomInfoSheet wraps the whole
+                // content closure in one ScrollView, so Nearby lays its rows out
+                // inline as part of that single scroll stream. A nested ScrollView
+                // here re-introduced the two-viewport conflict that hid this list
+                // when the Routes section above grew long (and left the route cards
+                // un-scrollable at mid). LazyVStack keeps rows lazily realized for
+                // long lists.
+                LazyVStack(spacing: 10) {
+                    ForEach(sortedExperiences) { exp in
+                        NearbyExperienceRow(
+                            experience: exp,
+                            isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
+                            distanceMeters: distance(to: exp),
+                            isOpenNow: sortMode == .now && isOpenNow(exp),
+                            onTap: { onSelectExperience(exp) }
+                        )
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-                    .padding(.bottom, 8)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
             }
         }
         .padding(.top, 8)

@@ -180,16 +180,14 @@ public struct PaywallView: View {
     }
 
     private var ctaButton: some View {
-        // In DEBUG builds the StoreKit catalog may be empty (no StoreKit
-        // configuration attached to the scheme), which would otherwise leave
-        // the CTA permanently disabled and make the paywall un-testable on a
-        // bare simulator. Allow taps in that case and fall back to a local
-        // unlock inside `runPurchase()`.
-        #if DEBUG
+        // The CTA must always be tappable (except mid-purchase). Previously
+        // Release builds disabled it whenever `products.isEmpty`, which made
+        // the button physically un-tappable on device when App Store Connect
+        // hadn't returned the catalog yet — the user got a dead button with no
+        // feedback. Instead we keep it tappable and, on tap, retry the product
+        // load and surface an explicit error if the catalog is still empty
+        // (see `runPurchase()`).
         let isDisabled = purchaseInFlight
-        #else
-        let isDisabled = purchaseInFlight || subscription.products.isEmpty
-        #endif
         return Button {
             Task { await runPurchase() }
         } label: {
@@ -250,21 +248,37 @@ public struct PaywallView: View {
     // MARK: - Actions
 
     private func runPurchase() async {
-        guard let product = subscription.products.first(where: { $0.id == selectedProductID }) else {
+        purchaseInFlight = true
+        defer { purchaseInFlight = false }
+
+        // The catalog can be empty on first tap if App Store Connect was slow
+        // (or the network blipped) during `.task`'s initial load. Retry once
+        // before giving up so the user isn't stuck behind a transient miss.
+        if subscription.products.isEmpty {
+            await subscription.loadProducts()
+        }
+
+        guard let product = subscription.products.first(where: { $0.id == selectedProductID })
+            ?? subscription.products.first
+        else {
             #if DEBUG
             // DEBUG-only escape hatch: when StoreKit returned no products
             // (e.g. simulator without a .storekit config), flip entitlement
             // locally so the rest of the flow is testable.
-            purchaseInFlight = true
-            defer { purchaseInFlight = false }
             subscription._setEntitlementForTesting(.proTrial)
             onUnlocked()
             dismiss()
+            #else
+            // Release: no products even after a retry — surface an explicit,
+            // actionable error instead of a silent dead button. Common causes
+            // are an unsigned Paid Apps Agreement or products not yet "Ready
+            // to Submit" in App Store Connect.
+            purchaseError = subscription.lastError
+                ?? NSLocalizedString("paywall.error.unavailable", comment: "Products unavailable")
             #endif
             return
         }
-        purchaseInFlight = true
-        defer { purchaseInFlight = false }
+
         let success = await subscription.purchase(product)
         if success {
             onUnlocked()

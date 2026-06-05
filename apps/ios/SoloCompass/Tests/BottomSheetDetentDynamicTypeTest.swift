@@ -6,7 +6,7 @@ import SwiftUI
 /// heights (peek / mid / full) must scale so the enlarged content — handle,
 /// AI-hint row, sort/count toolbar, nearby list — is not clipped.
 ///
-/// The base detents (170 / 500 / 800 pt) are sized for the default content size
+/// The base detents (240 / 500 / 800 pt) are sized for the default content size
 /// category. `BottomSheetDetent.scaledHeight(for:)` multiplies them by
 /// `UIFontMetrics.default.scaledValue(for: 1.0)` for the active trait
 /// collection. This test asserts:
@@ -68,8 +68,10 @@ final class BottomSheetDetentDynamicTypeTest: XCTestCase {
     }
 
     func testBaseDetentHeightsMatchSpec() {
-        // The base (unscaled) ladder must remain 170 / 500 / 800.
-        XCTAssertEqual(BottomSheetDetent.peek.scaledHeight(for: defaultTraits), 170, accuracy: 0.5)
+        // The base (unscaled) ladder is 240 / 500 / 800. Peek grew from 170 → 240
+        // in f351c37 to fit the "best for right now" summary card; this spec test
+        // tracks the current peek height so the ladder stays pinned to intent.
+        XCTAssertEqual(BottomSheetDetent.peek.scaledHeight(for: defaultTraits), 240, accuracy: 0.5)
         XCTAssertEqual(BottomSheetDetent.mid.scaledHeight(for: defaultTraits), 500, accuracy: 0.5)
         XCTAssertEqual(BottomSheetDetent.full.scaledHeight(for: defaultTraits), 800, accuracy: 0.5)
     }
