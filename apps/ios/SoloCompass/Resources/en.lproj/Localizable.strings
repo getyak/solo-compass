@@ -1404,3 +1404,10 @@
 "peek.card.aiPick" = "AI Pick";
 "peek.card.aiPick.a11y" = "AI pick for right now";
 "sheet.handle.hint" = "Tap to expand, drag to resize";
+
+/* NowScore weather signal (US-005) — %d is the temperature in whole °C. */
+"nowscore.weather.sunny" = "Clear · %d°C · Great for it";
+"nowscore.weather.cloudy" = "Cloudy · %d°C · Fine";
+"nowscore.weather.rain" = "Rain · %d°C · Maybe stay in";
+"nowscore.weather.storm" = "Storm warning · Not advised outdoors";
+"nowscore.weather.indoor" = "Indoor · Weather doesn't matter";
