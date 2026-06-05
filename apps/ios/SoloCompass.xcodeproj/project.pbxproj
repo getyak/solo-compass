@@ -106,6 +106,7 @@
 		58B7C9B20945838F81081941 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A22A40550CF207AB36C18 /* SettingsView.swift */; };
 		58C9B0E8A0A2DB38E1078E9D /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8277318E6238F2F885ED2334 /* HapticService.swift */; };
 		58EC3C9838462DCD66F11975 /* RouteRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BAB6EA03E81F52D00CCD59 /* RouteRecordTests.swift */; };
+		59A9E2DAC8378384BBCD8A57 /* RouteShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D4181409CE6A219B1C07502 /* RouteShareSheet.swift */; };
 		5B22BAF4AD26B9941361351B /* CompanionCrossTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA531A7BAD8A34652BA4801 /* CompanionCrossTests.swift */; };
 		5C05B87EA78458094612AC01 /* BottomInfoBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13350B81187FB64B252B8A46 /* BottomInfoBar.swift */; };
 		5F3ACD03660F3E8B88814C56 /* MyHostedRoutesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E055BAC372B75F743428920 /* MyHostedRoutesListView.swift */; };
@@ -338,6 +339,7 @@
 		1A9FE3BB447D84732CCE0B07 /* RouteCardWalkedByTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCardWalkedByTest.swift; sourceTree = "<group>"; };
 		1C04120C63712F09D8357CEE /* CompanionMapLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionMapLayer.swift; sourceTree = "<group>"; };
 		1C23113554E651AA08FD2430 /* POILoadingBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POILoadingBanner.swift; sourceTree = "<group>"; };
+		1D4181409CE6A219B1C07502 /* RouteShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteShareSheet.swift; sourceTree = "<group>"; };
 		1D7A24EA7AB5379E0D5DC2B2 /* InlineBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineBanner.swift; sourceTree = "<group>"; };
 		1D951F9EC55C09A219D97D55 /* JoinRequestValidationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoinRequestValidationTest.swift; sourceTree = "<group>"; };
 		1F39081CF797874064A33814 /* seed_routes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = seed_routes.json; sourceTree = "<group>"; };
@@ -670,6 +672,7 @@
 				023CB5AE8B0D41EBB5E17DAC /* ReportBlockSheet.swift */,
 				F86CFA31CA2B66F6AA221ECB /* RequestInboxView.swift */,
 				CA1C7F381BB5EE2493C06407 /* RouteDetailView.swift */,
+				1D4181409CE6A219B1C07502 /* RouteShareSheet.swift */,
 				99D914894172F5E81C250A6A /* SendRequestSheet.swift */,
 				BBF9B944FE7F4CC3492DF727 /* Components */,
 			);
@@ -1494,6 +1497,7 @@
 				7DE0D7D331590BFAC64D55B9 /* RouteDetailView.swift in Sources */,
 				8D67669050D844812FA06CC8 /* RouteItineraryBridge.swift in Sources */,
 				F3B6B76087182DEAF1BD0556 /* RouteRecord.swift in Sources */,
+				59A9E2DAC8378384BBCD8A57 /* RouteShareSheet.swift in Sources */,
 				963BC062494BCC3B655AFDC0 /* RouteStore.swift in Sources */,
 				CE75A768DA8AD2A14C3046AF /* SavedCity.swift in Sources */,
 				FBE9F5951D501A611EB19EEC /* SecretsRuntime.swift in Sources */,

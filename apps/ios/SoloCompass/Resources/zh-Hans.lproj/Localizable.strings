@@ -341,6 +341,7 @@
 "paywall.restore" = "恢复购买";
 "paywall.manage" = "管理订阅";
 "paywall.error.title" = "购买未完成";
+"paywall.error.unavailable" = "订阅暂时不可用。请检查网络后稍候重试。";
 "paywall.close" = "关闭";
 "paywall.continueFree" = "免费继续使用";
 
@@ -506,6 +507,15 @@
 "share.style.twitterLandscape" = "横版 1.91:1";
 "share.style.instagramSquare" = "方形 1:1";
 "share.style.minimalText" = "极简 9:16";
+/* Route share sheet (route detail → share). */
+"route.share.title" = "分享路线";
+"route.share.kicker" = "路线 · Solo Compass";
+"route.share.mode.card" = "图片卡";
+"route.share.mode.text" = "纯文本";
+"route.share.min" = "分钟";
+"route.share.stops" = "站";
+/* %d = number of travelers who have walked this route. */
+"route.share.walkedBy" = "已有 %d 位旅行者走过";
 /* Share-card image brand label (US-038) — kept as "Solo Compass" in both locales, but routed through l10n. */
 "sharecard.brand" = "Solo Compass";
 /* Share-card score suffix (US-039) — rendered after the numeric Solo Score on the share card. */

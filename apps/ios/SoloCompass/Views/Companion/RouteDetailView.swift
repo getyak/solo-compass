@@ -26,9 +26,13 @@ public struct RouteDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isSaved = false
     @State private var isFavorited = false
-    @State private var showJoinSheet = false
     @State private var showCompletionMoment = false
     @State private var showApprovalQueue = false
+    // Single source of truth for the join / share sheets. Stacking two
+    // `.sheet(isPresented:)` on one view collapses to only the last in SwiftUI
+    // (the outer modifier overrides the inner), so a `.sheet(item:)` keyed on
+    // this enum keeps both presentations working.
+    @State private var activeSheet: RouteDetailSheet? = nil
     // Refreshes whenever RouteStore.didChange fires (join request submitted, accepted, etc.)
     @State private var liveRoute: Route
 
@@ -92,8 +96,13 @@ public struct RouteDetailView: View {
         .safeAreaInset(edge: .bottom) { bottomDock }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { shareButton }
-        .sheet(isPresented: $showJoinSheet) {
-            JoinRouteRequestSheet(route: liveRoute)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .join:
+                JoinRouteRequestSheet(route: liveRoute)
+            case .share:
+                RouteShareSheet(payload: sharePayload)
+            }
         }
         .fullScreenCover(isPresented: $showCompletionMoment) {
             CompletionMoment(route: liveRoute, onDismiss: { showCompletionMoment = false })
@@ -177,7 +186,7 @@ public struct RouteDetailView: View {
                     hasMyRequest: hasMyRequest,
                     strength: preferences.companionModuleStrength,
                     onRequestJoin: {
-                        showJoinSheet = true
+                        activeSheet = .join
                     },
                     onViewRequests: {
                         showApprovalQueue = true
@@ -359,7 +368,7 @@ public struct RouteDetailView: View {
                 label: NSLocalizedString("route.detail.cta.requestJoin", comment: ""),
                 systemImage: "person.2.fill",
                 isDisabled: false,
-                action: { showJoinSheet = true }
+                action: { activeSheet = .join }
             )
         }
         // closed / completed → group chat entry (falls back to completion replay
@@ -432,9 +441,39 @@ public struct RouteDetailView: View {
     @ToolbarContentBuilder
     private var shareButton: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            ShareLink(item: liveRoute.title) {
+            Button {
+                activeSheet = .share
+            } label: {
                 Image(systemName: "square.and.arrow.up")
             }
+            .accessibilityLabel(NSLocalizedString("route.share.title", comment: "Share route"))
+        }
+    }
+
+    /// Pre-built payload for the share sheet — resolves the primary category and
+    /// stop count once so the sheet stays a pure visual layer.
+    private var sharePayload: RouteSharePayload {
+        RouteSharePayload(
+            route: liveRoute,
+            category: primaryCategory,
+            stopCount: liveRoute.experienceIds.count
+        )
+    }
+}
+
+// MARK: - RouteDetailSheet
+
+/// Which modal RouteDetailView is presenting. A single `.sheet(item:)` keyed on
+/// this enum avoids stacking two `.sheet(isPresented:)` modifiers (SwiftUI keeps
+/// only the last, breaking the other).
+enum RouteDetailSheet: Identifiable {
+    case join
+    case share
+
+    var id: String {
+        switch self {
+        case .join:  return "join"
+        case .share: return "share"
         }
     }
 }
