@@ -145,6 +145,17 @@ public final class ExperienceService {
         return added
     }
 
+    /// Replace an existing experience's content in place, keeping its id and
+    /// user-tracked state. Used by the deep-dive re-compile flow (single-card
+    /// cross-source enrichment): the place stays the same entry but its
+    /// information is upgraded. No-op if no record with `replacement.id`
+    /// exists. Refreshes the @Observable mirrors so the open card re-renders.
+    public func replaceGenerated(_ replacement: Experience) {
+        guard repository.experience(id: replacement.id) != nil else { return }
+        repository.update(replacement)
+        reload()
+    }
+
     // MARK: - Repo accessor
 
     /// Read-only access to the underlying repository for callers that

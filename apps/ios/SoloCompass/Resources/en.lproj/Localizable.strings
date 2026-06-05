@@ -551,6 +551,12 @@
 
 /* Explore here */
 "explore.button" = "Explore here";
+/* Single-card deep cross-compile (Approach A) */
+"recompile.action" = "Deep cross-compile";
+"recompile.action.a11y" = "Deep cross-compile this place across multiple sources";
+"recompile.inProgress" = "Cross-compiling…";
+"recompile.toast.success" = "Upgraded with cross-source detail";
+"recompile.toast.noChange" = "Already as detailed as we can get this one";
 "explore.aiBadge" = "AI-generated · OpenStreetMap";
 "explore.osmBadge" = "OpenStreetMap · not enriched";
 "explore.error.nothingFound" = "No public places found nearby. Try moving the map.";

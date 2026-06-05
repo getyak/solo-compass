@@ -670,7 +670,11 @@ struct CompassMapContentView: View {
                         ExperienceCardView(
                             experience: selected,
                             onExpand: { viewModel.isShowingDetail = true },
-                            onDismiss: { viewModel.selectedExperience = nil }
+                            onDismiss: { viewModel.selectedExperience = nil },
+                            onRecompile: {
+                                Task { await viewModel.recompileExperience(selected) }
+                            },
+                            isRecompiling: viewModel.recompilingExperienceId == selected.id
                         )
                         .padding(.bottom, cardBottomInset)
                     }
@@ -834,6 +838,14 @@ struct CompassMapContentView: View {
                         viewModel.selectExperience(experience)
                     }
                 )
+            }
+            // Approach C: when the detail sheet opens for a shallow (not yet
+            // AI-enriched) place, silently deep cross-compile it in the
+            // background and upgrade the content in place. No-op for Pro-less
+            // users, already-rich cards, or cards upgraded earlier this
+            // session — autoUpgradeExperience enforces all three.
+            .task(id: exp.id) {
+                await viewModel.autoUpgradeExperience(exp)
             }
         }
     }
