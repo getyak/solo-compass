@@ -12,7 +12,11 @@ public protocol NowSignal {
     static var key: String { get }
 
     /// Evaluate this signal for `experience` at `date`.
-    func score(for experience: Experience, at date: Date) async -> NowSignalContribution
+    ///
+    /// May `throw`: signals that hit the network (weather, sunset) surface
+    /// failures here so `NowScoreEngine` can degrade gracefully instead of
+    /// crashing the whole composite. Pure, local signals never throw.
+    func score(for experience: Experience, at date: Date) async throws -> NowSignalContribution
 }
 
 /// The output of a single `NowSignal` evaluation.

@@ -518,11 +518,10 @@ public struct Experience: Codable, Hashable, Identifiable {
     /// and produces a weight-normalized average of their values, concatenating
     /// each signal's reason with ` · `. An empty signal list yields `0.5`.
     public func nowScore(at date: Date = Date()) -> NowScore {
-        let signals: [(key: String, contribution: NowSignalContribution)] = [
-            (BestTimesSignal.key, BestTimesSignal().evaluate(for: self, at: date)),
-            (HourOfDaySignal.key, HourOfDaySignal().evaluate(for: self, at: date)),
-        ]
-        return Self.composeNowScore(from: signals)
+        // Delegates to the shared engine. The synchronous path runs the two pure,
+        // local signals; the failure-tolerant async path (`NowScoreEngine.evaluate`)
+        // is used once network-backed signals (weather, sunset) join the registry.
+        NowScoreEngine.evaluateSync(for: self, at: date)
     }
 
     /// Weight-normalized composition of signal contributions, shared by
