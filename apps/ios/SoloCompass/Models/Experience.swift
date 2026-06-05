@@ -505,16 +505,35 @@ public struct Experience: Codable, Hashable, Identifiable {
         )
     }
 
-    /// Is any of this experience's `bestTimes` open right now?
-    public func isBestNow(at date: Date = Date()) -> Bool {
+    /// A continuous timeliness score in `[0, 1]` for the given date.
+    ///
+    /// v1 only consults `bestTimes`:
+    /// - in an open window → `1.0`
+    /// - out of every window → `0.0`
+    /// - empty `bestTimes` → `0.5` (neutral; no timing signal to judge by)
+    public func nowScore(at date: Date = Date()) -> NowScore {
+        guard !bestTimes.isEmpty else {
+            return NowScore(value: 0.5, reason: "no bestTimes", breakdown: ["bestTimes": 0.5])
+        }
         let hour = Calendar.current.component(.hour, from: date)
         let weekday = Calendar.current.component(.weekday, from: date) - 1 // Sun=0
         let month = Calendar.current.component(.month, from: date)
-        return bestTimes.contains { window in
+        let isOpen = bestTimes.contains { window in
             if let days = window.dayOfWeek, !days.isEmpty, !days.contains(weekday) { return false }
             if let seasons = window.season, !seasons.isEmpty, !seasons.contains(month) { return false }
             return window.contains(hour: hour)
         }
+        let value = isOpen ? 1.0 : 0.0
+        return NowScore(
+            value: value,
+            reason: isOpen ? "in bestTimes window" : "out of bestTimes window",
+            breakdown: ["bestTimes": value]
+        )
+    }
+
+    /// Is any of this experience's `bestTimes` open right now?
+    public func isBestNow(at date: Date = Date()) -> Bool {
+        return nowScore(at: date).value >= 0.7
     }
 
     /// Minutes remaining in the currently-active bestTimes window, or nil when not best now.
