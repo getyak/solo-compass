@@ -7,3 +7,4 @@ Tool: claude
 [2026-06-05T17:12:45Z] Story #US-003: Build WeatherService with 12-hour SwiftData cache — PASSED
 [2026-06-05T17:19:42Z] Story #US-004: Offline + error degradation + Sentry instrumentation in NowScoreEngine — PASSED
 [2026-06-05T17:29:10Z] Story #US-005: WeatherSignal — NowSignal implementation that downgrades outdoor scores in bad weather — PASSED
+[2026-06-05T17:37:34Z] Story #US-006: SolarEvents pure-function module + SunsetSignal — PASSED
