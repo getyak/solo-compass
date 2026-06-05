@@ -241,6 +241,7 @@
 		C5098ADCDADB1759BD132E62 /* SettingsSheetPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ADE6272DBBF6FAE452195AB /* SettingsSheetPresentationTests.swift */; };
 		C53DB60CA9E95907A2CBF2C0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C215AE07BA32182A887226F9 /* NotificationService.swift */; };
 		C546F3C71BD0E99D59E91630 /* PeekPickResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73B8E83B3522CC4FFEBE10B /* PeekPickResolver.swift */; };
+		C5F42BD677BAEEC342E98F42 /* BestNowBadgeReasonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D1E1156D01B94B3ADA7AAF /* BestNowBadgeReasonTests.swift */; };
 		C68E48A7B9D9E45647898D4C /* MapViewModelEagerInitTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 774D16A741A01ECD6F878025 /* MapViewModelEagerInitTest.swift */; };
 		C72A178F41BDB482E0E02C39 /* ShareCardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E92D314B6B62ED3B6EA2AE /* ShareCardComponents.swift */; };
 		C735986DAC69807F27CC0E39 /* FeatureFlags.plist in Resources */ = {isa = PBXBuildFile; fileRef = 409FB4B0922C4A1D8AAEB1D1 /* FeatureFlags.plist */; };
@@ -580,6 +581,7 @@
 		C660F7996B1E4387C37720B3 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		C73B8E83B3522CC4FFEBE10B /* PeekPickResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeekPickResolver.swift; sourceTree = "<group>"; };
 		C7BCDB936C9D0BE9138C617B /* OnboardingSkipTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingSkipTest.swift; sourceTree = "<group>"; };
+		C9D1E1156D01B94B3ADA7AAF /* BestNowBadgeReasonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BestNowBadgeReasonTests.swift; sourceTree = "<group>"; };
 		CA1C7F381BB5EE2493C06407 /* RouteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteDetailView.swift; sourceTree = "<group>"; };
 		CA1F5F43F42E03BA5F10FA2F /* ContextManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextManager.swift; sourceTree = "<group>"; };
 		CE05EF69960CBB73431A6F2F /* DiscoveredCityRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredCityRecord.swift; sourceTree = "<group>"; };
@@ -757,6 +759,7 @@
 				15C512E1C0A5CFFE798CEEEA /* AppLaunchPerformanceTest.swift */,
 				804618047547A9D7F3F8EAAA /* ApprovalTrustSignalTest.swift */,
 				F93DEF5BFE055F0EC12FC21A /* BestNowBadgeClockTest.swift */,
+				C9D1E1156D01B94B3ADA7AAF /* BestNowBadgeReasonTests.swift */,
 				88553B5578C07FA890183A0D /* BottomInfoSheetHandleHitTargetTests.swift */,
 				56F91067B8A0FACD9369243B /* BottomInfoSheetTests.swift */,
 				C63BC4737C3134075574125E /* BottomSheetDetentDynamicTypeTest.swift */,
@@ -1344,6 +1347,7 @@
 				E3E70311CE0E4C0CB1C47462 /* AppLaunchPerformanceTest.swift in Sources */,
 				352247C1FBF4C8F901D17F32 /* ApprovalTrustSignalTest.swift in Sources */,
 				70C4E4355FB1E0D911A54C11 /* BestNowBadgeClockTest.swift in Sources */,
+				C5F42BD677BAEEC342E98F42 /* BestNowBadgeReasonTests.swift in Sources */,
 				7428B9017BC39BE7BAA4946A /* BottomInfoSheetHandleHitTargetTests.swift in Sources */,
 				C2AE6B28BA196E2EDEE89012 /* BottomInfoSheetTests.swift in Sources */,
 				AB8E6644540AE90657471002 /* BottomSheetDetentDynamicTypeTest.swift in Sources */,

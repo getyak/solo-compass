@@ -632,7 +632,9 @@ public struct ExperienceCardView: View {
 
 // MARK: - BestNowBadge
 
-private struct BestNowBadge: View {
+// `internal` (not `private`) so `BestNowBadge.reasonSubtitle` is reachable from
+// `BestNowBadgeReasonTests` via `@testable import` (US-007).
+struct BestNowBadge: View {
     /// The experience to query for live countdown; the shared `BestNowClock`
     /// drives recomputation of `minutesLeftInBestWindow()` once a minute.
     var experience: Experience
@@ -672,32 +674,59 @@ private struct BestNowBadge: View {
         return NSLocalizedString("experience.bestNow", comment: "Best now label")
     }
 
+    /// US-007: the one-line reason subtitle for a `NowScore`, falling back to the
+    /// localized "此刻" label when the score carries no explanation. The top-3 +
+    /// truncation rule lives in `Experience.nowReasonSubtitle` so it is unit
+    /// testable without touching this private view.
+    static func reasonSubtitle(for score: NowScore) -> String {
+        Experience.nowReasonSubtitle(for: score)
+            ?? NSLocalizedString("badge.now.fallback", comment: "Fallback reason subtitle when NowScore has no explanation")
+    }
+
     var body: some View {
         let closingSoon = isClosingSoon(at: clock.tick)
         let pulseDuration = closingSoon ? 0.7 : 1.1
-        Group {
-            if reduceMotion {
-                badgeLabel(at: clock.tick)
-                    .accessibilityLabel(a11yText(at: clock.tick))
-            } else {
-                // Reading `clock.tick` here makes this badge a SwiftUI observer
-                // of the shared clock: the once-a-minute advance invalidates the
-                // body and recomputes the countdown — same cadence the old
-                // per-badge TimelineView gave, with one timer for all badges.
-                badgeLabel(at: clock.tick)
-                    .accessibilityLabel(a11yText(at: clock.tick))
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)) {
-                            pulse = true
+        VStack(alignment: .leading, spacing: 3) {
+            Group {
+                if reduceMotion {
+                    badgeLabel(at: clock.tick)
+                        .accessibilityLabel(a11yText(at: clock.tick))
+                } else {
+                    // Reading `clock.tick` here makes this badge a SwiftUI observer
+                    // of the shared clock: the once-a-minute advance invalidates the
+                    // body and recomputes the countdown — same cadence the old
+                    // per-badge TimelineView gave, with one timer for all badges.
+                    badgeLabel(at: clock.tick)
+                        .accessibilityLabel(a11yText(at: clock.tick))
+                        .onAppear {
+                            withAnimation(.easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)) {
+                                pulse = true
+                            }
                         }
-                    }
-                    .onChange(of: closingSoon) { _, _ in
-                        pulse = false
-                        withAnimation(.easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)) {
-                            pulse = true
+                        .onChange(of: closingSoon) { _, _ in
+                            pulse = false
+                            withAnimation(.easeInOut(duration: pulseDuration).repeatForever(autoreverses: true)) {
+                                pulse = true
+                            }
                         }
-                    }
+                }
             }
+            reasonSubtitle(at: clock.tick)
+        }
+    }
+
+    /// US-007: a muted, one-line reason beneath the badge label explaining WHY
+    /// this experience is "best now". Rendered only when the live NowScore clears
+    /// the 0.7 threshold; otherwise the badge keeps its prior label-only form.
+    @ViewBuilder
+    private func reasonSubtitle(at date: Date) -> some View {
+        let score = experience.nowScore(at: date)
+        if score.value >= 0.7 {
+            Text(Self.reasonSubtitle(for: score))
+                .font(CT.body(11, .medium))
+                .foregroundStyle(CT.fgMuted)
+                .lineLimit(1)
+                .accessibilityHidden(true)
         }
     }
 

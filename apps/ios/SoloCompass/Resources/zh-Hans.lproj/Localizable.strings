@@ -77,6 +77,8 @@
 
 /* Experience */
 "experience.bestNow" = "此刻最佳";
+/* US-007: fallback reason subtitle beneath the best-now badge when NowScore has no explanation */
+"badge.now.fallback" = "此刻";
 "experience.viewDetails" = "查看详情 →";
 
 /* Bottom info */

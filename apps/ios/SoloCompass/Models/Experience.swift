@@ -538,16 +538,43 @@ public struct Experience: Codable, Hashable, Identifiable {
             ? signals.reduce(0.0) { $0 + $1.contribution.value * $1.contribution.weight } / totalWeight
             : 0.5
         var breakdown: [String: Double] = [:]
-        var reasons: [String] = []
         for signal in signals {
             breakdown[signal.key] = signal.contribution.value
-            if let reason = signal.contribution.reason { reasons.append(reason) }
         }
+        // US-007: order reasons by contribution strength (weight × value) so the
+        // most decisive signal leads the human-readable reason. The original
+        // index is a stable tiebreaker for equal strengths, preserving input
+        // order (and the existing composition-test assertions).
+        var ranked: [(rank: Double, order: Int, text: String)] = []
+        for (idx, signal) in signals.enumerated() {
+            guard let reason = signal.contribution.reason else { continue }
+            let strength = signal.contribution.weight * signal.contribution.value
+            ranked.append((rank: strength, order: idx, text: reason))
+        }
+        ranked.sort { lhs, rhs in
+            lhs.rank != rhs.rank ? lhs.rank > rhs.rank : lhs.order < rhs.order
+        }
+        let reasons = ranked.map(\.text)
         return NowScore(
             value: value,
             reason: reasons.isEmpty ? nil : reasons.joined(separator: " · "),
             breakdown: breakdown
         )
+    }
+
+    /// US-007: condenses a `NowScore.reason` into a one-line badge subtitle.
+    ///
+    /// The reason already arrives sorted by contribution strength (weight ×
+    /// value) from `composeNowScore`; here we keep the top-3 ` · `-separated
+    /// segments and ellipsize when the rejoined text exceeds `maxChars`.
+    /// Returns `nil` when the score has no reason, letting the caller fall back
+    /// to a localized "此刻" label.
+    static func nowReasonSubtitle(for score: NowScore, maxChars: Int = 28) -> String? {
+        guard let reason = score.reason, !reason.isEmpty else { return nil }
+        let segments = reason.components(separatedBy: " · ").prefix(3)
+        let combined = segments.joined(separator: " · ")
+        guard combined.count > maxChars else { return combined }
+        return String(combined.prefix(maxChars - 1)) + "…"
     }
 
     /// Is any of this experience's `bestTimes` open right now?

@@ -136,6 +136,8 @@
 
 /* Experience */
 "experience.bestNow" = "Best now";
+/* US-007: fallback reason subtitle beneath the best-now badge when NowScore has no explanation */
+"badge.now.fallback" = "Now";
 "experience.bestNow.countdown" = "Best now · %dm left";
 "experience.bestNow.countdown.a11y" = "Best now, %d minutes left";
 "experience.bestNow.closingSoon" = "Closing soon · %dm left";
