@@ -171,6 +171,13 @@ const IGNORED_SWIFT_FIELDS = new Set([
   "totalCount",
   // copy() method — not a stored property but just in case parser catches it
   "copy",
+  // Method-body locals inside Experience.composeNowScore(...). The extractor
+  // regex matches any indented `var name: Type`, so these NowScore composition
+  // locals are picked up despite not being stored properties. Safe to ignore:
+  // this set only suppresses Swift→TS "missing_in_ts" noise, never the TS→Swift
+  // direction that validates real declared fields.
+  "breakdown",
+  "ranked",
 ]);
 
 // ---------------------------------------------------------------------------
