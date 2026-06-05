@@ -25,13 +25,13 @@ Solo Compass 的 iOS 端**已经有一套真实的 agentic 系统**(不是 promp
 
 SwiftData 里**已经躺着丰富的用户信号,但 agent 一个都看不到**:
 
-| 信号 | 收集 | 持久化 | **喂给 agent?** | 证据 |
-| --- | --- | --- | --- | --- |
-| 对话历史 | ✅ 内存 | ❌ | ❌ 冷启动 | `VoiceAgentSession.swift:130` |
-| 去过的体验 `UserCompletionRecord` | ✅ | ✅ | ❌ **孤岛** | `Persistence/Models/UserCompletionRecord.swift` |
-| 收藏 `UserFavoriteRecord` | ✅ | ✅ | ❌ **孤岛** | `Persistence/Models/UserFavoriteRecord.swift` |
-| 微调查 `MicroSurveyRecord`(舒适度/压力 1–5) | ✅ | ✅ | ❌ **孤岛** | `Persistence/Models/MicroSurveyRecord.swift` |
-| 偏好 `UserPreferences` | ✅ | ✅ | ⚠️ 静态注入,手动设、**从不学习** | `Models/UserPreferences.swift` |
+| 信号                                        | 收集    | 持久化 | **喂给 agent?**                  | 证据                                            |
+| ------------------------------------------- | ------- | ------ | -------------------------------- | ----------------------------------------------- |
+| 对话历史                                    | ✅ 内存 | ❌     | ❌ 冷启动                        | `VoiceAgentSession.swift:130`                   |
+| 去过的体验 `UserCompletionRecord`           | ✅      | ✅     | ❌ **孤岛**                      | `Persistence/Models/UserCompletionRecord.swift` |
+| 收藏 `UserFavoriteRecord`                   | ✅      | ✅     | ❌ **孤岛**                      | `Persistence/Models/UserFavoriteRecord.swift`   |
+| 微调查 `MicroSurveyRecord`(舒适度/压力 1–5) | ✅      | ✅     | ❌ **孤岛**                      | `Persistence/Models/MicroSurveyRecord.swift`    |
+| 偏好 `UserPreferences`                      | ✅      | ✅     | ⚠️ 静态注入,手动设、**从不学习** | `Models/UserPreferences.swift`                  |
 
 **结论:提升 memory 的第一步不是"造数据",而是"接线"。** 数据已存在,只缺一条把它们汇成"用户画像"并注入 system prompt 的管道。这把最高价值那步的成本大幅降低 —— 无需先建埋点、攒数据。
 
@@ -49,6 +49,7 @@ SwiftData 里**已经躺着丰富的用户信号,但 agent 一个都看不到**:
 ## 2. 设计目标 / 非目标
 
 **目标**
+
 - G1 让 agent 在**每一轮**看到新鲜的实时上下文(位置/时间/视口)。
 - G2 让 agent 看到**用户画像**(由已存在的 completion/favorite/survey 合成)。
 - G3 对话可**跨会话恢复**(关掉重开记得上次)。
@@ -57,6 +58,7 @@ SwiftData 里**已经躺着丰富的用户信号,但 agent 一个都看不到**:
 - G6 为 MCP 工具抽象层 / Skills 技能包提供共享的用户状态地基。
 
 **非目标(本 RFC 不做)**
+
 - N1 向量 / 语义 RAG(L5)—— 列为未来,不在本期。
 - N2 后端同步 memory / 多设备漫游 —— 本期纯本地;预留接口但不实现。
 - N3 模型微调 / 个性化训练。
@@ -140,6 +142,7 @@ struct UserProfileSnapshot: Sendable {
 ```
 
 **数据来源(全部已存在,字段已确认):**
+
 - `UserCompletionRecord { id, experienceId, completedAt }` → "去过几个、最近偏好"
 - `UserFavoriteRecord { experienceId, id, favoritedAt }` → "明确喜欢"
 - `MicroSurveyRecord { id, experienceId, comfort 1–5, pressure 1–5, recommend, submittedAt, anonDeviceId }` → "舒适度倾向、怕不怕压力场合、明确不推荐的"
@@ -164,11 +167,13 @@ TRAVELER PROFILE (long-term, use to personalize — do not recite verbatim):
 让对话关掉重开能恢复。
 
 **复用/扩展 `ConversationRecord`(当前只存元数据):**
+
 - 当前:`id, requestId, participantIds, type, routeId, lastMessageAt, …`(无消息体)。
 - 新增一个 `@Model AgentMessageRecord { conversationId, role, content, toolCallsJSON?, createdAt }`,
   与 voice-agent 会话绑定(用 `scopedExperience?.id ?? "global"` 作为会话 key)。
 
 **恢复策略(避免重放整段历史炸 token):**
+
 1. 重开会话时,按会话 key 拉最近 N 条 `AgentMessageRecord`。
 2. **旧轮(超出 messagesMaxCount 的部分)→ 用 4.1 的 SessionFacts 抽取压缩成一条 system 摘要**,不逐条重放。
 3. 最近 N 条原样恢复进 `VoiceAgentSession.messages`。
@@ -234,17 +239,17 @@ TRAVELER PROFILE (long-term, use to personalize — do not recite verbatim):
 
 ## 7. 数据模型增量汇总
 
-| 模型 | 状态 | 用途 |
-| --- | --- | --- |
-| `UserCompletionRecord` | 复用 | L3 画像来源 |
-| `UserFavoriteRecord` | 复用 | L3 画像来源 |
-| `MicroSurveyRecord` | 复用 | L3 画像来源(comfort/pressure/recommend) |
-| `UserPreferences` | 复用 | L4 自报偏好基线 |
-| `ConversationRecord` | 复用 | L2 会话元数据 |
-| **`AgentMessageRecord`** | **新增** | L2 对话消息体持久化 |
-| `LIVE CONTEXT` 消息类型 | 新增(内存) | L1 每轮刷新 |
-| `SessionFacts` | 新增(内存→可入 L3) | L1 压缩抽取的约束事实 |
-| `UserProfileSnapshot` | 新增(内存) | L3 合成画像 |
+| 模型                     | 状态               | 用途                                    |
+| ------------------------ | ------------------ | --------------------------------------- |
+| `UserCompletionRecord`   | 复用               | L3 画像来源                             |
+| `UserFavoriteRecord`     | 复用               | L3 画像来源                             |
+| `MicroSurveyRecord`      | 复用               | L3 画像来源(comfort/pressure/recommend) |
+| `UserPreferences`        | 复用               | L4 自报偏好基线                         |
+| `ConversationRecord`     | 复用               | L2 会话元数据                           |
+| **`AgentMessageRecord`** | **新增**           | L2 对话消息体持久化                     |
+| `LIVE CONTEXT` 消息类型  | 新增(内存)         | L1 每轮刷新                             |
+| `SessionFacts`           | 新增(内存→可入 L3) | L1 压缩抽取的约束事实                   |
+| `UserProfileSnapshot`    | 新增(内存)         | L3 合成画像                             |
 
 新增服务:`Services/Memory/UserProfileService.swift`、`Services/Memory/ConversationStore.swift`。
 
@@ -252,14 +257,14 @@ TRAVELER PROFILE (long-term, use to personalize — do not recite verbatim):
 
 ## 8. 实施路线图
 
-| 阶段 | 内容 | 层 | 成本 | 风险 |
-| --- | --- | --- | --- | --- |
-| **P0a** | context 每轮刷新(LIVE CONTEXT 消息) | L1 | 低 | 低 |
-| **P0b** | 压缩改结构化事实抽取(SessionFacts) | L1 | 低 | 低 |
-| **P0c** | `UserProfileService` 合成画像 + 注入 buildSystemPrompt | L3 | 中 | 低(可降级) |
-| **P1** | `AgentMessageRecord` + ConversationStore + 恢复 | L2 | 中 | 中 |
-| **P2** | 行为反推偏好(inferred vs declared) | L4 | 中 | 中(避免静默覆盖) |
-| **未来** | pgvector 语义记忆 | L5 | 高 | — |
+| 阶段     | 内容                                                   | 层  | 成本 | 风险             |
+| -------- | ------------------------------------------------------ | --- | ---- | ---------------- |
+| **P0a**  | context 每轮刷新(LIVE CONTEXT 消息)                    | L1  | 低   | 低               |
+| **P0b**  | 压缩改结构化事实抽取(SessionFacts)                     | L1  | 低   | 低               |
+| **P0c**  | `UserProfileService` 合成画像 + 注入 buildSystemPrompt | L3  | 中   | 低(可降级)       |
+| **P1**   | `AgentMessageRecord` + ConversationStore + 恢复        | L2  | 中   | 中               |
+| **P2**   | 行为反推偏好(inferred vs declared)                     | L4  | 中   | 中(避免静默覆盖) |
+| **未来** | pgvector 语义记忆                                      | L5  | 高   | —                |
 
 每阶段独立可上线、独立可灰度(沿用现有 `FeatureFlags` 习惯)、独立可降级。
 
