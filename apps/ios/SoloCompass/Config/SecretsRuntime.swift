@@ -43,6 +43,9 @@ extension Secrets {
         /// US-013: per-process UserDefaults override for the Foursquare key.
         /// Lets devs / TestFlight users plug in a key without re-building.
         static let foursquareApiKey = "runtimeFoursquareKey"
+        /// US-003: per-process UserDefaults override for the OpenWeather key.
+        /// Lets devs / TestFlight users plug in a key without re-building.
+        static let openWeatherApiKey = "runtimeOpenWeatherKey"
         // In-app AI provider settings (written by AIProviderSettingsView via UserPreferences).
         // These shadow the build-time GeneratedSecrets values when non-empty.
         static let aiApiKey = "runtimeAIApiKey"
@@ -96,5 +99,20 @@ extension Secrets {
             return override
         }
         return foursquareApiKey
+    }
+
+    /// Effective OpenWeather API key (US-003). Resolution chain:
+    /// 1. UserDefaults runtime override (dev/test injection)
+    /// 2. Build-time baked key (`GeneratedSecrets.openWeatherApiKey`)
+    ///
+    /// Returns `nil` when no key is configured so `WeatherService` can throw
+    /// `WeatherError.noAPIKey` and degrade gracefully (NowScore falls back to
+    /// non-weather signals when weather is unavailable).
+    static var openWeatherAPIKey: String? {
+        if let override = UserDefaults.standard.string(forKey: RuntimeKeys.openWeatherApiKey),
+           !override.isEmpty {
+            return override
+        }
+        return openWeatherApiKey.isEmpty ? nil : openWeatherApiKey
     }
 }
