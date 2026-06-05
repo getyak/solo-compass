@@ -19,9 +19,10 @@ final class SFSymbolExistenceTests: XCTestCase {
     /// add more as needed — the scanner is generic.
     private let relativeViewPaths = [
         "Views/Experience/ExperienceDetailView.swift",
-        "Views/Experience/LocationCard.swift",
+        "Views/Experience/ExperienceCardView.swift",
         "Views/Map/CompassMapView.swift",
         "Views/Map/BottomInfoSheet.swift",
+        "Views/Experience/LocationCard.swift",
     ]
 
     func testNoGhostSFSymbolsInScannedViews() throws {

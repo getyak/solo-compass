@@ -311,6 +311,12 @@
 
 /* Explore here */
 "explore.button" = "在这里探索";
+/* Single-card deep cross-compile (Approach A) */
+"recompile.action" = "深度交叉编译";
+"recompile.action.a11y" = "跨多个来源深度交叉编译这个地点";
+"recompile.inProgress" = "交叉编译中…";
+"recompile.toast.success" = "已用多来源信息升级";
+"recompile.toast.noChange" = "这个地点已经尽可能详细了";
 "explore.aiBadge" = "AI 生成 · 来自 OpenStreetMap";
 "explore.osmBadge" = "来自 OpenStreetMap · 未增强";
 "explore.error.nothingFound" = "附近没找到公共场所。试试拖动地图。";

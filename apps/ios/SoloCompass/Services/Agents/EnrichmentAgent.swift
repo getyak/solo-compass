@@ -132,6 +132,71 @@ public final class EnrichmentAgent {
         )
     }
 
+    // MARK: - Single-entry Re-compile
+
+    /// Deep-dive re-compile for ONE existing experience. Runs the same
+    /// cross-source enrichment as `enrich`, but in a tight radius around the
+    /// experience's own coordinate, then returns the synthesized result that
+    /// best matches it — re-keyed onto the original experience's identity via
+    /// `adoptingContent`, so favorites/completions survive (US: single-card
+    /// deep cross-compile).
+    ///
+    /// Returns `nil` when the experience has no coordinate, when enrichment
+    /// yields nothing, or on a hard failure — callers leave the card unchanged.
+    /// Best-effort: never throws.
+    public func recompile(
+        experience: Experience,
+        radiusMeters: Int = EnrichmentAgent.recompileRadiusMeters,
+        locale: Locale = .current
+    ) async -> Experience? {
+        guard let coordinate = experience.coordinate else { return nil }
+
+        let candidates: [Experience]
+        do {
+            candidates = try await enrich(
+                at: coordinate,
+                radiusMeters: radiusMeters,
+                category: experience.category,
+                cityCode: experience.location.cityCode,
+                locale: locale,
+                topN: EnrichmentAgent.recompileTopN
+            )
+        } catch {
+            Self.logger.error("Re-compile failed for \(experience.id, privacy: .public): \(String(describing: error), privacy: .public)")
+            return nil
+        }
+
+        // Pick the candidate physically closest to the original place. The
+        // tight radius keeps these tightly clustered, but a place can resolve
+        // to several nearby POIs (e.g. a cafe inside a mall), so distance is
+        // the most reliable match signal we have without a stable external id.
+        let origin = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let best = candidates
+            .compactMap { candidate -> (Experience, Double)? in
+                guard let c = candidate.coordinate else { return nil }
+                let d = origin.distance(from: CLLocation(latitude: c.latitude, longitude: c.longitude))
+                return (candidate, d)
+            }
+            .min { $0.1 < $1.1 }?
+            .0
+
+        guard let enrichedMatch = best else { return nil }
+
+        // Only return an upgrade if it actually went through AI synthesis with
+        // real cross-source signals. A skeleton fallback is not an upgrade.
+        guard enrichedMatch.isAIEnriched else { return nil }
+
+        return experience.adoptingContent(of: enrichedMatch)
+    }
+
+    /// Tight radius for single-entry re-compile. Smaller than `enrich`'s
+    /// default because we already know exactly where the place is.
+    public static let recompileRadiusMeters = 400
+
+    /// Keep a few candidates so the closest-match picker has options, but stay
+    /// cheap — one re-compile is one AI synthesis call.
+    public static let recompileTopN = 4
+
     // MARK: - Progressive Explore
 
     /// Loops over `progressiveRadii`, collecting only the new ring at each stage,

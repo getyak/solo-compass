@@ -7,6 +7,11 @@ public struct ExperienceCardView: View {
     let experience: Experience
     var onExpand: () -> Void
     var onDismiss: () -> Void
+    /// Optional: tap handler for the "Deep cross-compile" menu item (Approach
+    /// A). Nil hides the menu entirely (previews / contexts without a map VM).
+    var onRecompile: (() -> Void)?
+    /// True while THIS card is mid-recompile — swaps the menu for a spinner.
+    var isRecompiling: Bool = false
 
     private struct DragState {
         var translation: CGFloat = 0
@@ -161,11 +166,15 @@ public struct ExperienceCardView: View {
     public init(
         experience: Experience,
         onExpand: @escaping () -> Void,
-        onDismiss: @escaping () -> Void
+        onDismiss: @escaping () -> Void,
+        onRecompile: (() -> Void)? = nil,
+        isRecompiling: Bool = false
     ) {
         self.experience = experience
         self.onExpand = onExpand
         self.onDismiss = onDismiss
+        self.onRecompile = onRecompile
+        self.isRecompiling = isRecompiling
     }
 
     /// Rubber-bands upward drags to 40% travel; downward dismissal drags follow 1:1.
@@ -252,6 +261,7 @@ public struct ExperienceCardView: View {
                     ? NSLocalizedString("card.favorite.remove", comment: "Remove from favorites")
                     : NSLocalizedString("card.favorite.add", comment: "Add to favorites"))
                 ConfidenceBadge(confidence: experience.confidence, compact: true)
+                recompileMenu
             }
 
             Text(experience.oneLiner)
@@ -566,6 +576,46 @@ public struct ExperienceCardView: View {
                 }
                 .buttonStyle(.plain)
                 .contentShape(Capsule())
+            }
+        }
+    }
+
+    /// Right-aligned "more" menu in the card header. Offers the single-card
+    /// deep cross-compile (Approach A). Hidden when no handler is wired or when
+    /// the place has no coordinate to compile around. Shows a spinner in place
+    /// of the ellipsis while this card is being re-compiled.
+    @ViewBuilder
+    private var recompileMenu: some View {
+        if let onRecompile, experience.coordinate != nil {
+            if isRecompiling {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .frame(width: 28, height: 28)
+                    .accessibilityLabel(Text(NSLocalizedString("recompile.inProgress", comment: "Cross-compile in progress")))
+            } else {
+                Menu {
+                    Button {
+                        Haptics.impact(.light)
+                        onRecompile()
+                    } label: {
+                        Label(
+                            NSLocalizedString("recompile.action", comment: "Deep cross-compile menu item"),
+                            systemImage: "sparkle.magnifyingglass"
+                        )
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                        .foregroundStyle(Color.secondary)
+                        .frame(
+                            minWidth: HitTargetMetrics.minimum,
+                            minHeight: HitTargetMetrics.minimum
+                        )
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(NSLocalizedString("recompile.action.a11y", comment: "Deep cross-compile accessibility label")))
             }
         }
     }
