@@ -1338,6 +1338,11 @@
 "nowscore.weather.storm" = "雷雨预警 · 不建议外出";
 "nowscore.weather.indoor" = "室内 · 不受天气影响";
 
+/* NowScore 日落信号 (US-006) — %d 为整数分钟。复数感知变体见 Localizable.stringsdict。 */
+"nowscore.sunset.before_min" = "日落 %d 分钟后";
+"nowscore.sunset.blue_hour" = "日落 %d 分钟后 · 蓝调时刻";
+"nowscore.sunset.after_min" = "日落已过 %d 分钟";
+
 /* Parity backfill (US-005): zh-Hans translations for pre-existing en-only keys. */
 "bestTimes.now.pill.closing" = "%d 分钟后关闭 — 现在就去";
 "bestTimes.now.pill.closing.a11y" = "即将关闭，本时段还剩 %d 分钟 — 现在就去";

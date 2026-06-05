@@ -1411,3 +1411,9 @@
 "nowscore.weather.rain" = "Rain · %d°C · Maybe stay in";
 "nowscore.weather.storm" = "Storm warning · Not advised outdoors";
 "nowscore.weather.indoor" = "Indoor · Weather doesn't matter";
+
+/* NowScore sunset signal (US-006) — %d is whole minutes. Plural-aware variants
+   live in Localizable.stringsdict; these are the fallbacks. */
+"nowscore.sunset.before_min" = "Sunset in %d min";
+"nowscore.sunset.blue_hour" = "%d min after sunset · blue hour";
+"nowscore.sunset.after_min" = "Sunset was %d min ago";
