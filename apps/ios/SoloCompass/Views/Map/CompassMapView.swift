@@ -415,8 +415,55 @@ struct CompassMapContentView: View {
             // dropped this line, leaving the bottom-left settings FAB inert — its
             // `isShowingSettings = true` had no presenter to observe it.
             .sheet(isPresented: settingsSheetBinding) { settingsSheetContent }
+            // One sheet for both route flows (detail + create), driven by the
+            // `routeSheet` enum. Hosted here on the outer `mapContent` chain — not
+            // on the inner BottomInfoSheet ZStack — so SwiftUI arbitrates it
+            // alongside the other top-level sheets instead of silently dropping a
+            // deeply-nested presenter (which left RouteCards un-openable).
+            .sheet(item: $routeSheet) { sheet in routeSheetContent(sheet) }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
+    }
+
+    /// Content for the route detail / create sheet, driven by `routeSheet`.
+    /// Extracted so the presenter can live on the outer `mapContent` modifier
+    /// chain (next to the other sheets) rather than buried on the inner
+    /// BottomInfoSheet ZStack where SwiftUI's arbitration dropped it.
+    @ViewBuilder
+    private func routeSheetContent(_ sheet: RouteSheet) -> some View {
+        switch sheet {
+        case .detail(let route):
+            NavigationStack {
+                RouteDetailView(
+                    route: route,
+                    onTapStop: { exp in
+                        routeSheet = nil
+                        viewModel.selectExperience(exp)
+                        viewModel.isShowingDetail = true
+                    },
+                    onStartRoute: { route in
+                        routeSheet = nil
+                        startRouteOnMap(route)
+                    }
+                )
+                .environment(experienceService)
+            }
+        case .create:
+            CreateRouteView(
+                candidates: viewModel.visibleExperiences,
+                cityCode: viewModel.selectedCity ?? "",
+                userCoordinate: locationService.currentLocation?.coordinate
+                    ?? viewModel.defaultCenterForSelectedCity
+            ) { route in
+                // Persist + open the new route's detail; RouteStore.didChange
+                // refreshes the sheet's routes section automatically. Swapping
+                // `routeSheet` from .create → .detail replaces content in place.
+                routeStore.save(route)
+                routeSheet = .detail(route)
+            }
+            .environment(aiService)
+            .environment(experienceService)
+        }
     }
 
     @ViewBuilder
@@ -602,44 +649,15 @@ struct CompassMapContentView: View {
                     }
                 }
                 .ignoresSafeArea(edges: .bottom)
-                // One sheet for both route flows. Driven by `routeSheet` so the
-                // detail and create presentations never shadow each other.
-                .sheet(item: $routeSheet) { sheet in
-                    switch sheet {
-                    case .detail(let route):
-                        NavigationStack {
-                            RouteDetailView(
-                                route: route,
-                                onTapStop: { exp in
-                                    routeSheet = nil
-                                    viewModel.selectExperience(exp)
-                                    viewModel.isShowingDetail = true
-                                },
-                                onStartRoute: { route in
-                                    routeSheet = nil
-                                    startRouteOnMap(route)
-                                }
-                            )
-                            .environment(experienceService)
-                        }
-                    case .create:
-                        CreateRouteView(
-                            candidates: viewModel.visibleExperiences,
-                            cityCode: viewModel.selectedCity ?? "",
-                            userCoordinate: locationService.currentLocation?.coordinate
-                                ?? viewModel.defaultCenterForSelectedCity
-                        ) { route in
-                            // Persist + open the new route's detail; RouteStore.didChange
-                            // refreshes the sheet's routes section automatically.
-                            // Swapping `routeSheet` from .create → .detail replaces
-                            // the sheet's content in place.
-                            routeStore.save(route)
-                            routeSheet = .detail(route)
-                        }
-                        .environment(aiService)
-                        .environment(experienceService)
-                    }
-                }
+                // NOTE: the `routeSheet` presenter is intentionally NOT attached
+                // here. When `.sheet(item: $routeSheet)` was hosted on this inner
+                // nested ZStack while the outer `mapContent` chain already carried
+                // ~8 `.sheet`/`.fullScreenCover` modifiers, SwiftUI's presentation
+                // arbitration silently dropped this deeply-nested presenter — so
+                // tapping a RouteCard flipped `routeSheet = .detail(route)` but no
+                // sheet ever appeared (the route cards "點不進去"). It now lives on
+                // the outer chain next to the other sheets — see `routeSheetContent`.
+                // Kin to [[project_stacked_sheets_only_last_wins]].
 
                 // Selected-experience card floats ABOVE the BottomInfoSheet
                 // (declared after it → higher z-order) and rests on a Dynamic-

@@ -20,7 +20,6 @@ public struct RouteCard: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
-    @State private var pressed = false
 
     public init(route: Route, companionOn: Bool = false, nowContext: Bool = false) {
         self.route = route
@@ -99,21 +98,16 @@ public struct RouteCard: View {
                 .strokeBorder(nowContext ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
-        .scaleEffect(reduceMotion ? 1 : (pressed ? 0.985 : 1))
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: pressed)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard !pressed else { return }
-                    pressed = true
-                    #if canImport(UIKit)
-                    if !reduceMotion { Haptics.impact(.soft) }
-                    #endif
-                }
-                .onEnded { _ in
-                    pressed = false
-                }
-        )
+        // Press feedback is owned by the hosting Button's ButtonStyle
+        // (PressableButtonStyle in RoutesSection), NOT a local gesture. The card
+        // previously drove its own press-scale via
+        // `.simultaneousGesture(DragGesture(minimumDistance: 0))`. Inside the
+        // BottomInfoSheet's ScrollView that zero-distance drag claimed the touch
+        // the instant a finger landed — it played the press animation (so the card
+        // *looked* tappable, "有按下效果") but on release the host scroll view
+        // classified the interaction as a drag, so the wrapping Button's tap never
+        // fired and the route detail never opened ("不跳转"). Removing the gesture
+        // lets the tap reach the Button. Kin to [[project_dead_fab_sheet_wiring]].
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(route.title + ", " + monoBaseline))
