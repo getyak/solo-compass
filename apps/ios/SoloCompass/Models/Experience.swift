@@ -505,6 +505,36 @@ public struct Experience: Codable, Hashable, Identifiable {
         )
     }
 
+    /// Returns a copy of `source`'s richer content (title, copy, signals,
+    /// sources, confidence) re-keyed onto THIS experience's identity. Used by
+    /// the deep-dive re-compile flow: the place stays the same entry (same id,
+    /// same favorite/completion state, same createdAt), but its information is
+    /// upgraded with cross-source enriched data. The user's tracked state
+    /// (stats, userTags, status) is preserved from `self`, not overwritten.
+    public func adoptingContent(of source: Experience) -> Experience {
+        Experience(
+            id: id,
+            title: source.title,
+            oneLiner: source.oneLiner,
+            whyItMatters: source.whyItMatters,
+            category: source.category,
+            location: source.location,
+            bestTimes: source.bestTimes,
+            durationMinutes: source.durationMinutes,
+            howTo: source.howTo,
+            realInconveniences: source.realInconveniences,
+            soloScore: source.soloScore,
+            sources: source.sources,
+            confidence: source.confidence,
+            nearbyExperienceIds: source.nearbyExperienceIds,
+            stats: self.stats,
+            status: self.status,
+            createdAt: self.createdAt,
+            updatedAt: Date(),
+            userTags: self.userTags
+        )
+    }
+
     /// Is any of this experience's `bestTimes` open right now?
     public func isBestNow(at date: Date = Date()) -> Bool {
         let hour = Calendar.current.component(.hour, from: date)

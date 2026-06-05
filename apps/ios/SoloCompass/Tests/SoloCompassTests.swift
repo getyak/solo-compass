@@ -3789,6 +3789,100 @@ final class SoloCompassTests: XCTestCase {
 
     // MARK: - nextBestExperience
 
+    // MARK: - Deep-dive re-compile (Approach A + C)
+
+    /// `adoptingContent` keeps THIS experience's identity and user-tracked
+    /// state while taking the richer copy from the enriched source. This is the
+    /// contract that lets a re-compiled card keep its favorite/completion state.
+    func testAdoptingContentPreservesIdentityAndUserState() throws {
+        let original = try makeExperience(id: "exp_keep_me", bestTimes: [])
+        let bumpedStats = Experience.Stats(completionCount: 99, averageRating: 4.9)
+        let userTracked = original.copy(stats: bumpedStats)
+
+        let enriched = try makeExperience(id: "exp_osm_freshly_synthesized", bestTimes: [])
+        let upgradedTitle = "Hidden rooftop bar with river views"
+        let enrichedRicher = Experience(
+            id: enriched.id,
+            title: upgradedTitle,
+            oneLiner: "Three sources agree this is the quiet one.",
+            whyItMatters: enriched.whyItMatters,
+            category: enriched.category,
+            location: enriched.location,
+            bestTimes: enriched.bestTimes,
+            durationMinutes: enriched.durationMinutes,
+            howTo: enriched.howTo,
+            realInconveniences: enriched.realInconveniences,
+            soloScore: enriched.soloScore,
+            sources: enriched.sources,
+            confidence: enriched.confidence,
+            nearbyExperienceIds: enriched.nearbyExperienceIds,
+            stats: .init(completionCount: 0, averageRating: 0),
+            status: enriched.status,
+            createdAt: enriched.createdAt,
+            updatedAt: enriched.updatedAt
+        )
+
+        let result = userTracked.adoptingContent(of: enrichedRicher)
+
+        // Identity + user state survive...
+        XCTAssertEqual(result.id, "exp_keep_me", "re-compile must keep the original id")
+        XCTAssertEqual(result.stats.completionCount, 99, "user completion count must survive")
+        XCTAssertEqual(result.createdAt, userTracked.createdAt, "createdAt must not reset")
+        // ...content is upgraded.
+        XCTAssertEqual(result.title, upgradedTitle, "title must adopt the enriched copy")
+        XCTAssertEqual(result.oneLiner, "Three sources agree this is the quiet one.")
+    }
+
+    /// `shouldAutoUpgrade` is true only for shallow (not AI-enriched) cards that
+    /// haven't been upgraded this session. `isAIEnriched` keys off a source
+    /// whose attribution contains "AI" — so that's what flips the candidacy.
+    func testShouldAutoUpgradeOnlyForShallowUncompiledCards() throws {
+        let service = ExperienceService(seed: [])
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: service,
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+
+        let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        // An "AI"-attributed source makes isAIEnriched true → NOT a candidate.
+        let aiSource = InformationSource(
+            type: .blog, url: nil, attribution: "OpenStreetMap + AI", verifiedAt: Date()
+        )
+        let alreadyRich = Experience(
+            id: base.id, title: base.title, oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters, category: base.category,
+            location: base.location, bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes, howTo: base.howTo,
+            realInconveniences: base.realInconveniences, soloScore: base.soloScore,
+            sources: [aiSource], confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds, stats: base.stats,
+            status: base.status, createdAt: base.createdAt, updatedAt: base.updatedAt
+        )
+        XCTAssertTrue(alreadyRich.isAIEnriched, "sanity: AI-attributed source ⇒ isAIEnriched")
+        XCTAssertFalse(vm.shouldAutoUpgrade(alreadyRich),
+                       "an AI-enriched card must not be a re-compile candidate")
+
+        // A source with no "AI" attribution stays shallow → IS a candidate.
+        let plainSource = InformationSource(
+            type: .wikivoyage, url: nil, attribution: "Wikivoyage", verifiedAt: Date()
+        )
+        let shallow = Experience(
+            id: "exp_osm_shallow", title: base.title, oneLiner: base.oneLiner,
+            whyItMatters: base.whyItMatters, category: base.category,
+            location: base.location, bestTimes: base.bestTimes,
+            durationMinutes: base.durationMinutes, howTo: base.howTo,
+            realInconveniences: base.realInconveniences, soloScore: base.soloScore,
+            sources: [plainSource], confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds, stats: base.stats,
+            status: base.status, createdAt: base.createdAt, updatedAt: base.updatedAt
+        )
+        XCTAssertFalse(shallow.isAIEnriched, "sanity: no AI attribution ⇒ not enriched")
+        XCTAssertTrue(vm.shouldAutoUpgrade(shallow),
+                      "a shallow, never-compiled card must be a candidate")
+    }
+
     private func makeExperience(id: String, bestTimes: [TimeWindow]) throws -> Experience {
         let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
         return Experience(

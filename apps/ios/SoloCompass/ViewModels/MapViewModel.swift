@@ -115,6 +115,95 @@ public final class MapViewModel {
     /// - "12 places added near you" (geocode failed / offline)
     public var lastExploreToast: String?
 
+    // MARK: - Deep-dive re-compile (single card)
+
+    /// The id of the experience currently being deep-dive re-compiled, or nil
+    /// when idle. Drives the per-card spinner so the rest of the UI stays live.
+    public var recompilingExperienceId: String?
+
+    /// Ids re-compiled (or auto-upgraded) this session, so the on-demand
+    /// auto-upgrade (Approach C) never spends quota on the same card twice.
+    /// Manual re-compile (Approach A) bypasses this — the user asked for it.
+    private var recompiledThisSession: Set<String> = []
+
+    /// True iff `experience` is a candidate for the on-demand auto-upgrade:
+    /// it carries no AI-authored cross-source content yet and we haven't
+    /// already upgraded it this session. Read by the detail view on appear.
+    public func shouldAutoUpgrade(_ experience: Experience) -> Bool {
+        !experience.isAIEnriched && !recompiledThisSession.contains(experience.id)
+    }
+
+    /// Manual deep cross-compile of a single experience (Approach A). Reuses
+    /// the same Pro + consent gates as Explore — a free user hits the paywall,
+    /// parked to resume after purchase. On success the card is replaced in
+    /// place (same id, favorites/completions preserved) and re-renders.
+    public func recompileExperience(_ experience: Experience) async {
+        // Same gating as exploreNearby (US-024 paywall, US-034 consent).
+        if !isProUser {
+            onPaywallUnlocked = { [weak self] in
+                Task { await self?.recompileExperience(experience) }
+            }
+            isShowingPaywall = true
+            return
+        }
+        if !preferences.hasAcceptedExploreConsent {
+            onExploreConsentAccepted = { [weak self] in
+                Task { await self?.recompileExperience(experience) }
+            }
+            isShowingExploreConsent = true
+            return
+        }
+        await runRecompile(experience, manual: true)
+    }
+
+    /// Background auto-upgrade of a single experience (Approach C). Silent: no
+    /// paywall, no spinner unless already visible, no-op for free users or for
+    /// cards already upgraded this session. Best-effort — failures leave the
+    /// card untouched.
+    public func autoUpgradeExperience(_ experience: Experience) async {
+        guard isProUser,
+              preferences.hasAcceptedExploreConsent,
+              shouldAutoUpgrade(experience) else { return }
+        await runRecompile(experience, manual: false)
+    }
+
+    /// Shared re-compile body for both manual (A) and auto (C) paths. Stamps
+    /// the session cache, drives the spinner, calls the agent, and swaps the
+    /// upgraded content in place. `aiService.isProTier` is synced so the
+    /// daily quota cap applies exactly as it does for Explore.
+    private func runRecompile(_ experience: Experience, manual: Bool) async {
+        recompiledThisSession.insert(experience.id)
+        aiService.isProTier = isProUser
+        recompilingExperienceId = experience.id
+        defer { recompilingExperienceId = nil }
+
+        guard let upgraded = await enrichmentAgent.recompile(
+            experience: experience,
+            locale: LanguageService.shared.effectiveLocale
+        ) else {
+            // Manual taps deserve feedback when nothing richer was found.
+            if manual {
+                lastExploreToast = NSLocalizedString(
+                    "recompile.toast.noChange",
+                    comment: "Shown when a manual deep re-compile found nothing richer"
+                )
+            }
+            return
+        }
+
+        experienceService.replaceGenerated(upgraded)
+        // Keep the floating card / detail bound to the upgraded copy.
+        if selectedExperience?.id == upgraded.id {
+            selectedExperience = upgraded
+        }
+        if manual {
+            lastExploreToast = NSLocalizedString(
+                "recompile.toast.success",
+                comment: "Shown after a manual deep re-compile upgrades a card"
+            )
+        }
+    }
+
     // MARK: - Auto-recenter
 
     /// Set to true after the first successful auto-recenter so we don't fight
