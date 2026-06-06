@@ -1083,6 +1083,12 @@
 "companion.chat.error.title" = "Message error";
 "companion.chat.error.auth" = "Sign in to send messages.";
 "companion.chat.error.encode" = "Could not send message. Try again.";
+"companion.chat.attachment.backendNotReady" = "Attachments need the storage backend deployed — your message was sent without them.";
+"companion.chat.attachment.uploadFailed" = "Attachment upload failed (HTTP %d).";
+"companion.chat.attachment.tooLarge" = "That attachment is too large to send.";
+"companion.chat.attachment.rateLimited" = "Too many uploads right now — try again in a moment.";
+"companion.chat.attachment.notSignedIn" = "Sign in to send attachments.";
+"companion.chat.attachment.badResponse" = "The attachment service returned an unexpected response.";
 "companion.chat.bubble.me.a11y" = "You: %@, sent at %@";
 "companion.chat.bubble.them.a11y" = "Companion: %@, sent at %@";
 

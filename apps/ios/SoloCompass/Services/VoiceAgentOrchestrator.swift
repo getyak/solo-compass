@@ -52,6 +52,42 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
     private var turnTask: Task<Void, Never>?
     private var isSeeded = false
+
+    // MARK: - Streaming throttle
+    //
+    // MarkdownMessageText re-parses the whole string on every `streamingContent`
+    // change. Publishing on every SSE token (often <5 chars) makes the markdown
+    // parser run dozens of times per second and stutters the bubble. We coalesce
+    // updates: a token is published only when ≥80ms has elapsed since the last
+    // publish OR ≥60 new chars have accumulated — whichever comes first. The
+    // final text always lands because callers call `publishStreaming(_, force:)`
+    // at end of stream, which forces the latest value through regardless of gate.
+    private static let streamThrottleInterval: TimeInterval = 0.08
+    private static let streamThrottleCharBudget = 60
+    private var lastStreamFlush = Date.distantPast
+    private var lastFlushedLength = 0
+
+    /// Throttled setter for `streamingContent` during token streaming.
+    /// Drops intermediate updates that arrive faster than the throttle window;
+    /// `force` (final message) bypasses the gate so the full text always shows.
+    private func publishStreaming(_ content: String, force: Bool = false) {
+        let now = Date()
+        let elapsed = now.timeIntervalSince(lastStreamFlush)
+        let grew = content.count - lastFlushedLength
+        guard force
+            || elapsed >= Self.streamThrottleInterval
+            || grew >= Self.streamThrottleCharBudget
+        else { return }
+        streamingContent = content
+        lastStreamFlush = now
+        lastFlushedLength = content.count
+    }
+
+    /// Reset the throttle window so the next stream starts fresh.
+    private func resetStreamThrottle() {
+        lastStreamFlush = .distantPast
+        lastFlushedLength = 0
+    }
     private let synthesizer = AVSpeechSynthesizer()
 
     public init(
@@ -312,6 +348,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// Returns false on unrecoverable error.
     private func sendToAIStreaming() async -> Bool {
         streamingContent = ""
+        resetStreamThrottle()
         var accumulatedContent = ""
         var pendingToolCalls: [(id: String, name: String, args: String)] = []
 
@@ -325,7 +362,8 @@ public final class VoiceAgentOrchestrator: Identifiable {
                 switch event {
                 case .contentDelta(let delta):
                     accumulatedContent += delta
-                    streamingContent = accumulatedContent
+                    // Throttled: coalesces rapid tokens to spare the markdown parser.
+                    publishStreaming(accumulatedContent)
                 case .toolCall(let id, let name, let args):
                     pendingToolCalls.append((id: id, name: name, args: args))
                     thinkingStep = thinkingStepLabel(for: name)
@@ -333,6 +371,10 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     break
                 }
             }
+
+            // Force the final, complete text through the throttle gate so the
+            // full message always lands even if the last tokens were coalesced.
+            publishStreaming(accumulatedContent, force: true)
 
             let sessionCalls = pendingToolCalls.map {
                 VoiceAgentSession.ToolCall(id: $0.id, name: $0.name, argumentsJSON: $0.args)

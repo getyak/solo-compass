@@ -20,6 +20,9 @@ public final class ChatService {
 
     private let conversationId: ConversationId
     private let restClient: SupabaseClientProtocol
+    /// Uploads draft attachments to Storage before the message row is written.
+    /// Injectable so tests can supply a mock (and assert the degrade path).
+    private let attachmentService: AttachmentUploading
     private var sdkClient: Supabase.SupabaseClient?
     private var realtimeTask: Task<Void, Never>?
     /// ISO 8601 timestamp of the latest message received locally.
@@ -27,10 +30,12 @@ public final class ChatService {
 
     public init(
         conversationId: ConversationId,
-        client: SupabaseClientProtocol = SupabaseClient.shared
+        client: SupabaseClientProtocol = SupabaseClient.shared,
+        attachmentService: AttachmentUploading = SupabaseAttachmentService()
     ) {
         self.conversationId = conversationId
         self.restClient = client
+        self.attachmentService = attachmentService
     }
 
     // MARK: - Lifecycle
@@ -54,24 +59,70 @@ public final class ChatService {
     /// Send a plain-text message (≤1000 chars). Enforced client-side; RLS
     /// ensures only conversation participants can insert.
     public func send(_ text: String) async {
+        await send(text, attachments: [])
+    }
+
+    /// Send a message with optional attachments. Attachments are uploaded to
+    /// Storage first, then their metadata is written into the message's
+    /// `attachments` jsonb column.
+    ///
+    /// Degrade path: if the storage backend isn't deployed yet (any upload
+    /// throws `.backendNotReady`), we surface a clear error and STILL send the
+    /// text-only message so the user never loses their words.
+    public func send(_ text: String, attachments: [LocalAttachment]) async {
         guard FeatureFlags.companion else { return }
         guard let userId = restClient.currentSession?.userId else {
             lastError = NSLocalizedString("companion.chat.error.auth", comment: "Not signed in")
             return
         }
         let trimmed = String(text.prefix(1000))
-        guard !trimmed.isEmpty else { return }
+        // Allow attachment-only messages, but a fully empty send is a no-op.
+        guard !trimmed.isEmpty || !attachments.isEmpty else { return }
 
         isSending = true
         lastError = nil
         defer { isSending = false }
 
+        // Generate the messageId up front so uploaded objects can be keyed by
+        // it ("{conversationId}/{messageId}/...") before the row is written.
+        let messageId = UUID().uuidString
         let now = ISO8601DateFormatter().string(from: Date())
+
+        var uploaded: [ChatAttachment] = []
+        var degradedToTextOnly = false
+        for local in attachments {
+            do {
+                let attachment = try await attachmentService.upload(
+                    local,
+                    conversationId: conversationId.rawValue,
+                    messageId: messageId
+                )
+                uploaded.append(attachment)
+            } catch AttachmentError.backendNotReady {
+                // Backend not deployed — drop attachments, keep the text.
+                degradedToTextOnly = true
+                uploaded.removeAll()
+                break
+            } catch {
+                lastError = error.localizedDescription
+            }
+        }
+
+        if degradedToTextOnly {
+            lastError = NSLocalizedString(
+                "companion.chat.attachment.backendNotReady",
+                comment: "Attachments need the storage backend deployed"
+            )
+            // If there's no text to fall back on, there's nothing to send.
+            guard !trimmed.isEmpty else { return }
+        }
+
         let msg = ChatMessage(
-            id: ChatMessageId(rawValue: UUID().uuidString),
+            id: ChatMessageId(rawValue: messageId),
             conversationId: conversationId,
             senderId: userId,
             body: trimmed,
+            attachments: uploaded.isEmpty ? nil : uploaded,
             createdAt: now
         )
 
@@ -170,10 +221,24 @@ public final class ChatService {
             conversationId: ConversationId(rawValue: convIdStr),
             senderId: senderStr,
             body: bodyStr,
+            attachments: decodeAttachments(from: record["attachments"]),
             readAt: readAt,
             createdAt: createdStr
         )
         appendIfNew(msg)
+    }
+
+    /// Defensively decode the realtime record's `attachments` jsonb value into
+    /// `[ChatAttachment]`. Returns nil when the column is absent, null, or
+    /// malformed — never crashes. Re-encodes the `AnyJSON` value to bytes and
+    /// runs it through the same Codable path used for REST payloads.
+    private func decodeAttachments(from value: AnyJSON?) -> [ChatAttachment]? {
+        guard let value, case .array = value else { return nil }
+        guard let data = try? JSONEncoder().encode(value),
+              let attachments = try? JSONDecoder().decode([ChatAttachment].self, from: data),
+              !attachments.isEmpty
+        else { return nil }
+        return attachments
     }
 
     // MARK: - Helpers
