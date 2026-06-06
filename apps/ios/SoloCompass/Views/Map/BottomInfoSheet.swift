@@ -208,6 +208,11 @@ public struct BottomInfoSheet<Content: View>: View {
     /// Reference coordinate (user location or map center) for the peek card's
     /// distance + compass bearing.
     private let referenceCoordinate: CLLocationCoordinate2D?
+    /// True while the floating preview card is up for a user-selected
+    /// experience. The peek summary card ("此刻最值得去") fades out and yields
+    /// to a lightweight hint so two competing "best pick" cards never stack —
+    /// the user's active selection owns the focus.
+    private let isPreviewActive: Bool
     private let content: (BottomSheetDetent, Binding<SortMode>) -> Content
 
     public init(
@@ -217,6 +222,7 @@ public struct BottomInfoSheet<Content: View>: View {
         peekExperience: Experience? = nil,
         isSmartPick: Bool = false,
         referenceCoordinate: CLLocationCoordinate2D? = nil,
+        isPreviewActive: Bool = false,
         @ViewBuilder content: @escaping (BottomSheetDetent, Binding<SortMode>) -> Content
     ) {
         self.aiHint = aiHint
@@ -225,6 +231,7 @@ public struct BottomInfoSheet<Content: View>: View {
         self.peekExperience = peekExperience
         self.isSmartPick = isSmartPick
         self.referenceCoordinate = referenceCoordinate
+        self.isPreviewActive = isPreviewActive
         self.content = content
     }
 
@@ -370,7 +377,12 @@ public struct BottomInfoSheet<Content: View>: View {
     private var peekSummaryArea: some View {
         VStack(alignment: .leading, spacing: 8) {
             peekHeaderLabel
-            if let experience = peekExperience {
+            if isPreviewActive {
+                // A floating preview card already owns the "best pick" focus —
+                // collapse this card to a one-line hint so the two never
+                // compete on screen. The sheet stays pull-up-able.
+                previewActiveHint
+            } else if let experience = peekExperience {
                 PeekSummaryCard(
                     experience: experience,
                     isSmartPick: isSmartPick,
@@ -386,6 +398,7 @@ public struct BottomInfoSheet<Content: View>: View {
                 PeekEmptyCard()
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: isPreviewActive)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -412,6 +425,30 @@ public struct BottomInfoSheet<Content: View>: View {
         }
         .padding(.horizontal, 4)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    /// One-line stand-in shown in place of the peek summary card while a
+    /// floating preview card is active, so the sheet's peek region keeps a
+    /// stable height and remains tappable to pull up the full list.
+    private var previewActiveHint: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "hand.tap")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(NSLocalizedString(
+                "peek.preview.active.hint",
+                comment: "Shown in the peek area while a preview card is up"
+            ))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .transition(.opacity)
     }
 
     // MARK: - Drag Handle
