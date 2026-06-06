@@ -1013,9 +1013,27 @@ public final class MapViewModel {
         }
     }
 
-    /// Close the expanded detail sheet, returning to the map view.
+    /// Close the expanded detail sheet, falling back to the floating preview
+    /// card for the same experience.
+    ///
+    /// Every entry point (map pin, Nearby list row, favorites) now routes
+    /// through the preview card first — selecting an experience floats the
+    /// card, and the card's expand action opens the detail. Backing out of the
+    /// detail therefore lands back on that preview card (selectedExperience is
+    /// deliberately retained), which is the consistent mental model: detail is
+    /// a layer *above* the preview, not a replacement for it. The card is only
+    /// fully cleared when the user dismisses the card itself (`clearSelection`).
     public func dismissDetail() {
         isShowingDetail = false
+    }
+
+    /// Fully dismiss the floating preview card and its selection, returning to
+    /// the bare map. This is the card's own swipe-down / close action — the one
+    /// place selection is cleared, distinct from `dismissDetail` which only
+    /// peels off the detail layer.
+    public func clearSelection() {
+        isShowingDetail = false
+        selectedExperience = nil
     }
 
     /// US-VA-03 tool `dismiss_recommendation`: hide one experience from

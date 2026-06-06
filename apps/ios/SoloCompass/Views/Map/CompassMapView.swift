@@ -597,7 +597,12 @@ struct CompassMapContentView: View {
                         peekExperience: peekExperience,
                         isSmartPick: peekExperienceIsSmartPick,
                         referenceCoordinate: locationService.currentLocation?.coordinate
-                            ?? viewModel.defaultCenterForSelectedCity
+                            ?? viewModel.defaultCenterForSelectedCity,
+                        // D 双卡片冲突: while the floating preview card is up for
+                        // a user-selected experience, the peek summary card
+                        // yields so only one "best pick" card is on screen.
+                        isPreviewActive: viewModel.selectedExperience != nil
+                            && !viewModel.isShowingDetail
                     ) { detent, sortMode in
                         if detent != .peek {
                             VStack(spacing: 0) {
@@ -640,8 +645,18 @@ struct CompassMapContentView: View {
                                         }
                                     },
                                     onSelectExperience: { exp in
-                                        viewModel.selectExperience(exp)
-                                        viewModel.isShowingDetail = true
+                                        // Unified preview path: every entry
+                                        // point floats the preview card first
+                                        // (no longer jumps straight to detail),
+                                        // so the list row and a map-pin tap
+                                        // feel identical and backing out of the
+                                        // detail lands on the same card.
+                                        // withAnimation drives the card's
+                                        // move+fade transition for a layered
+                                        // reveal instead of a hard cut.
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                            viewModel.selectExperience(exp)
+                                        }
                                     }
                                 )
                             }
@@ -670,7 +685,14 @@ struct CompassMapContentView: View {
                         ExperienceCardView(
                             experience: selected,
                             onExpand: { viewModel.isShowingDetail = true },
-                            onDismiss: { viewModel.selectedExperience = nil },
+                            onDismiss: {
+                                // The card's own dismiss is the only place the
+                                // selection is fully cleared — detail dismiss
+                                // falls back to this card, not to the bare map.
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    viewModel.clearSelection()
+                                }
+                            },
                             onRecompile: {
                                 Task { await viewModel.recompileExperience(selected) }
                             },
@@ -733,7 +755,10 @@ struct CompassMapContentView: View {
     private var detailSheetBinding: Binding<Bool> {
         Binding(
             get: { viewModel.isShowingDetail },
-            set: { if !$0 { viewModel.isShowingDetail = false } }
+            // Route swipe-to-dismiss through dismissDetail() too, matching the
+            // chevron close button: both peel off only the detail layer and
+            // fall back to the floating preview card (selection retained).
+            set: { if !$0 { viewModel.dismissDetail() } }
         )
     }
 
@@ -835,9 +860,26 @@ struct CompassMapContentView: View {
                         voiceOrchestrator?.rebindContext(experience)
                     },
                     onSelectExperience: { experience in
-                        viewModel.selectExperience(experience)
+                        // In-detail "nearby" tap swaps the featured experience.
+                        // withAnimation drives the .id-keyed content transition
+                        // below so the switch is perceptible, not a silent
+                        // data swap. (B 详情内切体验加转场)
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            viewModel.selectExperience(experience)
+                        }
                     }
                 )
+                // Bind SwiftUI identity to the experience so selecting a
+                // different one rebuilds the detail view AND its @State
+                // view model. Without this, ExperienceDetailView's @State
+                // viewModel kept the original experience and an in-detail
+                // "nearby" tap changed nothing on screen. The transition
+                // gives the rebuild a visible cross-fade + slide.
+                .id(exp.id)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
             }
             // Approach C: when the detail sheet opens for a shallow (not yet
             // AI-enriched) place, silently deep cross-compile it in the
@@ -862,8 +904,11 @@ struct CompassMapContentView: View {
         FavoritesListView(
             onSelectExperience: { exp in
                 isShowingFavorites = false
-                viewModel.selectExperience(exp)
-                viewModel.isShowingDetail = true
+                // Unified preview path (see Nearby onSelectExperience): float
+                // the preview card rather than jumping straight to detail.
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    viewModel.selectExperience(exp)
+                }
             },
             onExplore: { isShowingFavorites = false }
         )
