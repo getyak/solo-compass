@@ -44,14 +44,14 @@
 
 ### 已有可复用资产
 
-| 资产 | 位置 | 复用方式 |
-| --- | --- | --- |
-| 分享管线 (renderImage/renderTempPNG) | `RouteShareSheet.swift:224` | 几乎不动,只替换被渲染的 View |
-| 风格切换 UI (modePicker) | `RouteShareSheet.swift:318` | 扩成三档:地图卡 / 极简线 / 文本 |
-| polyline 坐标解析 | `RouteDetailView.swift:66` 的 `service.getExperience(id:)` | 抽成 payload 构建逻辑 |
-| 地图 polyline 绘制约定 | `CompassMapView.swift:1190` (MapPolyline + 编号 badge) | 视觉语言对齐(accentColor 4pt 线 + 编号停靠点) |
-| 分类渐变/emoji | `CategoryVisual` | 作为 fallback / 极简风格背景 |
-| Experience 坐标 | `Experience.coordinate: CLLocationCoordinate2D?` | `[lon,lat]` 约定,直接取 |
+| 资产                                 | 位置                                                       | 复用方式                                      |
+| ------------------------------------ | ---------------------------------------------------------- | --------------------------------------------- |
+| 分享管线 (renderImage/renderTempPNG) | `RouteShareSheet.swift:224`                                | 几乎不动,只替换被渲染的 View                  |
+| 风格切换 UI (modePicker)             | `RouteShareSheet.swift:318`                                | 扩成三档:地图卡 / 极简线 / 文本               |
+| polyline 坐标解析                    | `RouteDetailView.swift:66` 的 `service.getExperience(id:)` | 抽成 payload 构建逻辑                         |
+| 地图 polyline 绘制约定               | `CompassMapView.swift:1190` (MapPolyline + 编号 badge)     | 视觉语言对齐(accentColor 4pt 线 + 编号停靠点) |
+| 分类渐变/emoji                       | `CategoryVisual`                                           | 作为 fallback / 极简风格背景                  |
+| Experience 坐标                      | `Experience.coordinate: CLLocationCoordinate2D?`           | `[lon,lat]` 约定,直接取                       |
 
 ---
 
@@ -111,6 +111,7 @@
 ```
 
 要点:
+
 - **底图**:`MKMapSnapshotter`,`MKMapConfiguration` 用 `.standard`,
   `traitCollection` 强制 `.dark`(深色街道更出片,且白色 polyline 对比强)。
 - **mapRect**:由所有停靠点坐标算外接 `MKMapRect`,四周加 ~25% padding,
@@ -144,6 +145,7 @@
 ```
 
 要点:
+
 - 复用 `CategoryVisual.gradient(for:)` 作背景(与 RouteDetailView hero 一致)。
 - polyline 用 SwiftUI `Path` 绘制:把坐标 **等比归一化** 到一个居中安全区
   (保持经纬度宽高比,避免拉伸变形)。
@@ -218,6 +220,7 @@ func boundingMapRect(_ coords: [CLLocationCoordinate2D], padding: Double = 0.25)
 ### 4.4 坐标 → 归一化 Path(极简风 & 叠加层)
 
 把 `[CLLocationCoordinate2D]` 投影到单位坐标系再映射到绘制 `rect`:
+
 - 经度→x,纬度→y(y 翻转,北在上)。
 - **等比缩放**:取 lon/lat 跨度的较大者作统一比例,letterbox 居中,避免变形。
 - 输出 `Path`,供 `RoutePolylineShape: Shape` 使用。
@@ -229,13 +232,13 @@ func boundingMapRect(_ coords: [CLLocationCoordinate2D], padding: Double = 0.25)
 
 ## 5. 降级策略(关键)
 
-| 触发条件 | 行为 |
-| --- | --- |
-| `coordinates.count >= 2` 且快照成功 | **Map 风格**正常渲染 |
-| `MKMapSnapshotter` 失败/超时(>4s) | 回退 **Trace 风格**,状态条提示「地图底图不可用,已用极简线条」 |
-| `coordinates.count == 1` | 单点:Map 风格只放一个停靠点 pin(无线);Trace 风格画单点 |
+| 触发条件                                 | 行为                                                                         |
+| ---------------------------------------- | ---------------------------------------------------------------------------- |
+| `coordinates.count >= 2` 且快照成功      | **Map 风格**正常渲染                                                         |
+| `MKMapSnapshotter` 失败/超时(>4s)        | 回退 **Trace 风格**,状态条提示「地图底图不可用,已用极简线条」                |
+| `coordinates.count == 1`                 | 单点:Map 风格只放一个停靠点 pin(无线);Trace 风格画单点                       |
 | `coordinates.count == 0`(坐标全解析失败) | 回退到**旧渐变卡**(现有 `RouteShareCardView` 逻辑保留为 `RouteGradientCard`) |
-| 用户手动选 Trace | 直接 Trace,不尝试快照 |
+| 用户手动选 Trace                         | 直接 Trace,不尝试快照                                                        |
 
 降级是**静默且有提示**的,绝不空白或崩溃(参照 memory 中「幽灵 SF Symbol /
 死 FAB」的教训:渲染失败要可见)。
@@ -269,7 +272,7 @@ func boundingMapRect(_ coords: [CLLocationCoordinate2D], padding: Double = 0.25)
 - **ImageRenderer 不展开 LazyVStack/ScrollView**(memory 教训):卡片内用
   `VStack` 不要用 Lazy/Scroll。
 - **深色 trait 注入**:`MKMapSnapshotter.Options.traitCollection =
-  UITraitCollection(userInterfaceStyle: .dark)`,否则浅色底图上白 halo 不明显。
+UITraitCollection(userInterfaceStyle: .dark)`,否则浅色底图上白 halo 不明显。
 - **坐标系别搞反**:`[lon,lat]` vs `[lat,lng]`,归一化 x=lon、y=lat。
 - **文件行数**:拆分到 ≤400 行/文件,符合项目约定。
 - **新增测试文件需 `xcodegen`**(memory 教训):新建 `.swift` 测试后务必
