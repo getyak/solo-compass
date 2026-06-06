@@ -450,13 +450,18 @@ public struct RouteDetailView: View {
         }
     }
 
-    /// Pre-built payload for the share sheet — resolves the primary category and
-    /// stop count once so the sheet stays a pure visual layer.
+    /// Pre-built payload for the share sheet — resolves the primary category,
+    /// stop count, and ordered stop coordinates once so the sheet stays a pure
+    /// visual layer. Coordinates drive the map-basemap / vector-trace share card.
     private var sharePayload: RouteSharePayload {
-        RouteSharePayload(
+        let coordinates = liveRoute.experienceIds
+            .compactMap { service.getExperience(id: $0) }
+            .compactMap { $0.coordinate }
+        return RouteSharePayload(
             route: liveRoute,
             category: primaryCategory,
-            stopCount: liveRoute.experienceIds.count
+            stopCount: liveRoute.experienceIds.count,
+            coordinates: coordinates
         )
     }
 }

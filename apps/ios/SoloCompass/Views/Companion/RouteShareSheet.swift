@@ -1,296 +1,38 @@
 import SwiftUI
 import UIKit
 
-// MARK: - RouteSharePayload
-
-/// Pure-data input to the route share card. Decoupled from `Route` so the card
-/// can be previewed / rendered without standing up the experience service, and
-/// so the visual layer never reaches back into model logic.
-struct RouteSharePayload: Hashable {
-    let title: String
-    let summary: String
-    let placeLabel: String          // region / city, already human-readable
-    let category: ExperienceCategory // drives gradient + emoji (mirrors RouteDetailView hero)
-    let durationMinutes: Int
-    let distanceMeters: Int
-    let paceLabel: String
-    let stopCount: Int
-    let walkedByCount: Int
-    let tags: [String]
-    let brandHandle: String
-
-    init(
-        title: String,
-        summary: String,
-        placeLabel: String,
-        category: ExperienceCategory,
-        durationMinutes: Int,
-        distanceMeters: Int,
-        paceLabel: String,
-        stopCount: Int,
-        walkedByCount: Int,
-        tags: [String],
-        brandHandle: String = "solocompass.app"
-    ) {
-        self.title = title
-        self.summary = summary
-        self.placeLabel = placeLabel
-        self.category = category
-        self.durationMinutes = durationMinutes
-        self.distanceMeters = distanceMeters
-        self.paceLabel = paceLabel
-        self.stopCount = stopCount
-        self.walkedByCount = walkedByCount
-        self.tags = Array(tags.prefix(3))
-        self.brandHandle = brandHandle
-    }
-
-    /// Build from a `Route` plus its resolved primary category and stop count.
-    init(route: Route, category: ExperienceCategory, stopCount: Int) {
-        self.init(
-            title: route.title,
-            summary: route.summary,
-            placeLabel: route.region.isEmpty ? route.cityCode : route.region,
-            category: category,
-            durationMinutes: route.estimatedDuration,
-            distanceMeters: route.distanceMeters,
-            paceLabel: route.pace.localizedLabel,
-            stopCount: stopCount,
-            walkedByCount: route.verification.walkedByCount,
-            tags: route.tags
-        )
-    }
-
-    /// Human distance: "1.2 km" above 1000 m, else "650 m".
-    var distanceLabel: String {
-        if distanceMeters >= 1000 {
-            let km = Double(distanceMeters) / 1000
-            return String(format: "%.1f km", km)
-        }
-        return "\(distanceMeters) m"
-    }
-
-    /// Multi-line plain-text share body — the "copy as text" / fallback path.
-    var shareText: String {
-        var lines: [String] = []
-        lines.append("🧭 \(title)")
-        if !summary.isEmpty { lines.append(summary) }
-        var facts: [String] = []
-        if !placeLabel.isEmpty { facts.append("📍 \(placeLabel)") }
-        facts.append("⏱ \(durationMinutes) min")
-        facts.append("📏 \(distanceLabel)")
-        facts.append("👣 \(stopCount) \(NSLocalizedString("route.share.stops", comment: "stops unit"))")
-        lines.append(facts.joined(separator: "  ·  "))
-        if walkedByCount > 0 {
-            let fmt = NSLocalizedString("route.share.walkedBy", comment: "walked-by social proof")
-            lines.append(String(format: fmt, walkedByCount))
-        }
-        if !tags.isEmpty {
-            lines.append(tags.map { "#\($0)" }.joined(separator: " "))
-        }
-        lines.append("— \(brandHandle)")
-        return lines.joined(separator: "\n")
-    }
-}
-
-// MARK: - RouteShareCardView
-
-/// 1080×1920 portrait share card for a route. Mirrors the `RouteDetailView`
-/// hero language (category gradient + emoji) so a shared image reads as the
-/// same product. Laid out at half-pixel `renderSize`; `ImageRenderer` scales up.
-struct RouteShareCardView: View {
-    let payload: RouteSharePayload
-
-    /// On-screen render size in points (half of the 1080×1920 pixel target).
-    static let renderSize = CGSize(width: 540, height: 960)
-    static let renderScale: CGFloat = 2.0
-
-    var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            CategoryVisual.gradient(for: payload.category)
-
-            // Subtle scrim so bottom text stays legible over bright gradients.
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.35)],
-                startPoint: .center,
-                endPoint: .bottom
-            )
-
-            VStack(alignment: .leading, spacing: 0) {
-                // Top: emoji + brand
-                HStack(alignment: .top) {
-                    Text(CategoryVisual.emoji(for: payload.category))
-                        .font(.system(size: 64))
-                    Spacer()
-                    Text(NSLocalizedString("route.share.kicker", comment: "Route share card kicker"))
-                        .font(.system(size: 18, weight: .semibold))
-                        .tracking(2)
-                        .textCase(.uppercase)
-                        .foregroundStyle(.white.opacity(0.85))
-                }
-
-                Spacer(minLength: 0)
-
-                // Bottom block: title, summary, stats, tags, walked-by, brand
-                VStack(alignment: .leading, spacing: 18) {
-                    if !payload.placeLabel.isEmpty {
-                        Label(payload.placeLabel, systemImage: "mappin.circle.fill")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.9))
-                    }
-
-                    Text(payload.title)
-                        .font(.system(size: 48, weight: .heavy))
-                        .foregroundStyle(.white)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .lineLimit(3)
-
-                    if !payload.summary.isEmpty {
-                        Text(payload.summary)
-                            .font(.system(size: 22))
-                            .foregroundStyle(.white.opacity(0.88))
-                            .lineLimit(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    statRow
-
-                    if payload.walkedByCount > 0 {
-                        let fmt = NSLocalizedString("route.share.walkedBy", comment: "walked-by social proof")
-                        Text(String(format: fmt, payload.walkedByCount))
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.85))
-                    }
-
-                    if !payload.tags.isEmpty {
-                        HStack(spacing: 8) {
-                            ForEach(payload.tags, id: \.self) { tag in
-                                Text("#\(tag)")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 7)
-                                    .background(Capsule().fill(.white.opacity(0.2)))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                    }
-
-                    Text(payload.brandHandle)
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.95))
-                        .padding(.top, 4)
-                }
-            }
-            .padding(40)
-        }
-        .frame(width: Self.renderSize.width, height: Self.renderSize.height)
-    }
-
-    /// Three glass stat chips: duration · distance · stops.
-    private var statRow: some View {
-        HStack(spacing: 12) {
-            statChip(icon: "clock.fill", value: "\(payload.durationMinutes)",
-                     unit: NSLocalizedString("route.share.min", comment: "minutes unit"))
-            statChip(icon: "ruler.fill", value: payload.distanceLabel, unit: "")
-            statChip(icon: "figure.walk", value: "\(payload.stopCount)",
-                     unit: NSLocalizedString("route.share.stops", comment: "stops unit"))
-        }
-    }
-
-    private func statChip(icon: String, value: String, unit: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-            Text(value)
-                .font(.system(size: 22, weight: .bold))
-            if !unit.isEmpty {
-                Text(unit)
-                    .font(.system(size: 16, weight: .medium))
-                    .opacity(0.8)
-            }
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Capsule().fill(.white.opacity(0.2)))
-    }
-}
-
-// MARK: - RouteShareRenderer
-
-/// Renders `RouteShareCardView` to a `UIImage` / temp PNG. Mirrors
-/// `ShareCardRenderer` so both share surfaces share the same pipeline shape.
-@MainActor
-enum RouteShareRenderer {
-    enum RenderError: Error {
-        case imageGenerationFailed
-        case pngEncodingFailed
-        case fileWriteFailed
-    }
-
-    static func renderImage(payload: RouteSharePayload) throws -> UIImage {
-        let view = RouteShareCardView(payload: payload)
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = RouteShareCardView.renderScale
-        renderer.isOpaque = true
-        guard let image = renderer.uiImage else { throw RenderError.imageGenerationFailed }
-        return image
-    }
-
-    static func renderTempPNG(payload: RouteSharePayload) throws -> URL {
-        let image = try renderImage(payload: payload)
-        guard let data = image.pngData() else { throw RenderError.pngEncodingFailed }
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let filename = "solocompass-route-\(UUID().uuidString.prefix(8)).png"
-        let url = dir.appendingPathComponent(filename)
-        do {
-            try data.write(to: url, options: .atomic)
-        } catch {
-            throw RenderError.fileWriteFailed
-        }
-        return url
-    }
-}
-
 // MARK: - RouteShareSheet
 
-/// The route share entry point. Lets the traveler pick between a visual card
-/// (image) and a plain-text summary, preview it, then hand it to the system
-/// share sheet. Replaces the bare `ShareLink(item: title)` that only shared a
-/// title string.
+/// The route share entry point. Lets the traveler pick between a map-basemap
+/// card, a minimal vector trace card, and a plain-text summary, preview it,
+/// then hand it to the system share sheet.
+///
+/// `RouteSharePayload`, `RouteShareCardView`, and `RouteShareRenderer` live in
+/// `Views/Companion/Share/`.
 struct RouteShareSheet: View {
     let payload: RouteSharePayload
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedMode: Mode = .card
+    @State private var selectedStyle: RouteShareStyle = .map
     @State private var previewImage: UIImage? = nil
+    @State private var isRendering = false
     @State private var activityItems: [Any]? = nil
     @State private var statusMessage: String? = nil
     @State private var statusIsError = false
-
-    enum Mode: String, CaseIterable, Identifiable {
-        case card
-        case text
-
-        var id: String { rawValue }
-        var label: String {
-            switch self {
-            case .card: return NSLocalizedString("route.share.mode.card", comment: "Visual card mode")
-            case .text: return NSLocalizedString("route.share.mode.text", comment: "Plain text mode")
-            }
-        }
-    }
+    /// Cache rendered cards per style so flipping back and forth is instant.
+    @State private var renderedCache: [RouteShareStyle: UIImage] = [:]
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                modePicker
+                stylePicker
                 previewArea
                 if let status = statusMessage {
                     Text(status)
                         .font(.caption)
                         .foregroundStyle(statusIsError ? Color.red : Color.green)
+                        .multilineTextAlignment(.center)
                         .transition(.opacity)
                 }
                 actionButtons
@@ -313,23 +55,23 @@ struct RouteShareSheet: View {
         .presentationDetents([.large])
     }
 
-    // MARK: - Mode picker
+    // MARK: - Style picker
 
-    private var modePicker: some View {
+    private var stylePicker: some View {
         HStack(spacing: 10) {
-            ForEach(Mode.allCases) { mode in
+            ForEach(RouteShareStyle.allCases) { style in
                 Button {
-                    selectedMode = mode
+                    selectedStyle = style
                     statusMessage = nil
                 } label: {
-                    Text(mode.label)
+                    Text(style.label)
                         .font(.system(size: 13, weight: .semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(
-                            Capsule().fill(selectedMode == mode ? Color.accentColor : Color(.secondarySystemBackground))
+                            Capsule().fill(selectedStyle == style ? Color.accentColor : Color(.secondarySystemBackground))
                         )
-                        .foregroundStyle(selectedMode == mode ? .white : .primary)
+                        .foregroundStyle(selectedStyle == style ? .white : .primary)
                 }
                 .buttonStyle(.plain)
             }
@@ -340,9 +82,10 @@ struct RouteShareSheet: View {
 
     @ViewBuilder
     private var previewArea: some View {
-        switch selectedMode {
-        case .card: cardPreview
-        case .text: textPreview
+        if selectedStyle == .text {
+            textPreview
+        } else {
+            cardPreview
         }
     }
 
@@ -363,13 +106,27 @@ struct RouteShareSheet: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .task { await renderPreview() }
+        .task(id: selectedStyle) { await renderPreview() }
     }
 
     @MainActor
     private func renderPreview() async {
-        if previewImage != nil { return }
-        previewImage = try? RouteShareRenderer.renderImage(payload: payload)
+        guard selectedStyle.isVisualCard else { return }
+        if let cached = renderedCache[selectedStyle] {
+            previewImage = cached
+            return
+        }
+        previewImage = nil
+        isRendering = true
+        let result = await RouteShareRenderer.render(payload: payload, style: selectedStyle)
+        isRendering = false
+        // Cache under both requested and effective style so a fallback isn't re-fetched.
+        renderedCache[selectedStyle] = result.image
+        renderedCache[result.effectiveStyle] = result.image
+        previewImage = result.image
+        if result.didFallback {
+            flashStatus(NSLocalizedString("route.share.mapFallback", comment: "Map basemap unavailable hint"), error: false)
+        }
     }
 
     private var textPreview: some View {
@@ -388,16 +145,17 @@ struct RouteShareSheet: View {
 
     @ViewBuilder
     private var actionButtons: some View {
-        switch selectedMode {
-        case .card: cardActions
-        case .text: textActions
+        if selectedStyle == .text {
+            textActions
+        } else {
+            cardActions
         }
     }
 
     private var cardActions: some View {
         VStack(spacing: 10) {
             Button {
-                shareCard()
+                Task { await shareCard() }
             } label: {
                 Label(
                     NSLocalizedString("share.systemShare", comment: "Share via system sheet"),
@@ -406,6 +164,7 @@ struct RouteShareSheet: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .disabled(isRendering)
 
             Button {
                 copyImage()
@@ -417,6 +176,7 @@ struct RouteShareSheet: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .disabled(previewImage == nil)
 
             Text(NSLocalizedString("share.saveHint", comment: "Hint to use Save Image in the system share sheet"))
                 .font(.caption2)
@@ -454,9 +214,11 @@ struct RouteShareSheet: View {
 
     // MARK: - Impl
 
-    private func shareCard() {
+    @MainActor
+    private func shareCard() async {
         do {
-            let url = try RouteShareRenderer.renderTempPNG(payload: payload)
+            let (url, result) = try await RouteShareRenderer.renderTempPNG(payload: payload, style: selectedStyle)
+            renderedCache[result.effectiveStyle] = result.image
             activityItems = [url]
         } catch {
             flashStatus(NSLocalizedString("share.renderFailed", comment: "Render failed"), error: true)
@@ -464,18 +226,17 @@ struct RouteShareSheet: View {
     }
 
     private func copyImage() {
-        do {
-            let image = try RouteShareRenderer.renderImage(payload: payload)
-            UIPasteboard.general.image = image
-            flashStatus(NSLocalizedString("share.imageCopied", comment: "Image copied"), error: false)
-        } catch {
+        guard let image = previewImage else {
             flashStatus(NSLocalizedString("share.renderFailed", comment: "Render failed"), error: true)
+            return
         }
+        UIPasteboard.general.image = image
+        flashStatus(NSLocalizedString("share.imageCopied", comment: "Image copied"), error: false)
     }
 
     private func flashStatus(_ message: String, error: Bool) {
         withAnimation { statusMessage = message; statusIsError = error }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             withAnimation { statusMessage = nil }
         }
     }
@@ -501,16 +262,5 @@ private struct RouteActivityViewControllerWrapper: UIViewControllerRepresentable
 // MARK: - Preview
 
 #Preview {
-    RouteShareSheet(payload: RouteSharePayload(
-        title: "黄昏河岸慢走",
-        summary: "从老城咖啡馆出发，沿河散步到日落观景台，途经三处隐藏角落。",
-        placeLabel: "Bangkok",
-        category: .coffee,
-        durationMinutes: 120,
-        distanceMeters: 2400,
-        paceLabel: "Relaxed",
-        stopCount: 4,
-        walkedByCount: 37,
-        tags: ["sunset", "riverside", "coffee"]
-    ))
+    RouteShareSheet(payload: .preview)
 }
