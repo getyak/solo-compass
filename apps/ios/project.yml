@@ -103,6 +103,8 @@ targets:
         product: Supabase
       - package: Sentry
         product: Sentry
+      - package: swift-markdown-ui
+        product: MarkdownUI
 
   SoloCompassTests:
     type: bundle.unit-test
@@ -136,6 +138,9 @@ packages:
   Sentry:
     url: https://github.com/getsentry/sentry-cocoa
     from: 8.36.0
+  swift-markdown-ui:
+    url: https://github.com/gonzalezreal/swift-markdown-ui
+    from: 2.4.1
 
 schemes:
   SoloCompass:

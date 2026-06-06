@@ -88,9 +88,10 @@ public struct MessageBubble: View {
         HStack(alignment: .top, spacing: 8) {
             AssistantAvatar()
             VStack(alignment: .leading, spacing: 0) {
-                Text(text.isEmpty ? " " : text)
-                    .font(.body)
-                    .foregroundStyle(.primary)
+                // Assistant replies render Markdown (code/lists/links/quotes).
+                // Streaming throttle (batched ~50–80 chars / ~80ms) lives in the
+                // orchestrator (Phase D) so this view re-renders smoothly.
+                MarkdownMessageText(text: text.isEmpty ? " " : text)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
                     // background{shape.fill.shadow} lets the soft shadow escape
