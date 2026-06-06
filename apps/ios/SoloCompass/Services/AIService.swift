@@ -1098,6 +1098,108 @@ public final class AIService {
         }
     }
 
+    /// Ask the `enrich-user-experience` Edge Function to AI-complete a
+    /// user-created place (Phase 2 UGC). Returns a copy of `candidate` with the
+    /// trust-critical fields filled in (whyItMatters, Solo Score, bestTimes,
+    /// realInconveniences) — the user never self-reports these. The id,
+    /// coordinates, place names, photos, and `candidate` status are preserved.
+    ///
+    /// Returns `nil` (caller keeps the original candidate) when: backend sync is
+    /// off, the user isn't signed in / not Pro, or the function errors. Enrichment
+    /// is best-effort polish, never a gate on the place existing.
+    public func enrichUserExperience(_ candidate: Experience, locale: Locale = .current) async -> Experience? {
+        guard isProTier else { return nil }
+
+        struct EnrichRequest: Encodable {
+            let experienceId: String
+            let title: String
+            let oneLiner: String
+            let description: String
+            let category: String
+            let coordinates: [Double]
+            let cityCode: String
+            let locale: String
+        }
+        let body = EnrichRequest(
+            experienceId: candidate.id,
+            title: candidate.title,
+            oneLiner: candidate.oneLiner,
+            description: candidate.whyItMatters,
+            category: candidate.category.rawValue,
+            coordinates: candidate.location.coordinates,
+            cityCode: candidate.location.cityCode,
+            locale: locale.identifier
+        )
+        guard let bodyData = try? JSONEncoder().encode(body) else { return nil }
+
+        let result = await SupabaseClient.shared.invoke(function: "enrich-user-experience", body: bodyData)
+        guard case .success(let data) = result, !data.isEmpty else { return nil }
+
+        struct EnrichResponse: Decodable {
+            let enriched: EnrichItem
+        }
+        struct InconvenienceItem: Decodable {
+            let category: String
+            let text: String
+        }
+        struct EnrichItem: Decodable {
+            let whyItMatters: String
+            let soloOverall: Double
+            let soloHint: String?
+            let bestStartHour: Int?
+            let bestEndHour: Int?
+            let durationMinMinutes: Int?
+            let durationMaxMinutes: Int?
+            let realInconveniences: [InconvenienceItem]?
+        }
+        guard let decoded = try? JSONDecoder().decode(EnrichResponse.self, from: data) else { return nil }
+        let item = decoded.enriched
+
+        let overall = max(0, min(10, item.soloOverall))
+        let breakdown = SoloScore.Breakdown(
+            seatingFriendly: overall, soloPatronRatio: overall, staffPressure: overall,
+            soloPortioning: overall, ambianceFit: overall, safety: overall
+        )
+        let startHour = item.bestStartHour.map { max(0, min(23, $0)) }
+        let endHour = item.bestEndHour.map { max(0, min(23, $0)) }
+        let bestTimes: [TimeWindow] = (startHour != nil && endHour != nil)
+            ? [TimeWindow(startHour: startHour!, endHour: endHour!)] : candidate.bestTimes
+        let dMin = item.durationMinMinutes ?? candidate.durationMinutes.min
+        let dMax = max(dMin, item.durationMaxMinutes ?? candidate.durationMinutes.max)
+        let inconveniences: [RealInconvenience] = (item.realInconveniences ?? []).compactMap {
+            guard let cat = RealInconvenience.Category(rawValue: $0.category) else { return nil }
+            return RealInconvenience(category: cat, text: $0.text)
+        }
+        let now = Date()
+
+        return Experience(
+            id: candidate.id,
+            title: candidate.title,
+            oneLiner: candidate.oneLiner,
+            whyItMatters: item.whyItMatters,
+            category: candidate.category,
+            location: candidate.location,
+            bestTimes: bestTimes,
+            durationMinutes: .init(min: dMin, max: dMax),
+            howTo: candidate.howTo,
+            realInconveniences: inconveniences,
+            soloScore: SoloScore(overall: overall, breakdown: breakdown, hint: item.soloHint, basedOnCount: 0),
+            sources: [InformationSource(type: .user, attribution: "you + AI", verifiedAt: now)],
+            confidence: Confidence(
+                level: 1,
+                lastVerifiedAt: now,
+                reason: "User-created, AI-enriched, awaiting verification",
+                signals: .init(aiScrapeAgeDays: 0, passiveGpsHits30d: 0, activeReports30d: 0, trustedVerifications: 0)
+            ),
+            nearbyExperienceIds: candidate.nearbyExperienceIds,
+            stats: candidate.stats,
+            status: .candidate,
+            createdAt: candidate.createdAt,
+            updatedAt: now,
+            userTags: candidate.userTags
+        )
+    }
+
     /// Public cache-clear; used by Settings → Storage.
     @MainActor
     public func clearSynthesisCache() {

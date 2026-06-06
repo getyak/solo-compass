@@ -145,6 +145,18 @@ public final class ExperienceService {
         return added
     }
 
+    /// Persist a user-created place and queue its upload to Supabase
+    /// `user_experiences` (Phase 2), then refresh the @Observable mirrors so
+    /// the new pin renders. Wraps `repo.recordUserExperience`.
+    @discardableResult
+    public func recordUserExperience(_ experience: Experience) -> Int {
+        let added = repository.recordUserExperience(experience)
+        if added > 0 {
+            reload()
+        }
+        return added
+    }
+
     /// Replace an existing experience's content in place, keeping its id and
     /// user-tracked state. Used by the deep-dive re-compile flow (single-card
     /// cross-source enrichment): the place stays the same entry but its
