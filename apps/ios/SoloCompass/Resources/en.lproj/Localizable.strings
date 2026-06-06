@@ -798,6 +798,10 @@
 "route.share.kicker" = "Route · Solo Compass";
 "route.share.mode.card" = "Card";
 "route.share.mode.text" = "Text";
+"route.share.style.map" = "Map";
+"route.share.style.trace" = "Trace";
+/* Shown when the real map basemap can't be fetched and we fell back to the vector line. */
+"route.share.mapFallback" = "Map basemap unavailable — showing the minimal line instead.";
 "route.share.min" = "min";
 "route.share.stops" = "stops";
 /* %d = number of travelers who have walked this route. */
