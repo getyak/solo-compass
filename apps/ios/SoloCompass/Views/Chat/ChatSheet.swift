@@ -20,6 +20,11 @@ public struct ChatSheet: View {
     public let voiceService: VoiceService
     public let startInVoiceMode: Bool
     public let onDismiss: () -> Void
+    /// User tapped a place card in the chat — reveal it on the map. The chat is
+    /// the only thing that moves the map here; the agent never does it for them.
+    public let onSelectExperience: (Experience) -> Void
+    /// User tapped "采用这条路线" on a proposed-route card — persist + open it.
+    public let onAdoptRoute: (RouteProposal) -> Void
 
     @State private var draftText: String = ""
     @State private var liveTranscript: String = ""
@@ -62,12 +67,16 @@ public struct ChatSheet: View {
         orchestrator: VoiceAgentOrchestrator,
         voiceService: VoiceService,
         startInVoiceMode: Bool,
-        onDismiss: @escaping () -> Void
+        onDismiss: @escaping () -> Void,
+        onSelectExperience: @escaping (Experience) -> Void = { _ in },
+        onAdoptRoute: @escaping (RouteProposal) -> Void = { _ in }
     ) {
         self.orchestrator = orchestrator
         self.voiceService = voiceService
         self.startInVoiceMode = startInVoiceMode
         self.onDismiss = onDismiss
+        self.onSelectExperience = onSelectExperience
+        self.onAdoptRoute = onAdoptRoute
     }
 
     public var body: some View {
@@ -234,6 +243,18 @@ public struct ChatSheet: View {
                                 isStreaming: false
                             )
                             .id(msg.id)
+
+                            // Inline cards (places / proposed route) produced by
+                            // this assistant turn's tools — rendered as tappable
+                            // cards under the bubble instead of jumping the map.
+                            if let cards = orchestrator.cardsByMessageId[msg.id], !cards.isEmpty {
+                                ChatCardStack(
+                                    cards: cards,
+                                    onSelectExperience: handleSelectExperience,
+                                    onAdoptRoute: handleAdoptRoute
+                                )
+                                .id("cards-\(msg.id)")
+                            }
                         }
 
                         if !orchestrator.streamingContent.isEmpty {
@@ -262,9 +283,18 @@ public struct ChatSheet: View {
                         }
 
                         if isAgentWorking {
-                            TypingIndicatorBubble(
-                                label: orchestrator.thinkingStep.isEmpty ? nil : orchestrator.thinkingStep
-                            )
+                            VStack(alignment: .leading, spacing: 8) {
+                                // Elegant, ordered reasoning trace (analyzing
+                                // weather / location / visited …) instead of an
+                                // opaque spinner. Falls back to the typing dots
+                                // when no steps have been recorded yet.
+                                if !orchestrator.reasoningTrace.isEmpty {
+                                    ReasoningTracePanel(steps: orchestrator.reasoningTrace)
+                                }
+                                TypingIndicatorBubble(
+                                    label: orchestrator.thinkingStep.isEmpty ? nil : orchestrator.thinkingStep
+                                )
+                            }
                             .id(Self.typingIndicatorID)
                             .transition(.opacity)
                             .animation(.easeInOut(duration: 0.2), value: isAgentWorking)
@@ -290,6 +320,12 @@ public struct ChatSheet: View {
                     scrollToBottom(proxy: proxy)
                 }
                 .onChange(of: orchestrator.session.state) { _, _ in
+                    scrollToBottom(proxy: proxy)
+                }
+                .onChange(of: orchestrator.reasoningTrace.count) { _, _ in
+                    scrollToBottom(proxy: proxy)
+                }
+                .onChange(of: totalCardCount) { _, _ in
                     scrollToBottom(proxy: proxy)
                 }
                 .onAppear { scrollToBottom(proxy: proxy, animated: false) }
@@ -551,6 +587,12 @@ public struct ChatSheet: View {
         orchestrator.session.messages.filter { $0.role != .system }
     }
 
+    /// Total inline cards across all messages — drives a scroll-to-bottom when a
+    /// new place/route card lands so the user sees it without scrolling.
+    private var totalCardCount: Int {
+        orchestrator.cardsByMessageId.values.reduce(0) { $0 + $1.count }
+    }
+
     /// True while the agent is thinking or executing a tool but no streamed
     /// text or live voice transcript has arrived yet.
     private var isAgentWorking: Bool {
@@ -690,6 +732,25 @@ public struct ChatSheet: View {
     private func closeSheet() {
         teardownVoiceStream()
         onDismiss()
+    }
+
+    // MARK: - Card actions
+
+    /// User tapped a place card → dismiss the chat so the reveal is visible on
+    /// the map underneath, then hand the place up to the host.
+    private func handleSelectExperience(_ experience: Experience) {
+        Haptics.impact(.light)
+        teardownVoiceStream()
+        onDismiss()
+        onSelectExperience(experience)
+    }
+
+    /// User adopted a proposed route → dismiss the chat, persist + open it.
+    private func handleAdoptRoute(_ proposal: RouteProposal) {
+        Haptics.impact(.medium)
+        teardownVoiceStream()
+        onDismiss()
+        onAdoptRoute(proposal)
     }
 
     // MARK: - Voice handling
