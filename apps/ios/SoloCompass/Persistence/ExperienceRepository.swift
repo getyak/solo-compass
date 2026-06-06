@@ -150,7 +150,41 @@ public final class ExperienceRepository {
         record.confidenceBlob = fresh.confidenceBlob
         record.statsBlob = fresh.statsBlob
         record.nearbyExperienceIdsBlob = fresh.nearbyExperienceIdsBlob
+        record.photoUrlsBlob = fresh.photoUrlsBlob
         try? context.save()
+    }
+
+    /// Persist a user-created place locally AND queue an upload to the Supabase
+    /// `user_experiences` table (Phase 2). Local persistence is the source of
+    /// truth on-device; the outbox is durable, so the upload survives offline
+    /// launches and flushes once `FF_BACKEND_SYNC` is on and a session exists.
+    /// The Solo Score is never uploaded — the server computes it.
+    @discardableResult
+    public func recordUserExperience(_ experience: Experience) -> Int {
+        let added = appendGenerated([experience])
+        guard let userId = SupabaseClient.shared.currentSession?.userId else { return added }
+        SyncService.shared.enqueue(
+            tableName: "user_experiences",
+            operation: "upsert",
+            payload: SyncUserExperiencePayload(
+                user_id: userId,
+                experience_id: experience.id,
+                title: experience.title,
+                one_liner: experience.oneLiner,
+                category: experience.category.rawValue,
+                coordinates: experience.location.coordinates,
+                city_code: experience.location.cityCode,
+                place_name_romanized: experience.location.placeNameRomanized,
+                place_name_local: experience.location.placeNameLocal,
+                address_hint: experience.location.addressHint,
+                description: experience.whyItMatters,
+                photo_urls: experience.location.photoUrls,
+                user_tags: experience.userTags,
+                status: experience.status.rawValue
+            ),
+            context: context
+        )
+        return added
     }
 
     // MARK: - User-action records (US-009 wires UserPreferences to these)
@@ -549,6 +583,29 @@ struct SyncFavoritePayload: Encodable {
     let user_id: String
     let experience_id: String
     let favorited_at: Date?
+    // swiftlint:enable identifier_name
+}
+
+/// Sent to Supabase `user_experiences` when a user registers a place by hand
+/// (Phase 2). snake_case field names match the Postgres columns 1:1. The
+/// trust-critical Solo Score is intentionally absent — the server computes it
+/// via AI synthesis; users never self-report it.
+struct SyncUserExperiencePayload: Encodable {
+    // swiftlint:disable identifier_name
+    let user_id: String
+    let experience_id: String
+    let title: String
+    let one_liner: String
+    let category: String
+    let coordinates: [Double]
+    let city_code: String
+    let place_name_romanized: String?
+    let place_name_local: String?
+    let address_hint: String?
+    let description: String?
+    let photo_urls: [String]?
+    let user_tags: [String]?
+    let status: String
     // swiftlint:enable identifier_name
 }
 

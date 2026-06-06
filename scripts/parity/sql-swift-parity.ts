@@ -40,6 +40,11 @@ const RULES: ParityRule[] = [
     supabaseTable: "subscription_events",
     ignoreColumns: ["id", "created_at", "updated_at"],
   },
+  {
+    swiftStruct: "SyncUserExperiencePayload",
+    supabaseTable: "user_experiences",
+    ignoreColumns: ["id", "created_at", "updated_at"],
+  },
 ];
 
 const SWIFT_FILES = [
@@ -47,7 +52,13 @@ const SWIFT_FILES = [
   "apps/ios/SoloCompass/Services/SubscriptionService.swift",
 ];
 
-const SQL_FILE = "infra/supabase/migrations/0001_init.sql";
+// All migrations whose CREATE TABLE statements back a sync payload. Concatenated
+// before column extraction so tables added in later migrations (e.g.
+// user_experiences in 0006) are found alongside the originals in 0001.
+const SQL_FILES = [
+  "infra/supabase/migrations/0001_init.sql",
+  "infra/supabase/migrations/0006_user_experiences.sql",
+];
 
 function loadFile(rootDir: string, rel: string): string {
   return fs.readFileSync(path.join(rootDir, rel), "utf-8");
@@ -103,7 +114,7 @@ export interface SqlSwiftParityResult {
 }
 
 export function checkSqlSwiftParity(rootDir: string, verbose = false): SqlSwiftParityResult {
-  const sql = loadFile(rootDir, SQL_FILE);
+  const sql = SQL_FILES.map((rel) => loadFile(rootDir, rel)).join("\n\n");
   const swiftSources = SWIFT_FILES.map((rel) => loadFile(rootDir, rel)).join("\n\n");
 
   const failures: string[] = [];
@@ -112,7 +123,7 @@ export function checkSqlSwiftParity(rootDir: string, verbose = false): SqlSwiftP
   for (const rule of RULES) {
     const sqlCols = extractSqlColumns(sql, rule.supabaseTable);
     if (!sqlCols) {
-      failures.push(`Could not find table ${rule.supabaseTable} in ${SQL_FILE}`);
+      failures.push(`Could not find table ${rule.supabaseTable} in ${SQL_FILES.join(", ")}`);
       continue;
     }
     const swiftFields = extractSwiftStructFields(swiftSources, rule.swiftStruct);

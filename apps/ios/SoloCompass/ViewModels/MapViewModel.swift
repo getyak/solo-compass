@@ -1266,14 +1266,42 @@ public final class MapViewModel {
             description: input.description,
             photoUrls: input.photoUrls
         )
-        // Persist to SwiftData so it survives relaunch (idempotent by id).
-        _ = experienceService.appendGenerated([candidate])
+        // Persist to SwiftData (idempotent by id) AND queue the Supabase upload
+        // to user_experiences (Phase 2). Survives relaunch and offline.
+        _ = experienceService.recordUserExperience(candidate)
         // Render right away: keep it in the candidate layer (distinct marker)
         // and surface it among visible experiences without a full reload.
         candidateExperiences.append(candidate)
         withAnimation(Self.markerSetAnimation) {
             visibleExperiences.append(candidate)
             nearbySoloCount = computeNearbySoloCount(in: visibleExperiences)
+        }
+
+        // Best-effort AI enrichment (Pro + signed in). The place already exists;
+        // this only upgrades its copy with a real Solo Score / whyItMatters when
+        // the Edge Function succeeds. Failures are silent — the candidate stays.
+        Task { [weak self] in
+            guard let self else { return }
+            guard let enriched = await self.aiService.enrichUserExperience(candidate) else { return }
+            self.experienceService.replaceGenerated(enriched)
+            self.applyEnrichedCandidate(enriched)
+        }
+    }
+
+    /// Swap an AI-enriched user place into the in-memory candidate/visible sets
+    /// so the open map and any card re-render with the new Solo Score / copy.
+    private func applyEnrichedCandidate(_ enriched: Experience) {
+        if let i = candidateExperiences.firstIndex(where: { $0.id == enriched.id }) {
+            candidateExperiences[i] = enriched
+        }
+        if let j = visibleExperiences.firstIndex(where: { $0.id == enriched.id }) {
+            withAnimation(Self.markerSetAnimation) {
+                visibleExperiences[j] = enriched
+                nearbySoloCount = computeNearbySoloCount(in: visibleExperiences)
+            }
+        }
+        if selectedExperience?.id == enriched.id {
+            selectedExperience = enriched
         }
     }
 
