@@ -184,11 +184,27 @@
 "common.close" = "Close";
 
 /* Add Experience (long-press flow) */
-"addExperience.confirm.title" = "Add an experience here?";
-"addExperience.confirm.message" = "Describe it with your voice.";
+"addExperience.confirm.title" = "Add a place here?";
+"addExperience.confirm.message" = "Fill in a few details, or describe it with your voice.";
 "addExperience.confirm.add" = "Add";
 "addExperience.record.title" = "Tell us about this place";
 "addExperience.record.hint" = "Hold the mic and describe what makes it worth a solo visit.";
+
+/* User-created place form (long-press → form) */
+"userLocation.create.title" = "Add a place";
+"userLocation.form.save" = "Save";
+"userLocation.form.name.label" = "Name";
+"userLocation.form.name.placeholder" = "Place name, e.g. Wat Suan Dok";
+"userLocation.form.nameLocal.placeholder" = "Local-language name (optional)";
+"userLocation.form.oneLiner.placeholder" = "One line: what makes it worth it (optional)";
+"userLocation.form.category.label" = "Category";
+"userLocation.form.notes.label" = "Notes";
+"userLocation.form.notes.placeholder" = "What's it like to be here alone?";
+"userLocation.form.photo.label" = "Photos";
+"userLocation.form.photo.library" = "Choose from library";
+"userLocation.form.photo.camera" = "Take a photo";
+"userLocation.form.useVoice" = "Describe with voice instead";
+"userLocation.form.unverifiedNote" = "Your place is added as unverified. It won't get a Solo Score until it's reviewed.";
 
 /* Marker accessibility */
 "marker.a11y.bestNow" = "best right now";

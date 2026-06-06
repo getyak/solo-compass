@@ -107,11 +107,27 @@
 "common.cancel" = "取消";
 
 /* Add Experience (long-press flow) */
-"addExperience.confirm.title" = "在此处添加一个体验？";
-"addExperience.confirm.message" = "用语音描述它。";
+"addExperience.confirm.title" = "在此处添加一个地点？";
+"addExperience.confirm.message" = "填写几项信息，或用语音描述它。";
 "addExperience.confirm.add" = "添加";
 "addExperience.record.title" = "聊聊这个地方";
 "addExperience.record.hint" = "按住麦克风，描述它为何值得一人前来。";
+
+/* User-created place form (long-press → form) */
+"userLocation.create.title" = "添加地点";
+"userLocation.form.save" = "保存";
+"userLocation.form.name.label" = "名称";
+"userLocation.form.name.placeholder" = "地点名称，例如 Wat Suan Dok";
+"userLocation.form.nameLocal.placeholder" = "当地语言名称（可选）";
+"userLocation.form.oneLiner.placeholder" = "一句话：它为何值得（可选）";
+"userLocation.form.category.label" = "类别";
+"userLocation.form.notes.label" = "描述";
+"userLocation.form.notes.placeholder" = "一个人在这里是什么感受？";
+"userLocation.form.photo.label" = "照片";
+"userLocation.form.photo.library" = "从相册选择";
+"userLocation.form.photo.camera" = "拍照";
+"userLocation.form.useVoice" = "改用语音描述";
+"userLocation.form.unverifiedNote" = "你添加的地点为「待验证」。在通过审核前不会获得 Solo 评分。";
 
 /* Marker accessibility */
 "marker.a11y.bestNow" = "此刻最佳";

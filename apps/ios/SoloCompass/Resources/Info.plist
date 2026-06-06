@@ -27,9 +27,11 @@
 	<string>1</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<!-- NSAppTransportSecurity: localhost exception is only exercised in DEBUG builds.
-	     Release builds with no SOLO_API_BASE_URL set short-circuit in ReviewsService
-	     before making any network request, so this entry is inert in production. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>iosamap</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>
@@ -43,17 +45,16 @@
 			</dict>
 		</dict>
 	</dict>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>comgooglemaps</string>
-		<string>iosamap</string>
-	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Solo Compass uses the camera so you can photograph a place when you add it to the map.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Solo Compass uses background location to alert you when you're near a place worth visiting — even when the app is closed.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Solo Compass uses your location to show experiences near you on the map.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Solo Compass uses the microphone for voice search.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Solo Compass needs access to your photos so you can attach an image to a place you add.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Solo Compass uses speech recognition so you can describe what you're looking for by voice.</string>
 	<key>UIBackgroundModes</key>

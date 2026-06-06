@@ -68,12 +68,41 @@ public enum SoloCompassSchemaV1_1: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1. The only change is the addition of
-/// an optional `Data?` column on `ExperienceRecord`, which is a
-/// lightweight migration.
+/// Schema v1.2 — adds the optional `ExperienceRecord.photoUrlsBlob` column
+/// for user-created places. Like v1.1, this is a *lightweight* migration: the
+/// new column is `Data?`, so existing rows migrate with NULL and no data is
+/// rewritten. `asValue` treats a nil blob as `nil` photoUrls.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_2: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 2, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        [
+            ExperienceRecord.self,
+            UserCompletionRecord.self,
+            UserFavoriteRecord.self,
+            MicroSurveyRecord.self,
+            PendingCheckInRecord.self,
+            ExploreCacheRecord.self,
+            AISynthesisCacheRecord.self,
+            DiscoveredCityRecord.self,
+            RecentExploreRegion.self,
+            AIUsageRecord.self,
+            PendingSyncRecord.self,
+            ItineraryRecord.self,
+            RouteRecord.self,
+            ConversationRecord.self,
+            WeatherCacheRecord.self,
+        ]
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → v1.2. Each change is the addition of
+/// an optional `Data?` column on `ExperienceRecord`, which is a lightweight
+/// migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
-        [SoloCompassSchemaV1.self, SoloCompassSchemaV1_1.self]
+        [SoloCompassSchemaV1.self, SoloCompassSchemaV1_1.self, SoloCompassSchemaV1_2.self]
     }
 
     public static var stages: [MigrationStage] {
@@ -81,7 +110,11 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1.self,
                 toVersion: SoloCompassSchemaV1_1.self
-            )
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_1.self,
+                toVersion: SoloCompassSchemaV1_2.self
+            ),
         ]
     }
 }

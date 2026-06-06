@@ -62,6 +62,8 @@ targets:
           - location
         NSSpeechRecognitionUsageDescription: "Solo Compass uses speech recognition so you can describe what you're looking for by voice."
         NSMicrophoneUsageDescription: "Solo Compass uses the microphone for voice search."
+        NSCameraUsageDescription: "Solo Compass uses the camera so you can photograph a place when you add it to the map."
+        NSPhotoLibraryUsageDescription: "Solo Compass needs access to your photos so you can attach an image to a place you add."
         LSApplicationQueriesSchemes:
           - comgooglemaps
           - iosamap

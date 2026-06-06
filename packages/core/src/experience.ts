@@ -82,6 +82,11 @@ export interface ExperienceLocation {
   readonly priceLevel?: number; // 1–4 (1 = cheap, 4 = expensive)
   readonly website?: string;
   readonly phone?: string;
+  // Photos attached to the place. User-created experiences populate this from
+  // the photo picker; seed/OSM places leave it undefined. Values are URLs:
+  // local `file://` paths until the place is synced, then remote https URLs.
+  // Mirrors the `photoUrls` convention in user.ts.
+  readonly photoUrls?: readonly string[];
 }
 
 /**
@@ -223,4 +228,110 @@ export interface DiscoveredCity {
  */
 export function isCandidateExperience(exp: Experience): exp is CandidateExperience {
   return exp.status === "candidate";
+}
+
+/**
+ * ID prefix for experiences a user creates by hand (long-press the map → fill
+ * the form). Like `exp_osm_*`, these start at `confidence.level === 1`
+ * (unverified) and never carry a self-assigned Solo Score — the trust fields
+ * are placeholders until the AI synthesis / verification pipeline fills them.
+ *
+ * Format: `exp_user_<uuid>` (e.g. `exp_user_550e8400-e29b-41d4-a716-446655440000`).
+ */
+export const EXP_USER_ID_PREFIX = "exp_user_" as const;
+
+/**
+ * The handful of fields a user can honestly supply when registering a new place.
+ * Everything else on `Experience` (Solo Score, confidence, nearby links, stats)
+ * is system-owned and must NOT be user-settable — that is the product's trust moat.
+ */
+export interface UserExperienceInput {
+  /** Action-oriented title. Falls back to the place name if the user only gives a name. */
+  readonly title: string;
+  readonly oneLiner: string;
+  readonly category: ExperienceCategory;
+  readonly coordinates: Coordinates;
+  readonly cityCode: string;
+  /** The full place name the user enters, e.g. "Wat Suan Dok". */
+  readonly placeNameRomanized?: string;
+  /** Optional local-language name, e.g. "วัดสวนดอก". */
+  readonly placeNameLocal?: string;
+  readonly addressHint?: string;
+  /** Free-form description; stored as `whyItMatters`. */
+  readonly description?: string;
+  /** Photo URLs (local `file://` in Phase 1, remote https after sync). */
+  readonly photoUrls?: readonly string[];
+  readonly userTags?: readonly string[];
+}
+
+/**
+ * Build a `CandidateExperience` from raw user input.
+ *
+ * Trust-critical fields are forced to safe, unverified defaults:
+ *   - `status: "candidate"` — never enters the public pool until promoted.
+ *   - `confidence.level: 1` — unverified; hidden from top recommendations.
+ *   - `soloScore`: neutral 5.0 placeholder with `basedOnCount: 0`. The user
+ *     does NOT score their own place; the synthesis pipeline overwrites this.
+ *   - `sources: [{ type: "user" }]` — provenance is always visible.
+ *
+ * @param input    The user-supplied fields.
+ * @param ids       Injected non-deterministic values (uuid + nowIso) so this
+ *                  function stays pure and testable.
+ */
+export function createUserExperience(
+  input: UserExperienceInput,
+  ids: { readonly uuid: string; readonly nowIso: string },
+): CandidateExperience {
+  const { uuid, nowIso } = ids;
+  const neutralBreakdown = {
+    seatingFriendly: 5,
+    soloPatronRatio: 5,
+    staffPressure: 5,
+    soloPortioning: 5,
+    ambianceFit: 5,
+    safety: 5,
+  } as const;
+
+  return {
+    id: `${EXP_USER_ID_PREFIX}${uuid}` as ExperienceId,
+    title: input.title,
+    oneLiner: input.oneLiner,
+    whyItMatters: input.description ?? "",
+    category: input.category,
+    location: {
+      coordinates: input.coordinates,
+      cityCode: input.cityCode,
+      addressHint: input.addressHint,
+      placeNameLocal: input.placeNameLocal,
+      placeNameRomanized: input.placeNameRomanized,
+      photoUrls: input.photoUrls,
+    },
+    bestTimes: [], // empty = anytime; user can refine later
+    durationMinutes: { min: 30, max: 60 },
+    howTo: [],
+    realInconveniences: [],
+    soloScore: {
+      overall: 5,
+      breakdown: neutralBreakdown,
+      basedOnCount: 0,
+    },
+    sources: [{ type: "user", verifiedAt: nowIso }],
+    confidence: {
+      level: 1,
+      lastVerifiedAt: nowIso,
+      reason: "User-created, awaiting verification",
+      signals: {
+        aiScrapeAgeDays: 0,
+        passiveGpsHits30d: 0,
+        activeReports30d: 0,
+        trustedVerifications: 0,
+      },
+    },
+    nearbyExperienceIds: [],
+    stats: { completionCount: 0, averageRating: 0 },
+    status: "candidate",
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    userTags: input.userTags,
+  };
 }
