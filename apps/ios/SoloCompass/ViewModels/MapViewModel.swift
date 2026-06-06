@@ -664,6 +664,9 @@ public final class MapViewModel {
     public var pendingAddCoordinate: CLLocationCoordinate2D?
     /// Set once the user confirms — drives the voice-input sheet.
     public var isRecordingNewExperience: Bool = false
+    /// Set once the user confirms — drives the structured create-place form
+    /// (the primary add path; voice is the secondary one).
+    public var isShowingCreateForm: Bool = false
     /// Candidate experiences added via long-press → voice → AI. Rendered with
     /// `.hidden` category and a distinct (dashed) marker.
     public var candidateExperiences: [Experience] = []
@@ -1225,6 +1228,7 @@ public final class MapViewModel {
     public func cancelAddExperience() {
         pendingAddCoordinate = nil
         isRecordingNewExperience = false
+        isShowingCreateForm = false
     }
 
     /// Confirm the long-pressed location and begin voice recording to describe
@@ -1232,6 +1236,45 @@ public final class MapViewModel {
     public func confirmAddExperience() {
         guard pendingAddCoordinate != nil else { return }
         isRecordingNewExperience = true
+    }
+
+    /// Confirm the long-pressed location and open the structured create-place
+    /// form (the primary add path). `pendingAddCoordinate` stays set so the
+    /// form knows where to anchor; it is cleared on save/cancel.
+    public func confirmAddExperienceWithForm() {
+        guard pendingAddCoordinate != nil else { return }
+        isShowingCreateForm = true
+    }
+
+    /// Persist a user-created place from the form, render it immediately, and
+    /// clear the add-experience flow. The candidate is built via
+    /// `Experience.userDraft`, which forces unverified trust defaults — the
+    /// user never scores their own place.
+    public func createUserExperience(from input: NewPlaceFormInput) {
+        defer { cancelAddExperience() }
+        let candidate = Experience.userDraft(
+            uuid: UUID().uuidString,
+            title: input.title,
+            oneLiner: input.oneLiner,
+            category: input.category,
+            coordinates: [input.coordinate.longitude, input.coordinate.latitude],
+            // No cityCode filtering for user pins — they belong to wherever the
+            // user dropped them, not a curated city set.
+            cityCode: selectedCity ?? "user",
+            placeNameRomanized: input.placeNameRomanized,
+            placeNameLocal: input.placeNameLocal,
+            description: input.description,
+            photoUrls: input.photoUrls
+        )
+        // Persist to SwiftData so it survives relaunch (idempotent by id).
+        _ = experienceService.appendGenerated([candidate])
+        // Render right away: keep it in the candidate layer (distinct marker)
+        // and surface it among visible experiences without a full reload.
+        candidateExperiences.append(candidate)
+        withAnimation(Self.markerSetAnimation) {
+            visibleExperiences.append(candidate)
+            nearbySoloCount = computeNearbySoloCount(in: visibleExperiences)
+        }
     }
 
     /// Use AIService to structure a free-form transcript into a candidate

@@ -388,11 +388,12 @@ struct CompassMapContentView: View {
                     viewModel.cancelAddExperience()
                 }
                 Button(NSLocalizedString("addExperience.confirm.add", comment: "Add")) {
-                    viewModel.confirmAddExperience()
+                    viewModel.confirmAddExperienceWithForm()
                 }
             } message: {
                 Text(NSLocalizedString("addExperience.confirm.message", comment: "Describe it with your voice"))
             }
+            .sheet(isPresented: createFormSheetBinding) { createFormSheetContent }
             .sheet(isPresented: recordExperienceSheetBinding) { recordExperienceSheetContent }
             .sheet(isPresented: detailSheetBinding) { detailSheetContent }
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
@@ -740,8 +741,30 @@ struct CompassMapContentView: View {
 
     private var addExperienceAlertBinding: Binding<Bool> {
         Binding(
-            get: { (viewModel.pendingAddCoordinate != nil) && !viewModel.isRecordingNewExperience },
+            get: {
+                (viewModel.pendingAddCoordinate != nil)
+                    && !viewModel.isRecordingNewExperience
+                    && !viewModel.isShowingCreateForm
+            },
             set: { if !$0 { viewModel.cancelAddExperience() } }
+        )
+    }
+
+    /// Drives the structured create-place form. Presents only when the user
+    /// confirmed the long-press AND a coordinate is pending. On dismiss we only
+    /// tear down the add-flow if the user isn't switching to the voice path —
+    /// otherwise cancelling here would clear the pending coordinate before the
+    /// voice sheet could open.
+    private var createFormSheetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.isShowingCreateForm && viewModel.pendingAddCoordinate != nil },
+            set: { presenting in
+                guard !presenting else { return }
+                viewModel.isShowingCreateForm = false
+                if !viewModel.isRecordingNewExperience {
+                    viewModel.cancelAddExperience()
+                }
+            }
         )
     }
 
@@ -810,6 +833,18 @@ struct CompassMapContentView: View {
             },
             onSkip: { surveyExperience = nil }
         )
+    }
+
+    @ViewBuilder
+    private var createFormSheetContent: some View {
+        if let coordinate = viewModel.pendingAddCoordinate {
+            CreateExperienceSheet(
+                coordinate: coordinate,
+                onSave: { input in viewModel.createUserExperience(from: input) },
+                onUseVoice: { viewModel.confirmAddExperience() },
+                onCancel: { viewModel.cancelAddExperience() }
+            )
+        }
     }
 
     @ViewBuilder

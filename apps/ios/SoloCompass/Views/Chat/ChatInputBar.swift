@@ -1,4 +1,6 @@
+import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Pinned bottom input bar for `ChatSheet`. Combines:
 ///  * a multi-line text field (1–4 lines of growth)
@@ -22,12 +24,18 @@ public struct ChatInputBar: View {
     }
 
     @Binding public var draftText: String
+    /// Draft attachments staged for the next send, Instagram-DM style. The
+    /// parent owns the array; the bar appends on pick and clears on send.
+    @Binding public var attachments: [LocalAttachment]
     public let micState: MicState
     public let errorMessage: String?
 
     /// Fires when the user taps the send button (or hits return) with a
     /// non-empty draft. The trimmed text is passed in; the input bar
     /// clears `draftText` after the closure runs.
+    ///
+    /// Attachments are delivered via the `attachments` binding: callers read
+    /// the staged drafts inside `onSend`; the bar clears them afterwards.
     public let onSend: (String) -> Void
 
     /// Tap-to-toggle voice mode (accessibility path). `true` requests start,
@@ -49,6 +57,36 @@ public struct ChatInputBar: View {
     /// Drives the soft pulse on the "Listening" status dot.
     @State private var listeningPulse: Bool = false
 
+    // Attachment-picker presentation state.
+    @State private var showAttachmentDialog = false
+    @State private var photoSelections: [PhotosPickerItem] = []
+    @State private var showPhotosPicker = false
+    @State private var showCamera = false
+    @State private var showFileImporter = false
+
+    /// Primary initializer — includes the draft `attachments` binding.
+    public init(
+        draftText: Binding<String>,
+        attachments: Binding<[LocalAttachment]>,
+        micState: MicState,
+        errorMessage: String?,
+        onSend: @escaping (String) -> Void,
+        onMicToggle: @escaping (Bool) -> Void,
+        onMicPress: @escaping (Bool) -> Void,
+        onRetry: @escaping () -> Void
+    ) {
+        self._draftText = draftText
+        self._attachments = attachments
+        self.micState = micState
+        self.errorMessage = errorMessage
+        self.onSend = onSend
+        self.onMicToggle = onMicToggle
+        self.onMicPress = onMicPress
+        self.onRetry = onRetry
+    }
+
+    /// Backward-compatible initializer for callers that don't (yet) stage
+    /// attachments. Binds `attachments` to a constant empty array.
     public init(
         draftText: Binding<String>,
         micState: MicState,
@@ -58,13 +96,16 @@ public struct ChatInputBar: View {
         onMicPress: @escaping (Bool) -> Void,
         onRetry: @escaping () -> Void
     ) {
-        self._draftText = draftText
-        self.micState = micState
-        self.errorMessage = errorMessage
-        self.onSend = onSend
-        self.onMicToggle = onMicToggle
-        self.onMicPress = onMicPress
-        self.onRetry = onRetry
+        self.init(
+            draftText: draftText,
+            attachments: .constant([]),
+            micState: micState,
+            errorMessage: errorMessage,
+            onSend: onSend,
+            onMicToggle: onMicToggle,
+            onMicPress: onMicPress,
+            onRetry: onRetry
+        )
     }
 
     public var body: some View {
@@ -80,7 +121,15 @@ public struct ChatInputBar: View {
 
             stateLabel
 
+            if !attachments.isEmpty {
+                AttachmentDraftStrip(attachments: attachments) { id in
+                    attachments.removeAll { $0.id == id }
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
             HStack(alignment: .bottom, spacing: 8) {
+                plusButton
                 textField
                 sendButton
                 micButton
@@ -96,6 +145,47 @@ public struct ChatInputBar: View {
                     .fill(CT.borderDefault)
                     .frame(height: 0.5)
             }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: attachments)
+        .confirmationDialog(
+            NSLocalizedString("chat.attachment.add.title", comment: "Add attachment"),
+            isPresented: $showAttachmentDialog,
+            titleVisibility: .visible
+        ) {
+            Button(NSLocalizedString("chat.attachment.source.photos", comment: "Photo Library")) {
+                showPhotosPicker = true
+            }
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button(NSLocalizedString("chat.attachment.source.camera", comment: "Camera")) {
+                    showCamera = true
+                }
+            }
+            Button(NSLocalizedString("chat.attachment.source.files", comment: "Files")) {
+                showFileImporter = true
+            }
+            Button(NSLocalizedString("chat.attachment.source.cancel", comment: "Cancel"), role: .cancel) {}
+        }
+        .photosPicker(
+            isPresented: $showPhotosPicker,
+            selection: $photoSelections,
+            maxSelectionCount: 5,
+            matching: .images
+        )
+        .onChange(of: photoSelections) { _, items in
+            Task { await ingest(photoItems: items) }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            ChatCameraPicker { image in
+                appendCameraImage(image)
+            }
+            .ignoresSafeArea()
+        }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.item],
+            allowsMultipleSelection: true
+        ) { result in
+            ingest(fileResult: result)
         }
     }
 
@@ -150,6 +240,28 @@ public struct ChatInputBar: View {
         colorScheme == .dark ? Color(.separator) : CT.borderSubtle
     }
 
+    /// Instagram-style "+" entry that surfaces the photo/camera/files menu.
+    private var plusButton: some View {
+        Button {
+            showAttachmentDialog = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(CT.accent)
+                .frame(width: 40, height: 40)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(.tertiarySystemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
+                )
+        }
+        .buttonStyle(PressableButtonStyle(pressedScale: 0.88))
+        .accessibilityLabel(Text(NSLocalizedString("chat.attachment.add.a11y", comment: "Add attachment")))
+    }
+
     private var textField: some View {
         // Multi-line growth comes free with `axis: .vertical` + lineLimit range.
         TextField(
@@ -176,7 +288,8 @@ public struct ChatInputBar: View {
 
     private var sendButton: some View {
         let trimmed = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let canSend = !trimmed.isEmpty
+        // Enabled when there's text OR at least one staged attachment.
+        let canSend = !trimmed.isEmpty || !attachments.isEmpty
         return Button(action: submitDraft) {
             Image(systemName: "arrow.up.circle.fill")
                 .font(.title2)
@@ -245,9 +358,117 @@ public struct ChatInputBar: View {
 
     private func submitDraft() {
         let trimmed = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        // Allow sending an attachment-only message (no text).
+        guard !trimmed.isEmpty || !attachments.isEmpty else { return }
+        // Caller reads `attachments` (still bound) inside onSend, then we clear.
         onSend(trimmed)
         draftText = ""
+        attachments = []
+    }
+
+    // MARK: - Attachment ingestion
+
+    /// Decode picked photo-library items into image drafts.
+    private func ingest(photoItems: [PhotosPickerItem]) async {
+        var picked: [LocalAttachment] = []
+        for item in photoItems {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            let image = UIImage(data: data)
+            let ext = (item.supportedContentTypes.first?.preferredFilenameExtension) ?? "jpg"
+            let mime = item.supportedContentTypes.first?.preferredMIMEType ?? "image/jpeg"
+            picked.append(
+                LocalAttachment(
+                    kind: .image,
+                    fileName: "image-\(UUID().uuidString.prefix(8)).\(ext)",
+                    mimeType: mime,
+                    data: data,
+                    image: image
+                )
+            )
+        }
+        if !picked.isEmpty {
+            attachments.append(contentsOf: picked)
+        }
+        photoSelections = []
+    }
+
+    /// Wrap a freshly captured camera photo as a JPEG image draft.
+    private func appendCameraImage(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.9) else { return }
+        attachments.append(
+            LocalAttachment(
+                kind: .image,
+                fileName: "camera-\(UUID().uuidString.prefix(8)).jpg",
+                mimeType: "image/jpeg",
+                data: data,
+                image: image
+            )
+        )
+    }
+
+    /// Read security-scoped files chosen via the document picker into drafts.
+    private func ingest(fileResult: Result<[URL], Error>) {
+        guard case let .success(urls) = fileResult else { return }
+        var picked: [LocalAttachment] = []
+        for url in urls {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            guard let data = try? Data(contentsOf: url) else { continue }
+            let type = UTType(filenameExtension: url.pathExtension)
+            let isImage = type?.conforms(to: .image) ?? false
+            let mime = type?.preferredMIMEType ?? "application/octet-stream"
+            picked.append(
+                LocalAttachment(
+                    kind: isImage ? .image : .file,
+                    fileName: url.lastPathComponent,
+                    mimeType: mime,
+                    data: data,
+                    image: isImage ? UIImage(data: data) : nil
+                )
+            )
+        }
+        if !picked.isEmpty {
+            attachments.append(contentsOf: picked)
+        }
+    }
+}
+
+// MARK: - Camera picker bridge
+
+/// Minimal `UIImagePickerController` wrapper for in-app camera capture.
+/// Presented only when `.camera` source is available (guarded by the caller).
+private struct ChatCameraPicker: UIViewControllerRepresentable {
+    let onCapture: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ChatCameraPicker
+        init(_ parent: ChatCameraPicker) { self.parent = parent }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.onCapture(image)
+            }
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
 }
 
@@ -271,14 +492,45 @@ public struct ChatInputBar: View {
     )
 }
 
+#Preview("With attachments") {
+    StatefulPreviewWrapper(
+        initial: "Check these out",
+        micState: .idle,
+        error: nil,
+        attachments: [
+            LocalAttachment(
+                kind: .image,
+                fileName: "photo.jpg",
+                mimeType: "image/jpeg",
+                data: Data(count: 120_000),
+                image: UIImage(systemName: "photo.fill")
+            ),
+            LocalAttachment(
+                kind: .file,
+                fileName: "notes.pdf",
+                mimeType: "application/pdf",
+                data: Data(count: 900_000),
+                image: nil
+            )
+        ]
+    )
+}
+
 /// Small helper so the previews can mutate `draftText` like the real parent.
 private struct StatefulPreviewWrapper: View {
     @State var text: String
+    @State var attachments: [LocalAttachment]
     let micState: ChatInputBar.MicState
     let error: String?
 
-    init(initial: String, micState: ChatInputBar.MicState, error: String?) {
+    init(
+        initial: String,
+        micState: ChatInputBar.MicState,
+        error: String?,
+        attachments: [LocalAttachment] = []
+    ) {
         self._text = State(initialValue: initial)
+        self._attachments = State(initialValue: attachments)
         self.micState = micState
         self.error = error
     }
@@ -288,6 +540,7 @@ private struct StatefulPreviewWrapper: View {
             Spacer()
             ChatInputBar(
                 draftText: $text,
+                attachments: $attachments,
                 micState: micState,
                 errorMessage: error,
                 onSend: { _ in },

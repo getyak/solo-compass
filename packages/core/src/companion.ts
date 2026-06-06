@@ -126,11 +126,29 @@ export interface Conversation {
   readonly updatedAt: string;
 }
 
+/** A media or document attachment carried by a {@link ChatMessage}. */
+export interface ChatAttachment {
+  readonly id: string;
+  /** Discriminates a previewable image from an arbitrary file. */
+  readonly kind: "image" | "file";
+  readonly fileName: string;
+  readonly mimeType: string;
+  readonly fileSizeBytes: number;
+  /** Path within the `chat-media` bucket: `{conversationId}/{messageId}/{attachmentId}-{fileName}`. */
+  readonly storagePath: string;
+  /** Pixel width, image kind only. */
+  readonly width?: number;
+  /** Pixel height, image kind only. */
+  readonly height?: number;
+}
+
 export interface ChatMessage {
   readonly id: ChatMessageId;
   readonly conversationId: ConversationId;
   readonly senderId: UserId;
   readonly body: string;
+  /** Attachments carried by this message. Omitted/empty when text-only. */
+  readonly attachments?: readonly ChatAttachment[];
   /** ISO 8601 UTC timestamp when the recipient read the message. */
   readonly readAt?: string;
   /** ISO 8601 UTC timestamp. */

@@ -16,9 +16,10 @@ public struct ChatView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var service: ChatService
     @State private var inputText = ""
+    /// Draft attachments staged in the Instagram-style input bar before send.
+    @State private var draftAttachments: [LocalAttachment] = []
     @State private var showingReportSheet = false
     @State private var pinnedRoute: Route?
-    @FocusState private var inputFocused: Bool
 
     private let currentUserId: String?
     /// The other participant's user ID (used for report/block in one-on-one).
@@ -136,7 +137,8 @@ public struct ChatView: View {
                         ChatMessageRow(
                             message: msg,
                             isFromMe: msg.senderId == currentUserId,
-                            isGroupRoute: isGroupRoute
+                            isGroupRoute: isGroupRoute,
+                            resolveURL: resolveAttachmentURL
                         )
                         .id(msg.id.rawValue)
                     }
@@ -154,49 +156,33 @@ public struct ChatView: View {
         }
     }
 
+    /// Instagram-DM-style input bar — "+" attachment menu (photos / camera /
+    /// files) + rounded text field + inline send. No mic (that's Voice Agent
+    /// only). Shared with the Voice-Agent bar's picker plumbing via
+    /// `AttachmentInputBar`; staged drafts live in `draftAttachments`.
     private var inputBar: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            TextField(
-                NSLocalizedString("companion.chat.input.placeholder", comment: "Message input placeholder"),
-                text: $inputText,
-                axis: .vertical
+        AttachmentInputBar(
+            draftText: $inputText,
+            attachments: $draftAttachments,
+            isSending: service.isSending,
+            placeholder: NSLocalizedString(
+                "companion.chat.input.placeholder",
+                comment: "Message input placeholder"
             )
-            .lineLimit(1...5)
-            .focused($inputFocused)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(.secondarySystemBackground))
-            )
-            .accessibilityLabel(NSLocalizedString("companion.chat.input.a11y", comment: "Message input accessibility"))
-
-            Button {
-                Task { await submitMessage() }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 30))
-                    .foregroundStyle(canSend ? Color.accentColor : Color.secondary)
-            }
-            .disabled(!canSend)
-            .accessibilityLabel(NSLocalizedString("companion.chat.send.a11y", comment: "Send message"))
+        ) { trimmed in
+            // Read staged drafts here (the bar clears them after this returns).
+            let staged = draftAttachments
+            Task { await service.send(trimmed, attachments: staged) }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color(.systemBackground))
     }
 
     // MARK: - Helpers
 
-    private var canSend: Bool {
-        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !service.isSending
-    }
-
-    private func submitMessage() async {
-        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        inputText = ""
-        await service.send(text)
+    /// Resolve a persisted attachment to a signed download URL, delegating to
+    /// the conversation's `ChatService`. Returns `nil` (placeholder) when the
+    /// storage backend isn't deployed.
+    private func resolveAttachmentURL(_ attachment: ChatAttachment) async -> URL? {
+        await service.resolveAttachmentURL(attachment)
     }
 }
 
@@ -206,6 +192,10 @@ private struct ChatMessageRow: View {
     let message: ChatMessage
     let isFromMe: Bool
     var isGroupRoute: Bool = false
+    /// Resolves a persisted attachment to a signed download URL (Phase D).
+    let resolveURL: (ChatAttachment) async -> URL?
+
+    @Environment(\.colorScheme) private var colorScheme
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -216,6 +206,12 @@ private struct ChatMessageRow: View {
 
     private var showAvatar: Bool { isGroupRoute && !isFromMe }
 
+    private var hasText: Bool {
+        !message.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var attachments: [ChatAttachment] { message.attachments ?? [] }
+
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
             if isFromMe { Spacer(minLength: 60) }
@@ -225,7 +221,7 @@ private struct ChatMessageRow: View {
                     .padding(.trailing, 6)
             }
 
-            VStack(alignment: isFromMe ? .trailing : .leading, spacing: 2) {
+            VStack(alignment: isFromMe ? .trailing : .leading, spacing: 4) {
                 if showAvatar {
                     Text(message.senderId)
                         .font(.caption2.weight(.medium))
@@ -234,15 +230,15 @@ private struct ChatMessageRow: View {
                         .padding(.horizontal, 4)
                 }
 
-                Text(message.body)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(isFromMe ? Color.accentColor : Color(.secondarySystemBackground))
-                    )
-                    .foregroundStyle(isFromMe ? Color.white : Color.primary)
-                    .textSelection(.enabled)
+                // Text bubble — shown only when there's body text. Attachment-only
+                // messages skip the empty bubble and render just the media.
+                if hasText {
+                    textBubble
+                }
+
+                if !attachments.isEmpty {
+                    AttachmentBubble(attachments: attachments, resolveURL: resolveURL)
+                }
 
                 Text(formattedTime(message.createdAt))
                     .font(.caption2)
@@ -267,17 +263,65 @@ private struct ChatMessageRow: View {
         )
     }
 
+    // MARK: - Bubble (unified Voice-Agent design language)
+
+    /// Plain-text bubble matching `MessageBubble`'s tokens: 18pt continuous
+    /// corners, 14×9 padding, CT.accent fill for my messages (white text) /
+    /// surface fill for others (dark-aware), 0.5pt border, soft shadow.
+    /// DM is human-to-human, so this stays plain `Text` (no Markdown).
+    private var textBubble: some View {
+        Text(message.body)
+            .font(.body)
+            .foregroundStyle(isFromMe ? Color.white : Color.primary)
+            .textSelection(.enabled)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(bubbleFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(bubbleBorder, lineWidth: 0.5)
+            )
+            .shadow(
+                color: Color.black.opacity(isFromMe ? 0.10 : 0.06),
+                radius: isFromMe ? 6 : 4,
+                x: 0,
+                y: isFromMe ? 2 : 1
+            )
+    }
+
+    /// User bubble = warm accent; other = white (light) / dark AI fill (dark),
+    /// mirroring `MessageBubble.assistantFill`.
+    private var bubbleFill: Color {
+        if isFromMe { return CT.accent }
+        return colorScheme == .dark ? CT.chatAIBubbleBgDark : CT.surfaceWhite
+    }
+
+    private var bubbleBorder: Color {
+        if isFromMe { return CT.accentBorder }
+        return colorScheme == .dark ? Color(.separator) : CT.borderSubtle
+    }
+
     @ViewBuilder
     private var avatarColumn: some View {
         Circle()
             .fill(UserDirectory.color(forId: message.senderId))
             .frame(width: 22, height: 22)
             .overlay(
-                Text(String(message.senderId.prefix(1)).uppercased())
+                Text(avatarInitial)
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white)
             )
             .alignmentGuide(.bottom) { $0[.bottom] }
+    }
+
+    /// First letter of the sender id, falling back to "?" so an empty/unknown
+    /// id never renders a blank avatar.
+    private var avatarInitial: String {
+        let first = String(message.senderId.prefix(1)).uppercased()
+        return first.isEmpty ? "?" : first
     }
 
     private func formattedTime(_ iso: String) -> String {
@@ -319,6 +363,23 @@ private struct ChatMessageRow: View {
             senderId: "user_preview",
             body: "Definitely. I have a few marked — let's compare notes.",
             createdAt: "2026-02-05T14:02:00Z"
+        ),
+        ChatMessage(
+            id: ChatMessageId(rawValue: "m4"),
+            conversationId: conv.id,
+            senderId: "user_preview",
+            body: "Here's my shortlist.",
+            attachments: [
+                ChatAttachment(
+                    id: "att_preview_1",
+                    kind: .file,
+                    fileName: "tokyo-coffee.pdf",
+                    mimeType: "application/pdf",
+                    fileSizeBytes: 820_000,
+                    storagePath: "conv/m4/att_preview_1-tokyo-coffee.pdf"
+                )
+            ],
+            createdAt: "2026-02-05T14:03:00Z"
         ),
     ]
     return NavigationStack {

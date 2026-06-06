@@ -95,6 +95,10 @@ public struct ExperienceLocation: Codable, Hashable {
     public let priceLevel: Double?     // 1–4 (1 = cheap, 4 = expensive)
     public let website: String?
     public let phone: String?
+    /// Photos attached to the place. User-created experiences populate this from
+    /// the photo picker; seed/OSM places leave it nil. Values are URL strings:
+    /// local `file://` paths until synced, then remote https URLs. Mirrors TS.
+    public let photoUrls: [String]?
 
     public var clCoordinate: CLLocationCoordinate2D? {
         guard coordinates.count >= 2 else { return nil }
@@ -111,7 +115,8 @@ public struct ExperienceLocation: Codable, Hashable {
         openingHours: String? = nil,
         priceLevel: Double? = nil,
         website: String? = nil,
-        phone: String? = nil
+        phone: String? = nil,
+        photoUrls: [String]? = nil
     ) {
         self.coordinates = coordinates
         self.cityCode = cityCode
@@ -123,6 +128,7 @@ public struct ExperienceLocation: Codable, Hashable {
         self.priceLevel = priceLevel
         self.website = website
         self.phone = phone
+        self.photoUrls = photoUrls
     }
 }
 
@@ -474,6 +480,87 @@ public struct Experience: Codable, Hashable, Identifiable {
     /// True when this entry was discovered via OpenStreetMap Explore
     /// (vs. a curated seed entry). Used to surface provenance in the UI.
     public var isFromOpenStreetMap: Bool { id.hasPrefix("exp_osm_") }
+
+    /// ID prefix for experiences a user creates by hand. Mirrors
+    /// `EXP_USER_ID_PREFIX` in packages/core/src/experience.ts.
+    public static let userIdPrefix = "exp_user_"
+
+    /// True when the user registered this place themselves. Drives a distinct
+    /// "unverified / user-created" marker and badge in the UI.
+    public var isUserCreated: Bool { id.hasPrefix(Self.userIdPrefix) }
+
+    /// Build a candidate `Experience` from raw user input. Trust-critical fields
+    /// are forced to safe, unverified defaults — the user never scores their own
+    /// place. Mirrors `createUserExperience` in packages/core/src/experience.ts.
+    ///
+    /// - Parameters:
+    ///   - uuid: caller-supplied unique id (e.g. `UUID().uuidString`).
+    ///   - now: creation timestamp; defaults to current date.
+    public static func userDraft(
+        uuid: String,
+        title: String,
+        oneLiner: String,
+        category: ExperienceCategory,
+        coordinates: [Double],
+        cityCode: String,
+        placeNameRomanized: String? = nil,
+        placeNameLocal: String? = nil,
+        addressHint: String? = nil,
+        description: String = "",
+        photoUrls: [String]? = nil,
+        userTags: [String]? = nil,
+        now: Date = Date()
+    ) -> Experience {
+        Experience(
+            id: "\(userIdPrefix)\(uuid)",
+            title: title,
+            oneLiner: oneLiner,
+            whyItMatters: description,
+            category: category,
+            location: ExperienceLocation(
+                coordinates: coordinates,
+                cityCode: cityCode,
+                addressHint: addressHint,
+                placeNameLocal: placeNameLocal,
+                placeNameRomanized: placeNameRomanized,
+                photoUrls: photoUrls
+            ),
+            bestTimes: [],
+            durationMinutes: DurationRange(min: 30, max: 60),
+            howTo: [],
+            realInconveniences: [],
+            soloScore: SoloScore(
+                overall: 5,
+                breakdown: SoloScore.Breakdown(
+                    seatingFriendly: 5,
+                    soloPatronRatio: 5,
+                    staffPressure: 5,
+                    soloPortioning: 5,
+                    ambianceFit: 5,
+                    safety: 5
+                ),
+                basedOnCount: 0
+            ),
+            sources: [InformationSource(type: .user, verifiedAt: now)],
+            confidence: Confidence(
+                level: 1,
+                lastVerifiedAt: now,
+                reason: "User-created, awaiting verification",
+                signals: Confidence.Signals(
+                    aiScrapeAgeDays: 0,
+                    passiveGpsHits30d: 0,
+                    activeReports30d: 0,
+                    trustedVerifications: 0
+                )
+            ),
+            nearbyExperienceIds: [],
+            stats: Stats(completionCount: 0, averageRating: 0),
+            status: .candidate,
+            createdAt: now,
+            updatedAt: now,
+            userTags: userTags
+        )
+    }
 
     /// True only when the entry actually went through AI synthesis. The
     /// `skeletonExperience` fallback (network/quota failure, missing key)

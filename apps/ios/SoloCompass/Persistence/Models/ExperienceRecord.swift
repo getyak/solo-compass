@@ -80,6 +80,11 @@ public final class ExperienceRecord {
     /// as the empty array — see `asValue` below.
     public var userTagsBlob: Data?
 
+    /// Photos attached to a user-created place. JSON-encoded `[String]` of URL
+    /// strings (local `file://` then remote https after sync). Optional so rows
+    /// migrated from earlier schema versions decode as `nil`.
+    public var photoUrlsBlob: Data?
+
     public init(
         id: String,
         title: String,
@@ -110,7 +115,8 @@ public final class ExperienceRecord {
         confidenceBlob: Data,
         statsBlob: Data,
         nearbyExperienceIdsBlob: Data,
-        userTagsBlob: Data? = nil
+        userTagsBlob: Data? = nil,
+        photoUrlsBlob: Data? = nil
     ) {
         self.id = id
         self.title = title
@@ -142,10 +148,19 @@ public final class ExperienceRecord {
         self.statsBlob = statsBlob
         self.nearbyExperienceIdsBlob = nearbyExperienceIdsBlob
         self.userTagsBlob = userTagsBlob
+        self.photoUrlsBlob = photoUrlsBlob
     }
 }
 
 // MARK: - Two-way mapping
+
+/// Encode optional photo URLs to a JSON blob, or `nil` when there are none.
+/// Kept as a free function so the `init(from:)` call site stays a simple
+/// expression the Swift type-checker can resolve quickly.
+private func encodedPhotoUrls(_ urls: [String]?, encoder: JSONEncoder) -> Data? {
+    guard let urls else { return nil }
+    return try? encoder.encode(urls)
+}
 
 extension ExperienceRecord {
     /// Build a record from an `Experience` value. Encoding errors are
@@ -186,7 +201,8 @@ extension ExperienceRecord {
                 confidenceBlob: try encoder.encode(experience.confidence),
                 statsBlob: try encoder.encode(experience.stats),
                 nearbyExperienceIdsBlob: try encoder.encode(experience.nearbyExperienceIds),
-                userTagsBlob: try encoder.encode(experience.userTags ?? [])
+                userTagsBlob: try encoder.encode(experience.userTags ?? []),
+                photoUrlsBlob: encodedPhotoUrls(experience.location.photoUrls, encoder: encoder)
             )
         } catch {
             fatalError("Failed to encode Experience \(experience.id): \(error)")
@@ -215,7 +231,8 @@ extension ExperienceRecord {
                     openingHours: openingHours,
                     priceLevel: priceLevel,
                     website: website,
-                    phone: phone
+                    phone: phone,
+                    photoUrls: photoUrlsBlob.flatMap { try? decoder.decode([String].self, from: $0) }
                 ),
                 bestTimes: try decoder.decode([TimeWindow].self, from: bestTimesBlob),
                 durationMinutes: .init(min: durationMin, max: durationMax),
