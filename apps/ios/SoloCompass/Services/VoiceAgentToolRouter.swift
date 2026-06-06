@@ -46,10 +46,30 @@ public final class VoiceAgentToolRouter {
 
     private weak var mapViewModel: MapViewModel?
     private let preferences: UserPreferences
+    /// Used by `build_route` to string nearby experiences into a walk. Optional
+    /// so legacy callers (and tests) that don't build routes compile unchanged;
+    /// when absent, `build_route` returns a graceful error instead of crashing.
+    private let aiService: AIService?
 
-    public init(mapViewModel: MapViewModel, preferences: UserPreferences) {
+    /// Side effect of the last `execute(_:)` call that the chat surface can turn
+    /// into an inline card (places to show, a route to adopt). Reset to `nil` at
+    /// the start of every `execute(_:)` so the orchestrator only ever reads the
+    /// effect of the call it just made. This is intentionally OUT of the
+    /// model-facing JSON contract — the model gets counts/ids, the UI gets cards.
+    public enum ToolEffect: Equatable {
+        case experiences([Experience])
+        case route(RouteProposal)
+    }
+    public private(set) var lastEffect: ToolEffect?
+
+    public init(
+        mapViewModel: MapViewModel,
+        preferences: UserPreferences,
+        aiService: AIService? = nil
+    ) {
         self.mapViewModel = mapViewModel
         self.preferences = preferences
+        self.aiService = aiService
     }
 
     // MARK: - Tool catalog
@@ -194,6 +214,18 @@ public final class VoiceAgentToolRouter {
             }
             """#
         ),
+        .init(
+            name: "build_route",
+            description: "String the user's nearby places into ONE walkable route, ordered into a sensible walk with a title, summary, and a 'why now' line that reflects the current time, weather, and which places the user has or hasn't visited. Use when the user asks you to plan a walk, build a route, or 'string these together'. Returns a proposed route as an inline card the user can adopt — it is NOT saved until the user taps adopt. Prefer experience_ids from CURRENT VISIBLE EXPERIENCES; omit them to let the system pick the best nearby stops.",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "experience_ids": {"type": "array", "items": {"type": "string"}, "description": "Optional preferred stop ids (from CURRENT VISIBLE EXPERIENCES) to prioritise. When omitted, the system chooses the best nearby stops."}
+              }
+            }
+            """#
+        ),
     ]
 
     // MARK: - Execution
@@ -203,10 +235,14 @@ public final class VoiceAgentToolRouter {
     /// content. Failures are represented as `{"ok":false,"error":"…"}`
     /// rather than thrown so the agent can recover via the model.
     public func execute(_ call: VoiceAgentSession.ToolCall) async -> String {
+        // Only the effect of THIS call should be visible to the orchestrator.
+        lastEffect = nil
         do {
             switch call.name {
             case "explore_nearby":
                 return try await executeExploreNearby(args: call.argumentsJSON)
+            case "build_route":
+                return try await executeBuildRoute(args: call.argumentsJSON)
             case "filter_by_category":
                 return try executeFilterByCategory(args: call.argumentsJSON)
             case "show_details":
@@ -257,6 +293,9 @@ public final class VoiceAgentToolRouter {
         // Explicit radius_meters overrides the progressive starting ring.
         let radius = parsed.radius_meters ?? 3000
         let category = parsed.categories?.compactMap(ExperienceCategory.init(rawValue:)).first
+        // Snapshot the visible set so we can diff which places this explore added
+        // and surface them as inline chat cards (the agent no longer jumps the map).
+        let before = Set(vm.visibleExperiences.map(\.id))
         if useProgressive {
             await vm.exploreProgressively(
                 at: coord,
@@ -267,12 +306,27 @@ public final class VoiceAgentToolRouter {
         } else {
             await vm.exploreNearby(at: coord, radiusMeters: radius, category: category)
         }
+        recordAddedEffect(before: before, vm: vm)
         return Self.successJSON([
             "added_count": vm.lastExploreAddedCount,
             "radius_meters": radius,
             "progressive": useProgressive,
         ])
     }
+
+    /// Diff the visible set against a pre-call snapshot and record the newly
+    /// added experiences as a `.experiences` effect (capped to a sane card rail
+    /// length). No-op when nothing new arrived, so a refresh-that-found-nothing
+    /// doesn't spawn an empty card.
+    private func recordAddedEffect(before: Set<String>, vm: MapViewModel) {
+        let added = vm.visibleExperiences.filter { !before.contains($0.id) }
+        guard !added.isEmpty else { return }
+        lastEffect = .experiences(Array(added.prefix(Self.maxCardExperiences)))
+    }
+
+    /// Max places surfaced as cards from a single explore/search so the chat
+    /// rail stays scannable rather than dumping 30 cards.
+    private static let maxCardExperiences = 6
 
     private struct FilterByCategoryArgs: Decodable {
         let category: String
@@ -312,8 +366,10 @@ public final class VoiceAgentToolRouter {
         guard let exp = vm.visibleExperiences.first(where: { $0.id == parsed.experience_id }) else {
             throw RouterError.experienceNotFound(parsed.experience_id)
         }
-        vm.selectExperience(exp)
-        vm.isShowingDetail = true
+        // 不再自动跳转 / 弹详情打断用户 — surface the place as an inline chat card
+        // instead. The user taps the card to reveal it on the map (or open its
+        // detail). The agent presenting a place must never seize the map context.
+        lastEffect = .experiences([exp])
         return Self.successJSON(["experience_id": exp.id, "title": exp.title])
     }
 
@@ -363,6 +419,7 @@ public final class VoiceAgentToolRouter {
         let useProgressive = parsed.progressive ?? true
         let radius = parsed.radius_meters ?? 2000
         let category = parsed.categories?.compactMap(ExperienceCategory.init(rawValue:)).first
+        let before = Set(vm.visibleExperiences.map(\.id))
         if useProgressive {
             await vm.exploreProgressively(
                 at: coord,
@@ -373,11 +430,71 @@ public final class VoiceAgentToolRouter {
         } else {
             await vm.exploreNearby(at: coord, radiusMeters: radius, category: category)
         }
+        recordAddedEffect(before: before, vm: vm)
         return Self.successJSON([
             "query": parsed.query,
             "added_count": vm.lastExploreAddedCount,
             "radius_meters": radius,
             "progressive": useProgressive,
+        ])
+    }
+
+    // MARK: - build_route (conversational route creation)
+
+    private struct BuildRouteArgs: Decodable {
+        let experience_ids: [String]?
+    }
+
+    /// String nearby experiences into one walkable route and surface it as an
+    /// adoptable chat card (NOT saved). The LLM inside `generateRoute` already
+    /// factors current time / best-now windows / solo score; the system prompt
+    /// (orchestrator) injects weather + visited context. When `experience_ids`
+    /// are given, they're prioritised as the candidate pool; otherwise the whole
+    /// visible set is the pool.
+    private func executeBuildRoute(args: String) async throws -> String {
+        let parsed: BuildRouteArgs = try Self.decode(args, tool: "build_route")
+        guard let vm = mapViewModel else {
+            throw RouterError.underlying("map view model deallocated")
+        }
+        guard let ai = aiService else {
+            throw RouterError.underlying("route building unavailable")
+        }
+
+        // Build the candidate pool: preferred ids first (when valid), else the
+        // full visible set. The route generator picks/orders the final stops.
+        let visible = vm.visibleExperiences
+        let candidates: [Experience]
+        if let preferred = parsed.experience_ids, !preferred.isEmpty {
+            let preferredSet = Set(preferred)
+            let picked = visible.filter { preferredSet.contains($0.id) }
+            // Fall back to the full set if none of the preferred ids were visible
+            // (model hallucinated ids) so we still produce a route.
+            candidates = picked.count >= 2 ? picked : visible
+        } else {
+            candidates = visible
+        }
+        guard candidates.count >= 2 else {
+            throw RouterError.invalidArguments(
+                tool: "build_route",
+                reason: "need at least 2 nearby places to build a route"
+            )
+        }
+
+        let cityCode = vm.selectedCity ?? candidates.first?.location.cityCode ?? "osm"
+        let route = try await ai.generateRoute(
+            from: candidates,
+            cityCode: cityCode,
+            userCoordinate: vm.exploreAnchorCoordinate
+        )
+        // Resolve stops in walk order so the card can render names without a lookup.
+        let byId = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
+        let stops = route.experienceIds.compactMap { byId[$0] }
+        let proposal = RouteProposal(route: route, stops: stops)
+        lastEffect = .route(proposal)
+        return Self.successJSON([
+            "route_title": route.title,
+            "stop_count": stops.count,
+            "estimated_minutes": route.estimatedDuration,
         ])
     }
 

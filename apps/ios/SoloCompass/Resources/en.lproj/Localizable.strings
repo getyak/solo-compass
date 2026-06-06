@@ -676,7 +676,20 @@
 "agent.step.dismiss" = "✕ Dismissing…";
 "agent.step.search" = "🔍 Searching places…";
 "agent.step.navigate" = "🗺 Opening navigation…";
+"agent.step.buildRoute" = "🧭 Stringing a route together…";
 "agent.step.executing" = "⚙️ Executing…";
+
+/* Reasoning trace (elegant "thinking" panel) */
+"agent.trace.foundPlaces" = "Found %d place(s) that fit";
+"agent.trace.builtRoute" = "Strung %d stops into a walk";
+"chat.thinking.title" = "Thinking it through";
+"chat.thinking.a11y" = "Solo Compass is thinking";
+
+/* In-chat cards (places / proposed route) */
+"chat.card.viewOnMap" = "Tap to see on map";
+"chat.card.viewOnMap.a11y" = "Double tap to reveal this place on the map";
+"chat.route.adopt" = "Use this route";
+"chat.route.adopt.a11y" = "Double tap to save this route and open it";
 
 /* Voice agent inline overlay (VoiceAgentOverlay) */
 "voiceAgent.orb.a11y" = "Hold to speak to Solo Compass";

@@ -607,21 +607,31 @@ struct CompassMapContentView: View {
                     ) { detent, sortMode in
                         if detent != .peek {
                             VStack(spacing: 0) {
-                                // US-025: Routes section above Nearby (non-scrollable header rows)
-                                RoutesSection(
-                                    routes: nearbyRoutes,
-                                    isNowFilter: viewModel.isNowFilter,
-                                    onSelectRoute: { route in
-                                        routeSheet = .detail(route)
-                                    }
-                                )
+                                // 路线图仅在 Now / 当下栏目出现 — routes are a
+                                // time-sensitive "what should I walk right now"
+                                // artifact, meaningless outside the Now context.
+                                // In every other sort mode the Routes section and
+                                // the create-route entry are hidden entirely, so the
+                                // sheet shows only 附近 there. Inside this branch
+                                // `isNowFilter` is always true. Gating goes through
+                                // the testable `shouldShowRoutesSection` helper.
+                                if Self.shouldShowRoutesSection(isNowFilter: viewModel.isNowFilter) {
+                                    // US-025: Routes section above Nearby (non-scrollable header rows)
+                                    RoutesSection(
+                                        routes: nearbyRoutes,
+                                        isNowFilter: true,
+                                        onSelectRoute: { route in
+                                            routeSheet = .detail(route)
+                                        }
+                                    )
 
-                                // Create-your-own-route entry, between Routes and Nearby.
-                                CreateRouteEntryCard {
-                                    routeSheet = .create
+                                    // Create-your-own-route entry, between Routes and Nearby.
+                                    CreateRouteEntryCard {
+                                        routeSheet = .create
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 8)
                                 }
-                                .padding(.horizontal, 16)
-                                .padding(.top, 8)
 
                                 NearbySection(
                                     experiences: viewModel.visibleExperiences,
@@ -629,8 +639,11 @@ struct CompassMapContentView: View {
                                     referenceCoordinate: locationService.currentLocation?.coordinate
                                         ?? viewModel.defaultCenterForSelectedCity,
                                     sortMode: sortMode.wrappedValue,
-                                    // US-036: divider above the Nearby header separates it from Routes.
-                                    showsSectionDivider: true,
+                                    // US-036: divider above the Nearby header separates it from
+                                    // Routes — but only when Routes is actually shown (Now mode).
+                                    // Outside Now the Routes section is hidden, so the divider would
+                                    // dangle above the very first section; suppress it there.
+                                    showsSectionDivider: viewModel.isNowFilter,
                                     onExploreElsewhere: {
                                         // Zoom the map out one step by doubling the visible span,
                                         // capped at ±90° lat / ±180° lon, so out-of-range
@@ -1116,7 +1129,20 @@ struct CompassMapContentView: View {
             startInVoiceMode: chatStartMode == .voice,
             // The in-view "X" routes through the same binding setter so its
             // teardown matches swipe-to-dismiss exactly.
-            onDismiss: { chatOrchestratorBinding.wrappedValue = nil }
+            onDismiss: { chatOrchestratorBinding.wrappedValue = nil },
+            // Tapping a chat place card reveals it on the map (the agent never
+            // jumps there on its own — this is the user's explicit action).
+            onSelectExperience: { exp in
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    viewModel.selectExperience(exp)
+                }
+            },
+            // Adopting a proposed route saves it and opens its detail sheet.
+            onAdoptRoute: { proposal in
+                routeStore.save(proposal.route)
+                refreshNearbyRoutes(cityCode: viewModel.selectedCity)
+                routeSheet = .detail(proposal.route)
+            }
         )
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -1310,6 +1336,15 @@ struct CompassMapContentView: View {
                 toRadiusKm
             )
         }
+    }
+
+    /// Whether the bottom sheet should surface the Routes section + create-route
+    /// entry. Routes are a "what should I walk right now" artifact, so they only
+    /// appear in the Now / 当下 context — every other sort mode hides them
+    /// entirely. Exposed as a pure static so the rule is unit-testable rather
+    /// than buried in the view body. See [[project_routes_now_only]].
+    static func shouldShowRoutesSection(isNowFilter: Bool) -> Bool {
+        isNowFilter
     }
 }
 

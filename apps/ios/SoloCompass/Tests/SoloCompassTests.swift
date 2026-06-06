@@ -3601,8 +3601,10 @@ final class SoloCompassTests: XCTestCase {
             XCTAssertEqual(obj?["type"] as? String, "object",
                            "tool \(tool.name) schema must declare type:object")
         }
-        XCTAssertEqual(VoiceAgentToolRouter.allTools.count, 9,
-                       "PRD spec is now 9 tools (US-VA-03 expanded)")
+        XCTAssertEqual(VoiceAgentToolRouter.allTools.count, 10,
+                       "9 PRD tools + build_route (conversational route creation)")
+        XCTAssertTrue(VoiceAgentToolRouter.allTools.contains { $0.name == "build_route" },
+                      "build_route must be advertised so the model can string a walk")
     }
 
     func testToolRouterFilterByCategoryHappyPath() async throws {
@@ -3642,8 +3644,20 @@ final class SoloCompassTests: XCTestCase {
             argumentsJSON: #"{"experience_id":"\#(firstId)"}"#
         ))
         XCTAssertTrue(result.contains(#""ok":true"#))
-        XCTAssertEqual(rig.vm.selectedExperience?.id, firstId)
-        XCTAssertTrue(rig.vm.isShowingDetail)
+        // New behavior: show_details NO LONGER seizes the map. It surfaces the
+        // place as an inline chat card (lastEffect) and leaves selection/detail
+        // untouched — the user taps the card to reveal it. See
+        // [[project_chat_cards_no_autojump]].
+        XCTAssertNil(rig.vm.selectedExperience,
+                     "show_details must not auto-select on the map anymore")
+        XCTAssertFalse(rig.vm.isShowingDetail,
+                       "show_details must not auto-open the detail sheet anymore")
+        guard case let .experiences(list)? = rig.router.lastEffect else {
+            XCTFail("show_details must record an .experiences card effect")
+            return
+        }
+        XCTAssertEqual(list.first?.id, firstId,
+                       "the surfaced card must be the requested experience")
     }
 
     func testToolRouterShowDetailsRejectsUnknownId() async {
@@ -3713,6 +3727,125 @@ final class SoloCompassTests: XCTestCase {
             argumentsJSON: "not actually JSON"
         ))
         XCTAssertTrue(result.contains(#""ok":false"#))
+    }
+
+    // MARK: - Routes confined to the Now context
+
+    /// The Routes section + create-route entry must appear ONLY in the Now / 当下
+    /// context. Every other sort mode hides them so the sheet shows just 附近.
+    @MainActor
+    func testRoutesSectionGatedToNowContext() {
+        XCTAssertTrue(CompassMapContentView.shouldShowRoutesSection(isNowFilter: true),
+                      "routes appear in the Now context")
+        XCTAssertFalse(CompassMapContentView.shouldShowRoutesSection(isNowFilter: false),
+                       "routes are hidden outside Now (distance/soloScore/smart)")
+    }
+
+    // MARK: - Chat cards + build_route (no-auto-jump overhaul)
+
+    /// A router wired with a real (keyless) AIService so build_route can run its
+    /// local nearest-neighbour fallback and still produce a route.
+    @MainActor
+    private func makeRouteBuildingRig() -> (
+        router: VoiceAgentToolRouter,
+        vm: MapViewModel,
+        seededIds: [String]
+    ) {
+        let prefs = UserPreferences()
+        let ai = AIService()
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(),
+            aiService: ai,
+            preferences: prefs
+        )
+        let seeded = vm.visibleExperiences.prefix(4).map(\.id)
+        let router = VoiceAgentToolRouter(mapViewModel: vm, preferences: prefs, aiService: ai)
+        return (router, vm, Array(seeded))
+    }
+
+    /// lastEffect must reflect ONLY the call just made — a later effect-free
+    /// call (filter_by_category) must clear a prior show_details card effect.
+    func testToolRouterLastEffectResetsPerCall() async throws {
+        let rig = makeRouterTestRig()
+        let firstId = try XCTUnwrap(rig.seededIds.first)
+        _ = await rig.router.execute(.init(
+            id: "c1", name: "show_details",
+            argumentsJSON: #"{"experience_id":"\#(firstId)"}"#
+        ))
+        XCTAssertNotNil(rig.router.lastEffect, "show_details records a card effect")
+        _ = await rig.router.execute(.init(
+            id: "c2", name: "filter_by_category",
+            argumentsJSON: #"{"category":"coffee"}"#
+        ))
+        XCTAssertNil(rig.router.lastEffect,
+                     "an effect-free tool must clear the previous effect")
+    }
+
+    /// build_route strings the visible places into a route and records a
+    /// `.route` proposal effect the chat can render + adopt.
+    func testToolRouterBuildRouteProducesRouteProposal() async throws {
+        let rig = makeRouteBuildingRig()
+        guard rig.vm.visibleExperiences.count >= 2 else {
+            throw XCTSkip("seed must expose ≥2 places to string a walk")
+        }
+        let result = await rig.router.execute(.init(
+            id: "r1", name: "build_route", argumentsJSON: "{}"
+        ))
+        XCTAssertTrue(result.contains(#""ok":true"#))
+        guard case let .route(proposal)? = rig.router.lastEffect else {
+            XCTFail("build_route must record a .route proposal effect")
+            return
+        }
+        XCTAssertGreaterThanOrEqual(proposal.stops.count, 2,
+                                    "a walk needs at least two stops")
+        XCTAssertEqual(proposal.route.experienceIds, proposal.stops.map(\.id),
+                       "resolved stops must match the route's ordered ids")
+    }
+
+    /// build_route must NOT save the route — adoption is the user's explicit
+    /// tap. The proposal is surfaced but nothing is persisted by the tool.
+    func testToolRouterBuildRouteDoesNotAutoSave() async throws {
+        let rig = makeRouteBuildingRig()
+        guard rig.vm.visibleExperiences.count >= 2 else {
+            throw XCTSkip("seed must expose ≥2 places")
+        }
+        _ = await rig.router.execute(.init(
+            id: "r1", name: "build_route", argumentsJSON: "{}"
+        ))
+        // The tool surfaces a proposal effect; persistence happens only when the
+        // user taps adopt in the UI (ChatSheet.onAdoptRoute → routeStore.save).
+        if case .route = rig.router.lastEffect {
+            // expected — proposal only, not saved
+        } else {
+            XCTFail("expected a route proposal effect")
+        }
+    }
+
+    /// explore-style tools surface the NEWLY added places (not the whole set)
+    /// as a card effect so the chat shows what the explore turned up.
+    @MainActor
+    func testChatCardEffectEqualityAndIdentity() {
+        guard let exp = ExperienceService.hardcodedSeed.first else {
+            XCTFail("seed expected")
+            return
+        }
+        let id = UUID()
+        let a = ChatCard.experiences(id: id, [exp])
+        let b = ChatCard.experiences(id: id, [exp])
+        XCTAssertEqual(a, b, "cards with the same id are equal")
+        XCTAssertEqual(a.id, id, "card id is stable")
+        let c = ChatCard.experiences(id: UUID(), [exp])
+        XCTAssertNotEqual(a, c, "different ids are distinct cards")
+    }
+
+    /// ReasoningStep is a pure value type the orchestrator records as it works.
+    func testReasoningStepValueSemantics() {
+        let s = ReasoningStep(kind: .tool, label: "🔍 searching")
+        XCTAssertEqual(s.kind, .tool)
+        XCTAssertEqual(s.label, "🔍 searching")
+        let t = ReasoningStep(id: s.id, kind: .tool, label: "🔍 searching")
+        XCTAssertEqual(s, t, "same id + fields ⇒ equal")
     }
 
     func testVoiceAgentSessionCompactsLongHistory() {

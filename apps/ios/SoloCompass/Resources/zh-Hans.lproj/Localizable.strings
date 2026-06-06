@@ -865,6 +865,15 @@
 "agent.step.filter" = "🗂 筛选地图…";
 "agent.step.listening" = "聆听中…";
 "agent.step.navigate" = "🗺 打开导航…";
+"agent.step.buildRoute" = "🧭 正在为你串联路线…";
+"agent.trace.foundPlaces" = "找到 %d 个合适的地方";
+"agent.trace.builtRoute" = "把 %d 个站点串成了一条路线";
+"chat.thinking.title" = "正在思考";
+"chat.thinking.a11y" = "Solo Compass 正在思考";
+"chat.card.viewOnMap" = "点按在地图上查看";
+"chat.card.viewOnMap.a11y" = "双击在地图上显示这个地方";
+"chat.route.adopt" = "采用这条路线";
+"chat.route.adopt.a11y" = "双击保存并打开这条路线";
 "agent.step.save" = "❤️ 收藏中…";
 "agent.step.search" = "🔍 搜索地点…";
 "agent.step.showDetails" = "📍 查看详情…";
