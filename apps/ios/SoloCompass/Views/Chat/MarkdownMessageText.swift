@@ -113,20 +113,22 @@ struct MarkdownMessageText: View {
                     }
                     .markdownMargin(top: .em(0.25), bottom: .em(0.25))
             }
-            // Fenced code blocks: monospaced, inset background, horizontally
-            // scrollable so long lines don't blow out the bubble width.
+            // Fenced code blocks: render the raw `configuration.content` with our
+            // own monospaced `Text` rather than `configuration.label`. MarkdownUI's
+            // default code-block label wraps the lines in a container that renders
+            // blank under `ImageRenderer` (share cards / snapshots) — using the
+            // plain string guarantees the code is always visible and wraps inside
+            // the bubble instead of overflowing.
             .codeBlock { configuration in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    configuration.label
-                        .markdownTextStyle {
-                            FontFamilyVariant(.monospaced)
-                            FontSize(.em(0.9))
-                            ForegroundColor(.primary)
-                        }
-                        .padding(10)
-                }
-                .background(codeBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .markdownMargin(top: .em(0.3), bottom: .em(0.3))
+                Text(configuration.content)
+                    .font(.system(.callout, design: .monospaced))
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(codeBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .markdownMargin(top: .em(0.3), bottom: .em(0.3))
             }
     }
 }
