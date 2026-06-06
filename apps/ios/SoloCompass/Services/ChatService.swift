@@ -141,6 +141,14 @@ public final class ChatService {
         }
     }
 
+    /// Resolve a short-lived signed download URL for a persisted attachment,
+    /// delegating to the same injected `AttachmentUploading` service used for
+    /// upload. Returns `nil` (rather than throwing) so the UI degrades to a
+    /// placeholder when the storage backend isn't deployed yet.
+    public func resolveAttachmentURL(_ attachment: ChatAttachment) async -> URL? {
+        try? await attachmentService.signedURL(for: attachment)
+    }
+
     // MARK: - History fetch
 
     private func fetchHistory(since: String?) async {
