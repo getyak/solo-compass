@@ -39,7 +39,7 @@ struct MarkdownMessageText: View {
     /// the code chip reads as inset without glaring.
     private var codeBackground: Color {
         colorScheme == .dark
-            ? Color.white.opacity(0.08)
+            ? Color.white.opacity(0.14)   // readable inset on the #28241E bubble
             : CT.surfaceSunken
     }
 
@@ -167,4 +167,30 @@ struct MarkdownMessageText: View {
             .padding()
     }
     .background(CT.bgWarm)
+}
+
+#Preview("Markdown Message — Dark") {
+    let sample = """
+    Here's a **bold** plan with *italic* nuance and inline `solo_score`.
+
+    ```swift
+    func recommend(_ city: String) -> [Experience] {
+        experiences.filter { $0.soloScore > 8.5 }
+    }
+    ```
+
+    > Travel light — the map is the home screen.
+
+    More at [Solo Compass](https://example.com).
+    """
+
+    ScrollView {
+        MarkdownMessageText(text: sample)
+            .padding(14)
+            .frame(maxWidth: 320, alignment: .leading)
+            .background(CT.chatAIBubbleBgDark, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding()
+    }
+    .background(Color.black)
+    .preferredColorScheme(.dark)
 }

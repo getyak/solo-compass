@@ -156,7 +156,7 @@ struct AttachmentInputBar: View {
 
     private var textField: some View {
         TextField(placeholder, text: $draftText, axis: .vertical)
-            .lineLimit(1...5)
+            .lineLimit(1...4)  // matches ChatInputBar (Voice Agent) growth
             .textFieldStyle(.plain)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)

@@ -310,11 +310,18 @@ private struct ChatMessageRow: View {
             .fill(UserDirectory.color(forId: message.senderId))
             .frame(width: 22, height: 22)
             .overlay(
-                Text(String(message.senderId.prefix(1)).uppercased())
+                Text(avatarInitial)
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white)
             )
             .alignmentGuide(.bottom) { $0[.bottom] }
+    }
+
+    /// First letter of the sender id, falling back to "?" so an empty/unknown
+    /// id never renders a blank avatar.
+    private var avatarInitial: String {
+        let first = String(message.senderId.prefix(1)).uppercased()
+        return first.isEmpty ? "?" : first
     }
 
     private func formattedTime(_ iso: String) -> String {

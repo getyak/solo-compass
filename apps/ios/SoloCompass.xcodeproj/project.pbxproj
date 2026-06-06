@@ -115,7 +115,6 @@
 		5544DD796A2D4987A7CB9DC9 /* WebSearchEnrichmentSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 977F66FB36894EA4088C2905 /* WebSearchEnrichmentSource.swift */; };
 		561418100F2F7D4D88DE1BC4 /* MessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 086B3C207483BA0EBD27451F /* MessageBubble.swift */; };
 		56F3055416F4A5316100F9B2 /* ExperienceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363714672D8A0FA8F7C39887 /* ExperienceCardView.swift */; };
-		574DC88CF9379A5C341679AF /* ChatVisualDumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27E452E13E44A502FFCECDA /* ChatVisualDumpTests.swift */; };
 		585930C5FA9368923ADB2D43 /* BottomInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04709B5AD986143D04CA0A08 /* BottomInfoSheet.swift */; };
 		58B7C9B20945838F81081941 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A22A40550CF207AB36C18 /* SettingsView.swift */; };
 		58C9B0E8A0A2DB38E1078E9D /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8277318E6238F2F885ED2334 /* HapticService.swift */; };
@@ -198,6 +197,7 @@
 		9B906CA9BF24104FB2BF7773 /* RouteCardWalkedByTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9FE3BB447D84732CCE0B07 /* RouteCardWalkedByTest.swift */; };
 		9BEDEF446F2D554A7F1ABA6F /* PreviewCardLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AED8B43F4C4059CD005C0A /* PreviewCardLifecycleTests.swift */; };
 		9C8CC563D33FDBB3DF57A841 /* RecentExploreRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9748B0A808BC06F6EDED3C3B /* RecentExploreRegion.swift */; };
+		9D2F6814C70072DE8C20865B /* ChatAttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88805BD09F10F37A334CE2F0 /* ChatAttachmentTests.swift */; };
 		9D799B457AC16C84BB460D18 /* RouteCardTappableGuardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4317C293B762EA1C8A436B8A /* RouteCardTappableGuardTest.swift */; };
 		9D81327AE55FA8142F9E5B8D /* ChatUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0709110B381DEDA32C3292AE /* ChatUIState.swift */; };
 		9F8D8133FC74C4E206A11DB9 /* ItineraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD7871A003B28A7C46AC8D7 /* ItineraryStoreTests.swift */; };
@@ -526,6 +526,7 @@
 		873ACB737A9B43254C17B238 /* CityPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityPickerSheet.swift; sourceTree = "<group>"; };
 		884AFD2A4ADF051FA9643166 /* RouteItineraryBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteItineraryBridge.swift; sourceTree = "<group>"; };
 		88553B5578C07FA890183A0D /* BottomInfoSheetHandleHitTargetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomInfoSheetHandleHitTargetTests.swift; sourceTree = "<group>"; };
+		88805BD09F10F37A334CE2F0 /* ChatAttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttachmentTests.swift; sourceTree = "<group>"; };
 		88863482E2CD46BBE315B59D /* LocationErrorSurfaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationErrorSurfaceTests.swift; sourceTree = "<group>"; };
 		8964F4628C43BB7311B48D38 /* ApprovalQueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalQueueView.swift; sourceTree = "<group>"; };
 		8970A53A6D6C42A614F7B414 /* RouteMapSnapshotter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteMapSnapshotter.swift; sourceTree = "<group>"; };
@@ -637,7 +638,6 @@
 		E03076AD221F78BBDE981C3A /* ExperienceRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceRecord.swift; sourceTree = "<group>"; };
 		E0AA21CD490B436012818D9D /* ItineraryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryDetailView.swift; sourceTree = "<group>"; };
 		E1694A46513909CFE464D92E /* FilterBarViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterBarViewTests.swift; sourceTree = "<group>"; };
-		E27E452E13E44A502FFCECDA /* ChatVisualDumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatVisualDumpTests.swift; sourceTree = "<group>"; };
 		E406C379247653B4AA5A3E0E /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		E536D4CFF44CF4CEFD1EFF4F /* WeatherCacheTTLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCacheTTLTests.swift; sourceTree = "<group>"; };
 		E575898B14533C58035EFC79 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
@@ -804,8 +804,8 @@
 				999E8DA69CB660A94E71D02A /* BottomSheetSectionSeparationTest.swift */,
 				36E41DCA29798B5D8E49B7CA /* BottomSheetUnifiedScrollGuardTest.swift */,
 				0674DC5D526883C657A63C38 /* CardBottomInsetClearanceTest.swift */,
+				88805BD09F10F37A334CE2F0 /* ChatAttachmentTests.swift */,
 				1FF5100EFECEC87BDC2B007B /* ChatBubbleContrastTest.swift */,
-				E27E452E13E44A502FFCECDA /* ChatVisualDumpTests.swift */,
 				308B7A34171C74B1CF2DE3F9 /* CityPillHitTargetTests.swift */,
 				907EA19EC9B84B93AB110C70 /* ColdStartExperienceLoadTests.swift */,
 				A00295FF044E4D732D1EB2EA /* ColorExtensionScopeTest.swift */,
@@ -1417,8 +1417,8 @@
 				BF7D61FAEF133A0E77C585C9 /* BottomSheetSectionSeparationTest.swift in Sources */,
 				0C0580E1BF61F5C02C2EE640 /* BottomSheetUnifiedScrollGuardTest.swift in Sources */,
 				3CBA775B8C215CBAE3A73EA0 /* CardBottomInsetClearanceTest.swift in Sources */,
+				9D2F6814C70072DE8C20865B /* ChatAttachmentTests.swift in Sources */,
 				B5D2608A5B16B07B6E9005DC /* ChatBubbleContrastTest.swift in Sources */,
-				574DC88CF9379A5C341679AF /* ChatVisualDumpTests.swift in Sources */,
 				D2BCD302B16BBC174B71F84A /* CityPillHitTargetTests.swift in Sources */,
 				81470D06CD0593B278B110CC /* ColdStartExperienceLoadTests.swift in Sources */,
 				53C4F7B11856CF3D1313A228 /* ColorExtensionScopeTest.swift in Sources */,

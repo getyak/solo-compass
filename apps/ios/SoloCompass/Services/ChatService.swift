@@ -88,8 +88,12 @@ public final class ChatService {
         let messageId = UUID().uuidString
         let now = ISO8601DateFormatter().string(from: Date())
 
+        // All-or-nothing upload: if ANY attachment fails, drop them ALL and keep
+        // only the text. Sending a message with a silent subset of attachments
+        // (e.g. 2 of 3, where #2 was too large) is a data-integrity trap — the
+        // recipient sees an incomplete set and the sender only sees one error.
         var uploaded: [ChatAttachment] = []
-        var degradedToTextOnly = false
+        var attachmentsDropped = false
         for local in attachments {
             do {
                 let attachment = try await attachmentService.upload(
@@ -98,22 +102,20 @@ public final class ChatService {
                     messageId: messageId
                 )
                 uploaded.append(attachment)
-            } catch AttachmentError.backendNotReady {
-                // Backend not deployed — drop attachments, keep the text.
-                degradedToTextOnly = true
+            } catch {
+                // Surface the specific reason (backendNotReady / tooLarge /
+                // rateLimited / uploadFailed) but treat every failure the same:
+                // abandon the whole attachment set, keep the text.
+                lastError = error.localizedDescription
+                attachmentsDropped = true
                 uploaded.removeAll()
                 break
-            } catch {
-                lastError = error.localizedDescription
             }
         }
 
-        if degradedToTextOnly {
-            lastError = NSLocalizedString(
-                "companion.chat.attachment.backendNotReady",
-                comment: "Attachments need the storage backend deployed"
-            )
-            // If there's no text to fall back on, there's nothing to send.
+        if attachmentsDropped {
+            // If there's no text to fall back on, there's nothing to send — the
+            // user must retry the attachments rather than receive an empty row.
             guard !trimmed.isEmpty else { return }
         }
 

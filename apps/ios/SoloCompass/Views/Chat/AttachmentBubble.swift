@@ -114,7 +114,11 @@ private struct ResolvedThumbnail: View {
             } else if resolving {
                 loading
             } else {
-                placeholder(systemImage: "photo")
+                // Unresolved (backend not ready / transient failure): a tappable
+                // retry placeholder rather than a permanent broken thumbnail.
+                placeholder(systemImage: "arrow.clockwise")
+                    .contentShape(Rectangle())
+                    .onTapGesture { Task { await resolve() } }
             }
         }
         .overlay(
@@ -122,7 +126,7 @@ private struct ResolvedThumbnail: View {
                 .strokeBorder(borderColor, lineWidth: 0.5)
         )
         .task { await resolve() }
-        .accessibilityLabel(Text(attachment.fileName))
+        .accessibilityLabel(Text(url == nil ? "\(attachment.fileName), tap to retry" : attachment.fileName))
         .accessibilityAddTraits(.isButton)
     }
 
@@ -169,7 +173,13 @@ private struct FileCard: View {
 
     var body: some View {
         Button {
-            if let url { openURL(url) }
+            // Resolved → open the file. Unresolved (backend not ready / transient
+            // failure) → re-attempt resolution so the user isn't stuck.
+            if let url {
+                openURL(url)
+            } else if !resolving {
+                Task { await resolve() }
+            }
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "doc.fill")
@@ -179,7 +189,7 @@ private struct FileCard: View {
                     Text(attachment.fileName)
                         .font(.subheadline.weight(.medium))
                         .lineLimit(1)
-                        .truncationMode(.middle)
+                        .truncationMode(.tail)
                         .foregroundStyle(.primary)
                     Text(formattedSize)
                         .font(.caption2)
@@ -189,7 +199,9 @@ private struct FileCard: View {
                 if resolving {
                     ProgressView().scaleEffect(0.7)
                 } else {
-                    Image(systemName: url == nil ? "arrow.down.circle" : "arrow.up.right.square")
+                    // Resolved → open affordance; unresolved → a retry affordance
+                    // (NOT a download icon on a dead button, which reads as broken).
+                    Image(systemName: url == nil ? "arrow.clockwise.circle" : "arrow.up.right.square")
                         .font(.body)
                         .foregroundStyle(url == nil ? Color.secondary : CT.accent)
                 }
@@ -207,10 +219,13 @@ private struct FileCard: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(url == nil)
+        // Intentionally NOT .disabled when url == nil — the button doubles as a
+        // retry trigger so a transient resolve failure isn't a dead end.
         .task { await resolve() }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(attachment.fileName), \(formattedSize)"))
+        .accessibilityLabel(Text(url == nil
+            ? "\(attachment.fileName), \(formattedSize), tap to retry"
+            : "\(attachment.fileName), \(formattedSize)"))
     }
 
     private var formattedSize: String {
