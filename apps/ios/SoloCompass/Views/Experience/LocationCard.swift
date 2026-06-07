@@ -53,10 +53,15 @@ struct LocationCard: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        // Raw lat/long means nothing to a traveler, so only fall
+                        // back to coordinates when there's no address at all —
+                        // and at block-level (2dp ≈ ±1km) so we don't surface a
+                        // pinpoint location.
+                        Text(String(format: "%.2f, %.2f", coordinate.latitude, coordinate.longitude))
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.tertiary)
                     }
-                    Text(String(format: "%.4f, %.4f", coordinate.latitude, coordinate.longitude))
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.tertiary)
                 }
                 Spacer(minLength: 0)
             }

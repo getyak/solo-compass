@@ -52,7 +52,10 @@ public struct ConfidenceBadge: View {
                     }
                 }
                 if !compact {
-                    Text("L\(confidence.level) · \(confidence.signals.totalCount) \(NSLocalizedString("confidence.signals", comment: "signals"))")
+                    // Show the human-readable health label (Verified / Fading /
+                    // …) instead of the opaque internal "L2" level code, which
+                    // means nothing to a traveler.
+                    Text("\(confidence.health.localizedDescription) · \(confidence.signals.totalCount) \(NSLocalizedString("confidence.signals", comment: "signals"))")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }

@@ -529,7 +529,13 @@ public struct SettingsView: View {
         }
         .alert(
             appleSignInToast ?? "",
-            isPresented: .constant(appleSignInToast != nil),
+            // A writable binding so SwiftUI can clear the toast on any dismiss
+            // path (incl. tap-outside); `.constant(...)` stayed true and could
+            // immediately re-present the alert.
+            isPresented: Binding(
+                get: { appleSignInToast != nil },
+                set: { if !$0 { appleSignInToast = nil } }
+            ),
             actions: {
                 Button(NSLocalizedString("common.ok", comment: "OK")) {
                     appleSignInToast = nil
@@ -732,7 +738,12 @@ public struct SettingsView: View {
         }
         .alert(
             restoreToast ?? "",
-            isPresented: .constant(restoreToast != nil),
+            // Writable binding so any dismiss path clears the toast (see the
+            // appleSignInToast alert above for why `.constant` was wrong).
+            isPresented: Binding(
+                get: { restoreToast != nil },
+                set: { if !$0 { restoreToast = nil } }
+            ),
             actions: {
                 Button(NSLocalizedString("common.ok", comment: "OK")) {
                     restoreToast = nil
@@ -760,10 +771,10 @@ public struct SettingsView: View {
 
     private var entitlementLabel: String {
         switch subscriptionService.entitlement {
-        case .pro:        return "Pro"
-        case .proTrial:   return "Pro (trial)"
-        case .proExpired: return "Expired"
-        case .free:       return "Free"
+        case .pro:        return NSLocalizedString("subscription.tier.pro", comment: "Subscription tier: Pro")
+        case .proTrial:   return NSLocalizedString("subscription.tier.proTrial", comment: "Subscription tier: Pro trial")
+        case .proExpired: return NSLocalizedString("subscription.tier.expired", comment: "Subscription tier: expired")
+        case .free:       return NSLocalizedString("subscription.tier.free", comment: "Subscription tier: Free")
         }
     }
 

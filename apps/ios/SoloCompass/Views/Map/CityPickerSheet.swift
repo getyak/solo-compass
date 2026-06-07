@@ -336,7 +336,9 @@ private struct CityEmptyStateView: View {
                     .foregroundStyle(Color.accentColor.opacity(0.7))
                     .scaleEffect(isBreathing ? 1.08 : 0.94)
                     .opacity(isBreathing ? 1.0 : 0.7)
-                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)
+                    // Guard on the modifier itself, not just in onAppear — otherwise
+                    // a re-appear could still animate when reduce-motion is on.
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)
             }
             Text(NSLocalizedString("city.empty.title", comment: "No cities yet"))
                 .font(.headline)

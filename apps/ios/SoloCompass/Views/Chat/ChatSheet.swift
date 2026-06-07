@@ -979,7 +979,11 @@ private struct VoiceMicButton: View {
                 )
 
             Circle()
-                .fill(isListening ? Color.accentColor : Color.black.opacity(0.85))
+                // `Color.black.opacity(0.85)` made the idle mic button nearly
+                // invisible against the dark-mode sheet. `Color(.systemGray)`
+                // stays clearly separated from the background in both schemes
+                // while keeping the white icon legible.
+                .fill(isListening ? Color.accentColor : Color(.systemGray))
                 .frame(width: 108, height: 108)
                 .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
                 .scaleEffect(pressed ? 1.06 : 1.0)

@@ -324,11 +324,32 @@ public struct ExperienceCardView: View {
                     .shadow(color: .black.opacity(0.16), radius: 16, y: 6)
             }
         )
+        // Explicit dismiss affordance: swipe-down worked but had no visible
+        // cue, so the floating card felt "stuck" (it also lingered after the
+        // detail sheet closed). A small × in the corner gives users a clear way
+        // out without discovering the gesture.
+        .overlay(alignment: .topTrailing) {
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(.regularMaterial))
+                    .frame(
+                        minWidth: HitTargetMetrics.minimum,
+                        minHeight: HitTargetMetrics.minimum
+                    )
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(NSLocalizedString("card.dismiss", comment: "Dismiss the floating experience card")))
+        }
+        // `totalOffset` already includes `dragOffset`; the second
+        // `.offset(y: dragOffset)` double-applied the drag (and the second
+        // `.opacity` darkened the card twice). Apply each exactly once.
         .offset(y: totalOffset)
         .opacity(dragOpacity)
         .padding(.horizontal, 12)
-        .offset(y: dragOffset)
-        .opacity(dragOpacity)
         .gesture(
             DragGesture(minimumDistance: 10)
                 .updating($dragState) { value, state, _ in

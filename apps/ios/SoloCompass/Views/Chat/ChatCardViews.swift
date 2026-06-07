@@ -25,7 +25,9 @@ struct ChatExperienceCard: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(experience.title)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(CT.fgPrimary)
+                            // Semantic color: CT.fgPrimary is a fixed near-black
+                            // and turned unreadable on the dark-mode card fill.
+                            .foregroundStyle(.primary)
                             .lineLimit(1)
                         Text(scoreLabel)
                             .font(.caption2.weight(.semibold))
@@ -35,7 +37,7 @@ struct ChatExperienceCard: View {
                 }
                 Text(experience.oneLiner)
                     .font(.caption)
-                    .foregroundStyle(CT.fgMuted)
+                    .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 HStack(spacing: 4) {
@@ -47,7 +49,9 @@ struct ChatExperienceCard: View {
                 .foregroundStyle(CT.accent)
             }
             .padding(12)
-            .frame(width: 220, alignment: .leading)
+            // Was a hard width: 220 — long names truncated badly at large Dynamic
+            // Type sizes. Let the card grow within a sensible band instead.
+            .frame(minWidth: 200, maxWidth: 260, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(cardFill)
@@ -120,13 +124,13 @@ struct ChatRouteProposalCard: View {
                     .foregroundStyle(CT.accent)
                 Text(route.title)
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(CT.fgPrimary)
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
             }
             if !route.summary.isEmpty {
                 Text(route.summary)
                     .font(.caption)
-                    .foregroundStyle(CT.fgMuted)
+                    .foregroundStyle(.secondary)
                     .lineLimit(3)
             }
             metaRow
@@ -140,7 +144,7 @@ struct ChatRouteProposalCard: View {
             Label("\(proposal.stops.count)", systemImage: "mappin.and.ellipse")
         }
         .font(.caption2.weight(.medium))
-        .foregroundStyle(CT.fgSubtle)
+        .foregroundStyle(.tertiary)
     }
 
     private var reasonNowBanner: some View {
@@ -180,12 +184,12 @@ struct ChatRouteProposalCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(stop.title)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(CT.fgPrimary)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 if let reason = reason(at: index), !reason.isEmpty {
                     Text(reason)
                         .font(.caption2)
-                        .foregroundStyle(CT.fgMuted)
+                        .foregroundStyle(.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }

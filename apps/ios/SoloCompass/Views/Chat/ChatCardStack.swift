@@ -89,7 +89,9 @@ struct ReasoningTracePanel: View {
                         .frame(width: 14)
                     Text(step.label)
                         .font(.caption2)
-                        .foregroundStyle(CT.fgMuted)
+                        // Semantic color: CT.fgMuted is a fixed dark brown and
+                        // dropped below ~2.5:1 contrast on the dark-mode panel fill.
+                        .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                 }
