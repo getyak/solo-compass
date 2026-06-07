@@ -1199,7 +1199,11 @@ struct CompassMapContentView: View {
                         // iteration — its six conditions are otherwise evaluated
                         // twice per visible marker per frame (icon + badge).
                         let state = viewModel.markerState(for: exp)
-                        Annotation(exp.title, coordinate: coord) {
+                        // Pass an empty title so MapKit doesn't auto-render the
+                        // experience name as a pin label (long titles clipped
+                        // off the screen edge); the name lives on the
+                        // accessibilityLabel below instead.
+                        Annotation("", coordinate: coord) {
                             Button {
                                 viewModel.selectExperience(exp)
                                 HapticService.shared.impact(style: .light)
@@ -1230,12 +1234,13 @@ struct CompassMapContentView: View {
                             }
                             .buttonStyle(.plain)
                             .transition(.scale.combined(with: .opacity))
+                            .accessibilityLabel(Text(exp.title))
                         }
                     }
                 }
                 ForEach(viewModel.candidateExperiences) { cand in
                     if let coord = cand.coordinate {
-                        Annotation(cand.title, coordinate: coord) {
+                        Annotation("", coordinate: coord) {
                             MarkerIconView(
                                 category: cand.category,
                                 state: .default,
