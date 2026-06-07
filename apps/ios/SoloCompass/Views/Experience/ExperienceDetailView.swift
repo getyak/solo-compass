@@ -1227,7 +1227,12 @@ public struct ExperienceDetailView: View {
                 .frame(height: 50)
                 .background(
                     RoundedRectangle(cornerRadius: 25)
-                        .fill(viewModel.isCompleted ? Color.green : Color.primary)
+                        // `Color.primary` resolves to white in dark mode, which
+                        // collided with the `.white` foreground below — the
+                        // button rendered as an invisible white-on-white capsule.
+                        // Use the accent color (legible in both schemes) for the
+                        // default state; keep green for the completed state.
+                        .fill(viewModel.isCompleted ? Color.green : Color.accentColor)
                 )
                 .foregroundStyle(.white)
             }
