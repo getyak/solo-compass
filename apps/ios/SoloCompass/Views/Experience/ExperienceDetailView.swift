@@ -287,7 +287,7 @@ public struct ExperienceDetailView: View {
                 HStack(spacing: 8) {
                     Text(romanized?.isEmpty == false ? "\(local) · \(romanized ?? "")" : local)
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                     distancePill
                 }
             } else {
@@ -1352,10 +1352,10 @@ private struct CompassDirectionView: View {
             HStack(spacing: 4) {
                 Text(NSLocalizedString("compass.pointing.title", comment: "Compass pointing toward label"))
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                 Text(cardinalDirection)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
             }
         }
     }
