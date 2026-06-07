@@ -225,6 +225,15 @@ public final class AIService {
         let routeId = RouteId(rawValue: "ai-\(UUID().uuidString.prefix(8))")
         let validIds = Set(candidates.map(\.id))
 
+        // An AI-built route is composed for the CURRENT moment (the user asked
+        // to "plan tonight" / "string these together now", and reasonNow speaks
+        // to right now). Anchor its best-now window to the current hour so that,
+        // once adopted, it immediately surfaces in the "此刻 / Now" section —
+        // otherwise bestStartHour stays nil, isBestNow() is always false, and the
+        // route the user just created never appears in Now. Same RouteStore, same
+        // table; this is the field that gates Now visibility.
+        let nowHour = Double(Calendar.current.component(.hour, from: now))
+
         do {
             let prompt = Self.routeGenerationPrompt(candidates: candidates, cityCode: cityCode)
             let raw = try await sendMessage(prompt: prompt, kind: .synthesis)
@@ -246,6 +255,7 @@ public final class AIService {
                 pace: .relaxed,
                 tags: plan.tags ?? Self.tags(from: ordered),
                 source: .aiGenerated,
+                bestStartHour: nowHour,
                 reasonNow: plan.reasonNow?.isEmpty == false ? plan.reasonNow : nil
             )
         } catch {
@@ -268,7 +278,8 @@ public final class AIService {
                 cityCode: cityCode,
                 pace: .relaxed,
                 tags: Self.tags(from: ordered),
-                source: .aiGenerated
+                source: .aiGenerated,
+                bestStartHour: nowHour
             )
         }
     }
@@ -532,11 +543,21 @@ public final class AIService {
     /// Serialise the conversation as the array DeepSeek wants. We map
     /// each Role / Message field by hand so the wire shape stays
     /// decoupled from the in-memory model.
+    /// Wrap user content in `<user_input>` tags at API-serialization time so the
+    /// model always treats it as untrusted input — WITHOUT polluting the stored
+    /// message (which the chat UI renders verbatim). Session history keeps the
+    /// raw text; only the bytes sent to the model carry the tags.
+    static func wrapUserContentForAPI(_ content: String) -> String {
+        "<user_input>\(content)</user_input>"
+    }
+
     static func serializeAgentMessages(_ messages: [VoiceAgentSession.Message]) -> [[String: Any]] {
         messages.map { msg -> [String: Any] in
             var row: [String: Any] = ["role": msg.role.rawValue]
             if let content = msg.content {
-                row["content"] = content
+                // User turns get wrapped here (not in the stored message) so the
+                // <user_input> guard never leaks into the chat bubble.
+                row["content"] = msg.role == .user ? wrapUserContentForAPI(content) : content
             } else {
                 // OpenAI requires "content" key even when null on assistant
                 // tool-call rows. NSNull renders as JSON null.

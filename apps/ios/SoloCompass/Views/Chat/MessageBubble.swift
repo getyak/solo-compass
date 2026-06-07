@@ -85,42 +85,39 @@ public struct MessageBubble: View {
     }
 
     private var assistantBubble: some View {
-        HStack(alignment: .top, spacing: 8) {
-            AssistantAvatar()
-            VStack(alignment: .leading, spacing: 0) {
-                // Assistant replies render Markdown (code/lists/links/quotes).
-                // Streaming throttle (batched ~50–80 chars / ~80ms) lives in the
-                // orchestrator (Phase D) so this view re-renders smoothly.
-                MarkdownMessageText(text: text.isEmpty ? " " : text)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    // background{shape.fill.shadow} lets the soft shadow escape
-                    // the rounded clip instead of being chopped by it.
-                    .background {
-                        bubbleShape
-                            .fill(MessageBubble.assistantFill(colorScheme))
-                            .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
+        // No per-message avatar — the compass mark used to repeat on every
+        // single reply, which read as generic "AI assistant" chrome. The reply
+        // simply sits left-aligned in a warm, low-contrast bubble that belongs
+        // to the app's parchment palette rather than a stark white card.
+        HStack(spacing: 0) {
+            // Assistant replies render Markdown (code/lists/links/quotes).
+            // Streaming throttle (batched ~50–80 chars / ~80ms) lives in the
+            // orchestrator (Phase D) so this view re-renders smoothly.
+            MarkdownMessageText(text: text.isEmpty ? " " : text)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background {
+                    bubbleShape.fill(MessageBubble.assistantFill(colorScheme))
+                }
+                .overlay(bubbleShape.strokeBorder(CT.borderSubtle, lineWidth: 0.5))
+                .overlay(alignment: .trailing) {
+                    if isStreaming {
+                        StreamingCursor()
+                            .padding(.trailing, 10)
                     }
-                    .overlay(bubbleShape.strokeBorder(CT.borderSubtle, lineWidth: 0.5))
-                    .overlay(alignment: .trailing) {
-                        if isStreaming {
-                            StreamingCursor()
-                                .padding(.trailing, 10)
+                }
+                .contextMenu {
+                    if !text.isEmpty && !isStreaming {
+                        Button {
+                            copyText()
+                        } label: {
+                            Label(
+                                NSLocalizedString("chat.bubble.copy", comment: "Copy bubble text"),
+                                systemImage: "doc.on.doc"
+                            )
                         }
                     }
-                    .contextMenu {
-                        if !text.isEmpty && !isStreaming {
-                            Button {
-                                copyText()
-                            } label: {
-                                Label(
-                                    NSLocalizedString("chat.bubble.copy", comment: "Copy bubble text"),
-                                    systemImage: "doc.on.doc"
-                                )
-                            }
-                        }
-                    }
-            }
+                }
             Spacer(minLength: 48)
         }
         .accessibilityLabel(Text(String(
@@ -132,10 +129,11 @@ public struct MessageBubble: View {
         }
     }
 
-    /// AI bubble fill: warm white in light mode, the dark token in dark mode so
-    /// the parchment surface doesn't glare on a near-black background.
+    /// AI bubble fill: a warm, low-contrast parchment tint in light mode (not
+    /// stark white — that read as a generic chat card glued onto the map), and
+    /// the dark token in dark mode so it doesn't glare on a near-black sheet.
     static func assistantFill(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? CT.chatAIBubbleBgDark : CT.surfaceWhite
+        scheme == .dark ? CT.chatAIBubbleBgDark : CT.surfaceSunken
     }
 
     private var toolIndicator: some View {
@@ -246,8 +244,9 @@ public struct TypingIndicatorBubble: View {
     }
 
     public var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            AssistantAvatar()
+        // Avatar-free to match `MessageBubble.assistantBubble` — the typing
+        // bubble sits left-aligned in the same warm parchment fill.
+        HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 5) {
                     ForEach(0..<3, id: \.self) { index in
@@ -259,7 +258,6 @@ public struct TypingIndicatorBubble: View {
                 .background {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(MessageBubble.assistantFill(colorScheme))
-                        .shadow(color: .black.opacity(0.06), radius: 4, y: 1)
                 }
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)

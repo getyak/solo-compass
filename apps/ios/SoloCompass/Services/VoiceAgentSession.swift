@@ -169,6 +169,20 @@ public final class VoiceAgentSession {
         messages.append(Message(role: .system, content: prompt))
     }
 
+    /// Seed a restored conversation's history after the system prompt has been
+    /// seeded. Appends the stored (non-system) messages in order so the chat
+    /// reopens exactly where it left off. `turnCount` is bumped to the number of
+    /// restored user turns so compaction/limits behave sensibly going forward.
+    public func restoreHistory(_ restored: [Message]) {
+        let nonSystem = restored.filter { $0.role != .system }
+        guard !nonSystem.isEmpty else { return }
+        messages.append(contentsOf: nonSystem)
+        turnCount = nonSystem.filter { $0.role == .user }.count
+        recursionDepth = 0
+        state = .idle
+        compactIfNeeded()
+    }
+
     /// Transition .idle → .listening. Caller is the long-press gesture.
     public func beginListening() {
         guard endReason == nil else { return }
@@ -266,6 +280,17 @@ public final class VoiceAgentSession {
 
     /// True when the session has ended for any reason.
     public var isEnded: Bool { endReason != nil }
+
+    /// Text of the most recently committed assistant message, if any. The
+    /// orchestrator reads this for the final spoken/displayed reply instead of
+    /// relying on the live `streamingContent` buffer (which is cleared as soon
+    /// as the text lands here, to avoid a duplicate bubble).
+    public var lastAssistantText: String? {
+        for msg in messages.reversed() where msg.role == .assistant {
+            if let content = msg.content, !content.isEmpty { return content }
+        }
+        return nil
+    }
 
     // MARK: - History compaction (PRD §5.2)
 

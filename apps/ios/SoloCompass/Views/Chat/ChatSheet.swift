@@ -26,7 +26,18 @@ public struct ChatSheet: View {
     /// User tapped "采用这条路线" on a proposed-route card — persist + open it.
     public let onAdoptRoute: (RouteProposal) -> Void
 
+    /// Optional binding to the host sheet's selected detent. When provided, the
+    /// sheet auto-expands to `.large` as soon as the agent starts working so the
+    /// reply has room to render, instead of being squeezed into a half-sheet.
+    /// Defaults to a throwaway constant so previews/tests need not supply one.
+    @Binding private var detent: PresentationDetent
+
+    /// Optional history store. When wired, the header shows a clock button that
+    /// opens saved conversations the user can reopen.
+    private let historyStore: ChatHistoryStore?
+
     @State private var draftText: String = ""
+    @State private var showHistory: Bool = false
     @State private var liveTranscript: String = ""
     @State private var voiceStreamTask: Task<Void, Never>? = nil
     @State private var permissionDenied: Bool = false
@@ -69,7 +80,9 @@ public struct ChatSheet: View {
         startInVoiceMode: Bool,
         onDismiss: @escaping () -> Void,
         onSelectExperience: @escaping (Experience) -> Void = { _ in },
-        onAdoptRoute: @escaping (RouteProposal) -> Void = { _ in }
+        onAdoptRoute: @escaping (RouteProposal) -> Void = { _ in },
+        detent: Binding<PresentationDetent> = .constant(.large),
+        historyStore: ChatHistoryStore? = nil
     ) {
         self.orchestrator = orchestrator
         self.voiceService = voiceService
@@ -77,6 +90,8 @@ public struct ChatSheet: View {
         self.onDismiss = onDismiss
         self.onSelectExperience = onSelectExperience
         self.onAdoptRoute = onAdoptRoute
+        self._detent = detent
+        self.historyStore = historyStore
     }
 
     public var body: some View {
@@ -99,6 +114,46 @@ public struct ChatSheet: View {
         .onDisappear { teardownVoiceStream() }
         .onChange(of: orchestrator.session.messages.count) { _, _ in
             handleMessageCountChange()
+        }
+        .onChange(of: orchestrator.uiState) { _, newState in
+            expandSheetWhileWorking(newState)
+        }
+        .sheet(isPresented: $showHistory) {
+            if let historyStore {
+                ChatHistoryListView(
+                    store: historyStore,
+                    onSelect: { sessionId, messages in
+                        restoreConversation(id: sessionId, messages: messages)
+                    },
+                    onDismiss: { showHistory = false }
+                )
+            }
+        }
+    }
+
+    /// Reopen a saved conversation in the live orchestrator, then close the
+    /// history sheet. Persist the current (possibly in-progress) conversation
+    /// first so switching away doesn't lose it. The orchestrator owns the
+    /// re-seed + replay so ordering stays [system, ...restored].
+    private func restoreConversation(id: String, messages: [VoiceAgentSession.Message]) {
+        orchestrator.persistConversation()
+        orchestrator.restoreConversation(id: id, messages: messages)
+        showHistory = false
+        showVoiceSurface = false
+    }
+
+    /// While the agent is thinking or streaming a reply, lift the sheet to full
+    /// height so the response renders in a roomy, focused surface — the most
+    /// readable state. The user can still drag it back down afterward; we only
+    /// drive the expansion, never force it closed.
+    private func expandSheetWhileWorking(_ state: ChatUIState) {
+        switch state {
+        case .processing, .responding:
+            if detent != .large {
+                withAnimation(.easeInOut(duration: 0.3)) { detent = .large }
+            }
+        default:
+            break
         }
     }
 
@@ -178,10 +233,21 @@ public struct ChatSheet: View {
     // MARK: - Subviews
 
     private var header: some View {
-        HStack {
+        HStack(spacing: 12) {
             Text(NSLocalizedString("chat.title", comment: "Chat title — Solo Compass"))
                 .font(.headline)
             Spacer()
+            if historyStore != nil {
+                Button { showHistory = true } label: {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, height: 28)
+                        .background(closeButtonFill, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(NSLocalizedString("chat.history.open.a11y", comment: "Open chat history")))
+            }
             Button(action: closeSheet) {
                 Image(systemName: "xmark")
                     .font(.footnote.weight(.semibold))
