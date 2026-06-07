@@ -3801,6 +3801,14 @@ final class SoloCompassTests: XCTestCase {
                                     "a walk needs at least two stops")
         XCTAssertEqual(proposal.route.experienceIds, proposal.stops.map(\.id),
                        "resolved stops must match the route's ordered ids")
+        // #5 regression: an AI-built route is composed for the current moment,
+        // so it must read as "best now" immediately — otherwise, once adopted,
+        // it would never surface in the 此刻/Now section (bestStartHour was nil
+        // before, making isBestNow() permanently false).
+        XCTAssertNotNil(proposal.route.bestStartHour,
+                        "AI route must anchor a best-now window so it shows in Now")
+        XCTAssertTrue(proposal.route.isBestNow(),
+                      "a freshly built AI route must be best-now at creation time")
     }
 
     /// build_route must NOT save the route — adoption is the user's explicit
@@ -5364,11 +5372,33 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
 
     // MARK: - US-017 Prompt-injection sanitizer
 
-    func testSanitizeUserInput_wrapsCleanTextInTags() {
+    func testSanitizeUserInput_keepsCleanTextTagFreeForUI() {
+        // The sanitizer now returns the text that gets STORED and DISPLAYED —
+        // so it must NOT contain the <user_input> wrapper (that leaked into the
+        // chat bubble before). The wrapper is applied only at API serialization.
         let result = VoiceAgentOrchestrator.sanitizeUserInput("Find me a coffee shop")
-        XCTAssertTrue(result.hasPrefix("<user_input>"), "output must start with <user_input> tag")
-        XCTAssertTrue(result.hasSuffix("</user_input>"), "output must end with </user_input> tag")
-        XCTAssertTrue(result.contains("Find me a coffee shop"), "clean text must be preserved inside tags")
+        XCTAssertEqual(result, "Find me a coffee shop", "clean text must pass through untouched, no tags")
+        XCTAssertFalse(result.contains("<user_input>"), "no <user_input> tag may leak into stored/displayed text")
+        XCTAssertFalse(result.contains("</user_input>"), "no closing tag may leak into stored/displayed text")
+    }
+
+    func testWrapUserContentForAPI_addsTagsForModelOnly() {
+        let wrapped = AIService.wrapUserContentForAPI("Find me a coffee shop")
+        XCTAssertEqual(wrapped, "<user_input>Find me a coffee shop</user_input>",
+                       "API serialization must wrap user content in the safety tags")
+    }
+
+    func testSerializeAgentMessages_wrapsUserRoleOnly() {
+        let messages: [VoiceAgentSession.Message] = [
+            .init(role: .system, content: "system prompt"),
+            .init(role: .user, content: "hello there"),
+            .init(role: .assistant, content: "hi!"),
+        ]
+        let rows = AIService.serializeAgentMessages(messages)
+        XCTAssertEqual(rows[0]["content"] as? String, "system prompt", "system content stays raw")
+        XCTAssertEqual(rows[1]["content"] as? String, "<user_input>hello there</user_input>",
+                       "user content is wrapped for the API")
+        XCTAssertEqual(rows[2]["content"] as? String, "hi!", "assistant content stays raw")
     }
 
     func testSanitizeUserInput_stripsIgnorePreviousInstructions() {
@@ -5403,8 +5433,8 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
     func testSanitizeUserInput_preservesNormalConversation() {
         let normal = "Can you recommend a quiet café near the museum?"
         let result = VoiceAgentOrchestrator.sanitizeUserInput(normal)
-        XCTAssertEqual(result, "<user_input>Can you recommend a quiet café near the museum?</user_input>",
-                       "normal user input must pass through unchanged inside tags")
+        XCTAssertEqual(result, "Can you recommend a quiet café near the museum?",
+                       "normal user input must pass through unchanged, tag-free")
     }
 
     // MARK: - US-021 TTS stops immediately on stop()
@@ -6988,5 +7018,104 @@ final class MinutesLeftInBestWindowTests: XCTestCase {
         let at = Calendar.current.date(from: c)!
         let result = exp.minutesLeftInBestWindow(at: at)
         XCTAssertEqual(result, 1)
+    }
+}
+
+// MARK: - #8 Chat history persistence
+
+@MainActor
+final class ChatHistoryStoreTests: XCTestCase {
+
+    private func makeStore() -> ChatHistoryStore {
+        ChatHistoryStore(context: ModelContext(SoloCompassModelContainer.makeInMemory()))
+    }
+
+    private func userMsg(_ text: String) -> VoiceAgentSession.Message {
+        .init(role: .user, content: text)
+    }
+
+    private func assistantMsg(_ text: String) -> VoiceAgentSession.Message {
+        .init(role: .assistant, content: text)
+    }
+
+    func testSaveAndRestoreRoundTrips() {
+        let store = makeStore()
+        let id = UUID().uuidString
+        let messages: [VoiceAgentSession.Message] = [
+            .init(role: .system, content: "system prompt"),
+            userMsg("帮我找咖啡馆"),
+            assistantMsg("好的，附近有几家不错的。"),
+        ]
+        let wrote = store.saveSession(id: id, messages: messages, scopedExperienceId: nil)
+        XCTAssertTrue(wrote, "a conversation with a user turn must persist")
+
+        let restored = store.messages(sessionId: id)
+        // System prompt is intentionally dropped on save (rebuilt on restore).
+        XCTAssertEqual(restored.map(\.role), [.user, .assistant])
+        XCTAssertEqual(restored.first?.content, "帮我找咖啡馆")
+        XCTAssertEqual(restored.last?.content, "好的，附近有几家不错的。")
+    }
+
+    func testEmptyConversationIsNotPersisted() {
+        let store = makeStore()
+        let id = UUID().uuidString
+        // No user message → nothing meaningful to save.
+        let wrote = store.saveSession(
+            id: id,
+            messages: [.init(role: .system, content: "system prompt")],
+            scopedExperienceId: nil
+        )
+        XCTAssertFalse(wrote, "a conversation with no user turn must be skipped")
+        XCTAssertTrue(store.recentSessions().isEmpty)
+    }
+
+    func testUpsertReplacesPriorSnapshot() {
+        let store = makeStore()
+        let id = UUID().uuidString
+        store.saveSession(id: id, messages: [userMsg("hi")], scopedExperienceId: nil)
+        store.saveSession(
+            id: id,
+            messages: [userMsg("hi"), assistantMsg("hello"), userMsg("more")],
+            scopedExperienceId: nil
+        )
+        // Same id → one session, latest snapshot only (no piled-up duplicates).
+        XCTAssertEqual(store.recentSessions().count, 1)
+        XCTAssertEqual(store.messages(sessionId: id).count, 3)
+    }
+
+    func testDeleteRemovesSessionAndMessages() {
+        let store = makeStore()
+        let id = UUID().uuidString
+        store.saveSession(id: id, messages: [userMsg("hi"), assistantMsg("yo")], scopedExperienceId: nil)
+        store.delete(sessionId: id)
+        XCTAssertTrue(store.recentSessions().isEmpty)
+        XCTAssertTrue(store.messages(sessionId: id).isEmpty)
+    }
+
+    func testTitleDerivedFromFirstUserMessage() {
+        let title = ChatHistoryStore.deriveTitle(from: [
+            .init(role: .system, content: "ignored"),
+            VoiceAgentSession.Message(role: .user, content: "找一家安静的咖啡馆"),
+        ])
+        XCTAssertEqual(title, "找一家安静的咖啡馆")
+    }
+
+    func testToolCallsSurviveRoundTrip() {
+        let store = makeStore()
+        let id = UUID().uuidString
+        let assistantWithTool = VoiceAgentSession.Message(
+            role: .assistant,
+            content: "let me look",
+            toolCalls: [.init(id: "c1", name: "explore_nearby", argumentsJSON: #"{"radius_meters":3000}"#)]
+        )
+        store.saveSession(
+            id: id,
+            messages: [userMsg("find cafes"), assistantWithTool],
+            scopedExperienceId: nil
+        )
+        let restored = store.messages(sessionId: id)
+        let toolCall = restored.first(where: { $0.role == .assistant })?.toolCalls.first
+        XCTAssertEqual(toolCall?.name, "explore_nearby")
+        XCTAssertEqual(toolCall?.argumentsJSON, #"{"radius_meters":3000}"#)
     }
 }

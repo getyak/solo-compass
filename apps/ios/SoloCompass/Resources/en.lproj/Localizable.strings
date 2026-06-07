@@ -1465,3 +1465,11 @@
 "nowscore.sunset.before_min" = "Sunset in %d min";
 "nowscore.sunset.blue_hour" = "%d min after sunset · blue hour";
 "nowscore.sunset.after_min" = "Sunset was %d min ago";
+
+/* Chat history (saved conversations) */
+"chat.history.title" = "History";
+"chat.history.untitled" = "Untitled chat";
+"chat.history.messageCount" = "%d messages";
+"chat.history.empty" = "No saved conversations yet";
+"chat.history.open.a11y" = "Open chat history";
+"common.done" = "Done";

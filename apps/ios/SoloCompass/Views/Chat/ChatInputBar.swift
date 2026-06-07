@@ -131,9 +131,12 @@ public struct ChatInputBar: View {
             HStack(alignment: .bottom, spacing: 8) {
                 plusButton
                 textField
-                sendButton
-                micButton
+                // WeChat-style trailing affordance: an empty draft shows the mic;
+                // as soon as the user types, it morphs into the send button. No
+                // permanently-docked send key sitting low next to the mic.
+                trailingButton
             }
+            .animation(.spring(response: 0.28, dampingFraction: 0.8), value: hasSendableDraft)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -286,17 +289,42 @@ public struct ChatInputBar: View {
         .accessibilityLabel(Text(NSLocalizedString("chat.input.placeholder", comment: "Type a message…")))
     }
 
+    /// True when there is something to send: trimmed text OR a staged attachment.
+    private var hasSendableDraft: Bool {
+        !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !attachments.isEmpty
+    }
+
+    /// WeChat-style single trailing slot: mic when the draft is empty, send when
+    /// the user has typed (or staged an attachment). Morphs in place with a
+    /// quick scale/opacity so it reads as one control changing mode, not two
+    /// buttons swapping.
+    @ViewBuilder
+    private var trailingButton: some View {
+        if hasSendableDraft {
+            sendButton
+                .transition(.scale(scale: 0.7).combined(with: .opacity))
+        } else {
+            micButton
+                .transition(.scale(scale: 0.7).combined(with: .opacity))
+        }
+    }
+
+    /// Filled-circle send key, sized to match the 40×40 plus/mic buttons so the
+    /// row stays on one baseline (the old `.title2` glyph sat low). Only shown
+    /// when there's a sendable draft, so it's always enabled.
     private var sendButton: some View {
-        let trimmed = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Enabled when there's text OR at least one staged attachment.
-        let canSend = !trimmed.isEmpty || !attachments.isEmpty
-        return Button(action: submitDraft) {
-            Image(systemName: "arrow.up.circle.fill")
-                .font(.title2)
-                .foregroundStyle(canSend ? CT.accent : Color.secondary.opacity(0.5))
+        Button(action: submitDraft) {
+            ZStack {
+                Circle()
+                    .fill(CT.accent)
+                    .frame(width: 40, height: 40)
+                Image(systemName: "arrow.up")
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(.white)
+            }
         }
         .buttonStyle(PressableButtonStyle(pressedScale: 0.88))
-        .disabled(!canSend)
         .accessibilityLabel(Text(NSLocalizedString("chat.input.send.a11y", comment: "Send")))
     }
 

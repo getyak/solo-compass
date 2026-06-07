@@ -122,6 +122,11 @@ struct CompassMapContentView: View {
     @State private var surveyExperience: Experience? = nil
     @State private var isShowingFavorites: Bool = false
     @State private var voiceOrchestrator: VoiceAgentOrchestrator? = nil
+    /// Selected detent for the chat sheet. Bound into `presentationDetents` so
+    /// the sheet can auto-expand to `.large` while the agent is working (see
+    /// `ChatSheet`), giving the reply room to breathe instead of being read in a
+    /// cramped half-sheet.
+    @State private var chatDetent: PresentationDetent = .medium
 
     // US-017: Companion map layer (default off)
     @State private var isCompanionLayerOn: Bool = false
@@ -129,6 +134,9 @@ struct CompassMapContentView: View {
 
     // US-025: Routes section in BottomInfoSheet
     @State private var routeStore = RouteStore()
+    /// Persists chat conversations so history survives the sheet closing / app
+    /// restart and the user can reopen them from the chat header.
+    @State private var chatHistoryStore = ChatHistoryStore()
     @State private var nearbyRoutes: [Route] = []
     // Single source of truth for the route detail / create-route sheets. Two
     // separate `.sheet(isPresented:)` modifiers on the same view silently
@@ -1099,7 +1107,8 @@ struct CompassMapContentView: View {
             aiService: aiService,
             voiceService: voiceService,
             mapViewModel: vm,
-            preferences: preferences
+            preferences: preferences,
+            historyStore: chatHistoryStore
         )
         orch.start()
         voiceOrchestrator = orch
@@ -1129,7 +1138,12 @@ struct CompassMapContentView: View {
             startInVoiceMode: chatStartMode == .voice,
             // The in-view "X" routes through the same binding setter so its
             // teardown matches swipe-to-dismiss exactly.
-            onDismiss: { chatOrchestratorBinding.wrappedValue = nil },
+            onDismiss: {
+                // Persist the conversation before tearing the orchestrator down
+                // so it lands in history even if the user only closed the sheet.
+                orch.persistConversation()
+                chatOrchestratorBinding.wrappedValue = nil
+            },
             // Tapping a chat place card reveals it on the map (the agent never
             // jumps there on its own — this is the user's explicit action).
             onSelectExperience: { exp in
@@ -1142,9 +1156,13 @@ struct CompassMapContentView: View {
                 routeStore.save(proposal.route)
                 refreshNearbyRoutes(cityCode: viewModel.selectedCity)
                 routeSheet = .detail(proposal.route)
-            }
+            },
+            // Bound detent lets the sheet auto-expand to full height while the
+            // agent is thinking, then the user can still drag it back down.
+            detent: $chatDetent,
+            historyStore: chatHistoryStore
         )
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large], selection: $chatDetent)
         .presentationDragIndicator(.visible)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }

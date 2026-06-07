@@ -18,6 +18,17 @@ public final class VoiceAgentOrchestrator: Identifiable {
     private let voiceService: VoiceService
     private let toolRouter: VoiceAgentToolRouter
     private weak var mapViewModel: MapViewModel?
+    /// Optional persistence for chat history. When wired, each completed turn
+    /// upserts the conversation so it survives the sheet closing / app restart.
+    private let historyStore: ChatHistoryStore?
+
+    /// Stable id for THIS conversation in the history store. A fresh UUID per
+    /// orchestrator session; reused across turns so saves upsert rather than
+    /// pile up. Replaced by `restoreConversation` when reopening from history.
+    public private(set) var persistedConversationId: String = UUID().uuidString
+    /// ISO 8601 UTC creation stamp for the persisted conversation, set on first
+    /// save and preserved across upserts.
+    private var persistedConversationCreatedAt: String?
     /// US-023: optional ContextManager — when set, snapshot JSON is injected
     /// into the system prompt before each session starts.
     private let contextManager: (any ContextManager)?
@@ -107,18 +118,74 @@ public final class VoiceAgentOrchestrator: Identifiable {
         voiceService: VoiceService,
         mapViewModel: MapViewModel,
         preferences: UserPreferences,
-        contextManager: (any ContextManager)? = nil
+        contextManager: (any ContextManager)? = nil,
+        historyStore: ChatHistoryStore? = nil
     ) {
         self.aiService = aiService
         self.voiceService = voiceService
         self.mapViewModel = mapViewModel
         self.contextManager = contextManager
+        self.historyStore = historyStore
         self.toolRouter = VoiceAgentToolRouter(
             mapViewModel: mapViewModel,
             preferences: preferences,
             // Wire the AI service so `build_route` can string a walk together.
             aiService: aiService
         )
+    }
+
+    /// Persist the current conversation snapshot (no-op when no store is wired
+    /// or there's nothing meaningful yet). Idempotent upsert under
+    /// `persistedConversationId`. Called after each completed turn and on close.
+    public func persistConversation() {
+        guard let historyStore else { return }
+        let wrote = historyStore.saveSession(
+            id: persistedConversationId,
+            messages: session.messages,
+            scopedExperienceId: scopedExperience?.id,
+            createdAt: persistedConversationCreatedAt
+        )
+        if wrote, persistedConversationCreatedAt == nil {
+            // Capture the created stamp from the just-written record so later
+            // upserts preserve it.
+            persistedConversationCreatedAt = historyStore
+                .recentSessions(limit: 1)
+                .first(where: { $0.id == persistedConversationId })?
+                .createdAt
+        }
+    }
+
+    /// Reopen a saved conversation: cancel any in-flight turn, re-seed a fresh
+    /// system prompt, adopt the saved conversation's id (so further turns upsert
+    /// the same record), then replay the stored messages into the session.
+    /// Safe to call while running; leaves the orchestrator ready for new turns.
+    public func restoreConversation(id: String, messages restored: [VoiceAgentSession.Message]) {
+        turnTask?.cancel()
+        turnTask = nil
+        synthesizer.stopSpeaking(at: .immediate)
+        didRequestImmediateSpeechStop = true
+
+        streamingContent = ""
+        thinkingStep = ""
+        isExecutingTool = false
+        errorMessage = nil
+        cardsByMessageId = [:]
+        reasoningTrace = []
+
+        persistedConversationId = id
+        persistedConversationCreatedAt = nil
+
+        Task {
+            let prompt = await buildSystemPrompt(experience: scopedExperience)
+            currentSystemPrompt = prompt
+            // Fresh system prompt first, then replay the saved history on top so
+            // ordering is [system, ...restored].
+            session.reseedSystem(prompt)
+            session.restoreHistory(restored)
+            isSeeded = true
+            isRunning = true
+            uiState = .listening
+        }
     }
 
     // MARK: - Public API
@@ -290,8 +357,12 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
     // MARK: - Prompt-injection guard
 
-    /// Strips common prompt-injection control sequences and wraps the result
-    /// in <user_input> tags so the model always treats the text as user content.
+    /// Strips common prompt-injection control sequences from raw user text.
+    ///
+    /// The result is the text that gets STORED in the session and rendered in
+    /// the chat bubble — so it must stay clean and tag-free. The `<user_input>`
+    /// safety wrapper is applied separately, only when serializing for the API
+    /// (`AIService.wrapUserContentForAPI`), so the guard never leaks into the UI.
     static func sanitizeUserInput(_ text: String) -> String {
         var sanitized = text
         // Strip sequences that try to override the system prompt.
@@ -315,7 +386,9 @@ public final class VoiceAgentOrchestrator: Identifiable {
         }
         // Collapse runs of newlines that could smuggle fake role headers.
         sanitized = sanitized.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
-        return "<user_input>\(sanitized)</user_input>"
+        // NOTE: no <user_input> wrapping here — that happens at API serialization
+        // time so the stored/displayed text stays clean. See doc comment above.
+        return sanitized
     }
 
     // MARK: - Turn loop
@@ -350,12 +423,19 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     uiState = .processing
                     shouldContinue = true
                 } else {
-                    let finalText = streamingContent
+                    // Read the final text from the committed assistant message,
+                    // not from `streamingContent` — the latter is now cleared in
+                    // sendToAIStreaming() once the text lands in `messages` (so it
+                    // can't be rendered as a duplicate bubble).
+                    let finalText = session.lastAssistantText ?? ""
                     uiState = .responding(finalText)
                     session.finishSpeakingTurn()
                     thinkingStep = ""
                     shouldContinue = false
                     speakResponse(finalText)
+                    // Turn complete — persist the conversation so it survives the
+                    // sheet closing and shows up in history.
+                    persistConversation()
                 }
 
                 if Date().timeIntervalSince(turnStart) > VoiceAgentSession.turnTimeoutSeconds {
@@ -404,9 +484,12 @@ public final class VoiceAgentOrchestrator: Identifiable {
             }
             let content = accumulatedContent.isEmpty ? nil : accumulatedContent
             session.appendAssistantTurn(content: content, toolCalls: sessionCalls)
-            if sessionCalls.isEmpty {
-                streamingContent = ""
-            }
+            // The text is now committed to `messages` and rendered from there.
+            // Always clear the live streaming buffer so it isn't ALSO rendered
+            // as a second, duplicate bubble — this previously only happened when
+            // there were no tool calls, so a tool-call turn's opening line (e.g.
+            // "Let me look around you first…") showed up twice.
+            streamingContent = ""
             return true
 
         } catch {
@@ -426,9 +509,10 @@ public final class VoiceAgentOrchestrator: Identifiable {
                 content: response.content,
                 toolCalls: response.toolCalls
             )
-            if let content = response.content {
-                streamingContent = content
-            }
+            // Mirror the streaming path: the text is committed to `messages`, so
+            // clear the live buffer to avoid a duplicate bubble. The final reply
+            // is read back via `session.lastAssistantText` in runTurn.
+            streamingContent = ""
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -497,7 +581,9 @@ public final class VoiceAgentOrchestrator: Identifiable {
     private func sendForceText(prompt: String) async {
         session.appendSystemContinuation(prompt)
         _ = await sendToAIFallback()
-        let finalText = streamingContent
+        // Read the committed reply, not the live buffer (now cleared after commit).
+        let finalText = session.lastAssistantText ?? ""
+        uiState = .responding(finalText)
         session.finishSpeakingTurn()
         thinkingStep = ""
         speakResponse(finalText)
@@ -575,12 +661,12 @@ public final class VoiceAgentOrchestrator: Identifiable {
         \(visibleSummary)
 
         TOOLS AVAILABLE:
-        1. explore_nearby(latitude, longitude, radius_meters) — Fetch real OSM POIs near a coordinate and enrich with AI. Use when the user wants new places or is in an unfamiliar area. Surfaced places appear to the user as tappable cards.
+        1. explore_nearby(latitude, longitude, radius_meters) — Fetch real OSM POIs near a coordinate and enrich with AI. Use when the user wants new places or is in an unfamiliar area. Surfaced places appear to the user as tappable cards. If the first ring is empty this tool AUTOMATICALLY widens the search (5 → 10 → 25 → 100 km) until it finds something or runs out of range — you do NOT need to call expand_radius yourself. The result reports `auto_expanded_stages` and `search_exhausted`.
         2. filter_by_category(category) — Filter the map to one category. Values: culture|nature|food|coffee|work|wellness|nightlife|hidden
         3. show_details(experience_id) — Present ONE place to the user as an inline card they can tap. Does NOT seize the map. MUST use an ID from CURRENT VISIBLE EXPERIENCES.
         4. save_to_favorites(experience_id) — Toggle favorite status for an experience.
         5. dismiss_recommendation(experience_id) — Hide an experience from the current view. Ephemeral — it can return after refresh.
-        6. search_places(query, latitude, longitude, radius_meters) — Search for a specific type or named place (e.g. "ramen", "7-Eleven", "rooftop bar"). Returns newly discovered experiences as cards.
+        6. search_places(query, latitude, longitude, radius_meters) — Search for a specific type or named place (e.g. "ramen", "7-Eleven", "rooftop bar"). Returns newly discovered experiences as cards. Like explore_nearby, it AUTOMATICALLY widens the radius when the first ring is empty, so don't give up early.
         7. navigate_to(experience_id) — Open the user's preferred map app with walking directions. ONLY when the user explicitly asks to go / get directions.
         8. build_route(experience_ids?) — String nearby places into ONE walkable route, ordered into a sensible walk, with a "why now" line reflecting the time, weather, and which places the user has or hasn't visited. The route appears as a card the user can adopt — it is NOT saved until they tap adopt. Use when the user asks you to plan a walk or string places together.
 
@@ -594,6 +680,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         - When the user wants a walk, an itinerary, or to "string these together", call build_route and let them adopt the proposed route.
         - Personalize using the CONTEXT SNAPSHOT (time, weather, location, visited history) — prefer places that fit the current moment and that the user hasn't seen yet, and say why in one short phrase.
         - When the user wants somewhere specific, use filter_by_category or search_places first.
+        - NEVER reply "there's nothing nearby" off a single empty search. explore_nearby / search_places already auto-widen the radius for you. Only acknowledge an empty area if the result has `search_exhausted: true` (the ladder reached its 100 km limit and still found nothing); otherwise work with what the search surfaced.
         - NEVER invent experience IDs — only use IDs from CURRENT VISIBLE EXPERIENCES or from explore_nearby/search_places results.
         - Detect the user's language from their input and reply in the same language.
         - If the user's request is unclear, ask exactly ONE clarifying question.

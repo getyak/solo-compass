@@ -93,6 +93,11 @@ public enum SoloCompassSchemaV1_2: VersionedSchema {
             RouteRecord.self,
             ConversationRecord.self,
             WeatherCacheRecord.self,
+            // Chat history (saved conversations). New @Model tables are an
+            // additive, lightweight migration — existing stores just gain two
+            // empty tables, no data is rewritten.
+            ChatSessionRecord.self,
+            ChatMessageRecord.self,
         ]
     }
 }
@@ -157,6 +162,8 @@ public enum SoloCompassModelContainer {
                 RouteRecord.self,
                 ConversationRecord.self,
                 WeatherCacheRecord.self,
+                ChatSessionRecord.self,
+                ChatMessageRecord.self,
                 configurations: config
             )
         } catch {
@@ -190,6 +197,8 @@ public enum SoloCompassModelContainer {
                 RouteRecord.self,
                 ConversationRecord.self,
                 WeatherCacheRecord.self,
+                ChatSessionRecord.self,
+                ChatMessageRecord.self,
                 configurations: config
             )
         } catch {

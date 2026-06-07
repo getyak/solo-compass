@@ -83,4 +83,28 @@ final class ChatCardRenderVisualTest: XCTestCase {
         )
         try write(render(stack), "chatcard_experience_rail")
     }
+
+    // MARK: - B-batch redesign (#6 bubbles)
+
+    /// Renders a representative conversation so the avatar-free, warm-parchment
+    /// assistant bubble + accent user bubble can be eyeballed against the old
+    /// white-card-with-compass-avatar look.
+    func testRedesignedBubbleConversationRenders() throws {
+        let convo = VStack(alignment: .leading, spacing: 10) {
+            MessageBubble(role: .user, text: "帮我计划今晚的行程")
+            MessageBubble(
+                role: .assistant,
+                text: "好的！现在是晚上，我来看看你附近有哪些适合夜晚的好去处。先看看你周围有什么："
+            )
+            MessageBubble(role: .tool, text: "{}", toolName: "explore_nearby")
+            MessageBubble(
+                role: .assistant,
+                text: "找到 3 个不错的地方，**河畔夜市**离你最近，灯火很热闹，适合一个人慢慢逛。"
+            )
+            TypingIndicatorBubble(label: "🧭 正在串联路线…")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
+        try write(render(convo), "bubbles_redesigned_light")
+    }
 }

@@ -306,11 +306,26 @@ public final class VoiceAgentToolRouter {
         } else {
             await vm.exploreNearby(at: coord, radiusMeters: radius, category: category)
         }
+        // If the first ring came up empty, don't surrender — widen the search
+        // automatically (the agent should compile the wider surroundings rather
+        // than reply "found nothing"). Only meaningful on the progressive path,
+        // which owns the ring ladder.
+        var stagesExpanded = 0
+        var ladderExhausted = false
+        if useProgressive {
+            let outcome = await autoExpandUntilResults(vm: vm)
+            stagesExpanded = outcome.stagesExpanded
+            ladderExhausted = outcome.exhausted
+        }
+        // Re-diff against the original snapshot so cards reflect everything the
+        // auto-expansion surfaced, not just the (empty) first ring.
         recordAddedEffect(before: before, vm: vm)
         return Self.successJSON([
             "added_count": vm.lastExploreAddedCount,
             "radius_meters": radius,
             "progressive": useProgressive,
+            "auto_expanded_stages": stagesExpanded,
+            "search_exhausted": ladderExhausted,
         ])
     }
 
@@ -327,6 +342,31 @@ public final class VoiceAgentToolRouter {
     /// Max places surfaced as cards from a single explore/search so the chat
     /// rail stays scannable rather than dumping 30 cards.
     private static let maxCardExperiences = 6
+
+    /// Hard ceiling on automatic radius expansions per explore/search call so a
+    /// genuinely empty area can't loop forever. The ring ladder tops out at
+    /// 100 km in a handful of stages, so this comfortably covers the full ladder.
+    private static let maxAutoExpandStages = 6
+
+    /// When the initial explore/search found nothing new, keep widening the
+    /// search ring (5 → 10 → 25 → 100 km) automatically until SOMETHING new
+    /// turns up or the ladder is exhausted — so the agent compiles the
+    /// surrounding area on its own instead of giving up and going silent.
+    ///
+    /// Returns how many stages it expanded (0 when the first ring already had
+    /// results) and whether the ladder was exhausted, for the tool reply so the
+    /// agent can tell the user how far it had to look.
+    private func autoExpandUntilResults(vm: MapViewModel) async -> (stagesExpanded: Int, exhausted: Bool) {
+        var stages = 0
+        while vm.lastExploreAddedCount == 0, stages < Self.maxAutoExpandStages {
+            // nil = a wider ring was launched; non-nil reason = already at max.
+            if await vm.expandOneStage() != nil {
+                return (stages, true)
+            }
+            stages += 1
+        }
+        return (stages, false)
+    }
 
     private struct FilterByCategoryArgs: Decodable {
         let category: String
@@ -430,12 +470,24 @@ public final class VoiceAgentToolRouter {
         } else {
             await vm.exploreNearby(at: coord, radiusMeters: radius, category: category)
         }
+        // Same auto-widen behavior as explore_nearby: a query that found nothing
+        // in the first ring keeps expanding instead of returning an empty result
+        // and stalling the agent.
+        var stagesExpanded = 0
+        var ladderExhausted = false
+        if useProgressive {
+            let outcome = await autoExpandUntilResults(vm: vm)
+            stagesExpanded = outcome.stagesExpanded
+            ladderExhausted = outcome.exhausted
+        }
         recordAddedEffect(before: before, vm: vm)
         return Self.successJSON([
             "query": parsed.query,
             "added_count": vm.lastExploreAddedCount,
             "radius_meters": radius,
             "progressive": useProgressive,
+            "auto_expanded_stages": stagesExpanded,
+            "search_exhausted": ladderExhausted,
         ])
     }
 
