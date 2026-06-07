@@ -296,6 +296,7 @@
 "experience.card.hint" = "Double tap to view details";
 "card.favorite.add" = "Add to favorites";
 "card.favorite.remove" = "Remove from favorites";
+"card.dismiss" = "Dismiss card";
 
 /* Experience card distance pill */
 "card.distance.walk" = "%d min walk";

@@ -923,6 +923,7 @@
 /* Card */
 "card.favorite.add" = "加入收藏";
 "card.favorite.remove" = "取消收藏";
+"card.dismiss" = "关闭卡片";
 "card.distance.walk" = "%d 分钟步行";
 "card.distance.walkSub1" = "不到 1 分钟步行";
 "card.distance.arrived" = "你已到达";
