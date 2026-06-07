@@ -217,7 +217,19 @@ public final class MapViewModel {
         guard !hasAutoCentered,
               let coordinate = locationService.currentLocation?.coordinate else { return }
         hasAutoCentered = true
-        recenter(on: coordinate)
+        // V-004 (C2): a *preset* city selection owns the camera — the cold-start
+        // city (persisted or `-startCity`) must not be yanked to the first GPS
+        // fix. In the simulator that fix defaults to San Francisco, so without
+        // this guard a `cmi` cold start shows the "Chiang Mai" header over a San
+        // Francisco map with an empty nearby list. We skip only the *camera
+        // recenter* for a preset (non-custom) city; the auto-explore check below
+        // still runs so a data-sparse landing can offer to fetch nearby places.
+        // The user can still pull to their real location via the explicit
+        // recenter button (`recenterOnUser`), which bypasses `hasAutoCentered`.
+        let cityOwnsCamera = (selectedCity.map { !$0.hasPrefix("custom_") }) ?? false
+        if !cityOwnsCamera {
+            recenter(on: coordinate)
+        }
         autoExploreIfEmpty(at: coordinate)
     }
 
