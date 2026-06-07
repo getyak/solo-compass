@@ -185,7 +185,9 @@ struct ChatRouteProposalCard: View {
                 Text(stop.title)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 if let reason = reason(at: index), !reason.isEmpty {
                     Text(reason)
                         .font(.caption2)
