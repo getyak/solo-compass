@@ -851,7 +851,7 @@ public struct ExperienceDetailView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showingRadarTooltip)
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: showingRadarTooltip)
         }
     }
 
@@ -1486,10 +1486,13 @@ private struct BestTimesTimeline: View {
                         .fill(Color.secondary.opacity(0.12))
                         .frame(height: trackHeight)
 
-                    // Window segments
+                    // Window segments. Use a fixed "good time" green rather than
+                    // the category color (which could be red/blue/purple and
+                    // carried no "this window is good" meaning) so the timeline
+                    // reads consistently with the rest of the app's now-semantics.
                     ForEach(segments(trackWidth: trackWidth), id: \.id) { seg in
                         Capsule()
-                            .fill(experience.category.color.opacity(0.85))
+                            .fill(Color.green.opacity(0.7))
                             .frame(width: seg.width, height: trackHeight)
                             .offset(x: seg.x)
                             .scaleEffect(x: animateFill ? 1 : 0, anchor: .leading)
