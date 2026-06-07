@@ -539,6 +539,9 @@
 "route.share.mode.text" = "纯文本";
 "route.share.min" = "分钟";
 "route.share.stops" = "站";
+"route.share.style.map" = "地图";
+"route.share.style.trace" = "轨迹";
+"route.share.mapFallback" = "地图底图不可用——改为显示简化线路。";
 /* %d = number of travelers who have walked this route. */
 "route.share.walkedBy" = "已有 %d 位旅行者走过";
 /* Share-card image brand label (US-038) — kept as "Solo Compass" in both locales, but routed through l10n. */
@@ -950,6 +953,12 @@
 "companion.chat.group.memberCount" = "%d 位成员";
 "companion.chat.group.unknownRoute" = "群聊";
 "companion.chat.pinnedRoute.a11y" = "已置顶路线";
+"companion.chat.attachment.backendNotReady" = "附件功能需要先部署存储服务——你的消息已发送，但未包含附件。";
+"companion.chat.attachment.uploadFailed" = "附件上传失败（HTTP %d）。";
+"companion.chat.attachment.tooLarge" = "该附件过大，无法发送。";
+"companion.chat.attachment.rateLimited" = "当前上传过于频繁——请稍后再试。";
+"companion.chat.attachment.notSignedIn" = "登录后才能发送附件。";
+"companion.chat.attachment.badResponse" = "附件服务返回了异常响应。";
 "companion.discover.error.auth" = "请登录后发现同伴。";
 "companion.discover.error.config" = "应用配置缺失，请重新安装。";
 "companion.discover.error.retry" = "重试";
