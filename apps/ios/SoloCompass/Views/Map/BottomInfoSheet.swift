@@ -474,7 +474,6 @@ public struct BottomInfoSheet<Content: View>: View {
                     dragOffset = value.translation.height
                 }
                 .onEnded { value in
-                    isDragging = false
                     let projectedHeight = detentBaseHeight - value.predictedEndTranslation.height
                     let clampedHeight = max(scaledMinHeight, min(scaledMaxHeight, projectedHeight))
                     // Settle to the nearest detent with an EXPLICIT spring. Both
@@ -486,7 +485,11 @@ public struct BottomInfoSheet<Content: View>: View {
                     // no spring (the "生硬" settle). Wrapping the state collapse in
                     // `withAnimation` guarantees the release always springs home —
                     // whether or not the detent changed.
+                    // Keep `isDragging` true until the settle animation starts so
+                    // `.scrollDisabled(isDragging)` doesn't release mid-spring and
+                    // let the ScrollView swallow the remaining bounce.
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        isDragging = false
                         currentDetent = BottomSheetDetent.nearest(to: clampedHeight, traits: dynamicTypeTraits)
                         dragOffset = 0
                     }
@@ -873,7 +876,10 @@ struct NearbyExperienceRow: View {
             Text(experience.title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(CT.fgPrimary)
-                .lineLimit(1)
+                // Long names like "Savor Japanese small plates al…" were cut to
+                // one line; allow two and shrink slightly before truncating.
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
 
             let sub = subtitleText
             if !sub.isEmpty {
@@ -899,11 +905,9 @@ struct NearbyExperienceRow: View {
                             .scale(scale: 0.8).combined(with: .opacity)
                     )
             }
-            if let prox = proximity {
-                Text(NSLocalizedString(prox.labelKey, comment: "Proximity density word"))
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(prox.dotColor)
-            }
+            // The proximity word ("Far"/"Quiet") duplicated the precise distance
+            // already shown in `distanceColumn` and read as a negative signal for
+            // a solo traveler. The km figure on the right is clearer; drop the word.
         }
         .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: isOpenNow)
     }
