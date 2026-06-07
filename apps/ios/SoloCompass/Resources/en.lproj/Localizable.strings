@@ -1215,8 +1215,8 @@
 /* US-015 — BottomInfoSheet now-mode headline */
 "sheet.now.headline" = "Good spots for right now";
 "sheet.sort.button" = "Sort";
-"sheet.count.now" = "此刻 %d";
-"sheet.count.nearby" = "附近 %d";
+"sheet.count.now" = "Now %d";
+"sheet.count.nearby" = "Nearby %d";
 
 /* US-006 — BottomInfoSheet drag handle */
 "sheet.handle" = "Sheet handle, swipe up or down to adjust";
@@ -1242,10 +1242,10 @@
 "sheet.section.nearby" = "Nearby";
 
 /* US-020 — Sort mode sheet */
-"sort.smart" = "智能";
-"sort.distance" = "距离";
-"sort.soloScore" = "Solo 分";
-"sort.now" = "此刻";
+"sort.smart" = "Smart";
+"sort.distance" = "Distance";
+"sort.soloScore" = "Solo";
+"sort.now" = "Now";
 
 /* US-030 — Sort button VoiceOver accessibilityValue (announces current sort mode) */
 "sort.value.smart" = "Sorted by smart";
