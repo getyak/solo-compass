@@ -372,6 +372,10 @@
 
 /* Settings — Subscription */
 "settings.subscription" = "订阅";
+"subscription.tier.pro" = "专业版";
+"subscription.tier.proTrial" = "专业版（试用）";
+"subscription.tier.expired" = "已过期";
+"subscription.tier.free" = "免费版";
 "settings.restore" = "恢复购买";
 "settings.manage" = "管理订阅";
 "restore.success" = "已恢复 Pro。";

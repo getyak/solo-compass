@@ -49,7 +49,9 @@ struct ChatExperienceCard: View {
                 .foregroundStyle(CT.accent)
             }
             .padding(12)
-            .frame(width: 220, alignment: .leading)
+            // Was a hard width: 220 — long names truncated badly at large Dynamic
+            // Type sizes. Let the card grow within a sensible band instead.
+            .frame(minWidth: 200, maxWidth: 260, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(cardFill)

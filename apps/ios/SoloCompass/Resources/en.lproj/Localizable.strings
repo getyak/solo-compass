@@ -616,6 +616,10 @@
 
 /* Settings — Subscription */
 "settings.subscription" = "Subscription";
+"subscription.tier.pro" = "Pro";
+"subscription.tier.proTrial" = "Pro (trial)";
+"subscription.tier.expired" = "Expired";
+"subscription.tier.free" = "Free";
 "settings.restore" = "Restore purchases";
 "settings.manage" = "Manage subscription";
 "restore.success" = "Pro restored.";
