@@ -1398,6 +1398,8 @@
 "peek.card.hint" = "双击查看附近全部地点";
 "peek.card.aiPick" = "AI 精选";
 "peek.card.aiPick.a11y" = "此刻 AI 精选";
+"peek.card.almostThere" = "就快到了";
+"peek.card.almostThere.a11y" = "就快到了";
 "peek.preview.active.hint" = "正在查看你选中的 · 上拉看全部";
 "sheet.handle.hint" = "点击展开，拖动调整";
 

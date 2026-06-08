@@ -1517,6 +1517,8 @@
 "peek.card.hint" = "Double tap to see all nearby spots";
 "peek.card.aiPick" = "AI Pick";
 "peek.card.aiPick.a11y" = "AI pick for right now";
+"peek.card.almostThere" = "Almost there";
+"peek.card.almostThere.a11y" = "Almost there";
 "peek.preview.active.hint" = "Viewing your pick · pull up for all nearby";
 "sheet.handle.hint" = "Tap to expand, drag to resize";
 
