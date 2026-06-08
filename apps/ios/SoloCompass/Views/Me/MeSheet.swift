@@ -112,6 +112,72 @@ struct MeSheet: View {
     }
 }
 
+// MARK: - Ring avatar
+
+private struct RingAvatar: View {
+    let favoritedCount: Int
+    let exploredCount: Int
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var animatedFraction: CGFloat = 0
+
+    private var targetFraction: CGFloat {
+        guard favoritedCount > 0 else { return 0 }
+        return CGFloat(min(exploredCount, favoritedCount)) / CGFloat(favoritedCount)
+    }
+
+    private var showRing: Bool { favoritedCount > 0 }
+
+    var body: some View {
+        ZStack {
+            Text(CompanionProfile.sample.avatarEmoji)
+                .font(.system(size: 40))
+                .frame(width: 64, height: 64)
+                .background(Circle().fill(CT.accentSoft))
+
+            if showRing {
+                Circle()
+                    .stroke(CT.accent.opacity(0.15), lineWidth: 3)
+                    .frame(width: 72, height: 72)
+                Circle()
+                    .trim(from: 0, to: animatedFraction)
+                    .stroke(CT.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: 72, height: 72)
+            }
+        }
+        .accessibilityLabel(Text(CompanionProfile.sample.avatarEmoji))
+        .accessibilityValue(showRing ? Text(
+            String(format: NSLocalizedString("me.profile.progress.a11y", comment: "Profile progress ring accessibility value"),
+                   min(exploredCount, favoritedCount), favoritedCount)
+        ) : Text(""))
+        .onAppear {
+            let target = targetFraction
+            if reduceMotion {
+                animatedFraction = target
+            } else {
+                withAnimation(.easeInOut(duration: 0.6)) { animatedFraction = target }
+            }
+        }
+        .onChange(of: exploredCount) { _, _ in
+            let target = targetFraction
+            if reduceMotion {
+                animatedFraction = target
+            } else {
+                withAnimation(.easeInOut(duration: 0.6)) { animatedFraction = target }
+            }
+        }
+        .onChange(of: favoritedCount) { _, _ in
+            let target = targetFraction
+            if reduceMotion {
+                animatedFraction = target
+            } else {
+                withAnimation(.easeInOut(duration: 0.6)) { animatedFraction = target }
+            }
+        }
+    }
+}
+
 // MARK: - Profile header
 
 /// Lightweight identity card. US-007 only needs an entry point, so the header
@@ -123,10 +189,7 @@ private struct ProfileHeader: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Text(CompanionProfile.sample.avatarEmoji)
-                .font(.system(size: 40))
-                .frame(width: 64, height: 64)
-                .background(Circle().fill(CT.accentSoft))
+            RingAvatar(favoritedCount: favoritedCount, exploredCount: exploredCount)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("me.profile.name", comment: "Default profile display name"))
@@ -377,6 +440,16 @@ struct MapAvatarBubble: View {
 #Preview("MeSheet") {
     MeSheet(pendingRequestCount: 2)
         .environment(UserPreferences())
+}
+
+#Preview("RingAvatar states") {
+    HStack(spacing: 24) {
+        RingAvatar(favoritedCount: 0, exploredCount: 0)   // no ring
+        RingAvatar(favoritedCount: 5, exploredCount: 0)   // 0%
+        RingAvatar(favoritedCount: 5, exploredCount: 2)   // 40%
+        RingAvatar(favoritedCount: 5, exploredCount: 5)   // 100%
+    }
+    .padding()
 }
 
 #Preview("Avatar bubble") {

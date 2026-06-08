@@ -270,6 +270,7 @@
 "me.avatar.a11y.pending" = "You have pending friend requests";
 "me.stats.saved" = "Saved";
 "me.stats.explored" = "Explored";
+"me.profile.progress.a11y" = "%d of %d saved places explored";
 
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";
