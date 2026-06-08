@@ -319,6 +319,20 @@
 "notification.checkin.title" = "你就在附近";
 "notification.checkin.body" = "你正站在 %@ 附近，要去看看吗？";
 
+/* US-020 — 路线加入通知（房主直接邀请好友，无需审批） */
+"notification.route.join.title" = "你已加入！";
+"notification.route.join.body" = "%1$@ 把你加入了「%2$@」。点按查看路线。";
+
+/* US-020 — 邀请好友直接加入招募中的路线（无需审批） */
+"invite.friends.button" = "邀请好友";
+"invite.friends.button.a11y" = "邀请好友加入此路线";
+"invite.friends.title" = "邀请好友";
+"invite.friends.send" = "邀请";
+"invite.friends.seats" = "剩余 %d 个名额";
+"invite.friends.footer" = "你邀请的好友会直接加入路线——无需审批。";
+"invite.friends.empty.title" = "没有可邀请的好友";
+"invite.friends.empty.description" = "你的好友都已在此路线中，或者你还没有添加好友。";
+
 /* Settings data */
 "settings.data.header" = "我的数据";
 "settings.clearData" = "清除全部数据";

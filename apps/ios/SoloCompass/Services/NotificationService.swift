@@ -69,6 +69,46 @@ public final class NotificationService {
         }
     }
 
+    /// US-020: notify a friend that the host pulled them straight into a
+    /// recruiting route (no approval step). Local notification only — no APNs
+    /// server. Fires shortly after the host taps Invite; the invited friend's
+    /// device surfaces a "you're in" banner deep-linking the route.
+    public func scheduleRouteJoinNotification(
+        routeId: String,
+        routeTitle: String,
+        hostId: String
+    ) async {
+        guard isAuthorized else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = NSLocalizedString(
+            "notification.route.join.title",
+            comment: "Route join notification title"
+        )
+        content.body = String(
+            format: NSLocalizedString(
+                "notification.route.join.body",
+                comment: "Route join notification body — host invited you into a route"
+            ),
+            hostId,
+            routeTitle
+        )
+        content.sound = .default
+        content.userInfo = ["routeId": routeId]
+
+        let identifier = "route-join-\(routeId)"
+        await center.removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
+        do {
+            try await center.add(request)
+        } catch {
+            // Non-critical — membership is already persisted; the banner is a nicety.
+        }
+    }
+
     /// Remove a pending notification once the user has already acted via the in-app banner.
     public func cancelCheckInNotification(for experienceId: String) async {
         let identifier = "checkin-\(experienceId)"

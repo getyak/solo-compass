@@ -570,6 +570,20 @@
 "notification.checkin.title" = "You're nearby";
 "notification.checkin.body" = "You're standing near %@. Want to check it out?";
 
+/* US-020 — Route join notification (host invited a friend, no approval) */
+"notification.route.join.title" = "You're in!";
+"notification.route.join.body" = "%1$@ added you to “%2$@”. Tap to see the route.";
+
+/* US-020 — Invite friends into a recruiting route (no approval) */
+"invite.friends.button" = "Invite Friends";
+"invite.friends.button.a11y" = "Invite friends into this route";
+"invite.friends.title" = "Invite Friends";
+"invite.friends.send" = "Invite";
+"invite.friends.seats" = "%d seats left";
+"invite.friends.footer" = "Friends you invite join the route directly — no approval needed.";
+"invite.friends.empty.title" = "No friends to invite";
+"invite.friends.empty.description" = "Everyone you're friends with is already in this route, or you haven't added any friends yet.";
+
 /* Settings — Apple ID link */
 "settings.saveWithApple" = "Save with Apple";
 "settings.linkedToAppleID" = "Linked to Apple ID";

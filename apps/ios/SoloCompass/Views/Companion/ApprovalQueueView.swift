@@ -16,6 +16,9 @@ public struct ApprovalQueueView: View {
 
     @State private var routeState: Route
     @State private var refreshToken: UUID = UUID()
+    /// US-020: presents the friend picker that pulls friends straight into
+    /// confirmedMembers (no approval).
+    @State private var showInviteFriends = false
 
     public init(
         route: Route,
@@ -50,16 +53,44 @@ public struct ApprovalQueueView: View {
             comment: "Approval queue nav title"
         ))
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            // US-020: host-only entry to invite friends straight into the route
+            // (no approval). Stranger requests above still flow through accept.
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Haptics.impact(.light)
+                    showInviteFriends = true
+                } label: {
+                    Label(
+                        NSLocalizedString("invite.friends.button", comment: "Invite friends button"),
+                        systemImage: "person.badge.plus"
+                    )
+                }
+                .accessibilityLabel(NSLocalizedString(
+                    "invite.friends.button.a11y",
+                    comment: "VoiceOver: invite friends into route"
+                ))
+            }
+        }
+        .sheet(isPresented: $showInviteFriends, onDismiss: reloadRoute) {
+            InviteFriendsSheet(route: routeState, contextProvider: contextProvider)
+        }
         .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { note in
             guard let routeId = note.userInfo?["routeId"] as? String,
                   routeId == route.id.rawValue else { return }
-            let ctx = contextProvider()
-            let store = RouteStore(context: ctx)
-            if let updated = store.get(route.id) {
-                routeState = updated
-            }
-            refreshToken = UUID()
+            reloadRoute()
         }
+    }
+
+    /// Re-read the route row and bump the refresh token — shared by the
+    /// RouteStore change publisher and the invite sheet's dismiss.
+    private func reloadRoute() {
+        let ctx = contextProvider()
+        let store = RouteStore(context: ctx)
+        if let updated = store.get(route.id) {
+            routeState = updated
+        }
+        refreshToken = UUID()
     }
 
     // MARK: - List
