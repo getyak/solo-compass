@@ -911,6 +911,8 @@
 "settings.theme" = "Theme";
 "settings.haptics" = "Haptic Feedback";
 "settings.haptics.footer" = "When on, Solo Compass taps your device on favorites, check-ins, filter changes, and map peeks.";
+"settings.haptics.toggle" = "Haptic Feedback";
+"settings.haptics.toggle.a11y" = "Toggle haptic feedback";
 
 /* Map preview in exports (US-020) */
 "settings.exportMapPreview" = "Include map preview in exports";

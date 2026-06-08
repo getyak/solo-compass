@@ -15,6 +15,7 @@ public struct SettingsView: View {
     var onShowFavorites: (() -> Void)?
     var onDistanceCommitted: (() -> Void)?
 
+    @State private var hapticsEnabled = HapticService.shared.isEnabled
     @State private var showingClearConfirm = false
     @State private var restoreToast: String?
     @State private var restoreInFlight = false
@@ -815,8 +816,9 @@ public struct SettingsView: View {
             .pickerStyle(.segmented)
 
             Toggle(isOn: Binding(
-                get: { HapticService.shared.isEnabled },
+                get: { hapticsEnabled },
                 set: { newValue in
+                    hapticsEnabled = newValue
                     HapticService.shared.isEnabled = newValue
                     if newValue {
                         HapticService.shared.impact(style: .light)
@@ -828,10 +830,14 @@ public struct SettingsView: View {
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white)
                         .frame(width: 30, height: 30)
-                        .background(Color.pink, in: RoundedRectangle(cornerRadius: 7))
-                    Text(NSLocalizedString("settings.haptics", comment: "Haptic Feedback"))
+                        .background(
+                            LinearGradient(colors: [Color.purple, Color.indigo], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            in: RoundedRectangle(cornerRadius: 7)
+                        )
+                    Text(NSLocalizedString("settings.haptics.toggle", comment: "Haptic Feedback"))
                 }
             }
+            .accessibilityLabel(NSLocalizedString("settings.haptics.toggle.a11y", comment: "Toggle haptic feedback"))
         } header: {
             settingsSectionHeader("paintpalette", label: NSLocalizedString("settings.appearance", comment: "Appearance"))
         } footer: {
