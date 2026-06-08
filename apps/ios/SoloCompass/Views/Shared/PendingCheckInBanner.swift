@@ -43,8 +43,12 @@ public struct PendingCheckInBanner: View {
 
     // Pause/resume interaction tracking
     @State private var isInteracting = false
-    /// Snapshot of countdownProgress taken when interaction begins; 1 = full bar.
+    /// Remaining fraction [0,1] computed from elapsed time when interaction begins.
     @State private var progressAtPause: CGFloat = 1
+    /// Wall-clock instant when the current countdown animation started; nil before first start.
+    @State private var countdownStartDate: Date? = nil
+    /// The remainingFraction value that was passed into the most recent startCountdown call.
+    @State private var countdownStartFraction: CGFloat = 1
     /// Guards pauseCountdown() so it fires only on the first-touch, not every drag event.
     @State private var wasPaused = false
     /// True when ~2 s remain; drives amber color shift on the bar and Yes button.
@@ -134,7 +138,7 @@ public struct PendingCheckInBanner: View {
                         .frame(width: geo.size.width * countdownProgress, height: 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .opacity(isInteracting ? 0.4 : 1.0)
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isInteracting)
+                        .animation(.easeInOut(duration: 0.2), value: isInteracting)
                 }
                 .frame(height: 2)
                 .padding(.horizontal, 2)
@@ -221,6 +225,8 @@ public struct PendingCheckInBanner: View {
     /// `remainingFraction` is in [0, 1] where 1 means full duration remaining.
     private func startCountdown(remainingFraction: CGFloat) {
         isExpiringSoon = false
+        countdownStartDate = Date()
+        countdownStartFraction = remainingFraction
         guard !voiceOverOn else {
             // VoiceOver: no bar, just arm the dismiss task.
             scheduleAutoDismiss(remainingFraction: remainingFraction)
@@ -238,9 +244,17 @@ public struct PendingCheckInBanner: View {
         autoDismissTask?.cancel()
         autoDismissTask = nil
         isExpiringSoon = false
-        // Snapshot the current progress fraction so resume can animate from here.
-        progressAtPause = countdownProgress
-        // Stop the running animation by re-asserting the current value with zero duration.
+        // Compute remaining fraction from elapsed wall-clock time, not the state variable
+        // (which holds the animation TARGET 0, not the in-flight rendered position).
+        if let start = countdownStartDate {
+            let totalSeconds = autoDismissSeconds * Double(countdownStartFraction)
+            let elapsed = Date().timeIntervalSince(start)
+            let remaining = max(0, totalSeconds - elapsed)
+            progressAtPause = CGFloat(remaining / autoDismissSeconds)
+        } else {
+            progressAtPause = countdownStartFraction
+        }
+        // Freeze the bar at the computed position.
         withAnimation(.linear(duration: 0)) {
             countdownProgress = progressAtPause
         }
