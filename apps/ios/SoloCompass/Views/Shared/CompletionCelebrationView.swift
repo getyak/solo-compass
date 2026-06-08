@@ -10,15 +10,15 @@ public struct CompletionCelebrationView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private struct Particle: Identifiable {
-        let id = UUID()
+        let id: Int
         let color: Color
         let angle: Double       // radians
         let distance: CGFloat   // launch radius
         let size: CGFloat
         let isCircle: Bool
-        let rotation: Double    // final spin in degrees, random -180...180
-        let delay: Double       // stagger offset, random 0...0.08
-        let gravity: CGFloat    // downward drift, random 28...46
+        let rotation: Double    // final spin in degrees, seeded -180...180
+        let delay: Double       // stagger offset, seeded 0...0.08
+        let gravity: CGFloat    // downward drift, seeded 28...46
     }
 
     @State private var particles: [Particle] = []
@@ -27,6 +27,41 @@ public struct CompletionCelebrationView: View {
     @State private var milestoneVisible = false
 
     private static let palette: [Color] = ExperienceCategory.allCases.map(\.color)
+
+    /// Knuth multiplicative hash seed derived from trigger for per-burst variation.
+    private var burstSeed: Int { trigger &* 2654435761 }
+
+    /// Deterministic pseudo-random float in [-1, 1] for a given particle index.
+    private func jitter(_ index: Int) -> Double {
+        let hash = (burstSeed &+ index &* 1597334677) & 0x7FFFFFFF
+        return (Double(hash % 1000) / 500.0) - 1.0
+    }
+
+    static func makeParticles(trigger: Int, count: Int = 14) -> [Particle] {
+        let seed = trigger &* 2654435761
+        func jitter(_ index: Int) -> Double {
+            let hash = (seed &+ index &* 1597334677) & 0x7FFFFFFF
+            return (Double(hash % 1000) / 500.0) - 1.0
+        }
+        func lerp(_ range: ClosedRange<Double>, _ t: Double) -> Double {
+            range.lowerBound + (range.upperBound - range.lowerBound) * ((t + 1.0) / 2.0)
+        }
+        return (0..<count).map { i in
+            let baseAngle = Double(i) / Double(count) * .pi * 2
+            let shapeHash = (seed &+ i &* 1000003) & 0x7FFFFFFF
+            return Particle(
+                id: i,
+                color: palette[(i + abs(trigger)) % palette.count],
+                angle: baseAngle + jitter(i) * 0.3,
+                distance: CGFloat(lerp(52...92, jitter(i + 50))),
+                size: CGFloat(lerp(6...11, jitter(i + 100))),
+                isCircle: (shapeHash & 1) == 0,
+                rotation: lerp(-180...180, jitter(i + 150)),
+                delay: abs(jitter(i + 200)) * 0.08,
+                gravity: CGFloat(lerp(28...46, jitter(i + 250)))
+            )
+        }
+    }
 
     public var body: some View {
         ZStack {
@@ -94,19 +129,7 @@ public struct CompletionCelebrationView: View {
     // soft impact ~0.12s later synced to the checkmark pop. Haptics.notify/impact
     // guard on Reduce Motion, so nothing fires when particles are also suppressed.
     private func fire() {
-        let count = 14
-        particles = (0..<count).map { i in
-            Particle(
-                color: Self.palette[i % Self.palette.count],
-                angle: Double(i) / Double(count) * .pi * 2 + Double.random(in: -0.3...0.3),
-                distance: CGFloat.random(in: 52...92),
-                size: CGFloat.random(in: 6...11),
-                isCircle: Bool.random(),
-                rotation: Double.random(in: -180...180),
-                delay: Double.random(in: 0...0.08),
-                gravity: CGFloat.random(in: 28...46)
-            )
-        }
+        particles = Self.makeParticles(trigger: trigger)
         animated = false
         checkmarkPop = false
         milestoneVisible = false
