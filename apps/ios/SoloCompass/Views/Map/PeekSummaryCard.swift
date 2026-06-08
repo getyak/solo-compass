@@ -28,9 +28,15 @@ struct PeekSummaryCard: View {
     let onTap: () -> Void
 
     @State private var pressed = false
+    @State private var pulsing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(LocationService.self) private var locationService
     @Environment(BestNowClock.self) private var clock
+
+    private var isNearby: Bool {
+        guard let meters = distanceMeters else { return false }
+        return meters < 150
+    }
 
     /// Single shared formatter — re-allocating a `MeasurementFormatter` per body
     /// evaluation is wasteful (it parses locale data each time).
@@ -172,19 +178,46 @@ struct PeekSummaryCard: View {
     private var distanceColumn: some View {
         let bearing = relativeBearing
         let hasLiveBearing = bearing != nil
+        let arrowColor: AnyShapeStyle = isNearby
+            ? AnyShapeStyle(CT.sunGoldDeep)
+            : (hasLiveBearing ? AnyShapeStyle(CT.fgMuted) : AnyShapeStyle(CT.fgSubtle))
         return VStack(alignment: .trailing, spacing: 4) {
             Image(systemName: "location.north.line.fill")
                 .font(.caption2)
-                .foregroundStyle(hasLiveBearing ? AnyShapeStyle(CT.fgMuted) : AnyShapeStyle(CT.fgSubtle))
+                .foregroundStyle(arrowColor)
                 .rotationEffect(.degrees(bearing ?? 0))
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
+                .scaleEffect(pulsing ? 1.18 : 1.0)
             if let meters = distanceMeters {
                 Text(formattedDistance(meters))
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(CT.fgSubtle)
+                    .foregroundStyle(isNearby ? AnyShapeStyle(CT.sunGoldDeep) : AnyShapeStyle(CT.fgSubtle))
+                if isNearby {
+                    Text(NSLocalizedString("peek.card.almostThere", comment: "Almost there micro-label shown when < 150m"))
+                        .font(.caption2)
+                        .foregroundStyle(CT.sunGoldDeep)
+                }
             }
         }
         .accessibilityHidden(true)
+        .onAppear { startNearbyPulseIfNeeded() }
+        .onChange(of: isNearby) { _, nearby in
+            if nearby {
+                startNearbyPulseIfNeeded()
+            } else {
+                withAnimation(.default) { pulsing = false }
+            }
+        }
+    }
+
+    private func startNearbyPulseIfNeeded() {
+        guard isNearby, !reduceMotion else {
+            pulsing = false
+            return
+        }
+        withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
+            pulsing = true
+        }
     }
 
     private var cardBackground: some View {
@@ -244,6 +277,9 @@ struct PeekSummaryCard: View {
         label += ", Solo \(String(format: "%.1f", experience.soloScore.overall))"
         if let meters = distanceMeters {
             label += ", \(formattedDistance(meters))"
+        }
+        if isNearby {
+            label += ", " + NSLocalizedString("peek.card.almostThere.a11y", comment: "VoiceOver: almost there proximity cue")
         }
         return Text(label)
     }
@@ -326,6 +362,42 @@ struct PeekEmptyCard: View {
                 )
             }
             PeekEmptyCard()
+        }
+        .padding(16)
+    }
+    .environment(LocationService.shared)
+    .environment(BestNowClock.shared)
+}
+
+#Preview("Proximity Pulse — nearby (<150m)") {
+    let seed = ExperienceService.hardcodedSeed
+    return ZStack {
+        Color(.systemGroupedBackground).ignoresSafeArea()
+        VStack(spacing: 16) {
+            if let pick = seed.first, let coord = pick.coordinate {
+                // Reference coordinate 80m north of the experience — forces isNearby = true
+                let nearbyRef = CLLocationCoordinate2D(
+                    latitude: coord.latitude + 0.00072,
+                    longitude: coord.longitude
+                )
+                PeekSummaryCard(
+                    experience: pick,
+                    isSmartPick: true,
+                    referenceCoordinate: nearbyRef,
+                    onTap: {}
+                )
+                // Far pick for contrast — same experience, reference 5 km away
+                let farRef = CLLocationCoordinate2D(
+                    latitude: coord.latitude + 0.045,
+                    longitude: coord.longitude
+                )
+                PeekSummaryCard(
+                    experience: pick,
+                    isSmartPick: false,
+                    referenceCoordinate: farRef,
+                    onTap: {}
+                )
+            }
         }
         .padding(16)
     }
