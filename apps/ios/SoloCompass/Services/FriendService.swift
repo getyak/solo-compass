@@ -180,6 +180,84 @@ public final class FriendService {
         outgoingRequests.removeAll { $0.id == request.id }
     }
 
+    // MARK: - US-012: Lazy-create direct conversation
+
+    /// Open the persistent 1:1 DM backing a friendship.
+    ///
+    /// If the friendship already has a `conversationId`, returns a lightweight
+    /// `Conversation` value pointing at it (the messages themselves are loaded
+    /// lazily by `ChatService` over Realtime). Otherwise this lazily creates a
+    /// `.friendDirect` conversation, writes it to the backend, and patches the
+    /// friendship's `conversation_id` back (locally + via a PostgREST upsert)
+    /// so the next open reuses the same thread.
+    ///
+    /// - Returns: the existing-or-newly-created `Conversation`, or a failure
+    ///   when the feature is off or the network write fails.
+    @discardableResult
+    public func openDirectConversation(
+        with friendship: Friendship
+    ) async -> Result<Conversation, Error> {
+        guard FeatureFlags.companion else {
+            return .failure(FriendServiceError.featureDisabled)
+        }
+
+        let participants = [friendship.userLowId, friendship.userHighId]
+        let now = nowISO()
+
+        // Already linked → return a value pointing at the existing thread.
+        if let existing = friendship.conversationId {
+            return .success(
+                Conversation(
+                    id: existing,
+                    requestId: nil,
+                    participantIds: participants,
+                    type: .friendDirect,
+                    createdAt: friendship.createdAt,
+                    updatedAt: now
+                )
+            )
+        }
+
+        // Lazily create a friendDirect conversation.
+        let conversation = Conversation(
+            id: ConversationId(rawValue: "conv_\(UUID().uuidString)"),
+            requestId: nil,
+            participantIds: participants,
+            type: .friendDirect,
+            createdAt: now,
+            updatedAt: now
+        )
+        guard let convData = try? JSONEncoder.iso8601Encoder.encode(conversation) else {
+            return .failure(FriendServiceError.encodingFailed)
+        }
+        let convResult = await client.post(table: "conversations", body: convData)
+        if case .failure(let err) = convResult { return .failure(err) }
+
+        // Write the conversation id back onto the friendship (upsert the row,
+        // same merge-duplicates POST pattern used for request status updates).
+        let linked = Friendship(
+            id: friendship.id,
+            userLowId: friendship.userLowId,
+            userHighId: friendship.userHighId,
+            initiatedBy: friendship.initiatedBy,
+            conversationId: conversation.id,
+            acceptedAt: friendship.acceptedAt,
+            createdAt: friendship.createdAt,
+            updatedAt: now
+        )
+        if let data = try? JSONEncoder.iso8601Encoder.encode(linked) {
+            _ = await client.post(table: "friendships", body: data)
+        }
+
+        // Reflect the link locally so a re-open reuses the same thread.
+        if let idx = friends.firstIndex(where: { $0.id == friendship.id }) {
+            friends[idx] = linked
+        }
+        persistFriendship(linked)
+
+        return .success(conversation)
+    }
+
     // MARK: - FRD-005: Unfriend / block
 
     /// Remove a friendship. When `block` is true, also records a CompanionBlock

@@ -156,9 +156,10 @@ public struct FriendsListView: View {
                     ForEach(service.friends) { friendship in
                         let otherId = friendship.otherUserId(viewer: currentUserId)
                         NavigationLink {
-                            FriendProfileView(
+                            FriendProfileContainer(
+                                friendship: friendship,
                                 profile: profileData(for: otherId),
-                                relation: .accepted
+                                service: service
                             )
                         } label: {
                             FriendRow(userId: otherId)
@@ -181,9 +182,10 @@ public struct FriendsListView: View {
                 ForEach(service.friends) { friendship in
                     let otherId = friendship.otherUserId(viewer: currentUserId)
                     NavigationLink {
-                        FriendProfileView(
+                        FriendProfileContainer(
+                            friendship: friendship,
                             profile: profileData(for: otherId),
-                            relation: .accepted
+                            service: service
                         )
                     } label: {
                         VStack(spacing: 4) {
@@ -235,6 +237,75 @@ public struct FriendsListView: View {
             }
         } else {
             Haptics.notify(.success)
+        }
+    }
+}
+
+// MARK: - FriendProfileContainer
+
+/// Wraps the pure, value-driven `FriendProfileView` with the `Friendship` + the
+/// `FriendService` so the [Message] action can lazily open (or create) the
+/// persistent `friendDirect` conversation and push the shared `ChatView` (US-012).
+///
+/// Keeping this container separate preserves `FriendProfileView`'s previewability
+/// — that view stays a plain function of `FriendProfileData` + relation + callbacks.
+private struct FriendProfileContainer: View {
+    let friendship: Friendship
+    let profile: FriendProfileData
+    let service: FriendService
+
+    @State private var conversation: Conversation?
+    @State private var isOpening = false
+    @State private var errorMessage: String?
+
+    private var currentUserId: String? {
+        SupabaseClient.shared.currentSession?.userId
+    }
+
+    var body: some View {
+        FriendProfileView(
+            profile: profile,
+            relation: .accepted,
+            onMessage: { Task { await openConversation() } }
+        )
+        .overlay(alignment: .center) {
+            if isOpening {
+                ProgressView()
+                    .padding(20)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+        .navigationDestination(item: $conversation) { conv in
+            ChatView(
+                conversation: conv,
+                currentUserId: currentUserId,
+                // friendDirect: blocking from the Report/Block menu also unfriends.
+                onBlocked: {
+                    Task { await service.unfriend(friendship, block: false) }
+                }
+            )
+        }
+        .alert(
+            NSLocalizedString("friends.list.error.title", comment: "Friends error title"),
+            isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+        ) {
+            Button(NSLocalizedString("action.ok", comment: "OK")) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func openConversation() async {
+        guard !isOpening else { return }
+        isOpening = true
+        defer { isOpening = false }
+        let result = await service.openDirectConversation(with: friendship)
+        switch result {
+        case .success(let conv):
+            conversation = conv
+        case .failure(let err):
+            errorMessage = err.localizedDescription
+            Haptics.notify(.error)
         }
     }
 }

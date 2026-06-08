@@ -217,6 +217,45 @@ final class ConversationTests: XCTestCase {
         XCTAssertEqual(decoded.id.rawValue, "conv_legacy")
     }
 
+    // MARK: - US-012: Hashable identity (drives navigationDestination(item:))
+
+    func testConversationEqualityIsIdentityBased() {
+        // Same id but differing mutable fields → still equal (same destination).
+        let a = Conversation(
+            id: ConversationId(rawValue: "conv_eq"),
+            participantIds: ["u1", "u2"],
+            type: .friendDirect,
+            createdAt: "2026-06-08T09:00:00Z",
+            updatedAt: "2026-06-08T09:00:00Z"
+        )
+        let b = Conversation(
+            id: ConversationId(rawValue: "conv_eq"),
+            participantIds: ["u1", "u2"],
+            type: .friendDirect,
+            lastMessageAt: "2026-06-08T12:00:00Z",
+            createdAt: "2026-06-08T09:00:00Z",
+            updatedAt: "2026-06-08T12:00:00Z"
+        )
+        XCTAssertEqual(a, b)
+        XCTAssertEqual(a.hashValue, b.hashValue)
+    }
+
+    func testConversationsWithDifferentIdsAreNotEqual() {
+        let a = Conversation(
+            id: ConversationId(rawValue: "conv_x"),
+            participantIds: ["u1", "u2"],
+            createdAt: "2026-06-08T09:00:00Z",
+            updatedAt: "2026-06-08T09:00:00Z"
+        )
+        let b = Conversation(
+            id: ConversationId(rawValue: "conv_y"),
+            participantIds: ["u1", "u2"],
+            createdAt: "2026-06-08T09:00:00Z",
+            updatedAt: "2026-06-08T09:00:00Z"
+        )
+        XCTAssertNotEqual(a, b)
+    }
+
     // MARK: - Sample data sanity
 
     func testSampleConversationIsOneOnOne() {

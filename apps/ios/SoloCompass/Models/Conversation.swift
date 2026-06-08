@@ -26,7 +26,18 @@ public enum ConversationType: String, Codable, Sendable, CaseIterable {
 // MARK: - Conversation
 
 /// A messaging thread between accepted companions, either one-on-one or anchored to a route group.
-public struct Conversation: Identifiable, Codable, Sendable {
+public struct Conversation: Identifiable, Codable, Sendable, Hashable {
+    // Identity-based equality/hashing so `Conversation` can drive a SwiftUI
+    // `navigationDestination(item:)` (US-012). Two values for the same thread id
+    // are the same destination regardless of mutable fields like `updatedAt`.
+    public static func == (lhs: Conversation, rhs: Conversation) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
     public let id: ConversationId
     /// The CompanionRequest this thread was opened from. Nil for `friendDirect`
     /// conversations, which are created from a Friendship rather than a request.

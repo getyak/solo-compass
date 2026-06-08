@@ -24,13 +24,22 @@ public struct ChatView: View {
     private let currentUserId: String?
     /// The other participant's user ID (used for report/block in one-on-one).
     private let otherUserId: String?
+    /// Extra side-effect run after a successful block (in addition to dismiss).
+    /// For `friendDirect` threads the caller passes an unfriend so blocking a
+    /// friend from the chat also tears down the friendship (US-012).
+    private let onBlocked: (() -> Void)?
 
     private var isGroupRoute: Bool { conversation.type == .groupRoute }
 
-    public init(conversation: Conversation, currentUserId: String? = nil) {
+    public init(
+        conversation: Conversation,
+        currentUserId: String? = nil,
+        onBlocked: (() -> Void)? = nil
+    ) {
         self.conversation = conversation
         self.currentUserId = currentUserId
         self.otherUserId = conversation.participantIds.first { $0 != currentUserId }
+        self.onBlocked = onBlocked
         _service = State(
             initialValue: ChatService(conversationId: conversation.id)
         )
@@ -73,7 +82,9 @@ public struct ChatView: View {
                     targetUserId: otherId,
                     targetLabel: NSLocalizedString("companion.chat.title", comment: "Chat")
                 ) {
-                    // Conversation frozen — dismiss chat on block.
+                    // Block tears down the relationship: friendDirect callers
+                    // unfriend via `onBlocked`; every thread then dismisses.
+                    onBlocked?()
                     dismiss()
                 }
             }
