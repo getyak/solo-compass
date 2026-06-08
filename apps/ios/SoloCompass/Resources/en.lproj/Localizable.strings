@@ -1087,6 +1087,7 @@
 "companion.request.sent.confirm" = "Request sent — they'll be notified";
 "companion.request.send.action" = "Send";
 "companion.request.sheet.title" = "Send Companion Request";
+"companion.invite.sheet.title" = "Invite to Meetup";
 "companion.request.post.header" = "Traveling with";
 "companion.request.note.header" = "Icebreaker (optional)";
 "companion.request.note.placeholder" = "Say hi or share what you're hoping to do together…";

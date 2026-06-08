@@ -3,9 +3,32 @@ import SwiftUI
 /// Sheet for composing an icebreaker note before sending a companion request.
 ///
 /// US-012: The note is optional but capped at 200 chars.
+/// US-019: A `source` distinguishes a stranger request (`.discover`) from a
+/// friend meetup invite (`.friend`). The friend path skips the stranger
+/// friction — there is no reporterWeight gate and no safety consent — because
+/// the relationship is already established. The view itself stays presentational;
+/// the gate (or lack of one) lives in the caller's `onSend` handler.
+///
 /// Dismissing without tapping "Send" cancels the action.
 struct SendRequestSheet: View {
-    let post: DiscoverPost
+    /// What kind of request is being composed — signals to the caller whether
+    /// stranger trust gates apply.
+    enum Source {
+        /// Stranger discovered in companion-discover; trust gates apply upstream.
+        case discover
+        /// Existing friend being invited to a meetup; no trust gate, no consent.
+        case friend
+    }
+
+    /// The minimal recipient identity shown in the preview, decoupled from
+    /// `DiscoverPost` so a friend invite can prefill without a discover post.
+    struct Recipient {
+        let handle: String
+        let blurb: String
+    }
+
+    let recipient: Recipient
+    let source: Source
     let onSend: (String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -13,16 +36,37 @@ struct SendRequestSheet: View {
 
     private let maxNoteLength = 200
 
+    /// US-012: compose from a discovered stranger post (trust-gated upstream).
+    init(post: DiscoverPost, onSend: @escaping (String?) -> Void) {
+        self.recipient = Recipient(handle: post.handle, blurb: post.blurb)
+        self.source = .discover
+        self.onSend = onSend
+    }
+
+    /// US-019: compose a meetup invite to an existing friend. No reporterWeight
+    /// gate and no safety consent — the relationship already cleared those.
+    init(recipient: Recipient, source: Source, onSend: @escaping (String?) -> Void) {
+        self.recipient = recipient
+        self.source = source
+        self.onSend = onSend
+    }
+
+    private var titleKey: String {
+        source == .friend
+            ? "companion.invite.sheet.title"
+            : "companion.request.sheet.title"
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                // Post preview
+                // Recipient preview
                 Section {
                     HStack(spacing: 12) {
-                        Text(post.handle)
+                        Text(recipient.handle)
                             .font(.system(size: 32))
                             .accessibilityHidden(true)
-                        Text(post.blurb)
+                        Text(recipient.blurb)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .lineLimit(3)
@@ -54,7 +98,7 @@ struct SendRequestSheet: View {
                     .foregroundStyle(note.count >= maxNoteLength ? .red : .secondary)
                 }
             }
-            .navigationTitle(NSLocalizedString("companion.request.sheet.title", comment: "Send request sheet title"))
+            .navigationTitle(NSLocalizedString(titleKey, comment: "Send request sheet title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -76,7 +120,7 @@ struct SendRequestSheet: View {
     }
 }
 
-#Preview {
+#Preview("Discover request") {
     SendRequestSheet(post: DiscoverPost(
         id: "cpost_preview",
         handle: "🧭",
@@ -87,4 +131,11 @@ struct SendRequestSheet: View {
         activeFrom: "2026-04-01",
         activeTo: "2026-04-10"
     )) { _ in }
+}
+
+#Preview("Friend invite") {
+    SendRequestSheet(
+        recipient: .init(handle: "🌊", blurb: "wanderlust_mei"),
+        source: .friend
+    ) { _ in }
 }

@@ -726,6 +726,7 @@
  * Send request / common request labels
  * ============================================================ */
 "companion.request.sheet.title" = "发送同伴请求";
+"companion.invite.sheet.title" = "邀请约伴";
 "companion.request.post.header" = "对方的同伴帖";
 "companion.request.note.header" = "附言（可选）";
 "companion.request.note.placeholder" = "简单介绍一下自己，或说说你为什么想约一起...";

@@ -271,17 +271,39 @@ private struct FriendProfileContainer: View {
     @State private var conversation: Conversation?
     @State private var isOpening = false
     @State private var errorMessage: String?
+    /// US-019: presents the meetup-invite composer (no trust gate).
+    @State private var showInvite = false
+    /// US-019: companion meetup invites bypass the discover trust gate.
+    private let companion: CompanionService = .shared
 
     private var currentUserId: String? {
         SupabaseClient.shared.currentSession?.userId
+    }
+
+    private var otherUserId: String {
+        friendship.otherUserId(viewer: currentUserId ?? "local")
     }
 
     var body: some View {
         FriendProfileView(
             profile: profile,
             relation: .accepted,
-            onMessage: { Task { await openConversation() } }
+            onMessage: { Task { await openConversation() } },
+            // US-019: invite an existing friend straight to a meetup. No
+            // reporterWeight gate and no safety consent — those only guard
+            // stranger requests from Discover.
+            onInvite: { showInvite = true }
         )
+        .sheet(isPresented: $showInvite) {
+            SendRequestSheet(
+                recipient: .init(
+                    handle: profile.avatarEmoji,
+                    blurb: profile.displayHandle
+                ),
+                source: .friend,
+                onSend: { note in Task { await sendInvite(note: note) } }
+            )
+        }
         .overlay(alignment: .center) {
             if isOpening {
                 ProgressView()
@@ -317,6 +339,30 @@ private struct FriendProfileContainer: View {
         switch result {
         case .success(let conv):
             conversation = conv
+        case .failure(let err):
+            errorMessage = err.localizedDescription
+            Haptics.notify(.error)
+        }
+    }
+
+    /// US-019: send a companion meetup request to an existing friend. This goes
+    /// straight through `CompanionService.sendRequest` — deliberately skipping
+    /// `FriendService.sendDiscoverRequest`'s reporterWeight gate and safety
+    /// consent, which only guard stranger requests. Acceptance on the other
+    /// side runs the existing `CompanionService.acceptRequest`, which builds the
+    /// one-on-one conversation with a `requestId`.
+    private func sendInvite(note: String?) async {
+        // Invites have no originating discover post; synthesize a stable id so
+        // the request row still carries a non-empty postId.
+        let syntheticPostId = CompanionPostId(rawValue: "friend-invite:\(otherUserId)")
+        let result = await companion.sendRequest(
+            postId: syntheticPostId,
+            recipientId: otherUserId,
+            note: note
+        )
+        switch result {
+        case .success:
+            Haptics.notify(.success)
         case .failure(let err):
             errorMessage = err.localizedDescription
             Haptics.notify(.error)
