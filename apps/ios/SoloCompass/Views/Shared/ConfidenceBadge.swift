@@ -94,6 +94,8 @@ private struct PopoverContent: View {
     let confidence: Confidence
     @State private var appeared = false
     @State private var barsFilled = false
+    @State private var strongestSettled = false
+    @State private var didHaptic = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Normalized 0...1 strength per signal
@@ -235,7 +237,17 @@ private struct PopoverContent: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     barsFilled = true
                 }
+                // Schedule the strongest-bar settle pulse: stagger delay + spring settle time
+                let strongestDelay = Double(strongestIndex) * 0.07 + 0.45
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15 + strongestDelay) {
+                    strongestSettled = true
+                }
             }
+        }
+        .onChange(of: strongestSettled) { _, settled in
+            guard settled, !didHaptic else { return }
+            didHaptic = true
+            Haptics.impact(.soft)
         }
     }
 
@@ -292,6 +304,21 @@ private struct PopoverContent: View {
                     .fill(confidence.health.color.opacity(0.7))
                     .frame(width: fillWidth, height: 3)
                     .animation(animation, value: barsFilled)
+                // One-shot glow pulse on the strongest bar as it settles
+                if isStrongest {
+                    Capsule()
+                        .fill(confidence.health.color)
+                        .frame(width: fillWidth, height: 3)
+                        .scaleEffect(strongestSettled ? 1.0 : 1.18, anchor: .leading)
+                        .opacity(strongestSettled ? 0.0 : 0.5)
+                        .animation(
+                            strongestSettled
+                                ? .easeOut(duration: 0.38)
+                                : .linear(duration: 0),
+                            value: strongestSettled
+                        )
+                        .animation(animation, value: barsFilled)
+                }
             }
         }
         .accessibilityElement(children: .combine)
