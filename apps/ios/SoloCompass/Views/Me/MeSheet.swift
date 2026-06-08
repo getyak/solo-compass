@@ -161,6 +161,10 @@ private struct StatPill: View {
     let caption: String
 
     @State private var shown: Int = 0
+    @State private var pop: Bool = false
+    @State private var rollTask: Task<Void, Never>? = nil
+    /// True after the initial onAppear roll completes so onChange can fire haptics.
+    @State private var initialRollDone: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -169,6 +173,8 @@ private struct StatPill: View {
                 .font(.subheadline.weight(.semibold).monospacedDigit())
                 .foregroundStyle(CT.fgPrimary)
                 .contentTransition(.numericText())
+                .scaleEffect(pop ? 1.18 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.5), value: pop)
             Text(caption)
                 .font(.caption)
                 .foregroundStyle(CT.fgSubtle)
@@ -176,18 +182,54 @@ private struct StatPill: View {
         .onAppear {
             if reduceMotion {
                 shown = target
+                initialRollDone = true
             } else {
-                Task {
-                    let steps = min(target, 20)
-                    guard steps > 0 else { return }
-                    for step in 1...steps {
-                        try? await Task.sleep(nanoseconds: 30_000_000)
-                        shown = target * step / steps
-                    }
-                    shown = target
-                }
+                startRoll(to: target, markDoneOnLanding: true)
             }
         }
+        .onChange(of: target) { old, new in
+            if reduceMotion {
+                shown = new
+                return
+            }
+            startRoll(to: new, markDoneOnLanding: false)
+            // Haptic only on genuine increases that happen after the initial appear roll.
+            if new > old, initialRollDone {
+                #if canImport(UIKit)
+                Haptics.selection()
+                #endif
+            }
+        }
+    }
+
+    private func startRoll(to newTarget: Int, markDoneOnLanding: Bool) {
+        rollTask?.cancel()
+        rollTask = Task {
+            await roll(to: newTarget, markDoneOnLanding: markDoneOnLanding)
+        }
+    }
+
+    private func roll(to newTarget: Int, markDoneOnLanding: Bool) async {
+        let start = shown
+        let delta = abs(newTarget - start)
+        let steps = min(delta, 20)
+        guard steps > 0 else {
+            shown = newTarget
+            if markDoneOnLanding { initialRollDone = true }
+            return
+        }
+        for step in 1...steps {
+            guard !Task.isCancelled else { return }
+            try? await Task.sleep(nanoseconds: 30_000_000)
+            guard !Task.isCancelled else { return }
+            shown = start + (newTarget - start) * step / steps
+        }
+        shown = newTarget
+        if markDoneOnLanding { initialRollDone = true }
+        // Spring scale-pop on landing.
+        pop = true
+        try? await Task.sleep(nanoseconds: 350_000_000)
+        pop = false
     }
 }
 
