@@ -1604,3 +1604,7 @@
 "messages.group.fallbackTitle" = "Route group";
 "messages.unknownUser" = "Traveler";
 "messages.unread.a11y" = "Unread";
+
+/* AvatarStack accessibility labels */
+"avatarstack.one" = "1 person";
+"avatarstack.count" = "%d people";
