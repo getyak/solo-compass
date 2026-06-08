@@ -578,17 +578,31 @@ struct SortCountToolbar: View {
     let isNowMode: Bool
     @Binding var sortMode: SortMode
     @State private var showSortSheet = false
+    @State private var pulse = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack {
             sortButton
             Spacer()
             countBadge
+                .scaleEffect(pulse ? 1.12 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: pulse)
         }
         .sheet(isPresented: $showSortSheet) {
             SortModeSheet(sortMode: $sortMode)
                 .presentationDetents([.height(300)])
                 .presentationDragIndicator(.visible)
+        }
+        .onChange(of: sortMode) { _, _ in
+            #if canImport(UIKit)
+            Haptics.selection()
+            #endif
+            guard !reduceMotion else { return }
+            pulse = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                pulse = false
+            }
         }
     }
 
@@ -1226,6 +1240,7 @@ struct NearbySection: View {
     let onExploreElsewhere: (() -> Void)?
 
     @Environment(BestNowClock.self) private var clock
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
         experiences: [Experience],
@@ -1286,6 +1301,7 @@ struct NearbySection: View {
                         )
                     }
                 }
+                .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8), value: sortMode)
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
                 .padding(.bottom, 8)
