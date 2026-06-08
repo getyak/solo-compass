@@ -21,6 +21,8 @@ public struct VoiceButton: View {
     @State private var didAutoStop = false
     @State private var autoStopMessage: String? = nil
     @State private var didWarnCountdown = false
+    @State private var emptyHint: String? = nil
+    @State private var emptyHintTask: Task<Void, Never>?
 
     // Retained generators — prepare() pre-warms the Taptic Engine to eliminate first-fire latency.
     private let recordStartGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -114,11 +116,21 @@ public struct VoiceButton: View {
             Text(recognitionError ?? "")
         }
         .overlay(alignment: .top) {
-            if isRecording || autoStopMessage != nil {
+            if isRecording || autoStopMessage != nil || emptyHint != nil {
                 let secondsRemaining = Int(maxRecordingDuration) - Int(elapsed)
                 let inCountdown = elapsed >= 50 && !didAutoStop
                 VStack(spacing: 4) {
-                    if let message = autoStopMessage {
+                    if let hint = emptyHint {
+                        Text(hint)
+                            .font(.caption)
+                            .foregroundStyle(AnyShapeStyle(Color.orange))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.thinMaterial, in: Capsule())
+                            .transition(reduceMotion ? .identity : .opacity)
+                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: hint)
+                            .accessibilityHidden(true)
+                    } else if let message = autoStopMessage {
                         Text(message)
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(AnyShapeStyle(Color.orange))
@@ -136,24 +148,28 @@ public struct VoiceButton: View {
                             .accessibilityHidden(true)
                     }
 
-                    let displayText = liveTranscript.isEmpty
-                        ? NSLocalizedString("chat.voice.listening", comment: "Listening placeholder")
-                        : liveTranscript
-                    Text(displayText)
-                        .font(.caption)
-                        .foregroundStyle(liveTranscript.isEmpty ? .secondary : .primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.thinMaterial, in: Capsule())
-                        .transition(reduceMotion ? .identity : .opacity)
-                        .id(liveTranscript.isEmpty)
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: liveTranscript.isEmpty)
+                    if emptyHint == nil {
+                        let displayText = liveTranscript.isEmpty
+                            ? NSLocalizedString("chat.voice.listening", comment: "Listening placeholder")
+                            : liveTranscript
+                        Text(displayText)
+                            .font(.caption)
+                            .foregroundStyle(liveTranscript.isEmpty ? .secondary : .primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.thinMaterial, in: Capsule())
+                            .transition(reduceMotion ? .identity : .opacity)
+                            .id(liveTranscript.isEmpty)
+                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: liveTranscript.isEmpty)
+                    }
                 }
                 .offset(y: -62)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text(inCountdown
-                    ? String(format: NSLocalizedString("voice.recording.secondsLeft", comment: ""), secondsRemaining)
-                    : String(format: NSLocalizedString("voice.recording.timer.a11y", comment: ""), Int(elapsed))))
+                .accessibilityLabel(Text(emptyHint != nil
+                    ? (emptyHint ?? "")
+                    : inCountdown
+                        ? String(format: NSLocalizedString("voice.recording.secondsLeft", comment: ""), secondsRemaining)
+                        : String(format: NSLocalizedString("voice.recording.timer.a11y", comment: ""), Int(elapsed))))
             }
         }
     }
@@ -221,6 +237,7 @@ public struct VoiceButton: View {
         voiceService.stopListening()
         isRecording = false
         pulse = false
+        let recordingElapsed = elapsed
         stopElapsedTimer()
         if UIAccessibility.isVoiceOverRunning && !suppressStoppedAnnouncement {
             UIAccessibility.post(notification: .announcement,
@@ -234,6 +251,20 @@ public struct VoiceButton: View {
             onTranscript(final)
         } else {
             recordStopEmptyGenerator.impactOccurred()
+            let hintKey = recordingElapsed < 1.0
+                ? "voice.recording.tooShort"
+                : "voice.recording.empty"
+            let hint = NSLocalizedString(hintKey, comment: "")
+            emptyHint = hint
+            if UIAccessibility.isVoiceOverRunning {
+                UIAccessibility.post(notification: .announcement, argument: hint)
+            }
+            emptyHintTask?.cancel()
+            emptyHintTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.8))
+                guard !Task.isCancelled else { return }
+                if emptyHint == hint { emptyHint = nil }
+            }
         }
         liveTranscript = ""
     }
@@ -297,6 +328,43 @@ public struct VoiceButton: View {
     // Simulates the recording state before any speech is recognized.
     _ListeningPlaceholderPreview()
         .padding()
+}
+
+#Preview("Empty hint — too short") {
+    _EmptyHintPreview(hint: NSLocalizedString("voice.recording.tooShort", comment: ""))
+        .padding()
+}
+
+#Preview("Empty hint — silence") {
+    _EmptyHintPreview(hint: NSLocalizedString("voice.recording.empty", comment: ""))
+        .padding()
+}
+
+private struct _EmptyHintPreview: View {
+    let hint: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.black.opacity(0.85))
+                .frame(width: 56, height: 56)
+                .shadow(radius: 4)
+            Image(systemName: "mic.fill")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+        }
+        .overlay(alignment: .top) {
+            Text(hint)
+                .font(.caption)
+                .foregroundStyle(AnyShapeStyle(Color.orange))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.thinMaterial, in: Capsule())
+                .transition(reduceMotion ? .identity : .opacity)
+                .offset(y: -50)
+        }
+    }
 }
 
 private struct _ListeningPlaceholderPreview: View {
