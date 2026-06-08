@@ -191,7 +191,7 @@
         "Verify in Simulator: QR renders, copy works"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

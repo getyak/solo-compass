@@ -12,3 +12,4 @@ PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
 [2026-06-08T09:01:43Z] Story #US-010: FriendsListView + request inbox — PASSED
 [2026-06-08T09:10:25Z] Story #US-011: Conversation: requestId optional + friendDirect type — PASSED
 [2026-06-08T09:17:53Z] Story #US-012: Friend Message: lazy-create conversation + ChatView — PASSED
+[2026-06-08T09:26:39Z] Story #US-013: AddFriendSheet: my friend code + QR — PASSED
