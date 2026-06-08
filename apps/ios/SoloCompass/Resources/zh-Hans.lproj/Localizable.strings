@@ -1211,6 +1211,7 @@
 "solo.radar.weakest.a11y" = "注意：%@ 是最弱的维度 — 这是一个权衡点。";
 "solo.radar.strongest" = "独行最佳：%@";
 "solo.radar.strongest.a11y" = "独行最佳：%@。";
+"solo.radar.axis.dimension" = "维度";
 
 /* Sort */
 "sort.smart" = "智能";

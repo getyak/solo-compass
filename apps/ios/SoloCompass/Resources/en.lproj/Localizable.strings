@@ -70,6 +70,7 @@
 "solo.radar.weakest.a11y" = "Note: %@ is the weakest dimension — expect it to be a tradeoff.";
 "solo.radar.strongest" = "Great for solo %@";
 "solo.radar.strongest.a11y" = "Great for solo %@.";
+"solo.radar.axis.dimension" = "Dimension";
 "solo.basedOn.early" = "Based on %d early reports";
 "solo.estimate.pill" = "AI estimate";
 "solo.section.estimate" = "Solo Score (AI estimate)";
