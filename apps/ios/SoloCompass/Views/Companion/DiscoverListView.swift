@@ -140,29 +140,7 @@ public struct DiscoverListView: View {
     }
 
     private var emptyStateView: some View {
-        ContentUnavailableView {
-            Label(
-                NSLocalizedString("companion.discover.empty.title", comment: "No companions found title"),
-                systemImage: "person.2.slash"
-            )
-        } description: {
-            Text(NSLocalizedString("companion.discover.empty.description", comment: "No companions found description"))
-        } actions: {
-            VStack(spacing: 16) {
-                Text(NSLocalizedString("companion.discover.coldstart.tip", comment: "Cold start tip"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                Button {
-                    Haptics.impact(.light)
-                    showPostSheet = true
-                } label: {
-                    Text(NSLocalizedString("companion.discover.empty.cta", comment: "Post your availability CTA"))
-                }
-                .buttonStyle(.borderedProminent)
-                .accessibilityHint(NSLocalizedString("companion.discover.empty.cta.hint", comment: "Post your availability accessibility hint"))
-            }
-        }
+        EmptyCompanionState(onPostTapped: { showPostSheet = true })
     }
 
     private var postList: some View {
@@ -242,6 +220,79 @@ public struct DiscoverListView: View {
                 errorMessage = nil
             }
         }
+    }
+}
+
+// MARK: - EmptyCompanionState
+
+private struct EmptyCompanionState: View {
+    let onPostTapped: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulse = false
+    @State private var appeared = false
+
+    var body: some View {
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(pulse ? 0.6 : 0.35))
+                    .frame(width: 80, height: 80)
+                    .scaleEffect(pulse ? 1.08 : 0.9)
+
+                Image(systemName: "person.2.slash")
+                    .font(.system(size: 36, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .onAppear {
+                if reduceMotion {
+                    pulse = true
+                    appeared = true
+                } else {
+                    withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                        pulse = true
+                    }
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        appeared = true
+                    }
+                }
+            }
+
+            VStack(spacing: 8) {
+                Text(NSLocalizedString("companion.discover.empty.title", comment: "No companions found title"))
+                    .font(.title3.weight(.semibold))
+                    .multilineTextAlignment(.center)
+
+                Text(NSLocalizedString("companion.discover.empty.description", comment: "No companions found description"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 6)
+                    .animation(reduceMotion ? .none : .easeOut(duration: 0.4).delay(0.1), value: appeared)
+            }
+
+            VStack(spacing: 12) {
+                Text(NSLocalizedString("companion.discover.coldstart.tip", comment: "Cold start tip"))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    Haptics.impact(.light)
+                    onPostTapped()
+                } label: {
+                    Text(NSLocalizedString("companion.discover.empty.cta", comment: "Post your availability CTA"))
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityHint(NSLocalizedString("companion.discover.empty.cta.hint", comment: "Post your availability accessibility hint"))
+            }
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 6)
+            .animation(reduceMotion ? .none : .easeOut(duration: 0.4).delay(0.2), value: appeared)
+        }
+        .padding(.horizontal, 32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
