@@ -203,6 +203,8 @@ private struct SoloScorePopoverContent: View {
         ]
     }
 
+    private let strongestThreshold: Double = 7.5
+
     private var weakestIndex: Int {
         dimensions.enumerated().min(by: { $0.element.value < $1.element.value })?.offset ?? 0
     }
@@ -213,6 +215,18 @@ private struct SoloScorePopoverContent: View {
 
     private var showWeakestCaption: Bool {
         dimensions[weakestIndex].value < weakestThreshold
+    }
+
+    private var strongestIndex: Int {
+        dimensions.enumerated().max(by: { $0.element.value < $1.element.value })?.offset ?? 0
+    }
+
+    private var strongestLabel: String {
+        NSLocalizedString(dimensions[strongestIndex].labelKey, comment: "")
+    }
+
+    private var showStrongestCaption: Bool {
+        dimensions[strongestIndex].value >= strongestThreshold && strongestIndex != weakestIndex
     }
 
     var body: some View {
@@ -231,6 +245,20 @@ private struct SoloScorePopoverContent: View {
                 Text(hint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            if showStrongestCaption {
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                        .accessibilityHidden(true)
+                    Text(String(format: NSLocalizedString("solo.strongest", comment: ""), strongestLabel))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text(String(format: NSLocalizedString("solo.strongest.a11y", comment: ""), strongestLabel)))
             }
 
             if showWeakestCaption {
@@ -254,7 +282,8 @@ private struct SoloScorePopoverContent: View {
                     label: NSLocalizedString(row.labelKey, comment: ""),
                     value: row.value,
                     index: index,
-                    isWeakest: index == weakestIndex && showWeakestCaption
+                    isWeakest: index == weakestIndex && showWeakestCaption,
+                    isStrongest: index == strongestIndex && showStrongestCaption && index != weakestIndex
                 )
             }
 
@@ -309,9 +338,9 @@ private struct SoloScorePopoverContent: View {
         }
     }
 
-    private func dimensionRow(label: String, value: Double, index: Int, isWeakest: Bool) -> some View {
+    private func dimensionRow(label: String, value: Double, index: Int, isWeakest: Bool, isStrongest: Bool = false) -> some View {
         let clamped = max(0, min(10, value))
-        let barColor: Color = isWeakest ? .orange.opacity(0.8) : score.scoreColor.opacity(0.8)
+        let barColor: Color = isWeakest ? .orange.opacity(0.8) : isStrongest ? .green.opacity(0.8) : score.scoreColor.opacity(0.8)
         return VStack(alignment: .leading, spacing: 3) {
             HStack {
                 if isWeakest {
@@ -319,10 +348,15 @@ private struct SoloScorePopoverContent: View {
                         .font(.system(size: 9))
                         .foregroundStyle(.orange)
                         .accessibilityHidden(true)
+                } else if isStrongest {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.green)
+                        .accessibilityHidden(true)
                 }
                 Text(label)
-                    .font(isWeakest ? .caption.bold() : .caption)
-                    .foregroundStyle(isWeakest ? .primary : .secondary)
+                    .font(isWeakest || isStrongest ? .caption.bold() : .caption)
+                    .foregroundStyle(isWeakest || isStrongest ? .primary : .secondary)
                 Spacer()
                 Text(String(format: "%.1f", value))
                     .font(.caption.weight(.medium))
