@@ -1500,3 +1500,15 @@
 "chat.history.empty" = "No saved conversations yet";
 "chat.history.open.a11y" = "Open chat history";
 "common.done" = "Done";
+
+/* US-009 — FriendProfileView (read-only profile of another user) */
+"friend.profile.handle.placeholder" = "Traveler";
+"friend.profile.bio.header" = "ABOUT";
+"friend.profile.languages.header" = "SPEAKS";
+"friend.profile.stat.placesWalked" = "places walked";
+"friend.profile.stat.routesJoined" = "routes joined";
+"friend.profile.stat.friends" = "friends";
+"friend.profile.action.addFriend" = "Add Friend";
+"friend.profile.action.requestPending" = "Request Pending";
+"friend.profile.action.message" = "Message";
+"friend.profile.action.invite" = "Invite to meetup";

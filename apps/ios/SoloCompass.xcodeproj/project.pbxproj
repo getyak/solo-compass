@@ -266,6 +266,7 @@
 		C2CCD06DDA37BF2F81E735E5 /* MarkdownShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85591C678C692990339095E9 /* MarkdownShareSheet.swift */; };
 		C306F7501DA85110BE3C85B5 /* NavigationLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07ACA7C1A1574A244E73796 /* NavigationLauncher.swift */; };
 		C3A87993F509B921A9F7FE06 /* NowCountCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D68F42114231582501CB90 /* NowCountCacheTests.swift */; };
+		C44A8B8ED9626205C55A0B4B /* FriendProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC6DF782C123E76E2F02EEEA /* FriendProfileView.swift */; };
 		C485F7BEDA3727C3C26BFBAB /* SupabaseRouteCompanionRemote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520EDA3B7A8A6136FB0355A4 /* SupabaseRouteCompanionRemote.swift */; };
 		C48ABACD6775568202229577 /* LocalizationCoverageTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555AA83E46CA214D7F71D811 /* LocalizationCoverageTest.swift */; };
 		C5098ADCDADB1759BD132E62 /* SettingsSheetPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ADE6272DBBF6FAE452195AB /* SettingsSheetPresentationTests.swift */; };
@@ -610,6 +611,7 @@
 		AA96BC45388A8EC99F3B29ED /* ChatAttachmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAttachmentService.swift; sourceTree = "<group>"; };
 		AAAA7F7C7168AB78E23C3AB0 /* LongPressCardModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPressCardModifier.swift; sourceTree = "<group>"; };
 		AB46D6F6F8942CD390A5CCF4 /* SoloCompass.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SoloCompass.entitlements; sourceTree = "<group>"; };
+		AC6DF782C123E76E2F02EEEA /* FriendProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendProfileView.swift; sourceTree = "<group>"; };
 		AF007DB5F72E30021CADA555 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		B14FE2118ED82DD0593F5C3C /* StringsParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringsParityTests.swift; sourceTree = "<group>"; };
 		B39F3D5F813E5C3B23C7EE30 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
@@ -1222,6 +1224,14 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		92B14A0995928A153DAA2F88 /* Friends */ = {
+			isa = PBXGroup;
+			children = (
+				AC6DF782C123E76E2F02EEEA /* FriendProfileView.swift */,
+			);
+			path = Friends;
+			sourceTree = "<group>";
+		};
 		973D4D4AD77D0925665D49AE /* NowScore */ = {
 			isa = PBXGroup;
 			children = (
@@ -1242,6 +1252,7 @@
 				1E97D71FC3AACEBF3EAB70F0 /* Companion */,
 				0807CE55F43B61AC22836519 /* Experience */,
 				B1E73913322B5353D1A98672 /* Filter */,
+				92B14A0995928A153DAA2F88 /* Friends */,
 				2A5B2A9CBB684C51EA76313E /* Map */,
 				4FD8B24F7D0676B9A373797E /* Me */,
 				B7BA8DD4801156B13D7F0C9E /* Onboarding */,
@@ -1672,6 +1683,7 @@
 				297541149234668D12EAF272 /* FilterBarView.swift in Sources */,
 				DE7491E6540301BC07A37D10 /* FlowLayout.swift in Sources */,
 				E611DCAFD85FC84D6BF6CADD /* FoursquareService.swift in Sources */,
+				C44A8B8ED9626205C55A0B4B /* FriendProfileView.swift in Sources */,
 				E861E14B62BBE9A96205354D /* FriendRequest.swift in Sources */,
 				9D78B88DE90BE5BF9316604C /* FriendRequestRecord.swift in Sources */,
 				980B4B61D10AA12BFF2CD171 /* FriendService.swift in Sources */,
