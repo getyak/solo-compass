@@ -9,6 +9,7 @@ public struct MyHostedRoutesListView: View {
 
     private let storeProvider: () -> RouteStore
     private let contextProvider: () -> ModelContext
+    var onCreateRoute: (() -> Void)? = nil
 
     @State private var refreshToken: UUID = UUID()
 
@@ -16,10 +17,12 @@ public struct MyHostedRoutesListView: View {
         storeProvider: @escaping () -> RouteStore = { RouteStore() },
         contextProvider: @escaping () -> ModelContext = {
             ModelContext(SoloCompassModelContainer.shared)
-        }
+        },
+        onCreateRoute: (() -> Void)? = nil
     ) {
         self.storeProvider = storeProvider
         self.contextProvider = contextProvider
+        self.onCreateRoute = onCreateRoute
     }
 
     private var deviceId: String {
@@ -34,7 +37,7 @@ public struct MyHostedRoutesListView: View {
     public var body: some View {
         Group {
             if hostedRoutes.isEmpty {
-                emptyState
+                HostedRoutesEmptyState(onCreateRoute: onCreateRoute)
             } else {
                 routeList
             }
@@ -100,18 +103,54 @@ public struct MyHostedRoutesListView: View {
         }
     }
 
-    // MARK: - Empty state
+}
 
-    private var emptyState: some View {
-        List {
-            Text(NSLocalizedString(
-                "my.hosted.routes.empty",
-                comment: "Empty state — no hosted routes"
-            ))
-            .foregroundStyle(.secondary)
-            .font(.subheadline)
+// MARK: - HostedRoutesEmptyState
+
+private struct HostedRoutesEmptyState: View {
+    var onCreateRoute: (() -> Void)? = nil
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isBreathing = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.teal.opacity(0.12))
+                    .frame(width: 80, height: 80)
+                Image(systemName: "map.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(Color.teal.opacity(0.7))
+                    .scaleEffect(isBreathing ? 1.08 : 0.94)
+                    .opacity(isBreathing ? 1.0 : 0.7)
+                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)
+                    .accessibilityHidden(true)
+            }
+            Text(NSLocalizedString("my.hosted.routes.empty.title", comment: "No hosted routes yet"))
+                .font(.headline)
+            Text(NSLocalizedString("my.hosted.routes.empty.hint", comment: "Hint to create a route"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            if let onCreateRoute {
+                Button {
+                    Haptics.selection()
+                    onCreateRoute()
+                } label: {
+                    Label(NSLocalizedString("my.hosted.routes.empty.cta", comment: "Create a route button in empty hosted routes state"), systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .padding(.top, 4)
+                .accessibilityLabel(Text(NSLocalizedString("my.hosted.routes.empty.cta", comment: "Create a route button in empty hosted routes state")))
+            }
         }
-        .listStyle(.insetGrouped)
+        .padding(32)
+        .onAppear {
+            guard !isBreathing, !reduceMotion else { return }
+            isBreathing = true
+        }
     }
 }
 
@@ -169,6 +208,6 @@ public struct MyHostedRoutesListView: View {
     let container = SoloCompassModelContainer.makeInMemory()
     let store = RouteStore(context: ModelContext(container))
     NavigationStack {
-        MyHostedRoutesListView(storeProvider: { store })
+        MyHostedRoutesListView(storeProvider: { store }, onCreateRoute: {})
     }
 }
