@@ -1947,26 +1947,88 @@ private struct MapOverlayView: View {
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
     }
 
-    /// Custom "locate me" control. Recenters the camera on the user's current
-    /// location. Shows a filled arrow when a GPS fix is available, an outline
-    /// (and disabled) when not. Visual treatment matches the bottom FAB cluster
-    /// (.regularMaterial circle + soft shadow) so the controls read as one set.
     private var recenterButton: some View {
-        let located = viewModel.hasUserLocation
-        return Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        RecenterButton(located: viewModel.hasUserLocation, onTap: {
             viewModel.recenterOnUser()
-        } label: {
-            Image(systemName: located ? "location.fill" : "location")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(located ? CT.accent : CT.fgSubtle)
-                .frame(width: 44, height: 44)
-                .background(Circle().fill(.regularMaterial))
-                .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
-        }
-        .disabled(!located)
-        .accessibilityLabel(Text(NSLocalizedString("map.recenter", comment: "Recenter map on my location")))
+        })
     }
+}
+
+/// Custom "locate me" control. Recenters the camera on the user's current
+/// location. Shows a filled arrow when a GPS fix is available, an outline
+/// (and disabled) when not. On tap (when located) fires an expanding accent
+/// ring + icon scale-pop; respects Reduce Motion by skipping the animation
+/// while keeping the existing haptic.
+private struct RecenterButton: View {
+    let located: Bool
+    let onTap: () -> Void
+
+    @State private var pulse = false
+    @State private var iconPop = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            if !reduceMotion {
+                Circle()
+                    .stroke(CT.accent, lineWidth: 2)
+                    .frame(width: 44, height: 44)
+                    .scaleEffect(pulse ? 1.8 : 1.0)
+                    .opacity(pulse ? 0 : 0.5)
+                    .animation(
+                        pulse ? .easeOut(duration: 0.6) : .default,
+                        value: pulse
+                    )
+                    .allowsHitTesting(false)
+            }
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onTap()
+                guard !reduceMotion else { return }
+                pulse = false
+                iconPop = false
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
+                    iconPop = true
+                }
+                withAnimation(.easeOut(duration: 0.6)) {
+                    pulse = true
+                }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(650))
+                    pulse = false
+                    iconPop = false
+                }
+            } label: {
+                Image(systemName: located ? "location.fill" : "location")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(located ? CT.accent : CT.fgSubtle)
+                    .scaleEffect(iconPop ? 1.18 : 1.0)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.5), value: iconPop)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(.regularMaterial))
+                    .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
+            }
+            .disabled(!located)
+            .accessibilityLabel(Text(NSLocalizedString("map.recenter", comment: "Recenter map on my location")))
+        }
+    }
+}
+
+#Preview("RecenterButton — located") {
+    HStack(spacing: 24) {
+        RecenterButton(located: true, onTap: {})
+        RecenterButton(located: false, onTap: {})
+    }
+    .padding()
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("RecenterButton — reduce motion") {
+    RecenterButton(located: true, onTap: {})
+        .padding()
+        .environment(\.accessibilityReduceMotion, true)
+        .background(Color(.systemGroupedBackground))
 }
 
 private struct EmptyFilterBanner: View {
