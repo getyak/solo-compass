@@ -224,11 +224,11 @@ public struct ExperienceCardView: View {
                 Spacer()
                 Button {
                     let wasFavorited = preferences.isFavorited(experience.id)
-                    Haptics.impact(.light)
                     withAnimation(.spring(response: 0.3)) {
                         preferences.toggleFavorite(experience.id)
                     }
                     if !wasFavorited {
+                        Haptics.notify(.success)
                         heartBounce += 1
                         if !reduceMotion {
                             heartBurst = true
@@ -237,6 +237,16 @@ public struct ExperienceCardView: View {
                                 heartBurst = false
                             }
                         }
+                        UIAccessibility.post(
+                            notification: .announcement,
+                            argument: NSLocalizedString("card.favorite.added.a11y", comment: "VoiceOver announcement when experience is saved to favorites")
+                        )
+                    } else {
+                        Haptics.impact(.light)
+                        UIAccessibility.post(
+                            notification: .announcement,
+                            argument: NSLocalizedString("card.favorite.removed.a11y", comment: "VoiceOver announcement when experience is removed from favorites")
+                        )
                     }
                 } label: {
                     let favorited = preferences.isFavorited(experience.id)
@@ -425,7 +435,21 @@ public struct ExperienceCardView: View {
                 ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
                 : NSLocalizedString("action.favorite", comment: "Add favorite"))
         ) {
+            let wasFavorited = isFavorited
             preferences.toggleFavorite(experience.id)
+            if !wasFavorited {
+                Haptics.notify(.success)
+                UIAccessibility.post(
+                    notification: .announcement,
+                    argument: NSLocalizedString("card.favorite.added.a11y", comment: "VoiceOver announcement when experience is saved to favorites")
+                )
+            } else {
+                Haptics.impact(.light)
+                UIAccessibility.post(
+                    notification: .announcement,
+                    argument: NSLocalizedString("card.favorite.removed.a11y", comment: "VoiceOver announcement when experience is removed from favorites")
+                )
+            }
         }
         .accessibilityAction(named: Text(NSLocalizedString("action.directions", comment: "Directions accessibility action"))) {
             guard let coord = experience.coordinate,
