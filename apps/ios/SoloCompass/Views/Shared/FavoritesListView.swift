@@ -776,7 +776,8 @@ private struct JourneyProgressBar: View {
         UIAccessibility.post(notification: .announcement, argument: announcement)
         guard !reduceMotion else { return }
         withAnimation(.easeOut(duration: 0.15)) { glowOpacity = 0.6 }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        Task {
+            try? await Task.sleep(nanoseconds: 150_000_000)
             withAnimation(.easeIn(duration: 0.35)) { glowOpacity = 0 }
         }
     }
@@ -871,6 +872,15 @@ private struct JourneyProgressBar: View {
                 didHalfwayPulse = false
             }
             handleMilestoneCheck()
+        }
+        .onChange(of: total) { _, _ in
+            if reduceMotion {
+                animatedFraction = targetFraction
+            } else {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    animatedFraction = targetFraction
+                }
+            }
         }
     }
 
