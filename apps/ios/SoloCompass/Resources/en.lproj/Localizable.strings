@@ -290,6 +290,8 @@
 "map.loadingPOIs.a11yAnnouncement" = "Finding nearby places";
 /* Shown after ~6 s when the Overpass fetch is still running — reassures the user the app is not stuck */
 "map.loadingPOIs.slow" = "Still searching nearby…";
+/* Shown for ~1.2 s after the Overpass fetch completes — %d = number of POIs found */
+"map.loadingPOIs.done" = "%d places nearby";
 
 /* City picker */
 "city.all" = "All Cities";
