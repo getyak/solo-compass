@@ -311,7 +311,7 @@
         "xcodebuild build passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "Certificate config is manual (Apple Developer) \u2014 code side only; flag manual-verify steps."
     },
     {
