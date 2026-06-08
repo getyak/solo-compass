@@ -62,31 +62,49 @@ struct VoiceProcessingToast: View {
 /// Three dots that animate as a continuous left-to-right traveling wave,
 /// each dot peaking in scale and opacity in sequence with overlapping easing.
 private struct ThinkingDots: View {
-    @State private var animate = false
-
     private let dotSize: CGFloat = 4
     private let dotCount = 3
-    private let waveDuration = 0.6
-    private let dotDelay = 0.15
 
     var body: some View {
         HStack(spacing: 3) {
             ForEach(0..<dotCount, id: \.self) { index in
-                Circle()
-                    .fill(.secondary)
-                    .frame(width: dotSize, height: dotSize)
-                    .scaleEffect(animate ? 1.4 : 1.0)
-                    .opacity(animate ? 1.0 : 0.4)
-                    .animation(
-                        .easeInOut(duration: waveDuration)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(index) * dotDelay),
-                        value: animate
-                    )
+                WaveDot(dotSize: dotSize, index: index)
             }
         }
         .accessibilityHidden(true)
-        .onAppear { animate = true }
+    }
+}
+
+/// A single dot whose scale/opacity loop independently using a per-dot timer,
+/// producing a true traveling-wave effect across all three dots.
+private struct WaveDot: View {
+    let dotSize: CGFloat
+    let index: Int
+
+    @State private var scale: CGFloat = 1.0
+    @State private var opacity: Double = 0.4
+
+    private let waveDuration = 0.6
+    private let dotDelay = 0.15
+
+    var body: some View {
+        Circle()
+            .fill(.secondary)
+            .frame(width: dotSize, height: dotSize)
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .onAppear {
+                let delay = Double(index) * dotDelay
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    withAnimation(
+                        .easeInOut(duration: waveDuration)
+                            .repeatForever(autoreverses: true)
+                    ) {
+                        scale = 1.4
+                        opacity = 1.0
+                    }
+                }
+            }
     }
 }
 
