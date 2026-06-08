@@ -129,9 +129,7 @@ Deno.serve(async (req: Request) => {
   if (!convRow) return json({ error: "not found" }, 404);
 
   const participants = Array.isArray(convRow.participant_ids)
-    ? (convRow.participant_ids as unknown[]).filter(
-      (p): p is string => typeof p === "string",
-    )
+    ? (convRow.participant_ids as unknown[]).filter((p): p is string => typeof p === "string")
     : [];
   const recipientIds = participants.filter((id) => id !== callerId);
 
@@ -162,9 +160,7 @@ Deno.serve(async (req: Request) => {
 
   // 7. Truncate the body for the preview — keep long text / PII out of the push.
   const rawBody = typeof msgRow.body === "string" ? msgRow.body : "";
-  const preview = rawBody.length > PREVIEW_MAX
-    ? `${rawBody.slice(0, PREVIEW_MAX - 1)}…`
-    : rawBody;
+  const preview = rawBody.length > PREVIEW_MAX ? `${rawBody.slice(0, PREVIEW_MAX - 1)}…` : rawBody;
 
   // 8. Look up the recipients' device tokens (every participant but the sender).
   //    No tokens → nothing to deliver. 200 with 0.
@@ -218,7 +214,7 @@ Deno.serve(async (req: Request) => {
         const resp = await fetch(`https://${apnsHost}/3/device/${deviceToken}`, {
           method: "POST",
           headers: {
-            "authorization": `bearer ${apnsJwt}`,
+            authorization: `bearer ${apnsJwt}`,
             "apns-topic": topic,
             "apns-push-type": "alert",
             "apns-priority": "10",

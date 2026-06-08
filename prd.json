@@ -353,7 +353,7 @@
         "Deploy command documented"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "Live delivery needs APNs cert \u2014 flag manual-verify."
     },
     {
