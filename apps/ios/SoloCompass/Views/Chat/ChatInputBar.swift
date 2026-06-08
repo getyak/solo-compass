@@ -375,6 +375,7 @@ public struct ChatInputBar: View {
         )
         .simultaneousGesture(
             TapGesture().onEnded {
+                Haptics.selection()
                 let isStarting = micState != .listening
                 onMicToggle(isStarting)
             }
@@ -388,6 +389,7 @@ public struct ChatInputBar: View {
         let trimmed = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
         // Allow sending an attachment-only message (no text).
         guard !trimmed.isEmpty || !attachments.isEmpty else { return }
+        Haptics.impact(.light)
         // Caller reads `attachments` (still bound) inside onSend, then we clear.
         onSend(trimmed)
         draftText = ""
