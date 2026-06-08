@@ -594,6 +594,9 @@ struct SortCountToolbar: View {
 
     private var sortButton: some View {
         Button {
+            #if canImport(UIKit)
+            Haptics.selection()
+            #endif
             showSortSheet = true
         } label: {
             HStack(spacing: 4) {
@@ -607,7 +610,7 @@ struct SortCountToolbar: View {
             .padding(.vertical, 5)
             .background(Capsule().fill(.regularMaterial))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SortRowButtonStyle())
         .accessibilityLabel(Text(NSLocalizedString("sheet.sort.button", comment: "Sort")))
         .accessibilityValue(Text(sortMode.accessibilityValue))
     }
