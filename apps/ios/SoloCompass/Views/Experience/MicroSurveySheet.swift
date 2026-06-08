@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Three-question post-visit survey shown after marking an experience complete.
 /// Signals feed back into soloScore recomputation (US-031/032).
@@ -132,7 +135,7 @@ public struct MicroSurveySheet: View {
         let selected = recommend == option
         return Button {
             recommend = option
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.impact(.light)
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: option.symbol).font(.title3)
@@ -157,7 +160,7 @@ public struct MicroSurveySheet: View {
     private var actionButtons: some View {
         VStack(spacing: 12) {
             Button {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                Haptics.notify(.success)
                 onSubmit(comfort, staffPressure, recommend)
             } label: {
                 Text(NSLocalizedString("survey.submit", comment: "Send feedback"))
@@ -201,30 +204,69 @@ private struct StarRatingRow: View {
     let max: Int
 
     @State private var poppedStar: Int?
+    @State private var lastHapticStar: Int = 0
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(1...max, id: \.self) { star in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                        value = star
+        GeometryReader { geo in
+            let starWidth = geo.size.width / CGFloat(max)
+            HStack(spacing: 0) {
+                ForEach(1...max, id: \.self) { star in
+                    Button {
+                        setStar(star)
+                    } label: {
+                        Image(systemName: star <= value ? "star.fill" : "star")
+                            .font(.title3)
+                            .foregroundStyle(starColor(star))
+                            .scaleEffect(poppedStar == star ? 1.3 : 1.0)
+                            .animation(
+                                reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6),
+                                value: poppedStar
+                            )
+                            .frame(maxWidth: .infinity)
                     }
-                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-                    poppedStar = star
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                        poppedStar = nil
-                    }
-                } label: {
-                    Image(systemName: star <= value ? "star.fill" : "star")
-                        .font(.title3)
-                        .foregroundStyle(starColor(star))
-                        .scaleEffect(poppedStar == star ? 1.3 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: poppedStar)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("\(star) " + NSLocalizedString("survey.stars", comment: "stars")))
+                    .accessibilityAddTraits(star == value ? .isSelected : [])
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("\(star) " + NSLocalizedString("survey.stars", comment: "stars")))
-                .accessibilityAddTraits(star == value ? .isSelected : [])
             }
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in
+                        let rawStar = Int(floor(drag.location.x / starWidth)) + 1
+                        let clamped = min(max, Swift.max(1, rawStar))
+                        if clamped != lastHapticStar {
+                            withAnimation(
+                                reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6)
+                            ) {
+                                value = clamped
+                            }
+                            Haptics.selection()
+                            lastHapticStar = clamped
+                            triggerPop(for: clamped)
+                        }
+                    }
+                    .onEnded { _ in
+                        lastHapticStar = 0
+                    }
+            )
+        }
+        .frame(height: 32)
+    }
+
+    private func setStar(_ star: Int) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+            value = star
+        }
+        Haptics.impact(.rigid)
+        triggerPop(for: star)
+    }
+
+    private func triggerPop(for star: Int) {
+        poppedStar = star
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            poppedStar = nil
         }
     }
 
