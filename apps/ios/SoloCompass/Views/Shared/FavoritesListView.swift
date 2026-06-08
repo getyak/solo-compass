@@ -724,12 +724,33 @@ private struct JourneyProgressBar: View {
     @State private var didCompletionSweep = false
     @State private var sweepPhase: CGFloat = -1
     @State private var fillScaleY: CGFloat = 1
+    @State private var didHalfwayPulse = false
 
     private var targetFraction: CGFloat {
         total > 0 ? CGFloat(completed) / CGFloat(total) : 0
     }
 
     private var isAllDone: Bool { total > 0 && completed == total }
+    private var isPastHalfway: Bool { total > 0 && Double(completed) / Double(total) >= 0.5 }
+
+    private func firePulse() {
+        guard !didHalfwayPulse && !isAllDone else { return }
+        didHalfwayPulse = true
+        Haptics.impact(.soft)
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: String(format: NSLocalizedString("favorites.journey.halfway", comment: "VoiceOver halfway milestone announcement"), completed, total)
+        )
+        guard !reduceMotion else { return }
+        withAnimation(.spring(response: 0.18, dampingFraction: 0.45)) {
+            fillScaleY = 1.18
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.6)) {
+                fillScaleY = 1
+            }
+        }
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -791,6 +812,11 @@ private struct JourneyProgressBar: View {
             }
             if isAllDone && !reduceMotion {
                 fireSweep(width: 0)
+            }
+            if isPastHalfway {
+                firePulse()
+            } else {
+                didHalfwayPulse = false
             }
         }
     }
