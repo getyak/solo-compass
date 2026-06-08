@@ -1521,6 +1521,7 @@ private struct MapOverlayView: View {
     var onTapAvatar: () -> Void = {}
 
     @State private var checkInCelebrationTrigger = 0
+    @State private var noMatchPop = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isFilterActive: Bool {
@@ -1882,9 +1883,11 @@ private struct MapOverlayView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(dotColor)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PressableButtonStyle(haptic: false))
                     }
                 }
+                .scaleEffect(noMatchPop ? 1.06 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.5), value: noMatchPop)
                 .contentTransition(.opacity)
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
                 .accessibilityElement(children: .ignore)
@@ -1893,6 +1896,16 @@ private struct MapOverlayView: View {
                 .accessibilityAction {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     viewModel.clearFilters()
+                }
+                .onChange(of: count) { _, newCount in
+                    guard newCount == 0 else { return }
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    guard !reduceMotion else { return }
+                    noMatchPop = true
+                    Task {
+                        try? await Task.sleep(nanoseconds: 450_000_000)
+                        noMatchPop = false
+                    }
                 }
             }
         } else {
