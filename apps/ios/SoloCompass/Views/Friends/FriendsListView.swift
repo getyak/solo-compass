@@ -91,6 +91,12 @@ public struct FriendsListView: View {
         .task {
             guard autoRefresh else { return }
             await service.refresh()
+            // US-021: this is an appropriate, non-cold-start moment to ask for
+            // push permission — the traveler has explicitly opened the friends
+            // surface, so push (friend requests, meetup invites) has clear
+            // context. The system prompt is only shown once; subsequent calls
+            // re-register a possibly-rotated token without re-prompting.
+            await PushTokenService.shared.requestAuthorizationAndRegister()
         }
         .sheet(isPresented: $showAddFriend) {
             AddFriendSheet(service: service)

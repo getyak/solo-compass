@@ -1,8 +1,30 @@
 import SwiftUI
 import SwiftData
+import UIKit
+
+/// US-021: receives the APNs remote-notification callbacks that SwiftUI's
+/// `App` lifecycle does not expose, and forwards the device token to
+/// `PushTokenService`. Wired in via `@UIApplicationDelegateAdaptor`.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Task { @MainActor in await PushTokenService.shared.handle(deviceToken: deviceToken) }
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        Task { @MainActor in PushTokenService.shared.handleRegistrationFailure(error) }
+    }
+}
 
 @main
 struct SoloCompassApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     init() {
         // Start Sentry as early as possible so we catch crashes during the
         // rest of App init / first render. No-op when DSN is empty.
@@ -73,6 +95,13 @@ struct SoloCompassApp: App {
                     }
 
                     Task { await notificationService.checkAuthorizationStatus() }
+
+                    // US-021: on a warm launch, re-register for remote push only
+                    // when the user already granted permission. This refreshes a
+                    // possibly-rotated APNs token without showing a prompt. The
+                    // permission *request* itself happens later, from a social
+                    // surface — never at cold start.
+                    Task { await PushTokenService.shared.registerIfAuthorized() }
 
                     // Refresh subscription entitlement from StoreKit on launch.
                     // Pre-launch UI already reflects the Keychain-cached value
