@@ -1,0 +1,196 @@
+{
+  "project": "Solo Compass",
+  "branchName": "ralph/nowscore-v1-10us",
+  "description": "NowScore v1 \u2014 upgrade Experience.isBestNow() from a static boolean (driven by bestTimes: [TimeWindow]) to a continuous nowScore in [0, 1] composed from multiple NowSignal implementations (BestTimes / HourOfDay / Weather / Sunset) with human-readable reason text. Differentiator: BestNowBadge moves from '\u6b64\u523b' to '\u65e5\u843d 23 \u5206\u949f\u540e \u00b7 \u6674 \u00b7 \u9002\u5408' \u2014 Google/Apple Maps won't do this. Source: tasks/prd-now-score-v1.md. Parallel to ralph/full-fix-roadmap-58us; coordinate US-NS-007 / US-NS-008 with that PRD's US-P1-003 / US-P2-035 (both touch nowCount + Filter Now). Strict acceptance: every story keeps the 100+ existing BestNow*Tests green, p95 < 5ms, offline-safe, Sentry-instrumented. File:line anchors against main @ a9afa18.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Introduce NowScore value type and Experience.nowScore(at:) method",
+      "description": "As an iOS engineer, I need a NowScore value type and an Experience.nowScore(at:) method so downstream views/viewmodels read a continuous [0,1] score instead of a Bool, while preserving isBestNow() semantics for backward compatibility.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Models/NowScore.swift with `public struct NowScore: Sendable { public let value: Double /* [0,1] */; public let reason: String?; public let breakdown: [String: Double] }`",
+        "Add `public func nowScore(at date: Date) -> NowScore` to apps/ios/SoloCompass/Models/Experience.swift next to existing isBestNow() at line 472. v1 only consults bestTimes: in-window \u2192 value=1.0, out-of-window \u2192 value=0.0, empty bestTimes \u2192 value=0.5 (neutral)",
+        "Keep `isBestNow(at:)` signature unchanged; rewrite body to `return nowScore(at: date).value >= 0.7`",
+        "Add NowScoreTests in apps/ios/SoloCompass/Tests/ covering: in-window \u2192 1.0, out-of-window \u2192 0.0, empty bestTimes \u2192 0.5",
+        "All existing BestNow*Tests (search `grep -rn 'BestNow' apps/ios/SoloCompass/Tests`) still pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Define NowSignal protocol + register BestTimesSignal and HourOfDaySignal",
+      "description": "As an iOS engineer, I want a NowSignal protocol so future signal contributors (weather, sunset, crowd) plug in without touching Experience.nowScore itself.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Services/NowScore/NowSignal.swift defining `public protocol NowSignal { static var key: String { get }; func score(for experience: Experience, at date: Date) async -> NowSignalContribution }`",
+        "Same file defines `public struct NowSignalContribution: Sendable { public let value: Double /* [0,1] */; public let weight: Double; public let reason: String? }`",
+        "Create apps/ios/SoloCompass/Services/NowScore/BestTimesSignal.swift implementing the protocol; key='bestTimes', weight=0.4; logic mirrors US-001 in-window/out-of-window check",
+        "Create apps/ios/SoloCompass/Services/NowScore/HourOfDaySignal.swift; key='hourOfDay', weight=0.2; gaussian decay centered on experience.bestStartHour with sigma=90min (full width)",
+        "Refactor Experience.nowScore(at:) to iterate registered signals (`[BestTimesSignal(), HourOfDaySignal()]`) and produce weighted average value + concatenated reason. Empty signal list \u2192 value=0.5",
+        "Add NowSignalCompositionTests: both signals max \u2192 1.0; only one max \u2192 roughly its weight share; both 0 \u2192 0.0; reason text concatenated with ' \u00b7 '",
+        "All existing BestNow*Tests + US-001 NowScoreTests still pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Build WeatherService with 12-hour SwiftData cache",
+      "description": "As an iOS engineer, I need a WeatherService that fetches and caches current weather for any coordinate so NowScore can read weather without one network call per marker.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Services/WeatherService.swift with `@MainActor @Observable public final class WeatherService` exposing `public func current(at coord: CLLocationCoordinate2D) async throws -> WeatherSnapshot`",
+        "Same file defines `public struct WeatherSnapshot: Sendable { public let tempC: Double; public let condition: WeatherCondition; public let precipChancePct: Int; public let windKph: Double; public let observedAt: Date }` and `public enum WeatherCondition: String, Sendable, Codable { case clear, partlyCloudy, cloudy, rain, storm, snow, fog }`",
+        "Same file defines `public enum WeatherError: Error { case noAPIKey, networkUnavailable, decodingFailed }`",
+        "API key sourced from `Secrets.openWeatherAPIKey`. If nil \u2192 throw WeatherError.noAPIKey (callers must handle gracefully)",
+        "Create apps/ios/SoloCompass/Persistence/Models/WeatherCacheRecord.swift as `@Model public final class WeatherCacheRecord { @Attribute(.unique) public var coordKey: String /* '\\(lat.rounded(2))_\\(lon.rounded(2))' */; public var snapshotJSON: Data; public var observedAt: Date; ... }`",
+        "TTL = 12 hours: cache hit if `Date().timeIntervalSince(record.observedAt) < 12 * 3600`",
+        "If NetworkMonitor.shared.isOnline == false \u2192 only read cache, return nil snapshot when miss (do not throw)",
+        "Register WeatherCacheRecord in the ModelContainer schema (find existing container init via `grep -rn 'ModelContainer' apps/ios/SoloCompass/App` and add to schema array)",
+        "Add WeatherServiceTests with a mock URLSessionProtocol injection: first call hits network, second call hits cache (verify by asserting URLSession mock call count == 1)",
+        "Add WeatherCacheTTLTests: insert a 13-hour-old record \u2192 second call hits network again",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Offline + error degradation + Sentry instrumentation in NowScoreEngine",
+      "description": "As a user, I want NowScore to keep working when offline (only bestTimes/hourOfDay signals contribute) and never crash or surface a stack trace, with unexpected errors visible in Sentry.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Services/NowScore/NowScoreEngine.swift with `@MainActor public final class NowScoreEngine` holding the registered [any NowSignal] array",
+        "Move the signal-iteration + weighted-average logic from Experience.nowScore(at:) into NowScoreEngine.evaluate(for:at:); Experience.nowScore(at:) delegates to the shared engine",
+        "If any individual signal throws or returns an error \u2192 engine catches, substitutes `NowSignalContribution(value: 0.5, weight: 0.0, reason: nil)` for that signal, and continues",
+        "Known errors (WeatherError.noAPIKey, WeatherError.networkUnavailable) \u2192 silently degrade, no Sentry report",
+        "Unexpected errors \u2192 `SentryService.capture(error, context: \"NowScoreEngine.\\(signalKey)\")`",
+        "Add NowScoreOfflineDegradeTest: inject a throwing WeatherSignal stub \u2192 engine returns nowScore that excludes weather dimension, no crash",
+        "Add NowScoreSentryReportTest: inject a signal that throws a custom error \u2192 verify a SentryService mock receives the capture call with the right context string",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "WeatherSignal \u2014 NowSignal implementation that downgrades outdoor scores in bad weather",
+      "description": "As a user, I want the NowScore to drop when it's raining hard or there's a storm so the app doesn't suggest a 'perfect now' outdoor experience in a thunderstorm.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Services/NowScore/WeatherSignal.swift implementing NowSignal; key='weather', weight=0.15",
+        "Constructor takes WeatherService dependency (so it's injectable for tests)",
+        "score(for:at:) logic: outdoor categories (.nature; .nightlife only if experience.tags contains 'rooftop') consult weather, indoor categories (.coffee, .work, .wellness, .culture, .food) always return value=1.0 with reason=nil",
+        "For outdoor: clear/partlyCloudy \u2192 1.0, cloudy with precipChancePct<30 \u2192 0.9, rain (precipChancePct \u2265 30) \u2192 0.5, storm OR windKph \u2265 30 OR precipChancePct \u2265 70 \u2192 0.0",
+        "reason text examples: '\u6674 \u00b7 27\u00b0C \u00b7 \u9002\u5408' (clear), '\u96f7\u96e8\u9884\u8b66 \u00b7 \u4e0d\u5efa\u8bae\u5916\u51fa' (storm); use NSLocalizedString",
+        "Add localization keys nowscore.weather.sunny / nowscore.weather.cloudy / nowscore.weather.rain / nowscore.weather.storm / nowscore.weather.indoor to both en.lproj and zh-Hans.lproj Localizable.strings",
+        "If WeatherService returns nil snapshot (offline cache miss) \u2192 return value=0.5, weight=0.0, reason=nil (neutral, no UI bleed)",
+        "Add WeatherSignalTests covering: indoor \u2192 1.0 regardless; outdoor + clear \u2192 1.0; outdoor + rain \u2192 0.5; outdoor + storm \u2192 0.0; offline+miss \u2192 (0.5, 0.0, nil)",
+        "StringsParityTests passes (en + zh-Hans key sets match)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "SolarEvents pure-function module + SunsetSignal",
+      "description": "As a solo traveler, I want viewpoints / parks / rooftop bars to score highest in the 90 minutes before sunset so I'm nudged 'depart now \u00b7 sunset in 23 min' at the right moment.",
+      "acceptanceCriteria": [
+        "Create apps/ios/SoloCompass/Services/SolarEvents.swift with `public enum SolarEvents { public static func sunset(at coord: CLLocationCoordinate2D, on date: Date) -> Date?; public static func sunrise(at coord: CLLocationCoordinate2D, on date: Date) -> Date? }`. Implement using NREL Solar Position Algorithm simplified for civil sunset/sunrise (one local file, < 150 lines, NO new SPM dependency)",
+        "Add SolarEventsTests with two latitude/date fixtures: Vientiane (17.97\u00b0N, 102.60\u00b0E) on 2024-06-21 \u2192 sunset within \u00b15 min of 18:50 local; Beijing (39.90\u00b0N, 116.41\u00b0E) on 2024-12-22 \u2192 sunset within \u00b15 min of 16:50 local",
+        "Create apps/ios/SoloCompass/Services/NowScore/SunsetSignal.swift implementing NowSignal; key='sunset', weight=0.25",
+        "score(for:at:) only contributes (weight=0.25) for experiences with category \u2208 [.nature, .nightlife] OR tags containing 'sunset_friendly'; other experiences return weight=0, value=0.5, reason=nil",
+        "Scoring curve for eligible experiences: 90\u219230 min before sunset \u2192 1.0; 30\u21920 min \u2192 gaussian decay to 0.7; 0\u219230 min after sunset (blue hour) \u2192 0.6; otherwise \u2192 0.4",
+        "reason text uses NSLocalizedString; examples: '\u65e5\u843d 23 \u5206\u949f\u540e', '\u65e5\u843d 8 \u5206\u949f\u540e \u00b7 \u84dd\u8c03\u65f6\u523b', '\u65e5\u843d\u5df2\u8fc7 47 \u5206\u949f'. Use stringsdict for plural-aware minute formatting where needed",
+        "Add localization keys nowscore.sunset.before_min / nowscore.sunset.blue_hour / nowscore.sunset.after_min to both locales",
+        "Add SunsetSignalTests sampling at sunset - 60min / -30 / -5 / 0 / +20 / +60 \u2192 assert value within expected band",
+        "StringsParityTests passes",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "BestNowBadge renders NowScore reason as subtitle",
+      "description": "As a user looking at an experience card, I want the 'best now' badge to show a one-line reason like '\u65e5\u843d 23 \u5206\u949f\u540e \u00b7 \u6674 \u00b7 \u9002\u5408' so I understand WHY this is recommended right now.",
+      "acceptanceCriteria": [
+        "Edit apps/ios/SoloCompass/Views/Experience/ExperienceCardView.swift BestNowBadge (currently at lines 267-289). When `experience.nowScore(at: .now).value >= 0.7`, render a subtitle Text below the existing badge label using `nowScore.reason ?? NSLocalizedString(\"badge.now.fallback\", ...)` (existing '\u6b64\u523b' string is the fallback)",
+        "Reason text style: CT.body(11, .medium) in CT.fgMuted color (secondary, does not steal focus from main title)",
+        "Reason composition rule: top-3 contributing signals by weight \u00d7 value, joined with ' \u00b7 '; if combined text > 28 chars truncate with '\u2026'",
+        "If `nowScore.value < 0.7` \u2192 render NOTHING (badge fully hidden, current behavior preserved)",
+        "Add BestNowBadgeReasonTests with three snapshots: short reason (1 signal), medium reason (2 signals), long reason that requires truncation",
+        "All existing BestNowBadge tests still pass",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: launch app at a time when a marker satisfies nowScore \u2265 0.7 \u2192 screenshot the badge showing the new reason subtitle"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "MapViewModel.nowCount + markerState sort consume nowScore",
+      "description": "As an iOS engineer, I want MapViewModel.nowCount and markerState sorting to drive off nowScore.value \u2265 0.7 instead of the legacy isBestNow() so the entire app reflects the continuous model.",
+      "acceptanceCriteria": [
+        "Edit apps/ios/SoloCompass/ViewModels/MapViewModel.swift nowCount property (line 298): change body to `visibleExperiences.filter { $0.nowScore(at: .now).value >= 0.7 }.count`",
+        "Edit markerState sort order: experiences with nowScore.value \u2265 0.7 come first, then sort by nowScore.value descending, then by distance ascending",
+        "If prd-full-fix-roadmap.md US-P1-003 (nowCount caching) has already merged when this story runs, preserve its caching pattern: invalidate the `_nowCount` cache whenever visibleExperiences changes, then recompute using the new nowScore predicate",
+        "Add MapViewModelNowScoreSortTest injecting 3 mock experiences (scores 0.9 / 0.7 / 0.5) and asserting their order matches",
+        "All existing MarkerIconViewTests and MapViewModelCityCacheTests still pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Filter 'Now' mode visually grades markers by nowScore intensity",
+      "description": "As a user, when 'Now' filter is on, I want markers visually graded by nowScore intensity (full color / semi / faded) instead of just shown/hidden so I can pick the BEST 'now' option, not just any.",
+      "acceptanceCriteria": [
+        "Edit MarkerIconView (find via `grep -rn 'MarkerIconView' apps/ios/SoloCompass/Views/Map`) so that when MapViewModel's filter is in Now mode, the marker opacity = `min(1.0, max(0.5, nowScore.value))` (floor at 0.5 so markers stay visible)",
+        "Markers with nowScore.value \u2265 0.9 additionally get a 0.6s-cycle pulse animation ring in CT.accent (opacity 0.7 \u2192 1.0)",
+        "Add FilterNowGradientHighlightTest using XCTest + a snapshot of three markers at scores 0.95 / 0.75 / 0.55 in Now mode",
+        "All existing FilterBarViewTests and CompassMapView snapshot tests still pass",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in iPhone 17 Pro Simulator: toggle Now filter on \u2192 screenshot showing the gradient + pulse highlight on top markers"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "NowScore p95 latency < 5ms with in-memory caches",
+      "description": "As an iOS engineer, I want NowScore evaluation to stay under 5ms p95 so it doesn't tank scrolling perf on a list of 100 markers.",
+      "acceptanceCriteria": [
+        "Add an in-memory LRU dict (size 100) inside WeatherService for hot-path cache hits \u2014 avoids SwiftData fetch on every nowScore call",
+        "Add an in-memory dict inside SolarEvents keyed by `'\\(lat.rounded(1))_\\(lon.rounded(1))_\\(date.formatted(.iso8601.year().month().day()))'` to memoize same-day same-coord sunset/sunrise",
+        "Add NowScorePerformanceTest in apps/ios/SoloCompass/Tests/: construct 100 fixture experiences spanning all categories, call `nowScore(at: .now)` 1000 times, measure with `measure(metrics: [XCTClockMetric()])` and assert p95 < 5ms",
+        "On test failure, the test message must include a per-signal timing breakdown so developers see which signal regressed",
+        "All other tests still pass",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

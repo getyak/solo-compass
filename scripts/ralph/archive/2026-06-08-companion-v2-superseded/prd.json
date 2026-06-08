@@ -1,0 +1,335 @@
+{
+  "project": "Solo Compass",
+  "branchName": "ralph/companion-v2-trustworthy-personal",
+  "description": "Companion v2 — 从工具到伙伴(可信 × 懂你)。数据源框架通电 + 诚实降级 + 跨会话记忆 + 用户画像 + 信号回流,从可用到好用。源 PRD: tasks/prd-companion-v2-trustworthy-personal.md",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "扩展 Candidate 携带 sourceWeight 与结构化 signals",
+      "description": "As a developer, I want Candidate to carry sourceWeight and structured signals so that downstream fusion and honest-degradation have the data they need.",
+      "acceptanceCriteria": [
+        "在 packages/sources/core/src/types.ts 的 Candidate 接口增加可选 readonly sourceWeight?: number",
+        "增加可选 readonly signals?: { rating?: number; ratingCount?: number; priceLevel?: number; openingHours?: string; liveStatus?: 'open' | 'closed' | 'unknown' }",
+        "所有字段均为可选,现有 adapter 不填也能编译(向后兼容)",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "BudgetTracker 预算计数跨运行持久化",
+      "description": "As a developer, I want the Google Places BudgetTracker to persist its daily spend across script runs so that multi-run batch jobs do not reset and overspend.",
+      "acceptanceCriteria": [
+        "packages/sources/google-places/src/budget.ts 的 BudgetTracker 支持从持久化存储(本地 JSON 文件或注入的 store)读写当日已花费",
+        "保持现有 in-process 行为为默认,持久化为可选注入,不破坏现有调用",
+        "UTC 跨天仍正确归零",
+        "单测覆盖:跨实例重建后已花费金额保留、跨天归零",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "structureExperience 接收 Candidate 并写入 attribution",
+      "description": "As a developer, I want structureExperience to accept a Candidate and record sourceName/fetchedAt into Experience.sources so that data provenance is preserved.",
+      "acceptanceCriteria": [
+        "packages/ai 的 structureExperience 增加接收 Candidate 的调用形态,保持旧的 raw text 调用兼容(可选参数)",
+        "将 Candidate.sourceName + fetchedAt 写入 Experience.sources(attribution)",
+        "多源命中同一地点时 sources 数组累计",
+        "若触碰 packages/core/experience.ts 则 pnpm parity:check 通过",
+        "单测:mock candidate,断言 sources 正确写入",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "编译 pipeline 骨架跑通(仅 OSM,支持 dry-run)",
+      "description": "As a developer, I want scripts/compile-experiences.ts to call getActiveAdapters with OSM and structure+upsert results so that the sources framework is finally wired.",
+      "acceptanceCriteria": [
+        "新增 scripts/compile-experiences.ts,以 cityCode 入参调用 getActiveAdapters",
+        "仅启用 OsmAdapter,fetch({ cityCode, maxResults }) 返回 Candidate[]",
+        "Candidate 经 structureExperience 结构化后通过复用 seed-load 的 upsert 逻辑落 Supabase",
+        "支持 --dry-run:只打印结构化结果不落库",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "pipeline 接入 Wikivoyage 指南源",
+      "description": "As a user, I want experience descriptions grounded in real travel guides so that content is more trustworthy.",
+      "acceptanceCriteria": [
+        "compile-experiences.ts 的 adapters 列表加入 WikivoyageAdapter,经 enabled 名单可灰度",
+        "Wikivoyage 的 rawText 进入 structureExperience",
+        "其 sourceName/fetchedAt 正确进入 Experience.sources",
+        "单测:mock Wikivoyage fetch,断言 attribution 写入",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "pipeline 接入 Google Places + 预算控制 + signals 填充",
+      "description": "As a user, I want real ratings and opening hours so that I can judge whether a place is open and worth visiting.",
+      "acceptanceCriteria": [
+        "compile-experiences.ts 加入 GooglePlacesAdapter,绑定 BudgetTracker(读 GOOGLE_PLACES_DAILY_CAP_USD,使用 US-002 的持久化)",
+        "GooglePlacesAdapter 填充 Candidate.signals(rating/ratingCount/priceLevel/openingHours/liveStatus)",
+        "超预算时 adapter 静默跳过并记录日志,pipeline 不崩",
+        "集成测:dry-run 断言不超预算",
+        "pnpm typecheck 通过",
+        "pnpm test 通过"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "AI 合成缺数据时输出 null 而非占位符",
+      "description": "As a user, I do not want to be misled by a fake '9-21' opening time, so missing data should be null not invented.",
+      "acceptanceCriteria": [
+        "改造 apps/ios 的 AIService 合成 prompt,移除营业时间 '9-21' 与评分 7.0-8.0 的硬编码降级",
+        "无真实信号时对应字段输出 null;solo-score 缺真实来源的维度标记为 AI 推测",
+        "单测:构造仅 OSM 无信号输入,断言 hours/rating 为 null",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "可信度徽章升级为人话三档",
+      "description": "As a user, I want to tell at a glance whether data is AI-guessed, multi-source verified, or user verified so that I know how much to trust it.",
+      "acceptanceCriteria": [
+        "apps/ios 的 ConfidenceBadge 把裸 L{level} 升级为三档可读标签:AI 推测 / 多源印证 / 用户验证",
+        "映射基于 confidence.level(0-5)+ packages/core 的 healthFromConfidence,不新造评级逻辑",
+        "缺数据字段在卡片上显示'未验证'而非空白或假值",
+        "新增/更新 SwiftUI #Preview 覆盖三档状态",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 视觉验证三档徽章"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "徽章详情弹窗:来源/样本量/最近验证时间",
+      "description": "As a user, I want to tap the trust badge to see why a place has that confidence so that I can dig into provenance.",
+      "acceptanceCriteria": [
+        "点击 ConfidenceBadge 展开详情:信号来源列表、样本量(ratingCount/basedOnCount)、最近验证时间",
+        "数据全部来自现有 confidence.signals,不新增数据获取",
+        "无信号时显示友好空态文案",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 视觉验证弹窗"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "卡片展示真实营业状态",
+      "description": "As a user, I want to know if a place is open now so that I do not make a wasted trip.",
+      "acceptanceCriteria": [
+        "体验卡片展示来自编译腿的真实营业时间;无数据显示'营业时间未知'",
+        "若有 liveStatus 显示'营业中/已打烊'状态点",
+        "数据来源标注与 US-008 徽章一致",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 视觉验证营业状态展示"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "agent 每轮刷新实时上下文(LIVE CONTEXT)",
+      "description": "As a user, I want the agent to respond based on my current location and time, not the snapshot from when the chat opened.",
+      "acceptanceCriteria": [
+        "VoiceAgentOrchestrator 在每轮模型调用前注入/更新一条 LIVE CONTEXT system 消息(location/localTime/viewportBBox)",
+        "该消息每轮覆盖、不计入 messagesMaxCount、不堆积",
+        "system prompt 的静态 CONTEXT SNAPSHOT 退化为只放不变信息",
+        "单测:会话中改变 location/time,断言下一轮 LIVE CONTEXT 反映新值",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "会话压缩改结构化事实抽取(SessionFacts)",
+      "description": "As a user, I want my key constraints (e.g. cannot walk far) to survive a long conversation instead of being truncated away.",
+      "acceptanceCriteria": [
+        "VoiceAgentSession.compactIfNeeded 改为抽取 SessionFacts(约束类事实),而非朴素截断",
+        "抽取用规则/关键词,零额外 LLM 调用",
+        "单测:11+ 条消息触发压缩后,断言关键约束仍保留在 SessionFacts",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "新增 AgentMessageRecord 持久化模型",
+      "description": "As a developer, I need a SwiftData model to persist agent conversation messages so that conversations can be restored later.",
+      "acceptanceCriteria": [
+        "新增 @Model AgentMessageRecord { conversationId: String, role: String, content: String, toolCallsJSON: String?, createdAt: Date }",
+        "注册进 SwiftData ModelContainer schema",
+        "新建 .swift 文件后运行 xcodegen 重新生成工程",
+        "单测:写入/读取一条记录成功",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过(测试 Executed N>0)"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "ConversationStore 读写与恢复",
+      "description": "As a developer, I need a store that persists and restores agent conversations by scope key so that the agent remembers the last chat.",
+      "acceptanceCriteria": [
+        "新增 Services/Memory/ConversationStore.swift,会话 key = scopedExperience?.id ?? 'global'(global 与 per-card 各自独立线程)",
+        "恢复时最近 N 条原样恢复,更旧轮用 US-012 的 SessionFacts 摘要成一条 system 消息",
+        "单测:写入会话→重建 store→断言最近 N 条恢复、旧轮被摘要",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "跨会话对话恢复接入 Orchestrator",
+      "description": "As a user, I want the voice agent to remember where we left off when I close and reopen it.",
+      "acceptanceCriteria": [
+        "VoiceAgentSession seed/恢复钩子接入 ConversationStore:开场时按 scope key 恢复历史",
+        "每轮消息写入 AgentMessageRecord",
+        "重开同 scope 会话时正确恢复上下文",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 验证:关闭 sheet 重开后 agent 引用上次内容"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "UserProfileService 合成用户画像",
+      "description": "As a developer, I need to aggregate siloed behavior records into an injectable traveler profile.",
+      "acceptanceCriteria": [
+        "新增 Services/Memory/UserProfileService.swift(@MainActor,纯本地)",
+        "snapshot() 聚合 UserCompletionRecord / UserFavoriteRecord / MicroSurveyRecord,category 由 experienceId 反查 ExperienceRecord",
+        "暴露 comfort/pressure 均值、completion 计数、disliked 品类等可复用聚合结果",
+        "renderForPrompt() 产出 ≤300 tokens 的紧凑画像;无记录返回 nil",
+        "单测:构造 fixtures 断言画像内容;空数据返回 nil",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "用户画像注入 system prompt",
+      "description": "As a user, I want the agent to know my long-term preferences without re-explaining them every time.",
+      "acceptanceCriteria": [
+        "VoiceAgentOrchestrator.buildSystemPrompt 在 CONTEXT SNAPSHOT 后追加 TRAVELER PROFILE 区块(来自 UserProfileService)",
+        "画像不含坐标(沿用现有约定)",
+        "画像为 nil 时 prompt 完全退回当前行为(零风险降级)",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "懂你的个性化推荐语",
+      "description": "As a user, I want recommendation reasons tailored to me (you liked a quiet cafe last time) rather than generic praise.",
+      "acceptanceCriteria": [
+        "排序/推荐文案在画像存在时引用用户历史偏好生成个性化一句话",
+        "新用户(无画像)回退到当前通用推荐语,无突兀空引用",
+        "文案口吻遵循现有 calm/factual、无 amazing/感叹号 约定",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 验证有历史账号看到个性化推荐语"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "用户验证覆盖 AI 的 solo-score",
+      "description": "As a user, real solo-traveler feedback should outweigh AI guesses when there is enough of it.",
+      "acceptanceCriteria": [
+        "当某体验的 MicroSurveyRecord 样本量达阈值(初定 ≥5)时,用户聚合 solo-score 覆盖 AI solo-score,复用 US-016 的聚合层",
+        "覆盖后 confidence.level 相应提升(用户验证层),徽章随之变'用户验证'",
+        "样本不足时保留 AI 评分并标'AI 推测'",
+        "若涉及 core soloScore 字段则 pnpm parity:check 通过",
+        "单测:跨阈值前后断言评分来源切换 + confidence 提升",
+        "Typecheck passes",
+        "iOS xcodebuild build + XCTest 通过"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "行为反推偏好建议(不静默覆盖 + 隐私开关)",
+      "description": "As a user, when the system notices I often visit a category, it should suggest updating my preferences rather than silently changing my settings.",
+      "acceptanceCriteria": [
+        "UserProfileService 计算 inferred(行为)vs declared(自报)偏好偏差",
+        "偏差显著时在 UI 给出建议(如'发现你常去咖啡馆,加入偏好?'),用户确认才生效,绝不静默覆盖 UserPreferences",
+        "提供隐私开关(默认开,可关),关闭后不做行为推断",
+        "Typecheck passes",
+        "iOS xcodebuild build 通过,并用 Simulator 验证多次 completion 后出现建议入口"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "L5 语义记忆 embedding 接口铺路",
+      "description": "As a developer, I want to reserve the embedding contract and data column for future pgvector semantic memory without shipping retrieval UI.",
+      "acceptanceCriteria": [
+        "定义 embedding 数据契约:对 completed/favorited experience 与画像 snapshot 预留可选 embedding 字段(后端侧 schema/列)",
+        "UserProfileService.snapshot() 输出对齐为 embedding 输入源(接口对齐,不实现实际检索)",
+        "在 docs/architecture 注明 L5 接口契约与本版本边界",
+        "仅铺接口与数据列,不交付任何用户可见的语义检索功能",
+        "pnpm typecheck 通过"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

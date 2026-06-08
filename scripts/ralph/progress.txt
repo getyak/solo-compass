@@ -1,11 +1,4 @@
 # Solo Compass — Ralph Progress Log
-Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-Target: ralph/companion-v2-trustworthy-personal
-Tool: claude
-[2026-06-05T16:51:12Z] Story #US-001: Introduce NowScore value type and Experience.nowScore(at:) method — PASSED
-[2026-06-05T17:01:03Z] Story #US-002: Define NowSignal protocol + register BestTimesSignal and HourOfDaySignal — PASSED
-[2026-06-05T17:12:45Z] Story #US-003: Build WeatherService with 12-hour SwiftData cache — PASSED
-[2026-06-05T17:19:42Z] Story #US-004: Offline + error degradation + Sentry instrumentation in NowScoreEngine — PASSED
-[2026-06-05T17:29:10Z] Story #US-005: WeatherSignal — NowSignal implementation that downgrades outdoor scores in bad weather — PASSED
-[2026-06-05T17:37:34Z] Story #US-006: SolarEvents pure-function module + SunsetSignal — PASSED
-[2026-06-05T17:48:21Z] Story #US-007: BestNowBadge renders NowScore reason as subtitle — PASSED
+Target: feat/friends-social-graph
+PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
+
