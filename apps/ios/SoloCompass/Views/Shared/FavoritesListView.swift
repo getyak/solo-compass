@@ -502,20 +502,18 @@ public struct FavoritesListView: View {
                 return
             }
             searchAnnounceTask?.cancel()
-            let count = filteredFavorites.count
-            searchAnnounceTask = Task {
+            searchAnnounceTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(400))
                 guard !Task.isCancelled else { return }
                 guard UIAccessibility.isVoiceOverRunning else { return }
+                let count = filteredFavorites.count
                 let message: String
                 if count > 0 {
                     message = String(format: NSLocalizedString("favorites.search.resultCount.a11y", comment: "VoiceOver search result count in favorites: %d matching favorites"), count)
                 } else {
                     message = String(format: NSLocalizedString("favorites.search.noResults.a11y", comment: "VoiceOver no results announcement in favorites: No favorites match <query>"), query)
                 }
-                await MainActor.run {
-                    UIAccessibility.post(notification: .announcement, argument: message)
-                }
+                UIAccessibility.post(notification: .announcement, argument: message)
             }
         }
     }
