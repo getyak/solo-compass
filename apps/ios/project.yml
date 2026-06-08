@@ -60,9 +60,11 @@ targets:
         NSLocationAlwaysAndWhenInUseUsageDescription: "Solo Compass uses background location to alert you when you're near a place worth visiting — even when the app is closed."
         UIBackgroundModes:
           - location
-          # US-021: lets silent/content-available APNs pushes wake the app in
-          # the background (e.g. to refresh the friend graph before showing it).
-          - remote-notification
+          # US-021: APNs background push (`remote-notification`) is temporarily
+          # disabled until the App Store provisioning profile is regenerated with
+          # the Push Notifications capability (Apple Developer portal + `match
+          # appstore --force`). Re-add once the profile in solo-compass-certs
+          # includes aps-environment, otherwise Release archive code-signing fails.
         NSSpeechRecognitionUsageDescription: "Solo Compass uses speech recognition so you can describe what you're looking for by voice."
         NSMicrophoneUsageDescription: "Solo Compass uses the microphone for voice search."
         NSCameraUsageDescription: "Solo Compass uses the camera so you can photograph a place when you add it to the map."
@@ -88,10 +90,13 @@ targets:
     entitlements:
       path: SoloCompass/Resources/SoloCompass.entitlements
       properties:
-        # US-021: APNs remote-push entitlement. `development` is honored on
-        # dev/debug builds; archive/distribution flips it to production via the
-        # provisioning profile. Required for registerForRemoteNotifications().
-        aps-environment: development
+        # US-021: APNs `aps-environment` entitlement is temporarily removed until
+        # the App Store provisioning profile (solo-compass-certs, pulled readonly
+        # by CI) is regenerated with the Push Notifications capability. With the
+        # entitlement present but absent from the profile, Release archive signing
+        # fails: "Provisioning profile ... doesn't include the aps-environment
+        # entitlement". Re-add `aps-environment: development` once the portal +
+        # `match appstore --force` have refreshed the profile.
         com.apple.developer.applesignin:
           - Default
     preBuildScripts:

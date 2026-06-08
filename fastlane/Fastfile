@@ -191,6 +191,25 @@ platform :ios do
     UI.message "Build number set to #{build_number} (git commit count)"
   end
 
+  # Regenerate the App Store provisioning profile and push it to the certs repo.
+  # Run this (via the "Regenerate Signing Profiles" workflow) after changing the
+  # App ID's capabilities in the Apple Developer portal — e.g. enabling Push
+  # Notifications for US-021. `force: true` + `readonly: false` re-issues the
+  # profile so it includes the new entitlements, then match encrypts and pushes
+  # it to solo-compass-certs. The next TestFlight build picks it up automatically.
+  desc "Regenerate App Store signing profiles (writes to certs repo)"
+  lane :regen_profiles do
+    match(
+      type:           "appstore",
+      readonly:       false,
+      force:          true,
+      git_url:        ENV["MATCH_GIT_URL"] || "git@github-solo-compass-certs:getyak/solo-compass-certs.git",
+      app_identifier: "com.solocompass.app",
+      api_key:        api_key
+    )
+    UI.success "App Store profile regenerated and pushed to certs repo."
+  end
+
   error do |lane, exception|
     UI.error "Lane #{lane} failed: #{exception.message}"
   end
