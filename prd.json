@@ -381,7 +381,7 @@
         "Deploy + verify a revoked code fails to redeem"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
