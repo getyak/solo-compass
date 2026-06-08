@@ -1,0 +1,90 @@
+name: Regenerate Signing Profiles
+
+# Manually re-issue the App Store provisioning profile and push it to the
+# solo-compass-certs repo. Run this after changing the App ID's capabilities in
+# the Apple Developer portal (e.g. enabling Push Notifications for US-021): the
+# existing profile is invalidated by Apple and must be regenerated so it carries
+# the new entitlements. Uses the same secrets as the TestFlight deploy — nothing
+# is needed locally.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "regenerate" to confirm re-issuing the App Store profile (writes to certs repo).'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  regen:
+    name: Regenerate App Store profile
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Guard — require explicit confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "regenerate" ]; then
+            echo "::error::Confirmation input must be exactly 'regenerate'. Aborting."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby (for Fastlane)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.1"
+          bundler-cache: true
+
+      # Bind the certs-repo deploy key to a dedicated host alias and normalize
+      # MATCH_GIT_URL — identical to the TestFlight workflow so match can write
+      # back to solo-compass-certs over SSH.
+      - name: Setup match SSH key
+        env:
+          MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
+          MATCH_GIT_URL_RAW: ${{ secrets.MATCH_GIT_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${MATCH_DEPLOY_KEY//[[:space:]]/}" ]; then
+            echo "::error::MATCH_DEPLOY_KEY secret is empty. Add the certs-repo deploy key (private half) as a repo secret, and its public half to getyak/solo-compass-certs → Settings → Deploy keys."
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$MATCH_DEPLOY_KEY" > ~/.ssh/solo_compass_match
+          chmod 600 ~/.ssh/solo_compass_match
+
+          ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+          printf 'Host github-solo-compass-certs\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/solo_compass_match\n  IdentitiesOnly yes\n' >> ~/.ssh/config
+
+          DEFAULT_URL="git@github-solo-compass-certs:getyak/solo-compass-certs.git"
+          URL="${MATCH_GIT_URL_RAW:-$DEFAULT_URL}"
+          URL="${URL/git@github.com:/git@github-solo-compass-certs:}"
+          URL="${URL/ssh:\/\/git@github.com\//ssh://git@github-solo-compass-certs/}"
+          echo "MATCH_GIT_URL=$URL" >> "$GITHUB_ENV"
+          echo "Using certs repo via alias host: $URL"
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+        run: |
+          echo "$ASC_API_KEY_CONTENT" > /tmp/asc_key.p8
+
+      - name: Run match (regen_profiles)
+        env:
+          DEVELOPMENT_TEAM:                  ${{ secrets.DEVELOPMENT_TEAM }}
+          APP_STORE_CONNECT_API_KEY_ID:      ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID:       ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          MATCH_PASSWORD:                    ${{ secrets.MATCH_PASSWORD }}
+          # MATCH_GIT_URL is exported (normalized to the alias host) into
+          # $GITHUB_ENV by the "Setup match SSH key" step — do NOT re-declare it.
+          MATCH_GIT_BRANCH:                  ${{ secrets.MATCH_GIT_BRANCH }}
+          FASTLANE_SKIP_UPDATE_CHECK:        "1"
+        run: bundle exec fastlane regen_profiles
