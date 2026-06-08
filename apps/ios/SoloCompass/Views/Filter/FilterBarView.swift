@@ -45,6 +45,8 @@ public struct FilterBarView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isPulsing: Bool = false
+    @State private var nowCountPop: Bool = false
+    @State private var lastNowCount: Int = 0
 
     /// Routes a pill tap to either deselect (toggle-off) or select, with distinct haptics.
     /// When `isSelected` is true the active pill is tapped again — call `onClear` with a
@@ -62,6 +64,28 @@ public struct FilterBarView: View {
     /// Pure helper: returns true when a tap on a pill with `isSelected` state should
     /// resolve to a clear (toggle-off) rather than a selection. Used in unit tests.
     static func resolvesToClear(isSelected: Bool) -> Bool { isSelected }
+
+    /// Called when `nowCount` changes. Fires a spring scale-pop + gold flash + selection
+    /// haptic only when the count increases (a place enters its golden window). Decreases
+    /// are silent so the pill never feels noisy. Respects reduceMotion: skips scale/flash
+    /// but still fires the haptic (tactile feedback remains useful without motion).
+    private func handleNowCountChange(_ old: Int, _ new: Int) {
+        lastNowCount = new
+        guard new > old else { return }
+        #if canImport(UIKit)
+        Haptics.selection()
+        #endif
+        guard !reduceMotion else { return }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+            nowCountPop = true
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            withAnimation(.easeOut(duration: 0.25)) {
+                nowCountPop = false
+            }
+        }
+    }
 
     public init(
         selectedCategory: ExperienceCategory?,
@@ -290,13 +314,24 @@ public struct FilterBarView: View {
                     .font(.subheadline.weight(.medium))
 
                 if nowCount > 0 {
-                    Text(Self.compactCount(nowCount))
-                        .font(.caption2.monospacedDigit().weight(.semibold))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule().fill(isSelected ? Color.white.opacity(0.28) : CT.sunGold.opacity(0.2))
-                        )
+                    ZStack {
+                        Text(Self.compactCount(nowCount))
+                            .font(.caption2.monospacedDigit().weight(.semibold))
+                            .contentTransition(.numericText(value: Double(nowCount)))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule().fill(isSelected ? Color.white.opacity(0.28) : CT.sunGold.opacity(0.2))
+                            )
+                        // Gold flash overlay — fades in on increase, eases out
+                        Capsule()
+                            .fill(CT.sunGold.opacity(nowCountPop ? 0.6 : 0))
+                            .animation(.easeOut(duration: 0.5), value: nowCountPop)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                    }
+                    .scaleEffect(nowCountPop ? 1.35 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: nowCountPop)
                 }
             }
             .padding(.horizontal, 14)
@@ -327,6 +362,7 @@ public struct FilterBarView: View {
         .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
         .accessibilityHint(isSelected ? Text(NSLocalizedString("filter.pill.clear.hint", comment: "Double tap to clear this filter")) : Text(""))
         .onAppear {
+            lastNowCount = nowCount
             guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                 isPulsing = true
@@ -341,6 +377,7 @@ public struct FilterBarView: View {
                 }
             }
         }
+        .onChange(of: nowCount) { old, new in handleNowCountChange(old, new) }
     }
 
     private func pill(id: String, label: String, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
@@ -574,4 +611,32 @@ private struct FilterViewportWidthKey: PreferenceKey {
     .padding(.vertical)
     .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
     .environment(UserPreferences())
+}
+
+#Preview("Now count pop demo") {
+    struct NowCountDemo: View {
+        @State private var nowCount = 2
+        var body: some View {
+            VStack(spacing: 16) {
+                FilterBarView(
+                    selectedCategory: nil,
+                    isNowSelected: false,
+                    nowCount: nowCount,
+                    onSelectNow: {},
+                    onSelectAll: {},
+                    onSelectCategory: { _ in }
+                )
+                Button("Add a best-now place (+1)") { nowCount += 1 }
+                    .buttonStyle(.borderedProminent)
+                Button("Remove a best-now place (-1)") { if nowCount > 0 { nowCount -= 1 } }
+                    .buttonStyle(.bordered)
+                Text("nowCount: \(nowCount)")
+                    .font(.caption.monospacedDigit())
+            }
+            .padding()
+            .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+            .environment(UserPreferences())
+        }
+    }
+    return NowCountDemo()
 }
