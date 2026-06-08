@@ -395,7 +395,7 @@
         "No P0/P1 on critical paths"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "Requires real Supabase + APNs cert \u2014 produce checklist for manual execution."
     }
   ]
