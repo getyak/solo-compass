@@ -38,6 +38,7 @@ struct MarkdownShareSheet: View {
                 VStack(spacing: 12) {
                     Button {
                         UIPasteboard.general.string = markdown
+                        Haptics.notify(.success)
                         dismiss()
                     } label: {
                         Label(

@@ -269,6 +269,7 @@ struct ShareSheet: View {
     }
 
     private func flashStatus(_ message: String, error: Bool) {
+        Haptics.notify(error ? .error : .success)
         withAnimation { statusMessage = message; statusIsError = error }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             withAnimation { statusMessage = nil }
