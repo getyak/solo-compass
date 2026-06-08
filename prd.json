@@ -160,7 +160,7 @@
         "pnpm parity:check passes; xcodebuild test passes; existing companion conversation flow unbroken"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Backend column already relaxed in 0008. Blocking prerequisite for US-012."
     },
     {

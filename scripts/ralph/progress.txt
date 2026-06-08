@@ -10,3 +10,4 @@ PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
 [2026-06-08T08:51:15Z] Story #US-010: FriendsListView + request inbox — FAILED (iteration 5)
     └─ NEXT_STEPS: (auto) prior run ended (completed)
 [2026-06-08T09:01:43Z] Story #US-010: FriendsListView + request inbox — PASSED
+[2026-06-08T09:10:25Z] Story #US-011: Conversation: requestId optional + friendDirect type — PASSED
