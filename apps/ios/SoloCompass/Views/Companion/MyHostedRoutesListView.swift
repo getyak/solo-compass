@@ -9,7 +9,7 @@ public struct MyHostedRoutesListView: View {
 
     private let storeProvider: () -> RouteStore
     private let contextProvider: () -> ModelContext
-    var onCreateRoute: (() -> Void)? = nil
+    private let onCreateRoute: (() -> Void)?
 
     @State private var refreshToken: UUID = UUID()
 
@@ -108,7 +108,7 @@ public struct MyHostedRoutesListView: View {
 // MARK: - HostedRoutesEmptyState
 
 private struct HostedRoutesEmptyState: View {
-    var onCreateRoute: (() -> Void)? = nil
+    let onCreateRoute: (() -> Void)?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
@@ -143,7 +143,6 @@ private struct HostedRoutesEmptyState: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)
                 .padding(.top, 4)
-                .accessibilityLabel(Text(NSLocalizedString("my.hosted.routes.empty.cta", comment: "Create a route button in empty hosted routes state")))
             }
         }
         .padding(32)
