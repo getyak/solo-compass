@@ -16,13 +16,13 @@
 
 探索结论：这个 app **不是纯本地工具，而是已实现得相当完整的社交雏形**。下表是现状盘点 —— 你想要的四件事，地基几乎都在：
 
-| 诉求 | 现状 | 缺口 |
-| --- | --- | --- |
-| 添加好友 | ❌ 无「好友」概念，关系都是一次性的 | **新建关系层** |
-| 和好友约伴 | ✅ 两套约伴系统已完整：自由匹配 `CompanionPost/Request`、路线拼团 `Route/RouteCompanion/JoinRequest` | 缺「从好友一键发起」捷径 |
-| 约伴后发消息 | ✅ `Conversation`(oneOnOne/groupRoute) + `ChatMessage` + `ChatView` + Supabase Realtime 全有 | 缺「无约伴前提的主动私信」入口；`Conversation.requestId` 是**必填**，挡住了好友直聊 |
-| 对方主页 | ✅ `CompanionProfileView` 有头像 emoji/bio/语言/走过的路线 | 它是「我的档案编辑器」，缺「看别人的只读主页」 |
-| 配置个人信息 | ✅ Settings → Companion → Profile 可编辑 | 藏得深，缺「个人主页」的统一聚合感 |
+| 诉求         | 现状                                                                                                 | 缺口                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 添加好友     | ❌ 无「好友」概念，关系都是一次性的                                                                  | **新建关系层**                                                                      |
+| 和好友约伴   | ✅ 两套约伴系统已完整：自由匹配 `CompanionPost/Request`、路线拼团 `Route/RouteCompanion/JoinRequest` | 缺「从好友一键发起」捷径                                                            |
+| 约伴后发消息 | ✅ `Conversation`(oneOnOne/groupRoute) + `ChatMessage` + `ChatView` + Supabase Realtime 全有         | 缺「无约伴前提的主动私信」入口；`Conversation.requestId` 是**必填**，挡住了好友直聊 |
+| 对方主页     | ✅ `CompanionProfileView` 有头像 emoji/bio/语言/走过的路线                                           | 它是「我的档案编辑器」，缺「看别人的只读主页」                                      |
+| 配置个人信息 | ✅ Settings → Companion → Profile 可编辑                                                             | 藏得深，缺「个人主页」的统一聚合感                                                  |
 
 **核心洞察**：当前所有社交关系都是**临时的、围绕一次约伴产生的**（约伴接受 → 自动建 `Conversation`，路线完成后会话 `isReadOnly` 冻结）。「好友」恰是缺的**持久关系层**——它把「一次性约伴」升级成「长期连接」。
 
@@ -59,19 +59,14 @@ export type FriendRequestId = string & { readonly __brand: "FriendRequestId" };
  *  Rotatable — issuing a new one invalidates the old. Never the raw UserId. */
 export type FriendCode = string & { readonly __brand: "FriendCode" };
 
-export type FriendRequestStatus =
-  | "pending"
-  | "accepted"
-  | "declined"
-  | "withdrawn"
-  | "expired";
+export type FriendRequestStatus = "pending" | "accepted" | "declined" | "withdrawn" | "expired";
 
 /** How the requester reached the recipient — drives anti-abuse weighting. */
 export type FriendRequestSource =
-  | "companion_chat"   // 已在某个约伴会话里
-  | "route_group"      // 同一条路线群聊里
-  | "friend_code"      // 扫码 / 输码
-  | "discover";        // Discover 匿名主页直接加
+  | "companion_chat" // 已在某个约伴会话里
+  | "route_group" // 同一条路线群聊里
+  | "friend_code" // 扫码 / 输码
+  | "discover"; // Discover 匿名主页直接加
 
 export interface FriendRequest {
   readonly id: FriendRequestId;
@@ -111,10 +106,10 @@ export interface Friendship {
 
 当前 `Conversation.requestId: CompanionRequestId` 是**必填**，好友直聊没有约伴请求。两个方案：
 
-| 方案 | 改动 | 评价 |
-| --- | --- | --- |
+| 方案                                               | 改动                                                    | 评价                                                   |
+| -------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------ |
 | **A（推荐）** 把 `requestId` 改为可选 `requestId?` | TS+Swift 各 1 处；Swift 已有 `decodeIfPresent` 容错习惯 | 语义最干净：会话可由「约伴请求」**或**「好友关系」催生 |
-| B 给好友造一个假的 sentinel requestId | 0 schema 改动 | 脏，污染数据查询，否决 |
+| B 给好友造一个假的 sentinel requestId              | 0 schema 改动                                           | 脏，污染数据查询，否决                                 |
 
 选 **A**。同时新增一个会话来源枚举（可选，向后兼容）：
 
@@ -195,10 +190,10 @@ extension Friendship {
 
 现有约伴有两条路，好友给它们各加一条「快捷入口」，**不改约伴核心逻辑**：
 
-| 约伴类型 | 现状入口 | 好友快捷入口 |
-| --- | --- | --- |
-| 自由匹配 `CompanionRequest` | Discover 列表里看陌生人 → SendRequestSheet | 好友主页/好友列表 →「邀他一起逛」→ 复用 `SendRequestSheet`，但 recipient 预填、`source=friend`、**跳过 reporterWeight 信任门槛**（已是好友即已信任） |
-| 路线拼团 `RouteCompanion` | DiscoverRecruitingRoutes → JoinRouteRequestSheet | 我的招募路线 →「邀请好友加入」→ **免审批直接进 `confirmedMembers`** |
+| 约伴类型                    | 现状入口                                         | 好友快捷入口                                                                                                                                         |
+| --------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 自由匹配 `CompanionRequest` | Discover 列表里看陌生人 → SendRequestSheet       | 好友主页/好友列表 →「邀他一起逛」→ 复用 `SendRequestSheet`，但 recipient 预填、`source=friend`、**跳过 reporterWeight 信任门槛**（已是好友即已信任） |
+| 路线拼团 `RouteCompanion`   | DiscoverRecruitingRoutes → JoinRouteRequestSheet | 我的招募路线 →「邀请好友加入」→ **免审批直接进 `confirmedMembers`**                                                                                  |
 
 关键：**好友关系是「信任快进键」**。Discover 流程为陌生人设计了一堆安全摩擦（匿名 handle、reporterWeight≥0.3、安全同意），好友已越过信任门槛，可合理简化。
 
@@ -264,13 +259,13 @@ CompassMapView (根，地图)
 
 ### 5.2 五个新界面
 
-| 界面 | 作用 | 复用 |
-| --- | --- | --- |
-| `MeSheet` | 个人中心聚合面 | 新建，但内容多为现有视图的 NavigationLink |
-| `MyProfileEditView` | 编辑我的头像/handle/bio/语言/好友码 | **升级现有 `CompanionProfileView`** —— 它已有 emoji 选择器/bio/语言，只补 handle 编辑 + 好友码展示 |
-| `FriendProfileView` | 看**别人**的只读主页 | 复用 `CompanionProfileView` 的展示布局，去掉编辑、加「邀约伴/发消息/加好友」行动条 |
-| `FriendsListView` | 好友列表 + 请求收件箱 | 结构对齐现有 `MyRequestsListView`/`RequestInboxView` |
-| `AddFriendSheet` | 好友码输入 + 二维码扫描 + 我的码展示 | 新建（含 `AVFoundation` 扫码 + `CoreImage` 生码） |
+| 界面                | 作用                                 | 复用                                                                                               |
+| ------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `MeSheet`           | 个人中心聚合面                       | 新建，但内容多为现有视图的 NavigationLink                                                          |
+| `MyProfileEditView` | 编辑我的头像/handle/bio/语言/好友码  | **升级现有 `CompanionProfileView`** —— 它已有 emoji 选择器/bio/语言，只补 handle 编辑 + 好友码展示 |
+| `FriendProfileView` | 看**别人**的只读主页                 | 复用 `CompanionProfileView` 的展示布局，去掉编辑、加「邀约伴/发消息/加好友」行动条                 |
+| `FriendsListView`   | 好友列表 + 请求收件箱                | 结构对齐现有 `MyRequestsListView`/`RequestInboxView`                                               |
+| `AddFriendSheet`    | 好友码输入 + 二维码扫描 + 我的码展示 | 新建（含 `AVFoundation` 扫码 + `CoreImage` 生码）                                                  |
 
 ### 5.3 个人主页（FriendProfileView）的优雅呈现
 
@@ -298,6 +293,7 @@ CompassMapView (根，地图)
 ```
 
 呈现要点（对齐项目视觉规范，参考 memory）：
+
 - 头像用**圆形渐变底 + 大号 emoji**，避免「空头像」尴尬（项目无真实照片）。
 - 信任信号是这个 app 的灵魂——「身份由你体验过什么定义」。把「走过 N 地 / 拼团 N 次 / 好友 N」做成一眼可见的 stat 行，比任何自我介绍都有说服力。
 - 底部行动条用固定 dock，遵循 memory 里 `bottomsheet_peek_clearance`——让出 peek 高度别被遮。
@@ -333,13 +329,14 @@ CompassMapView (根，地图)
 
 新增表（RLS 必须开，参照现有 companion 表策略）：
 
-| 表 | 关键列 | RLS 要点 |
-| --- | --- | --- |
-| `friend_requests` | requester_id, recipient_id, status, source, note, expires_at | 仅收发双方可读；recipient 可改 status |
-| `friendships` | user_low_id, user_high_id, initiated_by, conversation_id, accepted_at | 仅两端可读；唯一约束 `(user_low_id, user_high_id)` |
-| `friend_codes` | code (PK), user_id, revoked_at | code 可被任何登录用户「兑换」查 user_id（用于加人），但不暴露反查 |
+| 表                | 关键列                                                                | RLS 要点                                                          |
+| ----------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `friend_requests` | requester_id, recipient_id, status, source, note, expires_at          | 仅收发双方可读；recipient 可改 status                             |
+| `friendships`     | user_low_id, user_high_id, initiated_by, conversation_id, accepted_at | 仅两端可读；唯一约束 `(user_low_id, user_high_id)`                |
+| `friend_codes`    | code (PK), user_id, revoked_at                                        | code 可被任何登录用户「兑换」查 user_id（用于加人），但不暴露反查 |
 
 **反骚扰**（对齐项目 safety 基因）：
+
 - `friend_requests` 加频率限制（每用户每日上限，Edge Function 侧）。
 - `discover` 来源的请求受 `reporterWeight ≥ 0.3` 门槛（复用现有阈值），`friend_code` 来源不受限（线下信任）。
 - 拉黑后双方互不可发请求、互不可见（复用 `CompanionBlock` 过滤）。
@@ -349,6 +346,7 @@ CompassMapView (根，地图)
 ## 7. 分期实施路线图
 
 ### Phase 1 — 关系地基 + 个人主页（可独立交付、可见成果）
+
 - [ ] `packages/core/src/friend.ts` 契约 + `pnpm parity:check` 守护
 - [ ] Swift `FriendRequest`/`Friendship` 模型 + SwiftData v1.3 迁移
 - [ ] `FriendService`（@MainActor @Observable，对齐 `CompanionService` 写法）：send/accept/decline/withdraw/list，纯函数状态机 + 单测
@@ -357,6 +355,7 @@ CompassMapView (根，地图)
 - [ ] 验收：能在两个模拟器实例间发/收好友请求并落地 `Friendship`；能看对方只读主页
 
 ### Phase 2 — 三条发现路径 + 持久私信
+
 - [ ] `AddFriendSheet`：好友码生成/展示/输入 + 二维码扫码（`friend_codes` 表）
 - [ ] 约伴会话/路线群聊里「+加好友」按钮（source=companion_chat/route_group）
 - [ ] Discover 主页「加好友」入口（受 reporterWeight 门槛）
@@ -365,6 +364,7 @@ CompassMapView (根，地图)
 - [ ] 验收：扫码加好友 → 直接私信全链路通
 
 ### Phase 3 — 好友约伴打通 + 后端硬化
+
 - [ ] 好友主页「邀他约伴」→ 预填 `SendRequestSheet`（免信任门槛）
 - [ ] 招募路线「邀请好友加入」
 - [ ] Supabase RLS 策略 + 频率限制 Edge Function + 请求过期清理任务
@@ -375,23 +375,23 @@ CompassMapView (根，地图)
 
 ## 8. 风险与取舍
 
-| 风险 | 缓解 |
-| --- | --- |
-| `Conversation.requestId` 必填阻塞好友直聊 | 方案 A 改可选（§2.3），轻量迁移，已验证 Swift 侧有 decodeIfPresent 容错习惯 |
-| Discover 加陌生人 → 骚扰 | reporterWeight≥0.3 门槛 + 频率限制 + 好友请求 note 限长 120 |
-| 社交功能稀释「solo 工具」定位 | 全部 FeatureFlag 门控（沿用 `FeatureFlags.companion`），默认可关；地图仍是家，社交在 sheet 里不抢戏 |
-| 后端没上线时功能假死 | 延续 `FF_BACKEND_SYNC` 本地优先：关闭时好友功能本地可演示、不报错 |
-| 双向 pending / 重复请求竞态 | 状态机纯函数 + 后端唯一约束 + 自动 accept 折叠（§3） |
+| 风险                                      | 缓解                                                                                                |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `Conversation.requestId` 必填阻塞好友直聊 | 方案 A 改可选（§2.3），轻量迁移，已验证 Swift 侧有 decodeIfPresent 容错习惯                         |
+| Discover 加陌生人 → 骚扰                  | reporterWeight≥0.3 门槛 + 频率限制 + 好友请求 note 限长 120                                         |
+| 社交功能稀释「solo 工具」定位             | 全部 FeatureFlag 门控（沿用 `FeatureFlags.companion`），默认可关；地图仍是家，社交在 sheet 里不抢戏 |
+| 后端没上线时功能假死                      | 延续 `FF_BACKEND_SYNC` 本地优先：关闭时好友功能本地可演示、不报错                                   |
+| 双向 pending / 重复请求竞态               | 状态机纯函数 + 后端唯一约束 + 自动 accept 折叠（§3）                                                |
 
 ---
 
 ## 9. 已确认决议（原开放问题 → 定稿）
 
-| # | 问题 | 决议 | 对设计的影响 |
-| --- | --- | --- | --- |
-| **D-1** | 个人中心入口 | **地图右上角头像气泡**（不沿用 Settings 下沉） | §5.1 已定；要做地图 chrome，注意 `mapcontrols_safearea_collision` 安全区坑 |
-| **D-2** | Discover 加陌生好友何时上 | **Phase 2 就上** | §7 Phase 2 排期不变；骚扰风险靠 reporterWeight≥0.3 门槛 + 频率限制兜底（§6） |
-| **D-3** | 好友邀约伴是否免审批 | **免审批**，但 host 自行权衡「邀不邀」 | §4.1 已定；控制权在「邀请动作」本身，不在二次审批 |
-| **D-4** | 好友数上限 | **无上限** | 克制感靠「双向确认 + FeatureFlag 默认可关」实现，不靠硬上限；后端频率限制仍防滥用 |
+| #       | 问题                      | 决议                                           | 对设计的影响                                                                      |
+| ------- | ------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| **D-1** | 个人中心入口              | **地图右上角头像气泡**（不沿用 Settings 下沉） | §5.1 已定；要做地图 chrome，注意 `mapcontrols_safearea_collision` 安全区坑        |
+| **D-2** | Discover 加陌生好友何时上 | **Phase 2 就上**                               | §7 Phase 2 排期不变；骚扰风险靠 reporterWeight≥0.3 门槛 + 频率限制兜底（§6）      |
+| **D-3** | 好友邀约伴是否免审批      | **免审批**，但 host 自行权衡「邀不邀」         | §4.1 已定；控制权在「邀请动作」本身，不在二次审批                                 |
+| **D-4** | 好友数上限                | **无上限**                                     | 克制感靠「双向确认 + FeatureFlag 默认可关」实现，不靠硬上限；后端频率限制仍防滥用 |
 
 > 方向已全部锁定，本设计即为可执行定稿。下一步：实施 Phase 1（关系地基 + 个人主页）。

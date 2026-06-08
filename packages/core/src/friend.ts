@@ -32,12 +32,7 @@ export type FriendRequestId = string & { readonly __brand: "FriendRequestId" };
  */
 export type FriendCode = string & { readonly __brand: "FriendCode" };
 
-export type FriendRequestStatus =
-  | "pending"
-  | "accepted"
-  | "declined"
-  | "withdrawn"
-  | "expired";
+export type FriendRequestStatus = "pending" | "accepted" | "declined" | "withdrawn" | "expired";
 
 /**
  * How the requester reached the recipient — drives anti-abuse weighting.

@@ -129,7 +129,7 @@ rolled-back transaction. Concurrent idempotency is verifiable by driving
 serializes them and exactly one live code remains.
 
 To verify a revoked code fails to redeem end-to-end after deploy: rotate
-(`supabase.rpc("sc_rotate_friend_code")`), then POST the *old* code to
+(`supabase.rpc("sc_rotate_friend_code")`), then POST the _old_ code to
 `redeem-friend-code` — it must return `404 {"error":"not found"}` (same as an
 unknown code, by anti-enumeration design).
 

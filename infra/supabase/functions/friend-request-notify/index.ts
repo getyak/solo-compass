@@ -181,7 +181,7 @@ Deno.serve(async (req: Request) => {
         const resp = await fetch(`https://${apnsHost}/3/device/${deviceToken}`, {
           method: "POST",
           headers: {
-            "authorization": `bearer ${apnsJwt}`,
+            authorization: `bearer ${apnsJwt}`,
             "apns-topic": topic,
             "apns-push-type": "alert",
             "apns-priority": "10",
