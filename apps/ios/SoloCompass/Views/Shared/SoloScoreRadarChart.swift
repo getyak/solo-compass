@@ -336,6 +336,7 @@ public struct SoloScoreRadarChart: View {
         let weakCaptionVisible = values[weakestIndex] < 6
         let strongCaptionVisible = hasQualifyingStrongest
         let anyVisible = weakCaptionVisible || strongCaptionVisible
+        let fullyDrawn = drawProgress >= 0.99
         ZStack {
             VStack(spacing: 4) {
                 if strongCaptionVisible {
@@ -343,24 +344,34 @@ public struct SoloScoreRadarChart: View {
                         format: NSLocalizedString("solo.radar.strongest", comment: ""),
                         Self.axes[strongestIndex].label
                     )
-                    Label(strongText, systemImage: "star.fill")
-                        .font(.caption)
-                        .foregroundStyle(Self.greenAccent)
-                        .opacity(drawProgress >= 0.99 ? 1 : 0)
-                        .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: drawProgress >= 0.99)
-                        .accessibilityHidden(true)
+                    Button { if fullyDrawn { tapAxis(strongestIndex) } } label: {
+                        Label(strongText, systemImage: "star.fill")
+                            .font(.caption)
+                            .foregroundStyle(Self.greenAccent)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(fullyDrawn ? 1 : 0)
+                    .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: fullyDrawn)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel(Text(Self.axes[strongestIndex].label))
+                    .accessibilityHint(Text(NSLocalizedString("solo.axis.tap.hint", comment: "")))
                 }
                 if weakCaptionVisible {
                     let captionText = String(
                         format: NSLocalizedString("solo.radar.weakest", comment: ""),
                         Self.axes[weakestIndex].label
                     )
-                    Label(captionText, systemImage: "exclamationmark.bubble")
-                        .font(.caption)
-                        .foregroundStyle(Self.amberAccent)
-                        .opacity(drawProgress >= 0.99 ? 1 : 0)
-                        .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: drawProgress >= 0.99)
-                        .accessibilityHidden(true)
+                    Button { if fullyDrawn { tapAxis(weakestIndex) } } label: {
+                        Label(captionText, systemImage: "exclamationmark.bubble")
+                            .font(.caption)
+                            .foregroundStyle(Self.amberAccent)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(fullyDrawn ? 1 : 0)
+                    .animation(reduceMotion ? nil : .easeIn(duration: 0.3), value: fullyDrawn)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel(Text(Self.axes[weakestIndex].label))
+                    .accessibilityHint(Text(NSLocalizedString("solo.axis.tap.hint", comment: "")))
                 }
             }
         }
