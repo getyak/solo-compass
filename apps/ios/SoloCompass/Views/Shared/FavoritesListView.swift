@@ -725,6 +725,7 @@ private struct JourneyProgressBar: View {
     @State private var sweepPhase: CGFloat = -1
     @State private var fillScaleY: CGFloat = 1
     @State private var didHalfwayPulse = false
+    @State private var tickPulse = false
 
     private var targetFraction: CGFloat {
         total > 0 ? CGFloat(completed) / CGFloat(total) : 0
@@ -745,10 +746,14 @@ private struct JourneyProgressBar: View {
         withAnimation(.spring(response: 0.18, dampingFraction: 0.45)) {
             fillScaleY = 1.18
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+            tickPulse = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             withAnimation(.spring(response: 0.22, dampingFraction: 0.6)) {
                 fillScaleY = 1
             }
+            tickPulse = false
         }
     }
 
@@ -758,6 +763,21 @@ private struct JourneyProgressBar: View {
                 Capsule()
                     .fill(Color.green.opacity(0.15))
                     .frame(height: 4)
+                if total >= 2 {
+                    Capsule()
+                        .fill(
+                            isPastHalfway
+                                ? Color.green
+                                : Color.green.opacity(0.25)
+                        )
+                        .frame(width: 2, height: 8)
+                        .offset(x: geo.size.width * 0.5 - 1)
+                        .frame(height: 4, alignment: .center)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: isPastHalfway)
+                        .scaleEffect(tickPulse ? 1.6 : 1.0)
+                        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.5), value: tickPulse)
+                        .accessibilityHidden(true)
+                }
                 Capsule()
                     .fill(isAllDone ? Color.green : Color.green.opacity(0.75))
                     .frame(width: geo.size.width * animatedFraction, height: 4)
