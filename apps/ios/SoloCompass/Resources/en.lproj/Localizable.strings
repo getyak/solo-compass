@@ -502,6 +502,8 @@
 "favorites.search.noResults.hint" = "Try a different word, or clear your search.";
 "favorites.search.clear" = "Clear search";
 "favorites.search.clear.hint" = "Clears the search field and shows all favorites";
+"favorites.search.goodNow.cta" = "%d great right now";
+"favorites.search.goodNow.cta.a11y" = "%d favorites are great to visit right now";
 "favorites.search.prompt" = "Search favorites";
 "favorites.sort.label" = "Sort";
 "favorites.sort.nearest" = "Nearest";
