@@ -1499,6 +1499,10 @@
 "a11y.empty.filterResults" = "No results for this filter";
 "a11y.empty.list" = "No experiences to show";
 
+/* Empty Nearby two-tier empty state (headline + subtitle) */
+"empty.nearby.headline" = "Nothing here — yet";
+"empty.nearby.subtitle" = "Pan the map or widen the view to find experiences around you.";
+
 /* Empty Nearby CTA — nudges the traveler to recenter/zoom out */
 "empty.nearby.cta" = "Explore another area";
 
