@@ -302,7 +302,7 @@ struct PeekSummaryCard: View {
             label += ", \(formattedDistance(meters))"
             if meters < 1500 {
                 let minutes = max(1, Int((meters / 80).rounded()))
-                label += ", \(String(format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 分钟'"), minutes)) walk"
+                label += ", \(String(format: NSLocalizedString("card.distance.walk", comment: "Walk minutes, e.g. '4 min walk'"), minutes))"
             }
         }
         if isNearby {
