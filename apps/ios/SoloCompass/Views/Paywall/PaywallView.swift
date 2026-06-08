@@ -188,12 +188,16 @@ public struct PaywallView: View {
         // load and surface an explicit error if the catalog is still empty
         // (see `runPurchase()`).
         let isDisabled = purchaseInFlight
+        // White text on the gold fill (#D4A843) only reaches ~2.2:1 contrast,
+        // below WCAG AA (4.5:1). Use a dark brown that's harmonious with the
+        // gold and clears AA comfortably (~6.4:1) for low-vision legibility.
+        let ctaText = Color(red: 0x3A/255, green: 0x2A/255, blue: 0x05/255)
         return Button {
             Task { await runPurchase() }
         } label: {
             HStack {
                 if purchaseInFlight {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(ctaText)
                 } else {
                     Text(NSLocalizedString("paywall.cta.startTrial", comment: "Start 7-day free trial"))
                         .font(.headline)
@@ -202,7 +206,7 @@ public struct PaywallView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
-            .foregroundStyle(.white)
+            .foregroundStyle(ctaText)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .disabled(isDisabled)

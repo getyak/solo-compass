@@ -86,7 +86,9 @@ public struct OnboardingView: View {
             stepIndicator
                 .padding(.top, 24)
 
-            Spacer()
+            // Golden-ratio weighting: a lighter top spacer lifts the hero toward
+            // ~38% height so the first screen doesn't feel bottom-heavy.
+            Spacer(minLength: 0)
 
             VStack(spacing: 24) {
                 Image(systemName: "map.fill")
@@ -109,7 +111,8 @@ public struct OnboardingView: View {
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 0)
+            Spacer(minLength: 0)
 
             VStack(spacing: 12) {
                 Button {
@@ -147,7 +150,9 @@ public struct OnboardingView: View {
             stepIndicator
                 .padding(.top, 24)
 
-            Spacer()
+            // Match the welcome step's golden-ratio weighting so paging between
+            // steps doesn't shift the visual anchor.
+            Spacer(minLength: 0)
 
             VStack(spacing: 24) {
                 Text(NSLocalizedString("onboarding.style.title", comment: "Travel style title"))
@@ -171,7 +176,8 @@ public struct OnboardingView: View {
                 .accessibilitySortPriority(OnboardingA11ySortPriority.content)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
+            Spacer(minLength: 0)
 
             VStack(spacing: 12) {
                 Button {
