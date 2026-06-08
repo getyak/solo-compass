@@ -2421,6 +2421,10 @@ private struct EmptyStateOverlay: View {
 private struct FilteredEmptyOverlay: View {
     var viewModel: MapViewModel
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+    @State private var iconPulse = false
+
     private var activeFilterName: String {
         if let category = viewModel.selectedCategory {
             return category.localizedTitle
@@ -2437,6 +2441,8 @@ private struct FilteredEmptyOverlay: View {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .font(.title2)
                 .foregroundStyle(.secondary)
+                .scaleEffect(reduceMotion ? 1.0 : (appeared ? (iconPulse ? 1.06 : 0.97) : 0.4))
+                .opacity(appeared ? 1 : 0)
             Text(NSLocalizedString("map.filtered.empty.title", comment: "Nothing matches this filter"))
                 .font(.subheadline.weight(.medium))
             Text(String(
@@ -2447,8 +2453,7 @@ private struct FilteredEmptyOverlay: View {
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
             Button {
-                let feedback = UISelectionFeedbackGenerator()
-                feedback.selectionChanged()
+                Haptics.selection()
                 viewModel.clearFilters()
             } label: {
                 Text(NSLocalizedString("map.empty.clearFilters", comment: "Clear all filters"))
@@ -2462,6 +2467,23 @@ private struct FilteredEmptyOverlay: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal, 32)
         .accessibilityElement(children: .combine)
+        .onAppear {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) { appeared = true }
+            if !reduceMotion {
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    iconPulse = true
+                }
+            }
+        }
+        .onChange(of: reduceMotion) { _, reduced in
+            if reduced {
+                withAnimation(nil) { iconPulse = false }
+            } else {
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    iconPulse = true
+                }
+            }
+        }
     }
 }
 
