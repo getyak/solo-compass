@@ -1327,9 +1327,13 @@ struct EmptySheetListView: View {
                     .foregroundStyle(.secondary)
                     .scaleEffect(breathing ? 1.08 : 1.0)
                     .opacity(breathing ? 0.7 : 1.0)
-                Text(localizedEmptyText)
+                Text(NSLocalizedString("empty.nearby.headline", comment: "Empty Nearby headline"))
+                    .font(.headline)
+                    .foregroundStyle(CT.fgPrimary)
+                    .multilineTextAlignment(.center)
+                Text(NSLocalizedString("empty.nearby.subtitle", comment: "Empty Nearby supporting subline"))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(CT.fgMuted)
                     .multilineTextAlignment(.center)
             }
 

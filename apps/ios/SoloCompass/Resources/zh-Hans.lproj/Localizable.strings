@@ -1283,6 +1283,8 @@
 "detail.nearby.open.hint" = "打开体验详情";
 
 /* Empty states */
+"empty.nearby.headline" = "这附近还没有体验";
+"empty.nearby.subtitle" = "移动地图或拉远视野，看看周围有什么。";
 "empty.nearby.cta" = "探索其他区域";
 
 /* Favorites */
