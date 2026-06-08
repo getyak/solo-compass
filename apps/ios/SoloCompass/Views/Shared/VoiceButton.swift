@@ -20,6 +20,7 @@ public struct VoiceButton: View {
     @State private var timerTask: Task<Void, Never>?
     @State private var didAutoStop = false
     @State private var autoStopMessage: String? = nil
+    @State private var didWarnCountdown = false
 
     // Retained generators — prepare() pre-warms the Taptic Engine to eliminate first-fire latency.
     private let recordStartGenerator = UIImpactFeedbackGenerator(style: .medium)
@@ -182,6 +183,7 @@ public struct VoiceButton: View {
                 elapsed = 0
                 didAutoStop = false
                 autoStopMessage = nil
+                didWarnCountdown = false
                 recordStartGenerator.impactOccurred()
                 if UIAccessibility.isVoiceOverRunning {
                     UIAccessibility.post(notification: .announcement,
@@ -246,6 +248,10 @@ public struct VoiceButton: View {
                 if elapsed >= 50 && !ringPulse && !reduceMotion {
                     ringPulse = true
                 }
+                if elapsed >= 50 && !didWarnCountdown {
+                    didWarnCountdown = true
+                    Haptics.notify(.warning)
+                }
                 if elapsed >= maxRecordingDuration && !didAutoStop {
                     didAutoStop = true
                     autoStopMessage = NSLocalizedString("voice.recording.maxReached", comment: "Maximum recording length reached")
@@ -276,6 +282,7 @@ public struct VoiceButton: View {
         // keeps it visible for ~1.2s via a delayed Task before nilling it out.
         // Manual stops don't set autoStopMessage, so it stays nil.
         ringPulse = false
+        didWarnCountdown = false
     }
 }
 
