@@ -156,6 +156,10 @@ struct CompassMapContentView: View {
     // avatar bubble in the map overlay. Friend state is read live so the
     // bubble can show a pending-request dot.
     @State private var isShowingMe: Bool = false
+    // US-024: when a `message` push is tapped, the personal hub opens with this
+    // conversation id so its Messages list auto-pushes the matching ChatView.
+    // `nil` when the hub was opened any other way (avatar bubble, inbox).
+    @State private var deepLinkConversationId: String?
     @State private var friendService = FriendService.shared
     @State private var lastPanAt: Date = .distantPast
     @State private var panDebounceTask: Task<Void, Never>? = nil
@@ -383,9 +387,20 @@ struct CompassMapContentView: View {
             // friend-request inbox lives inside the personal hub (MeSheet), so
             // surface it and consume the link so a re-render won't re-open it.
             .onChange(of: notificationService.pendingDeepLink) { _, link in
-                guard case .friendRequestInbox = link else { return }
-                isShowingMe = true
-                notificationService.pendingDeepLink = nil
+                switch link {
+                case .friendRequestInbox:
+                    deepLinkConversationId = nil
+                    isShowingMe = true
+                    notificationService.pendingDeepLink = nil
+                case .chatConversation(let conversationId):
+                    // US-024: a tapped message push opens the personal hub's
+                    // Messages list, which auto-pushes the matching ChatView.
+                    deepLinkConversationId = conversationId
+                    isShowingMe = true
+                    notificationService.pendingDeepLink = nil
+                case .none:
+                    break
+                }
             }
             .onChange(of: viewModel.selectedCity) { _, cityCode in
                 refreshNearbyRoutes(cityCode: cityCode)
@@ -445,7 +460,10 @@ struct CompassMapContentView: View {
             .sheet(item: $routeSheet) { sheet in routeSheetContent(sheet) }
             // US-007: personal hub presented from the top-right map avatar bubble.
             .sheet(isPresented: $isShowingMe) {
-                MeSheet(pendingRequestCount: friendService.incomingRequests.count)
+                MeSheet(
+                    pendingRequestCount: friendService.incomingRequests.count,
+                    deepLinkConversationId: deepLinkConversationId
+                )
             }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }

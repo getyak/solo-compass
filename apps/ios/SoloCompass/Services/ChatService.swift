@@ -138,8 +138,28 @@ public final class ChatService {
         case .success:
             // Optimistic append; dedup guard prevents doubles from realtime echo.
             appendIfNew(msg)
+            // US-024: wake the OTHER party's backgrounded device with an APNs
+            // banner. Fire-and-forget — the row is already written and Realtime
+            // is the source of truth, so any push failure must never fail send.
+            notifyRecipientOfMessage(messageId: messageId)
         case .failure(let err):
             lastError = err.localizedDescription
+        }
+    }
+
+    // MARK: - US-024: APNs message push trigger
+
+    /// Fire the `message-notify` Edge Function so the conversation's other party
+    /// gets a "new message" banner when their device is backgrounded.
+    ///
+    /// The function derives the recipient(s) server-side (participants − sender)
+    /// and never pushes the sender. Errors (feature off, no token, APNs failure)
+    /// are swallowed so the push can never affect the send result.
+    private func notifyRecipientOfMessage(messageId: String) {
+        Task { @MainActor in
+            let payload: [String: String] = ["messageId": messageId]
+            guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return }
+            _ = await restClient.invoke(function: "message-notify", body: data)
         }
     }
 

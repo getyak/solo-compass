@@ -14,11 +14,24 @@ struct MeSheet: View {
     /// Surfaced as a badge on the Friends row so the hub mirrors the bubble.
     var pendingRequestCount: Int = 0
 
+    /// US-024: when the hub is opened from a tapped `message` push, this carries
+    /// the target conversation id. On appear we push the Messages list (which
+    /// auto-opens the matching ChatView). `nil` for any other entry point.
+    var deepLinkConversationId: String? = nil
+
     @Environment(\.dismiss) private var dismiss
     @State private var showingSettings = false
+    /// Programmatic nav path so a `message` deep link can push the Messages hub.
+    @State private var path: [MeDestination] = []
+
+    /// Destinations reachable programmatically (deep links). Row taps still use
+    /// inline `NavigationLink`s; only the message deep link drives `path`.
+    private enum MeDestination: Hashable {
+        case messages(deepLinkConversationId: String?)
+    }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 Section {
                     ProfileHeader()
@@ -70,6 +83,12 @@ struct MeSheet: View {
             }
             .navigationTitle(NSLocalizedString("me.title", comment: "Personal hub title"))
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: MeDestination.self) { destination in
+                switch destination {
+                case .messages(let conversationId):
+                    ConversationListView(deepLinkConversationId: conversationId)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(NSLocalizedString("common.done", comment: "Done")) { dismiss() }
@@ -77,6 +96,13 @@ struct MeSheet: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(onClose: { showingSettings = false })
+            }
+            .onAppear {
+                // US-024: a tapped message push routes straight into the Messages
+                // hub, which then auto-opens the matching ChatView.
+                if let conversationId = deepLinkConversationId, path.isEmpty {
+                    path = [.messages(deepLinkConversationId: conversationId)]
+                }
             }
         }
     }

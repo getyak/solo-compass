@@ -103,6 +103,14 @@ supabase functions deploy redeem-friend-code
 # service role to read the recipient's device_push_tokens (self-only SELECT under
 # RLS) and sends token-based APNs (.p8 ES256 provider JWT).
 supabase functions deploy friend-request-notify
+
+# Friends (US-024 / FRD-023): APNs push to the OTHER party of a chat message.
+# Called by ChatService.send after a chat_messages row is inserted. Derives the
+# recipients server-side (conversation participants − sender) so it NEVER pushes
+# self, reads their device_push_tokens via the service role, and sends a banner
+# with a truncated preview. The tapped push deep-links to the matching ChatView.
+# Reuses the same APNS_* secrets as friend-request-notify (set once, below).
+supabase functions deploy message-notify
 # Token-based APNs secrets (one-time; .p8 downloaded from the Apple Developer
 # portal → Keys). APNS_HOST is the sandbox host for dev builds, the prod host
 # for App Store / TestFlight builds.

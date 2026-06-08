@@ -10,13 +10,17 @@ public final class NotificationService {
 
     public private(set) var isAuthorized: Bool = false
 
-    /// US-023: a deep link emitted from an incoming APNs payload, observed by the
-    /// UI (CompassMapView) to present the matching surface. `nil` once consumed.
-    /// Currently only `.friendRequestInbox` is produced.
+    /// US-023 / US-024: a deep link emitted from an incoming APNs payload,
+    /// observed by the UI (CompassMapView) to present the matching surface.
+    /// `nil` once consumed.
     public enum DeepLink: Equatable {
         /// Open the friend-request inbox (a `friend_request` push arrived).
         /// `requestId` identifies the specific pending request, when known.
         case friendRequestInbox(requestId: String?)
+        /// US-024: open the matching ChatView for `conversationId` (a `message`
+        /// push arrived). The conversation lives inside the personal hub's
+        /// Messages list, which auto-opens the thread once surfaced.
+        case chatConversation(conversationId: String)
     }
 
     /// The latest deep link awaiting presentation. The UI sets it back to `nil`
@@ -32,14 +36,22 @@ public final class NotificationService {
     /// Route an incoming APNs payload to a `pendingDeepLink`.
     ///
     /// Recognizes the `friend-request-notify` payload
-    /// (`{ type: "friend_request", requestId, ... }`) and surfaces a
-    /// `.friendRequestInbox` deep link. Unknown payloads are ignored.
+    /// (`{ type: "friend_request", requestId, ... }`) → `.friendRequestInbox`,
+    /// and the `message-notify` payload
+    /// (`{ type: "message", conversationId, senderHandle, preview }`) →
+    /// `.chatConversation`. Unknown payloads are ignored.
     public func handleRemotePayload(_ userInfo: [AnyHashable: Any]) {
         guard let type = userInfo["type"] as? String else { return }
         switch type {
         case "friend_request":
             let requestId = userInfo["requestId"] as? String
             pendingDeepLink = .friendRequestInbox(requestId: requestId)
+        case "message":
+            // US-024: tapping a message push opens the matching ChatView. A
+            // missing conversationId can't be routed, so it's ignored.
+            guard let conversationId = userInfo["conversationId"] as? String,
+                  !conversationId.isEmpty else { return }
+            pendingDeepLink = .chatConversation(conversationId: conversationId)
         default:
             break
         }

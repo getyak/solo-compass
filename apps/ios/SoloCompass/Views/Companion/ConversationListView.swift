@@ -19,14 +19,31 @@ public struct ConversationListView: View {
     @State private var summaries: [ConversationSummary] = []
     @State private var isLoading = false
     @State private var didLoad = false
+    /// US-024: when this list was opened from a tapped `message` push, the
+    /// matching conversation is pushed onto the stack once it loads. Cleared
+    /// after it routes so a re-render doesn't re-open it.
+    @State private var autoOpenConversation: Conversation?
+
+    /// US-024: conversation id from a `message` deep link; matched against the
+    /// loaded summaries to auto-open the thread. `nil` for a normal open.
+    private let deepLinkConversationId: String?
 
     private var currentUserId: String { service.resolvedUserId }
 
-    public init() {}
+    public init() {
+        self.deepLinkConversationId = nil
+    }
+
+    /// US-024: open the inbox and auto-push the conversation matching
+    /// `deepLinkConversationId` (a tapped message push).
+    init(deepLinkConversationId: String?) {
+        self.deepLinkConversationId = deepLinkConversationId
+    }
 
     /// Test/preview seam: preload summaries and skip the network reload so the
     /// populated layout (mixed thread types) can be rendered offline.
     init(previewSummaries: [ConversationSummary]) {
+        self.deepLinkConversationId = nil
         _summaries = State(initialValue: previewSummaries)
         _didLoad = State(initialValue: true)
     }
@@ -57,6 +74,11 @@ public struct ConversationListView: View {
         }
         .navigationTitle(NSLocalizedString("me.messages", comment: "Messages"))
         .navigationBarTitleDisplayMode(.inline)
+        // US-024: a message deep link auto-pushes the matching ChatView once its
+        // conversation appears in the loaded summaries.
+        .navigationDestination(item: $autoOpenConversation) { conversation in
+            ChatView(conversation: conversation, currentUserId: currentUserId)
+        }
         .overlay {
             if isLoading && summaries.isEmpty {
                 ProgressView()
@@ -67,8 +89,25 @@ public struct ConversationListView: View {
             guard !didLoad else { return }
             didLoad = true
             await reload()
+            routeDeepLinkIfNeeded()
+        }
+        .onChange(of: summaries.map(\.id)) { _, _ in
+            // Preloaded summaries (previewSummaries init) or a later reload —
+            // re-attempt the deep-link match against the current list.
+            routeDeepLinkIfNeeded()
         }
         .refreshable { await reload() }
+    }
+
+    /// US-024: if opened from a message push, push the matching ChatView once.
+    /// No-op when there's no deep link, it already routed, or the conversation
+    /// isn't in the user's list.
+    private func routeDeepLinkIfNeeded() {
+        guard let targetId = deepLinkConversationId, autoOpenConversation == nil else { return }
+        guard let match = summaries.first(where: { $0.conversation.id.rawValue == targetId }) else {
+            return
+        }
+        autoOpenConversation = match.conversation
     }
 
     // MARK: - Data
