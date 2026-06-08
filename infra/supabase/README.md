@@ -86,4 +86,17 @@ supabase functions deploy <name>
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-See each function's local README for specifics.
+Deployed functions:
+
+```bash
+supabase functions deploy chat-proxy
+supabase functions deploy companion-discover
+supabase functions deploy enrich-user-experience
+supabase functions deploy synthesize-experiences
+# Friends (FRD-026): resolve a typed/scanned friend code → profile preview.
+# Needs SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (service role bypasses RLS
+# for the redeem path only; friend_codes has no public SELECT — anti-enum).
+supabase functions deploy redeem-friend-code
+```
+
+See each function's header comment for request/response shape and required secrets.
