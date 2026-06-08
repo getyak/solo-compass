@@ -19,6 +19,8 @@ public enum ConversationType: String, Codable, Sendable, CaseIterable {
     case oneOnOne
     /// A group chat anchored to a specific Route companion slot.
     case groupRoute
+    /// A persistent 1:1 friend DM, created from a Friendship rather than a CompanionRequest.
+    case friendDirect
 }
 
 // MARK: - Conversation
@@ -26,7 +28,9 @@ public enum ConversationType: String, Codable, Sendable, CaseIterable {
 /// A messaging thread between accepted companions, either one-on-one or anchored to a route group.
 public struct Conversation: Identifiable, Codable, Sendable {
     public let id: ConversationId
-    public let requestId: CompanionRequestId
+    /// The CompanionRequest this thread was opened from. Nil for `friendDirect`
+    /// conversations, which are created from a Friendship rather than a request.
+    public let requestId: CompanionRequestId?
     public let participantIds: [String]
     /// Discriminates one-on-one vs. route group chat. Defaults to `.oneOnOne`.
     public let type: ConversationType
@@ -43,7 +47,7 @@ public struct Conversation: Identifiable, Codable, Sendable {
 
     public init(
         id: ConversationId,
-        requestId: CompanionRequestId,
+        requestId: CompanionRequestId? = nil,
         participantIds: [String],
         type: ConversationType = .oneOnOne,
         routeId: String? = nil,
@@ -60,21 +64,26 @@ public struct Conversation: Identifiable, Codable, Sendable {
         self.lastMessageAt = lastMessageAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
-        self.isReadOnly = isReadOnly
+        // Friend DMs never freeze — a friendship has no route to complete.
+        self.isReadOnly = type == .friendDirect ? false : isReadOnly
     }
 
-    // Custom decoder: `type` defaults to `.oneOnOne` and `isReadOnly` defaults to `false` when absent (legacy payloads).
+    // Custom decoder: `requestId` is optional (friendDirect threads have none),
+    // `type` defaults to `.oneOnOne`, and `isReadOnly` defaults to `false` when absent (legacy payloads).
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(ConversationId.self, forKey: .id)
-        requestId = try c.decode(CompanionRequestId.self, forKey: .requestId)
+        requestId = try c.decodeIfPresent(CompanionRequestId.self, forKey: .requestId)
         participantIds = try c.decode([String].self, forKey: .participantIds)
-        type = try c.decodeIfPresent(ConversationType.self, forKey: .type) ?? .oneOnOne
+        let decodedType = try c.decodeIfPresent(ConversationType.self, forKey: .type) ?? .oneOnOne
+        type = decodedType
         routeId = try c.decodeIfPresent(String.self, forKey: .routeId)
         lastMessageAt = try c.decodeIfPresent(String.self, forKey: .lastMessageAt)
         createdAt = try c.decode(String.self, forKey: .createdAt)
         updatedAt = try c.decode(String.self, forKey: .updatedAt)
-        isReadOnly = try c.decodeIfPresent(Bool.self, forKey: .isReadOnly) ?? false
+        let decodedReadOnly = try c.decodeIfPresent(Bool.self, forKey: .isReadOnly) ?? false
+        // Friend DMs are never read-only regardless of any persisted flag.
+        isReadOnly = decodedType == .friendDirect ? false : decodedReadOnly
     }
 }
 

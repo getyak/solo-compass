@@ -136,9 +136,23 @@ public enum SoloCompassSchemaV1_3: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → v1.2 → v1.3. Each change is additive
-/// (an optional `Data?` column, or new @Model tables), so every hop is a
-/// lightweight migration.
+/// Schema v1.4 — relaxes `ConversationRecord.requestId` from a required column
+/// to an optional one so `friendDirect` conversations (US-011), which have no
+/// backing CompanionRequest, can persist with a null `request_id`. Dropping a
+/// NOT NULL constraint is a lightweight migration: existing rows keep their
+/// value, no data is rewritten. The model set is identical to v1.3.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_4: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 4, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_3.models
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → v1.2 → v1.3 → v1.4. Each change is
+/// additive (an optional `Data?` column, new @Model tables) or a NOT NULL
+/// relaxation, so every hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -146,6 +160,7 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             SoloCompassSchemaV1_1.self,
             SoloCompassSchemaV1_2.self,
             SoloCompassSchemaV1_3.self,
+            SoloCompassSchemaV1_4.self,
         ]
     }
 
@@ -162,6 +177,10 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_2.self,
                 toVersion: SoloCompassSchemaV1_3.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_3.self,
+                toVersion: SoloCompassSchemaV1_4.self
             ),
         ]
     }

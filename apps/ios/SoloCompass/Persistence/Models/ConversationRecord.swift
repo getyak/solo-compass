@@ -9,7 +9,9 @@ import SwiftData
 public final class ConversationRecord {
     @Attribute(.unique) public var id: String
 
-    public var requestId: String
+    /// Nil for `friendDirect` conversations, which have no backing CompanionRequest.
+    /// Optional column → relaxing from non-optional is a SwiftData lightweight migration.
+    public var requestId: String?
     /// JSON-encoded `[String]`.
     public var participantIdsBlob: Data
     /// Raw value of `ConversationType`.
@@ -25,7 +27,7 @@ public final class ConversationRecord {
 
     public init(
         id: String,
-        requestId: String,
+        requestId: String?,
         participantIdsBlob: Data,
         type: String,
         routeId: String?,
@@ -58,7 +60,7 @@ extension ConversationRecord {
         }
         return ConversationRecord(
             id: conversation.id.rawValue,
-            requestId: conversation.requestId.rawValue,
+            requestId: conversation.requestId?.rawValue,
             participantIdsBlob: blob,
             type: conversation.type.rawValue,
             routeId: conversation.routeId,
@@ -78,7 +80,7 @@ extension ConversationRecord {
         }
         return Conversation(
             id: ConversationId(rawValue: id),
-            requestId: CompanionRequestId(rawValue: requestId),
+            requestId: requestId.map { CompanionRequestId(rawValue: $0) },
             participantIds: participantIds,
             type: ConversationType(rawValue: type) ?? .oneOnOne,
             routeId: routeId,
