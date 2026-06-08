@@ -47,6 +47,8 @@ public struct FilterBarView: View {
     @State private var isPulsing: Bool = false
     @State private var nowCountPop: Bool = false
     @State private var lastNowCount: Int = 0
+    @State private var heartPulse: Bool = false
+    @State private var didCelebrateSaved: Bool = false
 
     /// Routes a pill tap to either deselect (toggle-off) or select, with distinct haptics.
     /// When `isSelected` is true the active pill is tapped again — call `onClear` with a
@@ -431,12 +433,44 @@ public struct FilterBarView: View {
         let label = NSLocalizedString("filter.saved", comment: "Saved (favourites filter)")
         let tint = Color(red: 0xE0/255, green: 0x3A/255, blue: 0x3A/255)
         return Button {
-            Haptics.selection()
+            if !isSelected && resultCount > 0 {
+                if !didCelebrateSaved {
+                    #if canImport(UIKit)
+                    Haptics.notify(.success)
+                    #endif
+                    didCelebrateSaved = true
+                    if !reduceMotion {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                            heartPulse = true
+                        }
+                        Task {
+                            try? await Task.sleep(nanoseconds: 450_000_000)
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                heartPulse = false
+                            }
+                        }
+                    }
+                } else {
+                    #if canImport(UIKit)
+                    Haptics.selection()
+                    #endif
+                }
+            } else if isSelected {
+                #if canImport(UIKit)
+                Haptics.impact(.light)
+                #endif
+            } else {
+                #if canImport(UIKit)
+                Haptics.selection()
+                #endif
+            }
             action()
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: isSelected ? "heart.fill" : "heart")
                     .font(.caption.weight(.semibold))
+                    .scaleEffect(heartPulse ? 1.35 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: heartPulse)
 
                 Text(label)
                     .font(.subheadline.weight(.medium))
@@ -611,6 +645,40 @@ private struct FilterViewportWidthKey: PreferenceKey {
     .padding(.vertical)
     .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
     .environment(UserPreferences())
+}
+
+#Preview("First-save celebration") {
+    struct FirstSaveDemo: View {
+        @State private var isFavoriteSelected = false
+        @State private var favoriteCount = 3
+        var body: some View {
+            VStack(spacing: 16) {
+                FilterBarView(
+                    selectedCategory: nil,
+                    isNowSelected: false,
+                    isFavoriteSelected: isFavoriteSelected,
+                    nowCount: 0,
+                    onSelectNow: {},
+                    onSelectAll: {},
+                    onSelectFavorite: { isFavoriteSelected.toggle() },
+                    onClear: { isFavoriteSelected = false },
+                    onSelectCategory: { _ in },
+                    resultCount: isFavoriteSelected ? favoriteCount : 0
+                )
+                Text(isFavoriteSelected ? "Saved filter active (\(favoriteCount) results)" : "Tap Saved to trigger first-save celebration")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Reset celebration state") {
+                    isFavoriteSelected = false
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding()
+            .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+            .environment(UserPreferences())
+        }
+    }
+    return FirstSaveDemo()
 }
 
 #Preview("Now count pop demo") {
