@@ -29,3 +29,4 @@ PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
 [2026-06-08T11:00:06Z] Story #US-025: Backend hardening: rate limit + request expiry — PASSED
 [2026-06-08T11:05:37Z] Story #US-026: Friend-code rotation + redeem hardening — PASSED
 [2026-06-08T11:12:36Z] Story #US-027: End-to-end loop verification doc — PASSED
+All stories pass: true
