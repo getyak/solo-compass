@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Supabase
 import SwiftData
 
 /// Friend service: the persistent relationship layer.
@@ -41,6 +42,16 @@ public final class FriendService {
     /// limit. In-memory is sufficient for the frontend precheck — the backend
     /// owns the durable, cross-device counter.
     private var discoverAddTimestamps: [Date] = []
+
+    /// US-018: live inbox. The Supabase Realtime SDK client + the long-lived
+    /// task draining postgres INSERT events on `friend_requests`. Held so the
+    /// subscription can be cancelled and re-opened (e.g. on user switch) without
+    /// leaking a channel. `nil` until `startRequestRealtime()` runs.
+    private var sdkClient: Supabase.SupabaseClient?
+    private var requestRealtimeTask: Task<Void, Never>?
+    /// The recipient id the live channel is currently filtered to, so we can
+    /// skip a redundant re-subscribe when `refresh()` runs again for the same user.
+    private var subscribedRecipientId: String?
 
     public init(client: SupabaseClientProtocol = SupabaseClient.shared) {
         self.client = client
@@ -629,6 +640,144 @@ public final class FriendService {
 
         // Mirror to local store for offline reads.
         friends.forEach(persistFriendship)
+
+        // US-018: open the live inbox so new requests arrive without a refresh.
+        startRequestRealtime(for: userId)
+    }
+
+    // MARK: - US-018: Friend-request Realtime subscription
+
+    /// Subscribe to postgres INSERT events on `friend_requests` filtered to
+    /// `recipient_id=eq.<userId>`, so a request sent by another user lands in
+    /// `incomingRequests` live — driving the inbox red dot — with no manual
+    /// refresh. RLS (`friend_requests participant-select`) means only the
+    /// recipient's own rows are broadcast to them.
+    ///
+    /// Mirrors `ChatService.startRealtime()`: spins up a dedicated supabase-swift
+    /// SDK client, opens a channel, and drains the change stream on the main
+    /// actor. Idempotent — a re-subscribe for the same recipient is a no-op, and
+    /// a switch to a different user tears the old channel down first.
+    public func startRequestRealtime(for userId: String) {
+        guard FeatureFlags.companion else { return }
+        // Same user, already live → nothing to do.
+        if subscribedRecipientId == userId, requestRealtimeTask != nil { return }
+        stopRequestRealtime()
+
+        guard let cfg = loadRealtimeConfig() else { return }
+        guard client.currentSession?.accessToken != nil else { return }
+
+        let sdk = Supabase.SupabaseClient(supabaseURL: cfg.url, supabaseKey: cfg.anonKey)
+        sdkClient = sdk
+        subscribedRecipientId = userId
+
+        requestRealtimeTask = Task {
+            let channel = sdk.channel("friend_requests:\(userId)")
+            let changes = channel.postgresChange(
+                InsertAction.self,
+                schema: "public",
+                table: "friend_requests",
+                filter: "recipient_id=eq.\(userId)"
+            )
+            await channel.subscribe()
+
+            for await action in changes {
+                guard !Task.isCancelled else { break }
+                await MainActor.run { [weak self] in
+                    self?.handleRequestInsert(action, recipientId: userId)
+                }
+            }
+        }
+    }
+
+    /// Cancel the live inbox subscription and drop the SDK client.
+    public func stopRequestRealtime() {
+        requestRealtimeTask?.cancel()
+        requestRealtimeTask = nil
+        sdkClient = nil
+        subscribedRecipientId = nil
+    }
+
+    /// Fold a realtime INSERT into `incomingRequests`. Only pending requests
+    /// addressed to the current user are surfaced; dedup guards against a
+    /// realtime echo of a row we already hold (e.g. the REST fetch raced ahead).
+    private func handleRequestInsert(_ action: InsertAction, recipientId: String) {
+        let record = action.record
+        guard
+            case .string(let idStr) = record["id"],
+            case .string(let requesterStr) = record["requester_id"],
+            case .string(let recipientStr) = record["recipient_id"],
+            recipientStr == recipientId,
+            recipientStr != requesterStr
+        else { return }
+
+        // Status defaults to .pending when absent (matches FriendRequest decode).
+        let status: FriendRequestStatus = {
+            if case .string(let s) = record["status"],
+               let parsed = FriendRequestStatus(rawValue: s) {
+                return parsed
+            }
+            return .pending
+        }()
+        guard status == .pending else { return }
+
+        // Skip anything we already track (REST fetch may have landed first).
+        guard !incomingRequests.contains(where: { $0.id.rawValue == idStr }) else { return }
+
+        let source: FriendRequestSource = {
+            if case .string(let s) = record["source"],
+               let parsed = FriendRequestSource(rawValue: s) {
+                return parsed
+            }
+            return .friendCode
+        }()
+        let note: String? = {
+            if case .string(let n) = record["note"] { return n }
+            return nil
+        }()
+        let now = nowISO()
+        let expiresAt: String = {
+            if case .string(let e) = record["expires_at"] { return e }
+            return expiryISO()
+        }()
+        let createdAt: String = {
+            if case .string(let c) = record["created_at"] { return c }
+            return now
+        }()
+
+        let request = FriendRequest(
+            id: FriendRequestId(rawValue: idStr),
+            requesterId: requesterStr,
+            recipientId: recipientStr,
+            status: status,
+            source: source,
+            note: note,
+            expiresAt: expiresAt,
+            createdAt: createdAt,
+            updatedAt: now
+        )
+        // Newest first, matching the REST `order=created_at.desc` ordering.
+        incomingRequests.insert(request, at: 0)
+        persistRequest(request)
+    }
+
+    private struct RealtimeConfig { let url: URL; let anonKey: String }
+
+    private func loadRealtimeConfig() -> RealtimeConfig? {
+        let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"]
+        let envKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
+            ?? ProcessInfo.processInfo.environment["SUPABASE_KEY"]
+        let urlStr = envURL ?? plistRealtimeValue("SUPABASE_URL")
+        let key = envKey ?? plistRealtimeValue("SUPABASE_ANON_KEY") ?? plistRealtimeValue("SUPABASE_KEY")
+        guard let urlStr, let url = URL(string: urlStr), let key, !key.isEmpty else { return nil }
+        return RealtimeConfig(url: url, anonKey: key)
+    }
+
+    private func plistRealtimeValue(_ key: String) -> String? {
+        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
+              let data = try? Data(contentsOf: url),
+              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+        else { return nil }
+        return plist[key] as? String
     }
 
     // MARK: - Queries
