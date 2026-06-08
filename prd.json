@@ -207,7 +207,7 @@
         "Verify in Simulator (scan via pasted-code fallback)"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on redeem-friend-code Edge Function (US-022)."
     },
     {
