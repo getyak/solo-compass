@@ -11,7 +11,7 @@ public struct HeartBurstView: View {
 
     private struct Particle: Identifiable {
         let id: Int
-        let angle: Double   // radians, deterministic from index
+        let angle: Double   // radians, deterministic from index + trigger seed
         let color: Color
         let size: CGFloat
         let distance: CGFloat
@@ -19,26 +19,47 @@ public struct HeartBurstView: View {
     }
 
     @State private var animated = false
+    @State private var resetTask: Task<Void, Never>?
 
-    // 8 particles at fixed 45° increments — no randomness needed.
-    private static let particleCount = 8
-    private static let colors: [Color] = [
+    private static let baseColors: [Color] = [
         .red, .pink, .red, Color(red: 1, green: 0.4, blue: 0.6),
         .red, .pink, .red, Color(red: 1, green: 0.4, blue: 0.6),
+        .red, Color(red: 1, green: 0.4, blue: 0.6),
     ]
-    private static let sizes: [CGFloat] = [9, 7, 10, 7, 9, 8, 7, 10]
-    private static let distances: [CGFloat] = [38, 32, 42, 30, 38, 34, 42, 30]
-    private static let delays: [Double] = [0, 0.04, 0.02, 0.06, 0.01, 0.05, 0.03, 0.07]
+    private static let baseSizes: [CGFloat] = [9, 7, 10, 7, 9, 8, 7, 10, 8, 9]
+    private static let baseDistances: [CGFloat] = [38, 32, 42, 30, 38, 34, 42, 30, 36, 40]
+    private static let delays: [Double] = [0, 0.04, 0.02, 0.06, 0.01, 0.05, 0.03, 0.07, 0.02, 0.05]
+
+    /// Derives a deterministic seed from the trigger value for per-burst variation.
+    private var burstSeed: Int { trigger &* 2654435761 }
+
+    /// Deterministic pseudo-random float in [-1, 1] for a given index.
+    private func jitter(_ index: Int) -> Double {
+        let hash = (burstSeed &+ index &* 1597334677) & 0x7FFFFFFF
+        return (Double(hash % 1000) / 500.0) - 1.0
+    }
+
+    /// 8 or 10 particles — varies by trigger so bursts differ visually.
+    private var particleCount: Int {
+        abs(burstSeed) % 3 == 0 ? 10 : 8
+    }
 
     private var particles: [Particle] {
-        (0..<Self.particleCount).map { i in
-            Particle(
+        let count = particleCount
+        let colorOffset = abs(trigger) % Self.baseColors.count
+        return (0..<count).map { i in
+            let baseAngle = Double(i) / Double(count) * .pi * 2
+            let angleJitter = jitter(i) * 0.35
+            let sizeScale = 1.0 + jitter(i + 100) * 0.15
+            let distScale = 1.0 + jitter(i + 200) * 0.15
+            let colorIndex = (i + colorOffset) % Self.baseColors.count
+            return Particle(
                 id: i,
-                angle: Double(i) / Double(Self.particleCount) * .pi * 2,
-                color: Self.colors[i],
-                size: Self.sizes[i],
-                distance: Self.distances[i],
-                delay: Self.delays[i]
+                angle: baseAngle + angleJitter,
+                color: Self.baseColors[colorIndex],
+                size: Self.baseSizes[i % Self.baseSizes.count] * sizeScale,
+                distance: Self.baseDistances[i % Self.baseDistances.count] * distScale,
+                delay: Self.delays[i % Self.delays.count]
             )
         }
     }
@@ -69,14 +90,20 @@ public struct HeartBurstView: View {
             guard trigger > 0, !reduceMotion else { return }
             fire()
         }
+        .onDisappear {
+            resetTask?.cancel()
+        }
     }
 
     private func fire() {
+        resetTask?.cancel()
         animated = false
         withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) {
             animated = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+        resetTask = Task {
+            try? await Task.sleep(for: .milliseconds(650))
+            guard !Task.isCancelled else { return }
             animated = false
         }
     }
@@ -102,4 +129,46 @@ public struct HeartBurstView: View {
         }
     }
     return Demo()
+}
+
+#Preview("HeartBurst — sequence variation") {
+    struct SequenceDemo: View {
+        @State private var trigger = 0
+        @State private var history: [Int] = []
+
+        var body: some View {
+            ZStack {
+                Color(.systemBackground).ignoresSafeArea()
+                VStack(spacing: 32) {
+                    Text("Tap rapidly — each burst differs")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ZStack {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(.red)
+                        HeartBurstView(trigger: trigger)
+                    }
+                    .frame(height: 120)
+                    Button("Favorite") {
+                        trigger += 1
+                        history.append(trigger)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Text("Burst #\(trigger)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        ForEach(history.suffix(5), id: \.self) { t in
+                            Text("#\(t)")
+                                .font(.caption2)
+                                .padding(4)
+                                .background(Capsule().fill(Color.red.opacity(0.15)))
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return SequenceDemo()
 }
