@@ -1553,6 +1553,7 @@
 "friends.list.empty.friends" = "No friends yet.";
 "friends.list.empty.title" = "No friends yet";
 "friends.list.empty.description" = "When you meet fellow travelers and add them, they'll show up here.";
+"friends.list.empty.cta" = "Add a friend";
 "friends.list.error.title" = "Couldn't load friends";
 "friends.list.error.retry" = "Try Again";
 
