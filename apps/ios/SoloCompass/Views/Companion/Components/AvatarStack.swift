@@ -1,7 +1,6 @@
 import SwiftUI
 
 // MARK: - VerifiedStyle
-
 /// Controls how a "verified" badge is rendered depending on context.
 public enum VerifiedStyle {
     case badge   // small checkmark overlay on avatar
@@ -21,6 +20,9 @@ public struct AvatarStack: View {
     var maxVisible: Int = 5
     var size: CGFloat = 24
     var ring: Color = .white
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
 
     private var overlap: CGFloat { size * 0.32 }
 
@@ -44,13 +46,39 @@ public struct AvatarStack: View {
         self.ring = ring
     }
 
+    private var a11yLabel: String {
+        if ids.count == 1 {
+            return NSLocalizedString("avatarstack.one", comment: "")
+        } else {
+            return String(format: NSLocalizedString("avatarstack.count", comment: ""), ids.count)
+        }
+    }
+
     public var body: some View {
         HStack(spacing: -(overlap)) {
-            ForEach(Array(visible.enumerated()), id: \.offset) { _, id in
-                avatarCircle(color: UserDirectory.color(forId: id))
+            ForEach(Array(visible.enumerated()), id: \.offset) { index, id in
+                avatarCircle(color: UserDirectory.color(forId: id), index: index)
             }
             if overflow > 0 {
                 overflowBubble
+                    .opacity(appeared ? 1 : 0)
+                    .scaleEffect(appeared ? 1 : 0.6)
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.7)
+                            .delay(Double(visible.count) * 0.05),
+                        value: appeared
+                    )
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(a11yLabel)
+        .onAppear {
+            if reduceMotion {
+                appeared = true
+            } else {
+                withAnimation(.easeOut(duration: 0.35)) {
+                    appeared = true
+                }
             }
         }
     }
@@ -58,13 +86,20 @@ public struct AvatarStack: View {
     // MARK: - Private Views
 
     @ViewBuilder
-    private func avatarCircle(color: Color) -> some View {
+    private func avatarCircle(color: Color, index: Int) -> some View {
         Circle()
             .fill(color)
             .frame(width: size, height: size)
             .overlay(
                 Circle()
                     .strokeBorder(ring, lineWidth: 1.5)
+            )
+            .opacity(appeared ? 1 : 0)
+            .scaleEffect(appeared ? 1 : 0.6)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.7)
+                    .delay(Double(index) * 0.05),
+                value: appeared
             )
     }
 
