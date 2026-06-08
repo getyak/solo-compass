@@ -12,6 +12,7 @@
 		03FDD2032C0B0D8B59A1EE8E /* POILoadingBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C23113554E651AA08FD2430 /* POILoadingBanner.swift */; };
 		045740DB5060EBE8D6D2EEA0 /* PendingCheckInBannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D26F2087E12E63A73B812D7E /* PendingCheckInBannerTests.swift */; };
 		066FE809A43C937B7EFA7609 /* VoiceToastA11yTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A3AF5B9538F583142315C2 /* VoiceToastA11yTests.swift */; };
+		09D620F3F748072EBF4AD680 /* AddFriendButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6435C36695377646C7ED8FC2 /* AddFriendButton.swift */; };
 		0A830B26D4A18948D16F3A42 /* Experience.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C97F8159A6FA7953D28DAB /* Experience.swift */; };
 		0A9FB49B7459777E59EDA55A /* LongPressCardModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA7F7C7168AB78E23C3AB0 /* LongPressCardModifier.swift */; };
 		0B7CC2BD1359B8AB3E4A590D /* HapticServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4609B3C2E77F98A59871C26E /* HapticServiceTests.swift */; };
@@ -59,6 +60,7 @@
 		2A4A75FDB09E99452C161048 /* seed_users.json in Resources */ = {isa = PBXBuildFile; fileRef = 8C8D88BCFAC97E436BE97274 /* seed_users.json */; };
 		2ADAE5305CE2984A5F4EF36C /* UserLocationMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8E4951132B1E16F8A260402 /* UserLocationMarker.swift */; };
 		2ADAF284E5182CF955D9641E /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323B1BAB8D4A2BE116D8A789 /* LocationPickerSheet.swift */; };
+		2C15829741157EA5A2EC8A5C /* AddFriendButtonRenderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CB51F8355673EA0628510F0 /* AddFriendButtonRenderTest.swift */; };
 		2C5A15DE0FCF30A3BCF1EB20 /* RouteItineraryBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B08F2AB2779C31E0870 /* RouteItineraryBridgeTests.swift */; };
 		2D379EAE0BCD339DB670EB5C /* CompanionPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431DC31A80132F719AFEE471 /* CompanionPost.swift */; };
 		2EC741296992D9D0A4F3077D /* RouteCardNowReasonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D31F422914779D9228B0278 /* RouteCardNowReasonTests.swift */; };
@@ -502,6 +504,7 @@
 		5C62D0EFA5859698D9C70B7D /* OfflineBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineBanner.swift; sourceTree = "<group>"; };
 		5C94CC0395CC7FCC0A56D077 /* FavoritesClosingSoonThresholdTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesClosingSoonThresholdTest.swift; sourceTree = "<group>"; };
 		5CA0BAEC05B72704552C0906 /* PendingCheckInRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingCheckInRecord.swift; sourceTree = "<group>"; };
+		5CB51F8355673EA0628510F0 /* AddFriendButtonRenderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendButtonRenderTest.swift; sourceTree = "<group>"; };
 		5CE16BF3B189BB0F17E4CE92 /* ExperienceDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceDetailViewModel.swift; sourceTree = "<group>"; };
 		5D7324256A8D7E93FBA67F91 /* ShareCardComponentsL10nTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardComponentsL10nTest.swift; sourceTree = "<group>"; };
 		5DA9379F0D16543A1082A4C3 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
@@ -514,6 +517,7 @@
 		61ED51ACFDCE6E0ED274BB60 /* seed_experiences.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = seed_experiences.json; sourceTree = "<group>"; };
 		62E28B094263860A9B4657A2 /* UIAuditSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAuditSnapshotTests.swift; sourceTree = "<group>"; };
 		63735AFBC974FBE66197C0B5 /* ItineraryFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryFormView.swift; sourceTree = "<group>"; };
+		6435C36695377646C7ED8FC2 /* AddFriendButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendButton.swift; sourceTree = "<group>"; };
 		649ECD409B685D38E30527FD /* CompletionMomentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionMomentTests.swift; sourceTree = "<group>"; };
 		64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReverseGeocodeService.swift; sourceTree = "<group>"; };
 		654B60521DF1FC23A19F86CB /* NowScoreTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowScoreTestSupport.swift; sourceTree = "<group>"; };
@@ -847,6 +851,7 @@
 		2CEE9F7CC15A1F0742A0CDDF /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				5CB51F8355673EA0628510F0 /* AddFriendButtonRenderTest.swift */,
 				88DFC61CD1B433E92301FB18 /* AddFriendSheetTests.swift */,
 				E5DB59261DB471FD587F4134 /* AgentTests.swift */,
 				D9CF57D3342E9C609CD56801 /* AISynthesisQualityTests.swift */,
@@ -1245,6 +1250,7 @@
 		92B14A0995928A153DAA2F88 /* Friends */ = {
 			isa = PBXGroup;
 			children = (
+				6435C36695377646C7ED8FC2 /* AddFriendButton.swift */,
 				DB22C08A558D35B83043C83E /* AddFriendSheet.swift */,
 				AC6DF782C123E76E2F02EEEA /* FriendProfileView.swift */,
 				4F7202B977A555239F367D02 /* FriendsListView.swift */,
@@ -1503,6 +1509,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				47939336E63740302A83D121 /* AISynthesisQualityTests.swift in Sources */,
+				2C15829741157EA5A2EC8A5C /* AddFriendButtonRenderTest.swift in Sources */,
 				217F30D0C177D27828B5661E /* AddFriendSheetTests.swift in Sources */,
 				8632F83028F07E07435FE075 /* AgentTests.swift in Sources */,
 				E3E70311CE0E4C0CB1C47462 /* AppLaunchPerformanceTest.swift in Sources */,
@@ -1633,6 +1640,7 @@
 				F34C1A42668EF5151AFEE3C3 /* AISynthesisCacheRecord.swift in Sources */,
 				464746A44182622D4F617462 /* AIUsageRecord.swift in Sources */,
 				3889A861FFD32BE4EEE4F19F /* ActiveRouteOverlay.swift in Sources */,
+				09D620F3F748072EBF4AD680 /* AddFriendButton.swift in Sources */,
 				6FAA75544A1755C5712F30BA /* AddFriendSheet.swift in Sources */,
 				8D5DD4E0CD6237FA70C7F99F /* AddToItinerarySheet.swift in Sources */,
 				D825B4D4C81AC33373DA1437 /* AgentMessage.swift in Sources */,

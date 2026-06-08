@@ -61,6 +61,14 @@ public struct ChatView: View {
             if !isGroupRoute, let otherId = otherUserId {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
+                        // US-015: add the companion you're chatting with as a
+                        // friend. `.inline` renders a Label that fits a Menu;
+                        // the button self-disables when already friends/pending.
+                        AddFriendButton(
+                            recipientId: otherId,
+                            source: .companionChat,
+                            style: .inline
+                        )
                         Button(role: .destructive) {
                             showingReportSheet = true
                         } label: {
@@ -234,11 +242,22 @@ private struct ChatMessageRow: View {
 
             VStack(alignment: isFromMe ? .trailing : .leading, spacing: 4) {
                 if showAvatar {
-                    Text(message.senderId)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .padding(.horizontal, 4)
+                    // US-015: route-group members get an inline [Add Friend]
+                    // chip beside their handle. The button reflects the live
+                    // relationship (Add / Pending / Friends) and sends with
+                    // `source: .routeGroup` for anti-abuse weighting.
+                    HStack(spacing: 6) {
+                        Text(message.senderId)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        AddFriendButton(
+                            recipientId: message.senderId,
+                            source: .routeGroup,
+                            style: .compact
+                        )
+                    }
+                    .padding(.horizontal, 4)
                 }
 
                 // Text bubble — shown only when there's body text. Attachment-only

@@ -1514,6 +1514,11 @@
 "friend.profile.action.message" = "Message";
 "friend.profile.action.invite" = "Invite to meetup";
 
+/* Add-friend button states — companion chat / route group (US-015) */
+"friend.add.state.add" = "Add Friend";
+"friend.add.state.pending" = "Pending";
+"friend.add.state.friends" = "Friends";
+
 /* Friends list + request inbox (US-010) */
 "friends.list.title" = "Friends";
 "friends.list.refresh.a11y" = "Refresh friends and requests";
