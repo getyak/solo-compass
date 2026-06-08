@@ -49,6 +49,7 @@ public struct FilterBarView: View {
     @State private var lastNowCount: Int = 0
     @State private var heartPulse: Bool = false
     @State private var didCelebrateSaved: Bool = false
+    @State private var lastResultCount: Int = 0
 
     /// Routes a pill tap to either deselect (toggle-off) or select, with distinct haptics.
     /// When `isSelected` is true the active pill is tapped again — call `onClear` with a
@@ -247,6 +248,15 @@ public struct FilterBarView: View {
         // first appearance and whenever the count transitions to zero.
         .onAppear { announceIfEmpty(resultCount) }
         .onChange(of: resultCount) { _, newCount in announceIfEmpty(newCount) }
+        .onChange(of: resultCount) { old, new in
+            let filterActive = isNowSelected || isFavoriteSelected || selectedCategory != nil || selectedCustomTag != nil
+            if new > old && filterActive && !reduceMotion {
+                #if canImport(UIKit)
+                Haptics.selection()
+                #endif
+            }
+            lastResultCount = new
+        }
     }
 
     /// US-050: localized VoiceOver string posted when the filter has no results.
@@ -397,6 +407,7 @@ public struct FilterBarView: View {
                 if isSelected && resultCount > 0 {
                     Text(Self.compactCount(resultCount))
                         .font(.caption2.monospacedDigit().weight(.semibold))
+                        .contentTransition(reduceMotion ? .identity : .numericText(value: Double(resultCount)))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.white.opacity(0.28)))
@@ -478,6 +489,7 @@ public struct FilterBarView: View {
                 if isSelected && resultCount > 0 {
                     Text(Self.compactCount(resultCount))
                         .font(.caption2.monospacedDigit().weight(.semibold))
+                        .contentTransition(reduceMotion ? .identity : .numericText(value: Double(resultCount)))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.white.opacity(0.28)))
@@ -587,6 +599,7 @@ public struct FilterBarView: View {
     private func countBadge(count: Int, tint: Color) -> some View {
         Text(Self.compactCount(count))
             .font(.caption2.weight(.semibold).monospacedDigit())
+            .contentTransition(reduceMotion ? .identity : .numericText(value: Double(count)))
             .foregroundStyle(.white)
             .padding(.horizontal, 5)
             .frame(minWidth: 16, minHeight: 16)
