@@ -1616,3 +1616,7 @@
 /* AvatarStack accessibility labels */
 "avatarstack.one" = "1 person";
 "avatarstack.count" = "%d people";
+
+/* AvatarStack overflow popover */
+"avatarstack.members.title" = "Members";
+"avatarstack.overflow.hint" = "Shows all members";

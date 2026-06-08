@@ -56,6 +56,15 @@ public final class UserDirectory {
         usersByHandle.count
     }
 
+    // MARK: - Display name
+
+    /// Human-readable display name for an id. Returns the handle when found,
+    /// otherwise returns the raw id string unchanged.
+    @MainActor
+    public static func displayName(forId id: String) -> String {
+        shared.user(handle: id)?.handle ?? id
+    }
+
     // MARK: - Avatar color
 
     /// Deterministic avatar color for any string id.
