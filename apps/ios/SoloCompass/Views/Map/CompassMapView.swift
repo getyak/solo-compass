@@ -373,9 +373,9 @@ struct CompassMapContentView: View {
             .onChange(of: networkMonitor.isConnected) { _, connected in
                 if !connected {
                     hasDisconnected = true
-                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    Haptics.notify(.warning)
                 } else if hasDisconnected {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Haptics.notify(.success)
                 }
             }
             .onChange(of: viewModel.isShowingDetail) { _, showing in
@@ -1394,7 +1394,7 @@ struct CompassMapContentView: View {
                         if case .second(true, let drag?) = value,
                            let coord = proxy.convert(drag.location, from: .local) {
                             viewModel.handleMapLongPress(at: coord)
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            Haptics.impact(.medium)
                         }
                     }
             )
@@ -1838,7 +1838,7 @@ private struct MapOverlayView: View {
                     // Tap → open detail directly (openExperienceDetail reframes
                     // the camera itself, so no separate focusOnExperience call).
                     .accessibilityAction {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        Haptics.impact(.light)
                         viewModel.openExperienceDetail(tickedNext.experience)
                     }
                     // Long-press → float the quick preview card (former behavior).
@@ -1846,11 +1846,11 @@ private struct MapOverlayView: View {
                         viewModel.selectExperience(tickedNext.experience)
                     }
                     .onTapGesture {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        Haptics.impact(.light)
                         viewModel.openExperienceDetail(tickedNext.experience)
                     }
                     .onLongPressGesture(minimumDuration: 0.4) {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        Haptics.impact(.medium)
                         viewModel.selectExperience(tickedNext.experience)
                     }
                 }
@@ -1876,7 +1876,7 @@ private struct MapOverlayView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Button {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            Haptics.impact(.light)
                             viewModel.clearFilters()
                         } label: {
                             Text(clearText)
@@ -1894,12 +1894,12 @@ private struct MapOverlayView: View {
                 .accessibilityLabel(Text(a11yLabel))
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                     viewModel.clearFilters()
                 }
                 .onChange(of: count) { _, newCount in
                     guard newCount == 0 else { return }
-                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    Haptics.notify(.warning)
                     guard !reduceMotion else { return }
                     noMatchPop = true
                     Task {
@@ -2013,7 +2013,7 @@ private struct RecenterButton: View {
             }
 
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
                 onTap()
                 guard !reduceMotion else { return }
                 pulse = false
@@ -2095,7 +2095,7 @@ private struct EmptyFilterBanner: View {
                 .lineLimit(1)
                 Spacer(minLength: 4)
                 Button {
-                    UISelectionFeedbackGenerator().selectionChanged()
+                    Haptics.selection()
                     onShowAll()
                 } label: {
                     Text(NSLocalizedString("filter.empty.showAll", comment: "Show all experiences button"))
@@ -2230,7 +2230,7 @@ private struct MapControlBar: View {
 
             PlusActionButton(
                 onShortTap: {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    Haptics.impact(.medium)
                     onOpenChat(.text)
                 },
                 onLongPress: { onOpenChat(.voice) }
@@ -2249,7 +2249,7 @@ private struct FABButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
             .animation(.spring(response: 0.25), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
+                if isPressed { Haptics.impact(.soft) }
             }
     }
 }
@@ -2307,7 +2307,7 @@ private struct PlusActionButton: View {
                     // Immediate touch-down feedback: scale + ring + soft haptic.
                     isPressed = true
                     ringPulse = true
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    Haptics.impact(.soft)
                 } else {
                     isPressed = false
                     ringPulse = false
