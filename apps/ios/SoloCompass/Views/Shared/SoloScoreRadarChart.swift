@@ -13,7 +13,10 @@ public struct SoloScoreRadarChart: View {
     @State private var selectedAxis: Int? = nil
     @State private var tooltipDismissTask: Task<Void, Never>? = nil
     @State private var showReplayHint: Bool = false
+    @State private var pressedAxis: Int? = nil
+    @State private var hintPulse: Bool = false
     @AppStorage("radar.replayHintSeen") private var replayHintSeen: Bool = false
+    @AppStorage("radar.axisTapHintSeen") private var axisTapHintSeen: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let springDuration: Double = 0.7
@@ -120,6 +123,13 @@ public struct SoloScoreRadarChart: View {
                             withAnimation { showReplayHint = false }
                         }
                     }
+                    if !axisTapHintSeen {
+                        axisTapHintSeen = true
+                        withAnimation(.easeInOut(duration: 0.25)) { hintPulse = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            withAnimation(.easeInOut(duration: 0.25)) { hintPulse = false }
+                        }
+                    }
                 }
             }
         }
@@ -223,9 +233,19 @@ public struct SoloScoreRadarChart: View {
                             .contentTransition(.numericText())
                             .animation(reduceMotion ? nil : .spring(response: Self.springDuration, dampingFraction: 0.75), value: animatedValue(values[i]))
                     }
+                    .scaleEffect(
+                        (!reduceMotion && pressedAxis == i) ? 0.88 :
+                        (!reduceMotion && hintPulse && i == weakestIndex) ? 1.12 : 1.0
+                    )
+                    .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.6), value: pressedAxis)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: hintPulse)
                     .opacity(labelOpacity)
                     .position(pos)
-                    .onTapGesture { tapAxis(i) }
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { _ in pressedAxis = i }
+                            .onEnded { _ in pressedAxis = nil; tapAxis(i) }
+                    )
                     .accessibilityAddTraits(.isButton)
                     .accessibilityHint(Text(NSLocalizedString("solo.axis.tap.hint", comment: "")))
                     .accessibilityLabel(Text(axis.label))
@@ -433,7 +453,17 @@ public struct SoloScoreRadarChart: View {
                         .frame(width: 24, alignment: .trailing)
                         .accessibilityHidden(true)
                 }
-                .onTapGesture { tapAxis(i) }
+                .scaleEffect(
+                    (!reduceMotion && pressedAxis == i) ? 0.88 :
+                    (!reduceMotion && hintPulse && i == weakestIndex) ? 1.12 : 1.0
+                )
+                .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.6), value: pressedAxis)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: hintPulse)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { _ in pressedAxis = i }
+                        .onEnded { _ in pressedAxis = nil; tapAxis(i) }
+                )
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint(Text(NSLocalizedString("solo.axis.tap.hint", comment: "")))
                 .accessibilityLabel(Text(axis.label))
