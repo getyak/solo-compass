@@ -50,6 +50,7 @@ public struct FilterBarView: View {
     @State private var heartPulse: Bool = false
     @State private var didCelebrateSaved: Bool = false
     @State private var lastResultCount: Int = 0
+    @State private var emptyShake: Int = 0
 
     /// Routes a pill tap to either deselect (toggle-off) or select, with distinct haptics.
     /// When `isSelected` is true the active pill is tapped again — call `onClear` with a
@@ -133,6 +134,13 @@ public struct FilterBarView: View {
     /// matches enum declaration order.
     private var visibleCategories: [ExperienceCategory] {
         Self.visiblePills(from: preferences.visibleCategories)
+    }
+
+    /// Pure helper: returns true when a filter is active and the result count
+    /// transitions from a positive value to zero — the signal to fire the
+    /// empty-state shake + warning haptic. Unit-testable without UI state.
+    static func resolvesToEmpty(filterActive: Bool, oldCount: Int, newCount: Int) -> Bool {
+        filterActive && oldCount > 0 && newCount == 0
     }
 
     /// Pure function exposed for unit testing — keeps pill ordering tied to
@@ -238,6 +246,7 @@ public struct FilterBarView: View {
             // nothing is clipped.
             .mask(scrollAffordanceMask)
         }
+        .modifier(ShakeEffect(animatableData: CGFloat(emptyShake)))
         .padding(.horizontal, 16)
         .opacity(isMapPanning ? 0.4 : 1.0)
         .scaleEffect(isMapPanning ? 0.85 : 1.0)
@@ -254,6 +263,14 @@ public struct FilterBarView: View {
                 #if canImport(UIKit)
                 Haptics.selection()
                 #endif
+            }
+            if Self.resolvesToEmpty(filterActive: filterActive, oldCount: old, newCount: new) {
+                #if canImport(UIKit)
+                Haptics.notify(.warning)
+                #endif
+                if !reduceMotion {
+                    withAnimation(.default) { emptyShake += 1 }
+                }
             }
             lastResultCount = new
         }
@@ -604,6 +621,27 @@ public struct FilterBarView: View {
             .padding(.horizontal, 5)
             .frame(minWidth: 16, minHeight: 16)
             .background(Capsule().fill(tint))
+    }
+}
+
+// MARK: - ShakeEffect
+
+/// Damped 3-cycle horizontal sine that maps integer counter increments to a
+/// brief left-right head-shake — used by FilterBarView's empty-filter feedback.
+private struct ShakeEffect: GeometryEffect {
+    var animatableData: CGFloat
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        // Each integer bump in animatableData drives one full shake cycle.
+        // The fractional part of animatableData is what SwiftUI animates
+        // between 0→1. We map that to 3 sine oscillations with exponential
+        // damping so the wobble fades naturally without needing a Task delay.
+        let phase = animatableData - floor(animatableData)
+        let amplitude: CGFloat = 6
+        let cycles: CGFloat = 3
+        let damping = 1 - phase          // fades to zero by phase == 1
+        let dx = amplitude * damping * sin(phase * cycles * 2 * .pi)
+        return ProjectionTransform(CGAffineTransform(translationX: dx, y: 0))
     }
 }
 
