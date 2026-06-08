@@ -894,6 +894,8 @@
 /* Theme picker (US-039) */
 "settings.appearance" = "Appearance";
 "settings.theme" = "Theme";
+"settings.haptics" = "Haptic Feedback";
+"settings.haptics.footer" = "When on, Solo Compass taps your device on favorites, check-ins, filter changes, and map peeks.";
 
 /* Map preview in exports (US-020) */
 "settings.exportMapPreview" = "Include map preview in exports";

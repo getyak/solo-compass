@@ -809,8 +809,29 @@ public struct SettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            Toggle(isOn: Binding(
+                get: { HapticService.shared.isEnabled },
+                set: { newValue in
+                    HapticService.shared.isEnabled = newValue
+                    if newValue {
+                        HapticService.shared.impact(style: .light)
+                    }
+                }
+            )) {
+                HStack(spacing: 10) {
+                    Image(systemName: "hand.tap.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.pink, in: RoundedRectangle(cornerRadius: 7))
+                    Text(NSLocalizedString("settings.haptics", comment: "Haptic Feedback"))
+                }
+            }
         } header: {
             settingsSectionHeader("paintpalette", label: NSLocalizedString("settings.appearance", comment: "Appearance"))
+        } footer: {
+            Text(NSLocalizedString("settings.haptics.footer", comment: "Haptic feedback footer"))
         }
     }
 

@@ -574,6 +574,8 @@
 /* Theme picker (US-039) */
 "settings.appearance" = "外观";
 "settings.theme" = "主题";
+"settings.haptics" = "触感反馈";
+"settings.haptics.footer" = "开启后，Solo Compass 会在收藏、打卡、筛选和地图预览等操作时振动提示。";
 
 /* Map preview in exports (US-020) */
 "settings.exportMapPreview" = "导出时包含地图预览";
