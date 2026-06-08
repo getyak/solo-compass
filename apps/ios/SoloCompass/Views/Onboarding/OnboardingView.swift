@@ -26,18 +26,33 @@ enum OnboardingA11ySortPriority {
 public struct OnboardingView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(UserPreferences.self) private var preferences
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onComplete: () -> Void
 
     @State private var step: Int = 0
+
+    private var slideTransition: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal: .move(edge: .leading).combined(with: .opacity)
+            )
+    }
 
     public var body: some View {
         ZStack {
             Color(.systemBackground).ignoresSafeArea()
 
             switch step {
-            case 0: welcomeStep
-            case 1: styleStep
-            default: welcomeStep
+            case 0:
+                welcomeStep
+                    .transition(slideTransition)
+                    .id(0)
+            default:
+                styleStep
+                    .transition(slideTransition)
+                    .id(1)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -213,7 +228,7 @@ public struct OnboardingView: View {
     private func styleRow(_ style: UserPreferences.SoloTravelStyle) -> some View {
         let selected = preferences.soloTravelStyle == style
         Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.selection()
             preferences.soloTravelStyle = style
         } label: {
             HStack(spacing: 14) {
