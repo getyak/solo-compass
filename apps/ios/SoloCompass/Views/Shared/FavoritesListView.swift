@@ -726,6 +726,8 @@ private struct JourneyProgressBar: View {
     @State private var fillScaleY: CGFloat = 1
     @State private var didHalfwayPulse = false
     @State private var tickPulse = false
+    @State private var lastMilestone: Int = 0
+    @State private var glowOpacity: CGFloat = 0
 
     private var targetFraction: CGFloat {
         total > 0 ? CGFloat(completed) / CGFloat(total) : 0
@@ -754,6 +756,28 @@ private struct JourneyProgressBar: View {
                 fillScaleY = 1
             }
             tickPulse = false
+        }
+    }
+
+    private func currentMilestone() -> Int {
+        Int(targetFraction * 4)
+    }
+
+    private func handleMilestoneCheck() {
+        let newMilestone = currentMilestone()
+        guard newMilestone > lastMilestone, completed < total else { return }
+        lastMilestone = newMilestone
+        Haptics.impact(.light)
+        let pct = newMilestone * 25
+        let announcement = String(
+            format: NSLocalizedString("favorites.journey.milestone.a11y", comment: "VoiceOver milestone announcement in journey progress bar"),
+            pct
+        )
+        UIAccessibility.post(notification: .announcement, argument: announcement)
+        guard !reduceMotion else { return }
+        withAnimation(.easeOut(duration: 0.15)) { glowOpacity = 0.6 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeIn(duration: 0.35)) { glowOpacity = 0 }
         }
     }
 
@@ -804,10 +828,18 @@ private struct JourneyProgressBar: View {
                         }
                     }
                     .clipShape(Capsule())
+                if glowOpacity > 0 {
+                    Capsule()
+                        .fill(Color.green.opacity(glowOpacity))
+                        .frame(width: geo.size.width * animatedFraction, height: 4)
+                        .blur(radius: 3)
+                        .allowsHitTesting(false)
+                }
             }
         }
         .frame(height: 4)
         .onAppear {
+            lastMilestone = currentMilestone()
             if reduceMotion {
                 animatedFraction = targetFraction
             } else {
@@ -838,6 +870,7 @@ private struct JourneyProgressBar: View {
             } else {
                 didHalfwayPulse = false
             }
+            handleMilestoneCheck()
         }
     }
 
