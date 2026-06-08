@@ -368,7 +368,7 @@
         "Tests cover rate-limit + expiry boundaries"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
