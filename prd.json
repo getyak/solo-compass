@@ -130,7 +130,7 @@
         "Verify in Simulator: both relation states render correctly"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Mind CT.* fixed light cards (see project_ct_fixed_white_cards) + sheetPeekClearance (project_bottomsheet_peek_clearance)."
     },
     {

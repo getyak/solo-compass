@@ -524,6 +524,75 @@ public final class MapViewModel {
     public var selectedCustomTag: String?
     public var visibleExperiences: [Experience] = []
 
+    // MARK: - Zoom-adaptive map density (Level-of-Detail)
+
+    /// Latest map-camera vertical span (`region.span.latitudeDelta`, in degrees).
+    /// Updated by the view on every `onMapCameraChange(.onEnd)`. Drives how many
+    /// pins the map shows: zoomed out (large span) → few prominent pins;
+    /// zoomed in (small span) → progressively more. Longitude delta is skipped
+    /// because it distorts with latitude, while latitude degrees are uniform.
+    /// Default seeds a city-level span so the first render isn't over-dense.
+    public var currentSpanLatitudeDelta: Double = Self.defaultSpanLatitudeDelta
+
+    /// Default span used before the first camera change — roughly city-district
+    /// scale, so the cold-start map already shows a curated (not flooded) set.
+    static let defaultSpanLatitudeDelta: Double = 0.08
+
+    /// The pins the *map* should render for the current zoom. A pure derived
+    /// view over `visibleExperiences`: rank by prominence, then keep only the
+    /// top `mapDisplayLimit`. `visibleExperiences` itself stays full — now-count,
+    /// the cold-start watchdog, and the bottom list all keep reading the
+    /// complete set (the list intentionally shows more than the map).
+    public var displayedExperiences: [Experience] {
+        let limit = Self.spanToLimit(currentSpanLatitudeDelta)
+        guard visibleExperiences.count > limit else { return visibleExperiences }
+        return Self.rankedByProminence(visibleExperiences).prefix(limit).map { $0 }
+    }
+
+    /// Span → max number of map pins. Three bands matched to how a solo traveler
+    /// reads the map: city overview shows only the standout dozen; district
+    /// shows ~30; street/walking scale lifts the cap entirely so every nearby
+    /// pin is reachable. Boundaries are `static let` so they're easy to tune.
+    static let cityBandSpan: Double = 0.12   // ≳ whole-city view
+    static let districtBandSpan: Double = 0.03 // ≳ district view
+    static let cityBandLimit: Int = 12
+    static let districtBandLimit: Int = 30
+
+    static func spanToLimit(_ latitudeDelta: Double) -> Int {
+        if latitudeDelta >= cityBandSpan { return cityBandLimit }
+        if latitudeDelta >= districtBandSpan { return districtBandLimit }
+        return Int.max // street level: show everything
+    }
+
+    /// Prominence score (higher = more deserving of a map pin when space is
+    /// scarce). Combines signals that already exist on every `Experience`:
+    /// best-now (most time-relevant), Solo-Score (fit for solo travelers),
+    /// confidence level (data we trust), and passive footprint hits (places
+    /// people actually go). All weighted into a single comparable Double.
+    static func prominenceScore(for exp: Experience, now: Date = Date()) -> Double {
+        var score = 0.0
+        if exp.isBestNow(at: now) { score += 100 }       // time-relevant dominates
+        score += exp.soloScore.overall * 5                // 0–10 → 0–50
+        score += Double(exp.confidence.level) * 4         // 0–5  → 0–20
+        score += min(Double(exp.confidence.signals.passiveGpsHits30d), 10) * 1.5 // capped footprint
+        return score
+    }
+
+    /// `visibleExperiences` (already distance-sorted by the service) re-ranked
+    /// by prominence. Swift's `sorted(by:)` is *not* guaranteed stable, so we
+    /// carry the original index and use it as an explicit tiebreak — keeping
+    /// equal-prominence pins in their incoming (nearest-first) order.
+    static func rankedByProminence(_ experiences: [Experience], now: Date = Date()) -> [Experience] {
+        experiences.enumerated()
+            .sorted { lhs, rhs in
+                let ls = prominenceScore(for: lhs.element, now: now)
+                let rs = prominenceScore(for: rhs.element, now: now)
+                if ls != rs { return ls > rs }
+                return lhs.offset < rhs.offset // distance order as tiebreak
+            }
+            .map { $0.element }
+    }
+
     /// US-021: read-only passthrough to the full seeded/synced experience set.
     /// `MapViewModelEagerInitTest` reads this on the launch path to prove the
     /// eagerly-built view model is live before any `onAppear` fires.
