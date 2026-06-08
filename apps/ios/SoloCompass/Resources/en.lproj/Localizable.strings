@@ -1026,6 +1026,13 @@
 "itinerary.form.action.cancel" = "Cancel";
 "itinerary.form.city.picker.title" = "Choose City";
 
+/* My Profile edit screen (US-008) */
+"profile.edit.title" = "My Profile";
+"profile.handle.header" = "Handle";
+"profile.handle.placeholder" = "How others see you (e.g. wanderer)";
+"profile.handle.footer" = "%d–%d characters. Doesn't have to be unique.";
+"profile.handle.invalid" = "Handle must be %d–%d characters.";
+
 /* Companion profile settings (US-009) */
 "companion.profile.title" = "Companion Profile";
 "companion.profile.avatar.header" = "Your Avatar";

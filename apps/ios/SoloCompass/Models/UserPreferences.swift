@@ -63,6 +63,9 @@ public final class UserPreferences {
         var companionLanguages: [String] = []
         var companionVisibilityRaw: String = CompanionVisibility.off.rawValue
 
+        // US-008: editable display handle (2–20 chars, not unique).
+        var displayHandle: String = ""
+
         // Companion posts keyed by ItineraryId.rawValue (US-010)
         // Stored as a simple [itinId: CompanionPost] blob. A full CompanionPostStore
         // (backed by SwiftData + Supabase sync) will supersede this in a later story.
@@ -90,6 +93,7 @@ public final class UserPreferences {
             case foursquareCallsToday, foursquareCallsTodayDate
             case aiProviderRaw, aiApiKey, aiBaseURL, aiModelName
             case companionAvatarEmoji, companionBio, companionLanguages, companionVisibilityRaw
+            case displayHandle
             case activeCompanionPosts
             case hasAcceptedCompanionConsent, companionConsentGivenAt
             case companionEnabled
@@ -131,6 +135,7 @@ public final class UserPreferences {
             companionBio: String,
             companionLanguages: [String],
             companionVisibilityRaw: String,
+            displayHandle: String = "",
             activeCompanionPosts: [String: CompanionPost],
             hasAcceptedCompanionConsent: Bool = false,
             companionConsentGivenAt: Date? = nil,
@@ -169,6 +174,7 @@ public final class UserPreferences {
             self.companionBio = companionBio
             self.companionLanguages = companionLanguages
             self.companionVisibilityRaw = companionVisibilityRaw
+            self.displayHandle = displayHandle
             self.activeCompanionPosts = activeCompanionPosts
             self.hasAcceptedCompanionConsent = hasAcceptedCompanionConsent
             self.companionConsentGivenAt = companionConsentGivenAt
@@ -211,6 +217,7 @@ public final class UserPreferences {
             self.companionBio = try container.decodeIfPresent(String.self, forKey: .companionBio) ?? ""
             self.companionLanguages = try container.decodeIfPresent([String].self, forKey: .companionLanguages) ?? []
             self.companionVisibilityRaw = try container.decodeIfPresent(String.self, forKey: .companionVisibilityRaw) ?? CompanionVisibility.off.rawValue
+            self.displayHandle = try container.decodeIfPresent(String.self, forKey: .displayHandle) ?? ""
             self.activeCompanionPosts = try container.decodeIfPresent([String: CompanionPost].self, forKey: .activeCompanionPosts) ?? [:]
             self.hasAcceptedCompanionConsent = try container.decodeIfPresent(Bool.self, forKey: .hasAcceptedCompanionConsent) ?? false
             self.companionConsentGivenAt = try container.decodeIfPresent(Date.self, forKey: .companionConsentGivenAt)
@@ -297,6 +304,11 @@ public final class UserPreferences {
     /// Raw string backing for `companionVisibility`. Default: "off".
     public var companionVisibilityRaw: String { didSet { persist() } }
 
+    /// US-008: the user's editable display handle (2–20 chars, not unique).
+    /// Stored verbatim; length/trim validation happens at the edit-UI boundary
+    /// (`MyProfileEditView`). Empty string means "no handle set yet".
+    public var displayHandle: String { didSet { persist() } }
+
     /// Typed access to companion visibility. Reads/writes `companionVisibilityRaw`.
     public var companionVisibility: CompanionVisibility {
         get { CompanionVisibility(rawValue: companionVisibilityRaw) ?? .off }
@@ -381,6 +393,7 @@ public final class UserPreferences {
         self.companionBio = snapshot.companionBio
         self.companionLanguages = snapshot.companionLanguages
         self.companionVisibilityRaw = snapshot.companionVisibilityRaw
+        self.displayHandle = snapshot.displayHandle
         self.activeCompanionPosts = snapshot.activeCompanionPosts
         self.hasAcceptedCompanionConsent = snapshot.hasAcceptedCompanionConsent
         self.companionConsentGivenAt = snapshot.companionConsentGivenAt
@@ -432,6 +445,7 @@ public final class UserPreferences {
             companionBio: companionBio,
             companionLanguages: companionLanguages,
             companionVisibilityRaw: companionVisibilityRaw,
+            displayHandle: displayHandle,
             activeCompanionPosts: activeCompanionPosts,
             hasAcceptedCompanionConsent: hasAcceptedCompanionConsent,
             companionConsentGivenAt: companionConsentGivenAt,

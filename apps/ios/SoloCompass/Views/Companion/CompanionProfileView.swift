@@ -8,13 +8,28 @@ import SwiftUI
 ///
 /// US-030: when `companionEnabled`, shows a 'walked routes' section with up to
 /// 5 thumbnail cards. A 'view all' chip navigates to `MyWalkedRoutesListView`.
-public struct CompanionProfileView: View {
+///
+/// US-008: upgraded into the single "My Profile" edit surface. Adds a
+/// `displayHandle` field (2–20 chars, not unique) alongside the existing
+/// avatar / bio / languages editors. Saving writes `User.displayHandle`
+/// (persisted via `UserPreferences.displayHandle`) plus the companion
+/// profile fields. `MyProfileEditView` is the canonical name; the legacy
+/// `CompanionProfileView` alias is kept for existing call sites.
+public struct MyProfileEditView: View {
     @Environment(UserPreferences.self) private var preferences
 
     @State private var showingEmojiPicker = false
     @State private var languageInput = ""
     @State private var walkedRoutes: [Route] = []
     @State private var showAllWalked = false
+
+    /// US-008: live draft of the handle field. Seeded from `preferences`
+    /// on appear; committed back (trimmed) only when it passes validation.
+    @State private var handleDraft = ""
+
+    /// Inclusive bounds for `displayHandle` length. Not unique.
+    private static let handleMinLength = 2
+    private static let handleMaxLength = 20
 
     // Common travel-language options
     private static let suggestedLanguages: [(code: String, name: String)] = [
@@ -36,6 +51,7 @@ public struct CompanionProfileView: View {
         NavigationStack {
             Form {
                 avatarSection(prefs: $prefs)
+                handleSection
                 bioSection(prefs: $prefs)
                 languagesSection(prefs: $prefs)
                 visibilitySection(prefs: $prefs)
@@ -43,9 +59,12 @@ public struct CompanionProfileView: View {
                     walkedRoutesSection
                 }
             }
-            .navigationTitle(NSLocalizedString("companion.profile.title", comment: "Companion Profile nav title"))
+            .navigationTitle(NSLocalizedString("profile.edit.title", comment: "My Profile nav title"))
             .navigationBarTitleDisplayMode(.large)
-            .onAppear { loadWalkedRoutes() }
+            .onAppear {
+                loadWalkedRoutes()
+                handleDraft = preferences.displayHandle
+            }
             .navigationDestination(isPresented: $showAllWalked) {
                 MyWalkedRoutesListView(routes: walkedRoutes)
             }
@@ -113,6 +132,64 @@ public struct CompanionProfileView: View {
             Text(NSLocalizedString("companion.profile.avatar.header", comment: "Avatar section header"))
         } footer: {
             Text(NSLocalizedString("companion.profile.avatar.footer", comment: "No real photo — emoji only"))
+        }
+    }
+
+    // MARK: - Handle section (US-008)
+
+    /// Trimmed draft used for validation and persistence.
+    private var trimmedHandle: String {
+        handleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// A handle is valid when it is empty (cleared) or within the inclusive
+    /// length bounds. Not checked for uniqueness — handles are display-only.
+    private var isHandleValid: Bool {
+        let count = trimmedHandle.count
+        return count == 0 || (count >= Self.handleMinLength && count <= Self.handleMaxLength)
+    }
+
+    /// Commits the trimmed handle to `UserPreferences.displayHandle` whenever
+    /// it is valid, so the change persists across reopen without an explicit
+    /// Save button (the Form auto-saves each field).
+    private func commitHandleIfValid() {
+        guard isHandleValid else { return }
+        if preferences.displayHandle != trimmedHandle {
+            preferences.displayHandle = trimmedHandle
+        }
+    }
+
+    @ViewBuilder
+    private var handleSection: some View {
+        Section {
+            TextField(
+                NSLocalizedString("profile.handle.placeholder", comment: "Display handle placeholder"),
+                text: $handleDraft
+            )
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .onChange(of: handleDraft) { _, new in
+                // Hard cap input length so the field can never exceed the max.
+                if new.count > Self.handleMaxLength {
+                    handleDraft = String(new.prefix(Self.handleMaxLength))
+                }
+                commitHandleIfValid()
+            }
+        } header: {
+            Text(NSLocalizedString("profile.handle.header", comment: "Handle section header"))
+        } footer: {
+            if !isHandleValid {
+                Text(String(
+                    format: NSLocalizedString("profile.handle.invalid", comment: "Handle length validation message"),
+                    Self.handleMinLength, Self.handleMaxLength
+                ))
+                .foregroundStyle(.red)
+            } else {
+                Text(String(
+                    format: NSLocalizedString("profile.handle.footer", comment: "Handle section footer"),
+                    Self.handleMinLength, Self.handleMaxLength
+                ))
+            }
         }
     }
 
@@ -291,6 +368,13 @@ public struct CompanionProfileView: View {
     }
 }
 
+// MARK: - Legacy alias
+
+/// Backwards-compatible name for existing call sites (MeSheet, SettingsView).
+/// US-008 renamed the view to `MyProfileEditView`; this alias avoids a
+/// codebase-wide rename in unrelated files.
+public typealias CompanionProfileView = MyProfileEditView
+
 // MARK: - WalkedRouteCard (compact thumbnail ~140pt)
 
 private struct WalkedRouteCard: View {
@@ -326,11 +410,12 @@ private struct WalkedRouteCard: View {
 
 #Preview("Configured profile") {
     let prefs = UserPreferences()
+    prefs.displayHandle = "wanderer"
     prefs.companionAvatarEmoji = "🌊"
     prefs.companionBio = "Solo traveler, 12 countries. Coffee shops and hidden temples."
     prefs.companionLanguages = ["en", "zh", "ja"]
     prefs.companionVisibility = .itinerary_only
-    return CompanionProfileView()
+    return MyProfileEditView()
         .environment(prefs)
 }
 
