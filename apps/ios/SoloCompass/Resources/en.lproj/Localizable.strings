@@ -1512,3 +1512,21 @@
 "friend.profile.action.requestPending" = "Request Pending";
 "friend.profile.action.message" = "Message";
 "friend.profile.action.invite" = "Invite to meetup";
+
+/* Friends list + request inbox (US-010) */
+"friends.list.title" = "Friends";
+"friends.list.refresh.a11y" = "Refresh friends and requests";
+"friends.list.pending.count" = "%d pending";
+"friends.list.pending.count.a11y" = "%d pending friend requests";
+"friends.list.requests.section" = "Friend Requests";
+"friends.list.friends.section" = "Friends";
+"friends.list.request.from" = "From";
+"friends.request.accept" = "Accept";
+"friends.request.decline" = "Decline";
+"friends.list.friend.a11y" = "Friend %@. Tap to view profile.";
+"friends.list.strip.a11y" = "Your friends";
+"friends.list.empty.friends" = "No friends yet.";
+"friends.list.empty.title" = "No friends yet";
+"friends.list.empty.description" = "When you meet fellow travelers and add them, they'll show up here.";
+"friends.list.error.title" = "Couldn't load friends";
+"friends.list.error.retry" = "Try Again";
