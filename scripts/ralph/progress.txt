@@ -20,3 +20,4 @@ PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
     └─ NEXT_STEPS: (auto) prior run ended (completed)
 [2026-06-08T10:07:23Z] Story #US-017: MeSheet unified conversation list — PASSED
 [2026-06-08T10:11:28Z] Story #US-018: Friend-request Realtime subscription — PASSED
+[2026-06-08T10:16:33Z] Story #US-019: Invite friend to companion meetup (no trust gate) — PASSED
