@@ -182,6 +182,7 @@ private struct SoloScorePopoverContent: View {
     @State private var appeared = false
     @State private var barsFilled = false
     @State private var expandedIndex: Int? = nil
+    @State private var animatedOverall: Double = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let weakestThreshold: Double = 5.0
@@ -237,10 +238,11 @@ private struct SoloScorePopoverContent: View {
                 Text(NSLocalizedString("solo.breakdown.title", comment: "Solo Score breakdown"))
                     .font(.headline)
                 Spacer()
-                Text(String(format: "%.1f", score.overall))
+                Text(String(format: "%.1f", animatedOverall))
                     .font(.title3.bold())
                     .foregroundStyle(score.scoreColor)
                     .monospacedDigit()
+                    .contentTransition(.numericText(value: animatedOverall))
             }
 
             if let hint = score.hint {
@@ -332,12 +334,21 @@ private struct SoloScorePopoverContent: View {
             if reduceMotion {
                 appeared = true
                 barsFilled = true
+                animatedOverall = score.overall
             } else {
                 withAnimation(.easeIn(duration: 0.2)) {
                     appeared = true
                 }
                 barsFilled = true
+                withAnimation(.easeOut(duration: 0.6)) {
+                    animatedOverall = score.overall
+                }
             }
+        }
+        .onDisappear {
+            appeared = false
+            barsFilled = false
+            expandedIndex = nil
         }
     }
 
