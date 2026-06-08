@@ -325,7 +325,7 @@
         "Deploy command documented (supabase functions deploy redeem-friend-code)"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "Needed by US-014."
     },
     {
