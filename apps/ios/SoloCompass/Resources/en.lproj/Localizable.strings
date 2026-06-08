@@ -343,6 +343,9 @@
 /* On-course cue appended to bearing arrow a11y label when user faces the experience within ±15° */
 "card.distance.onCourse.a11y" = "On course";
 
+/* Recenter hint on distance/bearing pill button */
+"card.distance.recenter.hint" = "Double tap to center the map here";
+
 /* Compass directions (8 sectors) for bearing arrow accessibility */
 "compass.N" = "north";
 "compass.NE" = "northeast";

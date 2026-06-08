@@ -12,6 +12,9 @@ public struct ExperienceCardView: View {
     var onRecompile: (() -> Void)?
     /// True while THIS card is mid-recompile — swaps the menu for a spinner.
     var isRecompiling: Bool = false
+    /// Optional: tap handler for the distance/bearing pill. Fires with the
+    /// experience's coordinate so the map can recenter on it.
+    var onRecenter: ((CLLocationCoordinate2D) -> Void)? = nil
 
     private struct DragState {
         var translation: CGFloat = 0
@@ -168,13 +171,15 @@ public struct ExperienceCardView: View {
         onExpand: @escaping () -> Void,
         onDismiss: @escaping () -> Void,
         onRecompile: (() -> Void)? = nil,
-        isRecompiling: Bool = false
+        isRecompiling: Bool = false,
+        onRecenter: ((CLLocationCoordinate2D) -> Void)? = nil
     ) {
         self.experience = experience
         self.onExpand = onExpand
         self.onDismiss = onDismiss
         self.onRecompile = onRecompile
         self.isRecompiling = isRecompiling
+        self.onRecenter = onRecenter
     }
 
     /// Rubber-bands upward drags to 40% travel; downward dismissal drags follow 1:1.
@@ -277,16 +282,9 @@ public struct ExperienceCardView: View {
 
             FlowLayout(spacing: 8) {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
-                Group {
-                    if isArrived {
-                        arrivedPill
-                    } else if let meters = distanceMeters {
-                        let dl = Self.formatDistance(meters)
-                        distancePill(dl.text, symbol: dl.symbol)
-                    }
-                }
-                .contentTransition(.numericText())
-                .animation(.spring(response: 0.4), value: distanceMeters)
+                distancePillGroup
+                    .contentTransition(.numericText())
+                    .animation(.spring(response: 0.4), value: distanceMeters)
                 if let meters = distanceMeters, !isArrived, meters < Self.walkThresholdMeters {
                     etaPill(meters: meters)
                 }
@@ -557,6 +555,38 @@ public struct ExperienceCardView: View {
             .background(Capsule().fill(Color.green.opacity(0.12)))
             .contentTransition(reduceMotion ? .identity : .numericText())
             .accessibilityLabel(a11y)
+    }
+
+    /// The distance/arrived pill, optionally wrapped in a recenter Button.
+    @ViewBuilder
+    private var distancePillGroup: some View {
+        if let recenter = onRecenter, let coord = experience.coordinate {
+            Button {
+                Haptics.impact(.light)
+                recenter(coord)
+            } label: {
+                rawDistancePill
+            }
+            .buttonStyle(.plain)
+            .contentShape(Capsule())
+            .accessibilityHint(Text(NSLocalizedString("card.distance.recenter.hint", comment: "Double tap to center the map on this experience")))
+            .accessibilityAction(named: Text(NSLocalizedString("card.distance.recenter.hint", comment: "Double tap to center the map on this experience"))) {
+                Haptics.impact(.light)
+                recenter(coord)
+            }
+        } else {
+            rawDistancePill
+        }
+    }
+
+    @ViewBuilder
+    private var rawDistancePill: some View {
+        if isArrived {
+            arrivedPill
+        } else if let meters = distanceMeters {
+            let dl = Self.formatDistance(meters)
+            distancePill(dl.text, symbol: dl.symbol)
+        }
     }
 
     @ViewBuilder

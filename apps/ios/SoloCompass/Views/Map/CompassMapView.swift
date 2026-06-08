@@ -761,7 +761,10 @@ struct CompassMapContentView: View {
                             onRecompile: {
                                 Task { await viewModel.recompileExperience(selected) }
                             },
-                            isRecompiling: viewModel.recompilingExperienceId == selected.id
+                            isRecompiling: viewModel.recompilingExperienceId == selected.id,
+                            onRecenter: { _ in
+                                viewModel.focusOnExperience(selected)
+                            }
                         )
                         .padding(.bottom, cardBottomInset)
                     }
