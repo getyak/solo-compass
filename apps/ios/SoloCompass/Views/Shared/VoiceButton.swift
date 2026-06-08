@@ -29,6 +29,9 @@ public struct VoiceButton: View {
     private let recordStopSuccessGenerator = UINotificationFeedbackGenerator()
     private let recordStopEmptyGenerator = UIImpactFeedbackGenerator(style: .light)
     private let permissionDeniedGenerator = UINotificationFeedbackGenerator()
+    private let speechDetectedGenerator = UIImpactFeedbackGenerator(style: .light)
+
+    @State private var didDetectSpeech = false
 
     public init(voiceService: VoiceService, onTranscript: @escaping (String) -> Void) {
         self.voiceService = voiceService
@@ -90,6 +93,7 @@ public struct VoiceButton: View {
                     recordStopSuccessGenerator.prepare()
                     recordStopEmptyGenerator.prepare()
                     permissionDeniedGenerator.prepare()
+                    speechDetectedGenerator.prepare()
                 }
                 .onEnded { _ in
                     if isRecording { stopRecording() }
@@ -176,6 +180,10 @@ public struct VoiceButton: View {
 
     // MARK: - Helpers
 
+    static func shouldFireSpeechHaptic(alreadyFired: Bool, transcript: String) -> Bool {
+        !alreadyFired && !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private var formattedElapsed: String {
         let min = Int(elapsed) / 60
         let sec = Int(elapsed) % 60
@@ -200,6 +208,7 @@ public struct VoiceButton: View {
                 didAutoStop = false
                 autoStopMessage = nil
                 didWarnCountdown = false
+                didDetectSpeech = false
                 recordStartGenerator.impactOccurred()
                 if UIAccessibility.isVoiceOverRunning {
                     UIAccessibility.post(notification: .announcement,
@@ -211,7 +220,13 @@ public struct VoiceButton: View {
                     do {
                         for try await text in stream {
                             let animate = !reduceMotion
-                            await MainActor.run { withAnimation(animate ? .easeOut(duration: 0.18) : nil) { liveTranscript = text } }
+                            await MainActor.run {
+                                withAnimation(animate ? .easeOut(duration: 0.18) : nil) { liveTranscript = text }
+                                if VoiceButton.shouldFireSpeechHaptic(alreadyFired: didDetectSpeech, transcript: text) {
+                                    didDetectSpeech = true
+                                    speechDetectedGenerator.impactOccurred()
+                                }
+                            }
                         }
                     } catch {
                         guard !(error is CancellationError) else { return }
