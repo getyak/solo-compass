@@ -1057,6 +1057,8 @@
 "favorites.row.distance.a11y" = "%@外";
 "favorites.search.clear" = "清空搜索";
 "favorites.search.clear.hint" = "清空搜索框并显示所有收藏";
+"favorites.search.goodNow.cta" = "%d 个此刻很适合";
+"favorites.search.goodNow.cta.a11y" = "%d 个收藏此刻很适合前往";
 "favorites.search.noResults" = "没有\"%@\"的匹配结果";
 "favorites.search.noResults.hint" = "换个词试试，或清空搜索。";
 "favorites.search.prompt" = "搜索收藏";
