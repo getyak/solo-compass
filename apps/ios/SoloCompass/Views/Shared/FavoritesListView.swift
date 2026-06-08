@@ -844,6 +844,7 @@ private struct EmptyFavoritesView: View {
     var onExplore: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
     @State private var isBreathing = false
     @State private var tipIndex = 0
     @State private var rotateTask: Task<Void, Never>?
@@ -855,6 +856,12 @@ private struct EmptyFavoritesView: View {
             NSLocalizedString("favorites.empty.tip3", comment: "Empty favorites tip 3"),
             NSLocalizedString("favorites.empty.tip4", comment: "Empty favorites tip 4"),
         ]
+    }
+
+    private func advanceTip() {
+        tipIndex = (tipIndex + 1) % tips.count
+        Haptics.selection()
+        UIAccessibility.post(notification: .announcement, argument: tips[tipIndex])
     }
 
     var body: some View {
@@ -869,17 +876,34 @@ private struct EmptyFavoritesView: View {
                     .scaleEffect(isBreathing ? 1.08 : 0.94)
                     .opacity(isBreathing ? 1.0 : 0.7)
                     .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)
+                    .accessibilityHidden(true)
             }
             Text(NSLocalizedString("favorites.empty.title", comment: "No favorites yet"))
                 .font(.headline)
-            Text(tips[tipIndex])
-                .id(tipIndex)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(minHeight: 36)
-                .transition(.opacity)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.4), value: tipIndex)
+            Button {
+                advanceTip()
+            } label: {
+                Text(tips[tipIndex])
+                    .id(tipIndex)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(minHeight: 36)
+                    .transition(.opacity)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.4), value: tipIndex)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(tips[tipIndex])
+            .accessibilityHint(NSLocalizedString("favorites.empty.tip.hint", comment: "Hint to advance to the next tip"))
+            HStack(spacing: 6) {
+                ForEach(0..<tips.count, id: \.self) { index in
+                    Circle()
+                        .fill(index == tipIndex ? Color.primary : Color.primary.opacity(0.2))
+                        .frame(width: 6, height: 6)
+                        .animation(reduceMotion ? nil : .easeInOut, value: tipIndex)
+                }
+            }
+            .accessibilityHidden(true)
             if let onExplore {
                 Button {
                     Haptics.selection()
@@ -902,7 +926,9 @@ private struct EmptyFavoritesView: View {
                     try? await Task.sleep(for: .seconds(4))
                     guard !Task.isCancelled else { return }
                     await MainActor.run {
+                        guard !voiceOverOn else { return }
                         withAnimation { tipIndex = (tipIndex + 1) % tips.count }
+                        UIAccessibility.post(notification: .announcement, argument: tips[tipIndex])
                     }
                 }
             }
