@@ -59,13 +59,15 @@ struct VoiceProcessingToast: View {
     }
 }
 
-/// Three sequential dots that animate one at a time to suggest AI deliberation.
+/// Three dots that animate as a continuous left-to-right traveling wave,
+/// each dot peaking in scale and opacity in sequence with overlapping easing.
 private struct ThinkingDots: View {
-    @State private var phase: Int = 0
-    @State private var advanceTask: Task<Void, Never>?
+    @State private var animate = false
 
     private let dotSize: CGFloat = 4
     private let dotCount = 3
+    private let waveDuration = 0.6
+    private let dotDelay = 0.15
 
     var body: some View {
         HStack(spacing: 3) {
@@ -73,35 +75,30 @@ private struct ThinkingDots: View {
                 Circle()
                     .fill(.secondary)
                     .frame(width: dotSize, height: dotSize)
-                    .scaleEffect(phase == index ? 1.4 : 1.0)
-                    .opacity(phase == index ? 1.0 : 0.4)
-                    .animation(.easeInOut(duration: 0.4), value: phase)
+                    .scaleEffect(animate ? 1.4 : 1.0)
+                    .opacity(animate ? 1.0 : 0.4)
+                    .animation(
+                        .easeInOut(duration: waveDuration)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(index) * dotDelay),
+                        value: animate
+                    )
             }
         }
         .accessibilityHidden(true)
-        .onAppear {
-            advanceTask = Task { @MainActor in
-                await advancePhase()
-            }
-        }
-        .onDisappear {
-            advanceTask?.cancel()
-            advanceTask = nil
-        }
-    }
-
-    @MainActor
-    private func advancePhase() async {
-        while !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled else { return }
-            phase = (phase + 1) % dotCount
-        }
+        .onAppear { animate = true }
     }
 }
 
-#Preview("Animated") {
+#Preview("Animated — traveling wave") {
     VoiceProcessingToast(text: "Thinking about \"coffee near me\"…")
+        .padding()
+}
+
+#Preview("Wave dots only") {
+    ThinkingDots()
+        .padding()
+        .background(.thinMaterial, in: Capsule())
         .padding()
 }
 
