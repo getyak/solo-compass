@@ -32,6 +32,32 @@ final class AddFriendSheetTests: XCTestCase {
         }
     }
 
+    // MARK: - US-014: code format validation
+
+    func testIsValidFormatAcceptsCanonicalCodes() {
+        // Generated codes must always pass their own validator.
+        for _ in 0..<200 {
+            let code = FriendCode.generate().rawValue
+            XCTAssertTrue(FriendCode.isValidFormat(code), "Rejected generated code \(code)")
+        }
+        XCTAssertTrue(FriendCode.isValidFormat("SOLO-7K2F-9XQR"))
+    }
+
+    func testIsValidFormatRejectsMalformedOrAmbiguous() {
+        let bad = [
+            "",                  // empty
+            "SOLO-7K2F",         // missing group
+            "SOLO-7K2F-9XQRZ",   // group too long
+            "NOPE-7K2F-9XQR",    // wrong prefix
+            "SOLO-7K2F-9XQ0",    // ambiguous '0'
+            "SOLO-7K2F-9XQI",    // ambiguous 'I'
+            "solo-7k2f-9xqr",    // lowercase (caller normalises first)
+        ]
+        for code in bad {
+            XCTAssertFalse(FriendCode.isValidFormat(code), "Accepted malformed code '\(code)'")
+        }
+    }
+
     // MARK: - Render
 
     func testAddFriendSheetRendersCodeAndQR() throws {
@@ -45,6 +71,18 @@ final class AddFriendSheetTests: XCTestCase {
         XCTAssertFalse(
             isUniformColor(image),
             "AddFriendSheet rendered as a flat band — the QR/code did not lay out."
+        )
+    }
+
+    func testAddFriendTabRendersScanAndEntry() throws {
+        // The add-by-code tab must lay out its scan button + manual-entry field
+        // (the "scan via pasted-code fallback" verify path) rather than a band.
+        let service = FriendService()
+        let image = try render(content: AddFriendSheet(service: service, startInAddFriend: true))
+        dump(image, to: "add_friend_redeem_tab")
+        XCTAssertFalse(
+            isUniformColor(image),
+            "Add-friend tab rendered flat — scan/entry controls did not lay out."
         )
     }
 

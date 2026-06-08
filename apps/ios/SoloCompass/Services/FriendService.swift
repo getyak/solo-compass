@@ -371,6 +371,61 @@ public final class FriendService {
         }
     }
 
+    // MARK: - US-014: Redeem a friend code (redeem-friend-code Edge Function)
+
+    /// Resolve a typed/scanned `SOLO-XXXX-XXXX` code to the owner's public
+    /// profile so the user can preview before sending a request.
+    ///
+    /// Resolution defers to the `redeem-friend-code` Edge Function, which looks
+    /// up the newest non-revoked `friend_codes` row server-side (RLS-guarded)
+    /// and returns a public profile projection. The function is the single
+    /// trust boundary: an invalid, revoked, expired, or self code all surface as
+    /// the same friendly `RedeemError` here, never leaking backend detail.
+    ///
+    /// - Returns: the resolved `FriendProfileData`, or a `RedeemError` failure.
+    public func redeemFriendCode(
+        _ code: FriendCode
+    ) async -> Result<FriendProfileData, Error> {
+        guard FeatureFlags.companion else {
+            return .failure(FriendServiceError.featureDisabled)
+        }
+        // Normalise before the round-trip: uppercase + trim so a hand-typed
+        // code matches the canonical stored form.
+        let normalised = code.rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+        guard FriendCode.isValidFormat(normalised) else {
+            return .failure(RedeemError.invalidFormat)
+        }
+
+        let body: [String: String] = ["code": normalised]
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else {
+            return .failure(FriendServiceError.encodingFailed)
+        }
+
+        let result = await client.invoke(function: "redeem-friend-code", body: data)
+        switch result {
+        case .success(let payload):
+            // Empty payload → backend sync off (no real lookup possible).
+            guard !payload.isEmpty else {
+                return .failure(RedeemError.notFound)
+            }
+            guard let resolved = try? JSONDecoder.iso8601Decoder.decode(
+                RedeemFriendCodeResponse.self, from: payload
+            ) else {
+                // Unrecognised body == revoked/invalid; never leak detail.
+                return .failure(RedeemError.notFound)
+            }
+            guard resolved.userId != currentUserId else {
+                return .failure(RedeemError.ownCode)
+            }
+            return .success(resolved.asProfileData)
+        case .failure:
+            // Any network/HTTP error collapses to one friendly message.
+            return .failure(RedeemError.notFound)
+        }
+    }
+
     // MARK: - FRD-005: Unfriend / block
 
     /// Remove a friendship. When `block` is true, also records a CompanionBlock
@@ -603,5 +658,76 @@ public enum FriendServiceError: LocalizedError {
         case .cannotFriendSelf:
             return NSLocalizedString("friend.error.self", comment: "Cannot friend yourself")
         }
+    }
+}
+
+/// US-014: failures surfaced while redeeming a typed/scanned friend code.
+///
+/// Deliberately coarse: an invalid, revoked, expired, or unknown code all map
+/// to `.notFound` so the UI shows one friendly message and never leaks whether
+/// a code *exists but is revoked* vs *never existed* (an enumeration vector).
+public enum RedeemError: LocalizedError, Equatable {
+    /// The string isn't a well-formed `SOLO-XXXX-XXXX` code (local validation).
+    case invalidFormat
+    /// The code didn't resolve to an active owner (invalid/revoked/expired).
+    case notFound
+    /// The code belongs to the current user.
+    case ownCode
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidFormat:
+            return NSLocalizedString("friends.redeem.error.format", comment: "Malformed friend code")
+        case .notFound:
+            return NSLocalizedString("friends.redeem.error.notFound", comment: "Code did not resolve")
+        case .ownCode:
+            return NSLocalizedString("friends.redeem.error.own", comment: "Redeemed own code")
+        }
+    }
+}
+
+// MARK: - Redeem response (redeem-friend-code Edge Function projection)
+
+/// Public profile projection returned by the `redeem-friend-code` Edge
+/// Function. Mirrors `FriendProfileData` so the preview renders with no extra
+/// fetch. All fields are public-safe (no email, no raw relationship rows).
+private struct RedeemFriendCodeResponse: Decodable {
+    let userId: String
+    let displayHandle: String
+    let avatarEmoji: String
+    let bio: String
+    let languages: [String]
+    let placesWalked: Int
+    let routesJoined: Int
+    let friendCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case userId, displayHandle, avatarEmoji, bio, languages
+        case placesWalked, routesJoined, friendCount
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        userId = try c.decode(String.self, forKey: .userId)
+        displayHandle = try c.decodeIfPresent(String.self, forKey: .displayHandle) ?? ""
+        avatarEmoji = try c.decodeIfPresent(String.self, forKey: .avatarEmoji) ?? "🧭"
+        bio = try c.decodeIfPresent(String.self, forKey: .bio) ?? ""
+        languages = try c.decodeIfPresent([String].self, forKey: .languages) ?? []
+        placesWalked = try c.decodeIfPresent(Int.self, forKey: .placesWalked) ?? 0
+        routesJoined = try c.decodeIfPresent(Int.self, forKey: .routesJoined) ?? 0
+        friendCount = try c.decodeIfPresent(Int.self, forKey: .friendCount) ?? 0
+    }
+
+    var asProfileData: FriendProfileData {
+        FriendProfileData(
+            userId: userId,
+            displayHandle: displayHandle,
+            avatarEmoji: avatarEmoji,
+            bio: bio,
+            languages: languages,
+            placesWalked: placesWalked,
+            routesJoined: routesJoined,
+            friendCount: friendCount
+        )
     }
 }

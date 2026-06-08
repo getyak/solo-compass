@@ -81,4 +81,16 @@ extension FriendCode {
         }
         return FriendCode(rawValue: "SOLO-\(group())-\(group())")
     }
+
+    /// US-014: validate a hand-typed/scanned code against the canonical
+    /// `SOLO-XXXX-XXXX` shape (two 4-char groups from the unambiguous alphabet).
+    /// The input is expected pre-normalised (trimmed + uppercased) by the caller.
+    public static func isValidFormat(_ raw: String) -> Bool {
+        let parts = raw.split(separator: "-", omittingEmptySubsequences: false)
+        guard parts.count == 3, parts[0] == "SOLO" else { return false }
+        let allowed = Set(unambiguousAlphabet)
+        return parts[1].count == 4 && parts[2].count == 4
+            && parts[1].allSatisfy(allowed.contains)
+            && parts[2].allSatisfy(allowed.contains)
+    }
 }

@@ -301,7 +301,9 @@ public struct FriendProfileView: View {
 
 /// Read-only view model for another user's profile. Pure value type so the
 /// view can be previewed and tested without `FriendService`/`CompanionService`.
-public struct FriendProfileData: Equatable, Sendable {
+public struct FriendProfileData: Equatable, Sendable, Identifiable {
+    /// `Identifiable` conformance for `.sheet(item:)` — the user is the identity.
+    public var id: String { userId }
     public let userId: String
     public let displayHandle: String
     public let avatarEmoji: String

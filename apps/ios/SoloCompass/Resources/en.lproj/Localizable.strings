@@ -1545,3 +1545,21 @@
 "friends.add.rotate" = "Rotate Code";
 "friends.add.error.title" = "Couldn't load your code";
 "friends.add.error.description" = "Check your connection and try again.";
+
+/* US-014: add a friend by scanning / typing their code */
+"friends.add.mode.myCode" = "My Code";
+"friends.add.mode.addFriend" = "Add Friend";
+"friends.redeem.subtitle" = "Scan a traveler's QR or type their code to add them.";
+"friends.redeem.scan" = "Scan QR Code";
+"friends.redeem.scan.title" = "Scan Friend Code";
+"friends.redeem.scan.denied" = "Camera unavailable. Type the code instead.";
+"friends.redeem.enter.label" = "Or enter their code";
+"friends.redeem.lookup" = "Look Up";
+"friends.redeem.preview.title" = "Add Friend";
+"friends.redeem.sent" = "Friend request sent";
+"friends.redeem.error.format" = "That doesn't look like a valid code.";
+"friends.redeem.error.notFound" = "We couldn't find anyone with that code.";
+"friends.redeem.error.own" = "That's your own code.";
+"friend.error.disabled" = "Friends aren't available right now.";
+"friend.error.encoding" = "Something went wrong. Please try again.";
+"friend.error.self" = "You can't add yourself.";

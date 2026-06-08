@@ -275,6 +275,7 @@
 		C44A8B8ED9626205C55A0B4B /* FriendProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC6DF782C123E76E2F02EEEA /* FriendProfileView.swift */; };
 		C485F7BEDA3727C3C26BFBAB /* SupabaseRouteCompanionRemote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520EDA3B7A8A6136FB0355A4 /* SupabaseRouteCompanionRemote.swift */; };
 		C48ABACD6775568202229577 /* LocalizationCoverageTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555AA83E46CA214D7F71D811 /* LocalizationCoverageTest.swift */; };
+		C4FE64920461E93F76D76919 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3EE8D38604D12055F9E94C /* QRScannerView.swift */; };
 		C5098ADCDADB1759BD132E62 /* SettingsSheetPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ADE6272DBBF6FAE452195AB /* SettingsSheetPresentationTests.swift */; };
 		C53DB60CA9E95907A2CBF2C0 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C215AE07BA32182A887226F9 /* NotificationService.swift */; };
 		C546F3C71BD0E99D59E91630 /* PeekPickResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73B8E83B3522CC4FFEBE10B /* PeekPickResolver.swift */; };
@@ -473,6 +474,7 @@
 		48ADAE2497800574C4E8819B /* GroupConversationAutoCreateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupConversationAutoCreateTests.swift; sourceTree = "<group>"; };
 		48FF87CCF00DEEE87B290812 /* MapViewModelCityRegionSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModelCityRegionSyncTests.swift; sourceTree = "<group>"; };
 		4B5D9508FCA9CDB8EA088D76 /* OpenForCompanionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenForCompanionsSheet.swift; sourceTree = "<group>"; };
+		4C3EE8D38604D12055F9E94C /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		4C93A2F826BD75AF124C1210 /* NowScoreOfflineDegradeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowScoreOfflineDegradeTest.swift; sourceTree = "<group>"; };
 		4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloScoreRadarChart.swift; sourceTree = "<group>"; };
 		4EAB2E028C69B7C63DCAF860 /* RouteCardRecruitMiniTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCardRecruitMiniTest.swift; sourceTree = "<group>"; };
@@ -1246,6 +1248,7 @@
 				DB22C08A558D35B83043C83E /* AddFriendSheet.swift */,
 				AC6DF782C123E76E2F02EEEA /* FriendProfileView.swift */,
 				4F7202B977A555239F367D02 /* FriendsListView.swift */,
+				4C3EE8D38604D12055F9E94C /* QRScannerView.swift */,
 			);
 			path = Friends;
 			sourceTree = "<group>";
@@ -1778,6 +1781,7 @@
 				50495257AD65A0507DD43D41 /* PlacePhotoStore.swift in Sources */,
 				60FA57D3A56ED061C1F9B899 /* PresenceService.swift in Sources */,
 				40C8E92653FC718890E3CA5D /* PressableButtonStyle.swift in Sources */,
+				C4FE64920461E93F76D76919 /* QRScannerView.swift in Sources */,
 				48DF01972A1FB107BFFF0684 /* QueryAgent.swift in Sources */,
 				9C8CC563D33FDBB3DF57A841 /* RecentExploreRegion.swift in Sources */,
 				76F57DBD1B6F0020E8BF91E5 /* RecruitingModule.swift in Sources */,
