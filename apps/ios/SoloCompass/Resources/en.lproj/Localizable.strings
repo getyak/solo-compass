@@ -489,6 +489,7 @@
 "favorites.empty.tip2" = "Saved spots show a green dot when they're walkable right now.";
 "favorites.empty.tip3" = "Favorites sort by what's good to do at this hour.";
 "favorites.empty.tip4" = "Swipe left on a saved spot to remove it — tap Undo to bring it back.";
+"favorites.empty.tip.hint" = "Double tap for the next tip";
 "favorites.undo" = "Removed — Undo";
 "favorites.undo.named" = "Removed \"%@\"";
 /* Plural forms handled by Localizable.stringsdict */
