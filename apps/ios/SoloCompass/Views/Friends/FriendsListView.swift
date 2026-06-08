@@ -17,6 +17,7 @@ public struct FriendsListView: View {
     @State private var errorMessage: String?
     /// US-013: presents the AddFriendSheet (my shareable code + QR).
     @State private var showAddFriend = false
+    @State private var justConnectedId: String?
 
     /// When false, the on-appear `refresh()` is skipped. Production always uses
     /// the default (true); tests/previews pass false to render fixture-backed
@@ -153,6 +154,7 @@ public struct FriendsListView: View {
                     ForEach(service.incomingRequests) { request in
                         IncomingRequestRow(
                             request: request,
+                            showConnected: justConnectedId == request.requesterId,
                             onAccept: { Task { await acceptRequest(request) } },
                             onDecline: { Task { await service.decline(request) } }
                         )
@@ -257,6 +259,17 @@ public struct FriendsListView: View {
             }
         } else {
             Haptics.notify(.success)
+            justConnectedId = request.requesterId
+            #if canImport(UIKit)
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: String(format: NSLocalizedString("friends.connected.a11y", comment: "VoiceOver: connected with friend"), request.requesterId)
+            )
+            #endif
+            Task {
+                try? await Task.sleep(for: .seconds(1.6))
+                justConnectedId = nil
+            }
         }
     }
 }
@@ -391,8 +404,35 @@ private enum AvatarEmoji {
 
 // MARK: - IncomingRequestRow
 
+private struct ConnectedBadge: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var visible = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+            Text(NSLocalizedString("friends.connected.label", comment: "Connected badge label"))
+                .font(.subheadline.weight(.semibold))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.thinMaterial, in: Capsule())
+        .scaleEffect(reduceMotion ? 1.0 : (visible ? 1.0 : 0.6))
+        .opacity(visible ? 1.0 : 0.0)
+        .animation(
+            reduceMotion
+                ? .easeInOut(duration: 0.25)
+                : .spring(response: 0.35, dampingFraction: 0.6),
+            value: visible
+        )
+        .onAppear { visible = true }
+    }
+}
+
 private struct IncomingRequestRow: View {
     let request: FriendRequest
+    var showConnected: Bool = false
     let onAccept: () -> Void
     let onDecline: () -> Void
 
@@ -457,6 +497,12 @@ private struct IncomingRequestRow: View {
             }
         }
         .padding(.vertical, 4)
+        .overlay(alignment: .center) {
+            if showConnected {
+                ConnectedBadge()
+            }
+        }
+        .animation(.easeInOut, value: showConnected)
     }
 }
 

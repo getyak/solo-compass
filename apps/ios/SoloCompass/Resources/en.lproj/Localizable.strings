@@ -1564,6 +1564,8 @@
 "friends.list.empty.cta" = "Add a friend";
 "friends.list.error.title" = "Couldn't load friends";
 "friends.list.error.retry" = "Try Again";
+"friends.connected.label" = "Connected!";
+"friends.connected.a11y" = "You are now connected with %@";
 
 /* Add friend sheet — my shareable code + QR (US-013) */
 "friends.add.open.a11y" = "Show my friend code";
