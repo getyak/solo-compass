@@ -1510,6 +1510,11 @@
 "friend.discover.error.lowTrust" = "暂时无法添加这位旅行者。";
 "friend.discover.error.rateLimited" = "你最近添加的人有点多，请稍后再试。";
 
+/* Friends hub empty state (MeSheet) */
+"me.friends.empty.title" = "还没有好友";
+"me.friends.empty.description" = "分享你的好友码或扫描对方的码，添加旅伴。";
+"me.friends.empty.cta" = "添加好友";
+
 /* US-017: 统一会话列表（我 ▸ 消息） */
 "messages.empty" = "暂无会话";
 "messages.preview.empty" = "暂无消息";
