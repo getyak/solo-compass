@@ -251,15 +251,20 @@ struct PeekSummaryCard: View {
 
 // MARK: - PeekEmptyCard
 
-/// Peek-state placeholder shown when no experiences are visible. A calm, single
-/// horizontal row (no breathing animation, unlike the mid-list empty state) that
-/// nudges the traveler to pan the map.
+/// Peek-state placeholder shown when no experiences are visible. The mappin.slash
+/// icon pulses gently (scale + opacity) to invite the traveler to pan the map.
+/// Pulse is suppressed when Reduce Motion is on.
 struct PeekEmptyCard: View {
+    @State private var isPulsing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "mappin.slash")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(CT.fgSubtle)
+                .scaleEffect(isPulsing ? 1.08 : 0.94)
+                .opacity(isPulsing ? 1.0 : 0.6)
             Text(NSLocalizedString("peek.empty.hint", comment: "Move the map to discover nearby spots"))
                 .font(.subheadline)
                 .foregroundStyle(CT.fgMuted)
@@ -279,6 +284,21 @@ struct PeekEmptyCard: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(NSLocalizedString("peek.empty.hint", comment: "Move the map to discover nearby spots")))
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                isPulsing = true
+            }
+        }
+        .onChange(of: reduceMotion) { _, reduced in
+            if reduced {
+                withAnimation(.default) { isPulsing = false }
+            } else {
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    isPulsing = true
+                }
+            }
+        }
     }
 }
 
@@ -311,4 +331,14 @@ struct PeekEmptyCard: View {
     }
     .environment(LocationService.shared)
     .environment(BestNowClock.shared)
+}
+
+#Preview("Empty Pulse") {
+    ZStack {
+        Color(.systemGroupedBackground).ignoresSafeArea()
+        VStack(spacing: 16) {
+            PeekEmptyCard()
+        }
+        .padding(16)
+    }
 }
