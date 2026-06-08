@@ -110,10 +110,17 @@ export interface CompanionProfile {
 
 export interface Conversation {
   readonly id: ConversationId;
-  readonly requestId: CompanionRequestId;
+  /**
+   * The CompanionRequest this thread was opened from. Optional: `friendDirect`
+   * conversations are created from a Friendship, not a companion request.
+   */
+  readonly requestId?: CompanionRequestId;
   readonly participantIds: readonly UserId[];
-  /** `oneOnOne` for private threads; `groupRoute` for route-anchored group chats. */
-  readonly type: "oneOnOne" | "groupRoute";
+  /**
+   * `oneOnOne` for private companion threads; `groupRoute` for route-anchored
+   * group chats; `friendDirect` for persistent 1:1 friend DMs (no request).
+   */
+  readonly type: "oneOnOne" | "groupRoute" | "friendDirect";
   /** Non-nil when `type === "groupRoute"` — the Route this group chat is anchored to. */
   readonly routeId?: string;
   /** ISO 8601 UTC timestamp of the most recent message. */

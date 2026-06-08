@@ -102,12 +102,66 @@ public enum SoloCompassSchemaV1_2: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → v1.2. Each change is the addition of
-/// an optional `Data?` column on `ExperienceRecord`, which is a lightweight
-/// migration.
+/// Schema v1.3 — adds the friends/social graph tables `FriendRequestRecord`
+/// and `FriendshipRecord` (FRD-003). Like the chat-history tables in v1.2,
+/// adding new @Model tables is an additive, lightweight migration — existing
+/// stores just gain two empty tables, no data is rewritten.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_3: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 3, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        [
+            ExperienceRecord.self,
+            UserCompletionRecord.self,
+            UserFavoriteRecord.self,
+            MicroSurveyRecord.self,
+            PendingCheckInRecord.self,
+            ExploreCacheRecord.self,
+            AISynthesisCacheRecord.self,
+            DiscoveredCityRecord.self,
+            RecentExploreRegion.self,
+            AIUsageRecord.self,
+            PendingSyncRecord.self,
+            ItineraryRecord.self,
+            RouteRecord.self,
+            ConversationRecord.self,
+            WeatherCacheRecord.self,
+            ChatSessionRecord.self,
+            ChatMessageRecord.self,
+            // Friends & social graph (FRD-003). Additive lightweight migration.
+            FriendRequestRecord.self,
+            FriendshipRecord.self,
+        ]
+    }
+}
+
+/// Schema v1.4 — relaxes `ConversationRecord.requestId` from a required column
+/// to an optional one so `friendDirect` conversations (US-011), which have no
+/// backing CompanionRequest, can persist with a null `request_id`. Dropping a
+/// NOT NULL constraint is a lightweight migration: existing rows keep their
+/// value, no data is rewritten. The model set is identical to v1.3.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_4: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 4, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_3.models
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → v1.2 → v1.3 → v1.4. Each change is
+/// additive (an optional `Data?` column, new @Model tables) or a NOT NULL
+/// relaxation, so every hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
-        [SoloCompassSchemaV1.self, SoloCompassSchemaV1_1.self, SoloCompassSchemaV1_2.self]
+        [
+            SoloCompassSchemaV1.self,
+            SoloCompassSchemaV1_1.self,
+            SoloCompassSchemaV1_2.self,
+            SoloCompassSchemaV1_3.self,
+            SoloCompassSchemaV1_4.self,
+        ]
     }
 
     public static var stages: [MigrationStage] {
@@ -119,6 +173,14 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_1.self,
                 toVersion: SoloCompassSchemaV1_2.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_2.self,
+                toVersion: SoloCompassSchemaV1_3.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_3.self,
+                toVersion: SoloCompassSchemaV1_4.self
             ),
         ]
     }
@@ -164,6 +226,8 @@ public enum SoloCompassModelContainer {
                 WeatherCacheRecord.self,
                 ChatSessionRecord.self,
                 ChatMessageRecord.self,
+                FriendRequestRecord.self,
+                FriendshipRecord.self,
                 configurations: config
             )
         } catch {
@@ -199,6 +263,8 @@ public enum SoloCompassModelContainer {
                 WeatherCacheRecord.self,
                 ChatSessionRecord.self,
                 ChatMessageRecord.self,
+                FriendRequestRecord.self,
+                FriendshipRecord.self,
                 configurations: config
             )
         } catch {

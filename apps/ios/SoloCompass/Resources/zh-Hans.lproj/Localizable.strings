@@ -319,6 +319,20 @@
 "notification.checkin.title" = "你就在附近";
 "notification.checkin.body" = "你正站在 %@ 附近，要去看看吗？";
 
+/* US-020 — 路线加入通知（房主直接邀请好友，无需审批） */
+"notification.route.join.title" = "你已加入！";
+"notification.route.join.body" = "%1$@ 把你加入了「%2$@」。点按查看路线。";
+
+/* US-020 — 邀请好友直接加入招募中的路线（无需审批） */
+"invite.friends.button" = "邀请好友";
+"invite.friends.button.a11y" = "邀请好友加入此路线";
+"invite.friends.title" = "邀请好友";
+"invite.friends.send" = "邀请";
+"invite.friends.seats" = "剩余 %d 个名额";
+"invite.friends.footer" = "你邀请的好友会直接加入路线——无需审批。";
+"invite.friends.empty.title" = "没有可邀请的好友";
+"invite.friends.empty.description" = "你的好友都已在此路线中，或者你还没有添加好友。";
+
 /* Settings data */
 "settings.data.header" = "我的数据";
 "settings.clearData" = "清除全部数据";
@@ -726,6 +740,7 @@
  * Send request / common request labels
  * ============================================================ */
 "companion.request.sheet.title" = "发送同伴请求";
+"companion.invite.sheet.title" = "邀请约伴";
 "companion.request.post.header" = "对方的同伴帖";
 "companion.request.note.header" = "附言（可选）";
 "companion.request.note.placeholder" = "简单介绍一下自己，或说说你为什么想约一起...";
@@ -1485,3 +1500,19 @@
 "chat.history.empty" = "还没有保存的对话";
 "chat.history.open.a11y" = "打开聊天历史";
 "common.done" = "完成";
+
+/* Friends — add from Discover (US-016) */
+"companion.discover.detail.title" = "添加好友";
+"friend.discover.note.label" = "添加留言（可选）";
+"friend.discover.note.placeholder" = "打个招呼吧 —— 是什么让你想认识 TA？";
+"friend.discover.note.count.a11y" = "%d / %d 个字符";
+"friend.discover.error.lowTrust" = "暂时无法添加这位旅行者。";
+"friend.discover.error.rateLimited" = "你最近添加的人有点多，请稍后再试。";
+
+/* US-017: 统一会话列表（我 ▸ 消息） */
+"messages.empty" = "暂无会话";
+"messages.preview.empty" = "暂无消息";
+"messages.preview.attachment" = "📎 附件";
+"messages.group.fallbackTitle" = "路线群聊";
+"messages.unknownUser" = "旅行者";
+"messages.unread.a11y" = "未读";

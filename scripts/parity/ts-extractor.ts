@@ -109,6 +109,8 @@ export const SCHEMA_INTERFACES = new Set([
   "CompanionReport",
   "Route",
   "RouteVerification",
+  "FriendRequest",
+  "Friendship",
 ]);
 
 /**

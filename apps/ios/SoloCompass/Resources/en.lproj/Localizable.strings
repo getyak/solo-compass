@@ -249,6 +249,20 @@
 "map.recenter" = "Recenter on my location";
 "map.userLocation.label" = "Your location";
 
+/* US-007: Personal hub (MeSheet) + map avatar entry */
+"me.title" = "Me";
+"me.friends" = "Friends";
+"me.messages" = "Messages";
+"me.companion" = "Companion";
+"me.settings" = "Settings";
+"me.profile.name" = "Solo Traveler";
+"me.profile.subtitle" = "Your compass, your journey";
+"me.friends.incoming" = "Friend Requests";
+"me.friends.list" = "Friends";
+"me.friends.empty" = "No friends yet";
+"me.avatar.a11y" = "Open your personal hub";
+"me.avatar.a11y.pending" = "You have pending friend requests";
+
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";
 "map.empty.hint" = "Try clearing filters or moving the map.";
@@ -555,6 +569,20 @@
 "settings.notifications.footer" = "Solo Compass sends a quiet nudge when you walk past a saved experience. No marketing, ever.";
 "notification.checkin.title" = "You're nearby";
 "notification.checkin.body" = "You're standing near %@. Want to check it out?";
+
+/* US-020 — Route join notification (host invited a friend, no approval) */
+"notification.route.join.title" = "You're in!";
+"notification.route.join.body" = "%1$@ added you to “%2$@”. Tap to see the route.";
+
+/* US-020 — Invite friends into a recruiting route (no approval) */
+"invite.friends.button" = "Invite Friends";
+"invite.friends.button.a11y" = "Invite friends into this route";
+"invite.friends.title" = "Invite Friends";
+"invite.friends.send" = "Invite";
+"invite.friends.seats" = "%d seats left";
+"invite.friends.footer" = "Friends you invite join the route directly — no approval needed.";
+"invite.friends.empty.title" = "No friends to invite";
+"invite.friends.empty.description" = "Everyone you're friends with is already in this route, or you haven't added any friends yet.";
 
 /* Settings — Apple ID link */
 "settings.saveWithApple" = "Save with Apple";
@@ -1012,6 +1040,13 @@
 "itinerary.form.action.cancel" = "Cancel";
 "itinerary.form.city.picker.title" = "Choose City";
 
+/* My Profile edit screen (US-008) */
+"profile.edit.title" = "My Profile";
+"profile.handle.header" = "Handle";
+"profile.handle.placeholder" = "How others see you (e.g. wanderer)";
+"profile.handle.footer" = "%d–%d characters. Doesn't have to be unique.";
+"profile.handle.invalid" = "Handle must be %d–%d characters.";
+
 /* Companion profile settings (US-009) */
 "companion.profile.title" = "Companion Profile";
 "companion.profile.avatar.header" = "Your Avatar";
@@ -1066,6 +1101,7 @@
 "companion.request.sent.confirm" = "Request sent — they'll be notified";
 "companion.request.send.action" = "Send";
 "companion.request.sheet.title" = "Send Companion Request";
+"companion.invite.sheet.title" = "Invite to Meetup";
 "companion.request.post.header" = "Traveling with";
 "companion.request.note.header" = "Icebreaker (optional)";
 "companion.request.note.placeholder" = "Say hi or share what you're hoping to do together…";
@@ -1162,6 +1198,7 @@
 /* Shared actions */
 "action.ok" = "OK";
 "action.cancel" = "Cancel";
+"action.done" = "Done";
 
 /* ============================================================
  * Companion Hub — entry point on the map
@@ -1479,3 +1516,86 @@
 "chat.history.empty" = "No saved conversations yet";
 "chat.history.open.a11y" = "Open chat history";
 "common.done" = "Done";
+
+/* US-009 — FriendProfileView (read-only profile of another user) */
+"friend.profile.handle.placeholder" = "Traveler";
+"friend.profile.bio.header" = "ABOUT";
+"friend.profile.languages.header" = "SPEAKS";
+"friend.profile.stat.placesWalked" = "places walked";
+"friend.profile.stat.routesJoined" = "routes joined";
+"friend.profile.stat.friends" = "friends";
+"friend.profile.action.addFriend" = "Add Friend";
+"friend.profile.action.requestPending" = "Request Pending";
+"friend.profile.action.message" = "Message";
+"friend.profile.action.invite" = "Invite to meetup";
+
+/* Add-friend button states — companion chat / route group (US-015) */
+"friend.add.state.add" = "Add Friend";
+"friend.add.state.pending" = "Pending";
+"friend.add.state.friends" = "Friends";
+
+/* Friends list + request inbox (US-010) */
+"friends.list.title" = "Friends";
+"friends.list.refresh.a11y" = "Refresh friends and requests";
+"friends.list.pending.count" = "%d pending";
+"friends.list.pending.count.a11y" = "%d pending friend requests";
+"friends.list.requests.section" = "Friend Requests";
+"friends.list.friends.section" = "Friends";
+"friends.list.request.from" = "From";
+"friends.request.accept" = "Accept";
+"friends.request.decline" = "Decline";
+"friends.list.friend.a11y" = "Friend %@. Tap to view profile.";
+"friends.list.strip.a11y" = "Your friends";
+"friends.list.empty.friends" = "No friends yet.";
+"friends.list.empty.title" = "No friends yet";
+"friends.list.empty.description" = "When you meet fellow travelers and add them, they'll show up here.";
+"friends.list.error.title" = "Couldn't load friends";
+"friends.list.error.retry" = "Try Again";
+
+/* Add friend sheet — my shareable code + QR (US-013) */
+"friends.add.open.a11y" = "Show my friend code";
+"friends.add.title" = "Add Me";
+"friends.add.subtitle" = "Share this code or have a fellow traveler scan the QR to add you.";
+"friends.add.qr.a11y" = "QR code for your friend code";
+"friends.add.code.a11y" = "Your friend code is %@";
+"friends.add.copy" = "Copy Code";
+"friends.add.copy.hint" = "Long-press the code to copy";
+"friends.add.copied" = "Copied!";
+"friends.add.share" = "Share Code";
+"friends.add.rotate" = "Rotate Code";
+"friends.add.error.title" = "Couldn't load your code";
+"friends.add.error.description" = "Check your connection and try again.";
+
+/* US-014: add a friend by scanning / typing their code */
+"friends.add.mode.myCode" = "My Code";
+"friends.add.mode.addFriend" = "Add Friend";
+"friends.redeem.subtitle" = "Scan a traveler's QR or type their code to add them.";
+"friends.redeem.scan" = "Scan QR Code";
+"friends.redeem.scan.title" = "Scan Friend Code";
+"friends.redeem.scan.denied" = "Camera unavailable. Type the code instead.";
+"friends.redeem.enter.label" = "Or enter their code";
+"friends.redeem.lookup" = "Look Up";
+"friends.redeem.preview.title" = "Add Friend";
+"friends.redeem.sent" = "Friend request sent";
+"friends.redeem.error.format" = "That doesn't look like a valid code.";
+"friends.redeem.error.notFound" = "We couldn't find anyone with that code.";
+"friends.redeem.error.own" = "That's your own code.";
+"friend.error.disabled" = "Friends aren't available right now.";
+"friend.error.encoding" = "Something went wrong. Please try again.";
+"friend.error.self" = "You can't add yourself.";
+
+/* Friends — add from Discover (US-016) */
+"companion.discover.detail.title" = "Add Friend";
+"friend.discover.note.label" = "Add a note (optional)";
+"friend.discover.note.placeholder" = "Say hello — what made you reach out?";
+"friend.discover.note.count.a11y" = "%d of %d characters";
+"friend.discover.error.lowTrust" = "This traveler can't be added right now.";
+"friend.discover.error.rateLimited" = "You've added a lot of people recently. Try again later.";
+
+/* US-017: unified conversation list (Me ▸ Messages) */
+"messages.empty" = "No conversations yet";
+"messages.preview.empty" = "No messages yet";
+"messages.preview.attachment" = "📎 Attachment";
+"messages.group.fallbackTitle" = "Route group";
+"messages.unknownUser" = "Traveler";
+"messages.unread.a11y" = "Unread";

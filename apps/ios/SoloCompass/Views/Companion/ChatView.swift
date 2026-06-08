@@ -24,13 +24,22 @@ public struct ChatView: View {
     private let currentUserId: String?
     /// The other participant's user ID (used for report/block in one-on-one).
     private let otherUserId: String?
+    /// Extra side-effect run after a successful block (in addition to dismiss).
+    /// For `friendDirect` threads the caller passes an unfriend so blocking a
+    /// friend from the chat also tears down the friendship (US-012).
+    private let onBlocked: (() -> Void)?
 
     private var isGroupRoute: Bool { conversation.type == .groupRoute }
 
-    public init(conversation: Conversation, currentUserId: String? = nil) {
+    public init(
+        conversation: Conversation,
+        currentUserId: String? = nil,
+        onBlocked: (() -> Void)? = nil
+    ) {
         self.conversation = conversation
         self.currentUserId = currentUserId
         self.otherUserId = conversation.participantIds.first { $0 != currentUserId }
+        self.onBlocked = onBlocked
         _service = State(
             initialValue: ChatService(conversationId: conversation.id)
         )
@@ -52,6 +61,14 @@ public struct ChatView: View {
             if !isGroupRoute, let otherId = otherUserId {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
+                        // US-015: add the companion you're chatting with as a
+                        // friend. `.inline` renders a Label that fits a Menu;
+                        // the button self-disables when already friends/pending.
+                        AddFriendButton(
+                            recipientId: otherId,
+                            source: .companionChat,
+                            style: .inline
+                        )
                         Button(role: .destructive) {
                             showingReportSheet = true
                         } label: {
@@ -73,7 +90,9 @@ public struct ChatView: View {
                     targetUserId: otherId,
                     targetLabel: NSLocalizedString("companion.chat.title", comment: "Chat")
                 ) {
-                    // Conversation frozen — dismiss chat on block.
+                    // Block tears down the relationship: friendDirect callers
+                    // unfriend via `onBlocked`; every thread then dismisses.
+                    onBlocked?()
                     dismiss()
                 }
             }
@@ -223,11 +242,22 @@ private struct ChatMessageRow: View {
 
             VStack(alignment: isFromMe ? .trailing : .leading, spacing: 4) {
                 if showAvatar {
-                    Text(message.senderId)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .padding(.horizontal, 4)
+                    // US-015: route-group members get an inline [Add Friend]
+                    // chip beside their handle. The button reflects the live
+                    // relationship (Add / Pending / Friends) and sends with
+                    // `source: .routeGroup` for anti-abuse weighting.
+                    HStack(spacing: 6) {
+                        Text(message.senderId)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        AddFriendButton(
+                            recipientId: message.senderId,
+                            source: .routeGroup,
+                            style: .compact
+                        )
+                    }
+                    .padding(.horizontal, 4)
                 }
 
                 // Text bubble — shown only when there's body text. Attachment-only

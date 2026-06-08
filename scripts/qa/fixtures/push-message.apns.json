@@ -1,0 +1,13 @@
+{
+  "Simulator Target Bundle": "com.solocompass.app",
+  "aps": {
+    "alert": {
+      "title": "New message",
+      "body": "Your friend sent you a message"
+    },
+    "sound": "default",
+    "badge": 1,
+    "thread-id": "friendDirect"
+  },
+  "conversationType": "friendDirect"
+}

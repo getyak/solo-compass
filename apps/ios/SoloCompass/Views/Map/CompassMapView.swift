@@ -152,6 +152,15 @@ struct CompassMapContentView: View {
     // Presentation is driven by `voiceOrchestrator` via `.sheet(item:)`.
     @State private var chatStartMode: ChatStartMode = .text
     @State private var isMapPanning: Bool = false
+    // US-007: personal hub (MeSheet) presentation, driven by the top-right
+    // avatar bubble in the map overlay. Friend state is read live so the
+    // bubble can show a pending-request dot.
+    @State private var isShowingMe: Bool = false
+    // US-024: when a `message` push is tapped, the personal hub opens with this
+    // conversation id so its Messages list auto-pushes the matching ChatView.
+    // `nil` when the hub was opened any other way (avatar bubble, inbox).
+    @State private var deepLinkConversationId: String?
+    @State private var friendService = FriendService.shared
     @State private var lastPanAt: Date = .distantPast
     @State private var panDebounceTask: Task<Void, Never>? = nil
 
@@ -374,6 +383,25 @@ struct CompassMapContentView: View {
                     HapticService.shared.impact(style: .medium)
                 }
             }
+            // US-023: a tapped friend-request push deep-links to the inbox. The
+            // friend-request inbox lives inside the personal hub (MeSheet), so
+            // surface it and consume the link so a re-render won't re-open it.
+            .onChange(of: notificationService.pendingDeepLink) { _, link in
+                switch link {
+                case .friendRequestInbox:
+                    deepLinkConversationId = nil
+                    isShowingMe = true
+                    notificationService.pendingDeepLink = nil
+                case .chatConversation(let conversationId):
+                    // US-024: a tapped message push opens the personal hub's
+                    // Messages list, which auto-pushes the matching ChatView.
+                    deepLinkConversationId = conversationId
+                    isShowingMe = true
+                    notificationService.pendingDeepLink = nil
+                case .none:
+                    break
+                }
+            }
             .onChange(of: viewModel.selectedCity) { _, cityCode in
                 refreshNearbyRoutes(cityCode: cityCode)
                 // Clear an active route that belongs to the city we just left —
@@ -430,6 +458,13 @@ struct CompassMapContentView: View {
             // alongside the other top-level sheets instead of silently dropping a
             // deeply-nested presenter (which left RouteCards un-openable).
             .sheet(item: $routeSheet) { sheet in routeSheetContent(sheet) }
+            // US-007: personal hub presented from the top-right map avatar bubble.
+            .sheet(isPresented: $isShowingMe) {
+                MeSheet(
+                    pendingRequestCount: friendService.incomingRequests.count,
+                    deepLinkConversationId: deepLinkConversationId
+                )
+            }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
     }
@@ -508,7 +543,9 @@ struct CompassMapContentView: View {
                     dismissedExploreError: $dismissedExploreError,
                     dismissedQuotaInfo: $dismissedQuotaInfo,
                     dismissedLocationError: $dismissedLocationError,
-                    isMapPanning: $isMapPanning
+                    isMapPanning: $isMapPanning,
+                    pendingRequestCount: friendService.incomingRequests.count,
+                    onTapAvatar: { isShowingMe = true }
                 )
 
                 VStack {
@@ -1205,7 +1242,12 @@ struct CompassMapContentView: View {
                         UserLocationMarker()
                     }
                 }
-                ForEach(viewModel.visibleExperiences) { exp in
+                // Zoom-adaptive density: the map renders only the top-ranked
+                // pins for the current zoom (`displayedExperiences`), so a
+                // zoomed-out view stays curated. The bottom list keeps reading
+                // the full `visibleExperiences` set (it intentionally shows
+                // more than the map).
+                ForEach(viewModel.displayedExperiences) { exp in
                     if let coord = exp.coordinate {
                         // US-016: compute the marker state once per ForEach
                         // iteration — its six conditions are otherwise evaluated
@@ -1337,6 +1379,12 @@ struct CompassMapContentView: View {
                 }
             }
             .onMapCameraChange(frequency: .onEnd) { context in
+                // Feed the zoom level into the view model so the map's
+                // Level-of-Detail (few prominent pins zoomed out → more zoomed
+                // in) recomputes. Animate so pins fade in/out rather than snap.
+                withAnimation(MapViewModel.markerSetAnimation) {
+                    viewModel.currentSpanLatitudeDelta = context.region.span.latitudeDelta
+                }
                 viewModel.refreshForLocation(context.region.center)
             }
             .simultaneousGesture(
@@ -1467,6 +1515,10 @@ private struct MapOverlayView: View {
     @Binding var dismissedQuotaInfo: String?
     @Binding var dismissedLocationError: Bool
     @Binding var isMapPanning: Bool
+    // US-007: pending friend-request count drives the avatar's red dot;
+    // the tap opens the personal hub (MeSheet).
+    var pendingRequestCount: Int = 0
+    var onTapAvatar: () -> Void = {}
 
     @State private var checkInCelebrationTrigger = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -1502,6 +1554,15 @@ private struct MapOverlayView: View {
                 // (it collided with the battery glyph) because the map ignores
                 // the top safe area. Living in this safe-area-respecting overlay
                 // row keeps it clear of the status bar, on the city-pill line.
+                // US-007: emoji avatar bubble — the entry point into the
+                // personal hub (MeSheet). Placed before the recenter button so
+                // it stays fully on-screen in this safe-area-respecting overlay
+                // row (top-right), clear of the status bar.
+                MapAvatarBubble(
+                    hasPendingRequests: pendingRequestCount > 0,
+                    action: onTapAvatar
+                )
+                .padding(.trailing, 8)
                 recenterButton
                     .padding(.trailing, 12)
             }

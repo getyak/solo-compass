@@ -1,12 +1,80 @@
 import SwiftUI
 import SwiftData
+import UIKit
+import UserNotifications
+
+/// US-021: receives the APNs remote-notification callbacks that SwiftUI's
+/// `App` lifecycle does not expose, and forwards the device token to
+/// `PushTokenService`. Wired in via `@UIApplicationDelegateAdaptor`.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Task { @MainActor in await PushTokenService.shared.handle(deviceToken: deviceToken) }
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        Task { @MainActor in PushTokenService.shared.handleRegistrationFailure(error) }
+    }
+
+    // US-023: a friend-request push delivered while the app is running (or woken
+    // in the background). Route its payload to a deep link so the UI can present
+    // the inbox. The completion handler is called once routing is dispatched.
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        Task { @MainActor in
+            NotificationService.shared.handleRemotePayload(userInfo)
+            completionHandler(.newData)
+        }
+    }
+}
+
+/// US-023: bridges UNUserNotificationCenter tap/foreground callbacks to the
+/// NotificationService so tapping a `friend_request` banner deep-links to the
+/// inbox, and a banner shown while the app is foregrounded is still visible.
+final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationDelegate()
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let userInfo = response.notification.request.content.userInfo
+        Task { @MainActor in
+            NotificationService.shared.handleRemotePayload(userInfo)
+            completionHandler()
+        }
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+}
 
 @main
 struct SoloCompassApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     init() {
         // Start Sentry as early as possible so we catch crashes during the
         // rest of App init / first render. No-op when DSN is empty.
         SentryService.bootstrap()
+
+        // US-023: own the notification-center delegate so a tapped friend-request
+        // banner routes to the inbox deep link (and foreground banners still show).
+        UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
     }
 
     @State private var locationService = LocationService.shared
@@ -73,6 +141,13 @@ struct SoloCompassApp: App {
                     }
 
                     Task { await notificationService.checkAuthorizationStatus() }
+
+                    // US-021: on a warm launch, re-register for remote push only
+                    // when the user already granted permission. This refreshes a
+                    // possibly-rotated APNs token without showing a prompt. The
+                    // permission *request* itself happens later, from a social
+                    // surface — never at cold start.
+                    Task { await PushTokenService.shared.registerIfAuthorized() }
 
                     // Refresh subscription entitlement from StoreKit on launch.
                     // Pre-launch UI already reflects the Keychain-cached value

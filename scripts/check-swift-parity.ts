@@ -38,6 +38,7 @@ const TS_GLOBS = [
   "packages/core/src/llm-context.ts",
   "packages/core/src/companion.ts",
   "packages/core/src/route.ts",
+  "packages/core/src/friend.ts",
 ];
 
 // ---------------------------------------------------------------------------

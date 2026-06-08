@@ -77,6 +77,62 @@ synthetic users, then asserts:
 
 A non-zero exit means the RLS posture has regressed; do not deploy.
 
+## Friend-operations hardening test
+
+`0010_friends_hardening.sql` enforces anti-abuse + data hygiene on
+`friend_requests` server-side (US-025): a 50/day per-user request cap
+(over-limit → HTTP 429), a server-side `reporter_weight` re-gate on
+`discover`-source requests (→ HTTP 403), silent dropping of requests between
+blocked pairs, and the `sc_cleanup_stale_friend_requests()` expiry sweep
+(`pending` past `expires_at` → `expired`, schedulable via pg_cron).
+
+Run against a DB that has migrations `0001`–`0010` applied:
+
+```bash
+cd infra/supabase
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test_friends_hardening.sql
+```
+
+It runs inside a rolled-back transaction (leaves no rows) and asserts the
+cap boundary (50 ok, 51st rejected), the block-pair silent drop, the
+discover gate, and the expiry sweep (past-due flips, future-dated stays).
+`ON_ERROR_STOP=1` makes the first failed ASSERT abort with a clear message.
+
+## Friend-code rotation test
+
+`0011_friend_code_rotation.sql` makes a leaked friend code invalidatable
+(US-026). It adds `sc_rotate_friend_code()` — a `SECURITY DEFINER` RPC that
+**atomically** revokes the caller's current live code and activates a fresh,
+crypto-random one (`sc_gen_friend_code()`, `SOLO-XXXX-XXXX` over an
+ambiguity-free alphabet, so codes are unguessable and not reverse-lookupable).
+The owner's live row is locked `FOR UPDATE`, so concurrent rotations serialize
+and the `friend_codes_user_live_unique` index (0008) guarantees exactly one
+live code per user — never two, never zero. A rotated-away code is `revoked_at`
+immediately, and `redeem-friend-code` only resolves codes with
+`revoked_at IS NULL`, so a leaked code stops redeeming the instant the owner
+rotates.
+
+Clients call it via PostgREST: `supabase.rpc("sc_rotate_friend_code")`.
+
+Run against a DB that has migrations `0001`–`0011` applied:
+
+```bash
+cd infra/supabase
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test_friend_code_rotation.sql
+```
+
+It asserts the code format, that rotation invalidates old + activates new
+immediately, that a revoked code no longer matches the redeem predicate,
+per-user isolation, and the one-live-code index backstop — all inside a
+rolled-back transaction. Concurrent idempotency is verifiable by driving
+`sc_rotate_friend_code()` from two sessions against the same user: the lock
+serializes them and exactly one live code remains.
+
+To verify a revoked code fails to redeem end-to-end after deploy: rotate
+(`supabase.rpc("sc_rotate_friend_code")`), then POST the *old* code to
+`redeem-friend-code` — it must return `404 {"error":"not found"}` (same as an
+unknown code, by anti-enumeration design).
+
 ## Edge Functions
 
 Live in `infra/supabase/functions/<name>/index.ts`. Deploy with:
@@ -86,4 +142,39 @@ supabase functions deploy <name>
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-See each function's local README for specifics.
+Deployed functions:
+
+```bash
+supabase functions deploy chat-proxy
+supabase functions deploy companion-discover
+supabase functions deploy enrich-user-experience
+supabase functions deploy synthesize-experiences
+# Friends (FRD-026): resolve a typed/scanned friend code → profile preview.
+# Needs SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (service role bypasses RLS
+# for the redeem path only; friend_codes has no public SELECT — anti-enum).
+supabase functions deploy redeem-friend-code
+
+# Friends (US-023 / FRD-022): APNs push to the recipient of a friend request.
+# Called by FriendService.sendRequest after a pending row is created. Uses the
+# service role to read the recipient's device_push_tokens (self-only SELECT under
+# RLS) and sends token-based APNs (.p8 ES256 provider JWT).
+supabase functions deploy friend-request-notify
+
+# Friends (US-024 / FRD-023): APNs push to the OTHER party of a chat message.
+# Called by ChatService.send after a chat_messages row is inserted. Derives the
+# recipients server-side (conversation participants − sender) so it NEVER pushes
+# self, reads their device_push_tokens via the service role, and sends a banner
+# with a truncated preview. The tapped push deep-links to the matching ChatView.
+# Reuses the same APNS_* secrets as friend-request-notify (set once, below).
+supabase functions deploy message-notify
+# Token-based APNs secrets (one-time; .p8 downloaded from the Apple Developer
+# portal → Keys). APNS_HOST is the sandbox host for dev builds, the prod host
+# for App Store / TestFlight builds.
+supabase secrets set APNS_KEY_P8="$(cat AuthKey_XXXXXXXXXX.p8)"
+supabase secrets set APNS_KEY_ID=XXXXXXXXXX
+supabase secrets set APNS_TEAM_ID=YYYYYYYYYY
+supabase secrets set APNS_TOPIC=com.solocompass.app
+supabase secrets set APNS_HOST=api.sandbox.push.apple.com   # prod: api.push.apple.com
+```
+
+See each function's header comment for request/response shape and required secrets.
