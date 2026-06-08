@@ -14,6 +14,8 @@ public struct DiscoverRecruitingRoutesView: View {
     /// Optional current city code used for the city-match scoring weight.
     var currentCityCode: String?
 
+    @State private var showingCreateRoute = false
+
     public init(
         currentCityCode: String? = nil,
         storeProvider: @escaping () -> RouteStore = { RouteStore() }
@@ -43,6 +45,14 @@ public struct DiscoverRecruitingRoutesView: View {
             NSLocalizedString("discover.recruiting.title", comment: "Discover Recruiting Routes nav title")
         )
         .navigationBarTitleDisplayMode(.large)
+        .sheet(isPresented: $showingCreateRoute) {
+            CreateRouteView(
+                candidates: [],
+                cityCode: currentCityCode ?? "",
+                userCoordinate: nil,
+                onSave: { _ in }
+            )
+        }
     }
 
     // MARK: - Subviews
@@ -93,13 +103,8 @@ public struct DiscoverRecruitingRoutesView: View {
             .font(.subheadline)
             .foregroundStyle(CT.fgMuted)
             .multilineTextAlignment(.center)
-            NavigationLink {
-                CreateRouteView(
-                    candidates: [],
-                    cityCode: currentCityCode ?? "",
-                    userCoordinate: nil,
-                    onSave: { _ in }
-                )
+            Button {
+                showingCreateRoute = true
             } label: {
                 Text(
                     NSLocalizedString(
