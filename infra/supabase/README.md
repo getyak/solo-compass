@@ -77,6 +77,27 @@ synthetic users, then asserts:
 
 A non-zero exit means the RLS posture has regressed; do not deploy.
 
+## Friend-operations hardening test
+
+`0010_friends_hardening.sql` enforces anti-abuse + data hygiene on
+`friend_requests` server-side (US-025): a 50/day per-user request cap
+(over-limit → HTTP 429), a server-side `reporter_weight` re-gate on
+`discover`-source requests (→ HTTP 403), silent dropping of requests between
+blocked pairs, and the `sc_cleanup_stale_friend_requests()` expiry sweep
+(`pending` past `expires_at` → `expired`, schedulable via pg_cron).
+
+Run against a DB that has migrations `0001`–`0010` applied:
+
+```bash
+cd infra/supabase
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test_friends_hardening.sql
+```
+
+It runs inside a rolled-back transaction (leaves no rows) and asserts the
+cap boundary (50 ok, 51st rejected), the block-pair silent drop, the
+discover gate, and the expiry sweep (past-due flips, future-dated stays).
+`ON_ERROR_STOP=1` makes the first failed ASSERT abort with a clear message.
+
 ## Edge Functions
 
 Live in `infra/supabase/functions/<name>/index.ts`. Deploy with:
