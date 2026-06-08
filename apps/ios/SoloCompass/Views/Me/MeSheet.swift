@@ -143,8 +143,44 @@ private struct ProfileHeader: View {
 /// later FRD. Kept self-contained so US-007 wires the entry point end-to-end.
 private struct FriendsHubView: View {
     @State private var service = FriendService.shared
+    @State private var showingAddFriend = false
 
     var body: some View {
+        Group {
+            if service.friends.isEmpty && service.incomingRequests.isEmpty {
+                emptyState
+            } else {
+                friendList
+            }
+        }
+        .navigationTitle(NSLocalizedString("me.friends", comment: "Friends"))
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await service.refresh() }
+        .sheet(isPresented: $showingAddFriend) {
+            AddFriendSheet()
+        }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label(
+                NSLocalizedString("me.friends.empty.title", comment: "Friends empty state title"),
+                systemImage: "person.2.slash"
+            )
+        } description: {
+            Text(NSLocalizedString("me.friends.empty.description", comment: "Friends empty state description"))
+        } actions: {
+            Button {
+                Haptics.impact(.light)
+                showingAddFriend = true
+            } label: {
+                Text(NSLocalizedString("me.friends.empty.cta", comment: "Add a friend CTA"))
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private var friendList: some View {
         List {
             if !service.incomingRequests.isEmpty {
                 Section(NSLocalizedString("me.friends.incoming", comment: "Incoming friend requests")) {
@@ -156,22 +192,21 @@ private struct FriendsHubView: View {
                 }
             }
             Section(NSLocalizedString("me.friends.list", comment: "Friends list")) {
-                if service.friends.isEmpty {
-                    Text(NSLocalizedString("me.friends.empty", comment: "No friends yet"))
+                ForEach(service.friends, id: \.id) { friendship in
+                    Text(friendship.userHighId)
                         .font(.subheadline)
-                        .foregroundStyle(CT.fgSubtle)
-                } else {
-                    ForEach(service.friends, id: \.id) { friendship in
-                        Text(friendship.userHighId)
-                            .font(.subheadline)
-                            .foregroundStyle(CT.fgPrimary)
-                    }
+                        .foregroundStyle(CT.fgPrimary)
                 }
             }
         }
-        .navigationTitle(NSLocalizedString("me.friends", comment: "Friends"))
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await service.refresh() }
+    }
+}
+
+// MARK: - FriendsHubView Preview
+
+#Preview("Friends empty state") {
+    NavigationStack {
+        FriendsHubView()
     }
 }
 

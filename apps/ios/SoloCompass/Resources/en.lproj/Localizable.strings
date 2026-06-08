@@ -260,6 +260,9 @@
 "me.friends.incoming" = "Friend Requests";
 "me.friends.list" = "Friends";
 "me.friends.empty" = "No friends yet";
+"me.friends.empty.title" = "No friends yet";
+"me.friends.empty.description" = "Add a fellow traveler by sharing your friend code or scanning theirs.";
+"me.friends.empty.cta" = "Add a friend";
 "me.avatar.a11y" = "Open your personal hub";
 "me.avatar.a11y.pending" = "You have pending friend requests";
 
