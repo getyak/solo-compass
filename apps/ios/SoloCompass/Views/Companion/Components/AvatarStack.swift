@@ -10,11 +10,11 @@ public enum VerifiedStyle {
 
 // MARK: - AvatarStack
 
-/// Horizontally overlapping avatar circles, one per user id.
+/// Horizontally overlapping avatar circles, one per unique user id.
 ///
-/// Each circle is filled with the user's deterministic color via
-/// `UserDirectory.color(forId:)` and outlined with a white ring.
-/// When `ids.count > maxVisible` a "+N" overflow bubble is appended.
+/// Duplicate ids are collapsed to first-seen order before rendering.
+/// When `uniqueIds.count > maxVisible` a "+N" overflow bubble is appended;
+/// tapping it opens a popover listing every unique member by name + color.
 public struct AvatarStack: View {
     let ids: [String]
     var maxVisible: Int = 5
@@ -23,15 +23,23 @@ public struct AvatarStack: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
+    @State private var showAll = false
+    @State private var pressed = false
 
     private var overlap: CGFloat { size * 0.32 }
 
+    // De-duplicate while preserving first-seen order.
+    private var uniqueIds: [String] {
+        var seen = Set<String>()
+        return ids.filter { seen.insert($0).inserted }
+    }
+
     private var visible: [String] {
-        Array(ids.prefix(maxVisible))
+        Array(uniqueIds.prefix(maxVisible))
     }
 
     private var overflow: Int {
-        max(0, ids.count - maxVisible)
+        max(0, uniqueIds.count - maxVisible)
     }
 
     public init(
@@ -47,10 +55,10 @@ public struct AvatarStack: View {
     }
 
     private var a11yLabel: String {
-        if ids.count == 1 {
+        if uniqueIds.count == 1 {
             return NSLocalizedString("avatarstack.one", comment: "")
         } else {
-            return String(format: NSLocalizedString("avatarstack.count", comment: ""), ids.count)
+            return String(format: NSLocalizedString("avatarstack.count", comment: ""), uniqueIds.count)
         }
     }
 
@@ -60,7 +68,7 @@ public struct AvatarStack: View {
                 avatarCircle(color: UserDirectory.color(forId: id), index: index)
             }
             if overflow > 0 {
-                overflowBubble
+                overflowButton
                     .opacity(appeared ? 1 : 0)
                     .scaleEffect(appeared ? 1 : 0.6)
                     .animation(
@@ -117,6 +125,49 @@ public struct AvatarStack: View {
                 .foregroundStyle(CT.fgMuted)
         }
     }
+
+    private var overflowButton: some View {
+        overflowBubble
+            .scaleEffect(pressed ? 0.94 : 1.0)
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6), value: pressed)
+            .contentShape(Circle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        if !reduceMotion { pressed = true }
+                    }
+                    .onEnded { _ in
+                        pressed = false
+                        Haptics.selection()
+                        showAll = true
+                    }
+            )
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(NSLocalizedString("avatarstack.overflow.hint", comment: ""))
+            .popover(isPresented: $showAll) {
+                membersPopover
+                    .presentationCompactAdaptation(.popover)
+            }
+    }
+
+    private var membersPopover: some View {
+        NavigationView {
+            List(uniqueIds, id: \.self) { id in
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(UserDirectory.color(forId: id))
+                        .frame(width: 20, height: 20)
+                        .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 1))
+                    Text(UserDirectory.displayName(forId: id))
+                        .font(.body)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle(NSLocalizedString("avatarstack.members.title", comment: ""))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .frame(minWidth: 220, minHeight: CGFloat(min(uniqueIds.count, 8)) * 52 + 60)
+    }
 }
 
 // MARK: - Preview
@@ -135,6 +186,12 @@ public struct AvatarStack: View {
 
 #Preview("8 avatars (overflow)") {
     AvatarStack(ids: ["alice", "bob", "carol", "dave", "eve", "frank", "grace", "heidi"])
+        .padding()
+        .background(Color(.systemBackground))
+}
+
+#Preview("duplicates collapsed") {
+    AvatarStack(ids: ["alice", "bob", "alice", "carol", "bob", "dave", "alice"])
         .padding()
         .background(Color(.systemBackground))
 }

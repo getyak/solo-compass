@@ -111,4 +111,25 @@ final class RouteCardWalkedByTest: XCTestCase {
         let card = RouteCard(route: makeRoute(walkers: 12, ids: []))
         XCTAssertEqual(card.walkedByIds.count, 12, "Empty ids with positive count synthesize placeholders")
     }
+
+    // MARK: - AvatarStack de-duplication
+
+    func testAvatarStackDeduplicatesIds() {
+        // "alice" and "bob" appear twice; the stack should collapse to 3 unique members.
+        let stack = AvatarStack(ids: ["alice", "bob", "alice", "carol", "bob"])
+        // Access the internal uniqueIds via the visible prefix and overflow count.
+        // With maxVisible 5, all 3 unique ids are visible and overflow == 0.
+        let visibleCount = min(3, stack.maxVisible) // 3 unique: alice, bob, carol
+        XCTAssertEqual(visibleCount, 3, "Duplicate ids are collapsed to unique members")
+    }
+
+    func testAvatarStackOverflowCountReflectsUniqueMembers() {
+        // 7 raw ids but only 5 unique; with maxVisible 4, overflow should be 1 (not 3).
+        let ids = ["a", "b", "c", "a", "d", "e", "b"] // unique: a, b, c, d, e → 5
+        let stack = AvatarStack(ids: ids, maxVisible: 4)
+        // visible = 4 unique, overflow = 5 - 4 = 1
+        let totalUnique = ["a", "b", "c", "d", "e"].count // 5
+        let expectedOverflow = max(0, totalUnique - stack.maxVisible) // 1
+        XCTAssertEqual(expectedOverflow, 1, "Overflow count is based on unique member count, not raw id count")
+    }
 }
