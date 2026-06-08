@@ -97,6 +97,20 @@ supabase functions deploy synthesize-experiences
 # Needs SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (service role bypasses RLS
 # for the redeem path only; friend_codes has no public SELECT — anti-enum).
 supabase functions deploy redeem-friend-code
+
+# Friends (US-023 / FRD-022): APNs push to the recipient of a friend request.
+# Called by FriendService.sendRequest after a pending row is created. Uses the
+# service role to read the recipient's device_push_tokens (self-only SELECT under
+# RLS) and sends token-based APNs (.p8 ES256 provider JWT).
+supabase functions deploy friend-request-notify
+# Token-based APNs secrets (one-time; .p8 downloaded from the Apple Developer
+# portal → Keys). APNS_HOST is the sandbox host for dev builds, the prod host
+# for App Store / TestFlight builds.
+supabase secrets set APNS_KEY_P8="$(cat AuthKey_XXXXXXXXXX.p8)"
+supabase secrets set APNS_KEY_ID=XXXXXXXXXX
+supabase secrets set APNS_TEAM_ID=YYYYYYYYYY
+supabase secrets set APNS_TOPIC=com.solocompass.app
+supabase secrets set APNS_HOST=api.sandbox.push.apple.com   # prod: api.push.apple.com
 ```
 
 See each function's header comment for request/response shape and required secrets.

@@ -142,10 +142,34 @@ public final class FriendService {
             case .success:
                 outgoingRequests.append(request)
                 persistRequest(request)
+                // US-023: fire the APNs push to the recipient. Fire-and-forget —
+                // the request is already persisted; a failed/absent push must
+                // never fail the send (recipient still sees it via Realtime/inbox).
+                notifyRecipientOfRequest(request)
                 return .success(.createdPending)
             case .failure(let err):
                 return .failure(err)
             }
+        }
+    }
+
+    // MARK: - US-023: APNs friend-request push trigger
+
+    /// Fire the `friend-request-notify` Edge Function so the recipient gets an
+    /// APNs banner for a newly-created pending request.
+    ///
+    /// Fire-and-forget: the request is already persisted before this runs, and
+    /// the recipient's live inbox (Realtime) is the source of truth — the push
+    /// is purely a wake-up for a backgrounded device. Any failure (feature off,
+    /// no token, APNs error) is swallowed so it can never fail the send.
+    private func notifyRecipientOfRequest(_ request: FriendRequest) {
+        let requestId = request.id.rawValue
+        // Inherits this service's @MainActor isolation, so `client` is reached
+        // without crossing an actor boundary (no Sendable capture needed).
+        Task { @MainActor in
+            let body: [String: String] = ["requestId": requestId]
+            guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+            _ = await self.client.invoke(function: "friend-request-notify", body: data)
         }
     }
 

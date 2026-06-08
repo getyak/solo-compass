@@ -10,9 +10,40 @@ public final class NotificationService {
 
     public private(set) var isAuthorized: Bool = false
 
+    /// US-023: a deep link emitted from an incoming APNs payload, observed by the
+    /// UI (CompassMapView) to present the matching surface. `nil` once consumed.
+    /// Currently only `.friendRequestInbox` is produced.
+    public enum DeepLink: Equatable {
+        /// Open the friend-request inbox (a `friend_request` push arrived).
+        /// `requestId` identifies the specific pending request, when known.
+        case friendRequestInbox(requestId: String?)
+    }
+
+    /// The latest deep link awaiting presentation. The UI sets it back to `nil`
+    /// after routing, so a re-observation does not re-navigate.
+    public var pendingDeepLink: DeepLink?
+
     private let center = UNUserNotificationCenter.current()
 
     private init() {}
+
+    // MARK: - US-023: Remote (APNs) payload routing
+
+    /// Route an incoming APNs payload to a `pendingDeepLink`.
+    ///
+    /// Recognizes the `friend-request-notify` payload
+    /// (`{ type: "friend_request", requestId, ... }`) and surfaces a
+    /// `.friendRequestInbox` deep link. Unknown payloads are ignored.
+    public func handleRemotePayload(_ userInfo: [AnyHashable: Any]) {
+        guard let type = userInfo["type"] as? String else { return }
+        switch type {
+        case "friend_request":
+            let requestId = userInfo["requestId"] as? String
+            pendingDeepLink = .friendRequestInbox(requestId: requestId)
+        default:
+            break
+        }
+    }
 
     // MARK: - Authorization
 

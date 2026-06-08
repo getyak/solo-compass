@@ -379,6 +379,14 @@ struct CompassMapContentView: View {
                     HapticService.shared.impact(style: .medium)
                 }
             }
+            // US-023: a tapped friend-request push deep-links to the inbox. The
+            // friend-request inbox lives inside the personal hub (MeSheet), so
+            // surface it and consume the link so a re-render won't re-open it.
+            .onChange(of: notificationService.pendingDeepLink) { _, link in
+                guard case .friendRequestInbox = link else { return }
+                isShowingMe = true
+                notificationService.pendingDeepLink = nil
+            }
             .onChange(of: viewModel.selectedCity) { _, cityCode in
                 refreshNearbyRoutes(cityCode: cityCode)
                 // Clear an active route that belongs to the city we just left —
