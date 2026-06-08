@@ -18,6 +18,7 @@ public struct FriendsListView: View {
     /// US-013: presents the AddFriendSheet (my shareable code + QR).
     @State private var showAddFriend = false
     @State private var justConnectedId: String?
+    @State private var friendToRemove: Friendship?
 
     /// When false, the on-appear `refresh()` is skipped. Production always uses
     /// the default (true); tests/previews pass false to render fixture-backed
@@ -185,6 +186,40 @@ public struct FriendsListView: View {
                             )
                         } label: {
                             FriendRow(userId: otherId)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Haptics.impact(.light)
+                                friendToRemove = friendship
+                            } label: {
+                                Label(
+                                    NSLocalizedString("friends.list.row.remove", comment: "Swipe action to remove a friend"),
+                                    systemImage: "person.badge.minus"
+                                )
+                            }
+                        }
+                    }
+                    .confirmationDialog(
+                        String(format: NSLocalizedString("friends.list.remove.confirm.title", comment: "Remove friend confirmation title — %@ is the friend's id"), friendToRemove.map { $0.otherUserId(viewer: currentUserId) } ?? ""),
+                        isPresented: Binding(get: { friendToRemove != nil }, set: { if !$0 { friendToRemove = nil } }),
+                        titleVisibility: .visible
+                    ) {
+                        Button(NSLocalizedString("friends.list.remove.confirm.action", comment: "Confirm remove friend button"), role: .destructive) {
+                            guard let friendship = friendToRemove else { return }
+                            friendToRemove = nil
+                            Task {
+                                await service.unfriend(friendship, block: false)
+                                Haptics.notify(.success)
+                                #if canImport(UIKit)
+                                UIAccessibility.post(
+                                    notification: .announcement,
+                                    argument: String(format: NSLocalizedString("friends.connected.a11y", comment: "VoiceOver: connected with friend"), friendship.otherUserId(viewer: currentUserId))
+                                )
+                                #endif
+                            }
+                        }
+                        Button(NSLocalizedString("action.cancel", comment: "Cancel"), role: .cancel) {
+                            friendToRemove = nil
                         }
                     }
                 }
