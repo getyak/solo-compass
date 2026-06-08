@@ -284,13 +284,15 @@ private struct PopoverContent: View {
                 Text(value).fontWeight(.medium)
             }
             // Strength bar
+            let barHeight: CGFloat = isStrongest ? 5 : 3
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color.secondary.opacity(0.15))
-                    .frame(height: 3)
+                    .frame(height: barHeight)
                 Capsule()
-                    .fill(confidence.health.color.opacity(0.7))
-                    .frame(width: fillWidth, height: 3)
+                    .fill(confidence.health.color.opacity(isStrongest ? 1.0 : 0.7))
+                    .frame(width: fillWidth, height: barHeight)
+                    .shadow(color: isStrongest ? confidence.health.color.opacity(0.5) : .clear, radius: 3)
                     .animation(animation, value: barsFilled)
             }
         }
@@ -336,6 +338,16 @@ fileprivate func confidenceRelativeVerifiedString(_ confidence: Confidence) -> S
                 signals: .init(aiScrapeAgeDays: 20, passiveGpsHits30d: 2, activeReports30d: 3, trustedVerifications: 0)
             ),
             compact: true
+        )
+        // GPS dominant — strongest bar emphasis visible
+        ConfidenceBadge(
+            confidence: Confidence(
+                level: 3,
+                lastVerifiedAt: Date().addingTimeInterval(-5 * 86_400),
+                reason: "High passive GPS activity",
+                signals: .init(aiScrapeAgeDays: 60, passiveGpsHits30d: 28, activeReports30d: 1, trustedVerifications: 0)
+            ),
+            compact: false
         )
     }
     .padding()
