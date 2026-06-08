@@ -13,6 +13,25 @@ struct LocationCard: View {
     @State private var didCopy = false
     @Environment(LocationService.self) private var locationService
 
+    private var copyPayload: (text: String, isAddress: Bool) {
+        if let hint = addressHint, !hint.isEmpty {
+            return (hint, true)
+        }
+        return (String(format: "%.2f, %.2f", coordinate.latitude, coordinate.longitude), false)
+    }
+
+    private func performCopy() {
+        UIPasteboard.general.string = copyPayload.text
+        Haptics.notify(.success)
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            didCopy = true
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation { didCopy = false }
+        }
+    }
+
     private var distanceMeters: Double? {
         let d = locationService.distance(to: coordinate)
         return (d.isFinite && d < .greatestFiniteMagnitude) ? d : nil
@@ -53,6 +72,10 @@ struct LocationCard: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
+                            .onTapGesture { performCopy() }
+                            .accessibilityAction(named: NSLocalizedString("location.copyCoords", comment: "Copy to clipboard")) {
+                                performCopy()
+                            }
                     } else {
                         // Raw lat/long means nothing to a traveler, so only fall
                         // back to coordinates when there's no address at all —
@@ -104,30 +127,27 @@ struct LocationCard: View {
 
                 // US-010: Ghost copy button — icon only, no fill
                 Button {
-                    UIPasteboard.general.string = "\(coordinate.latitude), \(coordinate.longitude)"
-                    Haptics.notify(.success)
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        didCopy = true
-                    }
-                    Task {
-                        try? await Task.sleep(for: .seconds(1.5))
-                        withAnimation { didCopy = false }
-                    }
+                    performCopy()
                 } label: {
                     VStack(spacing: 2) {
                         Image(systemName: didCopy ? "checkmark.circle.fill" : "doc.on.doc")
                             .contentTransition(.symbolEffect(.replace))
                             .foregroundStyle(didCopy ? Color.green : Color.secondary)
                         if didCopy {
-                            Text(NSLocalizedString("location.copied", comment: "Coordinates copied confirmation"))
-                                .font(.caption2)
-                                .foregroundStyle(Color.green)
+                            Text(copyPayload.isAddress
+                                ? NSLocalizedString("location.copiedAddress", comment: "Address copied confirmation")
+                                : NSLocalizedString("location.copied", comment: "Coordinates copied confirmation")
+                            )
+                            .font(.caption2)
+                            .foregroundStyle(Color.green)
                         }
                     }
                     .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel(Text(didCopy
-                    ? NSLocalizedString("location.copied.a11y", comment: "VoiceOver: coordinates were copied")
+                    ? (copyPayload.isAddress
+                        ? NSLocalizedString("location.copiedAddress.a11y", comment: "VoiceOver: address was copied")
+                        : NSLocalizedString("location.copied.a11y", comment: "VoiceOver: coordinates were copied"))
                     : NSLocalizedString("location.copyCoords", comment: "Copy coordinates to clipboard")
                 ))
             }

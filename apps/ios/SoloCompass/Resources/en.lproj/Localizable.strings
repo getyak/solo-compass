@@ -796,6 +796,8 @@
 "location.copyCoords" = "Copy coordinates";
 "location.copied" = "Copied!";
 "location.copied.a11y" = "Coordinates copied";
+"location.copiedAddress" = "Address copied";
+"location.copiedAddress.a11y" = "Address copied to clipboard";
 "location.openIn.apple" = "Apple Maps";
 "location.openIn.google" = "Google Maps";
 "location.openIn.amap" = "Amap";
