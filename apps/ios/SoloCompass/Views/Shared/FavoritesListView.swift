@@ -32,6 +32,7 @@ public struct FavoritesListView: View {
     @State private var ringDidCelebrate = false
     @State private var showRemainingOnly = false
     @State private var prioritizeGoodNow = false
+    @State private var celebrationTrigger = 0
 
     private var undoDismissSeconds: Double { voiceOverOn ? 12 : 4 }
 
@@ -465,6 +466,10 @@ public struct FavoritesListView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .overlay(alignment: .center) {
+            CompletionCelebrationView(trigger: celebrationTrigger)
+                .allowsHitTesting(false)
+        }
         .overlay(alignment: .bottom) {
             if lastUnfavorited != nil {
                 undoBar
@@ -1406,10 +1411,10 @@ private extension FavoritesListView {
                         argument: NSLocalizedString("favorites.row.markNotVisited.announcement", comment: "VoiceOver announcement after marking as not visited")
                     )
                 } else {
-                    Haptics.notify(.success)
                     withAnimation(.easeInOut) {
                         preferences.markCompleted(exp.id)
                     }
+                    celebrationTrigger += 1
                     UIAccessibility.post(
                         notification: .announcement,
                         argument: String(format: NSLocalizedString("favorites.row.markVisited.announcement", comment: "VoiceOver announcement after marking as visited"), exp.title)
@@ -1439,8 +1444,8 @@ private extension FavoritesListView {
                     argument: NSLocalizedString("favorites.row.markNotVisited.announcement", comment: "VoiceOver announcement after marking as not visited")
                 )
             } else {
-                Haptics.notify(.success)
                 preferences.markCompleted(exp.id)
+                celebrationTrigger += 1
                 UIAccessibility.post(
                     notification: .announcement,
                     argument: String(format: NSLocalizedString("favorites.row.markVisited.announcement", comment: "VoiceOver announcement after marking as visited"), exp.title)
