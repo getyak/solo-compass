@@ -7119,3 +7119,42 @@ final class ChatHistoryStoreTests: XCTestCase {
         XCTAssertEqual(toolCall?.argumentsJSON, #"{"radius_meters":3000}"#)
     }
 }
+
+final class CompletionCelebrationViewTests: XCTestCase {
+
+    func testMakeParticlesIsDeterministic() {
+        let a = CompletionCelebrationView.makeParticles(trigger: 42)
+        let b = CompletionCelebrationView.makeParticles(trigger: 42)
+        XCTAssertEqual(a.count, 14)
+        XCTAssertEqual(b.count, 14)
+        for i in 0..<14 {
+            XCTAssertEqual(a[i].id, b[i].id)
+            XCTAssertEqual(a[i].angle, b[i].angle, accuracy: 1e-10)
+            XCTAssertEqual(a[i].distance, b[i].distance, accuracy: 1e-6)
+            XCTAssertEqual(a[i].size, b[i].size, accuracy: 1e-6)
+            XCTAssertEqual(a[i].isCircle, b[i].isCircle)
+            XCTAssertEqual(a[i].rotation, b[i].rotation, accuracy: 1e-10)
+            XCTAssertEqual(a[i].delay, b[i].delay, accuracy: 1e-10)
+            XCTAssertEqual(a[i].gravity, b[i].gravity, accuracy: 1e-6)
+        }
+    }
+
+    func testDifferentTriggersYieldDifferentBursts() {
+        let p1 = CompletionCelebrationView.makeParticles(trigger: 1)
+        let p2 = CompletionCelebrationView.makeParticles(trigger: 2)
+        // Angle sequence and color index should differ for at least one particle
+        let anglesDiffer = zip(p1, p2).contains { abs($0.angle - $1.angle) > 1e-6 }
+        let colorsDiffer = zip(p1, p2).contains { $0.color != $1.color }
+        XCTAssertTrue(anglesDiffer, "Different triggers should produce different angle sequences")
+        XCTAssertTrue(colorsDiffer, "Different triggers should produce different color sequences")
+    }
+
+    func testParticleCountIsAlways14() {
+        for trigger in [0, 1, 7, 42, 100, -1, Int.max / 2] {
+            XCTAssertEqual(
+                CompletionCelebrationView.makeParticles(trigger: trigger).count, 14,
+                "Expected 14 particles for trigger \(trigger)"
+            )
+        }
+    }
+}
