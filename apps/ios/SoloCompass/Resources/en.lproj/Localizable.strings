@@ -1611,6 +1611,7 @@
 "friends.list.row.remove" = "Remove";
 "friends.list.remove.confirm.title" = "Remove %@?";
 "friends.list.remove.confirm.action" = "Remove Friend";
+"friends.removed.a11y" = "%@ removed from friends";
 "friend.error.disabled" = "Friends aren't available right now.";
 "friend.error.encoding" = "Something went wrong. Please try again.";
 "friend.error.self" = "You can't add yourself.";

@@ -213,7 +213,7 @@ public struct FriendsListView: View {
                                 #if canImport(UIKit)
                                 UIAccessibility.post(
                                     notification: .announcement,
-                                    argument: String(format: NSLocalizedString("friends.connected.a11y", comment: "VoiceOver: connected with friend"), friendship.otherUserId(viewer: currentUserId))
+                                    argument: String(format: NSLocalizedString("friends.removed.a11y", comment: "VoiceOver: removed a friend"), friendship.otherUserId(viewer: currentUserId))
                                 )
                                 #endif
                             }
