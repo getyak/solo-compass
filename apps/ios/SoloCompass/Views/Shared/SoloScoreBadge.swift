@@ -181,6 +181,7 @@ private struct SoloScorePopoverContent: View {
     let score: SoloScore
     @State private var appeared = false
     @State private var barsFilled = false
+    @State private var expandedIndex: Int? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let weakestThreshold: Double = 5.0
@@ -189,17 +190,18 @@ private struct SoloScorePopoverContent: View {
 
     private struct DimensionRow {
         let labelKey: String
+        let descKey: String
         let value: Double
     }
 
     private var dimensions: [DimensionRow] {
         [
-            DimensionRow(labelKey: "solo.dim.seating",    value: score.breakdown.seatingFriendly),
-            DimensionRow(labelKey: "solo.dim.ratio",      value: score.breakdown.soloPatronRatio),
-            DimensionRow(labelKey: "solo.dim.pressure",   value: score.breakdown.staffPressure),
-            DimensionRow(labelKey: "solo.dim.portioning", value: score.breakdown.soloPortioning),
-            DimensionRow(labelKey: "solo.dim.ambiance",   value: score.breakdown.ambianceFit),
-            DimensionRow(labelKey: "solo.dim.safety",     value: score.breakdown.safety),
+            DimensionRow(labelKey: "solo.dim.seating",    descKey: "solo.seating.desc",   value: score.breakdown.seatingFriendly),
+            DimensionRow(labelKey: "solo.dim.ratio",      descKey: "solo.patrons.desc",   value: score.breakdown.soloPatronRatio),
+            DimensionRow(labelKey: "solo.dim.pressure",   descKey: "solo.staff.desc",     value: score.breakdown.staffPressure),
+            DimensionRow(labelKey: "solo.dim.portioning", descKey: "solo.portioning.desc", value: score.breakdown.soloPortioning),
+            DimensionRow(labelKey: "solo.dim.ambiance",   descKey: "solo.ambiance.desc",  value: score.breakdown.ambianceFit),
+            DimensionRow(labelKey: "solo.dim.safety",     descKey: "solo.safety.desc",    value: score.breakdown.safety),
         ]
     }
 
@@ -280,6 +282,7 @@ private struct SoloScorePopoverContent: View {
             ForEach(Array(dimensions.enumerated()), id: \.offset) { index, row in
                 dimensionRow(
                     label: NSLocalizedString(row.labelKey, comment: ""),
+                    desc: NSLocalizedString(row.descKey, comment: ""),
                     value: row.value,
                     index: index,
                     isWeakest: index == weakestIndex && showWeakestCaption,
@@ -338,49 +341,70 @@ private struct SoloScorePopoverContent: View {
         }
     }
 
-    private func dimensionRow(label: String, value: Double, index: Int, isWeakest: Bool, isStrongest: Bool = false) -> some View {
+    private func dimensionRow(label: String, desc: String, value: Double, index: Int, isWeakest: Bool, isStrongest: Bool = false) -> some View {
         let clamped = max(0, min(10, value))
         let barColor: Color = isWeakest ? .orange.opacity(0.8) : isStrongest ? .green.opacity(0.8) : score.scoreColor.opacity(0.8)
-        return VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                if isWeakest {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.orange)
-                        .accessibilityHidden(true)
-                } else if isStrongest {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.green)
+        let isExpanded = expandedIndex == index
+        return Button {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) {
+                expandedIndex = isExpanded ? nil : index
+            }
+            Haptics.selection()
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack {
+                    if isWeakest {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.orange)
+                            .accessibilityHidden(true)
+                    } else if isStrongest {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.green)
+                            .accessibilityHidden(true)
+                    }
+                    Text(label)
+                        .font(isWeakest || isStrongest ? .caption.bold() : .caption)
+                        .foregroundStyle(isWeakest || isStrongest ? .primary : .secondary)
+                    Spacer()
+                    Text(String(format: "%.1f", value))
+                        .font(.caption.weight(.medium))
+                        .monospacedDigit()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.tertiary)
                         .accessibilityHidden(true)
                 }
-                Text(label)
-                    .font(isWeakest || isStrongest ? .caption.bold() : .caption)
-                    .foregroundStyle(isWeakest || isStrongest ? .primary : .secondary)
-                Spacer()
-                Text(String(format: "%.1f", value))
-                    .font(.caption.weight(.medium))
-                    .monospacedDigit()
+                GeometryReader { geo in
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.2))
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(barColor)
+                                .frame(width: barsFilled ? geo.size.width * CGFloat(clamped / 10) : 0)
+                                .animation(
+                                    reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.8)
+                                        .delay(Double(index) * 0.05),
+                                    value: barsFilled
+                                )
+                        }
+                }
+                .frame(height: 4)
+                if isExpanded {
+                    Text(desc)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .transition(reduceMotion ? .opacity : .scale(scale: 0.95).combined(with: .opacity))
+                }
             }
-            GeometryReader { geo in
-                Capsule()
-                    .fill(Color.secondary.opacity(0.2))
-                    .overlay(alignment: .leading) {
-                        Capsule()
-                            .fill(barColor)
-                            .frame(width: barsFilled ? geo.size.width * CGFloat(clamped / 10) : 0)
-                            .animation(
-                                reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.8)
-                                    .delay(Double(index) * 0.05),
-                                value: barsFilled
-                            )
-                    }
-            }
-            .frame(height: 4)
         }
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(label))
-        .accessibilityValue(Text(String(format: "%.1f", value)))
+        .accessibilityValue(Text(isExpanded ? "\(String(format: "%.1f", value)), \(desc)" : String(format: "%.1f", value)))
+        .accessibilityHint(Text(NSLocalizedString("solo.axis.tap.hint", comment: "")))
     }
 }
 
