@@ -726,7 +726,11 @@ struct NearbyExperienceRow: View {
     let distanceMeters: Double?
     /// True when the experience's bestTimes include the current clock hour (Now sort mode only).
     let isOpenNow: Bool
+    /// Tapping the card jumps straight to the detail sheet.
     let onTap: () -> Void
+    /// Long-pressing the card floats the quick preview card instead. Optional so
+    /// existing callers that only want a tap action keep compiling.
+    var onLongPress: (() -> Void)? = nil
 
     @State private var pressed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -851,9 +855,16 @@ struct NearbyExperienceRow: View {
         }
         .buttonStyle(.plain)
         .scaleEffect(pressed ? 0.97 : 1.0)
+        // Long-press floats the quick preview card; the tap (above) opens detail.
+        // Attached only when a handler is provided so non-long-press callers are
+        // unaffected.
+        .modifier(LongPressCardModifier(onLongPress: onLongPress))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
+        .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
+            onLongPress?()
+        }
     }
 
     // MARK: - Sub-views
@@ -1166,7 +1177,11 @@ struct NearbySection: View {
     /// Reference coordinate for distance calculation (user location or map center).
     let referenceCoordinate: CLLocationCoordinate2D?
     let sortMode: SortMode
+    /// Tapping a row jumps straight to the detail sheet.
     let onSelectExperience: (Experience) -> Void
+    /// Long-pressing a row floats the quick preview card instead. Optional so
+    /// callers that only wire a tap keep compiling.
+    let onLongPressExperience: ((Experience) -> Void)?
     /// When non-nil, passed through to EmptySheetListView to render the
     /// 'Explore another area' CTA that zooms the map out.
     let onExploreElsewhere: (() -> Void)?
@@ -1180,7 +1195,8 @@ struct NearbySection: View {
         sortMode: SortMode = .smart,
         showsSectionDivider: Bool = false,
         onExploreElsewhere: (() -> Void)? = nil,
-        onSelectExperience: @escaping (Experience) -> Void
+        onSelectExperience: @escaping (Experience) -> Void,
+        onLongPressExperience: ((Experience) -> Void)? = nil
     ) {
         self.experiences = experiences
         self.smartPickIds = smartPickIds
@@ -1189,6 +1205,7 @@ struct NearbySection: View {
         self.showsSectionDivider = showsSectionDivider
         self.onExploreElsewhere = onExploreElsewhere
         self.onSelectExperience = onSelectExperience
+        self.onLongPressExperience = onLongPressExperience
     }
 
     /// US-036: When true, the Nearby header is preceded by an inset divider so a
@@ -1225,7 +1242,8 @@ struct NearbySection: View {
                             isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
                             distanceMeters: distance(to: exp),
                             isOpenNow: sortMode == .now && isOpenNow(exp),
-                            onTap: { onSelectExperience(exp) }
+                            onTap: { onSelectExperience(exp) },
+                            onLongPress: onLongPressExperience.map { handler in { handler(exp) } }
                         )
                     }
                 }

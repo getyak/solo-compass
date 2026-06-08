@@ -667,15 +667,21 @@ struct CompassMapContentView: View {
                                         }
                                     },
                                     onSelectExperience: { exp in
-                                        // Unified preview path: every entry
-                                        // point floats the preview card first
-                                        // (no longer jumps straight to detail),
-                                        // so the list row and a map-pin tap
-                                        // feel identical and backing out of the
-                                        // detail lands on the same card.
-                                        // withAnimation drives the card's
-                                        // move+fade transition for a layered
-                                        // reveal instead of a hard cut.
+                                        // Tap → jump straight to the detail sheet.
+                                        // (Long-press floats the preview card via
+                                        // onLongPressExperience below.) The list
+                                        // row and a map-pin tap stay consistent:
+                                        // both open detail on tap, both peek on
+                                        // long-press. withAnimation drives the
+                                        // detail content transition.
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                            viewModel.openExperienceDetail(exp)
+                                        }
+                                    },
+                                    onLongPressExperience: { exp in
+                                        // Long-press → float the quick preview
+                                        // card (the former tap behavior). Backing
+                                        // out of detail still lands on this card.
                                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                                             viewModel.selectExperience(exp)
                                         }
@@ -960,8 +966,14 @@ struct CompassMapContentView: View {
         FavoritesListView(
             onSelectExperience: { exp in
                 isShowingFavorites = false
-                // Unified preview path (see Nearby onSelectExperience): float
-                // the preview card rather than jumping straight to detail.
+                // Tap → open the detail sheet directly (long-press peeks instead).
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    viewModel.openExperienceDetail(exp)
+                }
+            },
+            onLongPressExperience: { exp in
+                isShowingFavorites = false
+                // Long-press → float the quick preview card (former tap behavior).
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                     viewModel.selectExperience(exp)
                 }
@@ -1205,7 +1217,8 @@ struct CompassMapContentView: View {
                         // accessibilityLabel below instead.
                         Annotation("", coordinate: coord) {
                             Button {
-                                viewModel.selectExperience(exp)
+                                // Tap → open the detail sheet directly.
+                                viewModel.openExperienceDetail(exp)
                                 HapticService.shared.impact(style: .light)
                             } label: {
                                 VStack(spacing: 2) {
@@ -1233,8 +1246,16 @@ struct CompassMapContentView: View {
                                 .transition(.scale.combined(with: .opacity))
                             }
                             .buttonStyle(.plain)
+                            // Long-press a pin → float the quick preview card
+                            // (former tap behavior) instead of opening detail.
+                            .modifier(LongPressCardModifier(onLongPress: {
+                                viewModel.selectExperience(exp)
+                            }))
                             .transition(.scale.combined(with: .opacity))
                             .accessibilityLabel(Text(exp.title))
+                            .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
+                                viewModel.selectExperience(exp)
+                            }
                         }
                     }
                 }
@@ -1741,14 +1762,22 @@ private struct MapOverlayView: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(a11yText))
                     .accessibilityAddTraits(.isButton)
+                    // Tap → open detail directly (openExperienceDetail reframes
+                    // the camera itself, so no separate focusOnExperience call).
                     .accessibilityAction {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        viewModel.focusOnExperience(tickedNext.experience)
+                        viewModel.openExperienceDetail(tickedNext.experience)
+                    }
+                    // Long-press → float the quick preview card (former behavior).
+                    .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
                         viewModel.selectExperience(tickedNext.experience)
                     }
                     .onTapGesture {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        viewModel.focusOnExperience(tickedNext.experience)
+                        viewModel.openExperienceDetail(tickedNext.experience)
+                    }
+                    .onLongPressGesture(minimumDuration: 0.4) {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         viewModel.selectExperience(tickedNext.experience)
                     }
                 }

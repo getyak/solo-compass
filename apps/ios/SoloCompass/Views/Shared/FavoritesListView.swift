@@ -12,7 +12,10 @@ public struct FavoritesListView: View {
     @Environment(BestNowClock.self) private var bestNowClock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
+    /// Tapping a favorite jumps straight to the detail sheet.
     let onSelectExperience: (Experience) -> Void
+    /// Long-pressing a favorite floats the quick preview card instead.
+    var onLongPressExperience: ((Experience) -> Void)? = nil
     var onExplore: (() -> Void)? = nil
 
     @State private var lastUnfavorited: (id: String, title: String, date: Date)?
@@ -1153,7 +1156,7 @@ private extension FavoritesListView {
         let bestHint = (!isDone && !goodNow) ? exp.bestTimeHint() : nil
         Button {
             Haptics.selection()
-            onSelectExperience(exp)
+            onSelectExperience(exp)   // tap → open detail directly
         } label: {
             HStack(spacing: 12) {
                 ZStack {
@@ -1253,6 +1256,13 @@ private extension FavoritesListView {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableRowStyle(reduceMotion: reduceMotion))
+        // Long-press floats the quick preview card; the tap opens detail. Inside a
+        // List row, a high-priority long-press gesture coexists with the row's
+        // tap without being swallowed by scroll or swipe-action recognizers.
+        .modifier(LongPressCardModifier(onLongPress: onLongPressExperience.map { handler in { handler(exp) } }))
+        .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
+            onLongPressExperience?(exp)
+        }
         .accessibilityLabel({
             let doneWord = isDone ? ", \(NSLocalizedString("favorites.row.done.a11y", comment: "Completed row suffix"))" : ""
             let timingWord: String = {

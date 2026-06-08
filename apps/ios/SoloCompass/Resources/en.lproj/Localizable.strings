@@ -294,6 +294,7 @@
 
 /* Experience card accessibility */
 "experience.card.hint" = "Double tap to view details";
+"experience.card.preview.a11y" = "Show quick preview";
 "card.favorite.add" = "Add to favorites";
 "card.favorite.remove" = "Remove from favorites";
 "card.dismiss" = "Dismiss card";

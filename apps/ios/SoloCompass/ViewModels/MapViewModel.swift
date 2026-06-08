@@ -985,10 +985,26 @@ public final class MapViewModel {
         updateBottomInfo()
     }
 
-    /// Select a map pin to surface its preview card and pan the camera to frame it.
+    /// Select an experience to surface its floating preview card (without opening
+    /// the full detail sheet) and pan the camera to frame it. This is the
+    /// *long-press* path: a quick peek that the user can expand into the detail
+    /// sheet via the card's own expand action. Tapping a card/pin instead routes
+    /// through `openExperienceDetail` for a direct jump to the detail sheet.
     public func selectExperience(_ experience: Experience) {
         selectedExperience = experience
         // isShowingDetail stays false — card shows first, detail sheet on expand
+        focusOnExperience(experience)
+    }
+
+    /// Open an experience's full detail sheet directly, skipping the floating
+    /// preview card. This is the *tap* path: tapping a Nearby/favorite card or a
+    /// map pin jumps straight to the detail content. `selectedExperience` is still
+    /// set so backing out of the detail lands on the preview card (see
+    /// `dismissDetail`), and the camera reframes the same way `selectExperience`
+    /// does. Long-pressing the same card/pin floats the preview card instead.
+    public func openExperienceDetail(_ experience: Experience) {
+        selectedExperience = experience
+        isShowingDetail = true
         focusOnExperience(experience)
     }
 

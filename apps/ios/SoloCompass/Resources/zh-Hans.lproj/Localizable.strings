@@ -188,6 +188,7 @@
 
 /* Experience card accessibility */
 "experience.card.hint" = "双击查看详情";
+"experience.card.preview.a11y" = "显示快速预览";
 
 /* Voice recognition error alert */
 "voice.error.title" = "语音识别错误";
