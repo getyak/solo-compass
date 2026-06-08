@@ -19,3 +19,4 @@ PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
 [2026-06-08T09:58:05Z] Story #US-017: MeSheet unified conversation list — FAILED (iteration 13)
     └─ NEXT_STEPS: (auto) prior run ended (completed)
 [2026-06-08T10:07:23Z] Story #US-017: MeSheet unified conversation list — PASSED
+[2026-06-08T10:11:28Z] Story #US-018: Friend-request Realtime subscription — PASSED

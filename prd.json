@@ -267,7 +267,7 @@
         "Verify in Simulator: A sends, B sees red dot without refresh"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
