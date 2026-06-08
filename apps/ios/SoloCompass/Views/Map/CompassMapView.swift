@@ -1785,6 +1785,7 @@ private struct MapOverlayView: View {
                 TimelineView(.periodic(from: .now, by: 60)) { context in
                     let tickedNext = viewModel.nextBestExperience(now: context.date) ?? next
                     let minutesUntil = tickedNext.minutesUntil
+                    let progress = Self.imminenceProgress(minutesUntil: minutesUntil)
                     let idleText = NSLocalizedString("filter.now.empty.idle", comment: "Nothing's at its best now")
                     let upcomingText = String(
                         format: NSLocalizedString("filter.now.empty.upcoming", comment: "%@ in %dm"),
@@ -1802,9 +1803,19 @@ private struct MapOverlayView: View {
                         shadowY: 3
                     ) {
                         HStack(spacing: 6) {
-                            Circle()
-                                .fill(accentGold)
-                                .frame(width: 8, height: 8)
+                            ZStack {
+                                Circle()
+                                    .stroke(accentGold.opacity(0.25), lineWidth: 2)
+                                Circle()
+                                    .trim(from: 0, to: progress)
+                                    .stroke(accentGold, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                                    .rotationEffect(.degrees(-90))
+                                    .animation(reduceMotion ? nil : .easeInOut, value: progress)
+                                Circle()
+                                    .fill(accentGold)
+                                    .frame(width: 8, height: 8)
+                            }
+                            .frame(width: 14, height: 14)
                             Text(idleText)
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(.primary)
@@ -1908,6 +1919,12 @@ private struct MapOverlayView: View {
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: count)
             .accessibilityLabel(Text(countText))
         }
+    }
+
+    /// Returns how full the imminence ring should be: 0.0 at `windowMinutes` out, 1.0 at 0m.
+    /// Clamped to [0, 1].
+    static func imminenceProgress(minutesUntil: Int, windowMinutes: Int = 120) -> Double {
+        max(0, min(1, 1 - Double(minutesUntil) / Double(windowMinutes)))
     }
 
     @ViewBuilder
