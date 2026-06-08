@@ -716,6 +716,9 @@ private struct JourneyProgressBar: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animatedFraction: CGFloat = 0
+    @State private var didCompletionSweep = false
+    @State private var sweepPhase: CGFloat = -1
+    @State private var fillScaleY: CGFloat = 1
 
     private var targetFraction: CGFloat {
         total > 0 ? CGFloat(completed) / CGFloat(total) : 0
@@ -732,10 +735,29 @@ private struct JourneyProgressBar: View {
                 Capsule()
                     .fill(isAllDone ? Color.green : Color.green.opacity(0.75))
                     .frame(width: geo.size.width * animatedFraction, height: 4)
+                    .scaleEffect(x: 1, y: fillScaleY, anchor: .center)
                     .shadow(
                         color: isAllDone ? Color.green.opacity(0.4) : Color.clear,
                         radius: 3
                     )
+                    .overlay(alignment: .leading) {
+                        if isAllDone && !reduceMotion {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0),
+                                    .init(color: .white.opacity(0.6), location: 0.5),
+                                    .init(color: .clear, location: 1),
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: geo.size.width * 0.4, height: 4)
+                            .clipShape(Capsule())
+                            .offset(x: geo.size.width * sweepPhase)
+                            .allowsHitTesting(false)
+                        }
+                    }
+                    .clipShape(Capsule())
             }
         }
         .frame(height: 4)
@@ -747,6 +769,9 @@ private struct JourneyProgressBar: View {
                     animatedFraction = targetFraction
                 }
             }
+            if isAllDone && !reduceMotion {
+                fireSweep(width: 0)
+            }
         }
         .onChange(of: completed) { _, _ in
             if reduceMotion {
@@ -755,6 +780,29 @@ private struct JourneyProgressBar: View {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     animatedFraction = targetFraction
                 }
+            }
+            if !isAllDone {
+                didCompletionSweep = false
+            }
+            if isAllDone && !reduceMotion {
+                fireSweep(width: 0)
+            }
+        }
+    }
+
+    private func fireSweep(width: CGFloat) {
+        guard !didCompletionSweep else { return }
+        didCompletionSweep = true
+        sweepPhase = -1
+        withAnimation(.easeInOut(duration: 0.7).delay(0.15)) {
+            sweepPhase = 1.4
+        }
+        withAnimation(.spring(response: 0.18, dampingFraction: 0.45).delay(0.1)) {
+            fillScaleY = 1.25
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) {
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.6)) {
+                fillScaleY = 1
             }
         }
     }
@@ -1445,6 +1493,35 @@ private struct DirectionsSwipeModifier: ViewModifier {
             content
         }
     }
+}
+
+#Preview("JourneyProgressBar — 100% sweep") {
+    struct SweepDemo: View {
+        @State private var completed = 4
+        let total = 5
+
+        var body: some View {
+            VStack(spacing: 24) {
+                JourneyProgressBar(completed: completed, total: total)
+                    .padding(.horizontal, 24)
+                HStack(spacing: 16) {
+                    Button("−1") { if completed > 0 { completed -= 1 } }
+                        .buttonStyle(.bordered)
+                    Text("\(completed)/\(total)")
+                        .monospacedDigit()
+                    Button("+1") { if completed < total { completed += 1 } }
+                        .buttonStyle(.borderedProminent)
+                }
+                Text("Tap +1 to reach 100% and watch the shimmer sweep")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+            .padding()
+        }
+    }
+    return SweepDemo()
 }
 
 #Preview {
