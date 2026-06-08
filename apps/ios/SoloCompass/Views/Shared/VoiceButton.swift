@@ -113,20 +113,25 @@ public struct VoiceButton: View {
             Text(recognitionError ?? "")
         }
         .overlay(alignment: .top) {
-            if isRecording {
+            if isRecording || autoStopMessage != nil {
+                let secondsRemaining = Int(maxRecordingDuration) - Int(elapsed)
+                let inCountdown = elapsed >= 50 && !didAutoStop
                 VStack(spacing: 4) {
                     if let message = autoStopMessage {
                         Text(message)
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(AnyShapeStyle(Color.orange))
                             .accessibilityHidden(true)
+                    } else if inCountdown {
+                        Text(String(format: NSLocalizedString("voice.recording.secondsLeft", comment: "%ds left countdown"), secondsRemaining))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(AnyShapeStyle(Color.orange))
+                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: secondsRemaining)
+                            .accessibilityHidden(true)
                     } else {
                         Text(formattedElapsed)
                             .font(.caption.monospacedDigit())
-                            .foregroundStyle(elapsed >= 50
-                                ? AnyShapeStyle(Color.orange)
-                                : AnyShapeStyle(Color.secondary))
-                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: elapsed >= 50)
+                            .foregroundStyle(AnyShapeStyle(Color.secondary))
                             .accessibilityHidden(true)
                     }
 
@@ -145,7 +150,9 @@ public struct VoiceButton: View {
                 }
                 .offset(y: -62)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text(String(format: NSLocalizedString("voice.recording.timer.a11y", comment: ""), Int(elapsed))))
+                .accessibilityLabel(Text(inCountdown
+                    ? String(format: NSLocalizedString("voice.recording.secondsLeft", comment: ""), secondsRemaining)
+                    : String(format: NSLocalizedString("voice.recording.timer.a11y", comment: ""), Int(elapsed))))
             }
         }
     }
@@ -208,12 +215,12 @@ public struct VoiceButton: View {
         }
     }
 
-    private func stopRecording() {
+    private func stopRecording(suppressStoppedAnnouncement: Bool = false) {
         voiceService.stopListening()
         isRecording = false
         pulse = false
         stopElapsedTimer()
-        if UIAccessibility.isVoiceOverRunning {
+        if UIAccessibility.isVoiceOverRunning && !suppressStoppedAnnouncement {
             UIAccessibility.post(notification: .announcement,
                 argument: NSLocalizedString("voice.announcement.stopped", comment: "Recording stopped"))
         }
@@ -242,7 +249,19 @@ public struct VoiceButton: View {
                 if elapsed >= maxRecordingDuration && !didAutoStop {
                     didAutoStop = true
                     autoStopMessage = NSLocalizedString("voice.recording.maxReached", comment: "Maximum recording length reached")
-                    stopRecording()
+                    if UIAccessibility.isVoiceOverRunning {
+                        UIAccessibility.post(notification: .announcement,
+                            argument: NSLocalizedString("voice.recording.maxReached.a11y", comment: "Maximum recording length reached — transcript saved"))
+                    }
+                    stopRecording(suppressStoppedAnnouncement: true)
+                    // Keep the pill visible briefly before the timer resets it.
+                    let capturedMessage = autoStopMessage
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(1.2))
+                        if autoStopMessage == capturedMessage {
+                            autoStopMessage = nil
+                        }
+                    }
                     break
                 }
             }
@@ -253,7 +272,9 @@ public struct VoiceButton: View {
         timerTask?.cancel()
         timerTask = nil
         elapsed = 0
-        autoStopMessage = nil
+        // autoStopMessage is intentionally NOT cleared here; the auto-stop path
+        // keeps it visible for ~1.2s via a delayed Task before nilling it out.
+        // Manual stops don't set autoStopMessage, so it stays nil.
         ringPulse = false
     }
 }

@@ -346,6 +346,8 @@
 /* Voice recording auto-stop at 60s system limit */
 "voice.recording.maxReached" = "Maximum length reached";
 "voice.recording.maxReached.a11y" = "Maximum recording length reached — transcript saved";
+/* Countdown pill shown in the final 10 s of a recording (%d = seconds remaining) */
+"voice.recording.secondsLeft" = "%ds left";
 
 /* Voice recognition error alert */
 "voice.error.title" = "Voice recognition error";
