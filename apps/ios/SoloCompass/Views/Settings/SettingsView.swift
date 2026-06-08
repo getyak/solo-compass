@@ -133,7 +133,7 @@ public struct SettingsView: View {
                     }
                 }
                 .contentShape(Rectangle())
-                .onTapGesture { preferences.soloTravelStyle = style }
+                .onTapGesture { Haptics.selection(); preferences.soloTravelStyle = style }
             }
         } header: {
             settingsSectionHeader("figure.walk", label: NSLocalizedString("settings.travelStyle", comment: "Travel Style"))
@@ -213,6 +213,7 @@ public struct SettingsView: View {
                         Text(category.localizedTitle).foregroundStyle(.secondary)
                         Spacer()
                         Button {
+                            Haptics.selection()
                             preferences.dislikedCategories.removeAll { $0 == category }
                         } label: {
                             Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
@@ -392,6 +393,7 @@ public struct SettingsView: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
+                    Haptics.selection()
                     if languageService.setLanguage(option) {
                         showingLanguageRestartAlert = true
                     }
@@ -634,6 +636,7 @@ public struct SettingsView: View {
     }
 
     private func togglePreferred(_ category: ExperienceCategory) {
+        Haptics.selection()
         preferences.dislikedCategories.removeAll { $0 == category }
         if preferences.preferredCategories.contains(category) {
             preferences.preferredCategories.removeAll { $0 == category }
@@ -643,6 +646,7 @@ public struct SettingsView: View {
     }
 
     private func toggleDisliked(_ category: ExperienceCategory) {
+        Haptics.notify(.warning)
         preferences.preferredCategories.removeAll { $0 == category }
         if preferences.dislikedCategories.contains(category) {
             preferences.dislikedCategories.removeAll { $0 == category }
@@ -1382,6 +1386,7 @@ struct VisibleCategoriesView: View {
     }
 
     private func toggle(_ category: ExperienceCategory) {
+        Haptics.selection()
         var next = preferences.visibleCategories
         if next.contains(category) {
             next.remove(category)
@@ -1491,6 +1496,7 @@ struct CustomTagsView: View {
     private func addDraft() {
         let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
+            Haptics.notify(.error)
             errorMessage = NSLocalizedString(
                 "settings.filter.custom_tags.empty_error",
                 comment: "Empty tag error"
@@ -1498,6 +1504,7 @@ struct CustomTagsView: View {
             return
         }
         if preferences.customTags.contains(trimmed) {
+            Haptics.notify(.error)
             errorMessage = NSLocalizedString(
                 "settings.filter.custom_tags.duplicate_error",
                 comment: "Duplicate tag error"
@@ -1505,11 +1512,13 @@ struct CustomTagsView: View {
             return
         }
         preferences.customTags.append(trimmed)
+        Haptics.notify(.success)
         draft = ""
         errorMessage = nil
     }
 
     private func deleteTags(at offsets: IndexSet) {
+        Haptics.impact(.light)
         var next = preferences.customTags
         next.remove(atOffsets: offsets)
         preferences.customTags = next
