@@ -1,4 +1,5 @@
 import SwiftUI
+import Accessibility
 
 /// Radar chart visualising the six SoloScore dimensions.
 /// Falls back to highlighted progress bars when dimension variance < 0.5.
@@ -232,6 +233,9 @@ public struct SoloScoreRadarChart: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
+        .accessibilityChartDescriptor(RadarChartDescriptor(
+            values: Self.axes.map { ($0.label, score.breakdown[keyPath: $0.keyPath]) }
+        ))
         .onTapGesture {
             guard !reduceMotion, !isReplaying else { return }
             replay()
@@ -425,6 +429,43 @@ public struct SoloScoreRadarChart: View {
             }
         }
     }
+}
+
+// MARK: - AXChartDescriptor
+
+private struct RadarChartDescriptor: AXChartDescriptorRepresentable {
+    let values: [(label: String, value: Double)]
+
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let categoryAxis = AXCategoricalDataAxisDescriptor(
+            title: NSLocalizedString("solo.radar.axis.dimension", comment: ""),
+            categoryOrder: values.map(\.label)
+        )
+        let valueAxis = AXNumericDataAxisDescriptor(
+            title: NSLocalizedString("solo.scoreTitle", comment: ""),
+            range: 0...10,
+            gridlinePositions: [0, 5, 10]
+        ) { value in "\(Int(value))" }
+
+        let dataPoints = values.map { pair in
+            AXDataPoint(x: .category(pair.label), y: .number(pair.value))
+        }
+        let series = AXDataSeriesDescriptor(
+            name: NSLocalizedString("solo.scoreTitle", comment: ""),
+            isContinuous: false,
+            dataPoints: dataPoints
+        )
+        return AXChartDescriptor(
+            title: NSLocalizedString("solo.scoreTitle", comment: ""),
+            summary: nil,
+            xAxis: categoryAxis,
+            yAxis: valueAxis,
+            additionalAxes: [],
+            series: [series]
+        )
+    }
+
+    func updateChartDescriptor(_ descriptor: AXChartDescriptor) {}
 }
 
 // MARK: - Axis tooltip
