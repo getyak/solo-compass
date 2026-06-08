@@ -354,6 +354,9 @@
 "voice.recording.maxReached.a11y" = "Maximum recording length reached — transcript saved";
 /* Countdown pill shown in the final 10 s of a recording (%d = seconds remaining) */
 "voice.recording.secondsLeft" = "%ds left";
+/* Empty-release hints shown above the button when no speech was captured */
+"voice.recording.empty" = "Didn't catch that — hold to speak";
+"voice.recording.tooShort" = "Hold the mic to speak";
 
 /* Voice recognition error alert */
 "voice.error.title" = "Voice recognition error";
