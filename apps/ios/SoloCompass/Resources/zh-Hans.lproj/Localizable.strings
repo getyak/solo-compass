@@ -1493,6 +1493,8 @@
 "solo.staff.desc" = "店员不打扰你 — 不盯着、不追问“还有别人来吗”、不催促服务。";
 "solo.weakest" = "注意：%@";
 "solo.weakest.a11y" = "注意：%@ 是该地点最弱的维度。";
+"solo.strongest" = "亮点：%@";
+"solo.strongest.a11y" = "最强维度：%@";
 
 /* Chat history (saved conversations) */
 "chat.history.title" = "历史记录";

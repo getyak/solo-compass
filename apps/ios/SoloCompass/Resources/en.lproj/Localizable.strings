@@ -238,6 +238,8 @@
 "solo.dim.safety" = "Safety";
 "solo.weakest" = "Watch: %@";
 "solo.weakest.a11y" = "Watch out: %@ is the weakest dimension for this place.";
+"solo.strongest" = "Great for: %@";
+"solo.strongest.a11y" = "Strongest dimension: %@";
 
 /* Empty filter banner (below FilterBarView) */
 "filter.empty.title" = "No matches";
