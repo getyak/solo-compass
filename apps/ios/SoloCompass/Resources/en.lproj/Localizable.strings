@@ -572,6 +572,9 @@
 "favorites.momentum.justDid" = "Nice — you just did %@";
 "favorites.momentum.closest" = "%@ is closest — go?";
 
+/* Favorites journey halfway milestone VoiceOver announcement */
+"favorites.journey.halfway" = "Halfway there — %1$d of %2$d explored";
+
 /* Favorites journey header — closest pill (shown when nearbyCount == 0) */
 "favorites.journey.closest" = "%1$@ · %2$@";
 "favorites.journey.closest.a11y" = "Closest favorite: %1$@, %2$@ away";
