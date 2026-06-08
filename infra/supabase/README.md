@@ -98,6 +98,41 @@ cap boundary (50 ok, 51st rejected), the block-pair silent drop, the
 discover gate, and the expiry sweep (past-due flips, future-dated stays).
 `ON_ERROR_STOP=1` makes the first failed ASSERT abort with a clear message.
 
+## Friend-code rotation test
+
+`0011_friend_code_rotation.sql` makes a leaked friend code invalidatable
+(US-026). It adds `sc_rotate_friend_code()` — a `SECURITY DEFINER` RPC that
+**atomically** revokes the caller's current live code and activates a fresh,
+crypto-random one (`sc_gen_friend_code()`, `SOLO-XXXX-XXXX` over an
+ambiguity-free alphabet, so codes are unguessable and not reverse-lookupable).
+The owner's live row is locked `FOR UPDATE`, so concurrent rotations serialize
+and the `friend_codes_user_live_unique` index (0008) guarantees exactly one
+live code per user — never two, never zero. A rotated-away code is `revoked_at`
+immediately, and `redeem-friend-code` only resolves codes with
+`revoked_at IS NULL`, so a leaked code stops redeeming the instant the owner
+rotates.
+
+Clients call it via PostgREST: `supabase.rpc("sc_rotate_friend_code")`.
+
+Run against a DB that has migrations `0001`–`0011` applied:
+
+```bash
+cd infra/supabase
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test_friend_code_rotation.sql
+```
+
+It asserts the code format, that rotation invalidates old + activates new
+immediately, that a revoked code no longer matches the redeem predicate,
+per-user isolation, and the one-live-code index backstop — all inside a
+rolled-back transaction. Concurrent idempotency is verifiable by driving
+`sc_rotate_friend_code()` from two sessions against the same user: the lock
+serializes them and exactly one live code remains.
+
+To verify a revoked code fails to redeem end-to-end after deploy: rotate
+(`supabase.rpc("sc_rotate_friend_code")`), then POST the *old* code to
+`redeem-friend-code` — it must return `404 {"error":"not found"}` (same as an
+unknown code, by anti-enumeration design).
+
 ## Edge Functions
 
 Live in `infra/supabase/functions/<name>/index.ts`. Deploy with:
