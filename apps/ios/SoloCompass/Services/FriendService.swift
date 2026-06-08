@@ -34,6 +34,14 @@ public final class FriendService {
     /// Days a pending request lives before auto-expiring (FR-6).
     private static let requestTTLDays = 14
 
+    /// US-016: anti-abuse gate for discover-sourced adds (reporter-weight floor
+    /// + rolling-window rate limit). Frontend precheck only; backend re-enforces.
+    private let discoverGate = DiscoverFriendGate()
+    /// Timestamps of this session's discover-sourced adds, feeding the rate
+    /// limit. In-memory is sufficient for the frontend precheck — the backend
+    /// owns the durable, cross-device counter.
+    private var discoverAddTimestamps: [Date] = []
+
     public init(client: SupabaseClientProtocol = SupabaseClient.shared) {
         self.client = client
     }
@@ -128,6 +136,48 @@ public final class FriendService {
                 return .failure(err)
             }
         }
+    }
+
+    // MARK: - US-016: Add friend from Discover (trust-gated)
+
+    /// Add a stranger straight from an anonymized Discover post.
+    ///
+    /// Runs the `DiscoverFriendGate` frontend precheck first — the post author's
+    /// `reporterWeight` must clear the floor (≥ 0.3) and the user must be under
+    /// the rolling-window rate limit — then delegates to `sendRequest` with
+    /// `source: .discover`. The `note` is capped at 120 chars (enforced again in
+    /// `sendRequest`). On a successful send the add is recorded for the rate
+    /// limit. The backend re-enforces both rules, so this precheck is UX-only.
+    ///
+    /// - Parameters:
+    ///   - recipientId: the post id / server-resolved recipient.
+    ///   - reporterWeight: the post author's trust weight (from `DiscoverPost`).
+    ///   - note: optional hello, truncated to 120 chars.
+    /// - Returns: the resolved outcome, or a `DiscoverAddError` when gated.
+    @discardableResult
+    public func sendDiscoverRequest(
+        to recipientId: String,
+        reporterWeight: Double,
+        note: String? = nil
+    ) async -> Result<SendRequestOutcome, Error> {
+        if let denial = discoverGate.evaluate(
+            reporterWeight: reporterWeight,
+            recentAddTimestamps: discoverAddTimestamps
+        ) {
+            switch denial {
+            case .lowReporterWeight:
+                return .failure(DiscoverAddError.lowReporterWeight)
+            case .rateLimited:
+                return .failure(DiscoverAddError.rateLimited)
+            }
+        }
+
+        let cappedNote = note.map { String($0.prefix(120)) }
+        let result = await sendRequest(to: recipientId, source: .discover, note: cappedNote)
+        if case .success = result {
+            discoverAddTimestamps.append(Date())
+        }
+        return result
     }
 
     // MARK: - FRD-005: Accept / Decline / Withdraw
@@ -657,6 +707,30 @@ public enum FriendServiceError: LocalizedError {
             return NSLocalizedString("friend.error.encoding", comment: "Failed to encode friend payload")
         case .cannotFriendSelf:
             return NSLocalizedString("friend.error.self", comment: "Cannot friend yourself")
+        }
+    }
+}
+
+/// US-016: failures surfaced by the discover-add anti-abuse gate (frontend
+/// precheck). The backend re-enforces the same rules as the trust boundary.
+public enum DiscoverAddError: LocalizedError, Equatable {
+    /// The post author's reporter_weight is below the floor (≥ 0.3).
+    case lowReporterWeight
+    /// The user hit the rolling-window discover-add rate limit.
+    case rateLimited
+
+    public var errorDescription: String? {
+        switch self {
+        case .lowReporterWeight:
+            return NSLocalizedString(
+                "friend.discover.error.lowTrust",
+                comment: "Discover add blocked — author below reporter-weight floor"
+            )
+        case .rateLimited:
+            return NSLocalizedString(
+                "friend.discover.error.rateLimited",
+                comment: "Discover add blocked — too many adds in a short time"
+            )
         }
     }
 }

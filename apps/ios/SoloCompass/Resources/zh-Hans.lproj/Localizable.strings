@@ -1485,3 +1485,11 @@
 "chat.history.empty" = "还没有保存的对话";
 "chat.history.open.a11y" = "打开聊天历史";
 "common.done" = "完成";
+
+/* Friends — add from Discover (US-016) */
+"companion.discover.detail.title" = "添加好友";
+"friend.discover.note.label" = "添加留言（可选）";
+"friend.discover.note.placeholder" = "打个招呼吧 —— 是什么让你想认识 TA？";
+"friend.discover.note.count.a11y" = "%d / %d 个字符";
+"friend.discover.error.lowTrust" = "暂时无法添加这位旅行者。";
+"friend.discover.error.rateLimited" = "你最近添加的人有点多，请稍后再试。";

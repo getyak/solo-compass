@@ -12,6 +12,8 @@ public struct DiscoverListView: View {
     @Environment(UserPreferences.self) private var preferences
     @State private var service: CompanionService
     @State private var selectedPost: DiscoverPost?
+    /// US-016: post tapped to open the trust-gated [Add Friend] detail.
+    @State private var addFriendTarget: DiscoverPost?
     @State private var sentRequestIds: Set<String> = []
     @State private var reportTarget: DiscoverPost?
     @State private var errorMessage: String?
@@ -101,6 +103,9 @@ public struct DiscoverListView: View {
                 service.discoverPosts.removeAll { $0.id == post.id }
             }
         }
+        .sheet(item: $addFriendTarget) { post in
+            DiscoverPostDetailView(post: post)
+        }
     }
 
     // MARK: - Subviews
@@ -168,7 +173,8 @@ public struct DiscoverListView: View {
                     index: index,
                     hasSentRequest: sentRequestIds.contains(post.id),
                     onSendRequest: { selectedPost = post },
-                    onReport: { reportTarget = post }
+                    onReport: { reportTarget = post },
+                    onAddFriend: { addFriendTarget = post }
                 )
             }
         }
@@ -247,6 +253,8 @@ private struct DiscoverPostRow: View {
     let hasSentRequest: Bool
     let onSendRequest: () -> Void
     let onReport: () -> Void
+    /// US-016: open the trust-gated [Add Friend] detail for this post.
+    let onAddFriend: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -284,7 +292,10 @@ private struct DiscoverPostRow: View {
                 categoryPills
             }
 
-            sendButton
+            HStack(spacing: 8) {
+                sendButton
+                addFriendButton
+            }
         }
         .padding(.vertical, 4)
         .opacity(appeared ? 1 : 0)
@@ -299,6 +310,14 @@ private struct DiscoverPostRow: View {
             }
         }
         .contextMenu {
+            Button {
+                onAddFriend()
+            } label: {
+                Label(
+                    NSLocalizedString("friend.add.state.add", comment: "Add friend menu item"),
+                    systemImage: "person.badge.plus"
+                )
+            }
             Button(role: .destructive) {
                 onReport()
             } label: {
@@ -356,6 +375,23 @@ private struct DiscoverPostRow: View {
                     withAnimation(.easeOut(duration: 0.12)) { pressed = false }
                 }
         )
+    }
+
+    /// US-016: opens the trust-gated [Add Friend] detail for this post.
+    private var addFriendButton: some View {
+        Button {
+            Haptics.selection()
+            onAddFriend()
+        } label: {
+            Label(
+                NSLocalizedString("friend.add.state.add", comment: "Add friend"),
+                systemImage: "person.badge.plus"
+            )
+            .font(.subheadline.weight(.medium))
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(.accentColor)
     }
 
     private func formattedDateRange(from: String, to: String) -> String {

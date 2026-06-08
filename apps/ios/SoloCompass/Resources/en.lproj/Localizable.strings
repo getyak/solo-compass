@@ -1568,3 +1568,11 @@
 "friend.error.disabled" = "Friends aren't available right now.";
 "friend.error.encoding" = "Something went wrong. Please try again.";
 "friend.error.self" = "You can't add yourself.";
+
+/* Friends — add from Discover (US-016) */
+"companion.discover.detail.title" = "Add Friend";
+"friend.discover.note.label" = "Add a note (optional)";
+"friend.discover.note.placeholder" = "Say hello — what made you reach out?";
+"friend.discover.note.count.a11y" = "%d of %d characters";
+"friend.discover.error.lowTrust" = "This traveler can't be added right now.";
+"friend.discover.error.rateLimited" = "You've added a lot of people recently. Try again later.";
