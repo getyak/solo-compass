@@ -1493,3 +1493,11 @@
 "friend.discover.note.count.a11y" = "%d / %d 个字符";
 "friend.discover.error.lowTrust" = "暂时无法添加这位旅行者。";
 "friend.discover.error.rateLimited" = "你最近添加的人有点多，请稍后再试。";
+
+/* US-017: 统一会话列表（我 ▸ 消息） */
+"messages.empty" = "暂无会话";
+"messages.preview.empty" = "暂无消息";
+"messages.preview.attachment" = "📎 附件";
+"messages.group.fallbackTitle" = "路线群聊";
+"messages.unknownUser" = "旅行者";
+"messages.unread.a11y" = "未读";

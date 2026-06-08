@@ -1576,3 +1576,11 @@
 "friend.discover.note.count.a11y" = "%d of %d characters";
 "friend.discover.error.lowTrust" = "This traveler can't be added right now.";
 "friend.discover.error.rateLimited" = "You've added a lot of people recently. Try again later.";
+
+/* US-017: unified conversation list (Me ▸ Messages) */
+"messages.empty" = "No conversations yet";
+"messages.preview.empty" = "No messages yet";
+"messages.preview.attachment" = "📎 Attachment";
+"messages.group.fallbackTitle" = "Route group";
+"messages.unknownUser" = "Traveler";
+"messages.unread.a11y" = "Unread";

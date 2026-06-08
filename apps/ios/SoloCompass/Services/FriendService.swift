@@ -312,6 +312,66 @@ public final class FriendService {
         return .success(conversation)
     }
 
+    // MARK: - US-017: Unified conversation list
+
+    /// The current user's id, resolved from the active session (falls back to
+    /// the local placeholder). Exposed so views can pass `currentUserId` into
+    /// `ChatView` without re-deriving it.
+    public var resolvedUserId: String { currentUserId }
+
+    /// List every conversation the current user participates in — `friendDirect`
+    /// DMs, `oneOnOne` companion threads, and `groupRoute` chats — newest first.
+    ///
+    /// Sort key is `last_message_at` descending, with conversations that have no
+    /// messages yet (nil `last_message_at`) sorted to the bottom by `created_at`.
+    /// PostgREST `cs` (contains) matches the current user inside the
+    /// `participant_ids` array. The messages themselves load lazily in
+    /// `ChatView`; this only returns the thread rows for the list.
+    ///
+    /// - Returns: the conversations, or a failure when the feature is off or the
+    ///   network read fails. An empty result is `.success([])`, not a failure.
+    public func listConversations() async -> Result<[Conversation], Error> {
+        guard FeatureFlags.companion else {
+            return .failure(FriendServiceError.featureDisabled)
+        }
+
+        let result = await client.get(
+            table: "conversations",
+            query: [
+                URLQueryItem(
+                    name: "participant_ids",
+                    value: "cs.{\(currentUserId)}"
+                ),
+                URLQueryItem(name: "order", value: "last_message_at.desc.nullslast"),
+            ]
+        )
+
+        switch result {
+        case .success(let data):
+            guard !data.isEmpty,
+                  let rows = try? JSONDecoder.iso8601Decoder.decode([Conversation].self, from: data)
+            else {
+                return .success([])
+            }
+            return .success(sortByRecency(rows))
+        case .failure(let err):
+            return .failure(err)
+        }
+    }
+
+    /// Newest-first ordering: conversations with a `lastMessageAt` come first
+    /// (descending), then message-less threads by `createdAt` descending. Done
+    /// client-side too so the order is deterministic regardless of backend
+    /// null-ordering quirks.
+    private func sortByRecency(_ conversations: [Conversation]) -> [Conversation] {
+        conversations.sorted { lhs, rhs in
+            let lKey = lhs.lastMessageAt ?? ""
+            let rKey = rhs.lastMessageAt ?? ""
+            if lKey != rKey { return lKey > rKey }
+            return lhs.createdAt > rhs.createdAt
+        }
+    }
+
     // MARK: - US-013: Shareable friend code (friend_codes)
 
     /// Load the current user's active friend code, lazily generating one the

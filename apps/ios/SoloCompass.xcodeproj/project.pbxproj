@@ -15,6 +15,7 @@
 		09D620F3F748072EBF4AD680 /* AddFriendButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6435C36695377646C7ED8FC2 /* AddFriendButton.swift */; };
 		0A830B26D4A18948D16F3A42 /* Experience.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C97F8159A6FA7953D28DAB /* Experience.swift */; };
 		0A9FB49B7459777E59EDA55A /* LongPressCardModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA7F7C7168AB78E23C3AB0 /* LongPressCardModifier.swift */; };
+		0AF933A2FC20BD18F71ECDCA /* ConversationListRenderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5B6016449DF7A639F54DE3 /* ConversationListRenderTest.swift */; };
 		0B7CC2BD1359B8AB3E4A590D /* HapticServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4609B3C2E77F98A59871C26E /* HapticServiceTests.swift */; };
 		0C0580E1BF61F5C02C2EE640 /* BottomSheetUnifiedScrollGuardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36E41DCA29798B5D8E49B7CA /* BottomSheetUnifiedScrollGuardTest.swift */; };
 		0DE8ECCE242F2FDFFD69C199 /* VoiceInterruptionToastTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7AFBAAF6E42AE8043F476D /* VoiceInterruptionToastTest.swift */; };
@@ -221,6 +222,7 @@
 		9D78B88DE90BE5BF9316604C /* FriendRequestRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85DE9F82B08AC3222B1D6B67 /* FriendRequestRecord.swift */; };
 		9D799B457AC16C84BB460D18 /* RouteCardTappableGuardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4317C293B762EA1C8A436B8A /* RouteCardTappableGuardTest.swift */; };
 		9D81327AE55FA8142F9E5B8D /* ChatUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0709110B381DEDA32C3292AE /* ChatUIState.swift */; };
+		9DA3FB74B38298C6CFB72B08 /* ConversationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB5FD37267074EF4015F95D /* ConversationListView.swift */; };
 		9F8D8133FC74C4E206A11DB9 /* ItineraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD7871A003B28A7C46AC8D7 /* ItineraryStoreTests.swift */; };
 		9FDC9CE4E9D3B505758EDB7D /* AttachmentBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9055347887EF473171916120 /* AttachmentBubble.swift */; };
 		A12DF78B6B05519D2177A519 /* RouteCompanionForceUnwrapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF2CEF9FE62124F51460453 /* RouteCompanionForceUnwrapTests.swift */; };
@@ -401,6 +403,7 @@
 		0A4CE01B80793852F97DBC89 /* FriendshipRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendshipRecord.swift; sourceTree = "<group>"; };
 		0C04A7D4DE12B98E4801D7C4 /* NowScoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowScoreTests.swift; sourceTree = "<group>"; };
 		0C6FC4A3B60FA8D9DC3A4779 /* SoloScoreRadarA11yTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloScoreRadarA11yTest.swift; sourceTree = "<group>"; };
+		0CB5FD37267074EF4015F95D /* ConversationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationListView.swift; sourceTree = "<group>"; };
 		0E0157D30FF53B21FF31D519 /* MarkerIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkerIconView.swift; sourceTree = "<group>"; };
 		0FCE40A39EEEDA3A22E17689 /* SavedCity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCity.swift; sourceTree = "<group>"; };
 		10F48D7FA14E29D606FD11EA /* RouteCompanionStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCompanionStateMachineTests.swift; sourceTree = "<group>"; };
@@ -716,6 +719,7 @@
 		EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloScoreBadge.swift; sourceTree = "<group>"; };
 		EBCD0D2CE7423C29CD668866 /* PublicAPIDocCommentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicAPIDocCommentTests.swift; sourceTree = "<group>"; };
 		EBE2EB5167CEC62E5E021719 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		EC5B6016449DF7A639F54DE3 /* ConversationListRenderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationListRenderTest.swift; sourceTree = "<group>"; };
 		EC8F9EFD56A2C839428AA92D /* ConfidenceBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfidenceBadge.swift; sourceTree = "<group>"; };
 		ED3CB5045CE59A613B5CAAF5 /* SoloCompassTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassTests.swift; sourceTree = "<group>"; };
 		EDE5D2141CB2B68B7F1C560E /* SentryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentryService.swift; sourceTree = "<group>"; };
@@ -813,6 +817,7 @@
 				69068DE8A2F71601627AE3E8 /* CompanionProfileView.swift */,
 				CF90C42465B4E989A6DB9D05 /* CompanionSafetyConsentSheet.swift */,
 				387808A923EC7A99AD5390FD /* CompletionMoment.swift */,
+				0CB5FD37267074EF4015F95D /* ConversationListView.swift */,
 				F0782F4AA0496B97DDAAA380 /* CreateRouteView.swift */,
 				FADDD17473F138874328A33E /* DiscoverListView.swift */,
 				542C0D57002828AF85367C94 /* DiscoverPostDetailView.swift */,
@@ -886,6 +891,7 @@
 				0535B15C19B134898D9880BE /* CompassMapViewLayerToggleTests.swift */,
 				56AF27F0567AACEA9E6D916E /* CompiledPlaceTests.swift */,
 				649ECD409B685D38E30527FD /* CompletionMomentTests.swift */,
+				EC5B6016449DF7A639F54DE3 /* ConversationListRenderTest.swift */,
 				2CEFD2E522C2D9FFF8EF0B0B /* ConversationTests.swift */,
 				45BB36326BBDD7860ECD722B /* CreateRouteEntryTappableGuardTest.swift */,
 				A7D06753CFAA5198FCB3FF96 /* DiscoverFriendGateTests.swift */,
@@ -1546,6 +1552,7 @@
 				3A91B128119A6288C6C9A9D9 /* CompassMapViewLayerToggleTests.swift in Sources */,
 				259F1E0030F914782D632794 /* CompiledPlaceTests.swift in Sources */,
 				1130F4E1887551F856FCB9DB /* CompletionMomentTests.swift in Sources */,
+				0AF933A2FC20BD18F71ECDCA /* ConversationListRenderTest.swift in Sources */,
 				AA5C5AEBFB7B2266A4781877 /* ConversationTests.swift in Sources */,
 				66C352786CB25AA13017F933 /* CreateRouteEntryTappableGuardTest.swift in Sources */,
 				8D0C03425BA0C7D5E50B016D /* DiscoverFriendGateTests.swift in Sources */,
@@ -1705,6 +1712,7 @@
 				240FFFC4A2B2B8F941129783 /* ConfidenceBadge.swift in Sources */,
 				65E57E8B02E7889BD8EE8DD4 /* ContextManager.swift in Sources */,
 				C09361B1A5560755F3C5DD67 /* Conversation.swift in Sources */,
+				9DA3FB74B38298C6CFB72B08 /* ConversationListView.swift in Sources */,
 				B9EDA827F7E00B19DF97512C /* ConversationRecord.swift in Sources */,
 				4C16F9056859D3AFA88B3355 /* ConversationStore.swift in Sources */,
 				1C87BA1A3EB6B4D7FFCE3EA0 /* CreateExperienceSheet.swift in Sources */,

@@ -37,7 +37,9 @@ struct MeSheet: View {
                         )
                     }
                     NavigationLink {
-                        RequestInboxView()
+                        // US-017: unified inbox — friend DMs + companion 1:1 +
+                        // route group chats, time-sorted in a single list.
+                        ConversationListView()
                     } label: {
                         MeRow(
                             systemImage: "bubble.left.and.bubble.right.fill",
