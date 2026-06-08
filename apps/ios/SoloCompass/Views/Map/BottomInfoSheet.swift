@@ -736,8 +736,14 @@ struct NearbyExperienceRow: View {
     var onLongPress: (() -> Void)? = nil
 
     @State private var pressed = false
+    @State private var pulsing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(LocationService.self) private var locationService
+
+    private var isNearby: Bool {
+        guard let m = distanceMeters else { return false }
+        return m < 150
+    }
 
     private static let distanceFormatter: MeasurementFormatter = {
         let f = MeasurementFormatter()
@@ -989,19 +995,46 @@ struct NearbyExperienceRow: View {
     private var distanceColumn: some View {
         let bearing = relativeBearing
         let hasLiveBearing = bearing != nil
+        let arrowColor: AnyShapeStyle = isNearby
+            ? AnyShapeStyle(CT.sunGoldDeep)
+            : (hasLiveBearing ? AnyShapeStyle(CT.fgMuted) : AnyShapeStyle(CT.fgSubtle))
         return VStack(alignment: .trailing, spacing: 4) {
             Image(systemName: "location.north.line.fill")
                 .font(.caption2)
-                .foregroundStyle(hasLiveBearing ? AnyShapeStyle(CT.fgMuted) : AnyShapeStyle(CT.fgSubtle))
+                .foregroundStyle(arrowColor)
                 .rotationEffect(.degrees(bearing ?? 0))
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
+                .scaleEffect(pulsing ? 1.18 : 1.0)
             if let meters = distanceMeters {
                 Text(formattedDistance(meters))
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(CT.fgSubtle)
+                    .foregroundStyle(isNearby ? AnyShapeStyle(CT.sunGoldDeep) : AnyShapeStyle(CT.fgSubtle))
+                if isNearby {
+                    Text(NSLocalizedString("peek.card.almostThere", comment: "Almost there micro-label shown when < 150m"))
+                        .font(.caption2)
+                        .foregroundStyle(CT.sunGoldDeep)
+                }
             }
         }
         .accessibilityHidden(true)
+        .onAppear { startNearbyPulseIfNeeded() }
+        .onChange(of: isNearby) { _, nearby in
+            if nearby {
+                startNearbyPulseIfNeeded()
+            } else {
+                withAnimation(.default) { pulsing = false }
+            }
+        }
+    }
+
+    private func startNearbyPulseIfNeeded() {
+        guard isNearby, !reduceMotion else {
+            pulsing = false
+            return
+        }
+        withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
+            pulsing = true
+        }
     }
 
     private var cardBackground: some View {
@@ -1031,6 +1064,9 @@ struct NearbyExperienceRow: View {
         }
         if isOpenNow {
             label += ", " + NSLocalizedString("sheet.nearby.openNow.a11y", comment: "Open now accessibility")
+        }
+        if isNearby {
+            label += ", " + NSLocalizedString("peek.card.almostThere.a11y", comment: "VoiceOver: almost there proximity cue")
         }
         return Text(label)
     }
