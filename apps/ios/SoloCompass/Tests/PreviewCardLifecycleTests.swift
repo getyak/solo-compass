@@ -7,20 +7,21 @@ import XCTest
 ///
 ///     selectedExperience != nil && !isShowingDetail
 ///
-/// Unified-preview model (all entry points behave the same):
-///   • selecting an experience (map pin, Nearby row, favorites) floats the
-///     preview card — it does NOT jump straight to detail;
-///   • the card's expand action opens the detail sheet (isShowingDetail = true);
+/// Tap-vs-long-press model (all card/pin entry points behave the same):
+///   • TAP a card/pin (`openExperienceDetail`) jumps straight to the detail
+///     sheet — `selectedExperience` is set AND `isShowingDetail = true`;
+///   • LONG-PRESS a card/pin (`selectExperience`) floats the quick preview card
+///     instead — it does NOT open detail;
+///   • the preview card's expand action opens the detail sheet
+///     (isShowingDetail = true);
 ///   • backing out of detail (dismissDetail) FALLS BACK to the preview card —
 ///     selection is retained, because detail is a layer above the preview;
 ///   • the card's own dismiss (clearSelection) is the only thing that returns
 ///     to the bare map.
 ///
-/// Regression guard for the "退出详情后悬窗残留" report: the original surprise
-/// was that a list row skipped the card on the way in but the card popped up on
-/// the way out. Now the card is consistently present on both legs, so the
-/// return is expected rather than jarring — and `clearSelection` gives a clean
-/// exit.
+/// Regression guard for the "退出详情后悬窗残留" report: backing out of detail
+/// lands on the preview card (selection retained), and `clearSelection` gives a
+/// clean exit to the bare map.
 @MainActor
 final class PreviewCardLifecycleTests: XCTestCase {
 
@@ -43,18 +44,46 @@ final class PreviewCardLifecycleTests: XCTestCase {
         try XCTUnwrap(vm.visibleExperiences.first, "seed expected ≥1 experience")
     }
 
-    // MARK: - Unified entry: selecting floats the card, never auto-opens detail
+    // MARK: - Long-press path: selectExperience floats the card, never opens detail
 
     func testSelectExperienceFloatsCardWithoutOpeningDetail() throws {
         let vm = makeViewModel()
         let exp = try firstExperience(vm)
 
-        vm.selectExperience(exp)
+        vm.selectExperience(exp)             // long-press path
         XCTAssertTrue(cardIsFloating(vm),
-                      "selecting an experience must float the preview card")
+                      "long-pressing an experience must float the preview card")
         XCTAssertFalse(vm.isShowingDetail,
-                       "selecting must NOT auto-open the detail sheet — "
-                       + "every entry point previews first")
+                       "long-press must NOT open the detail sheet — it previews")
+    }
+
+    // MARK: - Tap path: openExperienceDetail jumps straight to detail
+
+    func testOpenExperienceDetailJumpsStraightToDetail() throws {
+        let vm = makeViewModel()
+        let exp = try firstExperience(vm)
+
+        vm.openExperienceDetail(exp)         // tap path
+        XCTAssertEqual(vm.selectedExperience?.id, exp.id,
+                       "tapping must set the selection so back-out lands on the card")
+        XCTAssertTrue(vm.isShowingDetail,
+                      "tapping a card/pin must open the detail sheet directly")
+        XCTAssertFalse(cardIsFloating(vm),
+                       "the preview card must NOT float on a tap — detail is up")
+    }
+
+    // MARK: - Tap → back-out falls back to the preview card
+
+    func testOpenDetailThenDismissFallsBackToCard() throws {
+        let vm = makeViewModel()
+        let exp = try firstExperience(vm)
+
+        vm.openExperienceDetail(exp)         // tap → detail
+        vm.dismissDetail()                   // back out of detail
+        XCTAssertTrue(cardIsFloating(vm),
+                      "backing out of a tapped detail still lands on the card")
+        XCTAssertEqual(vm.selectedExperience?.id, exp.id,
+                       "selection retained after dismissing a tapped detail")
     }
 
     // MARK: - Card → detail → back lands on the card again
