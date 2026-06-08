@@ -268,6 +268,8 @@
 "me.friends.empty.cta" = "Add a friend";
 "me.avatar.a11y" = "Open your personal hub";
 "me.avatar.a11y.pending" = "You have pending friend requests";
+"me.stats.saved" = "Saved";
+"me.stats.explored" = "Explored";
 
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";

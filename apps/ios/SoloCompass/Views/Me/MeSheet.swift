@@ -20,6 +20,7 @@ struct MeSheet: View {
     var deepLinkConversationId: String? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(UserPreferences.self) private var preferences
     @State private var showingSettings = false
     /// Programmatic nav path so a `message` deep link can push the Messages hub.
     @State private var path: [MeDestination] = []
@@ -34,9 +35,12 @@ struct MeSheet: View {
         NavigationStack(path: $path) {
             List {
                 Section {
-                    ProfileHeader()
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
+                    ProfileHeader(
+                        favoritedCount: preferences.favoritedExperiences.count,
+                        exploredCount: preferences.completedExperiences.count
+                    )
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
                 }
 
                 Section {
@@ -114,6 +118,9 @@ struct MeSheet: View {
 /// renders the local default identity (emoji + name) rather than a fetched
 /// backend profile — richer profile editing lands in a later story.
 private struct ProfileHeader: View {
+    let favoritedCount: Int
+    let exploredCount: Int
+
     var body: some View {
         HStack(spacing: 14) {
             Text(CompanionProfile.sample.avatarEmoji)
@@ -128,11 +135,59 @@ private struct ProfileHeader: View {
                 Text(NSLocalizedString("me.profile.subtitle", comment: "Profile subtitle"))
                     .font(.subheadline)
                     .foregroundStyle(CT.fgSubtle)
+                HStack(spacing: 12) {
+                    StatPill(
+                        target: favoritedCount,
+                        caption: NSLocalizedString("me.stats.saved", comment: "Saved experiences stat label")
+                    )
+                    StatPill(
+                        target: exploredCount,
+                        caption: NSLocalizedString("me.stats.explored", comment: "Explored experiences stat label")
+                    )
+                }
+                .padding(.top, 4)
             }
             Spacer()
         }
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Stat pill
+
+private struct StatPill: View {
+    let target: Int
+    let caption: String
+
+    @State private var shown: Int = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Text("\(shown)")
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundStyle(CT.fgPrimary)
+                .contentTransition(.numericText())
+            Text(caption)
+                .font(.caption)
+                .foregroundStyle(CT.fgSubtle)
+        }
+        .onAppear {
+            if reduceMotion {
+                shown = target
+            } else {
+                Task {
+                    let steps = min(target, 20)
+                    guard steps > 0 else { return }
+                    for step in 1...steps {
+                        try? await Task.sleep(nanoseconds: 30_000_000)
+                        shown = target * step / steps
+                    }
+                    shown = target
+                }
+            }
+        }
     }
 }
 
@@ -279,6 +334,7 @@ struct MapAvatarBubble: View {
 
 #Preview("MeSheet") {
     MeSheet(pendingRequestCount: 2)
+        .environment(UserPreferences())
 }
 
 #Preview("Avatar bubble") {
