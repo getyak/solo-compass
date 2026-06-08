@@ -45,7 +45,7 @@ public struct FriendsListView: View {
             } else if let error = service.lastError {
                 errorView(message: error)
             } else if service.friends.isEmpty && service.incomingRequests.isEmpty {
-                EmptyFriendsView()
+                EmptyFriendsView(onAddFriend: { showAddFriend = true })
             } else {
                 friendsList
             }
@@ -486,6 +486,8 @@ private struct FriendRow: View {
 // MARK: - EmptyFriendsView
 
 private struct EmptyFriendsView: View {
+    var onAddFriend: (() -> Void)? = nil
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isBreathing = false
 
@@ -511,6 +513,17 @@ private struct EmptyFriendsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            if let onAddFriend {
+                Button {
+                    Haptics.selection()
+                    onAddFriend()
+                } label: {
+                    Label(NSLocalizedString("friends.list.empty.cta", comment: "Add a friend button in empty friends state"), systemImage: "person.badge.plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .padding(.top, 4)
+            }
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
