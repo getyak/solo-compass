@@ -1,7 +1,7 @@
 {
   "project": "SoloCompass",
   "branchName": "feat/friends-social-graph",
-  "description": "Friends & Social Graph — a persistent bidirectional relationship layer on top of the ephemeral companion system. Add friends (3 paths), invite friends to companion meetups, persistent DMs, read-only profiles, and APNs push. Reuses FF_COMPANION. iOS uses xcodebuild build/test (NOT web typecheck); NEW .swift files MUST run `cd apps/ios && xcodegen` before building or they are not in the target (cannot-find-in-scope). UI verified via Simulator screenshots (simctl), not dev-browser. Source PRD: tasks/prd-friends-social-graph.md. Design: docs/FRIENDS_DESIGN.md.",
+  "description": "Friends & Social Graph \u2014 a persistent bidirectional relationship layer on top of the ephemeral companion system. Add friends (3 paths), invite friends to companion meetups, persistent DMs, read-only profiles, and APNs push. Reuses FF_COMPANION. iOS uses xcodebuild build/test (NOT web typecheck); NEW .swift files MUST run `cd apps/ios && xcodegen` before building or they are not in the target (cannot-find-in-scope). UI verified via Simulator screenshots (simctl), not dev-browser. Source PRD: tasks/prd-friends-social-graph.md. Design: docs/FRIENDS_DESIGN.md.",
   "userStories": [
     {
       "id": "US-001",
@@ -14,7 +14,7 @@
       ],
       "priority": 1,
       "passes": true,
-      "notes": "DONE — committed 84f8638. friend.ts + parity registration green."
+      "notes": "DONE \u2014 committed 84f8638. friend.ts + parity registration green."
     },
     {
       "id": "US-002",
@@ -28,7 +28,7 @@
       ],
       "priority": 2,
       "passes": true,
-      "notes": "DONE — committed 84f8638. parity green, BUILD SUCCEEDED."
+      "notes": "DONE \u2014 committed 84f8638. parity green, BUILD SUCCEEDED."
     },
     {
       "id": "US-003",
@@ -41,7 +41,7 @@
       ],
       "priority": 3,
       "passes": true,
-      "notes": "DONE — committed 84f8638."
+      "notes": "DONE \u2014 committed 84f8638."
     },
     {
       "id": "US-004",
@@ -56,7 +56,7 @@
       ],
       "priority": 4,
       "passes": true,
-      "notes": "DONE — committed 805a32f + c2ba8a4 (xcodegen). BUILD SUCCEEDED."
+      "notes": "DONE \u2014 committed 805a32f + c2ba8a4 (xcodegen). BUILD SUCCEEDED."
     },
     {
       "id": "US-005",
@@ -70,7 +70,7 @@
       ],
       "priority": 5,
       "passes": true,
-      "notes": "DONE — committed 805a32f + c2ba8a4. 11 tests passed, 0 failures."
+      "notes": "DONE \u2014 committed 805a32f + c2ba8a4. 11 tests passed, 0 failures."
     },
     {
       "id": "US-006",
@@ -84,7 +84,7 @@
       ],
       "priority": 6,
       "passes": true,
-      "notes": "DONE — committed 805a32f + c2ba8a4. BUILD SUCCEEDED."
+      "notes": "DONE \u2014 committed 805a32f + c2ba8a4. BUILD SUCCEEDED."
     },
     {
       "id": "US-007",
@@ -99,7 +99,7 @@
         "Verify in Simulator with simctl screenshot (bubble placement + sheet)"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "First UI story. Avatar overlay must respect safe area (see project_mapcontrols_safearea_collision)."
     },
     {
@@ -312,7 +312,7 @@
       ],
       "priority": 21,
       "passes": false,
-      "notes": "Certificate config is manual (Apple Developer) — code side only; flag manual-verify steps."
+      "notes": "Certificate config is manual (Apple Developer) \u2014 code side only; flag manual-verify steps."
     },
     {
       "id": "US-022",
@@ -340,7 +340,7 @@
       ],
       "priority": 23,
       "passes": false,
-      "notes": "Live delivery needs APNs cert — flag manual-verify."
+      "notes": "Live delivery needs APNs cert \u2014 flag manual-verify."
     },
     {
       "id": "US-024",
@@ -354,7 +354,7 @@
       ],
       "priority": 24,
       "passes": false,
-      "notes": "Live delivery needs APNs cert — flag manual-verify."
+      "notes": "Live delivery needs APNs cert \u2014 flag manual-verify."
     },
     {
       "id": "US-025",
@@ -396,7 +396,7 @@
       ],
       "priority": 27,
       "passes": false,
-      "notes": "Requires real Supabase + APNs cert — produce checklist for manual execution."
+      "notes": "Requires real Supabase + APNs cert \u2014 produce checklist for manual execution."
     }
   ]
 }

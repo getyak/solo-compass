@@ -249,6 +249,20 @@
 "map.recenter" = "Recenter on my location";
 "map.userLocation.label" = "Your location";
 
+/* US-007: Personal hub (MeSheet) + map avatar entry */
+"me.title" = "Me";
+"me.friends" = "Friends";
+"me.messages" = "Messages";
+"me.companion" = "Companion";
+"me.settings" = "Settings";
+"me.profile.name" = "Solo Traveler";
+"me.profile.subtitle" = "Your compass, your journey";
+"me.friends.incoming" = "Friend Requests";
+"me.friends.list" = "Friends";
+"me.friends.empty" = "No friends yet";
+"me.avatar.a11y" = "Open your personal hub";
+"me.avatar.a11y.pending" = "You have pending friend requests";
+
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";
 "map.empty.hint" = "Try clearing filters or moving the map.";

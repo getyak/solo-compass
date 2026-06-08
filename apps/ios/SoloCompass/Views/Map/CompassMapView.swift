@@ -152,6 +152,11 @@ struct CompassMapContentView: View {
     // Presentation is driven by `voiceOrchestrator` via `.sheet(item:)`.
     @State private var chatStartMode: ChatStartMode = .text
     @State private var isMapPanning: Bool = false
+    // US-007: personal hub (MeSheet) presentation, driven by the top-right
+    // avatar bubble in the map overlay. Friend state is read live so the
+    // bubble can show a pending-request dot.
+    @State private var isShowingMe: Bool = false
+    @State private var friendService = FriendService.shared
     @State private var lastPanAt: Date = .distantPast
     @State private var panDebounceTask: Task<Void, Never>? = nil
 
@@ -430,6 +435,10 @@ struct CompassMapContentView: View {
             // alongside the other top-level sheets instead of silently dropping a
             // deeply-nested presenter (which left RouteCards un-openable).
             .sheet(item: $routeSheet) { sheet in routeSheetContent(sheet) }
+            // US-007: personal hub presented from the top-right map avatar bubble.
+            .sheet(isPresented: $isShowingMe) {
+                MeSheet(pendingRequestCount: friendService.incomingRequests.count)
+            }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
             .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
     }
@@ -508,7 +517,9 @@ struct CompassMapContentView: View {
                     dismissedExploreError: $dismissedExploreError,
                     dismissedQuotaInfo: $dismissedQuotaInfo,
                     dismissedLocationError: $dismissedLocationError,
-                    isMapPanning: $isMapPanning
+                    isMapPanning: $isMapPanning,
+                    pendingRequestCount: friendService.incomingRequests.count,
+                    onTapAvatar: { isShowingMe = true }
                 )
 
                 VStack {
@@ -1467,6 +1478,10 @@ private struct MapOverlayView: View {
     @Binding var dismissedQuotaInfo: String?
     @Binding var dismissedLocationError: Bool
     @Binding var isMapPanning: Bool
+    // US-007: pending friend-request count drives the avatar's red dot;
+    // the tap opens the personal hub (MeSheet).
+    var pendingRequestCount: Int = 0
+    var onTapAvatar: () -> Void = {}
 
     @State private var checkInCelebrationTrigger = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -1502,6 +1517,15 @@ private struct MapOverlayView: View {
                 // (it collided with the battery glyph) because the map ignores
                 // the top safe area. Living in this safe-area-respecting overlay
                 // row keeps it clear of the status bar, on the city-pill line.
+                // US-007: emoji avatar bubble — the entry point into the
+                // personal hub (MeSheet). Placed before the recenter button so
+                // it stays fully on-screen in this safe-area-respecting overlay
+                // row (top-right), clear of the status bar.
+                MapAvatarBubble(
+                    hasPendingRequests: pendingRequestCount > 0,
+                    action: onTapAvatar
+                )
+                .padding(.trailing, 8)
                 recenterButton
                     .padding(.trailing, 12)
             }
