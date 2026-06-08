@@ -114,7 +114,7 @@
         "Verify in Simulator: changing handle/emoji persists across reopen"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

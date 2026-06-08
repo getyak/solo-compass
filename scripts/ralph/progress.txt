@@ -5,3 +5,4 @@ PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
 [2026-06-08T08:16:53Z] Story #US-007: MeSheet hub + map avatar entry — FAILED (iteration 1)
     └─ NEXT_STEPS: (auto) prior run ended (max_turns) Reached maximum number of turns (60)
 [2026-06-08T08:21:11Z] Story #US-007: MeSheet hub + map avatar entry — PASSED
+[2026-06-08T08:32:06Z] Story #US-008: MyProfileEditView (upgrade CompanionProfileView) — PASSED
