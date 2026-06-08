@@ -15,3 +15,4 @@ PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
 [2026-06-08T09:26:39Z] Story #US-013: AddFriendSheet: my friend code + QR — PASSED
 [2026-06-08T09:35:58Z] Story #US-014: AddFriendSheet: scan / enter code — PASSED
 [2026-06-08T09:42:56Z] Story #US-015: Add-friend from companion chat / route group — PASSED
+[2026-06-08T09:53:43Z] Story #US-016: Add-friend from Discover (trust-gated) — PASSED
