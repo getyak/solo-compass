@@ -411,9 +411,10 @@ private struct IncomingRequestRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: "person.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
+                Text(AvatarEmoji.emoji(for: request.requesterId))
+                    .font(.system(size: 24))
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(Color.accentColor.opacity(0.12)))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(NSLocalizedString("friends.list.request.from", comment: "Request from label"))
@@ -466,9 +467,10 @@ private struct FriendRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.title2)
-                .foregroundStyle(Color.accentColor)
+            Text(AvatarEmoji.emoji(for: userId))
+                .font(.system(size: 22))
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color.accentColor.opacity(0.12)))
                 .accessibilityHidden(true)
             Text(userId)
                 .font(.body)
