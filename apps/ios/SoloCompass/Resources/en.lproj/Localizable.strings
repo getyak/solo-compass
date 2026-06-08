@@ -1531,7 +1531,8 @@
 "chat.history.title" = "History";
 "chat.history.untitled" = "Untitled chat";
 "chat.history.messageCount" = "%d messages";
-"chat.history.empty" = "No saved conversations yet";
+"chat.history.empty.title" = "No conversations yet";
+"chat.history.empty" = "Your saved chats will appear here.";
 "chat.history.open.a11y" = "Open chat history";
 "common.done" = "Done";
 

@@ -85,9 +85,13 @@ public struct ChatHistoryListView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "clock.arrow.circlepath")
-                .font(.title.weight(.semibold))
-                .foregroundStyle(CT.fgSubtle)
-            Text(NSLocalizedString("chat.history.empty", comment: "No saved conversations yet"))
+                .font(.title2.weight(.medium))
+                .foregroundStyle(.secondary)
+            Text(NSLocalizedString("chat.history.empty.title", comment: "No conversations yet"))
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
+            Text(NSLocalizedString("chat.history.empty", comment: "Hint to start a conversation"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -106,6 +110,9 @@ public struct ChatHistoryListView: View {
         let ids = offsets.map { sessions[$0].id }
         for id in ids { store.delete(sessionId: id) }
         reload()
+        #if canImport(UIKit)
+        Haptics.impact(.soft)
+        #endif
     }
 
     // MARK: - Helpers
