@@ -324,6 +324,10 @@ public struct ExperienceCardView: View {
                     .shadow(color: .black.opacity(0.16), radius: 16, y: 6)
             }
         )
+        // Grabber handle: signals both swipe-up-to-expand and swipe-down-to-dismiss.
+        .overlay(alignment: .top) {
+            grabberHandle
+        }
         // Explicit dismiss affordance: swipe-down worked but had no visible
         // cue, so the floating card felt "stuck" (it also lingered after the
         // detail sheet closed). A small × in the corner gives users a clear way
@@ -430,6 +434,24 @@ public struct ExperienceCardView: View {
                   let app = availableNavigationApps.first else { return }
             NavigationLauncher.open(app: app, coordinate: coord, name: experience.title)
         }
+    }
+
+    /// Grabber capsule centered at the card's top edge. Subtly widens and
+    /// brightens as the user drags, reinforcing direct manipulation. Static
+    /// under Reduce Motion. Hidden from VoiceOver — gestures are exposed via
+    /// accessibilityHint and accessibilityActions on the card element.
+    @ViewBuilder
+    private var grabberHandle: some View {
+        let drag = abs(dragState.translation)
+        let progress = reduceMotion ? 0 : min(1, drag / 120)
+        let handleWidth = 36 + progress * 8   // 36 → 44 pt
+        let opacity = 0.35 + progress * 0.25  // 0.35 → 0.60
+        Capsule()
+            .fill(Color.secondary.opacity(opacity))
+            .frame(width: handleWidth, height: 5)
+            .padding(.top, 8)
+            .animation(reduceMotion ? nil : .interactiveSpring(), value: dragState.translation)
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -836,6 +858,26 @@ struct BestNowBadge: View {
         .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
         .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview")!))
         .environment(locationService)
+        .environment(BestNowClock())
+        .environment(AIService()))
+    } else {
+        return AnyView(Text("No seed data"))
+    }
+}
+
+#Preview("Grabber handle — at rest") {
+    if let exp = ExperienceService.hardcodedSeed.first {
+        return AnyView(VStack {
+            Spacer()
+            ExperienceCardView(
+                experience: exp,
+                onExpand: {},
+                onDismiss: {}
+            )
+        }
+        .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+        .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview-grabber")!))
+        .environment(LocationService())
         .environment(BestNowClock())
         .environment(AIService()))
     } else {
