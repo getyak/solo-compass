@@ -26,6 +26,7 @@ public struct RouteDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isSaved = false
     @State private var isFavorited = false
+    @State private var heartBurstTrigger = 0
     @State private var showCompletionMoment = false
     @State private var showApprovalQueue = false
     // Single source of truth for the join / share sheets. Stacking two
@@ -390,15 +391,31 @@ public struct RouteDetailView: View {
             HStack(spacing: 12) {
                 // Ghost button — favorite
                 Button {
-                    isFavorited.toggle()
+                    let willFavorite = !isFavorited
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
+                        isFavorited.toggle()
+                    }
+                    if willFavorite {
+                        heartBurstTrigger += 1
+                        Haptics.notify(.success)
+                    } else {
+                        Haptics.impact(.light)
+                    }
                 } label: {
                     Image(systemName: isFavorited ? "heart.fill" : "heart")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(isFavorited ? CT.toneClosed : CT.fgMuted)
+                        .symbolEffect(.bounce, value: isFavorited)
+                        .scaleEffect(isFavorited ? 1.12 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.45), value: isFavorited)
                         .frame(width: 44, height: 44)
                         .background(Circle().fill(CT.surfaceSunken))
+                        .overlay { HeartBurstView(trigger: heartBurstTrigger) }
                 }
                 .accessibilityLabel(Text(NSLocalizedString("route.detail.favorite", comment: "")))
+                .accessibilityValue(Text(isFavorited
+                    ? NSLocalizedString("action.favorited", comment: "Favorited accessibility value")
+                    : NSLocalizedString("action.notFavorited", comment: "Not favorited accessibility value")))
 
                 // Ghost button — add to itinerary
                 Button {
