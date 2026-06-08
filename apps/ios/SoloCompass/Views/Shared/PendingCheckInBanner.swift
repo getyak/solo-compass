@@ -19,6 +19,28 @@ public struct PendingCheckInBanner: View {
     @State private var autoDismissTask: Task<Void, Never>?
     private let dismissThreshold: CGFloat = 80
 
+    public init(
+        experienceTitle: String,
+        onConfirm: @escaping () -> Void,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.experienceTitle = experienceTitle
+        self.onConfirm = onConfirm
+        self.onDismiss = onDismiss
+    }
+
+    fileprivate init(
+        experienceTitle: String,
+        onConfirm: @escaping () -> Void,
+        onDismiss: @escaping () -> Void,
+        isInteracting: Bool
+    ) {
+        self.experienceTitle = experienceTitle
+        self.onConfirm = onConfirm
+        self.onDismiss = onDismiss
+        self._isInteracting = State(initialValue: isInteracting)
+    }
+
     // Pause/resume interaction tracking
     @State private var isInteracting = false
     /// Snapshot of countdownProgress taken when interaction begins; 1 = full bar.
@@ -108,9 +130,11 @@ public struct PendingCheckInBanner: View {
             if !reduceMotion {
                 GeometryReader { geo in
                     Capsule()
-                        .fill(isExpiringSoon ? Color.orange : Color.blue)
+                        .fill(isInteracting ? Color.gray : (isExpiringSoon ? Color.orange : Color.blue))
                         .frame(width: geo.size.width * countdownProgress, height: 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .opacity(isInteracting ? 0.4 : 1.0)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isInteracting)
                 }
                 .frame(height: 2)
                 .padding(.horizontal, 2)
@@ -272,5 +296,18 @@ public struct PendingCheckInBanner: View {
         // Settings → Accessibility → Motion → Reduce Motion. The previous
         // `.environment(\.accessibilityReduceMotion, true)` broke the build
         // (KeyPath is not a WritableKeyPath).
+    }
+}
+
+#Preview("Paused state") {
+    ZStack(alignment: .bottom) {
+        Color(.systemGroupedBackground).ignoresSafeArea()
+        PendingCheckInBanner(
+            experienceTitle: "Watch the monks collect alms at dawn",
+            onConfirm: {},
+            onDismiss: {},
+            isInteracting: true
+        )
+        .padding(.bottom, 40)
     }
 }
