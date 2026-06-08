@@ -149,14 +149,37 @@ struct PeekSummaryCard: View {
         .accessibilityHidden(true)
     }
 
-    /// Chip row: Solo-Score badge + (optional) 此刻最佳 chip.
+    /// Chip row: walk-time (if nearby) + Solo-Score badge + (optional) 此刻最佳 chip.
     private var chipRow: some View {
         HStack(spacing: 6) {
+            if let meters = distanceMeters, meters < 1500 {
+                walkTimeChip(meters: meters)
+            }
             SoloScoreBadge(score: experience.soloScore, style: .compact)
             if isOpenNow {
                 bestNowChip
             }
         }
+    }
+
+    /// Neutral chip: estimated walk minutes (≈ 80 m/min) for nearby experiences.
+    private func walkTimeChip(meters: Double) -> some View {
+        let minutes = max(1, Int((meters / 80).rounded()))
+        let label = String(
+            format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 分钟'"),
+            minutes
+        )
+        return HStack(spacing: 3) {
+            Image(systemName: "figure.walk")
+                .font(.system(size: 9.5, weight: .semibold))
+            Text(label)
+                .font(.caption2.weight(.medium))
+        }
+        .foregroundStyle(CT.fgMuted)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(CT.surfaceSunken))
+        .accessibilityHidden(true)
     }
 
     /// Golden chip: 此刻最佳 — shown when the experience is open in the current hour.
@@ -277,6 +300,10 @@ struct PeekSummaryCard: View {
         label += ", Solo \(String(format: "%.1f", experience.soloScore.overall))"
         if let meters = distanceMeters {
             label += ", \(formattedDistance(meters))"
+            if meters < 1500 {
+                let minutes = max(1, Int((meters / 80).rounded()))
+                label += ", \(String(format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 分钟'"), minutes)) walk"
+            }
         }
         if isNearby {
             label += ", " + NSLocalizedString("peek.card.almostThere.a11y", comment: "VoiceOver: almost there proximity cue")
