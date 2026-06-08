@@ -15,6 +15,8 @@ import SwiftUI
 public struct FriendsListView: View {
     @State private var service: FriendService
     @State private var errorMessage: String?
+    /// US-013: presents the AddFriendSheet (my shareable code + QR).
+    @State private var showAddFriend = false
 
     /// When false, the on-appear `refresh()` is skipped. Production always uses
     /// the default (true); tests/previews pass false to render fixture-backed
@@ -70,6 +72,15 @@ public struct FriendsListView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    Haptics.impact(.light)
+                    showAddFriend = true
+                } label: {
+                    Image(systemName: "person.badge.plus")
+                }
+                .accessibilityLabel(NSLocalizedString("friends.add.open.a11y", comment: "Show my friend code"))
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     Task { await service.refresh() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
@@ -80,6 +91,9 @@ public struct FriendsListView: View {
         .task {
             guard autoRefresh else { return }
             await service.refresh()
+        }
+        .sheet(isPresented: $showAddFriend) {
+            AddFriendSheet(service: service)
         }
         .overlay(alignment: .bottom) {
             if let msg = errorMessage {

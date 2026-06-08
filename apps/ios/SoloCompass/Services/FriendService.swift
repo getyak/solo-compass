@@ -26,6 +26,10 @@ public final class FriendService {
     public var isLoading = false
     public var lastError: String?
 
+    /// The current user's active, shareable friend code (US-013). Lazily
+    /// generated on first open of the AddFriendSheet, then cached here.
+    public var myFriendCode: FriendCode?
+
     private let client: SupabaseClientProtocol
     /// Days a pending request lives before auto-expiring (FR-6).
     private static let requestTTLDays = 14
@@ -256,6 +260,115 @@ public final class FriendService {
         persistFriendship(linked)
 
         return .success(conversation)
+    }
+
+    // MARK: - US-013: Shareable friend code (friend_codes)
+
+    /// Load the current user's active friend code, lazily generating one the
+    /// first time. Resolution rule: the newest non-revoked `friend_codes` row.
+    /// If none exists, a fresh `SOLO-XXXX-XXXX` code is generated, written to the
+    /// backend, and cached in `myFriendCode`.
+    ///
+    /// - Returns: the active `FriendCode`, or a failure when the feature is off
+    ///   or the network write fails.
+    @discardableResult
+    public func loadOrCreateFriendCode() async -> Result<FriendCode, Error> {
+        // Cache hit short-circuits before the feature gate so an already-issued
+        // code stays viewable regardless of flag/network state.
+        if let cached = myFriendCode { return .success(cached) }
+        guard FeatureFlags.companion else {
+            return .failure(FriendServiceError.featureDisabled)
+        }
+
+        let owner = currentUserId
+
+        // Look for an existing active (non-revoked) row.
+        let existing = await client.get(
+            table: "friend_codes",
+            query: [
+                URLQueryItem(name: "owner_id", value: "eq.\(owner)"),
+                URLQueryItem(name: "revoked_at", value: "is.null"),
+                URLQueryItem(name: "order", value: "created_at.desc"),
+            ]
+        )
+        if case .success(let data) = existing, !data.isEmpty,
+           let rows = try? JSONDecoder.iso8601Decoder.decode([FriendCodeRow].self, from: data),
+           let active = rows.first(where: { $0.isActive }) {
+            myFriendCode = active.code
+            return .success(active.code)
+        }
+
+        // None active → mint a fresh one.
+        return await issueNewCode(owner: owner)
+    }
+
+    /// Rotate the friend code: revoke the active row (`revoked_at` stamped) and
+    /// issue a brand-new code. The old code stops resolving immediately.
+    ///
+    /// - Returns: the newly-issued `FriendCode`, or a failure on the network write.
+    @discardableResult
+    public func rotateFriendCode() async -> Result<FriendCode, Error> {
+        guard FeatureFlags.companion else {
+            return .failure(FriendServiceError.featureDisabled)
+        }
+        let owner = currentUserId
+        let now = nowISO()
+
+        // 1. Revoke every currently-active row for this owner.
+        let activeRes = await client.get(
+            table: "friend_codes",
+            query: [
+                URLQueryItem(name: "owner_id", value: "eq.\(owner)"),
+                URLQueryItem(name: "revoked_at", value: "is.null"),
+            ]
+        )
+        if case .success(let data) = activeRes, !data.isEmpty,
+           let rows = try? JSONDecoder.iso8601Decoder.decode([FriendCodeRow].self, from: data) {
+            for row in rows where row.isActive {
+                let revoked = FriendCodeRow(
+                    id: row.id,
+                    ownerId: row.ownerId,
+                    code: row.code,
+                    revokedAt: now,
+                    createdAt: row.createdAt,
+                    updatedAt: now
+                )
+                if let body = try? JSONEncoder.iso8601Encoder.encode(revoked) {
+                    // PostgREST upsert (merge-duplicates) — same pattern as
+                    // request status updates: re-POST the row by primary key.
+                    _ = await client.post(table: "friend_codes", body: body)
+                }
+            }
+        }
+
+        // 2. Issue the replacement. Clear the cache first so a failure doesn't
+        //    leave a stale code visible.
+        myFriendCode = nil
+        return await issueNewCode(owner: owner)
+    }
+
+    /// Mint, persist, and cache a fresh `SOLO-XXXX-XXXX` code for `owner`.
+    private func issueNewCode(owner: String) async -> Result<FriendCode, Error> {
+        let now = nowISO()
+        let row = FriendCodeRow(
+            id: FriendCodeId(rawValue: "fcode_\(UUID().uuidString)"),
+            ownerId: owner,
+            code: FriendCode.generate(),
+            revokedAt: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        guard let body = try? JSONEncoder.iso8601Encoder.encode(row) else {
+            return .failure(FriendServiceError.encodingFailed)
+        }
+        let result = await client.post(table: "friend_codes", body: body)
+        switch result {
+        case .success:
+            myFriendCode = row.code
+            return .success(row.code)
+        case .failure(let err):
+            return .failure(err)
+        }
     }
 
     // MARK: - FRD-005: Unfriend / block

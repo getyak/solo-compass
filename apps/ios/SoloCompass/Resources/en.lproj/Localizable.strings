@@ -1183,6 +1183,7 @@
 /* Shared actions */
 "action.ok" = "OK";
 "action.cancel" = "Cancel";
+"action.done" = "Done";
 
 /* ============================================================
  * Companion Hub — entry point on the map
@@ -1530,3 +1531,17 @@
 "friends.list.empty.description" = "When you meet fellow travelers and add them, they'll show up here.";
 "friends.list.error.title" = "Couldn't load friends";
 "friends.list.error.retry" = "Try Again";
+
+/* Add friend sheet — my shareable code + QR (US-013) */
+"friends.add.open.a11y" = "Show my friend code";
+"friends.add.title" = "Add Me";
+"friends.add.subtitle" = "Share this code or have a fellow traveler scan the QR to add you.";
+"friends.add.qr.a11y" = "QR code for your friend code";
+"friends.add.code.a11y" = "Your friend code is %@";
+"friends.add.copy" = "Copy Code";
+"friends.add.copy.hint" = "Long-press the code to copy";
+"friends.add.copied" = "Copied!";
+"friends.add.share" = "Share Code";
+"friends.add.rotate" = "Rotate Code";
+"friends.add.error.title" = "Couldn't load your code";
+"friends.add.error.description" = "Check your connection and try again.";
