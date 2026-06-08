@@ -15,7 +15,6 @@ public struct SettingsView: View {
     var onShowFavorites: (() -> Void)?
     var onDistanceCommitted: (() -> Void)?
 
-    @State private var hapticsEnabled = HapticService.shared.isEnabled
     @State private var showingClearConfirm = false
     @State private var restoreToast: String?
     @State private var restoreInFlight = false
@@ -816,9 +815,8 @@ public struct SettingsView: View {
             .pickerStyle(.segmented)
 
             Toggle(isOn: Binding(
-                get: { hapticsEnabled },
+                get: { HapticService.shared.isEnabled },
                 set: { newValue in
-                    hapticsEnabled = newValue
                     HapticService.shared.isEnabled = newValue
                     if newValue {
                         HapticService.shared.impact(style: .light)
