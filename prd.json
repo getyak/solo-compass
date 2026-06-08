@@ -339,7 +339,7 @@
         "Deploy command documented; secrets (.p8/teamId/keyId) via Supabase secrets"
       ],
       "priority": 23,
-      "passes": false,
+      "passes": true,
       "notes": "Live delivery needs APNs cert \u2014 flag manual-verify."
     },
     {

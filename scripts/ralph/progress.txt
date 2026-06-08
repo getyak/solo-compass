@@ -24,3 +24,4 @@ PRD: friends-social-graph (27 stories, US-001~006 done, next US-007)
 [2026-06-08T10:25:40Z] Story #US-020: Invite friend into recruiting route (no approval) — PASSED
 [2026-06-08T10:33:09Z] Story #US-021: APNs infrastructure (register + token upload) — PASSED
 [2026-06-08T10:36:07Z] Story #US-022: redeem-friend-code Edge Function — PASSED
+[2026-06-08T10:44:35Z] Story #US-023: friend-request-notify Edge Function -> APNs — PASSED
