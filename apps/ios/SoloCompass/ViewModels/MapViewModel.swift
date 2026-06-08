@@ -532,7 +532,7 @@ public final class MapViewModel {
     /// zoomed in (small span) → progressively more. Longitude delta is skipped
     /// because it distorts with latitude, while latitude degrees are uniform.
     /// Default seeds a city-level span so the first render isn't over-dense.
-    public var currentSpanLatitudeDelta: Double = Self.defaultSpanLatitudeDelta
+    public var currentSpanLatitudeDelta: Double = MapViewModel.defaultSpanLatitudeDelta
 
     /// Default span used before the first camera change — roughly city-district
     /// scale, so the cold-start map already shows a curated (not flooded) set.

@@ -146,7 +146,7 @@
         "Verify in Simulator"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

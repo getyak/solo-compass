@@ -1216,7 +1216,12 @@ struct CompassMapContentView: View {
                         UserLocationMarker()
                     }
                 }
-                ForEach(viewModel.visibleExperiences) { exp in
+                // Zoom-adaptive density: the map renders only the top-ranked
+                // pins for the current zoom (`displayedExperiences`), so a
+                // zoomed-out view stays curated. The bottom list keeps reading
+                // the full `visibleExperiences` set (it intentionally shows
+                // more than the map).
+                ForEach(viewModel.displayedExperiences) { exp in
                     if let coord = exp.coordinate {
                         // US-016: compute the marker state once per ForEach
                         // iteration — its six conditions are otherwise evaluated
@@ -1348,6 +1353,12 @@ struct CompassMapContentView: View {
                 }
             }
             .onMapCameraChange(frequency: .onEnd) { context in
+                // Feed the zoom level into the view model so the map's
+                // Level-of-Detail (few prominent pins zoomed out → more zoomed
+                // in) recomputes. Animate so pins fade in/out rather than snap.
+                withAnimation(MapViewModel.markerSetAnimation) {
+                    viewModel.currentSpanLatitudeDelta = context.region.span.latitudeDelta
+                }
                 viewModel.refreshForLocation(context.region.center)
             }
             .simultaneousGesture(
