@@ -59,49 +59,64 @@ struct VoiceProcessingToast: View {
     }
 }
 
-/// Three sequential dots that animate one at a time to suggest AI deliberation.
+/// Three dots that animate as a continuous left-to-right traveling wave,
+/// each dot peaking in scale and opacity in sequence with overlapping easing.
 private struct ThinkingDots: View {
-    @State private var phase: Int = 0
-    @State private var advanceTask: Task<Void, Never>?
-
     private let dotSize: CGFloat = 4
     private let dotCount = 3
 
     var body: some View {
         HStack(spacing: 3) {
             ForEach(0..<dotCount, id: \.self) { index in
-                Circle()
-                    .fill(.secondary)
-                    .frame(width: dotSize, height: dotSize)
-                    .scaleEffect(phase == index ? 1.4 : 1.0)
-                    .opacity(phase == index ? 1.0 : 0.4)
-                    .animation(.easeInOut(duration: 0.4), value: phase)
+                WaveDot(dotSize: dotSize, index: index)
             }
         }
         .accessibilityHidden(true)
-        .onAppear {
-            advanceTask = Task { @MainActor in
-                await advancePhase()
-            }
-        }
-        .onDisappear {
-            advanceTask?.cancel()
-            advanceTask = nil
-        }
-    }
-
-    @MainActor
-    private func advancePhase() async {
-        while !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled else { return }
-            phase = (phase + 1) % dotCount
-        }
     }
 }
 
-#Preview("Animated") {
+/// A single dot whose scale/opacity loop independently using a per-dot timer,
+/// producing a true traveling-wave effect across all three dots.
+private struct WaveDot: View {
+    let dotSize: CGFloat
+    let index: Int
+
+    @State private var scale: CGFloat = 1.0
+    @State private var opacity: Double = 0.4
+
+    private let waveDuration = 0.6
+    private let dotDelay = 0.15
+
+    var body: some View {
+        Circle()
+            .fill(.secondary)
+            .frame(width: dotSize, height: dotSize)
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .onAppear {
+                let delay = Double(index) * dotDelay
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    withAnimation(
+                        .easeInOut(duration: waveDuration)
+                            .repeatForever(autoreverses: true)
+                    ) {
+                        scale = 1.4
+                        opacity = 1.0
+                    }
+                }
+            }
+    }
+}
+
+#Preview("Animated — traveling wave") {
     VoiceProcessingToast(text: "Thinking about \"coffee near me\"…")
+        .padding()
+}
+
+#Preview("Wave dots only") {
+    ThinkingDots()
+        .padding()
+        .background(.thinMaterial, in: Capsule())
         .padding()
 }
 
