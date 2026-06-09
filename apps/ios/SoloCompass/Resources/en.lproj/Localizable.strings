@@ -146,6 +146,8 @@
 "experience.viewDetails" = "View details →";
 "experience.bestTime.hint" = "Best %@";
 "experience.bestTime.hint.a11y" = "Best %@";
+"experience.bestTime.opensIn" = "opens in %dm";
+"experience.bestTime.opensIn.a11y" = "Opens in %d minutes";
 
 /* Bottom info */
 "info.morning" = "Good morning. %d coffee spots nearby are at their best right now.";
