@@ -308,6 +308,7 @@
 "favorites.empty.title" = "还没有收藏";
 "favorites.empty.hint" = "点击任意体验上的爱心即可保存到这里。";
 "favorites.empty.tip.hint" = "双击查看下一条提示";
+"favorites.empty.tip.page.a11y" = "提示 %1$d / %2$d";
 "favorites.undo.named" = "已移除\"%@\"";
 
 /* Generic actions */
