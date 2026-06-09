@@ -45,9 +45,17 @@ public struct FriendsListView: View {
                     CompanionSkeletonList(rows: 5)
                 }
             } else if let error = service.lastError {
-                errorView(message: error)
+                ScrollView {
+                    errorView(message: error)
+                        .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height * 0.7)
+                }
+                .refreshable { await service.refresh() }
             } else if service.friends.isEmpty && service.incomingRequests.isEmpty {
-                EmptyFriendsView(onAddFriend: { showAddFriend = true })
+                ScrollView {
+                    EmptyFriendsView(onAddFriend: { showAddFriend = true })
+                        .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height * 0.7)
+                }
+                .refreshable { await service.refresh() }
             } else {
                 friendsList
             }
@@ -258,6 +266,7 @@ public struct FriendsListView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .simultaneousGesture(TapGesture().onEnded { Haptics.selection() })
                 }
             }
             .padding(.horizontal, 16)
@@ -675,5 +684,15 @@ private struct EmptyFriendsView: View {
     service.incomingRequests = []
     return NavigationStack {
         FriendsListView(service: service)
+    }
+}
+
+#Preview("Error") {
+    let service = FriendService()
+    service.friends = []
+    service.incomingRequests = []
+    service.lastError = NSLocalizedString("friends.list.error.preview", comment: "Preview error message")
+    return NavigationStack {
+        FriendsListView(service: service, autoRefresh: false)
     }
 }
