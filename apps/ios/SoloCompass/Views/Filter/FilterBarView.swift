@@ -217,6 +217,15 @@ public struct FilterBarView: View {
                     .padding(.vertical, 5)
                     .animation(.spring(response: 0.4, dampingFraction: 0.75), value: selectionID)
                 }
+                // A horizontal ScrollView places no bound on its own vertical
+                // extent, so inside the top overlay's VStack (filter bar above a
+                // Spacer) it greedily stretched to fill all remaining height. The
+                // GlassmorphismCapsule's `.background(in: Capsule())` then tracked
+                // that full-height frame, rendering the glass as a giant vertical
+                // capsule arching across the map — the dark "arch" scrim that
+                // covered the home screen. Pinning the scroll view to its content's
+                // intrinsic height keeps the bar one pill-row tall.
+                .fixedSize(horizontal: false, vertical: true)
                 .onAppear {
                     proxy.scrollTo(selectionID, anchor: .center)
                 }
