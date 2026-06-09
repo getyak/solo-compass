@@ -43,6 +43,12 @@ public struct CompassMapView: View {
 
     public init() {}
 
+    /// Returns how full the imminence ring should be: 0.0 at `windowMinutes` out, 1.0 at 0m.
+    /// Clamped to [0, 1].
+    static func imminenceProgress(minutesUntil: Int, windowMinutes: Int = 120) -> Double {
+        max(0, min(1, 1 - Double(minutesUntil) / Double(windowMinutes)))
+    }
+
     public var body: some View {
         CompassMapContentView(
             locationService: locationService,
@@ -1789,7 +1795,7 @@ private struct MapOverlayView: View {
                 TimelineView(.periodic(from: .now, by: 60)) { context in
                     let tickedNext = viewModel.nextBestExperience(now: context.date) ?? next
                     let minutesUntil = tickedNext.minutesUntil
-                    let progress = Self.imminenceProgress(minutesUntil: minutesUntil)
+                    let progress = CompassMapView.imminenceProgress(minutesUntil: minutesUntil)
                     let idleText = NSLocalizedString("filter.now.empty.idle", comment: "Nothing's at its best now")
                     let upcomingText = String(
                         format: NSLocalizedString("filter.now.empty.upcoming", comment: "%@ in %dm"),
@@ -1937,12 +1943,6 @@ private struct MapOverlayView: View {
         }
     }
 
-    /// Returns how full the imminence ring should be: 0.0 at `windowMinutes` out, 1.0 at 0m.
-    /// Clamped to [0, 1].
-    static func imminenceProgress(minutesUntil: Int, windowMinutes: Int = 120) -> Double {
-        max(0, min(1, 1 - Double(minutesUntil) / Double(windowMinutes)))
-    }
-
     @ViewBuilder
     private var cityPill: some View {
         let cityName: String = {
@@ -2055,13 +2055,6 @@ private struct RecenterButton: View {
     }
     .padding()
     .background(Color(.systemGroupedBackground))
-}
-
-#Preview("RecenterButton — reduce motion") {
-    RecenterButton(located: true, onTap: {})
-        .padding()
-        .environment(\.accessibilityReduceMotion, true)
-        .background(Color(.systemGroupedBackground))
 }
 
 private struct EmptyFilterBanner: View {
