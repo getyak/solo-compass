@@ -68,14 +68,32 @@ struct LocationCard: View {
                         .font(.subheadline.weight(.semibold))
                         .fixedSize(horizontal: false, vertical: true)
                     if let hint = addressHint, !hint.isEmpty {
-                        Text(hint)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .onTapGesture { performCopy() }
-                            .accessibilityAction(named: NSLocalizedString("location.copyCoords", comment: "Copy to clipboard")) {
-                                performCopy()
+                        // The address is tap-to-copy, but a bare Text gives no
+                        // hint that it's interactive. Pair it with a small copy
+                        // glyph (swapping to a green check on success) so the
+                        // affordance is discoverable, and give the row a 32pt
+                        // tappable height instead of the hairline text bounds.
+                        Button { performCopy() } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text(hint)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Image(systemName: didCopy ? "checkmark.circle.fill" : "doc.on.doc")
+                                    .font(.caption2)
+                                    .foregroundStyle(didCopy ? Color.green : Color.secondary.opacity(0.6))
+                                    .contentTransition(.symbolEffect(.replace))
+                                    .accessibilityHidden(true)
                             }
+                            .frame(minHeight: 32, alignment: .topLeading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(hint))
+                        .accessibilityValue(didCopy
+                            ? Text(NSLocalizedString("location.copiedAddress.a11y", comment: "VoiceOver: address was copied"))
+                            : Text(""))
+                        .accessibilityHint(Text(NSLocalizedString("location.copyAddress.a11y", comment: "Copy address to clipboard")))
                     } else {
                         // Raw lat/long means nothing to a traveler, so only fall
                         // back to coordinates when there's no address at all —
