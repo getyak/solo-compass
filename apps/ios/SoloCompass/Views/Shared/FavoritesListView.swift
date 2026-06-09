@@ -33,6 +33,7 @@ public struct FavoritesListView: View {
     @State private var showRemainingOnly = false
     @State private var prioritizeGoodNow = false
     @State private var celebrationTrigger = 0
+    @State private var searchAnnounceTask: Task<Void, Never>?
 
     private var undoDismissSeconds: Double { voiceOverOn ? 12 : 4 }
 
@@ -491,6 +492,28 @@ public struct FavoritesListView: View {
         .onChange(of: goodNowCount) { _, newCount in
             if newCount == 0 && prioritizeGoodNow {
                 withAnimation(reduceMotion ? nil : .easeInOut) { prioritizeGoodNow = false }
+            }
+        }
+        .onChange(of: searchText) { _, newValue in
+            let query = newValue.trimmingCharacters(in: .whitespaces)
+            guard !query.isEmpty else {
+                searchAnnounceTask?.cancel()
+                searchAnnounceTask = nil
+                return
+            }
+            searchAnnounceTask?.cancel()
+            searchAnnounceTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
+                guard UIAccessibility.isVoiceOverRunning else { return }
+                let count = filteredFavorites.count
+                let message: String
+                if count > 0 {
+                    message = String(format: NSLocalizedString("favorites.search.resultCount.a11y", comment: "VoiceOver search result count in favorites: %d matching favorites"), count)
+                } else {
+                    message = String(format: NSLocalizedString("favorites.search.noResults.a11y", comment: "VoiceOver no results announcement in favorites: No favorites match <query>"), query)
+                }
+                UIAccessibility.post(notification: .announcement, argument: message)
             }
         }
     }

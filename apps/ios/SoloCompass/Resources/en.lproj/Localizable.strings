@@ -509,6 +509,10 @@
 "favorites.distance.mi" = "%.1f mi";
 "favorites.search.noResults" = "No matches for \"%@\"";
 "favorites.search.noResults.hint" = "Try a different word, or clear your search.";
+/* VoiceOver announcement when favorites search returns results: "%d matching favorites" */
+"favorites.search.resultCount.a11y" = "%d matching favorites";
+/* VoiceOver announcement when favorites search returns no results: "No favorites match <query>" */
+"favorites.search.noResults.a11y" = "No favorites match %@";
 "favorites.search.clear" = "Clear search";
 "favorites.search.clear.hint" = "Clears the search field and shows all favorites";
 "favorites.search.prompt" = "Search favorites";
