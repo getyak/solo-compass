@@ -1329,6 +1329,9 @@
 "nearby.chip.driveMin" = "%d min drive";
 "nearby.chip.solo" = "Solo %.1f";
 "nearby.chip.bestNow" = "Best now";
+/* Compact closing-soon countdown chip on the peek pick + Nearby rows (≤45 min left). %d = minutes. */
+"nearby.chip.closingSoon" = "Closing · %dm";
+"nearby.chip.closingSoon.a11y" = "best now, closing soon, %d minutes left";
 "nearby.proximity.sparse" = "Quiet";
 "nearby.proximity.moderate" = "Moderate";
 "nearby.proximity.far" = "Far";
