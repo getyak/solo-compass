@@ -156,6 +156,8 @@
 "experience.bestTime.hint.a11y" = "Best %@";
 "experience.bestTime.opensIn" = "opens in %dm";
 "experience.bestTime.opensIn.a11y" = "Opens in %d minutes";
+"experience.bestTime.tomorrow" = "tomorrow";
+"experience.bestTime.tomorrow.a11y" = "Next opens tomorrow";
 
 /* Bottom info */
 "info.morning" = "Good morning. %d coffee spots nearby are at their best right now.";
