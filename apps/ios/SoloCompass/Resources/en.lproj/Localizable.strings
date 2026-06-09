@@ -22,6 +22,14 @@
 "filter.now.empty.idle" = "Nothing's at its best now";
 "filter.now.empty.upcoming" = "%@ in %dm";
 "filter.now.empty.a11y" = "Nothing's at its best now. %@ starts in %d minutes. Tap to jump there.";
+"filter.now.empty.title" = "Quiet hours right now";
+"filter.now.empty.later.subtitle" = "Nothing's at its best this hour — here's the next worthwhile window.";
+"filter.now.empty.done.subtitle" = "Best times pick back up tomorrow. Until then, the map's still yours to wander.";
+"filter.now.empty.nextBest" = "Next best";
+"filter.now.empty.nextBest.a11y" = "Next best: %1$@, %2$@. Tap to view.";
+"filter.now.empty.browseAll" = "Browse all nearby";
+"filter.now.empty.opensIn.minutes" = "in %dm";
+"filter.now.empty.opensIn.hours" = "in ~%dh";
 "filter.a11y.resultsAnnounce" = "%1$@: %2$d found";
 "filter.a11y.noResultsAnnounce" = "%@: nothing matches";
 
@@ -148,6 +156,8 @@
 "experience.bestTime.hint.a11y" = "Best %@";
 "experience.bestTime.opensIn" = "opens in %dm";
 "experience.bestTime.opensIn.a11y" = "Opens in %d minutes";
+"experience.bestTime.tomorrow" = "tomorrow";
+"experience.bestTime.tomorrow.a11y" = "Next opens tomorrow";
 
 /* Bottom info */
 "info.morning" = "Good morning. %d coffee spots nearby are at their best right now.";

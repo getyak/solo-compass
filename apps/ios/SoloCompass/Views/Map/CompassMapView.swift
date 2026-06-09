@@ -611,9 +611,20 @@ struct CompassMapContentView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
                 } else if viewModel.visibleExperiences.isEmpty && isFilterActive && viewModel.selectedExperience == nil {
-                    FilteredEmptyOverlay(viewModel: viewModel)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
+                    // The "Now" filter is a *time* filter, not a place filter — its
+                    // empty state means "nothing's at its best this hour", for which
+                    // "clear all filters" is the wrong recovery. Route it to a
+                    // dedicated overlay that points at the next worthwhile window
+                    // instead. Every other filter keeps the generic clear-filters card.
+                    if viewModel.isNowFilter {
+                        NowEmptyOverlay(viewModel: viewModel)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
+                    } else {
+                        FilteredEmptyOverlay(viewModel: viewModel)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
+                    }
                 }
 
                 // Offline banner (US-041): amber pill when network is unavailable
@@ -2506,6 +2517,193 @@ private struct FilteredEmptyOverlay: View {
     )
     vm.selectedCategory = .coffee
     return FilteredEmptyOverlay(viewModel: vm)
+        .padding()
+}
+#endif
+
+/// Dedicated empty state for the "Now" filter. Unlike `FilteredEmptyOverlay`
+/// (which offers "clear all filters"), the Now filter is time-based: an empty
+/// result just means nothing is at its best *this hour*, so the useful recovery
+/// is to point the traveler at the next worthwhile window — not to drop the
+/// filter. Three cases, in order of helpfulness:
+///   1. Something opens within 180 min → the filter-bar countdown capsule
+///      (`filterResultBadge`) already owns that jump-to affordance, so this
+///      overlay renders nothing to avoid two cards saying the same thing.
+///   2. Nothing imminent, but a window opens later today → show it
+///      ("Next best · Café X · 5–7pm") with a one-tap jump.
+///   3. Nothing left today → "Quiet hours" message, still offering a one-tap
+///      route back to browsing every nearby spot.
+private struct NowEmptyOverlay: View {
+    var viewModel: MapViewModel
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+    @State private var iconPulse = false
+
+    private static let accentGold = Color(red: 0xD4 / 255, green: 0xA8 / 255, blue: 0x43 / 255)
+
+    /// Compact "Nm" / "~Nh" tail mirroring the map marker's `upcomingLabel`
+    /// convention so the same duration reads identically across surfaces.
+    private static func relativeOpensIn(minutes: Int) -> String {
+        let m = max(1, minutes)
+        if m < 60 {
+            return String(format: NSLocalizedString("filter.now.empty.opensIn.minutes", comment: "Opens in N minutes (compact)"), m)
+        }
+        return String(format: NSLocalizedString("filter.now.empty.opensIn.hours", comment: "Opens in ~N hours (compact)"), m / 60)
+    }
+
+    var body: some View {
+        // Re-tick every minute so "~2h" decays and, when a window crosses the
+        // 180-minute line into "imminent", control hands back to the filter-bar
+        // countdown capsule (this overlay collapses to nothing) without any user
+        // action — the gate below is re-evaluated on the same clock.
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            content(now: context.date)
+        }
+    }
+
+    @ViewBuilder
+    private func content(now: Date) -> some View {
+        // When something is imminent the filter-bar capsule already guides the
+        // user; suppress this overlay so the two surfaces never double up.
+        if viewModel.nextBestExperience(now: now) != nil {
+            EmptyView()
+        } else {
+            quietHours(now: now)
+        }
+    }
+
+    @ViewBuilder
+    private func quietHours(now: Date) -> some View {
+        let soonest = viewModel.soonestUpcomingExperience(now: now)
+
+        VStack(spacing: 12) {
+            Image(systemName: "moon.stars")
+                .font(.title2)
+                .foregroundStyle(Self.accentGold)
+                .scaleEffect(reduceMotion ? 1.0 : (appeared ? (iconPulse ? 1.06 : 0.97) : 0.4))
+                .opacity(appeared ? 1 : 0)
+                .accessibilityHidden(true)
+
+            Text(NSLocalizedString("filter.now.empty.title", comment: "Quiet hours right now — nothing at its best"))
+                .font(.subheadline.weight(.medium))
+                .multilineTextAlignment(.center)
+
+            if let soonest {
+                // Case 2: a worthwhile window opens later today.
+                let title = soonest.experience.title
+                let timeHint = soonest.experience.bestTimeHint(at: now)
+                let relative = Self.relativeOpensIn(minutes: soonest.minutesUntil)
+
+                Text(NSLocalizedString("filter.now.empty.later.subtitle", comment: "Best times pick back up later today"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    Haptics.impact(.light)
+                    viewModel.openExperienceDetail(soonest.experience)
+                } label: {
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(NSLocalizedString("filter.now.empty.nextBest", comment: "Next best label"))
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(Self.accentGold)
+                                .textCase(.uppercase)
+                            Text(title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            if let timeHint {
+                                Text(timeHint + "  ·  " + relative)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text(relative)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Self.accentGold.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(Text(String(
+                    format: NSLocalizedString("filter.now.empty.nextBest.a11y", comment: "Next best %@ %@; tap to view"),
+                    title, timeHint ?? relative
+                )))
+
+                browseAllButton(prominent: false)
+            } else {
+                // Case 3: nothing opens again today.
+                Text(NSLocalizedString("filter.now.empty.done.subtitle", comment: "Best times resume tomorrow"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                browseAllButton(prominent: true)
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 32)
+        .onAppear {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) { appeared = true }
+            startIconPulseIfNeeded()
+        }
+        .onChange(of: reduceMotion) { _, reduced in
+            if reduced {
+                withAnimation(nil) { iconPulse = false }
+            } else {
+                startIconPulseIfNeeded()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func browseAllButton(prominent: Bool) -> some View {
+        Button {
+            Haptics.selection()
+            // Filters are mutually exclusive, so with only "Now" active this
+            // simply drops back to every nearby experience.
+            viewModel.clearFilters()
+        } label: {
+            Text(NSLocalizedString("filter.now.empty.browseAll", comment: "Browse all nearby experiences"))
+                .font(.subheadline.weight(.medium))
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.regular)
+        .opacity(prominent ? 1 : 0.9)
+    }
+
+    private func startIconPulseIfNeeded() {
+        guard !reduceMotion else { return }
+        withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+            iconPulse = true
+        }
+    }
+}
+
+#if DEBUG
+#Preview("NowEmptyOverlay — later today") {
+    let vm = MapViewModel(
+        locationService: LocationService(),
+        experienceService: ExperienceService(),
+        aiService: AIService(),
+        preferences: UserPreferences()
+    )
+    vm.isNowFilter = true
+    return NowEmptyOverlay(viewModel: vm)
         .padding()
 }
 #endif

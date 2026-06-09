@@ -302,8 +302,12 @@ public struct ExperienceCardView: View {
                     inconveniencePill
                 } else if experience.isBestNow() {
                     BestNowBadge(experience: experience)
-                } else if let hint = experience.bestTimeHint() {
-                    bestTimeHintPill(hint, opensInMinutes: experience.minutesUntilNextBestWindow(at: clock.tick))
+                } else if let hint = experience.bestTimeHint(at: clock.tick) {
+                    bestTimeHintPill(
+                        hint,
+                        opensInMinutes: experience.minutesUntilNextBestWindow(at: clock.tick),
+                        isTomorrow: experience.nextBestWindowIsTomorrow(at: clock.tick)
+                    )
                 }
                 if let coord = experience.coordinate {
                     directionsControl(coordinate: coord)
@@ -721,20 +725,39 @@ public struct ExperienceCardView: View {
     /// next ~90 min, `opensInMinutes` is non-nil and the pill warms to amber with
     /// an "· opens in 25m" tail so an imminent window reads differently from one
     /// that's still hours out (which the bare gray pill could not convey).
+    ///
+    /// When `isTomorrow` is true the soonest occurrence of the hinted window is
+    /// the following morning (every window today has already started), so a
+    /// "· tomorrow" tail is appended — otherwise "Best 7–9am" at 11pm reads
+    /// identically to the same hint at 8am. `isTomorrow` and the imminent case
+    /// are mutually exclusive (an imminent window is, by definition, later
+    /// today), and the imminent tail wins if both were ever set.
     @ViewBuilder
-    private func bestTimeHintPill(_ hint: String, opensInMinutes: Int? = nil) -> some View {
+    private func bestTimeHintPill(_ hint: String, opensInMinutes: Int? = nil, isTomorrow: Bool = false) -> some View {
         let isImminent = opensInMinutes != nil
+        let showTomorrow = isTomorrow && !isImminent
         let tint = isImminent ? Self.bestTimeImminentAmber : Color.secondary
         let label: String = {
             let base = String(format: NSLocalizedString("experience.bestTime.hint", comment: "Best time hint"), hint)
-            guard let mins = opensInMinutes else { return base }
-            let tail = String(format: NSLocalizedString("experience.bestTime.opensIn", comment: "Best time window opens in N minutes tail"), mins)
-            return "\(base) · \(tail)"
+            if let mins = opensInMinutes {
+                let tail = String(format: NSLocalizedString("experience.bestTime.opensIn", comment: "Best time window opens in N minutes tail"), mins)
+                return "\(base) · \(tail)"
+            }
+            if showTomorrow {
+                let tail = NSLocalizedString("experience.bestTime.tomorrow", comment: "Best time window next opens tomorrow tail")
+                return "\(base) · \(tail)"
+            }
+            return base
         }()
         let a11y: String = {
             let base = String(format: NSLocalizedString("experience.bestTime.hint.a11y", comment: "Best time accessibility"), hint)
-            guard let mins = opensInMinutes else { return base }
-            return base + ". " + String(format: NSLocalizedString("experience.bestTime.opensIn.a11y", comment: "Best time opens in N minutes accessibility"), mins)
+            if let mins = opensInMinutes {
+                return base + ". " + String(format: NSLocalizedString("experience.bestTime.opensIn.a11y", comment: "Best time opens in N minutes accessibility"), mins)
+            }
+            if showTomorrow {
+                return base + ". " + NSLocalizedString("experience.bestTime.tomorrow.a11y", comment: "Best time next opens tomorrow accessibility")
+            }
+            return base
         }()
         Label(label, systemImage: isImminent ? "clock.badge" : "clock")
             .font(.caption)
