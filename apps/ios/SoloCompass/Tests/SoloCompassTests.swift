@@ -7019,6 +7019,67 @@ final class MinutesLeftInBestWindowTests: XCTestCase {
         let result = exp.minutesLeftInBestWindow(at: at)
         XCTAssertEqual(result, 1)
     }
+
+    // MARK: - Weekday / season scoping
+    //
+    // The Nearby list's open-now gate (and its "Best now / Closing soon" chip)
+    // delegate to `minutesLeftInBestWindow`, so a window scoped to weekends or a
+    // single season must read as CLOSED on a non-matching day even when the clock
+    // hour falls inside [startHour, endHour). A bare "hour ∈ bestTimes" check
+    // (the gate's previous implementation) would falsely flag these.
+
+    /// Returns the first `date(hour:)` within the next 7 days whose weekday is in
+    /// `allowed` (0=Sun…6=Sat). Keeps the assertions independent of which day the
+    /// CI run lands on.
+    private func nextDate(hour: Int, weekdayIn allowed: Set<Int>) -> Date {
+        let cal = Calendar.current
+        let base = date(hour: hour)
+        for offset in 0..<7 {
+            guard let candidate = cal.date(byAdding: .day, value: offset, to: base) else { continue }
+            let weekday = cal.component(.weekday, from: candidate) - 1 // Sun=0
+            if allowed.contains(weekday) { return candidate }
+        }
+        return base
+    }
+
+    /// A weekend-only window is open on a weekend day…
+    func testWeekendOnlyWindowOpenOnWeekend() {
+        let exp = makeExperience(bestTimes: [
+            TimeWindow(startHour: 9, endHour: 17, dayOfWeek: [0, 6]) // Sun & Sat
+        ])
+        let saturday = nextDate(hour: 12, weekdayIn: [6])
+        XCTAssertNotNil(
+            exp.minutesLeftInBestWindow(at: saturday),
+            "Weekend window should be active on Saturday at noon"
+        )
+    }
+
+    /// …and CLOSED on a weekday even though the hour is inside the range.
+    func testWeekendOnlyWindowClosedOnWeekday() {
+        let exp = makeExperience(bestTimes: [
+            TimeWindow(startHour: 9, endHour: 17, dayOfWeek: [0, 6]) // Sun & Sat
+        ])
+        let weekday = nextDate(hour: 12, weekdayIn: [1, 2, 3, 4, 5]) // Mon–Fri
+        XCTAssertNil(
+            exp.minutesLeftInBestWindow(at: weekday),
+            "Weekend-only window must read closed on a weekday despite the in-range hour"
+        )
+    }
+
+    /// A window scoped to a single month is closed in every other month even when
+    /// the hour matches.
+    func testSeasonScopedWindowClosedOutsideItsMonth() {
+        let cal = Calendar.current
+        let thisMonth = cal.component(.month, from: Date())
+        let otherMonth = (thisMonth % 12) + 1 // any month that isn't today's
+        let exp = makeExperience(bestTimes: [
+            TimeWindow(startHour: 9, endHour: 17, season: [otherMonth])
+        ])
+        XCTAssertNil(
+            exp.minutesLeftInBestWindow(at: date(hour: 12)),
+            "Window scoped to a different month must read closed this month"
+        )
+    }
 }
 
 // MARK: - #8 Chat history persistence

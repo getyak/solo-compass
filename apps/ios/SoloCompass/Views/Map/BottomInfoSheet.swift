@@ -1306,19 +1306,22 @@ struct NearbySection: View {
                 // long lists.
                 LazyVStack(spacing: 10) {
                     ForEach(sortedExperiences) { exp in
-                        let openNow = sortMode == .now && isOpenNow(exp)
+                        // Resolve the live "best now / closing soon" chip state for
+                        // EVERY row from the shared clock — not just in Now sort.
+                        // The chip is the app's most decision-relevant, perishable
+                        // signal; hiding it in the distance/smart/soloScore sorts
+                        // meant a traveler browsing by distance couldn't tell a
+                        // nearby spot was in its golden hour (or closing in minutes)
+                        // without opening it. A nil `minutesLeft` means "not best
+                        // now", so the row keeps its plain form.
+                        let chipState = BestNowChipState.resolve(for: exp, at: clock.tick)
+                        let openNow = chipState.minutesLeft != nil
                         NearbyExperienceRow(
                             experience: exp,
                             isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
                             distanceMeters: distance(to: exp),
                             isOpenNow: openNow,
-                            // Resolve the live chip state from the shared clock so
-                            // the "Best now" chip flips to an amber countdown as a
-                            // window winds down. Only computed for rows that show
-                            // the chip (Now sort) to avoid needless work.
-                            bestNowChipState: openNow
-                                ? BestNowChipState.resolve(for: exp, at: clock.tick)
-                                : nil,
+                            bestNowChipState: openNow ? chipState : nil,
                             onTap: { onSelectExperience(exp) },
                             onLongPress: onLongPressExperience.map { handler in { handler(exp) } }
                         )
@@ -1347,19 +1350,25 @@ struct NearbySection: View {
         case .soloScore:
             return experiences.sorted { $0.soloScore.overall > $1.soloScore.overall }
         case .now:
-            let hour = Calendar.current.component(.hour, from: clock.tick)
+            let now = clock.tick
             return experiences.sorted { lhs, rhs in
-                let lhsNow = lhs.bestTimes.contains { $0.contains(hour: hour) }
-                let rhsNow = rhs.bestTimes.contains { $0.contains(hour: hour) }
+                let lhsNow = isOpenNow(lhs, at: now)
+                let rhsNow = isOpenNow(rhs, at: now)
                 if lhsNow != rhsNow { return lhsNow }
                 return distance(to: lhs) ?? .infinity < distance(to: rhs) ?? .infinity
             }
         }
     }
 
-    private func isOpenNow(_ experience: Experience) -> Bool {
-        let hour = Calendar.current.component(.hour, from: clock.tick)
-        return experience.bestTimes.contains { $0.contains(hour: hour) }
+    /// True when `experience` is genuinely at its best at `date`.
+    ///
+    /// Uses `minutesLeftInBestWindow` (the same source the visible chip reads)
+    /// rather than a bare "current hour ∈ bestTimes" check, so weekday- and
+    /// season-scoped windows and midnight-wrapping windows are honored — a
+    /// Saturday-only sunset window no longer floats to the top of the Now sort
+    /// (or shows a "Best now" chip) on a weekday.
+    private func isOpenNow(_ experience: Experience, at date: Date) -> Bool {
+        experience.minutesLeftInBestWindow(at: date) != nil
     }
 
     private func distance(to experience: Experience) -> Double? {
