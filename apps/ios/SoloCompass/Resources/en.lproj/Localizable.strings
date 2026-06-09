@@ -322,6 +322,8 @@
 "experience.card.preview.a11y" = "Show quick preview";
 "card.favorite.add" = "Add to favorites";
 "card.favorite.remove" = "Remove from favorites";
+"card.favorite.added.a11y" = "Saved to favorites";
+"card.favorite.removed.a11y" = "Removed from favorites";
 "card.dismiss" = "Dismiss card";
 
 /* Experience card distance pill */
