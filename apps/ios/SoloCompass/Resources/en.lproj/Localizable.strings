@@ -240,6 +240,8 @@
 "solo.weakest.a11y" = "Watch out: %@ is the weakest dimension for this place.";
 "solo.strongest" = "Great for: %@";
 "solo.strongest.a11y" = "Strongest dimension: %@";
+"solo.safety.caution" = "Lower safety signal for solo visits";
+"solo.safety.caution.a11y" = "Safety caution: lower safety signal for solo visits";
 
 /* Empty filter banner (below FilterBarView) */
 "filter.empty.title" = "No matches";

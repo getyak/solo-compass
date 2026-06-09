@@ -186,6 +186,7 @@ private struct SoloScorePopoverContent: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let weakestThreshold: Double = 5.0
+    private let safetyCautionThreshold: Double = 4.0
 
     private var isEarlyEstimate: Bool { score.basedOnCount > 0 && score.basedOnCount <= 3 }
 
@@ -208,6 +209,14 @@ private struct SoloScorePopoverContent: View {
 
     private let strongestThreshold: Double = 7.5
 
+    private var safetyIndex: Int {
+        dimensions.firstIndex(where: { $0.labelKey == "solo.dim.safety" }) ?? (dimensions.count - 1)
+    }
+
+    private var showSafetyCaution: Bool {
+        score.breakdown.safety < safetyCautionThreshold
+    }
+
     private var weakestIndex: Int {
         dimensions.enumerated().min(by: { $0.element.value < $1.element.value })?.offset ?? 0
     }
@@ -218,6 +227,7 @@ private struct SoloScorePopoverContent: View {
 
     private var showWeakestCaption: Bool {
         dimensions[weakestIndex].value < weakestThreshold
+            && !(weakestIndex == safetyIndex && showSafetyCaution)
     }
 
     private var strongestIndex: Int {
@@ -277,6 +287,27 @@ private struct SoloScorePopoverContent: View {
                 }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(Text(String(format: NSLocalizedString("solo.weakest.a11y", comment: ""), weakestLabel)))
+            }
+
+            if showSafetyCaution {
+                HStack(spacing: 6) {
+                    Image(systemName: "shield.lefthalf.filled.slash")
+                        .font(.caption2)
+                        .foregroundStyle(Color(red: 0.85, green: 0.38, blue: 0.1))
+                        .accessibilityHidden(true)
+                    Text(NSLocalizedString("solo.safety.caution", comment: ""))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(Color(red: 0.65, green: 0.3, blue: 0.05))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.14), in: Capsule())
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text(NSLocalizedString("solo.safety.caution.a11y", comment: "")))
+                .scaleEffect(appeared && !reduceMotion ? 1 : (reduceMotion ? 1 : 0.92))
+                .opacity(appeared ? 1 : 0)
+                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: appeared)
             }
 
             Divider()
@@ -484,7 +515,7 @@ private struct SoloScorePopoverContent: View {
     )
     let cautionScore = SoloScore(
         overall: 3.1,
-        breakdown: .init(seatingFriendly: 2, soloPatronRatio: 3, staffPressure: 4, soloPortioning: 3, ambianceFit: 3, safety: 4),
+        breakdown: .init(seatingFriendly: 2, soloPatronRatio: 3, staffPressure: 4, soloPortioning: 3, ambianceFit: 3, safety: 3.5),
         hint: "Can feel exposed as a solo diner.",
         basedOnCount: 7
     )
