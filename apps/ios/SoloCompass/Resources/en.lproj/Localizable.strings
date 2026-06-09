@@ -833,6 +833,7 @@
 "location.copied.a11y" = "Coordinates copied";
 "location.copiedAddress" = "Address copied";
 "location.copiedAddress.a11y" = "Address copied to clipboard";
+"location.copyAddress.a11y" = "Copy address to clipboard";
 "location.openIn.apple" = "Apple Maps";
 "location.openIn.google" = "Google Maps";
 "location.openIn.amap" = "Amap";

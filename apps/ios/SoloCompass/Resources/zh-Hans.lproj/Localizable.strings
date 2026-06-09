@@ -1115,6 +1115,9 @@
 /* Location */
 "location.copied" = "已复制！";
 "location.copied.a11y" = "坐标已复制";
+"location.copiedAddress" = "地址已复制";
+"location.copiedAddress.a11y" = "地址已复制到剪贴板";
+"location.copyAddress.a11y" = "复制地址到剪贴板";
 
 /* My routes */
 "my.hosted.routes.title" = "我主理的路线";
