@@ -14,6 +14,8 @@ public struct DiscoverRecruitingRoutesView: View {
     /// Optional current city code used for the city-match scoring weight.
     var currentCityCode: String?
 
+    @State private var showingCreateRoute = false
+
     public init(
         currentCityCode: String? = nil,
         storeProvider: @escaping () -> RouteStore = { RouteStore() }
@@ -43,6 +45,14 @@ public struct DiscoverRecruitingRoutesView: View {
             NSLocalizedString("discover.recruiting.title", comment: "Discover Recruiting Routes nav title")
         )
         .navigationBarTitleDisplayMode(.large)
+        .sheet(isPresented: $showingCreateRoute) {
+            CreateRouteView(
+                candidates: [],
+                cityCode: currentCityCode ?? "",
+                userCoordinate: nil,
+                onSave: { _ in }
+            )
+        }
     }
 
     // MARK: - Subviews
@@ -73,24 +83,28 @@ public struct DiscoverRecruitingRoutesView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label(
+        VStack(spacing: 16) {
+            RecruitingEmptyIllustration()
+            Text(
                 NSLocalizedString(
                     "discover.recruiting.empty.title",
                     comment: "Empty state title — no recruiting routes"
-                ),
-                systemImage: "map"
+                )
             )
-        } description: {
+            .font(.headline)
+            .foregroundStyle(CT.fgPrimary)
+            .multilineTextAlignment(.center)
             Text(
                 NSLocalizedString(
                     "discover.recruiting.empty.description",
                     comment: "Empty state description"
                 )
             )
-        } actions: {
+            .font(.subheadline)
+            .foregroundStyle(CT.fgMuted)
+            .multilineTextAlignment(.center)
             Button {
-                // Stub — wired up in a later story.
+                showingCreateRoute = true
             } label: {
                 Text(
                     NSLocalizedString(
@@ -101,6 +115,9 @@ public struct DiscoverRecruitingRoutesView: View {
             }
             .buttonStyle(.bordered)
         }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(CT.bgWarm)
     }
 
     // MARK: - Composite scoring
@@ -137,6 +154,46 @@ public struct DiscoverRecruitingRoutesView: View {
         let now = Date()
         let sevenDaysOut = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
         return fromDate >= now && fromDate <= sevenDaysOut
+    }
+}
+
+// MARK: - RecruitingEmptyIllustration
+
+private struct RecruitingEmptyIllustration: View {
+    @State private var floating = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [CT.accentSoft, CT.accentSoft.opacity(0)],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 52
+                    )
+                )
+                .frame(width: 104, height: 104)
+                .opacity(reduceMotion ? 0.6 : (floating ? 0.9 : 0.4))
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: 2.2).repeatForever(autoreverses: true),
+                    value: floating
+                )
+
+            Image(systemName: "location.north.circle.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(CT.accent)
+                .offset(y: reduceMotion ? 0 : (floating ? -6 : 6))
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: 2.2).repeatForever(autoreverses: true),
+                    value: floating
+                )
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            floating = true
+        }
     }
 }
 
