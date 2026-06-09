@@ -1083,6 +1083,14 @@
 "filter.now.empty.idle" = "现在没有体验处于最佳状态";
 "filter.now.empty.upcoming" = "%@ 还有 %d 分钟";
 "filter.now.empty.a11y" = "现在没有体验处于最佳状态。%@ 将在 %d 分钟后开始。点击跳转。";
+"filter.now.empty.title" = "此刻是安静时段";
+"filter.now.empty.later.subtitle" = "现在没有体验处于最佳状态，这是接下来最值得一去的时段。";
+"filter.now.empty.done.subtitle" = "最佳时段明天才会回来。在那之前，地图依然任你漫游。";
+"filter.now.empty.nextBest" = "接下来最佳";
+"filter.now.empty.nextBest.a11y" = "接下来最佳：%1$@，%2$@。点击查看。";
+"filter.now.empty.browseAll" = "浏览附近全部";
+"filter.now.empty.opensIn.minutes" = "还有 %d 分钟";
+"filter.now.empty.opensIn.hours" = "约 %d 小时后";
 
 /* Inconveniences */
 "inconvenience.category.scam" = "诈骗风险";

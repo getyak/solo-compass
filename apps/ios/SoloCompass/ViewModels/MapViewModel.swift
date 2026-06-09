@@ -1237,6 +1237,35 @@ public final class MapViewModel {
         return best
     }
 
+    /// The soonest experience whose next best-time window starts later *today*,
+    /// with **no upper bound** on how far out it is. Where `nextBestExperience`
+    /// caps at 180 minutes to power the imminent "jump there" countdown, this is
+    /// the wider net behind the "Now" filter's dedicated empty state: during the
+    /// quiet hours — late at night, mid-afternoon lull — nothing is at its best
+    /// *and* nothing opens within three hours, so we still want to point the
+    /// traveler at the soonest worthwhile window ("Café X · best 5–7pm") rather
+    /// than the generic "clear filters" dead-end. Returns nil only when nothing
+    /// has an upcoming window today at all (e.g. genuinely late night).
+    /// `now` is injectable for `TimelineView` ticks and deterministic tests.
+    public func soonestUpcomingExperience(now: Date = Date()) -> (experience: Experience, minutesUntil: Int)? {
+        let cityCode = selectedCity
+        let candidates = experienceService.allExperiences.filter { exp in
+            guard !exp.isBestNow(at: now) else { return false }
+            if let code = cityCode, !code.hasPrefix("custom_") {
+                return exp.location.cityCode == code
+            }
+            return true
+        }
+        var best: (experience: Experience, minutesUntil: Int)?
+        for exp in candidates {
+            guard let mins = minutesUntilBestTime(for: exp, from: now), mins > 0 else { continue }
+            if best == nil || mins < best!.minutesUntil {
+                best = (exp, mins)
+            }
+        }
+        return best
+    }
+
     // MARK: - Bottom info bar
 
     /// Refresh the bottom info bar with a time-of-day appropriate summary of
