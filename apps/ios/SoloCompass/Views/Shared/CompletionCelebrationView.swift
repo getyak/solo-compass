@@ -9,7 +9,7 @@ public struct CompletionCelebrationView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private struct Particle: Identifiable {
+    struct Particle: Identifiable {
         let id: Int
         let color: Color
         let angle: Double       // radians

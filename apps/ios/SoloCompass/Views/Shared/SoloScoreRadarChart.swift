@@ -489,7 +489,7 @@ private struct RadarChartDescriptor: AXChartDescriptorRepresentable {
         ) { value in "\(Int(value))" }
 
         let dataPoints = values.map { pair in
-            AXDataPoint(x: .category(pair.label), y: .number(pair.value))
+            AXDataPoint(x: pair.label, y: pair.value)
         }
         let series = AXDataSeriesDescriptor(
             name: NSLocalizedString("solo.scoreTitle", comment: ""),
