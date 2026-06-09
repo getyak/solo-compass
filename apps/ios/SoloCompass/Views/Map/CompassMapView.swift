@@ -1407,6 +1407,21 @@ struct CompassMapContentView: View {
                         }
                     }
             )
+            // Tap empty map → dismiss the floating preview card, matching the
+            // tap-to-deselect convention of Apple/Google Maps. Pin `Button`s and
+            // the card itself sit in their own layers and consume their own taps
+            // first, so only a tap on bare map reaches here. Guarded to the
+            // preview state (selection without the detail sheet) so it never
+            // interferes with pin selection or the open detail view.
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    guard viewModel.selectedExperience != nil, !viewModel.isShowingDetail else { return }
+                    Haptics.selection()
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        viewModel.clearSelection()
+                    }
+                }
+            )
         }
     }
 
