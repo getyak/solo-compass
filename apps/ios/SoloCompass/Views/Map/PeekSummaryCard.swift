@@ -149,11 +149,20 @@ struct PeekSummaryCard: View {
         .accessibilityHidden(true)
     }
 
-    /// Chip row: walk-time (if nearby) + Solo-Score badge + (optional) 此刻最佳 chip.
+    /// Chip row: travel-time + Solo-Score badge + (optional) 此刻最佳 chip.
+    ///
+    /// Within walking range (< 1.5 km) we show estimated walk minutes; for
+    /// mid-range picks (1.5–15 km) — too far to walk but still in-city — we
+    /// show an estimated drive time so a far smart pick reads as a concrete
+    /// effort ("~12 min drive") rather than a bare distance.
     private var chipRow: some View {
         HStack(spacing: 6) {
-            if let meters = distanceMeters, meters < 1500 {
-                walkTimeChip(meters: meters)
+            if let meters = distanceMeters {
+                if meters < 1500 {
+                    walkTimeChip(meters: meters)
+                } else if meters < 15_000 {
+                    rideTimeChip(meters: meters)
+                }
             }
             SoloScoreBadge(score: experience.soloScore, style: .compact)
             if isOpenNow {
@@ -171,6 +180,27 @@ struct PeekSummaryCard: View {
         )
         return HStack(spacing: 3) {
             Image(systemName: "figure.walk")
+                .font(.system(size: 9.5, weight: .semibold))
+            Text(label)
+                .font(.caption2.weight(.medium))
+        }
+        .foregroundStyle(CT.fgMuted)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(CT.surfaceSunken))
+        .accessibilityHidden(true)
+    }
+
+    /// Neutral chip: estimated drive minutes (≈ 6 min/km in-city) for mid-range
+    /// picks that are past comfortable walking distance.
+    private func rideTimeChip(meters: Double) -> some View {
+        let minutes = max(1, Int((meters / 1000 * 6).rounded()))
+        let label = String(
+            format: NSLocalizedString("nearby.chip.driveMin", comment: "Drive minutes chip, e.g. '12 min drive'"),
+            minutes
+        )
+        return HStack(spacing: 3) {
+            Image(systemName: "car.fill")
                 .font(.system(size: 9.5, weight: .semibold))
             Text(label)
                 .font(.caption2.weight(.medium))
@@ -303,6 +333,9 @@ struct PeekSummaryCard: View {
             if meters < 1500 {
                 let minutes = max(1, Int((meters / 80).rounded()))
                 label += ", \(String(format: NSLocalizedString("card.distance.walk", comment: "Walk minutes, e.g. '4 min walk'"), minutes))"
+            } else if meters < 15_000 {
+                let minutes = max(1, Int((meters / 1000 * 6).rounded()))
+                label += ", \(String(format: NSLocalizedString("nearby.chip.driveMin", comment: "Drive minutes chip, e.g. '12 min drive'"), minutes))"
             }
         }
         if isNearby {
