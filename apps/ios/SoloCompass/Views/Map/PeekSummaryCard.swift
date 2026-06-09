@@ -212,18 +212,24 @@ struct PeekSummaryCard: View {
         .accessibilityHidden(true)
     }
 
-    /// Golden chip: 此刻最佳 — shown when the experience is open in the current hour.
+    /// Golden chip: 此刻最佳 — shown when the experience is at its best right now.
+    /// Flips to an amber "Closing · Nm" countdown when the active window has
+    /// ≤ 45 minutes left, matching the detail card and Saved list so the peek
+    /// pick carries the same urgency cue the rest of the app already shows.
     private var bestNowChip: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "sparkles")
+        let state = bestNowChipState
+        return HStack(spacing: 3) {
+            Image(systemName: state.symbol)
                 .font(.system(size: 9, weight: .semibold))
-            Text(NSLocalizedString("nearby.chip.bestNow", comment: "此刻最佳 chip"))
+            Text(state.label)
                 .font(.caption2.weight(.semibold))
+                .monospacedDigit()
+                .contentTransition(reduceMotion ? .identity : .numericText())
         }
-        .foregroundStyle(CT.sunGoldDeep)
+        .foregroundStyle(state.foreground)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
-        .background(Capsule().fill(CT.sunGoldSoft))
+        .background(Capsule().fill(state.background))
         .accessibilityHidden(true)
     }
 
@@ -299,9 +305,19 @@ struct PeekSummaryCard: View {
         return parts.joined(separator: " · ")
     }
 
+    /// Live "best now / closing soon" chip state, recomputed each time the shared
+    /// `BestNowClock` advances (the `clock.tick` read makes this card an observer).
+    private var bestNowChipState: BestNowChipState {
+        BestNowChipState.resolve(for: experience, at: clock.tick)
+    }
+
+    /// True when the experience is genuinely at its best right now. Uses
+    /// `minutesLeftInBestWindow` (via the chip state) as the single source of
+    /// truth — it honours weekday / season filters and midnight-wrapping
+    /// windows, unlike the old bare "current hour ∈ bestTimes" check which would
+    /// falsely flag a weekend-only or summer-only window on the wrong day.
     private var isOpenNow: Bool {
-        let hour = Calendar.current.component(.hour, from: clock.tick)
-        return experience.bestTimes.contains { $0.contains(hour: hour) }
+        bestNowChipState.minutesLeft != nil
     }
 
     private var relativeBearing: Double? {
@@ -337,6 +353,14 @@ struct PeekSummaryCard: View {
                 let minutes = max(1, Int((meters / 1000 * 6).rounded()))
                 label += ", \(String(format: NSLocalizedString("nearby.chip.driveMin", comment: "Drive minutes chip, e.g. '12 min drive'"), minutes))"
             }
+        }
+        if isOpenNow {
+            // Surface the live timing the same way the visible chip does: the
+            // closing-soon countdown when winding down, else a plain best-now cue.
+            let state = bestNowChipState
+            label += ", " + (state.isClosingSoon
+                ? state.accessibilityLabel
+                : NSLocalizedString("sheet.nearby.openNow.a11y", comment: "Open now accessibility"))
         }
         if isNearby {
             label += ", " + NSLocalizedString("peek.card.almostThere.a11y", comment: "VoiceOver: almost there proximity cue")
@@ -422,6 +446,49 @@ struct PeekEmptyCard: View {
                 )
             }
             PeekEmptyCard()
+        }
+        .padding(16)
+    }
+    .environment(LocationService.shared)
+    .environment(BestNowClock.shared)
+}
+
+#Preview("Best now vs. Closing soon") {
+    // Two synthetic picks at the same spot: one whose best window has hours left
+    // (plain gold "Best now" chip) and one whose window ends at the top of the
+    // next hour, so within ~45 min of most open times it renders the amber
+    // "Closing · Nm" chip. Demonstrates the live urgency treatment.
+    let cal = Calendar.current
+    let hour = cal.component(.hour, from: Date())
+    func pick(from base: Experience, id: String, endsInHours: Int) -> Experience {
+        Experience(
+            id: id, title: base.title, oneLiner: base.oneLiner, whyItMatters: base.whyItMatters,
+            category: base.category, location: base.location,
+            bestTimes: [TimeWindow(startHour: (hour + 23) % 24, endHour: (hour + endsInHours) % 24)],
+            durationMinutes: base.durationMinutes, howTo: base.howTo,
+            realInconveniences: base.realInconveniences, soloScore: base.soloScore,
+            sources: base.sources, confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds, stats: base.stats, status: base.status,
+            createdAt: base.createdAt, updatedAt: base.updatedAt, userTags: base.userTags
+        )
+    }
+    return ZStack {
+        Color(.systemGroupedBackground).ignoresSafeArea()
+        VStack(spacing: 16) {
+            if let base = ExperienceService.hardcodedSeed.first {
+                PeekSummaryCard(
+                    experience: pick(from: base, id: "preview_open_all_evening", endsInHours: 4),
+                    isSmartPick: true,
+                    referenceCoordinate: base.coordinate,
+                    onTap: {}
+                )
+                PeekSummaryCard(
+                    experience: pick(from: base, id: "preview_closing_soon", endsInHours: 1),
+                    isSmartPick: false,
+                    referenceCoordinate: base.coordinate,
+                    onTap: {}
+                )
+            }
         }
         .padding(16)
     }

@@ -1214,6 +1214,9 @@
 "nearby.chip.driveMin" = "车程 %d 分钟";
 "nearby.chip.solo" = "Solo %.1f";
 "nearby.chip.bestNow" = "此刻最佳";
+/* 此刻最值得去卡片 + 附近列表上的紧凑「即将关闭」倒计时（剩余 ≤45 分钟）。%d = 分钟。 */
+"nearby.chip.closingSoon" = "即将关闭 · %d分";
+"nearby.chip.closingSoon.a11y" = "此刻最佳，即将关闭，还剩 %d 分钟";
 "nearby.proximity.sparse" = "稀疏";
 "nearby.proximity.moderate" = "中等";
 "nearby.proximity.far" = "较远";
