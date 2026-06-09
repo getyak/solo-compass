@@ -221,6 +221,7 @@
 
 /* Marker accessibility */
 "marker.a11y.bestNow" = "best right now";
+"marker.a11y.closingSoon" = "best right now, closing soon";
 "marker.a11y.completed" = "completed";
 "marker.a11y.favorited" = "favorited";
 "marker.a11y.upcoming" = "starts in %d minutes";
