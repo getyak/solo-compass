@@ -574,6 +574,8 @@
 
 /* Favorites journey halfway milestone VoiceOver announcement */
 "favorites.journey.halfway" = "Halfway there — %1$d of %2$d explored";
+/* Favorites journey progress bar — milestone pulse VoiceOver announcement (%d = percent, e.g. 25) */
+"favorites.journey.milestone.a11y" = "%d%% of your favorites explored";
 
 /* Favorites journey header — closest pill (shown when nearbyCount == 0) */
 "favorites.journey.closest" = "%1$@ · %2$@";
