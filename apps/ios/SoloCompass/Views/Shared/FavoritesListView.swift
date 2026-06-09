@@ -238,8 +238,16 @@ public struct FavoritesListView: View {
                     })
                     .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else if filteredFavorites.isEmpty {
-                    NoSearchResultsView(query: searchText, onClear: { searchText = "" })
-                        .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+                    NoSearchResultsView(
+                        query: searchText,
+                        onClear: { searchText = "" },
+                        goodNowCount: goodNowCount,
+                        onShowGoodNow: goodNowCount > 0 ? {
+                            searchText = ""
+                            prioritizeGoodNow = true
+                        } : nil
+                    )
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else {
                     VStack(spacing: 0) {
                         if sortedFavorites.count > 0 {
@@ -1150,6 +1158,8 @@ private struct AllRemainingDoneView: View {
 private struct NoSearchResultsView: View {
     let query: String
     let onClear: () -> Void
+    var goodNowCount: Int = 0
+    var onShowGoodNow: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -1176,6 +1186,23 @@ private struct NoSearchResultsView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .accessibilityHint(NSLocalizedString("favorites.search.clear.hint", comment: "Clears the search field and shows all favorites"))
+            if goodNowCount > 0, let onShowGoodNow {
+                Button {
+                    Haptics.selection()
+                    withAnimation(reduceMotion ? nil : .easeInOut) {
+                        onShowGoodNow()
+                    }
+                } label: {
+                    Label(
+                        String(format: NSLocalizedString("favorites.search.goodNow.cta", comment: "Good-now CTA in no-results view: N great right now"), goodNowCount),
+                        systemImage: "clock.badge.checkmark"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityLabel(String(format: NSLocalizedString("favorites.search.goodNow.cta.a11y", comment: "Good-now CTA accessibility label: N favorites great right now"), goodNowCount))
+                .accessibilityHint(NSLocalizedString("favorites.journey.goodNow.hint", comment: "Good now nudge sorts those favorites to the top of the list"))
+            }
         }
         .padding(32)
         .scaleEffect(appeared ? 1 : 0.85)
