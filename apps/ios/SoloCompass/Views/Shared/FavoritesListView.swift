@@ -34,6 +34,8 @@ public struct FavoritesListView: View {
     @State private var prioritizeGoodNow = false
     @State private var celebrationTrigger = 0
     @State private var searchAnnounceTask: Task<Void, Never>?
+    @State private var justCompletedId: String?
+    @State private var completionClearTask: Task<Void, Never>?
 
     private var undoDismissSeconds: Double { voiceOverOn ? 12 : 4 }
 
@@ -458,6 +460,8 @@ public struct FavoritesListView: View {
                         }
                         .onDisappear {
                             hintDismissTask?.cancel()
+                            completionClearTask?.cancel()
+                            justCompletedId = nil
                         }
                     }
                     .transition(.opacity)
@@ -1471,6 +1475,9 @@ private extension FavoritesListView {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
+            .overlay {
+                RowCompletionFlourish(isActive: justCompletedId == exp.id)
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableRowStyle(reduceMotion: reduceMotion))
@@ -1554,6 +1561,16 @@ private extension FavoritesListView {
                         preferences.markCompleted(exp.id)
                     }
                     celebrationTrigger += 1
+                    let completedId = exp.id
+                    justCompletedId = completedId
+                    completionClearTask?.cancel()
+                    completionClearTask = Task {
+                        try? await Task.sleep(for: .milliseconds(700))
+                        guard !Task.isCancelled else { return }
+                        await MainActor.run {
+                            if justCompletedId == completedId { justCompletedId = nil }
+                        }
+                    }
                     UIAccessibility.post(
                         notification: .announcement,
                         argument: String(format: NSLocalizedString("favorites.row.markVisited.announcement", comment: "VoiceOver announcement after marking as visited"), exp.title)
@@ -1585,6 +1602,16 @@ private extension FavoritesListView {
             } else {
                 preferences.markCompleted(exp.id)
                 celebrationTrigger += 1
+                let completedId = exp.id
+                justCompletedId = completedId
+                completionClearTask?.cancel()
+                completionClearTask = Task {
+                    try? await Task.sleep(for: .milliseconds(700))
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        if justCompletedId == completedId { justCompletedId = nil }
+                    }
+                }
                 UIAccessibility.post(
                     notification: .announcement,
                     argument: String(format: NSLocalizedString("favorites.row.markVisited.announcement", comment: "VoiceOver announcement after marking as visited"), exp.title)
@@ -1596,6 +1623,78 @@ private extension FavoritesListView {
                   let app = NavigationLauncher.availableApps().first else { return }
             Haptics.impact(.light)
             NavigationLauncher.open(app: app, coordinate: coord, name: exp.title)
+        }
+    }
+}
+
+/// Full-row decorative overlay fired when a favorite is marked visited.
+/// Blooms a green checkmark over the 44-pt icon circle and sweeps a soft
+/// green shimmer left-to-right across the row. Fully gated behind Reduce Motion
+/// (both effects are skipped). All elements are `accessibilityHidden`.
+private struct RowCompletionFlourish: View {
+    /// Increment to trigger one flourish cycle. Matches the justCompletedId
+    /// pattern — caller sets this to a new value to fire, then clears after ~0.7s.
+    let isActive: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var bloomScale: CGFloat = 0.2
+    @State private var sweepPhase: CGFloat = -1
+    @State private var showOverlay = false
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                if showOverlay && !reduceMotion {
+                    // Left-to-right green sweep across full row width
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: Color.green.opacity(0.18), location: 0.5),
+                            .init(color: .clear, location: 1),
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geo.size.width * 0.5, height: geo.size.height)
+                    .offset(x: geo.size.width * sweepPhase)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .accessibilityHidden(true)
+
+                    // Bloom checkmark centred over the 44-pt icon circle (leading inset ~22pt)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(Color.green)
+                        .scaleEffect(bloomScale)
+                        .frame(width: 44, height: 44)
+                        .offset(x: 0, y: 0)
+                        .frame(maxHeight: .infinity)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .onChange(of: isActive) { _, active in
+            if active && !reduceMotion {
+                showOverlay = true
+                bloomScale = 0.2
+                sweepPhase = -1
+                // Two-spring bloom: 0.2 → 1.15 → 1.0 (mirrors CompletionRing.triggerCelebration)
+                withAnimation(.spring(response: 0.18, dampingFraction: 0.45)) {
+                    bloomScale = 1.15
+                }
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.6).delay(0.18)) {
+                    bloomScale = 1.0
+                }
+                // Left-to-right sweep over ~0.6s
+                withAnimation(.easeInOut(duration: 0.6).delay(0.05)) {
+                    sweepPhase = 1.4
+                }
+            } else if !active {
+                showOverlay = false
+                bloomScale = 0.2
+                sweepPhase = -1
+            }
         }
     }
 }
