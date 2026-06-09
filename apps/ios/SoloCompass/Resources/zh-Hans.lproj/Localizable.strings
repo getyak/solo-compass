@@ -131,6 +131,7 @@
 
 /* Marker accessibility */
 "marker.a11y.bestNow" = "此刻最佳";
+"marker.a11y.closingSoon" = "此刻最佳，即将关闭";
 "marker.a11y.completed" = "已完成";
 "marker.a11y.favorited" = "已收藏";
 "marker.a11y.upcoming" = "%d 分钟后开始";

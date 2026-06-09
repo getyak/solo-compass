@@ -148,6 +148,15 @@ final class BestNowChipStateTests: XCTestCase {
                 XCTAssertTrue(value.contains("%d"),
                               "\(key) in \(lang) must keep the %d minutes placeholder")
             }
+
+            // US-049: the map marker's closing-soon VoiceOver phrase. Unlike the
+            // chip keys above it carries no minute count (the pin shows a glyph,
+            // not a countdown), so it must resolve but must NOT contain "%d".
+            let markerKey = "marker.a11y.closingSoon"
+            let markerValue = bundle.localizedString(forKey: markerKey, value: "__MISSING__", table: nil)
+            XCTAssertNotEqual(markerValue, "__MISSING__", "\(markerKey) missing in \(lang)")
+            XCTAssertFalse(markerValue.contains("%d"),
+                           "\(markerKey) in \(lang) must not embed a minute placeholder")
         }
     }
 }

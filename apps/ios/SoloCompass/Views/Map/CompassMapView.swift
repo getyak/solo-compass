@@ -114,6 +114,11 @@ struct CompassMapContentView: View {
     private let presenceService: PresenceService
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// US-049: the shared 60s clock. Reading `tick` inside `mapLayer` re-evaluates
+    /// the marker layer every minute, so a best-now pin flips to its amber
+    /// "closing soon" treatment live as its window crosses the 45-min threshold —
+    /// matching the cards, which already observe this same clock.
+    @Environment(BestNowClock.self) private var bestNowClock
 
     @State private var viewModel: MapViewModel
     @State private var voiceService = VoiceService()
@@ -1273,6 +1278,14 @@ struct CompassMapContentView: View {
                         // iteration — its six conditions are otherwise evaluated
                         // twice per visible marker per frame (icon + badge).
                         let state = viewModel.markerState(for: exp)
+                        // US-049: resolve closing-soon urgency from the same
+                        // shared source the cards use, off the 60s clock tick so
+                        // the pin escalates to amber live. Only meaningful for a
+                        // best-now pin; `BestNowChipState` returns nil minutes
+                        // (→ not closing soon) for everything else.
+                        let isClosingSoon = BestNowChipState
+                            .resolve(for: exp, at: bestNowClock.tick)
+                            .isClosingSoon
                         // Pass an empty title so MapKit doesn't auto-render the
                         // experience name as a pin label (long titles clipped
                         // off the screen edge); the name lives on the
@@ -1292,7 +1305,10 @@ struct CompassMapContentView: View {
                                         // US-035: light up best-now pins when the
                                         // Now filter pill is active so the two UIs
                                         // feel connected.
-                                        nowFilterActive: viewModel.isNowFilter
+                                        nowFilterActive: viewModel.isNowFilter,
+                                        // US-049: flip a closing-soon best-now pin
+                                        // to the amber treatment the cards use.
+                                        closingSoon: isClosingSoon
                                     )
                                     if case .footprinted = state {
                                         Text("\(viewModel.footprintCount(for: exp))")

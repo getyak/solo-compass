@@ -21,6 +21,14 @@ public struct MarkerIconView: View {
     /// `bestNow` marker grows an extra CT.accent ring so the filter pill and
     /// the map highlight read as the same gesture. No effect on other states.
     let nowFilterActive: Bool
+    /// US-049: true when a `bestNow` pin's window has ≤ 45 min left (the shared
+    /// `BestNowChipState.closingSoonThresholdMinutes`). When set, the pin's gold
+    /// pulse, fill, and glow flip to the same amber the cards/list/detail sheet
+    /// use, and a small `clock.badge.exclamationmark` adornment appears — so the
+    /// map conveys the same closing-soon urgency every other surface already
+    /// shows. Ignored for non-`bestNow` states. Defaults to false to keep every
+    /// existing call site source-compatible.
+    let closingSoon: Bool
 
     @Environment(\.themeService) private var themeService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -33,13 +41,39 @@ public struct MarkerIconView: View {
         state: ExperienceMarkerState,
         confidenceLevel: Int = 5,
         isSelected: Bool = false,
-        nowFilterActive: Bool = false
+        nowFilterActive: Bool = false,
+        closingSoon: Bool = false
     ) {
         self.category = category
         self.state = state
         self.confidenceLevel = confidenceLevel
         self.isSelected = isSelected
         self.nowFilterActive = nowFilterActive
+        self.closingSoon = closingSoon
+    }
+
+    /// US-049: amber used when a best-now window is closing soon — identical to
+    /// `BestNowChipState.amber` (#F59E0B) so the map's urgency tone reads the
+    /// same as the peek card, Nearby row, detail card, and Saved list.
+    static let closingSoonAmber = BestNowChipState.amber
+
+    /// US-049: a `bestNow` pin should show the closing-soon (amber) treatment
+    /// only when it is genuinely closing soon and not a low-confidence AI guess
+    /// — mirroring the pulse-ring and Now-sync suppression, so tentative pins
+    /// never imitate verified urgency.
+    var showsClosingSoon: Bool {
+        guard closingSoon, !isLowConfidence else { return false }
+        if case .bestNow = state { return true }
+        return false
+    }
+
+    /// US-049: the gold a `bestNow` pin uses at rest, flipping to amber once the
+    /// window is closing soon. Centralised so the pulse, fill, shadow, and the
+    /// Reduce-Motion static ring all stay in lock-step.
+    private var bestNowTint: Color {
+        showsClosingSoon
+            ? Self.closingSoonAmber
+            : Color(red: 0xD4 / 255, green: 0xA8 / 255, blue: 0x43 / 255)
     }
 
     /// US-035: a `bestNow` marker should show the extra "Now" sync ring only
@@ -82,6 +116,10 @@ public struct MarkerIconView: View {
             .scaleEffect(isSelected ? 1.3 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
+            // US-049: ease the gold→amber flip so a best-now pin crossing the
+            // 45-min mark on the minute tick glides into its urgency tone
+            // instead of snapping. Shares the Now-sync easing for consistency.
+            .animation(Self.nowSyncTransition, value: showsClosingSoon)
             .onChange(of: reduceMotion) { _, reduced in
                 if reduced {
                     pulse = false
@@ -159,10 +197,12 @@ public struct MarkerIconView: View {
     private var defaultMarkerBody: some View {
         ZStack {
             // Pulse ring for "best now" (suppress on low-confidence — we
-            // don't want AI-guessed entries imitating verified excitement)
+            // don't want AI-guessed entries imitating verified excitement).
+            // US-049: the pulse adopts `bestNowTint`, so a window that's
+            // closing soon pulses amber to match the cards' urgency cue.
             if case .bestNow = state, !isLowConfidence, !reduceMotion {
                 Circle()
-                    .fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255).opacity(0.4))
+                    .fill(bestNowTint.opacity(0.4))
                     .frame(width: 56, height: 56)
                     .scaleEffect(pulse ? 1.2 : 0.9)
                     .opacity(pulse ? 0.0 : 0.7)
@@ -211,7 +251,7 @@ public struct MarkerIconView: View {
 
     private var fillColor: Color {
         switch state {
-        case .bestNow: return Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+        case .bestNow: return bestNowTint
         case .completed, .footprinted: return category.color
         default: return category.color
         }
@@ -219,7 +259,7 @@ public struct MarkerIconView: View {
 
     private var shadowColor: Color {
         switch state {
-        case .bestNow: return Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255).opacity(0.6)
+        case .bestNow: return bestNowTint.opacity(0.6)
         default: return .black.opacity(0.2)
         }
     }
@@ -272,7 +312,22 @@ public struct MarkerIconView: View {
                 .padding(3)
                 .background(Circle().fill(Color.gray))
                 .offset(x: 12, y: 12)
-        case .bestNow, .default:
+        case .bestNow:
+            // US-049: a small alarm-clock badge marks a best-now window that's
+            // closing soon, echoing the cards' `clock.badge.exclamationmark`
+            // glyph. An amber glyph on a white disc so it reads against the
+            // amber pin fill behind it.
+            if showsClosingSoon {
+                // Same glyph the cards/chip use (`BestNowChipState.symbol`)
+                // for a closing-soon window, so the cue is identical app-wide.
+                Image(systemName: "clock.badge.exclamationmark")
+                    .font(.caption2.bold())
+                    .foregroundStyle(Self.closingSoonAmber)
+                    .padding(2)
+                    .background(Circle().fill(.white))
+                    .offset(x: 12, y: -12)
+            }
+        case .default:
             EmptyView()
         }
     }
@@ -295,7 +350,11 @@ public struct MarkerIconView: View {
         let suffix: String
         switch state {
         case .bestNow:
-            suffix = ", \(NSLocalizedString("marker.a11y.bestNow", comment: ""))"
+            // US-049: VoiceOver escalates to the closing-soon phrasing so a
+            // non-sighted traveler hears the same urgency the amber pin shows.
+            suffix = showsClosingSoon
+                ? ", \(NSLocalizedString("marker.a11y.closingSoon", comment: "VoiceOver: best now but the window is closing soon"))"
+                : ", \(NSLocalizedString("marker.a11y.bestNow", comment: ""))"
         case .completed:
             suffix = ", \(NSLocalizedString("marker.a11y.completed", comment: ""))"
         case .favorited:
@@ -321,7 +380,10 @@ public struct MarkerIconView: View {
         let confidence = isLowConfidence ? "low" : "normal"
         let selection = isSelected ? ".selected" : ""
         let nowSync = showsNowSyncRing ? ".nowsync" : ""
-        return "marker.\(category.rawValue).\(state.identifierFragment).\(confidence)\(selection)\(nowSync)"
+        // US-049: closing-soon best-now pins gain a `.closingsoon` fragment so
+        // tests can assert the amber escalation is observable without rendering.
+        let closing = showsClosingSoon ? ".closingsoon" : ""
+        return "marker.\(category.rawValue).\(state.identifierFragment).\(confidence)\(selection)\(nowSync)\(closing)"
     }
 }
 
@@ -387,6 +449,15 @@ private struct ObsidianDotGridMarker: View {
                 Text("bestNow + Now filter").frame(width: 120, alignment: .leading)
                 ForEach(ExperienceCategory.allCases) { cat in
                     MarkerIconView(category: cat, state: .bestNow, nowFilterActive: true)
+                }
+            }
+
+            // US-049: best-now markers whose window is closing soon — the gold
+            // pulse/fill/glow flips to amber and an alarm-clock badge appears.
+            HStack(spacing: 16) {
+                Text("bestNow · closing soon").frame(width: 120, alignment: .leading)
+                ForEach(ExperienceCategory.allCases) { cat in
+                    MarkerIconView(category: cat, state: .bestNow, closingSoon: true)
                 }
             }
 
