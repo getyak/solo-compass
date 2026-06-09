@@ -76,4 +76,18 @@ final class NavigationLauncherTests: XCTestCase {
         let apps = NavigationLauncher.availableApps { _ in true }
         XCTAssertEqual(apps, [.appleMaps, .googleMaps, .amap])
     }
+
+    // MARK: - soleApp(canOpen:)
+
+    func test_soleApp_onlyAppleMaps_returnsAppleMaps() {
+        // The common case: nothing extra installed → launch Apple Maps directly,
+        // no one-option picker.
+        XCTAssertEqual(NavigationLauncher.soleApp { _ in false }, .appleMaps)
+    }
+
+    func test_soleApp_multipleInstalled_returnsNil() {
+        // A real choice exists → caller should present the picker.
+        XCTAssertNil(NavigationLauncher.soleApp { url in url.scheme == "comgooglemaps" })
+        XCTAssertNil(NavigationLauncher.soleApp { _ in true })
+    }
 }

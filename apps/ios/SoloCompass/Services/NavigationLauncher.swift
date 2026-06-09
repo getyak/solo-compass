@@ -48,6 +48,17 @@ public enum NavigationLauncher {
         }
     }
 
+    /// The single app to launch directly, or nil when the caller should present
+    /// a picker. With exactly one installed maps app (the common case — only
+    /// Apple Maps) a one-option picker is a pointless extra tap, so callers can
+    /// skip straight to launching it.
+    public static func soleApp(
+        canOpen: (URL) -> Bool = { UIApplication.shared.canOpenURL($0) }
+    ) -> NavigationApp? {
+        let apps = availableApps(canOpen: canOpen)
+        return apps.count == 1 ? apps.first : nil
+    }
+
     /// Deep-link URL for the given app. Returns nil for Apple Maps (use `open(app:...)` instead,
     /// which dispatches to `MKMapItem.openInMaps`).
     public static func url(

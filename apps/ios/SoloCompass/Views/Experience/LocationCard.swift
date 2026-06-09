@@ -121,8 +121,16 @@ struct LocationCard: View {
             HStack(spacing: 10) {
                 // US-010: Primary navigate button with gradient; 44pt HIG minimum
                 Button {
-                    isShowingPicker = true
                     Haptics.impact(.light)
+                    // With a single installed maps app (the common case — only
+                    // Apple Maps), a one-option picker is a pointless extra tap,
+                    // so launch directly. Show the picker only when there's a
+                    // real choice to make.
+                    if let only = NavigationLauncher.soleApp() {
+                        NavigationLauncher.open(app: only, coordinate: coordinate, name: displayName)
+                    } else {
+                        isShowingPicker = true
+                    }
                 } label: {
                     Label(
                         NSLocalizedString("location.navigate", comment: "Open external navigation app"),
