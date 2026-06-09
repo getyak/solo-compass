@@ -1484,6 +1484,9 @@
 /* US-034 — MyHostedRoutesListView */
 "my.hosted.routes.title" = "我主理的路线";
 "my.hosted.routes.empty" = "You are not hosting any routes yet.";
+"my.hosted.routes.empty.title" = "No hosted routes yet";
+"my.hosted.routes.empty.hint" = "Create a route and invite companions to join you on your journey.";
+"my.hosted.routes.empty.cta" = "Create a route";
 "settings.companion.hosted.routes" = "我主理的路线";
 
 /* US-038 — CompletionMoment */
