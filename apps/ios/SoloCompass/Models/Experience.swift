@@ -795,6 +795,48 @@ extension Experience {
         }
         return "\(startStr)–\(endStr)"
     }
+
+    /// Minutes until the soonest applicable `bestTimes` window *opens* later today,
+    /// or nil when the experience is already best now, has no upcoming window today,
+    /// or the soonest window is further out than `within` minutes.
+    ///
+    /// Powers an "opens soon" nudge on the best-time hint pill: a static
+    /// "Best 7–9am" reads the same whether the window opens in 20 minutes or in
+    /// 8 hours, so callers use this to highlight only the imminent case.
+    public func minutesUntilNextBestWindow(at date: Date = Date(), within: Int = 90) -> Int? {
+        guard !isBestNow(at: date) else { return nil }
+        guard !bestTimes.isEmpty else { return nil }
+
+        let cal = Calendar.current
+        let weekday = cal.component(.weekday, from: date) - 1 // Sun=0
+        let month = cal.component(.month, from: date)
+        let currentHour = cal.component(.hour, from: date)
+
+        let applicable = bestTimes.filter { window in
+            if let days = window.dayOfWeek, !days.isEmpty, !days.contains(weekday) { return false }
+            if let seasons = window.season, !seasons.isEmpty, !seasons.contains(month) { return false }
+            return true
+        }
+        let pool = applicable.isEmpty ? bestTimes : applicable
+
+        // Only windows that start later today (same logic as bestTimeHint's
+        // `upcoming`); a window already underway is handled by isBestNow above.
+        guard let nextStartHour = pool
+            .map(\.startHour)
+            .filter({ $0 > currentHour })
+            .min()
+        else { return nil }
+
+        var components = cal.dateComponents([.year, .month, .day], from: date)
+        components.hour = nextStartHour
+        components.minute = 0
+        components.second = 0
+        guard let opensAt = cal.date(from: components) else { return nil }
+
+        let minutes = Int((opensAt.timeIntervalSince(date) / 60).rounded(.up))
+        guard minutes > 0, minutes <= within else { return nil }
+        return minutes
+    }
 }
 
 private extension Locale {

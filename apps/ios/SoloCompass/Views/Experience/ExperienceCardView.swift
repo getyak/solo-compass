@@ -303,7 +303,7 @@ public struct ExperienceCardView: View {
                 } else if experience.isBestNow() {
                     BestNowBadge(experience: experience)
                 } else if let hint = experience.bestTimeHint() {
-                    bestTimeHintPill(hint)
+                    bestTimeHintPill(hint, opensInMinutes: experience.minutesUntilNextBestWindow(at: clock.tick))
                 }
                 if let coord = experience.coordinate {
                     directionsControl(coordinate: coord)
@@ -717,31 +717,49 @@ public struct ExperienceCardView: View {
         }
     }
 
+    /// Static best-time hint ("Best 7–9am"). When the window opens within the
+    /// next ~90 min, `opensInMinutes` is non-nil and the pill warms to amber with
+    /// an "· opens in 25m" tail so an imminent window reads differently from one
+    /// that's still hours out (which the bare gray pill could not convey).
     @ViewBuilder
-    private func bestTimeHintPill(_ hint: String) -> some View {
-        Label(
-            String(format: NSLocalizedString("experience.bestTime.hint", comment: "Best time hint"), hint),
-            systemImage: "clock"
-        )
-        .font(.caption)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .foregroundStyle(Color.secondary)
-        .background(Capsule().fill(Color.secondary.opacity(0.12)))
-        .symbolEffect(.bounce, value: clockNudge)
-        .scaleEffect(bestTimeAppeared ? 1 : 0.85)
-        .opacity(bestTimeAppeared ? 1 : 0)
-        .onAppear {
-            if reduceMotion {
-                bestTimeAppeared = true
-            } else {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+    private func bestTimeHintPill(_ hint: String, opensInMinutes: Int? = nil) -> some View {
+        let isImminent = opensInMinutes != nil
+        let tint = isImminent ? Self.bestTimeImminentAmber : Color.secondary
+        let label: String = {
+            let base = String(format: NSLocalizedString("experience.bestTime.hint", comment: "Best time hint"), hint)
+            guard let mins = opensInMinutes else { return base }
+            let tail = String(format: NSLocalizedString("experience.bestTime.opensIn", comment: "Best time window opens in N minutes tail"), mins)
+            return "\(base) · \(tail)"
+        }()
+        let a11y: String = {
+            let base = String(format: NSLocalizedString("experience.bestTime.hint.a11y", comment: "Best time accessibility"), hint)
+            guard let mins = opensInMinutes else { return base }
+            return base + ". " + String(format: NSLocalizedString("experience.bestTime.opensIn.a11y", comment: "Best time opens in N minutes accessibility"), mins)
+        }()
+        Label(label, systemImage: isImminent ? "clock.badge" : "clock")
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(tint)
+            .background(Capsule().fill(tint.opacity(isImminent ? 0.16 : 0.12)))
+            .symbolEffect(.bounce, value: clockNudge)
+            .scaleEffect(bestTimeAppeared ? 1 : 0.85)
+            .opacity(bestTimeAppeared ? 1 : 0)
+            .contentTransition(reduceMotion ? .identity : .numericText())
+            .accessibilityLabel(a11y)
+            .onAppear {
+                if reduceMotion {
                     bestTimeAppeared = true
+                } else {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        bestTimeAppeared = true
+                    }
+                    clockNudge.toggle()
                 }
-                clockNudge.toggle()
             }
-        }
     }
+
+    private static let bestTimeImminentAmber = Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
 
     // Severity order: safety > scam > weather > crowds > logistics > etiquette > other
     private static let inconvenienceSeverity: [RealInconvenience.Category] = [

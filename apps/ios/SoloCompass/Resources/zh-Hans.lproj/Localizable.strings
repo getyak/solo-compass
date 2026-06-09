@@ -1044,6 +1044,8 @@
 "experience.bestNow.countdown.a11y" = "此刻最佳，还有 %d 分钟";
 "experience.bestTime.hint" = "最佳时段：%@";
 "experience.bestTime.hint.a11y" = "最佳时段：%@";
+"experience.bestTime.opensIn" = "%d 分钟后开始";
+"experience.bestTime.opensIn.a11y" = "%d 分钟后进入最佳时段";
 
 /* Explore */
 "explore.expand.alreadyMax" = "已在最大探索半径（100 公里）。";
