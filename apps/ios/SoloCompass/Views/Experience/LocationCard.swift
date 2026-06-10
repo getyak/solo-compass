@@ -37,6 +37,20 @@ struct LocationCard: View {
         return (d.isFinite && d < .greatestFiniteMagnitude) ? d : nil
     }
 
+    /// Tapping Navigate should be a single tap when there's no choice to make.
+    /// With one installed maps app we launch it directly; the confirmation
+    /// dialog only earns its extra tap when the traveler has more than one app.
+    private func navigateTapped() {
+        Haptics.impact(.light)
+        let apps = NavigationLauncher.availableApps()
+        if apps.count <= 1 {
+            guard let app = apps.first else { return }
+            NavigationLauncher.open(app: app, coordinate: coordinate, name: displayName)
+        } else {
+            isShowingPicker = true
+        }
+    }
+
     private static let distanceFormatter: MeasurementFormatter = {
         let f = MeasurementFormatter()
         f.unitOptions = .naturalScale
@@ -121,16 +135,7 @@ struct LocationCard: View {
             HStack(spacing: 10) {
                 // US-010: Primary navigate button with gradient; 44pt HIG minimum
                 Button {
-                    Haptics.impact(.light)
-                    // With a single installed maps app (the common case — only
-                    // Apple Maps), a one-option picker is a pointless extra tap,
-                    // so launch directly. Show the picker only when there's a
-                    // real choice to make.
-                    if let only = NavigationLauncher.soleApp() {
-                        NavigationLauncher.open(app: only, coordinate: coordinate, name: displayName)
-                    } else {
-                        isShowingPicker = true
-                    }
+                    navigateTapped()
                 } label: {
                     Label(
                         NSLocalizedString("location.navigate", comment: "Open external navigation app"),
@@ -150,6 +155,9 @@ struct LocationCard: View {
                     .foregroundStyle(.white)
                 }
                 .accessibilityLabel(Text(NSLocalizedString("location.navigate", comment: "")))
+                .accessibilityHint(Text(NavigationLauncher.availableApps().count > 1
+                    ? NSLocalizedString("location.navigate.choose.a11y", comment: "Navigate hint when multiple maps apps installed")
+                    : NSLocalizedString("location.navigate.walk.a11y", comment: "Navigate hint when one maps app installed")))
 
                 // US-010: Ghost copy button — icon only, no fill
                 Button {

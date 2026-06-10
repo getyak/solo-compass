@@ -842,6 +842,8 @@
 "location.openingHours" = "Posted hours";
 "location.openingHours.a11y" = "Posted hours: %@";
 "location.navigate" = "Navigate";
+"location.navigate.choose.a11y" = "Choose a maps app for walking directions";
+"location.navigate.walk.a11y" = "Open walking directions in Maps";
 "location.copyCoords" = "Copy coordinates";
 "location.copied" = "Copied!";
 "location.copied.a11y" = "Coordinates copied";

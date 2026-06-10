@@ -466,6 +466,8 @@
 "location.openingHours" = "营业时间";
 "location.openingHours.a11y" = "营业时间：%@";
 "location.navigate" = "导航";
+"location.navigate.choose.a11y" = "选择地图应用以获取步行路线";
+"location.navigate.walk.a11y" = "在地图中打开步行路线";
 "location.copyCoords" = "复制坐标";
 "location.openIn.apple" = "苹果地图";
 "location.openIn.google" = "Google 地图";
