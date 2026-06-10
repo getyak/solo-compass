@@ -4024,6 +4024,39 @@ final class SoloCompassTests: XCTestCase {
                       "a shallow, never-compiled card must be a candidate")
     }
 
+    /// A tap-opened detail (map pin / Nearby row → openExperienceDetail) backs
+    /// out to the BARE MAP — selection cleared — while a card-expanded detail
+    /// (long-press → selectExperience → expand) peels back to the preview card,
+    /// keeping its selection. Guards the "stuck floating card after dismiss" bug.
+    func testDismissDetailReturnTargetDependsOnHowDetailWasOpened() throws {
+        let vm = MapViewModel(
+            locationService: LocationService(),
+            experienceService: ExperienceService(seed: []),
+            aiService: AIService(),
+            preferences: UserPreferences()
+        )
+        let exp = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+
+        // Path A — tap straight to detail, then dismiss → bare map.
+        vm.openExperienceDetail(exp)
+        XCTAssertTrue(vm.isShowingDetail, "sanity: tap opened the detail sheet")
+        XCTAssertNotNil(vm.selectedExperience)
+        vm.dismissDetail()
+        XCTAssertFalse(vm.isShowingDetail)
+        XCTAssertNil(vm.selectedExperience,
+                     "a tap-opened detail must dismiss to the bare map, not a phantom preview card")
+
+        // Path B — long-press floats the card, expand to detail, then dismiss
+        // → back to the preview card (selection retained).
+        vm.selectExperience(exp)
+        XCTAssertFalse(vm.isShowingDetail, "sanity: select floats the card, detail closed")
+        vm.isShowingDetail = true // the card's expand action
+        vm.dismissDetail()
+        XCTAssertFalse(vm.isShowingDetail)
+        XCTAssertNotNil(vm.selectedExperience,
+                        "a card-expanded detail must peel back to the preview card it sits above")
+    }
+
     private func makeExperience(id: String, bestTimes: [TimeWindow]) throws -> Experience {
         let base = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
         return Experience(

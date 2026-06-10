@@ -641,6 +641,12 @@ public final class MapViewModel {
 
     public var selectedExperience: Experience?
     public var isShowingDetail: Bool = false
+    /// True when the current detail sheet was opened *directly* by a tap (map
+    /// pin / Nearby row) with no floating preview card behind it. Backing out
+    /// of such a sheet returns to the bare map, not to a preview card the user
+    /// never summoned. A detail opened by *expanding* a preview card (long-press
+    /// → card → expand) leaves this false, so dismiss peels back to that card.
+    private var detailOpenedDirectly: Bool = false
     public var bottomInfoText: String = ""
     public var nearbySoloCount: Int = 0
     public var aiExplanation: String?
@@ -1061,6 +1067,10 @@ public final class MapViewModel {
     /// through `openExperienceDetail` for a direct jump to the detail sheet.
     public func selectExperience(_ experience: Experience) {
         selectedExperience = experience
+        // This is the preview-card path (long-press). The detail layer, if the
+        // user later expands the card, sits *above* this card — so dismissing
+        // it must peel back to the card, not to the bare map.
+        detailOpenedDirectly = false
         // isShowingDetail stays false — card shows first, detail sheet on expand
         focusOnExperience(experience)
     }
@@ -1074,6 +1084,10 @@ public final class MapViewModel {
     public func openExperienceDetail(_ experience: Experience) {
         selectedExperience = experience
         isShowingDetail = true
+        // Tap jumped straight to detail with no preview card behind it, so a
+        // back-out should land on the bare map rather than reveal a card the
+        // user never summoned (see `dismissDetail`).
+        detailOpenedDirectly = true
         focusOnExperience(experience)
     }
 
@@ -1125,6 +1139,13 @@ public final class MapViewModel {
     /// fully cleared when the user dismisses the card itself (`clearSelection`).
     public func dismissDetail() {
         isShowingDetail = false
+        // A tap-opened detail has no preview card underneath — peel straight
+        // back to the bare map. A card-expanded detail keeps its selection so
+        // the dismiss reveals the preview card it sits above.
+        if detailOpenedDirectly {
+            detailOpenedDirectly = false
+            selectedExperience = nil
+        }
     }
 
     /// Fully dismiss the floating preview card and its selection, returning to
@@ -1134,6 +1155,7 @@ public final class MapViewModel {
     public func clearSelection() {
         isShowingDetail = false
         selectedExperience = nil
+        detailOpenedDirectly = false
     }
 
     /// US-VA-03 tool `dismiss_recommendation`: hide one experience from
@@ -1146,6 +1168,7 @@ public final class MapViewModel {
         if selectedExperience?.id == id {
             selectedExperience = nil
             isShowingDetail = false
+            detailOpenedDirectly = false
         }
     }
 

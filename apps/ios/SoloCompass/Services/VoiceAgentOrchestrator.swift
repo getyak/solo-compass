@@ -70,6 +70,13 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// Reset at the start of each user turn.
     public private(set) var reasoningTrace: [ReasoningStep] = []
 
+    /// Archived, collapsed reasoning records keyed by the assistant message id
+    /// whose turn produced them. When a turn finishes, the live `reasoningTrace`
+    /// is distilled into one of these and pinned beneath that bubble as a single
+    /// expandable chip — so the in-flight thread stays calm (one status line) yet
+    /// every turn's reasoning stays auditable. Cleared with the session.
+    public private(set) var reasoningSummaryByMessageId: [UUID: ReasoningSummary] = [:]
+
     /// US-011: Strict chat UI state machine — drives state-specific view modifiers.
     public private(set) var uiState: ChatUIState = .idle
 
@@ -171,6 +178,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         errorMessage = nil
         cardsByMessageId = [:]
         reasoningTrace = []
+        reasoningSummaryByMessageId = [:]
 
         persistedConversationId = id
         persistedConversationCreatedAt = nil
@@ -247,6 +255,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         // re-scoped chat doesn't show stale recommendations.
         cardsByMessageId = [:]
         reasoningTrace = []
+        reasoningSummaryByMessageId = [:]
 
         // Re-seed the system prompt synchronously enough that callers can
         // observe `currentSystemPrompt` after this Task completes.
@@ -322,6 +331,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         isExecutingTool = false
         cardsByMessageId = [:]
         reasoningTrace = []
+        reasoningSummaryByMessageId = [:]
         uiState = .idle
         if !session.isEnded {
             session.end(reason: .userClose)
@@ -432,6 +442,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     session.finishSpeakingTurn()
                     thinkingStep = ""
                     shouldContinue = false
+                    // Distill this turn's live reasoning into one collapsed,
+                    // expandable chip pinned beneath the assistant bubble, then
+                    // clear the live trace so the in-flight status line is the
+                    // ONLY thinking indicator on screen during the next turn.
+                    archiveReasoningTrace()
                     speakResponse(finalText)
                     // Turn complete — persist the conversation so it survives the
                     // sheet closing and shows up in history.
@@ -577,6 +592,52 @@ public final class VoiceAgentOrchestrator: Identifiable {
         cardsByMessageId[messageId, default: []].append(card)
     }
 
+    /// Distill the live `reasoningTrace` into one collapsed `ReasoningSummary`
+    /// pinned under the just-finished assistant turn, then clear the live trace.
+    ///
+    /// The headline favors a concrete outcome — how many tools ran and what they
+    /// found — over the raw step list, so the collapsed chip reads like a result
+    /// ("Searched 14 places · 2 matched") rather than a transcript. The full
+    /// ordered step labels stay in `detail`, revealed only when the user taps to
+    /// expand. No-op when the trace is empty or there is no assistant message to
+    /// attach to.
+    private func archiveReasoningTrace() {
+        defer { reasoningTrace = [] }
+        guard let assistantId = session.messages.last(where: { $0.role == .assistant })?.id else { return }
+
+        let steps = reasoningTrace
+        guard !steps.isEmpty else { return }
+
+        // Detail = the human-readable label of every step except the generic
+        // opening "Thinking…" seed (it carries no information on its own).
+        let detail = steps
+            .filter { !($0.kind == .thinking && $0.label == NSLocalizedString("agent.step.thinking", comment: "Thinking…")) }
+            .map(\.label)
+
+        // Prefer an insight step (e.g. "Found 2 places that fit") as the
+        // headline — it already states the outcome. Otherwise fall back to a
+        // tool count, then to the last meaningful label.
+        let summary: String
+        if let insight = steps.last(where: { $0.kind == .insight }) {
+            summary = insight.label
+        } else {
+            let toolCount = steps.filter { $0.kind == .tool }.count
+            if toolCount > 0 {
+                summary = String(
+                    format: NSLocalizedString("agent.trace.summary.steps", comment: "Reasoned through N step(s)"),
+                    toolCount
+                )
+            } else {
+                summary = detail.last ?? NSLocalizedString("agent.trace.summary.thought", comment: "Thought it through")
+            }
+        }
+
+        // Detail beyond the headline is redundant if it's a single line equal to
+        // the summary — drop it so the chip shows no pointless expand affordance.
+        let trimmedDetail = (detail.count == 1 && detail.first == summary) ? [] : detail
+        reasoningSummaryByMessageId[assistantId] = ReasoningSummary(summary: summary, detail: trimmedDetail)
+    }
+
     /// Force one more non-tool response from the model (budget overflow path).
     private func sendForceText(prompt: String) async {
         session.appendSystemContinuation(prompt)
@@ -585,6 +646,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         let finalText = session.lastAssistantText ?? ""
         uiState = .responding(finalText)
         session.finishSpeakingTurn()
+        archiveReasoningTrace()
         thinkingStep = ""
         speakResponse(finalText)
     }
