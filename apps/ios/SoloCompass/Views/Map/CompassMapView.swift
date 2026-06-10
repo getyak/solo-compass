@@ -339,6 +339,21 @@ struct CompassMapContentView: View {
                 if ProcessInfo.processInfo.arguments.contains("-openMe") {
                     isShowingMe = true
                 }
+                // Visual-verification entry point: `-openExperience` opens the
+                // richest available experience's detail sheet directly, so the
+                // warm-amber detail redesign can be screenshotted without a pin tap.
+                // Prefers an experience that has howTo + inconveniences (so every
+                // section renders); falls back to the first available one.
+                if ProcessInfo.processInfo.arguments.contains("-openExperience") {
+                    // Source from `allExperiences` (seed-loaded synchronously) so
+                    // this works at cold start before the map has framed a region
+                    // and populated `visibleExperiences`.
+                    let pool = experienceService.allExperiences
+                    let rich = pool.first { !$0.howTo.isEmpty && !$0.realInconveniences.isEmpty }
+                    if let target = rich ?? pool.first {
+                        viewModel.openExperienceDetail(target)
+                    }
+                }
                 #endif
                 locationService.requestPermission()
                 // US-021: `viewModel` is built eagerly in `init`, so there is no

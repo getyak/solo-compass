@@ -1709,3 +1709,85 @@
 /* AvatarStack overflow popover */
 "avatarstack.members.title" = "Members";
 "avatarstack.overflow.hint" = "Shows all members";
+
+/* ── Experience detail · warm-amber redesign ── */
+"section.location" = "Location";
+"meta.bestNow" = "Good now";
+"meta.walkMinutes" = "%d min walk";
+"solo.bestCall" = "Best for solo: %@";
+"solo.showAll" = "All %d";
+"solo.collapse" = "Collapse";
+
+/* Trust chip (mapped from confidence health) */
+"trust.verified" = "Verified";
+"trust.observing" = "Observing";
+"trust.questioned" = "Questioned";
+
+/* ── Traveler co-build layer ── */
+"notes.title" = "Traveler Notes";
+"notes.signals" = "signals";
+"notes.signal.plus" = "+1 signal";
+"notes.author.you" = "You";
+"notes.author.traveler" = "Traveler %@";
+"notes.empty" = "No notes of this kind. Try another filter.";
+"notes.expandAll" = "Show all %d →";
+"notes.collapse" = "Collapse";
+"notes.filter.all" = "All";
+"notes.filter.experience" = "Experience";
+"notes.filter.correction" = "Correction";
+"notes.tag.experience" = "Experience";
+"notes.tag.correction" = "Correction";
+"notes.status.adopted" = "AI adopted";
+"notes.status.verified" = "Verified · %d travelers";
+"notes.status.pending" = "Pending · %d";
+"notes.confirm" = "Confirm too";
+"notes.confirmed" = "Confirmed";
+"notes.addPrompt" = "Leave a note for those who come after";
+"notes.addHint" = "AI cross-verifies · stay anonymous";
+"notes.input.placeholder" = "e.g. quiet on Tuesday afternoon…";
+"notes.input.placeholderWithMood" = "Add a line (optional)…";
+"notes.submit" = "Submit note";
+"notes.contributed.toast" = "Thanks · AI will cross-verify your note";
+"notes.level.up.toast" = "Signal +1 · data level L2";
+"notes.field.hours" = "Opening hours";
+"notes.correction.source.demo" = "Reported by 3 travelers in the past 2 weeks";
+
+/* Correction proposal */
+"correction.heading" = "Info may need updating";
+"correction.confirm" = "Confirm";
+"correction.dismiss" = "Inaccurate";
+"correction.confirmed.toast" = "Confirmed · \"%@\" updated";
+
+/* Mood chips (quick-add) */
+"mood.quiet" = "Quiet";
+"mood.slowWifi" = "Slow Wi-Fi";
+"mood.comfySeat" = "Comfy seats";
+"mood.friendlyStaff" = "Friendly staff";
+"mood.goodCoffee" = "Good coffee";
+"mood.soloOk" = "Solo OK";
+"mood.greatView" = "Great view";
+"mood.crowded" = "Crowded";
+"mood.needsWalk" = "Needs a walk";
+"mood.mosquitoes" = "Mosquitoes";
+"mood.goodLight" = "Good light";
+"mood.worthIt" = "Worth it";
+"mood.needsQuiet" = "Be quiet";
+"mood.photoOk" = "Photos OK";
+"mood.shoesOff" = "Shoes off";
+"mood.entryFee" = "Entry fee";
+"mood.bigPortion" = "Big portion";
+"mood.longQueue" = "Long queue";
+"mood.soloFriendly" = "Solo-friendly";
+"mood.notSpicy" = "Not spicy";
+"mood.cheap" = "Cheap";
+"mood.goodStaff" = "Good staff";
+"mood.fewPeople" = "Few people";
+"mood.comfySpace" = "Comfy space";
+"mood.pricey" = "Pricey";
+"mood.needsBooking" = "Booking needed";
+"mood.goodMusic" = "Good music";
+"mood.safe" = "Safe";
+"mood.trulyHidden" = "Truly hidden";
+"mood.worthFinding" = "Worth finding";
+"mood.hardToFind" = "Hard to find";
+"mood.veryFew" = "Very few people";
