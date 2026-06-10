@@ -973,7 +973,12 @@ public final class AIService {
         let prompt = Self.synthesisPrompt(pois: capped, cityCode: cityCode, locale: locale)
         do {
             let raw = try await sendMessage(prompt: prompt, kind: .synthesis)
-            let experiences = try Self.parseSynthesizedExperiences(raw, pois: capped, cityCode: cityCode)
+            let parsed = try Self.parseSynthesizedExperiences(raw, pois: capped, cityCode: cityCode)
+            // Wikidata P18 photo enrichment for places that had no cheaper image
+            // source (no OSM `image`/`wikimedia_commons` tag). Bounded + best-effort:
+            // it never throws and is capped so it can't stall Explore. Done before
+            // the cache write so the cached set carries the photos too.
+            let experiences = await Self.enrichWithWikidataPhotos(parsed, pois: capped, session: session)
             await writeCachedSynthesis(
                 cacheKey: cacheKey,
                 experiences: experiences,
@@ -1529,6 +1534,10 @@ public final class AIService {
         let website = poi.tags["website"]
         let phone = poi.tags["phone"]
         let addr = poi.tags["addr"]
+        // Zero-cost photo resolution from OSM `image` / `wikimedia_commons`
+        // tags. The `wikidata` P18 fallback needs a network call and is
+        // resolved separately (lazily) so it never blocks Explore.
+        let photoUrls = ExperienceImageService.syncPhotoURLs(from: poi.tags)
         return ExperienceLocation(
             coordinates: [poi.lon, poi.lat],
             cityCode: cityCode,
@@ -1539,8 +1548,67 @@ public final class AIService {
             openingHours: openingHours,
             priceLevel: priceLevel,
             website: website,
-            phone: phone
+            phone: phone,
+            photoUrls: photoUrls
         )
+    }
+
+    /// Maximum POIs we'll resolve a Wikidata photo for in one synthesis run.
+    /// Bounds the network fan-out so a dense Pro Explore can't fire dozens of
+    /// EntityData requests.
+    private static let wikidataEnrichCap = 12
+
+    /// Best-effort Wikidata P18 photo enrichment. For each experience that has
+    /// NO photo yet but whose POI carries a `wikidata` tag, resolves the entity's
+    /// image to a Commons thumbnail and folds it into `location.photoUrls`.
+    ///
+    /// Never throws and never blocks Explore meaningfully: only the first
+    /// `wikidataEnrichCap` candidates are looked up, requests run concurrently,
+    /// and any failure leaves that experience unchanged. Experiences that already
+    /// have a photo (OSM `image`/`wikimedia_commons`) pass through untouched.
+    static func enrichWithWikidataPhotos(
+        _ experiences: [Experience],
+        pois: [OverpassService.POI],
+        session: URLSession
+    ) async -> [Experience] {
+        let poiById = Dictionary(uniqueKeysWithValues: pois.map { ($0.osmId, $0) })
+
+        // Index of experiences that need (and can get) a Wikidata lookup.
+        let candidates: [(index: Int, qid: String)] = experiences.enumerated().compactMap { idx, exp in
+            guard exp.location.photoUrls?.isEmpty ?? true else { return nil }
+            guard let osmId = Int64(exp.id.replacingOccurrences(of: "exp_osm_", with: "")),
+                  let poi = poiById[osmId],
+                  ExperienceImageService.needsWikidataLookup(tags: poi.tags),
+                  let qid = poi.tags["wikidata"] else { return nil }
+            return (idx, qid)
+        }
+        guard !candidates.isEmpty else { return experiences }
+
+        let capped = Array(candidates.prefix(wikidataEnrichCap))
+        // Resolve concurrently; collect (index → url) for the ones that hit.
+        let resolved: [(Int, String)] = await withTaskGroup(of: (Int, String?).self) { group in
+            for candidate in capped {
+                group.addTask {
+                    let url = await ExperienceImageService.wikidataImageURL(
+                        entityId: candidate.qid, session: session
+                    )
+                    return (candidate.index, url)
+                }
+            }
+            var out: [(Int, String)] = []
+            for await (index, url) in group {
+                if let url { out.append((index, url)) }
+            }
+            return out
+        }
+        guard !resolved.isEmpty else { return experiences }
+
+        var result = experiences
+        for (index, url) in resolved {
+            let enrichedLocation = result[index].location.withPhotoUrls([url])
+            result[index] = result[index].copy(location: enrichedLocation)
+        }
+        return result
     }
 
     /// True when a POI carries at least one provider hard signal (rating /
@@ -1557,7 +1625,10 @@ public final class AIService {
         let lines = pois.map { poi -> String in
             let displayName = poi.nameEn ?? poi.name
             let tagSummary = poi.tags
-                .filter { ["amenity", "tourism", "leisure", "natural", "shop", "cuisine", "opening_hours"].contains($0.key) }
+                .filter { [
+                    "amenity", "tourism", "leisure", "natural", "shop", "cuisine",
+                    "opening_hours", "internet_access", "fee", "outdoor_seating",
+                ].contains($0.key) }
                 .map { "\($0.key)=\($0.value)" }
                 .sorted()
                 .joined(separator: ", ")
@@ -1582,6 +1653,18 @@ public final class AIService {
         - When a POI has NO `realSignals`, fall back to generic-safe framing exactly as before: bestStartHour 9 / bestEndHour 21 when category gives no better hint.
         - howTo must contain navigation/orientation steps only. Do NOT write "order the X", "try the X", "ask for X", "sit at the bar/window/back" — those are interior specifics you cannot verify.
         - Solo Score: anchor on REAL signals when present. A high rating (>= 8/10) or strong popularity supports up to 9.0–9.5; a low/absent rating or sparse data should stay 6.5–8.0. With NO realSignals, keep it conservative 7.0–8.0. Make the six breakdown dimensions genuinely DIFFERENT from each other based on the place type (e.g. a library scores high on seatingFriendly + low staffPressure; a bar scores lower on soloPatronRatio) — do NOT output the same number across all six.
+
+        CATEGORY-SPECIFIC SHAPE — a temple, a noodle shop, and a café need DIFFERENT facts. Tailor your output to the POI's category:
+
+        • food → frame around the meal & eating alone. Score soloPortioning + staffPressure hardest. Highlights to prefer: pricePerPerson (only if realSignals priceLevel present), waitTime (only if you can infer a queue from popularity), signature (ONLY a cuisine type derivable from the `cuisine=` tag, e.g. "Vietnamese" — NEVER an invented dish name).
+        • coffee / work → frame around lingering & focus. Score seatingFriendly + ambianceFit hardest. Highlights to prefer: wifi (only if `internet_access` tag present), power, longStay, vibe.
+        • culture → frame around the sight & its meaning. Score safety + ambianceFit. Highlights to prefer: ticket (only if `fee`/`fee=no` tag present), bestLight (from category knowledge, e.g. temples at sunrise), duration.
+        • nature → frame around the outdoor moment. Score safety + soloPatronRatio. Highlights to prefer: bestLight, duration, vibe.
+        • wellness → frame around the calm solo ritual. Score ambianceFit + staffPressure. Highlights to prefer: booking, duration, vibe.
+        • nightlife → frame around the evening scene for one. Score soloPatronRatio + safety hardest. Highlights to prefer: vibe, booking.
+        • hidden / other → keep it generic; at most one `note` highlight.
+
+        HIGHLIGHTS RULES (the `highlights` array): 0–3 short scannable facts, each {kind,label,value}. `kind` MUST be one of: signature, pricePerPerson, waitTime, wifi, power, longStay, bestLight, ticket, duration, booking, vibe, note. Emit a highlight ONLY when its value is derivable from a tag or realSignal or safe category knowledge (bestLight/duration are OK from category alone). `label` is a 1-word noun ("Wi-Fi", "Signature", "Best light"), `value` is ≤4 words ("fast", "Vietnamese", "sunrise"). NEVER invent menu items, prices without priceLevel, or hours without opening_hours. Prefer FEWER true highlights over padding. Output `highlights: []` when nothing is derivable.
 
         DISTANCE AWARENESS: The POI list may span 0–12 km from the user (a Pro radial Explore covers 4 rings: 1.5/3/6/12 km). Infer approximate distance from each POI's lat/lon relative to the others; closer POIs should lean toward in-the-moment framings (walk-up, sidewalk), farther POIs toward half-day-out framings (worth a transit ride). Do NOT mention distances or rings explicitly in the output — just let the framing reflect the proximity.
 
@@ -1617,7 +1700,10 @@ public final class AIService {
             "soloPortioning": <0-10>,
             "ambianceFit": <0-10>,
             "safety": <0-10>
-          }
+          },
+          "highlights": [
+            {"kind": "<one of the allowed kinds>", "label": "<1-word noun>", "value": "<=4 words>"}
+          ]
         }
 
         Output a JSON array containing one object per POI, in input order. No prose. No markdown fences.
@@ -1658,6 +1744,7 @@ public final class AIService {
             let soloHint: String?
             let soloOverall: Double?
             let soloBreakdown: Breakdown?
+            let highlights: [Highlight]?
 
             struct Breakdown: Decodable {
                 let seatingFriendly: Double?
@@ -1666,6 +1753,12 @@ public final class AIService {
                 let soloPortioning: Double?
                 let ambianceFit: Double?
                 let safety: Double?
+            }
+
+            struct Highlight: Decodable {
+                let kind: String?
+                let label: String?
+                let value: String?
             }
         }
         let items = try JSONDecoder().decode([Item].self, from: data)
@@ -1695,6 +1788,9 @@ public final class AIService {
                 safety: dim(item.soloBreakdown?.safety)
             )
             let howTo = (item.howTo ?? []).enumerated().map { HowToStep(order: $0.offset + 1, text: $0.element) }
+            let highlights = Self.mapHighlights(
+                item.highlights?.map { (kind: $0.kind, label: $0.label, value: $0.value) }
+            )
             // basedOnCount reflects whether this score is anchored on real
             // provider signals (>0) or pure category inference (0).
             let basedOnCount = hasHardSignals(poi) ? 1 : 0
@@ -1734,9 +1830,43 @@ public final class AIService {
                 stats: .init(completionCount: 0, averageRating: 0),
                 status: .candidate,
                 createdAt: now,
-                updatedAt: now
+                updatedAt: now,
+                categoryHighlights: highlights
             )
         }
+    }
+
+    /// Map raw AI highlight triples to validated `CategoryHighlight` values:
+    /// drops any with an unknown `kind` or empty label/value, trims, and caps
+    /// the count so a card never overflows. Returns nil when nothing survives so
+    /// the Experience leaves `categoryHighlights` nil rather than an empty array.
+    ///
+    /// Takes plain optional-string triples (not a Decodable type) so it stays
+    /// decoupled from the function-local `Item` shape and is unit-testable.
+    static func mapHighlights(
+        _ raw: [(kind: String?, label: String?, value: String?)]?
+    ) -> [CategoryHighlight]? {
+        guard let raw else { return nil }
+        let mapped: [CategoryHighlight] = raw.compactMap { h in
+            guard
+                let kindRaw = h.kind,
+                let kind = CategoryHighlight.Kind(rawValue: kindRaw),
+                let label = h.label?.trimmingCharacters(in: .whitespacesAndNewlines),
+                let value = h.value?.trimmingCharacters(in: .whitespacesAndNewlines),
+                !label.isEmpty, !value.isEmpty
+            else { return nil }
+            // Cap length: the prompt asks for a 1-word label / ≤4-word value,
+            // but that's an instruction to the LLM, not a guarantee. A malformed
+            // response with a 500-char value would persist to SwiftData and be
+            // read verbatim by VoiceOver. Bound it defensively.
+            return CategoryHighlight(
+                kind: kind,
+                label: String(label.prefix(40)),
+                value: String(value.prefix(40))
+            )
+        }
+        guard !mapped.isEmpty else { return nil }
+        return Array(mapped.prefix(3))
     }
 
     /// Build a minimal Experience from raw OSM data, used when AI is unavailable.
