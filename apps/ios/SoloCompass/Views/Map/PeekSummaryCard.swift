@@ -149,11 +149,20 @@ struct PeekSummaryCard: View {
         .accessibilityHidden(true)
     }
 
-    /// Chip row: walk-time (if nearby) + Solo-Score badge + (optional) 此刻最佳 chip.
+    /// Chip row: travel-time + Solo-Score badge + (optional) 此刻最佳 chip.
+    ///
+    /// Within walking range (< 1.5 km) we show estimated walk minutes; for
+    /// mid-range picks (1.5–15 km) — too far to walk but still in-city — we
+    /// show an estimated drive time so a far smart pick reads as a concrete
+    /// effort ("~12 min drive") rather than a bare distance.
     private var chipRow: some View {
         HStack(spacing: 6) {
-            if let meters = distanceMeters, meters < 1500 {
-                walkTimeChip(meters: meters)
+            if let meters = distanceMeters {
+                if meters < 1500 {
+                    walkTimeChip(meters: meters)
+                } else if meters < 15_000 {
+                    rideTimeChip(meters: meters)
+                }
             }
             SoloScoreBadge(score: experience.soloScore, style: .compact)
             if isOpenNow {
@@ -182,18 +191,45 @@ struct PeekSummaryCard: View {
         .accessibilityHidden(true)
     }
 
-    /// Golden chip: 此刻最佳 — shown when the experience is open in the current hour.
-    private var bestNowChip: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 9, weight: .semibold))
-            Text(NSLocalizedString("nearby.chip.bestNow", comment: "此刻最佳 chip"))
-                .font(.caption2.weight(.semibold))
+    /// Neutral chip: estimated drive minutes (≈ 6 min/km in-city) for mid-range
+    /// picks that are past comfortable walking distance.
+    private func rideTimeChip(meters: Double) -> some View {
+        let minutes = max(1, Int((meters / 1000 * 6).rounded()))
+        let label = String(
+            format: NSLocalizedString("nearby.chip.driveMin", comment: "Drive minutes chip, e.g. '12 min drive'"),
+            minutes
+        )
+        return HStack(spacing: 3) {
+            Image(systemName: "car.fill")
+                .font(.system(size: 9.5, weight: .semibold))
+            Text(label)
+                .font(.caption2.weight(.medium))
         }
-        .foregroundStyle(CT.sunGoldDeep)
+        .foregroundStyle(CT.fgMuted)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
-        .background(Capsule().fill(CT.sunGoldSoft))
+        .background(Capsule().fill(CT.surfaceSunken))
+        .accessibilityHidden(true)
+    }
+
+    /// Golden chip: 此刻最佳 — shown when the experience is at its best right now.
+    /// Flips to an amber "Closing · Nm" countdown when the active window has
+    /// ≤ 45 minutes left, matching the detail card and Saved list so the peek
+    /// pick carries the same urgency cue the rest of the app already shows.
+    private var bestNowChip: some View {
+        let state = bestNowChipState
+        return HStack(spacing: 3) {
+            Image(systemName: state.symbol)
+                .font(.system(size: 9, weight: .semibold))
+            Text(state.label)
+                .font(.caption2.weight(.semibold))
+                .monospacedDigit()
+                .contentTransition(reduceMotion ? .identity : .numericText())
+        }
+        .foregroundStyle(state.foreground)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(state.background))
         .accessibilityHidden(true)
     }
 
@@ -269,9 +305,19 @@ struct PeekSummaryCard: View {
         return parts.joined(separator: " · ")
     }
 
+    /// Live "best now / closing soon" chip state, recomputed each time the shared
+    /// `BestNowClock` advances (the `clock.tick` read makes this card an observer).
+    private var bestNowChipState: BestNowChipState {
+        BestNowChipState.resolve(for: experience, at: clock.tick)
+    }
+
+    /// True when the experience is genuinely at its best right now. Uses
+    /// `minutesLeftInBestWindow` (via the chip state) as the single source of
+    /// truth — it honours weekday / season filters and midnight-wrapping
+    /// windows, unlike the old bare "current hour ∈ bestTimes" check which would
+    /// falsely flag a weekend-only or summer-only window on the wrong day.
     private var isOpenNow: Bool {
-        let hour = Calendar.current.component(.hour, from: clock.tick)
-        return experience.bestTimes.contains { $0.contains(hour: hour) }
+        bestNowChipState.minutesLeft != nil
     }
 
     private var relativeBearing: Double? {
@@ -303,7 +349,18 @@ struct PeekSummaryCard: View {
             if meters < 1500 {
                 let minutes = max(1, Int((meters / 80).rounded()))
                 label += ", \(String(format: NSLocalizedString("card.distance.walk", comment: "Walk minutes, e.g. '4 min walk'"), minutes))"
+            } else if meters < 15_000 {
+                let minutes = max(1, Int((meters / 1000 * 6).rounded()))
+                label += ", \(String(format: NSLocalizedString("nearby.chip.driveMin", comment: "Drive minutes chip, e.g. '12 min drive'"), minutes))"
             }
+        }
+        if isOpenNow {
+            // Surface the live timing the same way the visible chip does: the
+            // closing-soon countdown when winding down, else a plain best-now cue.
+            let state = bestNowChipState
+            label += ", " + (state.isClosingSoon
+                ? state.accessibilityLabel
+                : NSLocalizedString("sheet.nearby.openNow.a11y", comment: "Open now accessibility"))
         }
         if isNearby {
             label += ", " + NSLocalizedString("peek.card.almostThere.a11y", comment: "VoiceOver: almost there proximity cue")
@@ -389,6 +446,49 @@ struct PeekEmptyCard: View {
                 )
             }
             PeekEmptyCard()
+        }
+        .padding(16)
+    }
+    .environment(LocationService.shared)
+    .environment(BestNowClock.shared)
+}
+
+#Preview("Best now vs. Closing soon") {
+    // Two synthetic picks at the same spot: one whose best window has hours left
+    // (plain gold "Best now" chip) and one whose window ends at the top of the
+    // next hour, so within ~45 min of most open times it renders the amber
+    // "Closing · Nm" chip. Demonstrates the live urgency treatment.
+    let cal = Calendar.current
+    let hour = cal.component(.hour, from: Date())
+    func pick(from base: Experience, id: String, endsInHours: Int) -> Experience {
+        Experience(
+            id: id, title: base.title, oneLiner: base.oneLiner, whyItMatters: base.whyItMatters,
+            category: base.category, location: base.location,
+            bestTimes: [TimeWindow(startHour: (hour + 23) % 24, endHour: (hour + endsInHours) % 24)],
+            durationMinutes: base.durationMinutes, howTo: base.howTo,
+            realInconveniences: base.realInconveniences, soloScore: base.soloScore,
+            sources: base.sources, confidence: base.confidence,
+            nearbyExperienceIds: base.nearbyExperienceIds, stats: base.stats, status: base.status,
+            createdAt: base.createdAt, updatedAt: base.updatedAt, userTags: base.userTags
+        )
+    }
+    return ZStack {
+        Color(.systemGroupedBackground).ignoresSafeArea()
+        VStack(spacing: 16) {
+            if let base = ExperienceService.hardcodedSeed.first {
+                PeekSummaryCard(
+                    experience: pick(from: base, id: "preview_open_all_evening", endsInHours: 4),
+                    isSmartPick: true,
+                    referenceCoordinate: base.coordinate,
+                    onTap: {}
+                )
+                PeekSummaryCard(
+                    experience: pick(from: base, id: "preview_closing_soon", endsInHours: 1),
+                    isSmartPick: false,
+                    referenceCoordinate: base.coordinate,
+                    onTap: {}
+                )
+            }
         }
         .padding(16)
     }

@@ -1173,10 +1173,20 @@ public struct ExperienceDetailView: View {
                 ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
                 : NSLocalizedString("action.favorite", comment: "Add favorite")))
 
-            if viewModel.experience.location.clCoordinate != nil {
+            if let coord = viewModel.experience.location.clCoordinate {
                 Button {
                     Haptics.impact(.light)
-                    isShowingNavPicker = true
+                    // Skip the one-option picker when only a single maps app is
+                    // installed (usually just Apple Maps) — matches the direct
+                    // launch in LocationCard and ExperienceCardView.
+                    if let only = NavigationLauncher.soleApp() {
+                        let name = viewModel.experience.location.placeNameLocal
+                            ?? viewModel.experience.location.placeNameRomanized
+                            ?? viewModel.experience.title
+                        NavigationLauncher.open(app: only, coordinate: coord, name: name)
+                    } else {
+                        isShowingNavPicker = true
+                    }
                 } label: {
                     // `arrow.triangle.turn.up.right.diagonal` is NOT a real SF
                     // Symbol — it rendered blank (empty circle). Use the same

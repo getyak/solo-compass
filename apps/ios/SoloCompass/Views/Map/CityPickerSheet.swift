@@ -162,7 +162,13 @@ public struct CityPickerSheet: View {
     private var filteredSortedCities: [(code: String, name: String, center: CLLocationCoordinate2D)] {
         let query = citySearchText.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return sortedCities }
-        return sortedCities.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        // `localizedStandardContains` is case- and diacritic-insensitive, so a
+        // traveler typing "zurich" still matches "Zürich". Also match the city
+        // code (e.g. "TYO" → Tokyo), mirroring ItineraryFormView's city search.
+        return sortedCities.filter {
+            $0.name.localizedStandardContains(query) ||
+            $0.code.localizedStandardContains(query)
+        }
     }
 
     private var sortedCities: [(code: String, name: String, center: CLLocationCoordinate2D)] {

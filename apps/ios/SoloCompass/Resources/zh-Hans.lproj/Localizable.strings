@@ -131,6 +131,7 @@
 
 /* Marker accessibility */
 "marker.a11y.bestNow" = "此刻最佳";
+"marker.a11y.closingSoon" = "此刻最佳，即将关闭";
 "marker.a11y.completed" = "已完成";
 "marker.a11y.favorited" = "已收藏";
 "marker.a11y.upcoming" = "%d 分钟后开始";
@@ -308,6 +309,7 @@
 "favorites.empty.title" = "还没有收藏";
 "favorites.empty.hint" = "点击任意体验上的爱心即可保存到这里。";
 "favorites.empty.tip.hint" = "双击查看下一条提示";
+"favorites.empty.tip.page.a11y" = "提示 %1$d / %2$d";
 "favorites.undo.named" = "已移除\"%@\"";
 
 /* Generic actions */
@@ -1046,6 +1048,10 @@
 "experience.bestNow.countdown.a11y" = "此刻最佳，还有 %d 分钟";
 "experience.bestTime.hint" = "最佳时段：%@";
 "experience.bestTime.hint.a11y" = "最佳时段：%@";
+"experience.bestTime.opensIn" = "%d 分钟后开始";
+"experience.bestTime.opensIn.a11y" = "%d 分钟后进入最佳时段";
+"experience.bestTime.tomorrow" = "明天";
+"experience.bestTime.tomorrow.a11y" = "明天才进入最佳时段";
 
 /* Explore */
 "explore.expand.alreadyMax" = "已在最大探索半径（100 公里）。";
@@ -1083,6 +1089,14 @@
 "filter.now.empty.idle" = "现在没有体验处于最佳状态";
 "filter.now.empty.upcoming" = "%@ 还有 %d 分钟";
 "filter.now.empty.a11y" = "现在没有体验处于最佳状态。%@ 将在 %d 分钟后开始。点击跳转。";
+"filter.now.empty.title" = "此刻是安静时段";
+"filter.now.empty.later.subtitle" = "现在没有体验处于最佳状态，这是接下来最值得一去的时段。";
+"filter.now.empty.done.subtitle" = "最佳时段明天才会回来。在那之前，地图依然任你漫游。";
+"filter.now.empty.nextBest" = "接下来最佳";
+"filter.now.empty.nextBest.a11y" = "接下来最佳：%1$@，%2$@。点击查看。";
+"filter.now.empty.browseAll" = "浏览附近全部";
+"filter.now.empty.opensIn.minutes" = "还有 %d 分钟";
+"filter.now.empty.opensIn.hours" = "约 %d 小时后";
 
 /* Inconveniences */
 "inconvenience.category.scam" = "诈骗风险";
@@ -1201,8 +1215,12 @@
 
 /* NearbyExperienceRow card chips — walk-time, Solo score, 此刻最佳, proximity word */
 "nearby.chip.walkMin" = "%d 分钟";
+"nearby.chip.driveMin" = "车程 %d 分钟";
 "nearby.chip.solo" = "Solo %.1f";
 "nearby.chip.bestNow" = "此刻最佳";
+/* 此刻最值得去卡片 + 附近列表上的紧凑「即将关闭」倒计时（剩余 ≤45 分钟）。%d = 分钟。 */
+"nearby.chip.closingSoon" = "即将关闭 · %d分";
+"nearby.chip.closingSoon.a11y" = "此刻最佳，即将关闭，还剩 %d 分钟";
 "nearby.proximity.sparse" = "稀疏";
 "nearby.proximity.moderate" = "中等";
 "nearby.proximity.far" = "较远";
