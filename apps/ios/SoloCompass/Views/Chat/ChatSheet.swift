@@ -321,6 +321,15 @@ public struct ChatSheet: View {
                                 )
                                 .id("cards-\(msg.id)")
                             }
+
+                            // This turn's reasoning, collapsed into one
+                            // expandable chip pinned under the reply — calm in
+                            // the moment, auditable after the fact.
+                            if msg.role == .assistant,
+                               let summary = orchestrator.reasoningSummaryByMessageId[msg.id] {
+                                ReasoningSummaryChip(summary: summary)
+                                    .id("reasoning-\(msg.id)")
+                            }
                         }
 
                         if !orchestrator.streamingContent.isEmpty {
@@ -349,21 +358,17 @@ public struct ChatSheet: View {
                         }
 
                         if isAgentWorking {
-                            VStack(alignment: .leading, spacing: 8) {
-                                // Elegant, ordered reasoning trace (analyzing
-                                // weather / location / visited …) instead of an
-                                // opaque spinner. Falls back to the typing dots
-                                // when no steps have been recorded yet.
-                                if !orchestrator.reasoningTrace.isEmpty {
-                                    ReasoningTracePanel(steps: orchestrator.reasoningTrace)
-                                }
-                                TypingIndicatorBubble(
-                                    label: orchestrator.thinkingStep.isEmpty ? nil : orchestrator.thinkingStep
-                                )
-                            }
-                            .id(Self.typingIndicatorID)
-                            .transition(.opacity)
-                            .animation(.easeInOut(duration: 0.2), value: isAgentWorking)
+                            // ONE quiet thinking indicator: a single spinner +
+                            // cycling phrase. When the turn finishes this line
+                            // vanishes and its reasoning collapses into a
+                            // `ReasoningSummaryChip` pinned under the reply (see
+                            // `reasoningSummaryByMessageId` below). This replaces
+                            // the old always-on ReasoningTracePanel + typing dots
+                            // that competed for attention on screen at once.
+                            AgentStatusLine(label: orchestrator.thinkingStep)
+                                .id(Self.typingIndicatorID)
+                                .transition(.opacity)
+                                .animation(.easeInOut(duration: 0.2), value: isAgentWorking)
                         }
 
                         Color.clear
@@ -386,6 +391,9 @@ public struct ChatSheet: View {
                     scrollToBottom(proxy: proxy)
                 }
                 .onChange(of: orchestrator.session.state) { _, _ in
+                    scrollToBottom(proxy: proxy)
+                }
+                .onChange(of: orchestrator.reasoningSummaryByMessageId.count) { _, _ in
                     scrollToBottom(proxy: proxy)
                 }
                 .onChange(of: orchestrator.reasoningTrace.count) { _, _ in
@@ -528,6 +536,7 @@ public struct ChatSheet: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
+            nowContextBanner
             starterPromptChips
             Spacer()
         }
@@ -604,6 +613,69 @@ public struct ChatSheet: View {
         case 1:  return CT.sunGoldDeep
         default: return .indigo
         }
+    }
+
+    // MARK: - Contextual NOW banner
+
+    /// A single sun-gold pill on the empty chat that shifts copy with the hour —
+    /// the chat's equivalent of the map's "AI · NOW" framing. It grounds the
+    /// blank state in *this moment* ("Golden light soon · the river bank is
+    /// calling") instead of a generic prompt, nudging the right question.
+    private var nowContextBanner: some View {
+        let copy = Self.nowContextCopy(hour: nowHour)
+        return HStack(spacing: 6) {
+            Image(systemName: nowContextIcon)
+                .font(.system(size: 12, weight: .semibold))
+            Text(copy)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+        }
+        .foregroundStyle(CT.sunGoldDeep)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 7)
+        .background(CT.sunGoldSoft, in: Capsule())
+        .padding(.horizontal, 28)
+        .padding(.bottom, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(String(
+            format: NSLocalizedString("chat.empty.now.a11y", comment: "NOW banner a11y prefix"),
+            copy
+        )))
+    }
+
+    /// Current local hour (0–23). A computed property so the banner reflects the
+    /// hour the sheet was opened.
+    private var nowHour: Int {
+        Calendar.current.component(.hour, from: Date())
+    }
+
+    private var nowContextIcon: String {
+        switch nowHour {
+        case 5..<8:   return "sunrise.fill"
+        case 8..<11:  return "cup.and.saucer.fill"
+        case 11..<15: return "sun.max.fill"
+        case 15..<17: return "sun.haze.fill"
+        case 17..<19: return "sunset.fill"
+        case 19..<22: return "moon.stars.fill"
+        default:      return "moon.fill"
+        }
+    }
+
+    /// Map an hour to a contextual one-liner. Static + pure so it's trivially
+    /// unit-testable without constructing the whole sheet.
+    static func nowContextCopy(hour: Int) -> String {
+        let key: String
+        switch hour {
+        case 5..<8:   key = "chat.empty.now.dawn"
+        case 8..<11:  key = "chat.empty.now.morning"
+        case 11..<15: key = "chat.empty.now.midday"
+        case 15..<17: key = "chat.empty.now.afternoon"
+        case 17..<19: key = "chat.empty.now.goldenHour"
+        case 19..<22: key = "chat.empty.now.evening"
+        default:      key = "chat.empty.now.night"
+        }
+        return NSLocalizedString(key, comment: "Contextual NOW banner copy for the hour")
     }
 
     // MARK: - Visual helpers (dark-mode aware)

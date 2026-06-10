@@ -84,3 +84,29 @@ public struct ReasoningStep: Identifiable, Equatable, Sendable {
         self.label = label
     }
 }
+
+/// An archived, collapsed record of one assistant turn's reasoning.
+///
+/// While the agent works, the UI shows a single quiet status line (one spinner,
+/// one cycling phrase). When the turn finishes, the live `reasoningTrace` is
+/// distilled into one of these and pinned beneath the assistant message — a
+/// single tappable chip ("✓ Searched 14 places · 2 matched") that expands to
+/// the full step detail on demand. This keeps the thread calm in the moment yet
+/// fully auditable after the fact — replacing the always-on `ReasoningTracePanel`
+/// that previously competed with the typing indicator for attention.
+public struct ReasoningSummary: Identifiable, Equatable, Sendable {
+    public let id: UUID
+    /// One-line headline shown collapsed (e.g. "Searched 14 places · 2 matched").
+    public let summary: String
+    /// The full ordered step labels, revealed when the chip is expanded.
+    public let detail: [String]
+
+    public init(id: UUID = UUID(), summary: String, detail: [String]) {
+        self.id = id
+        self.summary = summary
+        self.detail = detail
+    }
+
+    /// Whether there is expandable detail beyond the summary line.
+    public var hasDetail: Bool { !detail.isEmpty }
+}

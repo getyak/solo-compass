@@ -504,6 +504,17 @@
 "chat.title" = "Solo Compass";
 "chat.empty.title" = "问我你附近有什么好玩的";
 "chat.empty.subtitle" = "试试「附近有什么好的？」或按住麦克风说话。";
+
+/* 空状态的语境化 AI·NOW 横幅 — 随时刻变化 */
+"chat.empty.now.dawn" = "街巷清静 · 集市才刚刚苏醒";
+"chat.empty.now.morning" = "晨光正好 · 适合慢慢喝杯咖啡";
+"chat.empty.now.midday" = "正午燥热 · 找处阴凉，慢慢吃顿午饭";
+"chat.empty.now.afternoon" = "午后柔和 · 正适合随意走走";
+"chat.empty.now.goldenHour" = "黄金时刻将至 · 河边在召唤你";
+"chat.empty.now.evening" = "夜色渐浓 · 该逛夜市了";
+"chat.empty.now.night" = "夜深人静 · 找个天台，或来最后一杯";
+"chat.empty.now.a11y" = "此刻：%@";
+
 "chat.input.placeholder" = "输入消息…";
 "chat.input.send.a11y" = "发送";
 "chat.input.mic.a11y" = "语音";
@@ -900,6 +911,10 @@
 "agent.trace.builtRoute" = "把 %d 个站点串成了一条路线";
 "chat.thinking.title" = "正在思考";
 "chat.thinking.a11y" = "Solo Compass 正在思考";
+"agent.trace.summary.steps" = "推理了 %d 步";
+"agent.trace.summary.thought" = "已想清楚";
+"chat.thinking.summary.a11y" = "推理摘要：%@。点按展开。";
+"chat.thinking.working" = "处理中…";
 "chat.card.viewOnMap" = "点按在地图上查看";
 "chat.card.viewOnMap.a11y" = "双击在地图上显示这个地方";
 "chat.route.adopt" = "采用这条路线";

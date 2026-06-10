@@ -768,6 +768,12 @@
 "chat.thinking.title" = "Thinking it through";
 "chat.thinking.a11y" = "Solo Compass is thinking";
 
+/* Collapsed reasoning summary (the one-line chip pinned under a finished turn) */
+"agent.trace.summary.steps" = "Reasoned through %d step(s)";
+"agent.trace.summary.thought" = "Thought it through";
+"chat.thinking.summary.a11y" = "Reasoning summary: %@. Tap to expand.";
+"chat.thinking.working" = "Working…";
+
 /* In-chat cards (places / proposed route) */
 "chat.card.viewOnMap" = "Tap to see on map";
 "chat.card.viewOnMap.a11y" = "Double tap to reveal this place on the map";
@@ -802,6 +808,16 @@
 "chat.title" = "Solo Compass";
 "chat.empty.title" = "Ask me anything about places near you";
 "chat.empty.subtitle" = "Try 'what's good around me?' or hold the mic to talk.";
+
+/* Contextual AI·NOW banner on the empty chat — shifts with the hour */
+"chat.empty.now.dawn" = "Quiet streets · the markets are just waking up";
+"chat.empty.now.morning" = "Morning light · good hour for slow coffee";
+"chat.empty.now.midday" = "Midday heat · seek out shade and a long lunch";
+"chat.empty.now.afternoon" = "Soft afternoon · easy time to wander";
+"chat.empty.now.goldenHour" = "Golden light soon · the river bank is calling";
+"chat.empty.now.evening" = "Evening sets in · time for the night market";
+"chat.empty.now.night" = "Late and quiet · a rooftop or a last drink";
+"chat.empty.now.a11y" = "Right now: %@";
 
 /* Chat starter prompts */
 "chat.empty.prompt.nearby" = "What's good around me?";
