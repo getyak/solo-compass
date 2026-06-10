@@ -1041,6 +1041,13 @@ private struct EmptyFavoritesView: View {
         UIAccessibility.post(notification: .announcement, argument: tips[tipIndex])
     }
 
+    private func selectTip(_ index: Int) {
+        guard index != tipIndex else { return }
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.4)) { tipIndex = index }
+        Haptics.selection()
+        UIAccessibility.post(notification: .announcement, argument: tips[index])
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
@@ -1074,13 +1081,23 @@ private struct EmptyFavoritesView: View {
             .accessibilityHint(NSLocalizedString("favorites.empty.tip.hint", comment: "Hint to advance to the next tip"))
             HStack(spacing: 6) {
                 ForEach(0..<tips.count, id: \.self) { index in
-                    Circle()
-                        .fill(index == tipIndex ? Color.primary : Color.primary.opacity(0.2))
-                        .frame(width: 6, height: 6)
-                        .animation(reduceMotion ? nil : .easeInOut, value: tipIndex)
+                    let isActive = index == tipIndex
+                    Button {
+                        selectTip(index)
+                    } label: {
+                        Capsule()
+                            .fill(isActive ? Color.primary : Color.primary.opacity(0.2))
+                            // Active dot stretches into a pill so the carousel
+                            // reads as a real page indicator at a glance.
+                            .frame(width: isActive ? 16 : 6, height: 6)
+                            .contentShape(Capsule())
+                            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: tipIndex)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(format: NSLocalizedString("favorites.empty.tip.page.a11y", comment: "Jump to tip N of M page indicator dot"), index + 1, tips.count))
+                    .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
                 }
             }
-            .accessibilityHidden(true)
             if let onExplore {
                 Button {
                     Haptics.selection()
