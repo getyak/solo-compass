@@ -26,6 +26,14 @@ public struct ExperienceDetailView: View {
     /// this closure so the parent can re-bind the detail sheet to the chosen
     /// experience. When nil the cards render as plain non-interactive views.
     var onSelectExperience: ((_ experience: Experience) -> Void)?
+    /// When non-nil (and the place has a coordinate), the ··· menu offers a
+    /// deep cross-compile entry — parity with the floating preview card's own
+    /// recompile menu. The parent owns the work (MapViewModel.recompileExperience)
+    /// and reports progress back via `isRecompiling`. nil → menu omits the item,
+    /// so previews/tests with no Map context are unaffected.
+    var onRecompile: (() -> Void)?
+    /// Drives the menu's progress spinner while the parent's recompile runs.
+    var isRecompiling: Bool
 
     @Environment(\.themeService) private var themeService
     @Environment(LocationService.self) private var locationService
@@ -50,13 +58,17 @@ public struct ExperienceDetailView: View {
         onClose: @escaping () -> Void = {},
         onMarkDone: ((_ experience: Experience) -> Void)? = nil,
         onAskSolo: ((_ experience: Experience) -> Void)? = nil,
-        onSelectExperience: ((_ experience: Experience) -> Void)? = nil
+        onSelectExperience: ((_ experience: Experience) -> Void)? = nil,
+        onRecompile: (() -> Void)? = nil,
+        isRecompiling: Bool = false
     ) {
         self.viewModel = viewModel
         self.onClose = onClose
         self.onMarkDone = onMarkDone
         self.onAskSolo = onAskSolo
         self.onSelectExperience = onSelectExperience
+        self.onRecompile = onRecompile
+        self.isRecompiling = isRecompiling
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -146,6 +158,22 @@ public struct ExperienceDetailView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    // Parity with the floating card: deep cross-compile lives at
+                    // the top of the ··· menu. Shown only when the parent wired a
+                    // recompile handler AND the place has a coordinate to enrich
+                    // around — same guard the card uses (ExperienceCardView).
+                    if let onRecompile, viewModel.experience.coordinate != nil {
+                        Button {
+                            Haptics.impact(.light)
+                            onRecompile()
+                        } label: {
+                            Label(
+                                NSLocalizedString("recompile.action", comment: "Deep cross-compile menu item"),
+                                systemImage: "sparkle.magnifyingglass"
+                            )
+                        }
+                        Divider()
+                    }
                     Button {
                         exportMarkdown = MarkdownExporter.export(viewModel.experience)
                     } label: {
@@ -163,7 +191,15 @@ public struct ExperienceDetailView: View {
                         )
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    // While a recompile runs, swap the ··· glyph for a spinner so
+                    // the in-flight cross-compile is visible without a toast.
+                    if isRecompiling {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "ellipsis.circle")
+                    }
                 }
                 .accessibilityLabel(Text(NSLocalizedString("detail.more", comment: "More options")))
             }

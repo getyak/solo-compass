@@ -114,6 +114,9 @@ struct CompassMapContentView: View {
     private let presenceService: PresenceService
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Honored by the preview-card pop animation on long-press: motion-sensitive
+    /// users get an instant, spring-free selection instead of the scale+rise.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// US-049: the shared 60s clock. Reading `tick` inside `mapLayer` re-evaluates
     /// the marker layer every minute, so a best-now pin flips to its amber
     /// "closing soon" treatment live as its window crosses the 45-min threshold —
@@ -796,7 +799,29 @@ struct CompassMapContentView: View {
                         )
                         .padding(.bottom, cardBottomInset)
                     }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    // Pop-out entrance: the card scales up from a slightly
+                    // smaller, bottom-anchored state while rising — paired with
+                    // the spring driving `selectExperience` on long-press, it
+                    // reads as the card springing out of the pressed pin rather
+                    // than sliding flatly up from the screen edge. reduceMotion
+                    // collapses this to a plain fade.
+                    .transition(reduceMotion
+                        ? .opacity
+                        : .scale(scale: 0.92, anchor: .bottom)
+                            .combined(with: .move(edge: .bottom))
+                            .combined(with: .opacity))
+                    // Approach C (peek parity): the floating card is reachable
+                    // without ever opening the full detail sheet (long-press
+                    // peek, nearby-list tap). Mirror the detail sheet's
+                    // auto-upgrade so a shallow OSM skeleton silently deep
+                    // cross-compiles in the background here too — otherwise a
+                    // user who only peeks the card is stuck on the "real place
+                    // from OpenStreetMap" template forever. No-op for Pro-less
+                    // users, already-rich cards, or cards upgraded earlier this
+                    // session — autoUpgradeExperience enforces all three.
+                    .task(id: selected.id) {
+                        await viewModel.autoUpgradeExperience(selected)
+                    }
                 }
 
                 // Active-route banner: a pill naming the walk with an end button.
@@ -997,7 +1022,13 @@ struct CompassMapContentView: View {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             viewModel.selectExperience(experience)
                         }
-                    }
+                    },
+                    // Detail-sheet parity with the floating card's recompile
+                    // menu: same MapViewModel work, same in-flight flag.
+                    onRecompile: {
+                        Task { await viewModel.recompileExperience(exp) }
+                    },
+                    isRecompiling: viewModel.recompilingExperienceId == exp.id
                 )
                 // Bind SwiftUI identity to the experience so selecting a
                 // different one rebuilds the detail view AND its @State
@@ -1005,7 +1036,14 @@ struct CompassMapContentView: View {
                 // viewModel kept the original experience and an in-detail
                 // "nearby" tap changed nothing on screen. The transition
                 // gives the rebuild a visible cross-fade + slide.
-                .id(exp.id)
+                //
+                // `updatedAt` is folded into the identity so an in-place
+                // recompile (which keeps the same id via `adoptingContent` and
+                // only bumps `updatedAt`) also rebuilds the @State view model —
+                // otherwise the menu's deep cross-compile would swap the backing
+                // experience but the sheet would keep rendering the stale
+                // skeleton copy it snapshotted at init.
+                .id("\(exp.id)-\(exp.updatedAt.timeIntervalSince1970)")
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
                     removal: .move(edge: .leading).combined(with: .opacity)
@@ -1332,8 +1370,15 @@ struct CompassMapContentView: View {
                             .buttonStyle(.plain)
                             // Long-press a pin → float the quick preview card
                             // (former tap behavior) instead of opening detail.
+                            // Drive the selection through a spring so the card's
+                            // scale+rise transition reads as "popped out of the
+                            // pin you pressed", not a flat slide-up. The other
+                            // select paths (tap, list) already animate; this one
+                            // was the bare exception. reduceMotion → no spring.
                             .modifier(LongPressCardModifier(onLongPress: {
-                                viewModel.selectExperience(exp)
+                                withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.72)) {
+                                    viewModel.selectExperience(exp)
+                                }
                             }))
                             .transition(.scale.combined(with: .opacity))
                             .accessibilityLabel(Text(exp.title))
