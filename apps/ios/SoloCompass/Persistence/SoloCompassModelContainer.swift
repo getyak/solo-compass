@@ -150,8 +150,23 @@ public enum SoloCompassSchemaV1_4: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → v1.2 → v1.3 → v1.4. Each change is
-/// additive (an optional `Data?` column, new @Model tables) or a NOT NULL
+/// Schema v1.5 — adds the optional `ExperienceRecord.categoryHighlightsBlob`
+/// column carrying category-specific scannable facts (Wi-Fi for cafés,
+/// signature dish for food, best light for sights). Like v1.2's photoUrls, the
+/// new column is `Data?`, so existing rows migrate with NULL and no data is
+/// rewritten. `asValue` treats a nil blob as `nil` highlights. The model set is
+/// identical to v1.4 — only the column is new.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_5: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 5, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_4.models
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → v1.2 → v1.3 → v1.4 → v1.5. Each change
+/// is additive (an optional `Data?` column, new @Model tables) or a NOT NULL
 /// relaxation, so every hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
@@ -161,6 +176,7 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             SoloCompassSchemaV1_2.self,
             SoloCompassSchemaV1_3.self,
             SoloCompassSchemaV1_4.self,
+            SoloCompassSchemaV1_5.self,
         ]
     }
 
@@ -181,6 +197,10 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_3.self,
                 toVersion: SoloCompassSchemaV1_4.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_4.self,
+                toVersion: SoloCompassSchemaV1_5.self
             ),
         ]
     }

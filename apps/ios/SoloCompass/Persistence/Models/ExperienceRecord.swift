@@ -85,6 +85,11 @@ public final class ExperienceRecord {
     /// migrated from earlier schema versions decode as `nil`.
     public var photoUrlsBlob: Data?
 
+    /// Category-specific scannable facts (SchemaV1_5). JSON-encoded
+    /// `[CategoryHighlight]`. Optional so rows migrated from earlier schema
+    /// versions decode as `nil`, treated as empty by `asValue`.
+    public var categoryHighlightsBlob: Data?
+
     public init(
         id: String,
         title: String,
@@ -116,7 +121,8 @@ public final class ExperienceRecord {
         statsBlob: Data,
         nearbyExperienceIdsBlob: Data,
         userTagsBlob: Data? = nil,
-        photoUrlsBlob: Data? = nil
+        photoUrlsBlob: Data? = nil,
+        categoryHighlightsBlob: Data? = nil
     ) {
         self.id = id
         self.title = title
@@ -149,6 +155,7 @@ public final class ExperienceRecord {
         self.nearbyExperienceIdsBlob = nearbyExperienceIdsBlob
         self.userTagsBlob = userTagsBlob
         self.photoUrlsBlob = photoUrlsBlob
+        self.categoryHighlightsBlob = categoryHighlightsBlob
     }
 }
 
@@ -160,6 +167,13 @@ public final class ExperienceRecord {
 private func encodedPhotoUrls(_ urls: [String]?, encoder: JSONEncoder) -> Data? {
     guard let urls else { return nil }
     return try? encoder.encode(urls)
+}
+
+/// Encode optional category highlights to a JSON blob, or `nil` when there are
+/// none. Free function for the same fast-type-check reason as `encodedPhotoUrls`.
+private func encodedHighlights(_ highlights: [CategoryHighlight]?, encoder: JSONEncoder) -> Data? {
+    guard let highlights, !highlights.isEmpty else { return nil }
+    return try? encoder.encode(highlights)
 }
 
 extension ExperienceRecord {
@@ -202,7 +216,8 @@ extension ExperienceRecord {
                 statsBlob: try encoder.encode(experience.stats),
                 nearbyExperienceIdsBlob: try encoder.encode(experience.nearbyExperienceIds),
                 userTagsBlob: try encoder.encode(experience.userTags ?? []),
-                photoUrlsBlob: encodedPhotoUrls(experience.location.photoUrls, encoder: encoder)
+                photoUrlsBlob: encodedPhotoUrls(experience.location.photoUrls, encoder: encoder),
+                categoryHighlightsBlob: encodedHighlights(experience.categoryHighlights, encoder: encoder)
             )
         } catch {
             fatalError("Failed to encode Experience \(experience.id): \(error)")
@@ -214,6 +229,11 @@ extension ExperienceRecord {
     /// should crash loud rather than silently degrade.
     public var asValue: Experience {
         let decoder = JSONDecoder.iso8601Decoder
+        // Decode the optional highlights blob up front so the big Experience
+        // initializer below stays within the type-checker's time budget.
+        let highlights: [CategoryHighlight]? = categoryHighlightsBlob.flatMap {
+            try? decoder.decode([CategoryHighlight].self, from: $0)
+        }
         do {
             return Experience(
                 id: id,
@@ -246,7 +266,8 @@ extension ExperienceRecord {
                 status: Experience.Status(rawValue: status) ?? .active,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
-                userTags: userTagsBlob.map { (try? decoder.decode([String].self, from: $0)) ?? [] } ?? []
+                userTags: userTagsBlob.map { (try? decoder.decode([String].self, from: $0)) ?? [] } ?? [],
+                categoryHighlights: highlights
             )
         } catch {
             fatalError("Failed to decode ExperienceRecord \(id): \(error)")

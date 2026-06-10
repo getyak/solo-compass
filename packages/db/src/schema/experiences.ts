@@ -52,4 +52,8 @@ export const experiences = pgTable("experiences", {
   // User-defined free-form tags layered on top of the category enum (US-005).
   // Optional JSONB array of strings; absence is equivalent to an empty array.
   userTags: jsonb("user_tags"),
+  // Category-specific scannable facts (Wi-Fi for cafés, signature dish for
+  // food, best light for sights). Optional JSONB array of {kind,label,value};
+  // absence is equivalent to an empty array. Mirrors Experience.categoryHighlights.
+  categoryHighlights: jsonb("category_highlights"),
 });
