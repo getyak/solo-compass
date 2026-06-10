@@ -1627,6 +1627,13 @@
 "friends.connected.label" = "Connected!";
 "friends.connected.a11y" = "You are now connected with %@";
 
+/* Inline friend-code search + my code (FriendsHubView) */
+"friends.inline.search.placeholder" = "Enter friend code SOLO-XXXX-XXXX";
+"friends.inline.scan.a11y" = "Scan a friend's QR code";
+"friends.inline.lookup.a11y" = "Look up friend";
+"friends.inline.myCode.show" = "My friend code";
+"friends.inline.myCode.hide" = "Hide my friend code";
+
 /* Add friend sheet — my shareable code + QR (US-013) */
 "friends.add.open.a11y" = "Show my friend code";
 "friends.add.title" = "Add Me";

@@ -330,6 +330,12 @@ struct CompassMapContentView: View {
                 if CompassMapView.debugForceShowSettings {
                     viewModel.isShowingSettings = true
                 }
+                // Visual-verification entry point: `-openMe` opens the personal hub
+                // (MeSheet) on launch so its layout can be screenshotted without an
+                // avatar-bubble tap (idb/simctl tapping is unreliable on Xcode 26).
+                if ProcessInfo.processInfo.arguments.contains("-openMe") {
+                    isShowingMe = true
+                }
                 #endif
                 locationService.requestPermission()
                 // US-021: `viewModel` is built eagerly in `init`, so there is no
