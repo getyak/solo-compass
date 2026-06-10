@@ -271,6 +271,14 @@ public final class VoiceAgentOrchestrator: Identifiable {
         }
     }
 
+    /// Drop the place anchor and fall back to a global chat. Backs the context
+    /// pill's `×` in `ChatInputBar`: tapping it should immediately return the
+    /// empty state + composer to their generic copy. A thin semantic wrapper
+    /// over `rebindContext(nil)` so call sites read by intent, not by argument.
+    public func clearContext() {
+        rebindContext(nil)
+    }
+
     /// Outcome of trying to enqueue user input on the orchestrator. Lets the
     /// chat UI tell the user *why* a message didn't go out instead of failing
     /// silently — the legacy Void-returning path swallowed every miss.

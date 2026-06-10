@@ -917,8 +917,18 @@
 "chat.thinking.working" = "处理中…";
 "chat.card.viewOnMap" = "点按在地图上查看";
 "chat.card.viewOnMap.a11y" = "双击在地图上显示这个地方";
+"chat.card.expand.a11y" = "展开这个地点的更多信息";
+"chat.card.open.a11y" = "在地图上打开 %@";
+"chat.card.solo" = "Solo %@";
 "chat.route.adopt" = "采用这条路线";
 "chat.route.adopt.a11y" = "双击保存并打开这条路线";
+"chat.route.open" = "打开";
+"chat.route.save" = "收藏";
+"chat.route.saved" = "已收藏";
+"chat.route.tag.draft" = "草拟路线";
+"chat.route.tag.verified" = "已验证路线";
+"chat.route.walked" = "%d 人走过";
+"chat.route.stops" = "%1$d 站 · %2$@";
 "agent.step.save" = "❤️ 收藏中…";
 "agent.step.search" = "🔍 搜索地点…";
 "agent.step.showDetails" = "📍 查看详情…";
@@ -985,6 +995,22 @@
 "chat.empty.prompt.nearby" = "附近有什么好玩的？";
 "chat.empty.prompt.coffee" = "找一家安静的咖啡馆";
 "chat.empty.prompt.evening" = "帮我计划今晚的行程";
+
+/* Place-anchored chat — opened from a place detail's "Ask Solo" */
+"chat.empty.place.title" = "问问 %@";
+"chat.empty.place.subtitle" = "我会结合这个地点的实时状态来回答。";
+"chat.empty.place.eyebrow" = "正在问";
+"chat.empty.place.goodNow" = "此刻正好";
+"chat.empty.place.busy" = "现在人多吗？";
+"chat.empty.place.solo" = "适合一个人来吗？";
+"chat.empty.place.route" = "怎么过去？";
+"chat.empty.place.nearby" = "附近还有什么？";
+"chat.context.asking" = "正在问 %@";
+"chat.context.clear.a11y" = "清除地点上下文";
+"chat.input.placeholder.place" = "问问 %@…";
+"chat.input.voiceBadge" = "语音 · %@";
+"chat.record.releaseToSend" = "松开发送";
+"chat.record.timer.a11y" = "录音中 — 已 %@";
 
 /* Common */
 "common.settings" = "设置";

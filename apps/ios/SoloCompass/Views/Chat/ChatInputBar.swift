@@ -29,6 +29,18 @@ public struct ChatInputBar: View {
     @Binding public var attachments: [LocalAttachment]
     public let micState: MicState
     public let errorMessage: String?
+    /// When the chat is anchored to a place (opened from a detail's "Ask Solo"),
+    /// this carries the place name. A dismissable context pill floats above the
+    /// composer and the field placeholder shifts to "Ask about <name>…". Nil for
+    /// the global chat. Mirrors the handoff `.ai-ctx-chip`.
+    public let placeContextName: String?
+    /// Category accent of the anchored place. Drives a small filled dot at the
+    /// head of the context pill so the anchor carries the place's own color (not
+    /// a generic pin) — a quiet step beyond the flat handoff `.ai-ctx-chip`.
+    /// Nil falls back to the brand accent.
+    public let placeContextColor: Color?
+    /// Tapping the context pill's `×`. Nil hides the dismiss affordance.
+    public let onClearContext: (() -> Void)?
 
     /// Fires when the user taps the send button (or hits return) with a
     /// non-empty draft. The trimmed text is passed in; the input bar
@@ -56,6 +68,13 @@ public struct ChatInputBar: View {
 
     /// Drives the soft pulse on the "Listening" status dot.
     @State private var listeningPulse: Bool = false
+    /// Elapsed seconds while the amber recording bar is up. Driven by a local
+    /// timer that starts when `micState` enters `.listening` and resets on exit.
+    @State private var recordElapsed: TimeInterval = 0
+    @State private var recordTimer: Timer?
+    /// Whether the text field holds focus — drives a soft amber glow on the
+    /// field so it lifts when the user is composing.
+    @FocusState private var fieldFocused: Bool
 
     // Attachment-picker presentation state.
     @State private var showAttachmentDialog = false
@@ -70,19 +89,25 @@ public struct ChatInputBar: View {
         attachments: Binding<[LocalAttachment]>,
         micState: MicState,
         errorMessage: String?,
+        placeContextName: String? = nil,
+        placeContextColor: Color? = nil,
         onSend: @escaping (String) -> Void,
         onMicToggle: @escaping (Bool) -> Void,
         onMicPress: @escaping (Bool) -> Void,
-        onRetry: @escaping () -> Void
+        onRetry: @escaping () -> Void,
+        onClearContext: (() -> Void)? = nil
     ) {
         self._draftText = draftText
         self._attachments = attachments
         self.micState = micState
         self.errorMessage = errorMessage
+        self.placeContextName = placeContextName
+        self.placeContextColor = placeContextColor
         self.onSend = onSend
         self.onMicToggle = onMicToggle
         self.onMicPress = onMicPress
         self.onRetry = onRetry
+        self.onClearContext = onClearContext
     }
 
     /// Backward-compatible initializer for callers that don't (yet) stage
@@ -91,63 +116,44 @@ public struct ChatInputBar: View {
         draftText: Binding<String>,
         micState: MicState,
         errorMessage: String?,
+        placeContextName: String? = nil,
+        placeContextColor: Color? = nil,
         onSend: @escaping (String) -> Void,
         onMicToggle: @escaping (Bool) -> Void,
         onMicPress: @escaping (Bool) -> Void,
-        onRetry: @escaping () -> Void
+        onRetry: @escaping () -> Void,
+        onClearContext: (() -> Void)? = nil
     ) {
         self.init(
             draftText: draftText,
             attachments: .constant([]),
             micState: micState,
             errorMessage: errorMessage,
+            placeContextName: placeContextName,
+            placeContextColor: placeContextColor,
             onSend: onSend,
             onMicToggle: onMicToggle,
             onMicPress: onMicPress,
-            onRetry: onRetry
+            onRetry: onRetry,
+            onClearContext: onClearContext
         )
     }
 
     public var body: some View {
-        VStack(spacing: 8) {
-            if let errorMessage {
-                InlineBanner(
-                    tone: .error,
-                    title: errorMessage,
-                    ctaLabel: NSLocalizedString("chat.error.retry", comment: "Retry"),
-                    onCTA: onRetry
-                )
+        Group {
+            if micState == .listening {
+                // While push-to-talk is live the composer is irrelevant — the
+                // whole bar becomes the amber waveform strip (design `.ai-recording`).
+                recordingBar
+                    .transition(.opacity)
+            } else {
+                composer
+                    .transition(.opacity)
             }
-
-            stateLabel
-
-            if !attachments.isEmpty {
-                AttachmentDraftStrip(attachments: attachments) { id in
-                    attachments.removeAll { $0.id == id }
-                }
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-
-            HStack(alignment: .bottom, spacing: 8) {
-                plusButton
-                textField
-                // WeChat-style trailing affordance: an empty draft shows the mic;
-                // as soon as the user types, it morphs into the send button. No
-                // permanently-docked send key sitting low next to the mic.
-                trailingButton
-            }
-            .animation(.spring(response: 0.28, dampingFraction: 0.8), value: hasSendableDraft)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(alignment: .top) {
-            // Hairline top divider + opaque surface (replaces `.bar`).
-            ZStack(alignment: .top) {
-                Color(.systemBackground)
-                Rectangle()
-                    .fill(CT.borderDefault)
-                    .frame(height: 0.5)
-            }
+        .animation(.easeInOut(duration: 0.2), value: micState == .listening)
+        .onChange(of: micState) { _, new in
+            if new == .listening { startRecordTimer() } else { stopRecordTimer() }
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.85), value: attachments)
         .confirmationDialog(
@@ -190,6 +196,178 @@ public struct ChatInputBar: View {
         ) { result in
             ingest(fileResult: result)
         }
+    }
+
+    // MARK: - Composer
+
+    /// The normal typing surface: error banner, optional state label, attachment
+    /// strip, context pill, and the plus · field · trailing row.
+    private var composer: some View {
+        VStack(spacing: 8) {
+            if let errorMessage {
+                InlineBanner(
+                    tone: .error,
+                    title: errorMessage,
+                    ctaLabel: NSLocalizedString("chat.error.retry", comment: "Retry"),
+                    onCTA: onRetry
+                )
+            }
+
+            stateLabel
+
+            if let placeContextName {
+                contextPill(placeContextName)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            if !attachments.isEmpty {
+                AttachmentDraftStrip(attachments: attachments) { id in
+                    attachments.removeAll { $0.id == id }
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            HStack(alignment: .bottom, spacing: 8) {
+                plusButton
+                textField
+                // WeChat-style trailing affordance: an empty draft shows the mic;
+                // as soon as the user types, it morphs into the send button. No
+                // permanently-docked send key sitting low next to the mic.
+                trailingButton
+            }
+            .animation(.spring(response: 0.28, dampingFraction: 0.8), value: hasSendableDraft)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(alignment: .top) {
+            // Hairline top divider + opaque surface (replaces `.bar`).
+            ZStack(alignment: .top) {
+                Color(.systemBackground)
+                Rectangle()
+                    .fill(CT.borderDefault)
+                    .frame(height: 0.5)
+            }
+        }
+    }
+
+    /// Dismissable "Asking about <place>" pill above the composer — the chat's
+    /// visible anchor to a place opened from its detail (design `.ai-ctx-chip`).
+    private func contextPill(_ name: String) -> some View {
+        let dotColor = placeContextColor ?? CT.accent
+        return HStack(spacing: 8) {
+            // Category-tinted dot with a soft halo — the anchor wears the place's
+            // own color instead of a generic pin glyph.
+            ZStack {
+                Circle()
+                    .fill(dotColor.opacity(0.18))
+                    .frame(width: 16, height: 16)
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 8, height: 8)
+            }
+            (
+                Text(verbatim: askingPrefix(name).prefix) +
+                Text(name).fontWeight(.semibold) +
+                Text(verbatim: askingPrefix(name).suffix)
+            )
+            .font(.system(size: 12))
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let onClearContext {
+                Button {
+                    Haptics.impact(.light)
+                    onClearContext()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .frame(width: 20, height: 20)
+                        .background(Circle().fill(CT.accent.opacity(0.1)))
+                }
+                .buttonStyle(PressableButtonStyle(pressedScale: 0.85))
+                .accessibilityLabel(Text(NSLocalizedString("chat.context.clear.a11y", comment: "Clear place context")))
+            }
+        }
+        .foregroundStyle(CT.accent)
+        .padding(.vertical, 7)
+        .padding(.leading, 11)
+        .padding(.trailing, 9)
+        .background(
+            Capsule().fill(CT.accentSoft)
+        )
+        .overlay(Capsule().strokeBorder(CT.accentBorder, lineWidth: 0.5))
+    }
+
+    /// Split the localized "Asking about %@" copy around the place name so the
+    /// name can render bold inline regardless of language word order.
+    private func askingPrefix(_ name: String) -> (prefix: String, suffix: String) {
+        let template = NSLocalizedString("chat.context.asking", comment: "Asking about %@")
+        let parts = template.components(separatedBy: "%@")
+        return (parts.first ?? "", parts.count > 1 ? parts[1] : "")
+    }
+
+    // MARK: - Recording bar (hold-to-talk)
+
+    /// Full-width amber waveform strip shown while listening. Mirrors the handoff
+    /// `.ai-recording`: blinking dot · animated bars · mono timer · "Release to
+    /// send". Releasing the mic (handled by the parent's gesture on the same
+    /// surface) stops listening; tapping anywhere on the strip also ends it.
+    private var recordingBar: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(.white)
+                .frame(width: 10, height: 10)
+                .opacity(listeningPulse ? 0.25 : 1.0)
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: 0.55).repeatForever(autoreverses: true),
+                    value: listeningPulse
+                )
+
+            RecordingWaveform(active: !reduceMotion)
+                .frame(height: 26)
+                .frame(maxWidth: .infinity)
+
+            Text(recordTimerLabel)
+                .font(.system(size: 12, design: .monospaced))
+                .tracking(0.6)
+                .frame(minWidth: 34, alignment: .trailing)
+
+            Text(NSLocalizedString("chat.record.releaseToSend", comment: "Release to send"))
+                .font(.system(size: 11.5))
+                .opacity(0.85)
+                .lineLimit(1)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .background(CT.accent)
+        .contentShape(Rectangle())
+        .onTapGesture { onMicToggle(false) }
+        .onAppear { if !reduceMotion { listeningPulse = true } }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(String(
+            format: NSLocalizedString("chat.record.timer.a11y", comment: "Recording — %@ elapsed"),
+            recordTimerLabel
+        )))
+    }
+
+    private var recordTimerLabel: String {
+        let total = Int(recordElapsed)
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
+    private func startRecordTimer() {
+        recordElapsed = 0
+        recordTimer?.invalidate()
+        recordTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            Task { @MainActor in recordElapsed += 0.1 }
+        }
+    }
+
+    private func stopRecordTimer() {
+        recordTimer?.invalidate()
+        recordTimer = nil
+        recordElapsed = 0
     }
 
     // MARK: - Subviews
@@ -265,28 +443,42 @@ public struct ChatInputBar: View {
         .accessibilityLabel(Text(NSLocalizedString("chat.attachment.add.a11y", comment: "Add attachment")))
     }
 
+    /// Placeholder shifts to the place name when the chat is anchored.
+    private var fieldPlaceholder: String {
+        if let placeContextName {
+            return String(
+                format: NSLocalizedString("chat.input.placeholder.place", comment: "Ask about %@…"),
+                placeContextName
+            )
+        }
+        return NSLocalizedString("chat.input.placeholder", comment: "Type a message…")
+    }
+
     private var textField: some View {
         // Multi-line growth comes free with `axis: .vertical` + lineLimit range.
         TextField(
-            NSLocalizedString("chat.input.placeholder", comment: "Type a message…"),
+            fieldPlaceholder,
             text: $draftText,
             axis: .vertical
         )
         .lineLimit(1...4)
         .textFieldStyle(.plain)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .focused($fieldFocused)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(inputFieldFill)
+                .fill(fieldFocused ? CT.surfaceWhite : inputFieldFill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(inputBorder, lineWidth: 0.5)
+                .strokeBorder(fieldFocused ? CT.accentBorder : inputBorder, lineWidth: fieldFocused ? 1 : 0.5)
         )
+        .shadow(color: fieldFocused ? CT.accent.opacity(0.1) : .clear, radius: 6, y: 1)
+        .animation(.easeOut(duration: 0.18), value: fieldFocused)
         .submitLabel(.send)
         .onSubmit(submitDraft)
-        .accessibilityLabel(Text(NSLocalizedString("chat.input.placeholder", comment: "Type a message…")))
+        .accessibilityLabel(Text(fieldPlaceholder))
     }
 
     /// True when there is something to send: trimmed text OR a staged attachment.
@@ -463,6 +655,37 @@ public struct ChatInputBar: View {
     }
 }
 
+// MARK: - Recording waveform
+
+/// 24 thin bars pulsing out of phase — the design `.ai-recording .wave`. Pure
+/// decoration: it reads as "I'm listening" without claiming to mirror real
+/// amplitude (the bars are evenly staggered, not audio-driven).
+private struct RecordingWaveform: View {
+    let active: Bool
+    @State private var animating = false
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<24, id: \.self) { i in
+                Capsule()
+                    .fill(Color.white.opacity(0.85))
+                    .frame(maxWidth: 4, maxHeight: .infinity)
+                    .scaleEffect(y: animating ? 1.0 : 0.18, anchor: .center)
+                    .animation(
+                        active
+                            ? .easeInOut(duration: 0.9)
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(i % 6) * 0.12)
+                            : nil,
+                        value: animating
+                    )
+            }
+        }
+        .onAppear { if active { animating = true } }
+        .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Camera picker bridge
 
 /// Minimal `UIImagePickerController` wrapper for in-app camera capture.
@@ -506,7 +729,11 @@ private struct ChatCameraPicker: UIViewControllerRepresentable {
     StatefulPreviewWrapper(initial: "", micState: .idle, error: nil)
 }
 
-#Preview("Listening") {
+#Preview("Place context") {
+    StatefulPreviewWrapper(initial: "", micState: .idle, error: nil, placeContextName: "X10Kup Cafe")
+}
+
+#Preview("Listening (recording bar)") {
     StatefulPreviewWrapper(initial: "", micState: .listening, error: nil)
 }
 
@@ -552,17 +779,20 @@ private struct StatefulPreviewWrapper: View {
     @State var attachments: [LocalAttachment]
     let micState: ChatInputBar.MicState
     let error: String?
+    let placeContextName: String?
 
     init(
         initial: String,
         micState: ChatInputBar.MicState,
         error: String?,
-        attachments: [LocalAttachment] = []
+        attachments: [LocalAttachment] = [],
+        placeContextName: String? = nil
     ) {
         self._text = State(initialValue: initial)
         self._attachments = State(initialValue: attachments)
         self.micState = micState
         self.error = error
+        self.placeContextName = placeContextName
     }
 
     var body: some View {
@@ -573,10 +803,12 @@ private struct StatefulPreviewWrapper: View {
                 attachments: $attachments,
                 micState: micState,
                 errorMessage: error,
+                placeContextName: placeContextName,
                 onSend: { _ in },
                 onMicToggle: { _ in },
                 onMicPress: { _ in },
-                onRetry: {}
+                onRetry: {},
+                onClearContext: placeContextName != nil ? {} : nil
             )
         }
     }

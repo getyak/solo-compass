@@ -777,8 +777,18 @@
 /* In-chat cards (places / proposed route) */
 "chat.card.viewOnMap" = "Tap to see on map";
 "chat.card.viewOnMap.a11y" = "Double tap to reveal this place on the map";
+"chat.card.expand.a11y" = "Show more about this place";
+"chat.card.open.a11y" = "Open %@ on the map";
+"chat.card.solo" = "Solo %@";
 "chat.route.adopt" = "Use this route";
 "chat.route.adopt.a11y" = "Double tap to save this route and open it";
+"chat.route.open" = "Open";
+"chat.route.save" = "Save";
+"chat.route.saved" = "Saved.";
+"chat.route.tag.draft" = "DRAFT ROUTE";
+"chat.route.tag.verified" = "VERIFIED ROUTE";
+"chat.route.walked" = "%d walked";
+"chat.route.stops" = "%1$d stops · %2$@";
 
 /* Voice agent inline overlay (VoiceAgentOverlay) */
 "voiceAgent.orb.a11y" = "Hold to speak to Solo Compass";
@@ -823,7 +833,23 @@
 "chat.empty.prompt.nearby" = "What's good around me?";
 "chat.empty.prompt.coffee" = "Find me a quiet café";
 "chat.empty.prompt.evening" = "Plan my evening";
+
+/* Place-anchored chat — opened from a place detail's "Ask Solo" */
+"chat.empty.place.title" = "Ask about %@";
+"chat.empty.place.subtitle" = "I'll answer with this place's live context.";
+"chat.empty.place.eyebrow" = "ASKING ABOUT";
+"chat.empty.place.goodNow" = "Good right now";
+"chat.empty.place.busy" = "How busy is it right now?";
+"chat.empty.place.solo" = "Is it good for solo?";
+"chat.empty.place.route" = "How do I get there?";
+"chat.empty.place.nearby" = "What's nearby?";
+"chat.context.asking" = "Asking about %@";
+"chat.context.clear.a11y" = "Clear place context";
 "chat.input.placeholder" = "Type a message…";
+"chat.input.placeholder.place" = "Ask about %@…";
+"chat.input.voiceBadge" = "VOICE · %@";
+"chat.record.releaseToSend" = "Release to send";
+"chat.record.timer.a11y" = "Recording — %@ elapsed";
 "chat.input.send.a11y" = "Send";
 "chat.input.mic.a11y" = "Voice";
 "chat.input.mic.hint" = "Tap to start or stop voice, hold to push-to-talk";

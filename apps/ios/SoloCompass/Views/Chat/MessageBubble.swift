@@ -20,6 +20,11 @@ public struct MessageBubble: View {
     /// When true, renders a blinking caret on the trailing edge to signal that
     /// content is still arriving from the model.
     public let isStreaming: Bool
+    /// For voice-transcribed user messages: the recording length (e.g. "0:03").
+    /// When set, a small mono "VOICE · 0:03" badge floats above the bubble —
+    /// mirrors the design-handoff `voice-chip` so a spoken turn reads differently
+    /// from a typed one. Nil (the default) hides the badge.
+    public let voiceDuration: String?
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -27,12 +32,14 @@ public struct MessageBubble: View {
         role: VoiceAgentSession.Role,
         text: String,
         toolName: String? = nil,
-        isStreaming: Bool = false
+        isStreaming: Bool = false,
+        voiceDuration: String? = nil
     ) {
         self.role = role
         self.text = text
         self.toolName = toolName
         self.isStreaming = isStreaming
+        self.voiceDuration = voiceDuration
     }
 
     public var body: some View {
@@ -54,15 +61,18 @@ public struct MessageBubble: View {
     private var userBubble: some View {
         HStack {
             Spacer(minLength: 48)
-            Text(text)
-                .font(.body)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(CT.accent, in: bubbleShape)
-                .overlay(bubbleShape.strokeBorder(CT.accentBorder, lineWidth: 0.5))
-                .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
-                .accessibilityLabel(Text(String(
+            VStack(alignment: .trailing, spacing: 5) {
+                if let voiceDuration {
+                    voiceBadge(voiceDuration)
+                }
+                Text(text)
+                    .font(.system(size: 14.5))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 10)
+                    .background(CT.accent, in: userBubbleShape)
+                    .shadow(color: CT.accent.opacity(0.22), radius: 8, y: 3)
+                    .accessibilityLabel(Text(String(
                     format: NSLocalizedString("chat.bubble.user.a11y", comment: "You said: %@"),
                     text
                 )))
@@ -81,7 +91,25 @@ public struct MessageBubble: View {
                         }
                     }
                 }
+            }
         }
+    }
+
+    /// Mono "VOICE · 0:03" chip above a spoken user turn (design `voice-chip`).
+    private func voiceBadge(_ duration: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "mic.fill")
+                .font(.system(size: 8, weight: .semibold))
+            Text(String(
+                format: NSLocalizedString("chat.input.voiceBadge", comment: "VOICE · %@"),
+                duration
+            ))
+            .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+            .tracking(0.6)
+        }
+        .foregroundStyle(CT.fgSubtle)
+        .padding(.trailing, 4)
+        .accessibilityHidden(true)
     }
 
     private var assistantBubble: some View {
@@ -94,12 +122,12 @@ public struct MessageBubble: View {
             // Streaming throttle (batched ~50–80 chars / ~80ms) lives in the
             // orchestrator (Phase D) so this view re-renders smoothly.
             MarkdownMessageText(text: text.isEmpty ? " " : text)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 15)
                 .padding(.vertical, 10)
                 .background {
-                    bubbleShape.fill(MessageBubble.assistantFill(colorScheme))
+                    assistantBubbleShape.fill(MessageBubble.assistantFill(colorScheme))
                 }
-                .overlay(bubbleShape.strokeBorder(CT.borderSubtle, lineWidth: 0.5))
+                .overlay(assistantBubbleShape.strokeBorder(CT.borderSubtle, lineWidth: 0.5))
                 .overlay(alignment: .trailing) {
                     if isStreaming {
                         StreamingCursor()
@@ -129,11 +157,12 @@ public struct MessageBubble: View {
         }
     }
 
-    /// AI bubble fill: a warm, low-contrast parchment tint in light mode (not
-    /// stark white — that read as a generic chat card glued onto the map), and
-    /// the dark token in dark mode so it doesn't glare on a near-black sheet.
+    /// AI bubble fill: clean surface-white with a hairline in light mode (the
+    /// design-handoff voice — a soft card that floats on the warm sheet, not a
+    /// muddy parchment block), and the dark token in dark mode so it doesn't
+    /// glare on a near-black sheet.
     static func assistantFill(_ scheme: ColorScheme) -> Color {
-        scheme == .dark ? CT.chatAIBubbleBgDark : CT.surfaceSunken
+        scheme == .dark ? CT.chatAIBubbleBgDark : CT.surfaceWhite
     }
 
     private var toolIndicator: some View {
@@ -153,8 +182,29 @@ public struct MessageBubble: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var bubbleShape: some InsettableShape {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+    /// User bubble: 18pt rounded, but the bottom-trailing corner tucks to 5pt so
+    /// the bubble "points" back toward the sender — a quiet directional cue that
+    /// reads as a tail without drawing one (design `border-bottom-right-radius`).
+    private var userBubbleShape: some InsettableShape {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 18,
+            bottomLeadingRadius: 18,
+            bottomTrailingRadius: 5,
+            topTrailingRadius: 18,
+            style: .continuous
+        )
+    }
+
+    /// Assistant bubble: mirror image — the bottom-leading corner tucks to 5pt
+    /// so the reply points toward Solo on the left.
+    private var assistantBubbleShape: some InsettableShape {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 18,
+            bottomLeadingRadius: 5,
+            bottomTrailingRadius: 18,
+            topTrailingRadius: 18,
+            style: .continuous
+        )
     }
 
     // MARK: - Actions
@@ -256,11 +306,11 @@ public struct TypingIndicatorBubble: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
                 .background {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    typingBubbleShape
                         .fill(MessageBubble.assistantFill(colorScheme))
                 }
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    typingBubbleShape
                         .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
                 )
 
@@ -286,6 +336,18 @@ public struct TypingIndicatorBubble: View {
 
     private var stepPillFill: Color {
         colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceSunken
+    }
+
+    /// Match `MessageBubble.assistantBubbleShape` — left-tucked tail so the
+    /// thinking bubble reads as Solo's, same as the replies that follow it.
+    private var typingBubbleShape: some InsettableShape {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 18,
+            bottomLeadingRadius: 5,
+            bottomTrailingRadius: 18,
+            topTrailingRadius: 18,
+            style: .continuous
+        )
     }
 }
 
@@ -349,7 +411,7 @@ private struct StreamingCursor: View {
 
 #Preview("Conversation") {
     VStack(alignment: .leading, spacing: 12) {
-        MessageBubble(role: .user, text: "What's good around me?")
+        MessageBubble(role: .user, text: "What's good around me?", voiceDuration: "0:03")
         MessageBubble(
             role: .tool,
             text: "{}",

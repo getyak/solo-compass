@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Renders the inline cards a single assistant turn produced, directly beneath
-/// its bubble. Place cards lay out as a horizontally scrolling rail (a row of
-/// suggestions reads as "here are a few options"); a proposed route renders as
-/// one full-width card. Tapping a card is the user's explicit action — see
+/// its bubble. Place results stack vertically as compact rows (each reads as a
+/// "search result" line you can peek or open); a proposed route renders as one
+/// full-width card. Tapping a card is the user's explicit action — see
 /// `ChatExperienceCard` / `ChatRouteProposalCard`.
 @MainActor
 struct ChatCardStack: View {
@@ -12,11 +12,11 @@ struct ChatCardStack: View {
     let onAdoptRoute: (RouteProposal) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(cards) { card in
                 switch card {
                 case let .experiences(_, list):
-                    experienceRail(list)
+                    experienceResults(list)
                 case let .route(_, proposal):
                     ChatRouteProposalCard(
                         proposal: proposal,
@@ -26,25 +26,20 @@ struct ChatCardStack: View {
                 }
             }
         }
-        // Align under the assistant avatar (32 + 8 spacing) so cards sit in the
-        // assistant's column, not full-bleed.
-        .padding(.leading, 40)
-        .padding(.trailing, 8)
+        // Sit in the assistant's column but with room to breathe — compact
+        // result rows want near-full width, matching the handoff `.ai-results`
+        // block (max-width ~92%, left-aligned under the reply).
+        .padding(.leading, 8)
+        .padding(.trailing, 28)
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
+    /// Vertical stack of compact place rows — the design's `.ai-results` column.
     @ViewBuilder
-    private func experienceRail(_ list: [Experience]) -> some View {
-        if list.count == 1, let only = list.first {
-            ChatExperienceCard(experience: only) { onSelectExperience(only) }
-        } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(list) { exp in
-                        ChatExperienceCard(experience: exp) { onSelectExperience(exp) }
-                    }
-                }
-                .padding(.vertical, 2)
+    private func experienceResults(_ list: [Experience]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(list) { exp in
+                ChatExperienceCard(experience: exp) { onSelectExperience(exp) }
             }
         }
     }
@@ -205,7 +200,12 @@ struct ReasoningSummaryChip: View {
     let summary: ReasoningSummary
 
     @State private var expanded = false
+    /// Drives the one-shot "settle" on appear: the check ring sweeps closed and
+    /// the badge pops in, so the chip reads as the live status line *finishing*
+    /// rather than a new element hard-cutting in. reduceMotion lands it static.
+    @State private var settled = false
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -215,11 +215,23 @@ struct ReasoningSummaryChip: View {
                 withAnimation(.easeInOut(duration: 0.22)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 7) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(CT.verifiedGreen)
-                        .frame(width: 16, height: 16)
-                        .background(CT.verifiedGreen.opacity(0.14), in: Circle())
+                    ZStack {
+                        // The ring that was spinning in AgentStatusLine sweeps
+                        // shut here, handing off into the settled check badge.
+                        Circle()
+                            .trim(from: 0, to: settled ? 1 : 0.08)
+                            .stroke(CT.verifiedGreen, style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 16, height: 16)
+                            .opacity(settled ? 0 : 1)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(CT.verifiedGreen)
+                            .frame(width: 16, height: 16)
+                            .background(CT.verifiedGreen.opacity(settled ? 0.14 : 0), in: Circle())
+                            .scaleEffect(settled ? 1 : 0.4)
+                            .opacity(settled ? 1 : 0)
+                    }
                     Text(summary.summary)
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
                         .foregroundStyle(.secondary)
@@ -266,6 +278,13 @@ struct ReasoningSummaryChip: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 40)
         .padding(.trailing, 8)
+        .onAppear {
+            if reduceMotion {
+                settled = true
+            } else {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { settled = true }
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(String(
             format: NSLocalizedString("chat.thinking.summary.a11y", comment: "Collapsed reasoning summary a11y"),

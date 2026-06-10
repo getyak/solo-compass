@@ -180,11 +180,46 @@ public struct ChatSheet: View {
             draftText: $draftText,
             micState: micState,
             errorMessage: orchestrator.errorMessage,
+            // When the chat was opened from a place's "Ask Solo", surface that
+            // anchor visibly: a dismissable "Asking about <name>" pill rides
+            // above the composer and the field placeholder shifts to the place.
+            // The orchestrator already injects the place into its system scope;
+            // this is the UI making that scope legible (handoff `.ai-ctx-chip`).
+            placeContextName: scopedPlaceName,
+            placeContextColor: orchestrator.scopedExperience?.category.color,
             onSend: handleSend,
             onMicToggle: handleMicToggle,
             onMicPress: handleMicPress,
-            onRetry: handleRetry
+            onRetry: handleRetry,
+            // Clearing the pill drops the anchor back to a global chat. We route
+            // through the orchestrator so the system scope and the UI fall back
+            // together, then animate the pill/placeholder back to generic copy.
+            onClearContext: scopedPlaceName == nil ? nil : {
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    orchestrator.clearContext()
+                }
+            }
         )
+    }
+
+    /// Short display name of the place this chat is anchored to, or `nil` for
+    /// the global "+" chat. Drives the composer context pill, the placeholder,
+    /// and the hero card title. Prefers a real place name (romanized / local
+    /// script) over the experience's long descriptive `title` so the pill reads
+    /// "Asking about Wat Suandok", not a truncated sentence.
+    private var scopedPlaceName: String? {
+        orchestrator.scopedExperience.map(Self.shortName)
+    }
+
+    /// A concise place name for an experience: its romanized or local-script
+    /// place name when present, else the descriptive title. Static + pure so
+    /// the hero card and the composer pill agree without recomputation.
+    static func shortName(_ place: Experience) -> String {
+        let candidates = [place.location.placeNameRomanized, place.location.placeNameLocal]
+        if let name = candidates.compactMap({ $0 }).first(where: { !$0.isEmpty }) {
+            return name
+        }
+        return place.title
     }
 
     /// Inline card surfaced when the orchestrator started in the
@@ -517,7 +552,23 @@ public struct ChatSheet: View {
         }
     }
 
+    /// Empty state forks on whether the chat is anchored to a place. The global
+    /// "+" chat gets the hour-aware "ask me anything" canvas; a chat opened from
+    /// a place's detail gets a focused canvas that *leads with that place* — a
+    /// compact hero card + place-specific openers — so the anchor reads at a
+    /// glance, not just as a line of copy. (Handoff: `ctx ? 'Ask about X' : …`.)
+    @ViewBuilder
     private var emptyState: some View {
+        if let place = orchestrator.scopedExperience {
+            placeEmptyState(place)
+        } else {
+            genericEmptyState
+        }
+    }
+
+    /// Hour-aware global empty state (the "+" entry). Unchanged voice: glyph →
+    /// title → subtitle → NOW banner → starter chips.
+    private var genericEmptyState: some View {
         VStack(spacing: 14) {
             Spacer()
             Image(systemName: "bubble.left.and.bubble.right.fill")
@@ -548,6 +599,213 @@ public struct ChatSheet: View {
         }
     }
 
+    /// Place-anchored empty state. Leads with a compact hero of the place the
+    /// chat is bound to (so "I'm asking about *this*" is felt, not just read),
+    /// then a tight stack of place-specific openers. The whole thing is
+    /// vertically centered and scrolls if a small device can't fit it.
+    private func placeEmptyState(_ place: Experience) -> some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                Spacer(minLength: 8)
+                placeHeroCard(place)
+                Text(NSLocalizedString("chat.empty.place.subtitle", comment: "I'll answer with this place's live context."))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+                placeIntentChips(place)
+                Spacer(minLength: 8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.4).delay(0.15)) {
+                starterPromptsAppeared = true
+            }
+        }
+    }
+
+    /// Compact mini-hero for the anchored place — the chat's answer to the
+    /// handoff's plain "Ask about X" heading, lifted into a tactile card. A
+    /// category-tinted disc, the place name (+ its local-script name), a Solo
+    /// score chip, and a NOW/hours meta line, all on a soft surface that floats
+    /// on the warm sheet. This is the deliberate "exceed the mock" beat for the
+    /// detail-page entry.
+    private func placeHeroCard(_ place: Experience) -> some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(place.category.color.opacity(0.16))
+                    .frame(width: 70, height: 70)
+                Image(systemName: place.category.symbol)
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(
+                        Circle().fill(
+                            LinearGradient(
+                                colors: [place.category.color, place.category.color.opacity(0.78)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    )
+                    .shadow(color: place.category.color.opacity(0.4), radius: 7, y: 3)
+            }
+
+            VStack(spacing: 3) {
+                Text(NSLocalizedString("chat.empty.place.eyebrow", comment: "ASKING ABOUT eyebrow"))
+                    .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                    .tracking(1.6)
+                    .foregroundStyle(CT.accent.opacity(0.65))
+                Text(Self.shortName(place))
+                    .font(CT.displayRounded(20, .bold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let secondary = placeSecondaryName(place) {
+                    Text(secondary)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundStyle(CT.fgSubtle)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, 18)
+
+            HStack(spacing: 7) {
+                heroSoloChip(place)
+                heroNowChip(place)
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 20)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(heroCardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
+        .padding(.horizontal, 22)
+        .opacity(starterPromptsAppeared ? 1 : 0)
+        .scaleEffect(starterPromptsAppeared ? 1 : 0.96)
+        .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.82), value: starterPromptsAppeared)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(String(
+            format: NSLocalizedString("chat.empty.place.title", comment: "Ask about %@"),
+            place.title
+        )))
+    }
+
+    /// Solo-score chip — "person · 8.4" in the warm verified-green system, the
+    /// same chip language the place cards use, so the hero reads as one family.
+    private func heroSoloChip(_ place: Experience) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "person.fill")
+                .font(.system(size: 9.5, weight: .semibold))
+            Text(String(
+                format: NSLocalizedString("chat.card.solo", comment: "Solo %@"),
+                String(format: "%.1f", place.soloScore.overall)
+            ))
+            .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
+        }
+        .foregroundStyle(CT.verifiedGreen)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(CT.successSoft))
+    }
+
+    /// NOW / hours chip — sun-gold "good right now" when the place is in its
+    /// window this hour, else a quieter category label. Grounds the hero in
+    /// *this moment* the same way the map's "AI · NOW" framing does.
+    @ViewBuilder
+    private func heroNowChip(_ place: Experience) -> some View {
+        if place.isBestNow() {
+            HStack(spacing: 5) {
+                Image(systemName: "sun.max.fill")
+                    .font(.system(size: 9.5, weight: .semibold))
+                Text(NSLocalizedString("chat.empty.place.goodNow", comment: "Good right now"))
+                    .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
+            }
+            .foregroundStyle(CT.sunGoldDeep)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(CT.sunGoldSoft))
+        } else {
+            Text(place.category.localizedTitle)
+                .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                .foregroundStyle(CT.fgMuted)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(CT.surfaceSunken))
+        }
+    }
+
+    /// Secondary line under the hero title. Prefers the local-script place name
+    /// (the native flavor the detail page carries) when it differs from the
+    /// shown short name; otherwise falls back to the experience one-liner so the
+    /// hero still says *what this place is*, never an empty or duplicate line.
+    private func placeSecondaryName(_ place: Experience) -> String? {
+        let shown = Self.shortName(place)
+        if let local = place.location.placeNameLocal, !local.isEmpty, local != shown {
+            return local
+        }
+        let oneLiner = place.oneLiner.trimmingCharacters(in: .whitespacesAndNewlines)
+        return oneLiner.isEmpty ? nil : oneLiner
+    }
+
+    /// Four place-grounded openers (busy / solo / route / nearby). Tapping one
+    /// sends its question; the orchestrator's place scope makes the answer land
+    /// on *this* place. Mirrors the handoff `PLACE_INTENTS`.
+    private func placeIntentChips(_ place: Experience) -> some View {
+        VStack(spacing: 8) {
+            ForEach(Array(Self.placeIntents.enumerated()), id: \.offset) { index, intent in
+                Button {
+                    Haptics.impact(.light)
+                    handleSend(NSLocalizedString(intent.promptKey, comment: "Place opener"))
+                } label: {
+                    starterCardRow(icon: intent.icon, iconColor: CT.accent, label: NSLocalizedString(intent.promptKey, comment: "Place opener"))
+                }
+                .buttonStyle(PressableButtonStyle())
+                .accessibilityLabel(Text(NSLocalizedString(intent.promptKey, comment: "Place opener")))
+                .opacity(starterPromptsAppeared ? 1 : 0)
+                .offset(y: starterPromptsAppeared ? 0 : 8)
+                .animation(
+                    reduceMotion ? nil : .easeOut(duration: 0.35).delay(0.1 + Double(index) * 0.07),
+                    value: starterPromptsAppeared
+                )
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 2)
+    }
+
+    /// Static descriptor for the four place openers. Pure data so the chips
+    /// stay declarative and the copy lives entirely in the strings table.
+    private struct PlaceIntent {
+        let icon: String
+        let promptKey: String
+    }
+
+    private static let placeIntents: [PlaceIntent] = [
+        PlaceIntent(icon: "person.2.fill",            promptKey: "chat.empty.place.busy"),
+        PlaceIntent(icon: "figure.stand",             promptKey: "chat.empty.place.solo"),
+        PlaceIntent(icon: "location.north.line.fill", promptKey: "chat.empty.place.route"),
+        PlaceIntent(icon: "mappin.and.ellipse",       promptKey: "chat.empty.place.nearby"),
+    ]
+
+    private var heroCardFill: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceWhite
+    }
+
     private var starterPromptChips: some View {
         VStack(spacing: 8) {
             ForEach(Array(Self.starterPrompts.enumerated()), id: \.offset) { index, prompt in
@@ -555,7 +813,11 @@ public struct ChatSheet: View {
                     Haptics.impact(.light)
                     handleSend(prompt)
                 } label: {
-                    starterPromptCard(index: index, prompt: prompt)
+                    starterCardRow(
+                        icon: promptIcon(for: index),
+                        iconColor: promptIconColor(for: index),
+                        label: prompt
+                    )
                 }
                 .buttonStyle(PressableButtonStyle())
                 .accessibilityLabel(prompt)
@@ -573,22 +835,31 @@ public struct ChatSheet: View {
         .padding(.top, 4)
     }
 
-    private func starterPromptCard(index: Int, prompt: String) -> some View {
+    /// One opener row — shared by the global starter prompts and the
+    /// place-anchored intents so the two empty states read as one family.
+    /// The icon sits in a tinted rounded square (the handoff `.sugg .ic` chip),
+    /// a step up in tactility from a bare glyph, and the chevron is the quiet
+    /// "go" cue on the trailing edge.
+    private func starterCardRow(icon: String, iconColor: Color, label: String) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: promptIcon(for: index))
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(promptIconColor(for: index))
-                .frame(width: 22)
-            Text(prompt)
-                .font(.body)
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(iconColor)
+                .frame(width: 32, height: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(iconColor.opacity(colorScheme == .dark ? 0.22 : 0.12))
+                )
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 8)
             Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(CT.fgSubtle)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 13)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(starterCardFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
