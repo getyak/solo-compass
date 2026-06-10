@@ -19,6 +19,7 @@ final class SFSymbolExistenceTests: XCTestCase {
     /// add more as needed — the scanner is generic.
     private let relativeViewPaths = [
         "Views/Experience/ExperienceDetailView.swift",
+        "Views/Experience/TravelerNotesSection.swift",
         "Views/Experience/ExperienceCardView.swift",
         "Views/Map/CompassMapView.swift",
         "Views/Map/BottomInfoSheet.swift",

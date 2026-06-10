@@ -917,8 +917,18 @@
 "chat.thinking.working" = "处理中…";
 "chat.card.viewOnMap" = "点按在地图上查看";
 "chat.card.viewOnMap.a11y" = "双击在地图上显示这个地方";
+"chat.card.expand.a11y" = "展开这个地点的更多信息";
+"chat.card.open.a11y" = "在地图上打开 %@";
+"chat.card.solo" = "Solo %@";
 "chat.route.adopt" = "采用这条路线";
 "chat.route.adopt.a11y" = "双击保存并打开这条路线";
+"chat.route.open" = "打开";
+"chat.route.save" = "收藏";
+"chat.route.saved" = "已收藏";
+"chat.route.tag.draft" = "草拟路线";
+"chat.route.tag.verified" = "已验证路线";
+"chat.route.walked" = "%d 人走过";
+"chat.route.stops" = "%1$d 站 · %2$@";
 "agent.step.save" = "❤️ 收藏中…";
 "agent.step.search" = "🔍 搜索地点…";
 "agent.step.showDetails" = "📍 查看详情…";
@@ -985,6 +995,22 @@
 "chat.empty.prompt.nearby" = "附近有什么好玩的？";
 "chat.empty.prompt.coffee" = "找一家安静的咖啡馆";
 "chat.empty.prompt.evening" = "帮我计划今晚的行程";
+
+/* Place-anchored chat — opened from a place detail's "Ask Solo" */
+"chat.empty.place.title" = "问问 %@";
+"chat.empty.place.subtitle" = "我会结合这个地点的实时状态来回答。";
+"chat.empty.place.eyebrow" = "正在问";
+"chat.empty.place.goodNow" = "此刻正好";
+"chat.empty.place.busy" = "现在人多吗？";
+"chat.empty.place.solo" = "适合一个人来吗？";
+"chat.empty.place.route" = "怎么过去？";
+"chat.empty.place.nearby" = "附近还有什么？";
+"chat.context.asking" = "正在问 %@";
+"chat.context.clear.a11y" = "清除地点上下文";
+"chat.input.placeholder.place" = "问问 %@…";
+"chat.input.voiceBadge" = "语音 · %@";
+"chat.record.releaseToSend" = "松开发送";
+"chat.record.timer.a11y" = "录音中 — 已 %@";
 
 /* Common */
 "common.settings" = "设置";
@@ -1623,3 +1649,85 @@
 "messages.group.fallbackTitle" = "路线群聊";
 "messages.unknownUser" = "旅行者";
 "messages.unread.a11y" = "未读";
+
+/* ── 体验详情 · 暖琥珀重做 ── */
+"section.location" = "地点";
+"meta.bestNow" = "此刻最佳";
+"meta.walkMinutes" = "步行 %d 分钟";
+"solo.bestCall" = "独行最佳：%@";
+"solo.showAll" = "全部 %d 项";
+"solo.collapse" = "收起";
+
+/* 信任徽章（由 confidence health 映射） */
+"trust.verified" = "已验证";
+"trust.observing" = "观察中";
+"trust.questioned" = "存疑";
+
+/* ── 旅人共建层 ── */
+"notes.title" = "旅人笔记";
+"notes.signals" = "信号";
+"notes.signal.plus" = "+1 信号";
+"notes.author.you" = "你";
+"notes.author.traveler" = "旅人 %@";
+"notes.empty" = "没有这类笔记，换个筛选试试。";
+"notes.expandAll" = "展开全部 %d 条 →";
+"notes.collapse" = "收起";
+"notes.filter.all" = "全部";
+"notes.filter.experience" = "体验";
+"notes.filter.correction" = "修正";
+"notes.tag.experience" = "体验";
+"notes.tag.correction" = "修正";
+"notes.status.adopted" = "AI 已采纳";
+"notes.status.verified" = "已验证 · %d 位旅人";
+"notes.status.pending" = "待验证 · %d";
+"notes.confirm" = "我也确认";
+"notes.confirmed" = "已确认";
+"notes.addPrompt" = "留一条笔记给后来的人";
+"notes.addHint" = "AI 将交叉验证 · 你可保持匿名";
+"notes.input.placeholder" = "比如：周二下午很安静…";
+"notes.input.placeholderWithMood" = "加一句话（可选）…";
+"notes.submit" = "发送笔记";
+"notes.contributed.toast" = "谢谢 · 你的笔记将供 AI 交叉验证";
+"notes.level.up.toast" = "信号 +1 · 数据等级 L2";
+"notes.field.hours" = "营业时间";
+"notes.correction.source.demo" = "3 位旅人在过去 2 周提到";
+
+/* 信息修正提案 */
+"correction.heading" = "信息可能需要更新";
+"correction.confirm" = "确认";
+"correction.dismiss" = "不准确";
+"correction.confirmed.toast" = "已确认 ·「%@」已更新";
+
+/* 心情芯片（轻量录入） */
+"mood.quiet" = "很安静";
+"mood.slowWifi" = "WiFi 慢";
+"mood.comfySeat" = "椅子舒服";
+"mood.friendlyStaff" = "老板热情";
+"mood.goodCoffee" = "咖啡浓郁";
+"mood.soloOk" = "一个人 OK";
+"mood.greatView" = "风景好";
+"mood.crowded" = "人不少";
+"mood.needsWalk" = "需要走路";
+"mood.mosquitoes" = "蚊子多";
+"mood.goodLight" = "光线美";
+"mood.worthIt" = "值得来";
+"mood.needsQuiet" = "需要安静";
+"mood.photoOk" = "可以拍照";
+"mood.shoesOff" = "需要脱鞋";
+"mood.entryFee" = "有入场费";
+"mood.bigPortion" = "份量大";
+"mood.longQueue" = "排队久";
+"mood.soloFriendly" = "单人友好";
+"mood.notSpicy" = "不太辣";
+"mood.cheap" = "便宜";
+"mood.goodStaff" = "师傅好";
+"mood.fewPeople" = "人不多";
+"mood.comfySpace" = "空间舒服";
+"mood.pricey" = "价位偏高";
+"mood.needsBooking" = "需要预约";
+"mood.goodMusic" = "音乐好";
+"mood.safe" = "安全";
+"mood.trulyHidden" = "真的隐蔽";
+"mood.worthFinding" = "值得找";
+"mood.hardToFind" = "不太好找";
+"mood.veryFew" = "人很少";

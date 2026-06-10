@@ -42,9 +42,33 @@ public enum CT {
     public static let toneClosed    = rgb(0x1F, 0x7B, 0x4D)
     public static let toneCompleted = rgb(0x6D, 0x63, 0x58)
 
+    // Warning / success soft tints — honest-caveat cards + verified states.
+    // From styles.css --warning-soft/--warning + --success-soft/--success used by
+    // .sc-caveat, .sc-trust-chip, .sc-note-status, .sc-hours-line .open.
+    public static let warningSoft   = rgb(0xFB, 0xF2, 0xE3) // amber caveat-card fill
+    public static let warningText   = rgb(0xB5, 0x74, 0x20) // #B57420 amber label
+    public static let successSoft   = Color(.sRGB, red: 0x2F / 255, green: 0xA4 / 255, blue: 0x6A / 255, opacity: 0.12)
+    public static let successText   = rgb(0x1F, 0x7B, 0x4D) // = verifiedGreen
+
+    // Heatmap scale — Solo-Score dimension bars (styles.css .sc-solo-card .dim .fill).
+    // hi=deep amber accent · mid=sun-gold · lo=pale amber · empty=track. An amber
+    // ramp replaces red/green so the breakdown stays in the warm system.
+    public static let heatmapHi     = accent
+    public static let heatmapMid    = sunGold
+    public static let heatmapLow    = rgb(0xE6, 0xD9, 0xC3)
+    public static let heatmapEmpty  = rgb(0xF0, 0xEB, 0xE3)
+
     // MARK: - Typography (Space Grotesk / Inter / JetBrains Mono → system fallback)
+    // `display` keeps the existing default-design fallback so chat/route surfaces
+    // that already shipped stay byte-identical. `displayRounded` is the new
+    // detail-page title face: SF Rounded is the closest system match to Space
+    // Grotesk's geometric sans.
     public static func display(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font {
         .system(size: size, weight: weight, design: .default)
+    }
+
+    public static func displayRounded(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font {
+        .system(size: size, weight: weight, design: .rounded)
     }
 
     public static func body(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {

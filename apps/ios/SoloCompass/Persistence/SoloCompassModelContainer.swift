@@ -165,9 +165,26 @@ public enum SoloCompassSchemaV1_5: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → v1.2 → v1.3 → v1.4 → v1.5. Each change
-/// is additive (an optional `Data?` column, new @Model tables) or a NOT NULL
-/// relaxation, so every hop is a lightweight migration.
+/// Schema v1.6 — adds the traveler co-build tables `TravelerNoteRecord` and
+/// `PlaceCorrectionRecord` (per-experience notes + pending field corrections).
+/// Like the chat-history (v1.2) and friends (v1.3) tables, adding new @Model
+/// tables is an additive, lightweight migration — existing stores just gain two
+/// empty tables, no data is rewritten.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_6: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 6, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_5.models + [
+            TravelerNoteRecord.self,
+            PlaceCorrectionRecord.self,
+        ]
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → … → v1.6. Each change is additive (an
+/// optional `Data?` column, new @Model tables) or a NOT NULL relaxation, so every
+/// hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -177,6 +194,7 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             SoloCompassSchemaV1_3.self,
             SoloCompassSchemaV1_4.self,
             SoloCompassSchemaV1_5.self,
+            SoloCompassSchemaV1_6.self,
         ]
     }
 
@@ -201,6 +219,10 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_4.self,
                 toVersion: SoloCompassSchemaV1_5.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_5.self,
+                toVersion: SoloCompassSchemaV1_6.self
             ),
         ]
     }
@@ -248,6 +270,8 @@ public enum SoloCompassModelContainer {
                 ChatMessageRecord.self,
                 FriendRequestRecord.self,
                 FriendshipRecord.self,
+                TravelerNoteRecord.self,
+                PlaceCorrectionRecord.self,
                 configurations: config
             )
         } catch {
@@ -285,6 +309,8 @@ public enum SoloCompassModelContainer {
                 ChatMessageRecord.self,
                 FriendRequestRecord.self,
                 FriendshipRecord.self,
+                TravelerNoteRecord.self,
+                PlaceCorrectionRecord.self,
                 configurations: config
             )
         } catch {

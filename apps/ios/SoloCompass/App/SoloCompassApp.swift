@@ -80,6 +80,9 @@ struct SoloCompassApp: App {
     @State private var locationService = LocationService.shared
     @State private var experienceService = ExperienceService()
     @State private var routeStore = RouteStore()
+    // Traveler co-build layer (notes + corrections). Shares the global SwiftData
+    // container; the detail page reads it via @Environment.
+    @State private var travelerNoteStore = TravelerNoteStore()
     // Share the global SwiftData container so AIService's quota tracking
     // (AIUsageRecord) and synthesis cache (AISynthesisCacheRecord) actually
     // persist. A bare AIService() leaves modelContext nil, silently disabling
@@ -102,6 +105,7 @@ struct SoloCompassApp: App {
             CompassMapView()
                 .environment(locationService)
                 .environment(experienceService)
+                .environment(travelerNoteStore)
                 .environment(aiService)
                 .environment(preferences)
                 .environment(notificationService)

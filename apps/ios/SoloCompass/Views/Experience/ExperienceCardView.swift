@@ -210,11 +210,13 @@ public struct ExperienceCardView: View {
                 categoryThumbnail
 
                 VStack(alignment: .leading, spacing: 2) {
+                    // Rounded display face — keeps the card title visually
+                    // continuous with the redesigned detail page's hero title.
                     Text(experience.title)
-                        .font(.headline)
+                        .font(.system(.headline, design: .rounded, weight: .semibold))
                         .lineLimit(2)
                     Text(experience.location.placeNameRomanized ?? experience.location.addressHint ?? "")
-                        .font(.caption)
+                        .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }

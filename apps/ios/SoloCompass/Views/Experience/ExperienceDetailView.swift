@@ -37,6 +37,9 @@ public struct ExperienceDetailView: View {
 
     @Environment(\.themeService) private var themeService
     @Environment(LocationService.self) private var locationService
+    /// Traveler co-build store. Optional so previews/tests that don't inject it
+    /// still render — the notes/corrections sections simply hide when nil.
+    @Environment(TravelerNoteStore.self) var travelerNoteStore: TravelerNoteStore?
     @State private var isShowingReport: Bool = false
     @State private var showingRadarTooltip: Bool = false
     @State private var exportMarkdown: String? = nil
@@ -52,6 +55,28 @@ public struct ExperienceDetailView: View {
     /// US-025: drives the paywall sheet when a free-tier user taps the gated
     /// "Ask Solo" CTA instead of leaving them on a dead toast.
     @State private var isShowingPaywall: Bool = false
+
+    // MARK: - Traveler co-build UI state
+    /// Loaded notes/corrections for this place (refreshed from the store on
+    /// appear + after every mutation).
+    @State var notes: [TravelerNote] = []
+    @State var corrections: [PlaceCorrection] = []
+    /// Notes the current user has tapped "我也确认" on this session.
+    @State var confirmedNoteIds: Set<String> = []
+    @State var notesFilter: NoteFilter = .all
+    @State var notesExpanded = false
+    /// Picked mood chips + free-text in the quick-add row.
+    @State var pickedMoods: Set<String> = []
+    @State var noteDraft: String = ""
+    /// Whether the current user has contributed anything this session — bumps
+    /// the hero "L{n} · {n} 信号" line and shows a one-shot toast.
+    @State var userContributed = false
+    @State var levelToast: String? = nil
+    @State var levelToastTask: Task<Void, Never>? = nil
+    @State private var barsAppeared = false
+
+    /// Notes feed filter segments.
+    enum NoteFilter: String, CaseIterable { case all, experience, correction }
 
     public init(
         viewModel: ExperienceDetailViewModel,
@@ -71,7 +96,7 @@ public struct ExperienceDetailView: View {
         self.isRecompiling = isRecompiling
     }
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(BestNowClock.self) private var bestNowClock
 
     @State private var scrollProxy: ScrollViewProxy? = nil
@@ -79,36 +104,32 @@ public struct ExperienceDetailView: View {
     public var body: some View {
         ScrollViewReader { proxy in
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 26) {
                 heroImageBanner
+                // Hero block — provenance tag, category disc + trust chip, title,
+                // place names. Quiet mono meta baseline sits just below it.
                 heroSection
+                metaBaselineRow
                 if !viewModel.experience.highlights.isEmpty {
                     highlightsSection
                 }
                 compassDirectionView
-                askSoloSection
-                if let coord = viewModel.experience.location.clCoordinate {
-                    LocationCard(
-                        coordinate: coord,
-                        displayName: viewModel.experience.location.placeNameLocal
-                            ?? viewModel.experience.location.placeNameRomanized
-                            ?? viewModel.experience.title,
-                        addressHint: viewModel.experience.location.addressHint
-                    )
-                    .environment(locationService)
-                }
+                // ★ Co-build: pending corrections float above the prose.
+                correctionsSection
                 whyItMattersSection
-                aiInsightSection
-                let hasOpeningHours = viewModel.experience.location.openingHours
-                    .map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
-                if !viewModel.experience.bestTimes.isEmpty || hasOpeningHours {
-                    bestTimesSection
-                }
                 if !viewModel.experience.howTo.isEmpty {
                     howToSection
                 }
                 if !viewModel.experience.realInconveniences.isEmpty {
                     inconveniencesSection
+                }
+                // ★ Co-build: traveler notes feed + quick-add, between the honest
+                // caveats and the best-time ribbon (matches the design order).
+                travelerNotesSection
+                let hasOpeningHours = viewModel.experience.location.openingHours
+                    .map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? false
+                if !viewModel.experience.bestTimes.isEmpty || hasOpeningHours {
+                    bestTimesSection
                 }
                 // Skip the Solo Score for un-enriched OSM entries. Their score
                 // is a flat 7.0 placeholder from skeletonExperience, not a real
@@ -116,6 +137,9 @@ public struct ExperienceDetailView: View {
                 if !(viewModel.experience.isFromOpenStreetMap && !viewModel.experience.isAIEnriched) {
                     soloScoreSection
                 }
+                locationStripSection
+                aiInsightSection
+                openingHoursLineSection
                 if !viewModel.experience.sources.isEmpty {
                     sourcesSection
                 }
@@ -132,6 +156,8 @@ public struct ExperienceDetailView: View {
             // with a home indicator).
         }
         .coordinateSpace(name: "detailScroll")
+        .scrollContentBackground(.hidden)
+        .background(CT.bgWarm.ignoresSafeArea())
         .onAppear { scrollProxy = proxy }
         } // ScrollViewReader
         .onPreferenceChange(HeroTitleOffsetKey.self) { offset in
@@ -260,10 +286,40 @@ public struct ExperienceDetailView: View {
                     .padding(.bottom, 96)
             }
         }
+        // Data-level toast for traveler contributions ("信号 +1 · 数据等级 L2").
+        .overlay(alignment: .top) {
+            if let toast = levelToast {
+                levelToastView(toast)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 8)
+            }
+        }
         .task {
             await viewModel.loadAIExplanation()
             await viewModel.loadRemoteSoloScore()
         }
+        .onAppear { reloadCoBuild() }
+        .onReceive(NotificationCenter.default.publisher(for: TravelerNoteStore.didChange)) { _ in
+            reloadCoBuild()
+        }
+    }
+
+    /// Small floating toast announcing a data-level bump after a contribution.
+    private func levelToastView(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: "sparkles").font(.system(size: 10))
+                Text(text.contains("L2") ? "L1 → L2" : NSLocalizedString("notes.signal.plus", comment: "+1 signal"))
+                    .font(CT.mono(11, .semibold))
+            }
+            .foregroundStyle(CT.accent)
+            Text(text)
+                .font(CT.body(12.5, .medium))
+                .foregroundStyle(CT.fgPrimary)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 9)
+        .background(Capsule().fill(CT.surfaceWhite).shadow(color: .black.opacity(0.12), radius: 8, y: 3))
+        .overlay(Capsule().strokeBorder(CT.accentBorder, lineWidth: 0.5))
     }
 
     // MARK: - Hero
@@ -333,44 +389,54 @@ public struct ExperienceDetailView: View {
     }
 
     private var heroSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 11) {
+            // Provenance tag — uppercase mono in sun-gold (styles.css .ai-tag).
             if viewModel.experience.isFromOpenStreetMap {
                 let enriched = viewModel.experience.isAIEnriched
                 let badgeKey = enriched ? "explore.aiBadge" : "explore.osmBadge"
                 let badgeText = NSLocalizedString(badgeKey, comment: "Provenance badge")
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image(systemName: enriched ? "sparkles" : "mappin.and.ellipse")
-                        .font(.caption2)
-                    Text(badgeText)
-                        .font(.caption.weight(.medium))
+                        .font(.system(size: 10))
+                    Text(badgeText.uppercased())
+                        .font(CT.mono(10.5, .medium))
+                        .tracking(1.0)
                 }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(Color(.tertiarySystemFill)))
+                .foregroundStyle(CT.sunGoldDeep)
                 .accessibilityLabel(Text(badgeText))
             }
-            HStack(spacing: 8) {
+
+            // Category row — colored disc + uppercase label + level/signals +
+            // trust chip (verified / observing / questioned).
+            HStack(spacing: 7) {
                 Image(systemName: viewModel.experience.category.symbol)
-                    .font(.subheadline)
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(.white)
-                    .padding(6)
+                    .frame(width: 18, height: 18)
                     .background(Circle().fill(viewModel.experience.category.color))
-                Text(viewModel.experience.category.localizedTitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Text(viewModel.experience.category.localizedTitle.uppercased())
+                    .font(CT.displayRounded(11.5, .bold))
+                    .tracking(1.4)
+                    .foregroundStyle(CT.fgMuted)
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
-                Spacer()
-                ConfidenceBadge(confidence: viewModel.experience.confidence, compact: false)
+                Text(levelSignalText)
+                    .font(CT.mono(10.5, userContributed ? .semibold : .regular))
+                    .tracking(0.5)
+                    .foregroundStyle(userContributed ? CT.accent : CT.fgSubtle)
+                    .contentTransition(.numericText())
+                Spacer(minLength: 0)
+                trustChip
             }
             .fixedSize(horizontal: false, vertical: true)
 
             Text(viewModel.experience.title)
-                .font(.title2.bold())
+                .font(CT.displayRounded(27, .bold))
+                .foregroundStyle(CT.fgPrimary)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 1)
                 .background(
                     GeometryReader { geo in
                         Color.clear.preference(
@@ -383,21 +449,140 @@ public struct ExperienceDetailView: View {
                 .accessibilityHidden(!heroTitleVisible)
 
             Text(viewModel.experience.oneLiner)
-                .font(.body)
-                .foregroundStyle(.secondary)
+                .font(CT.body(15))
+                .foregroundStyle(CT.fgMuted)
+                .fixedSize(horizontal: false, vertical: true)
 
+            // Place names — local + romanized, romanized in mono.
             if let local = viewModel.experience.location.placeNameLocal, !local.isEmpty {
                 let romanized = viewModel.experience.location.placeNameRomanized
-                HStack(spacing: 8) {
-                    Text(romanized?.isEmpty == false ? "\(local) · \(romanized ?? "")" : local)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    distancePill
+                if let romanized, !romanized.isEmpty {
+                    Text(romanized)
+                        .font(CT.mono(12.5))
+                        .foregroundStyle(CT.fgSubtle)
+                    Text(local)
+                        .font(CT.body(13))
+                        .foregroundStyle(CT.fgMuted)
+                } else {
+                    Text(local)
+                        .font(CT.body(13))
+                        .foregroundStyle(CT.fgMuted)
                 }
-            } else {
-                distancePill
             }
         }
+    }
+
+    /// Hero "L{n} · {n} 信号" mono line. Base level 1, +1 once the user
+    /// contributes a note/confirmation this session (matches the design's data-
+    /// level progression).
+    private var levelSignalText: String {
+        let level = 1 + (userContributed ? 1 : 0)
+        let signals = notes.count + (userContributed ? 1 : 0)
+        return "L\(level) · \(signals) " + NSLocalizedString("notes.signals", comment: "signals unit")
+    }
+
+    /// Trust chip mapped from `confidence.health` to the design's three states:
+    /// verified (green) / observing (grey) / questioned (amber).
+    @ViewBuilder
+    private var trustChip: some View {
+        let health = viewModel.experience.confidence.health
+        let signals = viewModel.experience.confidence.signals.totalCount
+        let (labelKey, symbol, fg, bg): (String, String, Color, Color) = {
+            switch health {
+            case .healthy:
+                return ("trust.verified", "checkmark.seal.fill", CT.successText, CT.successSoft)
+            case .questioned, .mayBeGone:
+                return ("trust.questioned", "exclamationmark.circle.fill", CT.warningText, CT.warningSoft)
+            case .fading:
+                return ("trust.observing", "eye", CT.fgMuted, CT.surfaceSunken)
+            }
+        }()
+        HStack(spacing: 4) {
+            Image(systemName: symbol)
+                .font(.system(size: 9))
+            Text(NSLocalizedString(labelKey, comment: "Trust state label"))
+                .font(CT.mono(10))
+            Text("· \(signals)")
+                .font(CT.mono(10))
+        }
+        .foregroundStyle(fg)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2.5)
+        .background(Capsule().fill(bg))
+        .fixedSize()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(NSLocalizedString(labelKey, comment: "Trust state label")))
+    }
+
+    // MARK: - Quiet meta baseline
+
+    /// A single mono baseline row under the hero: walk time · distance ↗ · Solo
+    /// X.X · 此刻最佳. Replaces the scattered distance pill + confidence badge
+    /// (styles.css .sc-meta-row). Distance items appear only with a GPS fix.
+    private var metaBaselineRow: some View {
+        let now = bestNowClock.tick
+        let isNow = viewModel.experience.isBestNow(at: now)
+        return HStack(spacing: 0) {
+            if locationService.currentLocation != nil,
+               let coord = viewModel.experience.location.clCoordinate {
+                let meters = locationService.distance(to: coord)
+                if meters < .greatestFiniteMagnitude {
+                    metaItem {
+                        Image(systemName: "figure.walk").font(.system(size: 11, weight: .semibold))
+                        Text(Self.formatWalkTime(meters))
+                    }
+                    metaSeparator
+                    metaItem {
+                        if let bearing = relativeBearing(to: coord) {
+                            Image(systemName: "location.north.fill")
+                                .font(.system(size: 10))
+                                .rotationEffect(.degrees(bearing))
+                        }
+                        Text(Self.formatDistance(meters))
+                    }
+                    metaSeparator
+                }
+            }
+            HStack(spacing: 5) {
+                Text("Solo \(String(format: "%.1f", viewModel.displaySoloScore.overall))")
+            }
+            .foregroundStyle(CT.successText)
+            .fontWeight(.semibold)
+            if isNow {
+                metaSeparator
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles").font(.system(size: 10))
+                    Text(NSLocalizedString("meta.bestNow", comment: "Good now meta item"))
+                }
+                .foregroundStyle(CT.sunGoldDeep)
+                .fontWeight(.semibold)
+            }
+            Spacer(minLength: 0)
+        }
+        .font(CT.mono(12))
+        .foregroundStyle(CT.fgMuted)
+        .padding(.bottom, 16)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(CT.borderSubtle).frame(height: 0.5)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func metaItem<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        HStack(spacing: 5) { content() }
+    }
+
+    private var metaSeparator: some View {
+        Rectangle()
+            .fill(CT.borderDefault)
+            .frame(width: 1, height: 11)
+            .padding(.horizontal, 11)
+    }
+
+    /// Walk time estimate from distance (≈80 m/min), e.g. "步行 7'".
+    private static func formatWalkTime(_ meters: Double) -> String {
+        let minutes = max(1, Int((meters / 80).rounded()))
+        return String(format: NSLocalizedString("meta.walkMinutes", comment: "Walk N minutes"), minutes)
     }
 
     private func relativeBearing(to coord: CLLocationCoordinate2D) -> Double? {
@@ -542,57 +727,9 @@ public struct ExperienceDetailView: View {
         canAskSolo ? .openChat : .presentPaywall
     }
 
-    /// "Ask Solo about this" CTA. Rendered whenever the parent supplied
-    /// `onAskSolo` (so a chat surface is reachable from this context). The
-    /// entitlement gate now lives in the *tap handler*, not in visibility:
-    ///   • entitled (`viewModel.canAskSolo`) → opens the scoped chat.
-    ///   • free-tier → presents the paywall sheet (US-025).
-    @ViewBuilder
-    private var askSoloSection: some View {
-        if let onAskSolo {
-            Button {
-                Haptics.impact(.light)
-                switch Self.askSoloAction(canAskSolo: viewModel.canAskSolo) {
-                case .openChat:
-                    onAskSolo(viewModel.experience)
-                case .presentPaywall:
-                    isShowingPaywall = true
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "bubble.left.and.text.bubble.right")
-                        .font(.subheadline.weight(.semibold))
-                    Text(NSLocalizedString(
-                        "experience.askSolo.cta",
-                        comment: "Open Solo chat scoped to this experience"
-                    ))
-                    .font(.subheadline.weight(.semibold))
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.accentColor.opacity(0.12))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 1)
-                )
-                .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("experience.askSolo.cta")
-            .accessibilityLabel(Text(NSLocalizedString(
-                "experience.askSolo.cta",
-                comment: "Open Solo chat scoped to this experience"
-            )))
-        }
-    }
+    // The "Ask Solo" CTA now lives in the bottom dock (see `actionBar`), not as
+    // an inline section — matching the design's last iteration. The routing
+    // helper `askSoloAction(canAskSolo:)` above stays (used by the dock + tests).
 
     // MARK: - Sections
 
@@ -600,6 +737,7 @@ public struct ExperienceDetailView: View {
     private var whyItMattersSection: some View {
         let content = viewModel.experience.whyItMatters.trimmingCharacters(in: .whitespacesAndNewlines)
         let isLoading = viewModel.isLoadingWhyItMatters
+        let tags = viewModel.experience.userTags ?? []
         if isLoading || !content.isEmpty {
             sectionContainer(title: NSLocalizedString("section.whyItMatters", comment: "")) {
                 if isLoading {
@@ -608,10 +746,26 @@ public struct ExperienceDetailView: View {
                         .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
                 } else {
                     Text(content)
-                        .font(.body)
+                        .font(CT.body(14.5))
+                        .foregroundStyle(CT.fgPrimary)
+                        .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .id("whyItMatters-content")
                         .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+                    if !tags.isEmpty {
+                        FlowLayout(spacing: 6) {
+                            ForEach(tags, id: \.self) { tag in
+                                Text(tag)
+                                    .font(CT.body(12))
+                                    .foregroundStyle(CT.accent)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(Capsule().fill(CT.accentSoft))
+                                    .overlay(Capsule().strokeBorder(CT.accentBorder, lineWidth: 1))
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
                 }
             }
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: isLoading)
@@ -625,22 +779,108 @@ public struct ExperienceDetailView: View {
             sectionContainer(title: NSLocalizedString("ai.explanation.title", comment: "AI Insight section title")) {
                 if isLoading {
                     HStack(spacing: 8) {
-                        ProgressView()
+                        ProgressView().tint(CT.accent)
                         Text(NSLocalizedString("ai.explanation.loading", comment: "AI insight loading indicator"))
-                            .font(.body)
-                            .foregroundStyle(.secondary)
+                            .font(CT.body(14))
+                            .foregroundStyle(CT.fgMuted)
                     }
                     .id("aiInsight-skeleton")
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
                 } else if let explanation = viewModel.aiExplanation {
                     Text(explanation)
-                        .font(.body)
+                        .font(CT.body(14.5))
+                        .foregroundStyle(CT.fgPrimary)
+                        .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .id("aiInsight-content")
                         .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
                 }
             }
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: isLoading)
+        }
+    }
+
+    // MARK: - Location strip + opening hours line (design-aligned)
+
+    /// Compact location strip: rounded amber pin + name/coord + amber Navigate
+    /// pill (styles.css .sc-loc-strip). Replaces the full LocationCard map card.
+    @ViewBuilder
+    private var locationStripSection: some View {
+        if let coord = viewModel.experience.location.clCoordinate {
+            let name = viewModel.experience.location.placeNameLocal
+                ?? viewModel.experience.location.placeNameRomanized
+                ?? viewModel.experience.title
+            sectionContainer(title: NSLocalizedString("section.location", comment: "Location section title")) {
+                HStack(spacing: 12) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.system(size: 16))
+                        .foregroundStyle(CT.accent)
+                        .frame(width: 36, height: 36)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(CT.accentSoft))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(name)
+                            .font(CT.body(13, .medium))
+                            .foregroundStyle(CT.fgPrimary)
+                            .lineLimit(1)
+                        Text(String(format: "%.4f, %.4f", coord.latitude, coord.longitude))
+                            .font(CT.mono(10.5))
+                            .foregroundStyle(CT.fgSubtle)
+                    }
+                    Spacer(minLength: 0)
+                    Button {
+                        Haptics.impact(.light)
+                        if let only = NavigationLauncher.soleApp() {
+                            NavigationLauncher.open(app: only, coordinate: coord, name: name)
+                        } else {
+                            isShowingNavPicker = true
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
+                                .font(.system(size: 12, weight: .bold))
+                            Text(NSLocalizedString("location.navigate", comment: "Navigate"))
+                                .font(CT.body(12.5, .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(CT.accent))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(NSLocalizedString("action.directions", comment: "")))
+                }
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 14).fill(CT.surfaceWhite))
+                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(CT.borderSubtle, lineWidth: 0.5))
+            }
+        }
+    }
+
+    /// Single mono opening-hours line: clock · hours · green "open now" dot
+    /// (styles.css .sc-hours-line).
+    @ViewBuilder
+    private var openingHoursLineSection: some View {
+        if let raw = viewModel.experience.location.openingHours {
+            let hours = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !hours.isEmpty {
+                sectionContainer(title: NSLocalizedString("location.openingHours", comment: "Posted hours label")) {
+                    HStack(spacing: 9) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 13))
+                            .foregroundStyle(CT.fgMuted)
+                        Text(hours)
+                            .font(CT.mono(12.5))
+                            .foregroundStyle(CT.fgMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(Text(String(
+                        format: NSLocalizedString("location.openingHours.a11y", comment: "Posted hours accessibility label"),
+                        hours
+                    )))
+                }
+            }
         }
     }
 
@@ -734,65 +974,29 @@ public struct ExperienceDetailView: View {
         )
     }
 
-    @ViewBuilder
-    private var openingHoursRow: some View {
-        if let raw = viewModel.experience.location.openingHours {
-            let hours = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !hours.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "building.2")
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
-                        Text(NSLocalizedString("location.openingHours", comment: "Posted hours label"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text(hours)
-                            .font(.subheadline)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(Text(String(
-                        format: NSLocalizedString("location.openingHours.a11y", comment: "Posted hours accessibility label"),
-                        hours
-                    )))
-                    Divider()
-                }
-            }
-        }
-    }
+    // `openingHoursRow` was replaced by `openingHoursLineSection` (a mono line
+    // with a green open-now dot), so the old system-styled row is gone.
 
     private var bestTimesSection: some View {
         sectionContainer(title: NSLocalizedString("section.bestTimes", comment: "")) {
             VStack(alignment: .leading, spacing: 6) {
-                openingHoursRow
                 if !viewModel.experience.bestTimes.isEmpty {
-                    HStack { Spacer(); bestTimeStatusPill }
-                    BestTimesTimeline(experience: viewModel.experience)
-                        .id("bestTimesTimeline")
-                        .padding(.bottom, 4)
-                    TimelineView(.periodic(from: .now, by: 60)) { context in
-                        let currentHour = Calendar.current.component(.hour, from: context.date)
-                        ForEach(viewModel.experience.bestTimes, id: \.self) { window in
-                            let isActiveNow: Bool = {
-                                let s = window.startHour, e = window.endHour
-                                return s <= e
-                                    ? currentHour >= s && currentHour < e
-                                    : currentHour >= s || currentHour < e
-                            }()
-                            BestTimeWindowRow(
-                                window: window,
-                                isActiveNow: isActiveNow,
-                                categoryColor: viewModel.experience.category.color,
-                                formatWindow: format(window:),
-                                reduceMotion: reduceMotion
-                            )
-                        }
+                    // Warm amber ribbon: golden window band + crowd-density curve +
+                    // a "此刻" now marker (styles.css .sc-best-window-v2).
+                    BestTimeRibbon(
+                        windows: viewModel.experience.bestTimes,
+                        reduceMotion: reduceMotion
+                    )
+                    .id("bestTimesTimeline")
+                    HStack {
+                        let range = viewModel.experience.durationMinutes
+                        Text(String(format: NSLocalizedString("section.duration", comment: ""), range.min, range.max))
+                            .font(CT.mono(11))
+                            .foregroundStyle(CT.fgSubtle)
+                        Spacer()
+                        bestTimeStatusPill
                     }
-                    let range = viewModel.experience.durationMinutes
-                    Text(String(format: NSLocalizedString("section.duration", comment: ""), range.min, range.max))
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
                 }
             }
         }
@@ -800,18 +1004,25 @@ public struct ExperienceDetailView: View {
 
     private var howToSection: some View {
         sectionContainer(title: NSLocalizedString("section.howTo", comment: "")) {
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(viewModel.experience.howTo) { step in
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(viewModel.experience.howTo.enumerated()), id: \.element.id) { index, step in
+                    if index > 0 {
+                        Rectangle().fill(CT.borderSubtle).frame(height: 0.5)
+                    }
+                    HStack(alignment: .top, spacing: 12) {
                         Text("\(step.order)")
-                            .font(.caption.bold())
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(Circle().fill(viewModel.experience.category.color))
+                            .font(CT.mono(11.5, .semibold))
+                            .foregroundStyle(CT.accent)
+                            .frame(width: 24, height: 24)
+                            .background(Circle().fill(CT.accentSoft))
                         Text(step.text)
-                            .font(.body)
+                            .font(CT.body(14))
+                            .foregroundStyle(CT.fgPrimary)
+                            .lineSpacing(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .padding(.vertical, 10)
                 }
             }
         }
@@ -822,47 +1033,40 @@ public struct ExperienceDetailView: View {
         return NSLocalizedString(key, comment: "Inconvenience category display name")
     }
 
-    private func inconvenienceTint(_ category: RealInconvenience.Category) -> Color {
-        switch category {
-        case .safety, .scam:                            return .red
-        case .crowds, .logistics, .weather,
-             .etiquette, .other:                        return .orange
-        }
-    }
-
+    /// Honest caveats — one warm amber card per item with an uppercase mono
+    /// category tag. Unlike before, all severities share the same warm tint
+    /// (styles.css .sc-caveat): the product's voice is honest, not alarmist.
     private var inconveniencesSection: some View {
         sectionContainer(title: NSLocalizedString("section.inconveniences", comment: "")) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 ForEach(viewModel.experience.realInconveniences) { item in
-                    let severity = item.category.severity
-                    let tint = severity.tintColor
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 5) {
                         HStack(spacing: 6) {
                             Image(systemName: item.category.symbol)
-                                .foregroundStyle(tint)
-                                .frame(width: 20)
+                                .font(.system(size: 12))
                                 .accessibilityHidden(true)
-                            Text(inconvenienceCategoryName(item.category))
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(tint)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(tint.opacity(severity.backgroundOpacity)))
+                            Text(inconvenienceCategoryName(item.category).uppercased())
+                                .font(CT.displayRounded(10, .bold))
+                                .tracking(1.2)
                                 .accessibilityHidden(true)
                         }
+                        .foregroundStyle(CT.warningText)
                         Text(item.text)
-                            .font(.subheadline)
+                            .font(CT.body(13.5))
+                            .foregroundStyle(CT.fgPrimary)
+                            .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(10)
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 11)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(tint.opacity(severity.backgroundOpacity))
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(CT.warningSoft)
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(tint.opacity(0.25), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(CT.warningText.opacity(0.18), lineWidth: 0.5)
                     )
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(String(
@@ -905,58 +1109,141 @@ public struct ExperienceDetailView: View {
             isEstimate = false
         }
 
-        return sectionContainer(title: NSLocalizedString(titleKey, comment: "")) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 8) {
-                    SoloScoreBadge(score: score, style: .full)
-                        .opacity(isEstimate ? 0.6 : 1.0)
-                    if isEstimate {
-                        Text(NSLocalizedString("solo.estimate.pill", comment: "AI estimate pill"))
-                            .font(.caption.weight(.medium))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(Color(.tertiarySystemFill)))
-                            .accessibilityLabel(Text(NSLocalizedString("solo.estimate.pill", comment: "")))
-                    }
-                }
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                // US-009: Radar chart replacing uniform progress bars
-                SoloScoreRadarChart(score: score)
-                    .padding(.horizontal, 16)
-                    .opacity(isEstimate ? 0.7 : 1.0)
-                Button {
-                    Haptics.selection()
-                    showingRadarTooltip.toggle()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .rotationEffect(reduceMotion ? .zero : (showingRadarTooltip ? .degrees(90) : .degrees(0)))
-                            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: showingRadarTooltip)
-                        Text(NSLocalizedString("solo.breakdown.toggle", comment: "Per-dimension scores disclosure toggle"))
-                            .font(.subheadline)
-                    }
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(.isButton)
-                .accessibilityValue(Text(showingRadarTooltip
-                    ? NSLocalizedString("solo.breakdown.expanded", comment: "Expanded accessibility value")
-                    : NSLocalizedString("solo.breakdown.collapsed", comment: "Collapsed accessibility value")))
-                .accessibilityHint(Text(NSLocalizedString("solo.breakdown.expand.hint", comment: "Accessibility hint for breakdown toggle")))
-                if showingRadarTooltip {
-                    radarDimensionBreakdown(score: score)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+        // Title row: section label on the left, the big amber score on the right
+        // (styles.css .sc-solo-head). Card below carries the one-liner, the
+        // "based on N" line, the amber heatmap bars, and the best-call.
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(NSLocalizedString(titleKey, comment: "").uppercased())
+                    .font(CT.displayRounded(11, .bold))
+                    .tracking(1.6)
+                    .foregroundStyle(CT.fgMuted)
+                Spacer()
+                Text(String(format: "%.1f", score.overall))
+                    .font(CT.displayRounded(34, .bold))
+                    .foregroundStyle(isEstimate ? CT.accent.opacity(0.55) : CT.accent)
+                    .monospacedDigit()
+                    .accessibilityLabel(Text(String(
+                        format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"),
+                        String(format: "%.1f", score.overall)
+                    )))
+            }
+            soloScoreCard(score: score, subtitle: subtitle, isEstimate: isEstimate)
+        }
+    }
+
+    /// The amber Solo-Score card: hint line, based-on line, heatmap dimension
+    /// bars (3 shown, expandable to 6), and a "strongest dimension" callout.
+    private func soloScoreCard(score: SoloScore, subtitle: String?, isEstimate: Bool) -> some View {
+        let dims = soloDimensions(score.breakdown)
+        let strongest = dims.max(by: { $0.value < $1.value })
+        let shown = showingRadarTooltip ? dims : Array(dims.prefix(3))
+        return VStack(alignment: .leading, spacing: 0) {
+            if let hint = score.hint, !hint.isEmpty {
+                Text(hint)
+                    .font(CT.body(14.5))
+                    .foregroundStyle(CT.fgPrimary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 4)
+            }
+            if let subtitle {
+                Text(isEstimate ? NSLocalizedString("solo.estimate.pill", comment: "AI estimate pill") : subtitle)
+                    .font(CT.mono(10.5))
+                    .foregroundStyle(CT.fgSubtle)
+                    .padding(.bottom, 14)
+            }
+            VStack(spacing: 9) {
+                ForEach(shown, id: \.label) { dim in
+                    soloDimRow(dim)
                 }
             }
-            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: showingRadarTooltip)
+            Button {
+                Haptics.selection()
+                withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) {
+                    showingRadarTooltip.toggle()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(showingRadarTooltip
+                        ? NSLocalizedString("solo.collapse", comment: "Collapse dimensions")
+                        : String(format: NSLocalizedString("solo.showAll", comment: "Show all N dimensions"), dims.count))
+                    Image(systemName: showingRadarTooltip ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .font(CT.body(12))
+                .foregroundStyle(CT.fgMuted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text(NSLocalizedString("solo.breakdown.expand.hint", comment: "Accessibility hint for breakdown toggle")))
+            if let strongest, strongest.value >= 8 {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles").font(.system(size: 11))
+                    Text(String(format: NSLocalizedString("solo.bestCall", comment: "Best solo dimension callout"), strongest.label))
+                }
+                .font(CT.body(12.5))
+                .foregroundStyle(CT.accent)
+                .padding(.top, 8)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(CT.borderSubtle).frame(height: 0.5)
+                }
+            }
         }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 14).fill(CT.surfaceWhite))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(CT.borderSubtle, lineWidth: 0.5))
+        .opacity(isEstimate ? 0.85 : 1.0)
+        .onAppear {
+            guard !barsAppeared else { return }
+            if reduceMotion {
+                barsAppeared = true
+            } else {
+                withAnimation(.easeOut(duration: 0.7).delay(0.1)) { barsAppeared = true }
+            }
+        }
+    }
+
+    private struct SoloDim { let label: String; let value: Double }
+
+    private func soloDimensions(_ b: SoloScore.Breakdown) -> [SoloDim] {
+        [
+            SoloDim(label: NSLocalizedString("solo.seating", comment: ""), value: b.seatingFriendly),
+            SoloDim(label: NSLocalizedString("solo.staff", comment: ""), value: b.staffPressure),
+            SoloDim(label: NSLocalizedString("solo.patrons", comment: ""), value: b.soloPatronRatio),
+            SoloDim(label: NSLocalizedString("solo.ambiance", comment: ""), value: b.ambianceFit),
+            SoloDim(label: NSLocalizedString("solo.safety", comment: ""), value: b.safety),
+            SoloDim(label: NSLocalizedString("solo.portioning", comment: ""), value: b.soloPortioning),
+        ]
+    }
+
+    /// One heatmap dimension row: label · amber bar (hi/mid/lo) · mono value.
+    private func soloDimRow(_ dim: SoloDim) -> some View {
+        let clamped = max(0, min(10, dim.value))
+        let fill: Color = clamped >= 9 ? CT.heatmapHi : clamped >= 7 ? CT.heatmapMid : CT.heatmapLow
+        let isTop = clamped >= 10
+        return HStack(spacing: 10) {
+            Text(dim.label)
+                .font(CT.body(12))
+                .foregroundStyle(CT.fgMuted)
+                .frame(width: 52, alignment: .leading)
+            GeometryReader { geo in
+                Capsule().fill(CT.heatmapEmpty)
+                    .overlay(alignment: .leading) {
+                        Capsule().fill(fill)
+                            .frame(width: barsAppeared ? geo.size.width * clamped / 10 : 0)
+                    }
+            }
+            .frame(height: 6)
+            Text(String(format: "%.0f", clamped))
+                .font(CT.mono(11.5, isTop ? .semibold : .regular))
+                .foregroundStyle(isTop ? CT.accent : CT.fgMuted)
+                .frame(width: 20, alignment: .trailing)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(dim.label) \(String(format: "%.0f", clamped))"))
     }
 
     private func radarDimensionBreakdown(score: SoloScore) -> some View {
@@ -1079,20 +1366,7 @@ public struct ExperienceDetailView: View {
         let iconName = symbol(for: source.type)
         if let url = source.url {
             Link(destination: url) {
-                HStack {
-                    Image(systemName: iconName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(label)
-                        .font(.caption)
-                    Spacer()
-                    Text(source.verifiedAt, style: .date)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
+                sourceRowContent(label: label, iconName: iconName, date: source.verifiedAt, isLink: true)
             }
             .simultaneousGesture(TapGesture().onEnded {
                 Haptics.impact(.light)
@@ -1100,18 +1374,31 @@ public struct ExperienceDetailView: View {
             .accessibilityAddTraits(.isLink)
             .accessibilityHint(Text(NSLocalizedString("detail.source.openHint", comment: "Opens the original source")))
         } else {
-            HStack {
-                Image(systemName: iconName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(label)
-                    .font(.caption)
-                Spacer()
-                Text(source.verifiedAt, style: .date)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+            sourceRowContent(label: label, iconName: iconName, date: source.verifiedAt, isLink: false)
+        }
+    }
+
+    /// One mono source row: list glyph · name · date · optional open chevron
+    /// (styles.css .sc-source).
+    private func sourceRowContent(label: String, iconName: String, date: Date, isLink: Bool) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: iconName)
+                .font(.system(size: 12))
+                .foregroundStyle(CT.fgSubtle)
+            Text(label)
+                .font(CT.body(12.5))
+                .foregroundStyle(CT.fgMuted)
+            Spacer(minLength: 8)
+            Text(date, style: .date)
+                .font(CT.mono(10.5))
+                .foregroundStyle(CT.fgSubtle)
+            if isLink {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 9))
+                    .foregroundStyle(CT.fgSubtle)
             }
         }
+        .padding(.vertical, 5)
     }
 
     private func symbol(for type: InformationSource.SourceType) -> String {
@@ -1246,10 +1533,37 @@ public struct ExperienceDetailView: View {
 
     // MARK: - Action bar
 
+    /// A circular secondary dock action — warm-white disc, hairline border, amber
+    /// when toggled on (styles.css .sc-detail-dock .dock-act).
+    private func dockIconButton(
+        systemName: String,
+        isOn: Bool = false,
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 18, weight: .regular))
+                .foregroundStyle(isOn ? CT.accent : CT.fgMuted)
+                .frame(width: 46, height: 46)
+                .background(Circle().fill(isOn ? CT.accentSoft : CT.surfaceWhite))
+                .overlay(Circle().strokeBorder(isOn ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(accessibilityLabel))
+    }
+
     private var actionBar: some View {
         ZStack(alignment: .center) {
-        HStack(spacing: 12) {
-            Button {
+        HStack(spacing: 9) {
+            // Favorite
+            dockIconButton(
+                systemName: viewModel.isFavorited ? "heart.fill" : "heart",
+                isOn: viewModel.isFavorited,
+                accessibilityLabel: viewModel.isFavorited
+                    ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
+                    : NSLocalizedString("action.favorite", comment: "Add favorite")
+            ) {
                 let willFavorite = !viewModel.isFavorited
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
                     viewModel.toggleFavorite()
@@ -1260,63 +1574,35 @@ public struct ExperienceDetailView: View {
                 } else {
                     Haptics.impact(.light)
                 }
-            } label: {
-                Image(systemName: viewModel.isFavorited ? "heart.fill" : "heart")
-                    .font(.title3)
-                    .foregroundStyle(viewModel.isFavorited ? .red : .primary)
-                    .symbolEffect(.bounce, value: viewModel.isFavorited)
-                    .scaleEffect(viewModel.isFavorited ? 1.12 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.45), value: viewModel.isFavorited)
-                    .frame(width: 50, height: 50)
-                    .background(Circle().fill(.regularMaterial))
-                    .overlay {
-                        HeartBurstView(trigger: heartBurstTrigger)
-                    }
             }
-            .accessibilityLabel(Text(viewModel.isFavorited
-                ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
-                : NSLocalizedString("action.favorite", comment: "Add favorite")))
+            .overlay { HeartBurstView(trigger: heartBurstTrigger) }
 
-            if let coord = viewModel.experience.location.clCoordinate {
-                Button {
-                    Haptics.impact(.light)
-                    // Skip the one-option picker when only a single maps app is
-                    // installed (usually just Apple Maps) — matches the direct
-                    // launch in LocationCard and ExperienceCardView.
-                    if let only = NavigationLauncher.soleApp() {
-                        let name = viewModel.experience.location.placeNameLocal
-                            ?? viewModel.experience.location.placeNameRomanized
-                            ?? viewModel.experience.title
-                        NavigationLauncher.open(app: only, coordinate: coord, name: name)
-                    } else {
-                        isShowingNavPicker = true
-                    }
-                } label: {
-                    // `arrow.triangle.turn.up.right.diagonal` is NOT a real SF
-                    // Symbol — it rendered blank (empty circle). Use the same
-                    // turn-arrow as LocationCard's Navigate button for both
-                    // correctness and visual consistency.
-                    Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
-                        .font(.title3)
-                        .foregroundStyle(.primary)
-                        .frame(width: 50, height: 50)
-                        .background(Circle().fill(.regularMaterial))
-                }
-                .accessibilityLabel(Text(NSLocalizedString("action.directions", comment: "Open directions picker")))
-            }
-
-            Button {
+            // Add to itinerary
+            dockIconButton(
+                systemName: "calendar.badge.plus",
+                accessibilityLabel: NSLocalizedString("action.addToItinerary", comment: "Add to itinerary")
+            ) {
                 Haptics.impact(.light)
                 isShowingAddToItinerary = true
-            } label: {
-                Image(systemName: "calendar.badge.plus")
-                    .font(.title3)
-                    .foregroundStyle(.primary)
-                    .frame(width: 50, height: 50)
-                    .background(Circle().fill(.regularMaterial))
             }
-            .accessibilityLabel(Text(NSLocalizedString("action.addToItinerary", comment: "Add to itinerary")))
 
+            // Ask Solo — opens the chat scoped to this place (or paywall for free
+            // tier). Wired only when the parent supplied `onAskSolo`.
+            if onAskSolo != nil {
+                dockIconButton(
+                    systemName: "bubble.left.and.text.bubble.right",
+                    accessibilityLabel: NSLocalizedString("experience.askSolo.cta", comment: "Ask Solo")
+                ) {
+                    Haptics.impact(.light)
+                    switch Self.askSoloAction(canAskSolo: viewModel.canAskSolo) {
+                    case .openChat:        onAskSolo?(viewModel.experience)
+                    case .presentPaywall:  isShowingPaywall = true
+                    }
+                }
+                .accessibilityIdentifier("experience.askSolo.cta")
+            }
+
+            // Mark done — primary amber pill, turns green when completed.
             Button {
                 let wasCompleted = viewModel.isCompleted
                 viewModel.toggleComplete()
@@ -1329,44 +1615,40 @@ public struct ExperienceDetailView: View {
                     Haptics.impact(.light)
                 }
             } label: {
-                HStack {
-                    Image(systemName: viewModel.isCompleted ? "checkmark.circle.fill" : "checkmark.circle")
+                HStack(spacing: 7) {
+                    Image(systemName: viewModel.isCompleted ? "checkmark.circle.fill" : "checkmark")
+                        .font(.system(size: 15, weight: .semibold))
                         .symbolEffect(.bounce, value: viewModel.isCompleted)
                     Text(viewModel.isCompleted
                         ? NSLocalizedString("action.completed", comment: "")
                         : NSLocalizedString("action.markDone", comment: ""))
-                        .font(.subheadline.weight(.medium))
+                        .font(CT.body(14.5, .semibold))
                 }
+                .foregroundStyle(viewModel.isCompleted ? CT.successText : .white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                .frame(height: 46)
                 .background(
-                    RoundedRectangle(cornerRadius: 25)
-                        // `Color.primary` resolves to white in dark mode, which
-                        // collided with the `.white` foreground below — the
-                        // button rendered as an invisible white-on-white capsule.
-                        // Use the accent color (legible in both schemes) for the
-                        // default state; keep green for the completed state.
-                        .fill(viewModel.isCompleted ? Color.green : Color.accentColor)
+                    Capsule().fill(viewModel.isCompleted ? CT.successSoft : CT.accent)
                 )
-                .foregroundStyle(.white)
             }
+            .buttonStyle(.plain)
+            .padding(.leading, 3)
             .accessibilityLabel(Text(viewModel.isCompleted
                 ? NSLocalizedString("action.completed", comment: "Marked as completed")
                 : NSLocalizedString("action.markDone", comment: "Mark as done")))
         }
         .padding(.horizontal, 16)
-        .padding(.top, 10)
+        .padding(.top, 11)
         .padding(.bottom, 12)
         .background(
-            // Opaque bar via safeAreaInset: the bar reserves its own space in the
-            // ScrollView (no manual bottom padding), so content never scrolls
-            // behind it. A solid material + hairline top divider keeps it legible
-            // over any content; it extends into the home-indicator safe area.
+            // Opaque warm bar: reserves its own space via safeAreaInset (no manual
+            // bottom padding), so content never scrolls behind it. Warm-white blur
+            // + hairline top keeps it in the amber system and legible over content.
             ZStack(alignment: .top) {
-                Rectangle()
-                    .fill(.regularMaterial)
+                CT.bgWarm.opacity(0.94)
+                    .background(.regularMaterial)
                     .ignoresSafeArea(edges: .bottom)
-                Divider().opacity(0.5)
+                Rectangle().fill(CT.borderSubtle).frame(height: 0.5)
             }
         )
         .confirmationDialog(
@@ -1395,18 +1677,18 @@ public struct ExperienceDetailView: View {
 
     // MARK: - Helpers
 
+    /// Section wrapper with the design's quiet uppercase-mono heading
+    /// (styles.css .sc-detail-block h3: 11px / tracking / uppercase / fg-muted).
     private func sectionContainer<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
+            Text(title.uppercased())
+                .font(CT.displayRounded(11, .bold))
+                .tracking(1.6)
+                .foregroundStyle(CT.fgMuted)
                 .minimumScaleFactor(0.85)
-                .lineLimit(nil)
+                .lineLimit(2)
             content()
         }
-    }
-
-    private func format(window: TimeWindow) -> String {
-        String(format: "%02d:00 – %02d:00", window.startHour, window.endHour)
     }
 }
 
@@ -1485,247 +1767,6 @@ private struct CompassDirectionView: View {
     .padding()
 }
 
-// MARK: - Best Time Window Row
-
-private struct BestTimeWindowRow: View {
-    let window: TimeWindow
-    let isActiveNow: Bool
-    let categoryColor: Color
-    let formatWindow: (TimeWindow) -> String
-    let reduceMotion: Bool
-
-    @State private var nowDotPulse = false
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "clock")
-                .foregroundStyle(isActiveNow ? categoryColor : .secondary)
-            Text(formatWindow(window))
-                .font(isActiveNow ? .subheadline.weight(.semibold) : .subheadline)
-            if let note = window.note {
-                Text(note)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-            if isActiveNow {
-                Spacer()
-                Circle()
-                    .fill(categoryColor)
-                    .frame(width: 6, height: 6)
-                    .scaleEffect(nowDotPulse ? 1.6 : 1.0)
-                    .opacity(nowDotPulse ? 0.4 : 1.0)
-            }
-        }
-        .padding(.horizontal, isActiveNow ? 10 : 0)
-        .padding(.vertical, isActiveNow ? 6 : 0)
-        .background(
-            isActiveNow
-                ? AnyView(RoundedRectangle(cornerRadius: 8).fill(categoryColor.opacity(0.12)))
-                : AnyView(Color.clear)
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(isActiveNow
-            ? "\(formatWindow(window)), \(NSLocalizedString("bestTimes.window.active.a11y", comment: "Happening now accessibility suffix"))"
-            : formatWindow(window)
-        ))
-        .onAppear { startPulseIfNeeded() }
-        .onChange(of: isActiveNow) { _, active in
-            if active {
-                startPulseIfNeeded()
-            } else {
-                withAnimation(nil) { nowDotPulse = false }
-            }
-        }
-    }
-
-    private func startPulseIfNeeded() {
-        guard isActiveNow && !reduceMotion else { return }
-        nowDotPulse = false
-        withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-            nowDotPulse = true
-        }
-    }
-}
-
-// MARK: - Best Times Timeline
-
-private struct BestTimesTimeline: View {
-    let experience: Experience
-
-    @State private var animateFill = false
-    @State private var nowPulse = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private let trackHeight: CGFloat = 10
-    private let nowMarkerWidth: CGFloat = 2
-    private let tickHours = [0, 6, 12, 18]
-
-    private func nowFraction(for date: Date) -> CGFloat {
-        let comps = Calendar.current.dateComponents([.hour, .minute], from: date)
-        return (CGFloat(comps.hour ?? 0) + CGFloat(comps.minute ?? 0) / 60) / 24
-    }
-
-    private static let nowTickFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f
-    }()
-
-    private func a11yLabel(for date: Date) -> String {
-        let windowLabels = experience.bestTimes.map { w in
-            String(format: "%02d:00 – %02d:00", w.startHour, w.endHour)
-        }.joined(separator: ", ")
-        let nowStatus = experience.isBestNow(at: date)
-            ? NSLocalizedString("timeline.now.good", comment: "")
-            : NSLocalizedString("timeline.now.off", comment: "")
-        let timeStr = Self.nowTickFormatter.string(from: date)
-        return String(
-            format: NSLocalizedString("timeline.a11y", comment: ""),
-            windowLabels,
-            "\(nowStatus) \(timeStr)"
-        )
-    }
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
-            let liveDate = context.date
-            GeometryReader { geo in
-                let trackWidth = geo.size.width
-                let fraction = nowFraction(for: liveDate)
-                let nowX = fraction * trackWidth
-                let isBest = experience.isBestNow(at: liveDate)
-                ZStack(alignment: .topLeading) {
-                    // Base track
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.12))
-                        .frame(height: trackHeight)
-
-                    // Window segments. Use a fixed "good time" green rather than
-                    // the category color (which could be red/blue/purple and
-                    // carried no "this window is good" meaning) so the timeline
-                    // reads consistently with the rest of the app's now-semantics.
-                    ForEach(segments(trackWidth: trackWidth), id: \.id) { seg in
-                        Capsule()
-                            .fill(Color.green.opacity(0.7))
-                            .frame(width: seg.width, height: trackHeight)
-                            .offset(x: seg.x)
-                            .scaleEffect(x: animateFill ? 1 : 0, anchor: .leading)
-                    }
-
-                    // 'Now' marker
-                    ZStack {
-                        if isBest && !reduceMotion {
-                            Circle()
-                                .stroke(Color.yellow, lineWidth: 1.5)
-                                .frame(width: 6, height: 6)
-                                .scaleEffect(nowPulse ? 2.4 : 1)
-                                .opacity(nowPulse ? 0 : 0.7)
-                        }
-                        VStack(spacing: 0) {
-                            Circle()
-                                .fill(isBest ? Color.yellow : Color.accentColor)
-                                .frame(width: 6, height: 6)
-                            Rectangle()
-                                .fill(isBest ? Color.yellow : Color.accentColor)
-                                .frame(width: nowMarkerWidth, height: trackHeight - 2)
-                        }
-                    }
-                    .offset(x: nowX - 3, y: 0)
-                }
-                .frame(height: trackHeight)
-                // 'Now' tick label + fixed hour labels below the track
-                .overlay(alignment: .bottom) {
-                    ZStack(alignment: .topLeading) {
-                        // Fixed 0 / 6 / 12 / 18 labels
-                        ForEach(tickHours, id: \.self) { hour in
-                            let x = CGFloat(hour) / 24.0 * trackWidth
-                            Text("\(hour)")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                                .offset(x: hour == 0 ? x : x - 8)
-                        }
-                        // 'now HH:mm' label — clamped to track bounds, hidden
-                        // when it would land within 16pt of a fixed tick label.
-                        let tickPositions: [CGFloat] = tickHours.map { CGFloat($0) / 24.0 * trackWidth }
-                        let rawLabelX = nowX - 14
-                        let clampedX = min(max(rawLabelX, 0), trackWidth - 28)
-                        let tooClose = tickPositions.contains { abs($0 - nowX) < 20 }
-                        if !tooClose {
-                            let nowLabel = NSLocalizedString("timeline.now.tick", comment: "Now tick label under the timeline marker")
-                            let timeStr = Self.nowTickFormatter.string(from: liveDate)
-                            Text("\(nowLabel) \(timeStr)")
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(isBest ? Color.yellow : Color.accentColor)
-                                .offset(x: clampedX)
-                        }
-                    }
-                    .frame(height: 14)
-                    .offset(y: 18)
-                }
-            }
-            .frame(height: trackHeight + 18 + 14)
-            .onChange(of: experience.isBestNow(at: liveDate)) { _, isBest in
-                guard !reduceMotion else { return }
-                if isBest {
-                    nowPulse = false
-                    withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
-                        nowPulse = true
-                    }
-                } else {
-                    withAnimation(nil) {
-                        nowPulse = false
-                    }
-                }
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(a11yLabel(for: liveDate)))
-        }
-        .onAppear {
-            if reduceMotion {
-                animateFill = true
-            } else {
-                withAnimation(.easeOut(duration: 0.5)) {
-                    animateFill = true
-                }
-                if experience.isBestNow() {
-                    withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
-                        nowPulse = true
-                    }
-                }
-            }
-        }
-    }
-
-    private struct Segment: Identifiable {
-        let id: String
-        let x: CGFloat
-        let width: CGFloat
-    }
-
-    private func segments(trackWidth: CGFloat) -> [Segment] {
-        var result: [Segment] = []
-        for (i, window) in experience.bestTimes.enumerated() {
-            let start = window.startHour
-            let end = window.endHour
-            if start < end {
-                // Normal window (no midnight wrap)
-                let x = CGFloat(start) / 24.0 * trackWidth
-                let w = CGFloat(end - start) / 24.0 * trackWidth
-                result.append(Segment(id: "\(i)-a", x: x, width: max(w, 4)))
-            } else {
-                // Wrap-around: split into [start→24] + [0→end]
-                let xA = CGFloat(start) / 24.0 * trackWidth
-                let wA = CGFloat(24 - start) / 24.0 * trackWidth
-                result.append(Segment(id: "\(i)-a", x: xA, width: max(wA, 4)))
-                if end > 0 {
-                    let wB = CGFloat(end) / 24.0 * trackWidth
-                    result.append(Segment(id: "\(i)-b", x: 0, width: max(wB, 4)))
-                }
-            }
-        }
-        return result
-    }
-}
 
 #Preview {
     if let exp = ExperienceService.hardcodedSeed.first {
