@@ -68,7 +68,11 @@ public struct ExperienceDetailView: View {
         ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                heroImageBanner
                 heroSection
+                if !viewModel.experience.highlights.isEmpty {
+                    highlightsSection
+                }
                 compassDirectionView
                 askSoloSection
                 if let coord = viewModel.experience.location.clCoordinate {
@@ -227,6 +231,70 @@ public struct ExperienceDetailView: View {
     }
 
     // MARK: - Hero
+
+    /// Full-bleed hero photo at the top of the detail sheet, shown only when a
+    /// real place photo resolved (OSM image / Wikimedia). Breaks out of the 20pt
+    /// horizontal padding to sit edge-to-edge. Absent → nothing renders and the
+    /// sheet starts at the hero text exactly as before.
+    @ViewBuilder
+    private var heroImageBanner: some View {
+        if let urlString = viewModel.experience.location.photoUrls?.first,
+           let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .empty:
+                    ZStack {
+                        Rectangle().fill(viewModel.experience.category.color.opacity(0.12))
+                        ProgressView()
+                    }
+                case .failure:
+                    EmptyView()
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .frame(height: 200)
+            .frame(maxWidth: .infinity)
+            .clipped()
+            // Break out of the VStack's 20pt horizontal padding for a full-bleed
+            // banner; the negative top padding closes the gap above it.
+            .padding(.horizontal, -20)
+            .padding(.top, -16)
+            .accessibilityHidden(true)
+        }
+    }
+
+    /// Category-specific scannable facts (Wi-Fi, signature, best light…) shown
+    /// as a pill row near the top, so the detail that matters for *this* kind of
+    /// place reads right after the hero. Only renders when highlights exist
+    /// (guarded at the call site).
+    private var highlightsSection: some View {
+        FlowLayout(spacing: 8) {
+            ForEach(viewModel.experience.highlights) { highlight in
+                HStack(spacing: 5) {
+                    Image(systemName: highlight.kind.symbol)
+                        .font(.caption)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(highlight.label)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(highlight.value)
+                            .font(.caption.weight(.medium))
+                            .lineLimit(1)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(Color(.tertiarySystemFill)))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(highlight.label): \(highlight.value)")
+            }
+        }
+    }
 
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 12) {
