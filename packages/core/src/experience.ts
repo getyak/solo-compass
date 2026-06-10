@@ -109,6 +109,37 @@ export interface RealInconvenience {
 }
 
 /**
+ * A category-specific, scannable fact surfaced on the experience card — the
+ * detail that matters most for *this kind* of place. A café highlight is
+ * "Wi-Fi · fast", a meal "Signature · pho bo", a temple "Best light · sunrise".
+ *
+ * Deliberately generic (kind + label + value) so a different *set* of
+ * highlights can be emitted per category without the schema growing a column
+ * per category, and one card view renders them all. Mirrors the Swift
+ * `CategoryHighlight`. Only facts derivable from real signals — never invented.
+ */
+export interface CategoryHighlight {
+  /** Fixed vocabulary; selects icon/accent in the UI and keeps the LLM on-rails. */
+  readonly kind:
+    | "signature"
+    | "pricePerPerson"
+    | "waitTime"
+    | "wifi"
+    | "power"
+    | "longStay"
+    | "bestLight"
+    | "ticket"
+    | "duration"
+    | "booking"
+    | "vibe"
+    | "note";
+  /** Short noun for the fact, e.g. "Wi-Fi", "Signature". */
+  readonly label: string;
+  /** The value, e.g. "fast", "pho bo", "free". Under ~4 words. */
+  readonly value: string;
+}
+
+/**
  * Where the seed information for this experience came from. Persists with the
  * experience forever — the user can always trace back to original sources.
  *
@@ -196,6 +227,11 @@ export interface Experience {
   /** User-defined free-form tags layered on top of the category enum.
    *  Optional in JSON; absence is equivalent to an empty array. */
   readonly userTags?: readonly string[];
+
+  /** Category-specific scannable facts (Wi-Fi for cafés, signature dish for
+   *  food, best light for sights). Optional in JSON; absence = empty. Mirrors
+   *  the Swift `Experience.categoryHighlights`. */
+  readonly categoryHighlights?: readonly CategoryHighlight[];
 }
 
 /**

@@ -207,10 +207,7 @@ public struct ExperienceCardView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                Image(systemName: experience.category.symbol)
-                    .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(experience.category.color))
+                categoryThumbnail
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(experience.title)
@@ -292,6 +289,12 @@ public struct ExperienceCardView: View {
 
             FlowLayout(spacing: 8) {
                 SoloScoreBadge(score: experience.soloScore, style: .compact)
+                // Category-specific scannable facts (Wi-Fi, signature, best
+                // light…). Placed right after the score so the detail that
+                // matters for *this* kind of place reads before distance/ETA.
+                ForEach(experience.highlights) { highlight in
+                    highlightPill(highlight)
+                }
                 distancePillGroup
                     .contentTransition(.numericText())
                     .animation(.spring(response: 0.4), value: distanceMeters)
@@ -815,6 +818,78 @@ public struct ExperienceCardView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(String(format: a11yFormat, count, category.label))
         }
+    }
+
+    /// Leading visual: a real place photo when one resolved (OSM image /
+    /// Wikimedia), with the category color as a small corner badge so the type
+    /// stays scannable. Falls back to the original category-icon circle when
+    /// there's no photo, so photo-less places look exactly as before.
+    @ViewBuilder
+    private var categoryThumbnail: some View {
+        if let urlString = experience.location.photoUrls?.first,
+           let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .empty:
+                    ZStack {
+                        Rectangle().fill(experience.category.color.opacity(0.15))
+                        ProgressView()
+                    }
+                case .failure:
+                    categoryIconCircle
+                @unknown default:
+                    categoryIconCircle
+                }
+            }
+            .frame(width: 52, height: 52)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            // Category color corner badge keeps the type glanceable over a photo.
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: experience.category.symbol)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 18, height: 18)
+                    .background(Circle().fill(experience.category.color))
+                    .overlay(Circle().stroke(.background, lineWidth: 1.5))
+                    .offset(x: 3, y: 3)
+            }
+            .accessibilityHidden(true)
+        } else {
+            categoryIconCircle
+        }
+    }
+
+    /// The original category-icon circle, reused for photo-less places and as
+    /// the AsyncImage failure/placeholder fallback.
+    private var categoryIconCircle: some View {
+        Image(systemName: experience.category.symbol)
+            .foregroundStyle(.white)
+            .frame(width: 32, height: 32)
+            .background(Circle().fill(experience.category.color))
+    }
+
+    /// A category-specific highlight pill (Wi-Fi · fast, Signature · pho bo…).
+    /// Mirrors the existing pill styling (caption, tinted capsule) for a
+    /// consistent FlowLayout row. Uses the secondary label tint so it reads as
+    /// neutral context, not an alert.
+    private func highlightPill(_ highlight: CategoryHighlight) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: highlight.kind.symbol)
+                .font(.caption2)
+            Text(highlight.value)
+                .font(.caption)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .foregroundStyle(.secondary)
+        .background(Capsule().fill(Color.secondary.opacity(0.12)))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(highlight.label): \(highlight.value)")
     }
 }
 

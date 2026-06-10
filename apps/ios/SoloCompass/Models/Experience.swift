@@ -105,6 +105,17 @@ public struct ExperienceLocation: Codable, Hashable {
         return CLLocationCoordinate2D(latitude: coordinates[1], longitude: coordinates[0])
     }
 
+    /// Returns a copy with `photoUrls` replaced. Used when photos resolve after
+    /// the location was first built (e.g. async Wikidata enrichment).
+    public func withPhotoUrls(_ urls: [String]?) -> ExperienceLocation {
+        ExperienceLocation(
+            coordinates: coordinates, cityCode: cityCode, addressHint: addressHint,
+            placeNameLocal: placeNameLocal, placeNameRomanized: placeNameRomanized,
+            rating: rating, openingHours: openingHours, priceLevel: priceLevel,
+            website: website, phone: phone, photoUrls: urls
+        )
+    }
+
     public init(
         coordinates: [Double],
         cityCode: String,
@@ -267,6 +278,73 @@ public struct SoloScore: Codable, Hashable {
     }
 }
 
+// MARK: - Category highlight
+
+/// A category-specific, scannable fact surfaced on the card — the detail that
+/// matters most for *this kind* of place. A café highlight might be
+/// "Wi-Fi · fast", a meal "Signature · pho bo", a temple "Best light · sunrise".
+///
+/// Kept deliberately generic (icon + label + value) so the LLM can emit a
+/// different *set* of highlights per category without the schema growing a
+/// dozen optional columns, and the UI renders them all with one pill view.
+/// Only facts derivable from real signals/tags should be filled — never invented.
+public struct CategoryHighlight: Codable, Hashable, Identifiable {
+    /// A small, fixed vocabulary of highlight kinds. The raw value doubles as a
+    /// stable id and selects the SF Symbol + accent, so the LLM picks from this
+    /// set rather than free-forming icons.
+    public enum Kind: String, Codable, Hashable, CaseIterable {
+        // food
+        case signature        // a dish/specialty the place is known for
+        case pricePerPerson   // typical spend for one
+        case waitTime         // expect a queue / walk right in
+        // coffee / work
+        case wifi             // wifi availability / quality
+        case power            // power outlets at seats
+        case longStay         // comfortable to linger 2h+
+        // culture / nature
+        case bestLight        // golden hour / best time to see
+        case ticket           // entry fee / free
+        case duration         // how long to budget
+        // wellness / nightlife / generic
+        case booking          // reservation needed / walk-in
+        case vibe             // ambiance one-word
+        case note             // anything else worth a glance
+
+        /// SF Symbol shown on the highlight pill.
+        public var symbol: String {
+            switch self {
+            case .signature:      return "star.circle"
+            case .pricePerPerson: return "yensign.circle"
+            case .waitTime:       return "hourglass"
+            case .wifi:           return "wifi"
+            case .power:          return "powerplug"
+            case .longStay:       return "clock.arrow.circlepath"
+            case .bestLight:      return "sun.max"
+            case .ticket:         return "ticket"
+            case .duration:       return "timer"
+            case .booking:        return "calendar"
+            case .vibe:           return "sparkles"
+            case .note:           return "info.circle"
+            }
+        }
+    }
+
+    public let kind: Kind
+    /// Short noun for the fact, e.g. "Wi-Fi", "Signature". Localized upstream
+    /// (model emits it in the requested output language).
+    public let label: String
+    /// The actual value, e.g. "fast", "pho bo", "free". Kept under ~4 words.
+    public let value: String
+
+    public var id: String { "\(kind.rawValue)-\(value)" }
+
+    public init(kind: Kind, label: String, value: String) {
+        self.kind = kind
+        self.label = label
+        self.value = value
+    }
+}
+
 // MARK: - Health & Confidence
 
 /// How likely an experience is still real and accurate, shown to travelers as a
@@ -419,6 +497,10 @@ public struct Experience: Codable, Hashable, Identifiable {
     public let bestTimes: [TimeWindow]
     public let durationMinutes: DurationRange
     public let howTo: [HowToStep]
+    /// Category-specific scannable facts (Wi-Fi for cafés, signature dish for
+    /// food, best light for sights). Optional + decoded leniently so older
+    /// persisted/seed entries without it stay valid; treated as `[]` in the UI.
+    public let categoryHighlights: [CategoryHighlight]?
     public let realInconveniences: [RealInconvenience]
     public let soloScore: SoloScore
     public let sources: [InformationSource]
@@ -452,7 +534,8 @@ public struct Experience: Codable, Hashable, Identifiable {
         status: Status,
         createdAt: Date,
         updatedAt: Date,
-        userTags: [String]? = nil
+        userTags: [String]? = nil,
+        categoryHighlights: [CategoryHighlight]? = nil
     ) {
         self.id = id
         self.title = title
@@ -473,9 +556,13 @@ public struct Experience: Codable, Hashable, Identifiable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.userTags = userTags
+        self.categoryHighlights = categoryHighlights
     }
 
     public var coordinate: CLLocationCoordinate2D? { location.clCoordinate }
+
+    /// Non-nil category highlights, never nil — UI iterates this directly.
+    public var highlights: [CategoryHighlight] { categoryHighlights ?? [] }
 
     /// True when this entry was discovered via OpenStreetMap Explore
     /// (vs. a curated seed entry). Used to surface provenance in the UI.
@@ -572,15 +659,18 @@ public struct Experience: Codable, Hashable, Identifiable {
     }
 
     /// Returns a new Experience with selected fields overridden. Use this when
-    /// mutating tracked stats/status/etc. without rewriting all 18 init args.
+    /// mutating tracked stats/status/location/etc. without rewriting all 18 init
+    /// args. `location` lets callers swap in an enriched location (e.g. photos
+    /// resolved after synthesis) without rebuilding the whole value.
     public func copy(
+        location: ExperienceLocation? = nil,
         stats: Stats? = nil,
         status: Status? = nil,
         updatedAt: Date? = nil
     ) -> Experience {
         Experience(
             id: id, title: title, oneLiner: oneLiner, whyItMatters: whyItMatters,
-            category: category, location: location, bestTimes: bestTimes,
+            category: category, location: location ?? self.location, bestTimes: bestTimes,
             durationMinutes: durationMinutes, howTo: howTo, realInconveniences: realInconveniences,
             soloScore: soloScore, sources: sources, confidence: confidence,
             nearbyExperienceIds: nearbyExperienceIds,
@@ -588,7 +678,8 @@ public struct Experience: Codable, Hashable, Identifiable {
             status: status ?? self.status,
             createdAt: createdAt,
             updatedAt: updatedAt ?? self.updatedAt,
-            userTags: self.userTags
+            userTags: self.userTags,
+            categoryHighlights: self.categoryHighlights
         )
     }
 
