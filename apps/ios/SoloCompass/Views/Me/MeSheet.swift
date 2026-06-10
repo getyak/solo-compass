@@ -29,6 +29,7 @@ struct MeSheet: View {
     /// inline `NavigationLink`s; only the message deep link drives `path`.
     private enum MeDestination: Hashable {
         case messages(deepLinkConversationId: String?)
+        case friends
     }
 
     var body: some View {
@@ -91,6 +92,8 @@ struct MeSheet: View {
                 switch destination {
                 case .messages(let conversationId):
                     ConversationListView(deepLinkConversationId: conversationId)
+                case .friends:
+                    FriendsHubView()
                 }
             }
             .toolbar {
@@ -107,6 +110,14 @@ struct MeSheet: View {
                 if let conversationId = deepLinkConversationId, path.isEmpty {
                     path = [.messages(deepLinkConversationId: conversationId)]
                 }
+                #if DEBUG
+                // Visual-verification entry point: `-openFriends` pushes the
+                // Friends hub on appear so its inline add-by-code search can be
+                // screenshotted without an unreliable simulator tap.
+                if ProcessInfo.processInfo.arguments.contains("-openFriends"), path.isEmpty {
+                    path = [.friends]
+                }
+                #endif
             }
         }
     }
@@ -117,6 +128,8 @@ struct MeSheet: View {
 private struct RingAvatar: View {
     let favoritedCount: Int
     let exploredCount: Int
+    /// Diameter of the inner emoji bubble; the progress ring sits 8pt outside it.
+    var size: CGFloat = 64
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animatedFraction: CGFloat = 0
@@ -127,23 +140,30 @@ private struct RingAvatar: View {
     }
 
     private var showRing: Bool { favoritedCount > 0 }
+    private var ringSize: CGFloat { size + 8 }
+    private var ringWidth: CGFloat { size >= 80 ? 4 : 3 }
 
     var body: some View {
         ZStack {
             Text(CompanionProfile.sample.avatarEmoji)
-                .font(.system(size: 40))
-                .frame(width: 64, height: 64)
-                .background(Circle().fill(CT.accentSoft))
+                .font(.system(size: size * 0.55))
+                .frame(width: size, height: size)
+                .background(
+                    Circle()
+                        .fill(CT.accentSoft)
+                        .overlay(Circle().stroke(CT.surfaceWhite, lineWidth: 2))
+                )
+                .shadow(color: CT.accent.opacity(0.12), radius: 6, y: 3)
 
             if showRing {
                 Circle()
-                    .stroke(CT.accent.opacity(0.15), lineWidth: 3)
-                    .frame(width: 72, height: 72)
+                    .stroke(CT.accent.opacity(0.15), lineWidth: ringWidth)
+                    .frame(width: ringSize, height: ringSize)
                 Circle()
                     .trim(from: 0, to: animatedFraction)
-                    .stroke(CT.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .stroke(CT.accent, style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .frame(width: 72, height: 72)
+                    .frame(width: ringSize, height: ringSize)
             }
         }
         .accessibilityLabel(Text(CompanionProfile.sample.avatarEmoji))
@@ -188,38 +208,74 @@ private struct ProfileHeader: View {
     let exploredCount: Int
 
     var body: some View {
-        HStack(spacing: 14) {
-            RingAvatar(favoritedCount: favoritedCount, exploredCount: exploredCount)
+        VStack(spacing: 16) {
+            RingAvatar(
+                favoritedCount: favoritedCount,
+                exploredCount: exploredCount,
+                size: 88
+            )
+            .padding(.top, 4)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(spacing: 4) {
                 Text(NSLocalizedString("me.profile.name", comment: "Default profile display name"))
-                    .font(.title3.weight(.semibold))
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(CT.fgPrimary)
                 Text(NSLocalizedString("me.profile.subtitle", comment: "Profile subtitle"))
                     .font(.subheadline)
-                    .foregroundStyle(CT.fgSubtle)
-                HStack(spacing: 12) {
-                    StatPill(
-                        target: favoritedCount,
-                        caption: NSLocalizedString("me.stats.saved", comment: "Saved experiences stat label")
-                    )
-                    StatPill(
-                        target: exploredCount,
-                        caption: NSLocalizedString("me.stats.explored", comment: "Explored experiences stat label")
-                    )
-                }
-                .padding(.top, 4)
+                    .foregroundStyle(CT.fgMuted)
             }
-            Spacer()
+
+            // Twin stat tiles, split by a hairline divider so the two metrics read
+            // as one balanced unit rather than two floating pills.
+            HStack(spacing: 0) {
+                StatTile(
+                    target: favoritedCount,
+                    caption: NSLocalizedString("me.stats.saved", comment: "Saved experiences stat label")
+                )
+                Rectangle()
+                    .fill(CT.borderSubtle)
+                    .frame(width: 1, height: 36)
+                StatTile(
+                    target: exploredCount,
+                    caption: NSLocalizedString("me.stats.explored", comment: "Explored experiences stat label")
+                )
+            }
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(CT.surfaceWhite)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(CT.borderSubtle, lineWidth: 1)
+                    )
+            )
         }
-        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [CT.accentSoft, CT.surfaceWhite],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(CT.accentBorder, lineWidth: 1)
+                )
+        )
         .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
 }
 
 // MARK: - Stat pill
 
-private struct StatPill: View {
+private struct StatTile: View {
     let target: Int
     let caption: String
 
@@ -231,17 +287,21 @@ private struct StatPill: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 3) {
+        VStack(spacing: 2) {
             Text("\(shown)")
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-                .foregroundStyle(CT.fgPrimary)
+                .font(.title3.weight(.bold).monospacedDigit())
+                .foregroundStyle(CT.accent)
                 .contentTransition(.numericText())
                 .scaleEffect(pop ? 1.18 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.5), value: pop)
             Text(caption)
                 .font(.caption)
-                .foregroundStyle(CT.fgSubtle)
+                .foregroundStyle(CT.fgMuted)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(target) \(caption)"))
         .onAppear {
             if reduceMotion {
                 shown = target
@@ -296,79 +356,9 @@ private struct StatPill: View {
     }
 }
 
-// MARK: - Friends hub (placeholder list within the Me stack)
-
-/// Minimal friends overview pushed from the hub. Lists confirmed friends and
-/// surfaces incoming requests; the dedicated friends-management UI arrives in a
-/// later FRD. Kept self-contained so US-007 wires the entry point end-to-end.
-private struct FriendsHubView: View {
-    @State private var service = FriendService.shared
-    @State private var showingAddFriend = false
-
-    var body: some View {
-        Group {
-            if service.friends.isEmpty && service.incomingRequests.isEmpty {
-                emptyState
-            } else {
-                friendList
-            }
-        }
-        .navigationTitle(NSLocalizedString("me.friends", comment: "Friends"))
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await service.refresh() }
-        .sheet(isPresented: $showingAddFriend) {
-            AddFriendSheet()
-        }
-    }
-
-    private var emptyState: some View {
-        ContentUnavailableView {
-            Label(
-                NSLocalizedString("me.friends.empty.title", comment: "Friends empty state title"),
-                systemImage: "person.2.slash"
-            )
-        } description: {
-            Text(NSLocalizedString("me.friends.empty.description", comment: "Friends empty state description"))
-        } actions: {
-            Button {
-                Haptics.impact(.light)
-                showingAddFriend = true
-            } label: {
-                Text(NSLocalizedString("me.friends.empty.cta", comment: "Add a friend CTA"))
-            }
-            .buttonStyle(.borderedProminent)
-        }
-    }
-
-    private var friendList: some View {
-        List {
-            if !service.incomingRequests.isEmpty {
-                Section(NSLocalizedString("me.friends.incoming", comment: "Incoming friend requests")) {
-                    ForEach(service.incomingRequests, id: \.id) { req in
-                        Text(req.requesterId)
-                            .font(.subheadline)
-                            .foregroundStyle(CT.fgPrimary)
-                    }
-                }
-            }
-            Section(NSLocalizedString("me.friends.list", comment: "Friends list")) {
-                ForEach(service.friends, id: \.id) { friendship in
-                    Text(friendship.userHighId)
-                        .font(.subheadline)
-                        .foregroundStyle(CT.fgPrimary)
-                }
-            }
-        }
-    }
-}
-
-// MARK: - FriendsHubView Preview
-
-#Preview("Friends empty state") {
-    NavigationStack {
-        FriendsHubView()
-    }
-}
+// `FriendsHubView` (pushed from the Friends row above) now lives in its own
+// file — Views/Friends/FriendsHubView.swift — where the add-by-code search is
+// inlined at the top of the page instead of behind a separate AddFriendSheet.
 
 // MARK: - Row
 
@@ -380,9 +370,13 @@ private struct MeRow: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(CT.accent)
-                .frame(width: 28)
+                .frame(width: 34, height: 34)
+                .background(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(CT.accentSoft)
+                )
             Text(title)
                 .font(.body)
                 .foregroundStyle(CT.fgPrimary)
@@ -395,8 +389,11 @@ private struct MeRow: View {
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Color.red))
             }
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(CT.fgSubtle)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 }
 
@@ -444,10 +441,10 @@ struct MapAvatarBubble: View {
 
 #Preview("RingAvatar states") {
     HStack(spacing: 24) {
-        RingAvatar(favoritedCount: 0, exploredCount: 0)   // no ring
-        RingAvatar(favoritedCount: 5, exploredCount: 0)   // 0%
-        RingAvatar(favoritedCount: 5, exploredCount: 2)   // 40%
-        RingAvatar(favoritedCount: 5, exploredCount: 5)   // 100%
+        RingAvatar(favoritedCount: 0, exploredCount: 0, size: 88)   // no ring
+        RingAvatar(favoritedCount: 5, exploredCount: 0, size: 88)   // 0%
+        RingAvatar(favoritedCount: 5, exploredCount: 2, size: 88)   // 40%
+        RingAvatar(favoritedCount: 5, exploredCount: 5, size: 88)   // 100%
     }
     .padding()
 }

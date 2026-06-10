@@ -1546,10 +1546,60 @@
 "friend.discover.error.lowTrust" = "暂时无法添加这位旅行者。";
 "friend.discover.error.rateLimited" = "你最近添加的人有点多，请稍后再试。";
 
+/* 个人中心（我 · MeSheet） */
+"me.title" = "我";
+"me.friends" = "好友";
+"me.messages" = "消息";
+"me.companion" = "旅伴";
+"me.settings" = "设置";
+"me.profile.name" = "独行旅人";
+"me.profile.subtitle" = "你的罗盘，你的旅程";
+"me.profile.progress.a11y" = "已探索 %d / %d 个收藏地点";
+"me.friends.incoming" = "好友申请";
+"me.friends.list" = "好友";
+"me.friends.empty" = "还没有好友";
+"me.stats.saved" = "收藏";
+"me.stats.explored" = "探索";
+"me.avatar.a11y" = "打开个人中心";
+"me.avatar.a11y.pending" = "你有待处理的好友申请";
+
 /* Friends hub empty state (MeSheet) */
 "me.friends.empty.title" = "还没有好友";
 "me.friends.empty.description" = "分享你的好友码或扫描对方的码，添加旅伴。";
 "me.friends.empty.cta" = "添加好友";
+
+/* 好友页内联搜索 + 我的好友码（FriendsHubView） */
+"friends.inline.search.placeholder" = "输入好友码 SOLO-XXXX-XXXX";
+"friends.inline.scan.a11y" = "扫描好友二维码";
+"friends.inline.lookup.a11y" = "查找好友";
+"friends.inline.myCode.show" = "我的好友码";
+"friends.inline.myCode.hide" = "收起我的好友码";
+
+/* 加好友 / 兑换好友码（内联到好友页 + AddFriendSheet 复用） */
+"friends.add.title" = "添加我";
+"friends.add.subtitle" = "分享这个码，或让旅伴扫描二维码即可添加你。";
+"friends.add.qr.a11y" = "你的好友码二维码";
+"friends.add.code.a11y" = "你的好友码是 %@";
+"friends.add.copy" = "复制好友码";
+"friends.add.copy.hint" = "长按好友码即可复制";
+"friends.add.copied" = "已复制！";
+"friends.add.share" = "分享好友码";
+"friends.add.rotate" = "更换好友码";
+"friends.add.error.title" = "无法加载你的好友码";
+"friends.add.error.description" = "请检查网络后重试。";
+"friends.add.mode.myCode" = "我的码";
+"friends.add.mode.addFriend" = "添加好友";
+"friends.redeem.subtitle" = "扫描旅伴的二维码，或输入对方好友码来添加。";
+"friends.redeem.scan" = "扫描二维码";
+"friends.redeem.scan.title" = "扫描好友码";
+"friends.redeem.scan.denied" = "无法使用相机，请改为手动输入好友码。";
+"friends.redeem.enter.label" = "或输入对方好友码";
+"friends.redeem.lookup" = "查找";
+"friends.redeem.preview.title" = "添加好友";
+"friends.redeem.sent" = "好友申请已发送";
+"friends.redeem.error.format" = "这看起来不是有效的好友码。";
+"friends.redeem.error.notFound" = "没有找到使用该好友码的人。";
+"friends.redeem.error.own" = "这是你自己的好友码。";
 
 /* US-017: 统一会话列表（我 ▸ 消息） */
 "messages.empty" = "暂无会话";

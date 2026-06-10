@@ -202,6 +202,7 @@
 		8B118DFAAE23443EF7D90735 /* FilterBarViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1694A46513909CFE464D92E /* FilterBarViewTests.swift */; };
 		8B4F2A6E8F3C6EAD0F9A8E32 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EA0858036CFEA9774139AFD7 /* PrivacyInfo.xcprivacy */; };
 		8BF4070A63A8B52C58F0E93E /* RouteCompanionStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10F48D7FA14E29D606FD11EA /* RouteCompanionStateMachineTests.swift */; };
+		8C106CF5C07EC37E7FBC0D67 /* FriendsHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4077595CC19D07EB22B8AA7 /* FriendsHubView.swift */; };
 		8D0C03425BA0C7D5E50B016D /* DiscoverFriendGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D06753CFAA5198FCB3FF96 /* DiscoverFriendGateTests.swift */; };
 		8D5DD4E0CD6237FA70C7F99F /* AddToItinerarySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A2953D1F2B46AFC9F85D42 /* AddToItinerarySheet.swift */; };
 		8D67669050D844812FA06CC8 /* RouteItineraryBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 884AFD2A4ADF051FA9643166 /* RouteItineraryBridge.swift */; };
@@ -641,6 +642,7 @@
 		A267CD0DA0A8053B0AB072BC /* PrivacyAcknowledgementSheetSnapshotTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyAcknowledgementSheetSnapshotTest.swift; sourceTree = "<group>"; };
 		A2BE90CD51D94B3FEE2F5AFA /* CompanionReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionReport.swift; sourceTree = "<group>"; };
 		A38E5736BF6DF5644D687637 /* AgentRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRouter.swift; sourceTree = "<group>"; };
+		A4077595CC19D07EB22B8AA7 /* FriendsHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsHubView.swift; sourceTree = "<group>"; };
 		A453FDDE85569DCA8FF70A8A /* RouteShareRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteShareRenderer.swift; sourceTree = "<group>"; };
 		A5435FBA9527C07A9FB07D46 /* SoloCompassModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassModelContainer.swift; sourceTree = "<group>"; };
 		A5F2BB13078B86C9BEDE7ADD /* WeatherCacheRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCacheRecord.swift; sourceTree = "<group>"; };
@@ -1313,6 +1315,7 @@
 				6435C36695377646C7ED8FC2 /* AddFriendButton.swift */,
 				DB22C08A558D35B83043C83E /* AddFriendSheet.swift */,
 				AC6DF782C123E76E2F02EEEA /* FriendProfileView.swift */,
+				A4077595CC19D07EB22B8AA7 /* FriendsHubView.swift */,
 				4F7202B977A555239F367D02 /* FriendsListView.swift */,
 				4C3EE8D38604D12055F9E94C /* QRScannerView.swift */,
 			);
@@ -1799,6 +1802,7 @@
 				E861E14B62BBE9A96205354D /* FriendRequest.swift in Sources */,
 				9D78B88DE90BE5BF9316604C /* FriendRequestRecord.swift in Sources */,
 				980B4B61D10AA12BFF2CD171 /* FriendService.swift in Sources */,
+				8C106CF5C07EC37E7FBC0D67 /* FriendsHubView.swift in Sources */,
 				B2C98BCF4E0193B5740C7762 /* FriendsListView.swift in Sources */,
 				67D784ECDFE24AE5384975D2 /* Friendship.swift in Sources */,
 				BC5673F20B57CA6567972838 /* FriendshipRecord.swift in Sources */,
