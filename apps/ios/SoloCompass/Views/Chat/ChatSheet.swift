@@ -332,6 +332,8 @@ public struct ChatSheet: View {
     private var messageList: some View {
         if visibleMessages.isEmpty && orchestrator.streamingContent.isEmpty {
             emptyState
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(emptyStateBackground)
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -566,37 +568,105 @@ public struct ChatSheet: View {
         }
     }
 
-    /// Hour-aware global empty state (the "+" entry). Unchanged voice: glyph →
-    /// title → subtitle → NOW banner → starter chips.
+    /// Hour-aware global empty state (the "+" entry). Sequence: hero glyph →
+    /// title → subtitle → NOW banner → starter cards. Rebuilt for a single warm
+    /// identity in both schemes — the cold systemGray fallback is gone; every
+    /// surface here sits on the amber ladder (`warm*Dark` / `CT.surface*`) with
+    /// a deliberate vertical rhythm instead of evenly-spaced rows.
     private var genericEmptyState: some View {
-        VStack(spacing: 14) {
-            Spacer()
-            Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(CT.accent)
-                .frame(width: 64, height: 64)
-                .background(CT.accentSoft, in: Circle())
-                .overlay(Circle().strokeBorder(CT.accentBorder, lineWidth: 0.5))
-                .shadow(color: CT.accent.opacity(0.12), radius: 8, y: 3)
+        VStack(spacing: 0) {
+            Spacer(minLength: 24)
+
+            heroGlyph
+                .padding(.bottom, 20)
+
             Text(NSLocalizedString("chat.empty.title", comment: "Ask me anything about places near you"))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.primary)
+                .font(CT.displayRounded(22, .bold))
+                .foregroundStyle(emptyTitleColor)
                 .multilineTextAlignment(.center)
-            Text(NSLocalizedString("chat.empty.subtitle", comment: "Try ‘what’s good around me?’ or hold the mic to talk."))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 24)
+                .padding(.bottom, 7)
+
+            Text(NSLocalizedString("chat.empty.subtitle", comment: "Try ‘what’s good around me?’ or hold the mic to talk."))
+                .font(.system(size: 13.5, weight: .regular))
+                .foregroundStyle(emptySubtitleColor)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+                .padding(.horizontal, 36)
+                .padding(.bottom, 18)
+
             nowContextBanner
+                .padding(.bottom, 22)
+
             starterPromptChips
-            Spacer()
+
+            Spacer(minLength: 24)
         }
         .frame(maxWidth: .infinity)
+        .opacity(starterPromptsAppeared ? 1 : 0)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.4).delay(0.15)) {
+            withAnimation(.easeOut(duration: 0.45).delay(0.1)) {
                 starterPromptsAppeared = true
             }
         }
+    }
+
+    /// Hero glyph for the global empty state — a layered, breathing badge rather
+    /// than a flat disc. Two soft amber halos radiate behind a gradient-filled
+    /// inner circle so the mark reads as warm and dimensional on the dark sheet,
+    /// not a hard米白 cutout. The faint outer ring + inner highlight give it the
+    /// "lit from within" quality the detail page hero has.
+    private var heroGlyph: some View {
+        ZStack {
+            // Outer ambient halo — barely-there bloom that softens the edge
+            // against the near-black sheet.
+            Circle()
+                .fill(CT.accent.opacity(colorScheme == .dark ? 0.16 : 0.10))
+                .frame(width: 108, height: 108)
+                .blur(radius: 14)
+
+            // Mid ring — a thin warm border floating just outside the core.
+            Circle()
+                .strokeBorder(CT.sunGold.opacity(colorScheme == .dark ? 0.30 : 0.40), lineWidth: 1)
+                .frame(width: 82, height: 82)
+
+            // Core — gradient amber fill with a top highlight, white glyph.
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: colorScheme == .dark
+                            ? [CT.accent, CT.accentHover]
+                            : [CT.sunGoldSoft, CT.accentSoft],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 68, height: 68)
+                .overlay(
+                    Circle().strokeBorder(
+                        Color.white.opacity(colorScheme == .dark ? 0.10 : 0.55),
+                        lineWidth: 0.75
+                    )
+                )
+                .overlay(
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundStyle(colorScheme == .dark ? Color.white : CT.accent)
+                )
+                .shadow(color: CT.accent.opacity(colorScheme == .dark ? 0.45 : 0.18), radius: 12, y: 5)
+        }
+        .scaleEffect(starterPromptsAppeared ? 1 : 0.88)
+        .animation(reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.7), value: starterPromptsAppeared)
+        .accessibilityHidden(true)
+    }
+
+    private var emptyTitleColor: Color {
+        colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary
+    }
+
+    private var emptySubtitleColor: Color {
+        colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted
     }
 
     /// Place-anchored empty state. Leads with a compact hero of the place the
@@ -807,7 +877,7 @@ public struct ChatSheet: View {
     }
 
     private var starterPromptChips: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 11) {
             ForEach(Array(Self.starterPrompts.enumerated()), id: \.offset) { index, prompt in
                 Button {
                     Haptics.impact(.light)
@@ -822,17 +892,16 @@ public struct ChatSheet: View {
                 .buttonStyle(PressableButtonStyle())
                 .accessibilityLabel(prompt)
                 .opacity(starterPromptsAppeared ? 1 : 0)
-                .offset(y: starterPromptsAppeared ? 0 : 8)
+                .offset(y: starterPromptsAppeared ? 0 : 10)
                 .animation(
                     reduceMotion
                         ? nil
-                        : .easeOut(duration: 0.35).delay(Double(index) * 0.08),
+                        : .spring(response: 0.42, dampingFraction: 0.8).delay(0.18 + Double(index) * 0.07),
                     value: starterPromptsAppeared
                 )
             }
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 4)
+        .padding(.horizontal, 24)
     }
 
     /// One opener row — shared by the global starter prompts and the
@@ -841,33 +910,59 @@ public struct ChatSheet: View {
     /// a step up in tactility from a bare glyph, and the chevron is the quiet
     /// "go" cue on the trailing edge.
     private func starterCardRow(icon: String, iconColor: Color, label: String) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 13) {
+            // Gradient-filled rounded tile — a tactile chip, not a flat tint.
+            // The diagonal gradient + hairline highlight give each icon a small
+            // bit of dimension so the row reads as a card, not a list cell.
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(iconColor)
-                .frame(width: 32, height: 32)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 38, height: 38)
                 .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(iconColor.opacity(colorScheme == .dark ? 0.22 : 0.12))
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [iconColor, iconColor.opacity(0.82)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                )
+                .shadow(color: iconColor.opacity(0.35), radius: 5, y: 2)
+
             Text(label)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.primary)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(starterCardTextColor)
                 .multilineTextAlignment(.leading)
+                .lineLimit(2)
+
             Spacer(minLength: 8)
+
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(CT.fgSubtle)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(starterCardChevronColor)
         }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(starterCardFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(starterCardFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(starterCardBorder, lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(starterCardBorder, lineWidth: 0.75)
         )
-        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.28 : 0.05), radius: 10, y: 4)
+    }
+
+    private var starterCardTextColor: Color {
+        colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary
+    }
+
+    private var starterCardChevronColor: Color {
+        colorScheme == .dark ? CT.fgMutedDark.opacity(0.7) : CT.fgSubtle
     }
 
     private func promptIcon(for index: Int) -> String {
@@ -878,11 +973,14 @@ public struct ChatSheet: View {
         }
     }
 
+    /// Warm-family icon tints for the three starter cards. Deep-amber accent →
+    /// sun-gold → a dusk plum that still lives next to the amber palette (not a
+    /// cold `.indigo` that fights the warm sheet). All three read as one family.
     private func promptIconColor(for index: Int) -> Color {
         switch index {
         case 0:  return CT.accent
         case 1:  return CT.sunGoldDeep
-        default: return .indigo
+        default: return Color(.sRGB, red: 0x6B / 255, green: 0x4E / 255, blue: 0x7D / 255, opacity: 1) // dusk plum #6B4E7D
         }
     }
 
@@ -894,25 +992,42 @@ public struct ChatSheet: View {
     /// calling") instead of a generic prompt, nudging the right question.
     private var nowContextBanner: some View {
         let copy = Self.nowContextCopy(hour: nowHour)
-        return HStack(spacing: 6) {
+        return HStack(spacing: 7) {
             Image(systemName: nowContextIcon)
                 .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(CT.sunGold)
             Text(copy)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
+                .font(.system(size: 11.5, weight: .medium))
+                .lineLimit(1)
+                .foregroundStyle(nowBannerTextColor)
         }
-        .foregroundStyle(CT.sunGoldDeep)
-        .padding(.horizontal, 13)
-        .padding(.vertical, 7)
-        .background(CT.sunGoldSoft, in: Capsule())
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            Capsule().fill(nowBannerFill)
+        )
+        .overlay(
+            Capsule().strokeBorder(CT.sunGold.opacity(colorScheme == .dark ? 0.30 : 0.0), lineWidth: 0.75)
+        )
         .padding(.horizontal, 28)
-        .padding(.bottom, 4)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(String(
             format: NSLocalizedString("chat.empty.now.a11y", comment: "NOW banner a11y prefix"),
             copy
         )))
+    }
+
+    /// NOW pill fill — warm-translucent gold on the dark sheet (so it reads as
+    /// "lit, belongs here" not a pasted-on bright yellow chip), the original
+    /// soft-gold parchment in light mode.
+    private var nowBannerFill: Color {
+        colorScheme == .dark
+            ? CT.sunGold.opacity(0.14)
+            : CT.sunGoldSoft
+    }
+
+    private var nowBannerTextColor: Color {
+        colorScheme == .dark ? CT.fgPrimaryDark : CT.sunGoldDeep
     }
 
     /// Current local hour (0–23). A computed property so the banner reflects the
@@ -957,16 +1072,31 @@ public struct ChatSheet: View {
         colorScheme == .dark ? Color(.systemBackground) : CT.bgWarm
     }
 
+    /// Empty-state canvas — a faint warm vertical wash so the starter cards
+    /// float on an amber-tinted ground in both schemes, rather than a flat
+    /// cold-black (dark) or plain white (light) plane. The gradient is whisper-
+    /// quiet: just enough to make the surface feel lit from the top.
+    private var emptyStateBackground: some View {
+        LinearGradient(
+            colors: colorScheme == .dark
+                ? [CT.warmSheetDark, Color(.systemBackground)]
+                : [CT.bgWarm, CT.surfaceWhite],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea(edges: .bottom)
+    }
+
     private var closeButtonFill: Color {
         colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceSunken
     }
 
     private var starterCardFill: Color {
-        colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceSunken
+        colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite
     }
 
     private var starterCardBorder: Color {
-        colorScheme == .dark ? Color(.separator) : CT.borderDefault
+        colorScheme == .dark ? CT.warmBorderDark : CT.borderSubtle
     }
 
     /// Small sun-gold pulse marking that the mic is hot while the tentative

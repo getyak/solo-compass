@@ -22,6 +22,9 @@ struct MeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(UserPreferences.self) private var preferences
     @State private var showingSettings = false
+    /// Platform role gate for the moderation entry. Refreshed on appear; the
+    /// admin/moderator section only renders once `canModerate` is true.
+    @State private var admin = AdminService.shared
     /// Programmatic nav path so a `message` deep link can push the Messages hub.
     @State private var path: [MeDestination] = []
 
@@ -74,6 +77,23 @@ struct MeSheet: View {
                     }
                 }
 
+                // Moderation — only visible to platform moderators/admins.
+                // `canModerate` is false until `admin.refreshRole()` lands, so a
+                // plain user never sees this section.
+                if admin.canModerate {
+                    Section(NSLocalizedString("me.admin.section", comment: "Admin tools section")) {
+                        NavigationLink {
+                            ModerationView()
+                        } label: {
+                            MeRow(
+                                systemImage: "shield.lefthalf.filled",
+                                title: NSLocalizedString("me.moderation", comment: "Moderation queue row"),
+                                badge: admin.reports.filter { $0.resolvedAt == nil }.count
+                            )
+                        }
+                    }
+                }
+
                 Section {
                     Button {
                         showingSettings = true
@@ -88,6 +108,12 @@ struct MeSheet: View {
             }
             .navigationTitle(NSLocalizedString("me.title", comment: "Personal hub title"))
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                // Resolve the platform role so the moderation section can appear.
+                // Cheap + cached; a non-moderator just gets `.user` back.
+                await admin.refreshRole()
+                if admin.canModerate { await admin.refreshReports() }
+            }
             .navigationDestination(for: MeDestination.self) { destination in
                 switch destination {
                 case .messages(let conversationId):

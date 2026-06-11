@@ -273,6 +273,23 @@
 "me.messages" = "Messages";
 "me.companion" = "Companion";
 "me.settings" = "Settings";
+"me.admin.section" = "Moderation";
+"me.moderation" = "Report queue";
+
+/* Moderation queue (admin / moderator) */
+"moderation.title" = "Moderation";
+"moderation.empty.title" = "All clear";
+"moderation.empty.message" = "No safety reports to review.";
+"moderation.section.open" = "Open";
+"moderation.section.resolved" = "Resolved";
+"moderation.action.ban" = "Ban";
+"moderation.action.resolve" = "Resolve";
+"moderation.row.target" = "Reported: %@";
+"moderation.reason.spam" = "Spam";
+"moderation.reason.harassment" = "Harassment";
+"moderation.reason.inappropriate" = "Inappropriate content";
+"moderation.reason.fakeProfile" = "Fake profile";
+"moderation.reason.other" = "Other";
 "me.profile.name" = "Solo Traveler";
 "me.profile.subtitle" = "Your compass, your journey";
 "me.friends.incoming" = "Friend Requests";

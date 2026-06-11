@@ -33,6 +33,10 @@ public struct CompanionReport: Identifiable, Codable, Sendable {
     public let details: String?
     /// ISO 8601 UTC timestamp.
     public let createdAt: String
+    /// ISO 8601 UTC timestamp when a moderator handled this report. nil = open.
+    public let resolvedAt: String?
+    /// The moderator/admin user id that resolved this report.
+    public let resolvedBy: String?
 
     public init(
         id: CompanionReportId,
@@ -40,7 +44,9 @@ public struct CompanionReport: Identifiable, Codable, Sendable {
         targetUserId: String,
         reason: CompanionReportReason,
         details: String? = nil,
-        createdAt: String
+        createdAt: String,
+        resolvedAt: String? = nil,
+        resolvedBy: String? = nil
     ) {
         self.id = id
         self.reporterId = reporterId
@@ -48,6 +54,59 @@ public struct CompanionReport: Identifiable, Codable, Sendable {
         self.reason = reason
         self.details = details
         self.createdAt = createdAt
+        self.resolvedAt = resolvedAt
+        self.resolvedBy = resolvedBy
+    }
+
+    // Custom Codable: PostgREST returns snake_case columns, and older rows
+    // predate the resolution fields. Decode tolerates both camelCase and
+    // snake_case keys (missing → nil / open). Encode emits camelCase (the
+    // shape the rest of the app and the TS core type use).
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case reporterId, reporter_id
+        case targetUserId, target_user_id
+        case reason
+        case details
+        case createdAt, created_at
+        case resolvedAt, resolved_at
+        case resolvedBy, resolved_by
+    }
+
+    /// First non-nil string across the given keys (camelCase then snake_case).
+    private static func firstString(
+        _ c: KeyedDecodingContainer<CodingKeys>,
+        _ keys: [CodingKeys]
+    ) -> String? {
+        for key in keys {
+            // `try?` flattens the `String??` from decodeIfPresent to `String?`.
+            if let v = try? c.decodeIfPresent(String.self, forKey: key) { return v }
+        }
+        return nil
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(CompanionReportId.self, forKey: .id)
+        self.reporterId = Self.firstString(c, [.reporterId, .reporter_id]) ?? ""
+        self.targetUserId = Self.firstString(c, [.targetUserId, .target_user_id]) ?? ""
+        self.reason = (try? c.decode(CompanionReportReason.self, forKey: .reason)) ?? .other
+        self.details = Self.firstString(c, [.details])
+        self.createdAt = Self.firstString(c, [.createdAt, .created_at]) ?? ""
+        self.resolvedAt = Self.firstString(c, [.resolvedAt, .resolved_at])
+        self.resolvedBy = Self.firstString(c, [.resolvedBy, .resolved_by])
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(reporterId, forKey: .reporterId)
+        try c.encode(targetUserId, forKey: .targetUserId)
+        try c.encode(reason, forKey: .reason)
+        try c.encodeIfPresent(details, forKey: .details)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encodeIfPresent(resolvedAt, forKey: .resolvedAt)
+        try c.encodeIfPresent(resolvedBy, forKey: .resolvedBy)
     }
 }
 

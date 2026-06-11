@@ -30,6 +30,17 @@ public enum CT {
     public static let bannerError         = rgb(0xC0, 0x3B, 0x1E) // #C03B1E — banner error tone
     public static let chatAIBubbleBgDark  = rgb(0x28, 0x24, 0x1E) // dark-mode AI bubble fill
 
+    // Dark-mode warm neutrals — keep the amber identity alive on a near-black
+    // sheet instead of falling back to cold systemGray. Sheet → card → sunken
+    // form a low-contrast warm-charcoal ladder; warm hairline borders separate
+    // them without the harsh blue-gray of `.separator`.
+    public static let warmSheetDark   = rgb(0x17, 0x14, 0x10) // sheet base
+    public static let warmCardDark    = rgb(0x23, 0x1F, 0x19) // raised card fill
+    public static let warmSunkenDark  = rgb(0x2C, 0x27, 0x20) // icon tile / sunken
+    public static let warmBorderDark  = rgb(0x3A, 0x33, 0x29) // hairline on dark
+    public static let fgPrimaryDark   = rgb(0xF4, 0xEF, 0xE7) // warm off-white text
+    public static let fgMutedDark     = rgb(0xB0, 0xA6, 0x97) // warm secondary text
+
     // Verified green (路线已验证 / closed companion) — #1F7B4D text, #2FA46A dot.
     public static let verifiedGreen    = rgb(0x1F, 0x7B, 0x4D)
     public static let verifiedGreenDot = rgb(0x2F, 0xA4, 0x6A)

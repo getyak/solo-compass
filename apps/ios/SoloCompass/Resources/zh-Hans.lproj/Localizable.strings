@@ -1593,6 +1593,23 @@
 "me.messages" = "消息";
 "me.companion" = "旅伴";
 "me.settings" = "设置";
+"me.admin.section" = "审核";
+"me.moderation" = "举报队列";
+
+/* 审核队列（管理员 / 审核员） */
+"moderation.title" = "内容审核";
+"moderation.empty.title" = "一切正常";
+"moderation.empty.message" = "暂无待处理的安全举报。";
+"moderation.section.open" = "待处理";
+"moderation.section.resolved" = "已处理";
+"moderation.action.ban" = "封禁";
+"moderation.action.resolve" = "标记已处理";
+"moderation.row.target" = "被举报：%@";
+"moderation.reason.spam" = "垃圾信息";
+"moderation.reason.harassment" = "骚扰";
+"moderation.reason.inappropriate" = "不当内容";
+"moderation.reason.fakeProfile" = "虚假资料";
+"moderation.reason.other" = "其他";
 "me.profile.name" = "独行旅人";
 "me.profile.subtitle" = "你的罗盘，你的旅程";
 "me.profile.progress.a11y" = "已探索 %d / %d 个收藏地点";

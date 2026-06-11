@@ -91,6 +91,15 @@ export interface CompanionRequest {
 
 export type CompanionVisibility = "off" | "itinerary_only" | "nearby_and_itinerary";
 
+/**
+ * Platform-level access role. Orthogonal to the P2P friend graph — `moderator`
+ * and `admin` can read the full moderation queue (companion reports) and take
+ * moderation actions (ban / role change) via the `moderate-action` Edge
+ * Function. Defaults to `user` for every account; elevation is server-side
+ * only (the client never writes its own role).
+ */
+export type UserRole = "user" | "moderator" | "admin";
+
 export interface CompanionProfile {
   readonly id: CompanionProfileId;
   readonly userId: UserId;
@@ -102,6 +111,8 @@ export interface CompanionProfile {
   readonly languages: readonly string[];
   /** Controls whether and how the user appears in discovery. Default: off. */
   readonly visibility: CompanionVisibility;
+  /** Platform access role. Default: "user". Elevated server-side only. */
+  readonly role: UserRole;
   /** ISO 8601 UTC timestamp. */
   readonly createdAt: string;
   /** ISO 8601 UTC timestamp. */
@@ -178,4 +189,8 @@ export interface CompanionReport {
   readonly details?: string;
   /** ISO 8601 UTC timestamp. */
   readonly createdAt: string;
+  /** ISO 8601 UTC timestamp when a moderator handled this report. Unset = open. */
+  readonly resolvedAt?: string;
+  /** The moderator/admin user id that resolved this report. */
+  readonly resolvedBy?: UserId;
 }

@@ -86,7 +86,8 @@ public final class FriendService {
     public func sendRequest(
         to recipientId: String,
         source: FriendRequestSource,
-        note: String? = nil
+        note: String? = nil,
+        autoAcceptPolicy: AutoAcceptPolicy = .none
     ) async -> Result<SendRequestOutcome, Error> {
         guard FeatureFlags.companion else {
             return .failure(FriendServiceError.featureDisabled)
@@ -99,10 +100,23 @@ public final class FriendService {
         let hasInbound = incomingRequests.contains {
             $0.requesterId == recipientId && $0.status == .pending
         }
+        // Resolve the effective auto-accept policy: an explicit policy from the
+        // caller (co-traveler / opted-in) wins; otherwise fall back to a staff
+        // lookup so friending a moderator/admin always connects directly.
+        let effectivePolicy: AutoAcceptPolicy
+        if autoAcceptPolicy.grantsImmediate {
+            effectivePolicy = autoAcceptPolicy
+        } else if await isStaff(recipientId) {
+            effectivePolicy = .staffRecipient
+        } else {
+            effectivePolicy = .none
+        }
+
         let outcome = FriendshipStateMachine.resolveSendRequest(
             currentState: currentState,
             hasInboundPending: hasInbound,
-            isBlockedEitherWay: isBlocked(recipientId)
+            isBlockedEitherWay: isBlocked(recipientId),
+            autoAcceptPolicy: effectivePolicy
         )
 
         switch outcome {
@@ -119,6 +133,11 @@ public final class FriendService {
                 return res.map { _ in .autoAccepted }
             }
             return .success(.autoAccepted)
+
+        case .autoAcceptedDirect:
+            // Policy grants an immediate friendship with no inbound request.
+            let res = await createFriendshipDirect(with: recipientId)
+            return res.map { _ in .autoAcceptedDirect }
 
         case .createdPending:
             let trimmedNote = note.map { String($0.prefix(120)) }
@@ -837,6 +856,58 @@ public final class FriendService {
         // Without a loaded block list we conservatively return false and let
         // the server silently drop.
         false
+    }
+
+    /// True when `userId` is a platform moderator/admin. Friending staff
+    /// auto-connects (so users can always reach help). Reads the public
+    /// `companion_profiles.role`; any miss → false (normal pending flow).
+    private func isStaff(_ userId: String) async -> Bool {
+        let query = [
+            URLQueryItem(name: "select", value: "role,is_banned"),
+            URLQueryItem(name: "user_id", value: "eq.\(userId)"),
+            URLQueryItem(name: "limit", value: "1"),
+        ]
+        guard case .success(let data) = await client.get(table: "companion_profiles", query: query),
+              !data.isEmpty else { return false }
+        struct Row: Decodable { let role: String?; let is_banned: Bool? }
+        let rows = (try? JSONDecoder().decode([Row].self, from: data)) ?? []
+        guard let row = rows.first, row.is_banned != true,
+              let role = row.role.flatMap(UserRole.init(rawValue:)) else { return false }
+        return role.canModerate
+    }
+
+    /// Create a confirmed friendship immediately (no pending step), used when an
+    /// `AutoAcceptPolicy` applies. Mirrors `accept(_:)`'s friendship write minus
+    /// the inbound-request bookkeeping. `initiatedBy` is the current user.
+    @discardableResult
+    private func createFriendshipDirect(with recipientId: String) async -> Result<Friendship, Error> {
+        // Idempotency: if we somehow already have this friend, no-op success.
+        if let existing = friendship(with: recipientId) {
+            return .success(existing)
+        }
+        let pair = Friendship.orderedPair(currentUserId, recipientId)
+        let now = nowISO()
+        let friendship = Friendship(
+            id: FriendshipId(rawValue: "fnd_\(UUID().uuidString)"),
+            userLowId: pair.low,
+            userHighId: pair.high,
+            initiatedBy: currentUserId,
+            conversationId: nil,
+            acceptedAt: now,
+            createdAt: now,
+            updatedAt: now
+        )
+        guard let data = try? JSONEncoder.iso8601Encoder.encode(friendship) else {
+            return .failure(FriendServiceError.encodingFailed)
+        }
+        switch await client.post(table: "friendships", body: data) {
+        case .success:
+            friends.append(friendship)
+            persistFriendship(friendship)
+            return .success(friendship)
+        case .failure(let err):
+            return .failure(err)
+        }
     }
 
     // MARK: - Private: request status update
