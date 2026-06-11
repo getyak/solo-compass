@@ -164,4 +164,88 @@ final class FriendshipStateMachineTests: XCTestCase {
         )
         XCTAssertEqual(outcome, .createdPending)
     }
+
+    // MARK: resolveSendRequest — auto-accept policy (default-friends rules)
+
+    func testResolveSendRequest_staffRecipient_autoAcceptsDirect() {
+        // Friending a moderator/admin from a clean slate → immediate friendship.
+        let outcome = FriendshipStateMachine.resolveSendRequest(
+            currentState: .none,
+            hasInboundPending: false,
+            isBlockedEitherWay: false,
+            autoAcceptPolicy: .staffRecipient
+        )
+        XCTAssertEqual(outcome, .autoAcceptedDirect)
+    }
+
+    func testResolveSendRequest_coTraveler_autoAcceptsDirect() {
+        let outcome = FriendshipStateMachine.resolveSendRequest(
+            currentState: .none,
+            hasInboundPending: false,
+            isBlockedEitherWay: false,
+            autoAcceptPolicy: .coTraveler
+        )
+        XCTAssertEqual(outcome, .autoAcceptedDirect)
+    }
+
+    func testResolveSendRequest_optedIn_autoAcceptsDirect() {
+        let outcome = FriendshipStateMachine.resolveSendRequest(
+            currentState: .none,
+            hasInboundPending: false,
+            isBlockedEitherWay: false,
+            autoAcceptPolicy: .recipientOptedIn
+        )
+        XCTAssertEqual(outcome, .autoAcceptedDirect)
+    }
+
+    func testResolveSendRequest_policyNone_staysPending() {
+        // The default policy must preserve the normal approval flow.
+        let outcome = FriendshipStateMachine.resolveSendRequest(
+            currentState: .none,
+            hasInboundPending: false,
+            isBlockedEitherWay: false,
+            autoAcceptPolicy: .none
+        )
+        XCTAssertEqual(outcome, .createdPending)
+    }
+
+    func testResolveSendRequest_block_winsOverAutoAcceptPolicy() {
+        // Safety: a block is never overridden by an auto-accept policy.
+        let outcome = FriendshipStateMachine.resolveSendRequest(
+            currentState: .none,
+            hasInboundPending: false,
+            isBlockedEitherWay: true,
+            autoAcceptPolicy: .staffRecipient
+        )
+        XCTAssertEqual(outcome, .silentlyDropped)
+    }
+
+    func testResolveSendRequest_alreadyFriends_winsOverAutoAcceptPolicy() {
+        let outcome = FriendshipStateMachine.resolveSendRequest(
+            currentState: .accepted,
+            hasInboundPending: false,
+            isBlockedEitherWay: false,
+            autoAcceptPolicy: .staffRecipient
+        )
+        XCTAssertEqual(outcome, .alreadyFriends)
+    }
+
+    func testResolveSendRequest_inboundPending_winsOverAutoAcceptPolicy() {
+        // A real inbound request folds to .autoAccepted (accept the existing
+        // request), not .autoAcceptedDirect (create fresh).
+        let outcome = FriendshipStateMachine.resolveSendRequest(
+            currentState: .none,
+            hasInboundPending: true,
+            isBlockedEitherWay: false,
+            autoAcceptPolicy: .staffRecipient
+        )
+        XCTAssertEqual(outcome, .autoAccepted)
+    }
+
+    func testAutoAcceptPolicy_grantsImmediate() {
+        XCTAssertFalse(AutoAcceptPolicy.none.grantsImmediate)
+        XCTAssertTrue(AutoAcceptPolicy.staffRecipient.grantsImmediate)
+        XCTAssertTrue(AutoAcceptPolicy.coTraveler.grantsImmediate)
+        XCTAssertTrue(AutoAcceptPolicy.recipientOptedIn.grantsImmediate)
+    }
 }

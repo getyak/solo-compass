@@ -91,11 +91,32 @@ public enum FeatureFlags {
     ///
     /// When false, all itinerary mutations still persist locally (SwiftData)
     /// but the outbox rows are never created, so no network traffic is
-    /// generated. Flip to true after `0003_companion.sql` is deployed.
+    /// generated.
     ///
-    /// Default off in Phase 1 beta — local-first invariant (PRD G7).
+    /// This is the master gate for the whole backend social stack — friends,
+    /// DMs (ChatService), companion discovery, presence, moderation reads, and
+    /// itinerary sync all check it. It also requires `backendSync` to be on for
+    /// any network call to actually fire.
+    ///
+    /// DEBUG builds default to ON so the social / friends / moderation surfaces
+    /// are immediately exercisable in the Simulator. Release builds read the
+    /// plist/env (`FF_COMPANION`) and default OFF, preserving the staged-rollout
+    /// posture (PRD G7 local-first invariant) until the backend is ready.
+    /// Override in DEBUG without rebuilding:
+    ///
+    ///     defaults write <app-bundle-id> FF_COMPANION -bool NO
     public static var companion: Bool {
-        readBool("FF_COMPANION", default: false)
+        #if DEBUG
+        if UserDefaults.standard.object(forKey: "FF_COMPANION") != nil {
+            return UserDefaults.standard.bool(forKey: "FF_COMPANION")
+        }
+        if let env = ProcessInfo.processInfo.environment["FF_COMPANION"] {
+            return env == "1" || env.lowercased() == "true"
+        }
+        return true
+        #else
+        return readBool("FF_COMPANION", default: false)
+        #endif
     }
 
     /// US-009: Master gate for the in-map Companion *layer* toggle (the

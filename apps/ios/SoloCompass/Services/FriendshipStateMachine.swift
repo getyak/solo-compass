@@ -42,14 +42,37 @@ public enum SendRequestOutcome: Equatable, Sendable {
     /// A normal new pending request should be created.
     case createdPending
     /// The recipient already had a pending request to the requester → both
-    /// want it, so auto-accept and create the friendship.
+    /// want it, so auto-accept the *existing inbound* request.
     case autoAccepted
+    /// An auto-accept policy applies (recipient is staff, a co-traveler, or the
+    /// recipient opted into auto-accept) with NO inbound request → create the
+    /// friendship directly, skipping the pending step.
+    case autoAcceptedDirect
     /// Already friends → no-op, return the existing friendship.
     case alreadyFriends
     /// The requester is blocked by the recipient (or vice-versa) → silently
     /// drop. We never reveal block status, so this *looks* like success to the
     /// caller but enqueues nothing.
     case silentlyDropped
+}
+
+/// Why a `sendRequest` should bypass the pending step and become an immediate
+/// friendship. Computed by the caller (which has the I/O to know these facts)
+/// and handed to the pure resolver. `.none` = normal pending flow.
+public enum AutoAcceptPolicy: Equatable, Sendable {
+    /// No auto-accept — the recipient must approve the request.
+    case none
+    /// The recipient is a platform moderator/admin (staff are reachable
+    /// directly so users can always get help).
+    case staffRecipient
+    /// Both users are confirmed members of the same route (co-travelers skip
+    /// the approval friction — FRIENDS_DESIGN §4).
+    case coTraveler
+    /// The recipient has turned on "auto-accept friend requests".
+    case recipientOptedIn
+
+    /// True when this policy grants an immediate friendship.
+    public var grantsImmediate: Bool { self != .none }
 }
 
 // MARK: - FriendshipStateMachine
@@ -104,11 +127,18 @@ public enum FriendshipStateMachine {
     ///   - hasInboundPending: true when the recipient already sent the
     ///     requester a still-pending request (the reverse direction).
     ///   - isBlockedEitherWay: true when either user has blocked the other.
+    ///   - autoAcceptPolicy: a non-`.none` policy makes the request bypass the
+    ///     pending step and become an immediate friendship (staff recipient,
+    ///     co-traveler, or recipient opted-in). Block/already-friends/mutual
+    ///     rules still take precedence over the policy.
     public static func resolveSendRequest(
         currentState: FriendRelationState,
         hasInboundPending: Bool,
-        isBlockedEitherWay: Bool
+        isBlockedEitherWay: Bool,
+        autoAcceptPolicy: AutoAcceptPolicy = .none
     ) -> SendRequestOutcome {
+        // Safety rules win over any auto-accept policy: never override a block,
+        // never re-create an existing friendship.
         if isBlockedEitherWay || currentState == .blocked {
             return .silentlyDropped
         }
@@ -117,6 +147,11 @@ public enum FriendshipStateMachine {
         }
         if hasInboundPending {
             return .autoAccepted
+        }
+        // No inbound request, relationship is open → an auto-accept policy
+        // creates the friendship directly; otherwise a normal pending request.
+        if autoAcceptPolicy.grantsImmediate {
+            return .autoAcceptedDirect
         }
         // currentState is .none or our own .pending (re-send) → pending.
         return .createdPending
