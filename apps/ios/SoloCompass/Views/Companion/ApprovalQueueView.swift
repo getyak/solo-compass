@@ -385,6 +385,67 @@ public struct ApprovalQueueView: View {
         }
 
         routeState = updated
+
+        // US-026: when this accept closes the group (成团), start a departure
+        // countdown Live Activity if the departure time parses to a real clock
+        // time. A vague hint like "morning" can't drive a live timer, so we skip
+        // it rather than invent a fake countdown.
+        if companion.status == .closed {
+            startCountdownActivity(for: companion, routeTitle: updated.title)
+        }
+    }
+
+    /// Map a closed companion slot onto a countdown Live Activity. Resolves
+    /// `departureWindow.time` ("HH:mm") to today's instant and builds the member
+    /// avatar stack from confirmed members (host first).
+    private func startCountdownActivity(for companion: RouteCompanion, routeTitle: String) {
+        guard let departure = Self.nextDeparture(from: companion.departureWindow.time) else { return }
+
+        let memberIds = ([companion.hostId] + companion.confirmedMembers)
+            .reduce(into: [String]()) { acc, id in if !acc.contains(id) { acc.append(id) } }
+        let initials = memberIds.map { id -> String in
+            let name = UserDirectory.displayName(forId: id)
+            return String(name.prefix(1)).uppercased()
+        }
+        let summary = memberIds.map { UserDirectory.displayName(forId: $0) }
+            .joined(separator: " · ")
+
+        LiveActivityService.shared.startCountdown(
+            groupTitle: routeTitle,
+            meetPointName: companion.departureLabel.isEmpty ? routeTitle : companion.departureLabel,
+            departureDate: departure,
+            memberInitials: initials,
+            memberSummary: summary
+        )
+
+        // US-026: also schedule a time-sensitive departure reminder 30 min before
+        // the group sets off (the design's "30 分钟后集合" banner). Local-only, so
+        // it nudges this device's owner — cross-device social pushes await APNs.
+        let meetLabel = companion.departureLabel.isEmpty ? routeTitle : companion.departureLabel
+        Task {
+            await NotificationService.shared.scheduleDepartureReminder(
+                routeId: route.id.rawValue,
+                title: NSLocalizedString("notification.departure.title", comment: "Departure reminder title"),
+                body: String(
+                    format: NSLocalizedString("notification.departure.body", comment: "Departure reminder body — meet point"),
+                    meetLabel
+                ),
+                fireDate: departure.addingTimeInterval(-30 * 60)
+            )
+        }
+    }
+
+    /// Parse a "HH:mm" departure hint into the next occurrence of that time
+    /// (today if still ahead, otherwise tomorrow). Returns nil for non-clock
+    /// hints like "morning".
+    private static func nextDeparture(from time: String) -> Date? {
+        let parts = time.split(separator: ":")
+        guard parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]),
+              (0..<24).contains(h), (0..<60).contains(m) else { return nil }
+        let cal = Calendar.current
+        let now = Date()
+        guard let today = cal.date(bySettingHour: h, minute: m, second: 0, of: now) else { return nil }
+        return today > now ? today : cal.date(byAdding: .day, value: 1, to: today)
     }
 
     private func decline(_ request: JoinRequest) {

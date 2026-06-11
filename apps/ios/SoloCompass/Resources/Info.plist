@@ -57,6 +57,8 @@
 	<string>Solo Compass needs access to your photos so you can attach an image to a place you add.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Solo Compass uses speech recognition so you can describe what you're looking for by voice.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

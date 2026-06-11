@@ -44,6 +44,11 @@ targets:
         CFBundleLocalizations:
           - en
           - zh-Hans
+        # US-026: opt the app into Live Activities so LiveActivityService can
+        # start Dynamic Island activities. This is local-only — it needs no APNs
+        # / aps-environment entitlement (activities update via ActivityKit, not
+        # remote push), so it stays clear of the disabled push provisioning.
+        NSSupportsLiveActivities: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -117,6 +122,40 @@ targets:
         product: Sentry
       - package: swift-markdown-ui
         product: MarkdownUI
+      # Embed the Live Activities widget extension into the app bundle. Without
+      # this dependency the extension builds but is never copied into
+      # SoloCompass.app/PlugIns, so iOS can't surface the Dynamic Island UI.
+      - target: SoloCompassWidgets
+
+  # Live Activities / Dynamic Island widget extension (US-026). Renders the four
+  # Live Activity scenarios (route / countdown / recording / compile) on the
+  # Lock Screen and in the Dynamic Island. The main app drives state via
+  # LiveActivityService; this extension only renders ContentState — it has no
+  # app services, no network, and no APNs (activities update locally).
+  SoloCompassWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      # The extension's own SwiftUI widget code.
+      - path: SoloCompassWidgets
+      # The ActivityAttributes contract, compiled into BOTH targets so the app
+      # and the widget agree on the ContentState shape. Single source of truth.
+      - path: SoloCompass/Shared/SoloCompassActivityAttributes.swift
+    info:
+      path: SoloCompassWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: SoloCompass
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.solocompass.app.widgets
+        INFOPLIST_FILE: SoloCompassWidgets/Info.plist
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Apple Distribution"
+        DEVELOPMENT_TEAM: "6RG2F8YY59"
+        SKIP_INSTALL: NO
 
   SoloCompassTests:
     type: bundle.unit-test

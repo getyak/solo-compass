@@ -326,6 +326,20 @@
 "notification.route.join.title" = "你已加入！";
 "notification.route.join.body" = "%1$@ 把你加入了「%2$@」。点按查看路线。";
 
+/* US-026 — 灵动岛（实时活动）文案 */
+"island.compile.title" = "正在编排今日页面";
+"island.compile.subtitle" = "%d 条 signal · 编排中";
+
+/* US-026 — 通知快捷操作 */
+"notification.action.departed" = "我已出发";
+"notification.action.viewRoute" = "查看路线";
+"notification.action.accept" = "接受";
+"notification.action.viewRequest" = "查看申请";
+
+/* US-026 — 出发提醒（时效） */
+"notification.departure.title" = "30 分钟后集合";
+"notification.departure.body" = "即将出发 · 在 %@ 集合。";
+
 /* US-020 — 邀请好友直接加入招募中的路线（无需审批） */
 "invite.friends.button" = "邀请好友";
 "invite.friends.button.a11y" = "邀请好友加入此路线";

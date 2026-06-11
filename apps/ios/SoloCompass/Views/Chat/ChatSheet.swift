@@ -1316,6 +1316,11 @@ public struct ChatSheet: View {
                 liveTranscript = ""
                 let stream = try voiceService.startListening()
                 if !reduceMotion { recordingPulse = true }
+                // US-026: surface the capture as a Live Activity (录制语音 signal)
+                // with a live waveform sampled from VoiceService.amplitude.
+                LiveActivityService.shared.beginRecordingSession(
+                    locality: ""
+                ) { voiceService.amplitude }
                 Haptics.impact(.light)
                 voiceStreamTask = Task { @MainActor in
                     do {
@@ -1341,6 +1346,7 @@ public struct ChatSheet: View {
 
     private func endPushToTalk(send: Bool) {
         voiceService.stopListening()
+        Task { await LiveActivityService.shared.endRecordingSession() }
         recordingPulse = false
         voiceStreamTask?.cancel()
         voiceStreamTask = nil
@@ -1364,6 +1370,7 @@ public struct ChatSheet: View {
         if voiceService.isListening {
             voiceService.stopListening()
         }
+        Task { await LiveActivityService.shared.endRecordingSession() }
         recordingPulse = false
         liveTranscript = ""
     }
