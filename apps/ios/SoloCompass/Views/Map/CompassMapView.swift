@@ -852,6 +852,8 @@ struct CompassMapContentView: View {
                             stopCount: active.coordinates.count,
                             onEnd: {
                                 withAnimation(.easeInOut(duration: 0.25)) { activeRoute = nil }
+                                // US-026: tear down the route Live Activity too.
+                                Task { await LiveActivityService.shared.end() }
                             }
                         )
                         .padding(.horizontal, 16)
@@ -1145,7 +1147,34 @@ struct CompassMapContentView: View {
         activeRoute = ActiveRoute(route: route, coordinates: coords)
         viewModel.cameraPosition = .region(Self.region(enclosing: coords))
         HapticService.shared.impact(style: .medium)
+
+        // US-026: start the "路线进行中" Live Activity so the next stop, walking
+        // ETA, and overall progress live in the Dynamic Island. The first stop's
+        // short place name (never its long title sentence) heads the card.
+        let firstStop = route.experienceIds.first.flatMap { experienceService.getExperience(id: $0) }
+        let firstStopName = firstStop.map { $0.location.placeNameRomanized ?? $0.location.placeNameLocal ?? $0.title }
+            ?? route.title
+        // Rough first-leg ETA: ~1/N of the route's estimated duration from now.
+        let legMinutes = max(1, route.estimatedDuration / max(coords.count, 1))
+        let eta = Date().addingTimeInterval(Double(legMinutes) * 60)
+        let etaText = Self.islandTimeFormatter.string(from: eta)
+        LiveActivityService.shared.startRoute(
+            routeTitle: route.title,
+            nextStopName: firstStopName,
+            nextStopMeta: "步行约 \(legMinutes) 分 · 共 \(coords.count) 站",
+            etaText: etaText,
+            currentStopIndex: 1,
+            totalStops: coords.count
+        )
     }
+
+    /// HH:mm formatter for Live Activity ETAs — fixed 24h so the island reads
+    /// the same regardless of the device's 12/24-hour setting.
+    private static let islandTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
 
     /// Radius (meters) of the translucent circle drawn around the traveler's
     /// own location marker. ~120m reads as a comfortable "right here" bubble at

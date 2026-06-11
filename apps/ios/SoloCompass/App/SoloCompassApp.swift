@@ -48,8 +48,17 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
+        let actionId = response.actionIdentifier
         Task { @MainActor in
-            NotificationService.shared.handleRemotePayload(userInfo)
+            // US-026: a quick-action tap ("我已出发 / 查看路线 / 接受 / 查看申请")
+            // routes through handleActionResponse; a plain banner tap
+            // (UNNotificationDefaultActionIdentifier) keeps the prior behavior.
+            if actionId == UNNotificationDefaultActionIdentifier
+                || actionId == UNNotificationDismissActionIdentifier {
+                NotificationService.shared.handleRemotePayload(userInfo)
+            } else {
+                NotificationService.shared.handleActionResponse(actionIdentifier: actionId, userInfo: userInfo)
+            }
             completionHandler()
         }
     }
@@ -75,6 +84,10 @@ struct SoloCompassApp: App {
         // US-023: own the notification-center delegate so a tapped friend-request
         // banner routes to the inbox deep link (and foreground banners still show).
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+
+        // US-026: register the departure / join-request categories so their quick
+        // actions ("我已出发 / 查看路线", "接受 / 查看申请") attach to the banners.
+        SCNotificationCategory.registerAll()
     }
 
     @State private var locationService = LocationService.shared
@@ -90,6 +103,9 @@ struct SoloCompassApp: App {
     @State private var aiService = AIService(useSharedCache: true)
     @State private var preferences = UserPreferences()
     @State private var notificationService = NotificationService.shared
+    // US-026: Live Activities / Dynamic Island controller. Started/ended from
+    // the route, companion-countdown, recording, and AI-compile flows.
+    @State private var liveActivityService = LiveActivityService.shared
     @State private var subscriptionService = SubscriptionService()
     @State private var languageService = LanguageService.shared
     @State private var companionService = CompanionService.shared
@@ -109,6 +125,7 @@ struct SoloCompassApp: App {
                 .environment(aiService)
                 .environment(preferences)
                 .environment(notificationService)
+                .environment(liveActivityService)
                 .environment(subscriptionService)
                 .environment(languageService)
                 .environment(companionService)

@@ -640,6 +640,20 @@
 "notification.route.join.title" = "You're in!";
 "notification.route.join.body" = "%1$@ added you to “%2$@”. Tap to see the route.";
 
+/* US-026 — Live Activity (Dynamic Island) copy */
+"island.compile.title" = "Composing today's page";
+"island.compile.subtitle" = "%d signals · synthesizing";
+
+/* US-026 — Notification quick actions */
+"notification.action.departed" = "I'm on my way";
+"notification.action.viewRoute" = "View route";
+"notification.action.accept" = "Accept";
+"notification.action.viewRequest" = "View request";
+
+/* US-026 — Departure reminder (time-sensitive) */
+"notification.departure.title" = "Meet up in 30 minutes";
+"notification.departure.body" = "Heading out soon — meet at %@.";
+
 /* US-020 — Invite friends into a recruiting route (no approval) */
 "invite.friends.button" = "Invite Friends";
 "invite.friends.button.a11y" = "Invite friends into this route";

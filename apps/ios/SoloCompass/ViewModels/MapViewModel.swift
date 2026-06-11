@@ -1351,6 +1351,17 @@ public final class MapViewModel {
             preferredCategories: preferences.preferredCategories,
             dislikedCategories: preferences.dislikedCategories
         )
+        // US-026: surface the synthesis as an "AI 编排中" Live Activity — the
+        // skeleton-shimmer island that stands in for "正在编排今日页面". Ended in
+        // the defer so it always tears down, success or failure.
+        LiveActivityService.shared.startCompile(
+            title: NSLocalizedString("island.compile.title", comment: "AI compile island title"),
+            subtitle: String(
+                format: NSLocalizedString("island.compile.subtitle", comment: "AI compile island subtitle — count of candidates"),
+                candidates.count
+            )
+        )
+        defer { Task { await LiveActivityService.shared.end() } }
         do {
             let ranked = try await aiService.recommendExperiences(from: candidates, context: context)
             let rank = Dictionary(uniqueKeysWithValues: ranked.enumerated().map { ($0.element, $0.offset) })

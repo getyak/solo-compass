@@ -158,6 +158,125 @@ public final class NotificationService {
         await center.removePendingNotificationRequests(withIdentifiers: [identifier])
     }
 
+    // MARK: - US-026: companion / route lock-screen notifications
+    //
+    // The five scenarios from the design's lock-screen stack (island_notif.jsx).
+    // All local — no APNs. DayPage voice: structured, sentence-case, no emoji,
+    // the result stated in one line.
+
+    /// ① AI「此刻」提示 — e.g. "日落将至 · 步行 7 分钟可达 湄公河观景点". Default
+    /// interruption level; this is a gentle nudge, not urgent.
+    public func scheduleAINowHint(title: String, body: String, deepLinkExperienceId: String? = nil) async {
+        guard isAuthorized else { return }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        if let id = deepLinkExperienceId { content.userInfo = ["experienceId": id] }
+        await deliver(content, id: "ai-now-\(deepLinkExperienceId ?? UUID().uuidString)", after: 2)
+    }
+
+    /// ② 出发提醒 (time-sensitive) — "30 分钟后集合" with "我已出发 / 查看路线"
+    /// quick actions. Time-sensitive so it can break through Focus when the
+    /// group is about to set off. Fires at `fireDate` (e.g. 30 min before the
+    /// group's departure); a past/imminent `fireDate` is clamped to ~now.
+    public func scheduleDepartureReminder(
+        routeId: String,
+        title: String,
+        body: String,
+        fireDate: Date
+    ) async {
+        guard isAuthorized else { return }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.interruptionLevel = .timeSensitive
+        content.categoryIdentifier = SCNotificationCategory.departure
+        content.userInfo = ["routeId": routeId, "kind": "departure"]
+        let seconds = max(1, fireDate.timeIntervalSinceNow)
+        await deliver(content, id: "departure-\(routeId)", after: seconds)
+    }
+
+    /// ③ 加入申请 (host view) — "Yuna 想加入你的路线" with "接受 / 查看申请".
+    public func scheduleJoinRequestNotification(
+        routeId: String,
+        requestId: String,
+        title: String,
+        body: String
+    ) async {
+        guard isAuthorized else { return }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.categoryIdentifier = SCNotificationCategory.joinRequest
+        content.userInfo = ["routeId": routeId, "requestId": requestId, "kind": "joinRequest"]
+        await deliver(content, id: "join-\(requestId)", after: 2)
+    }
+
+    /// ④ 群聊新消息 — "Lin: 中午 11:30 我们转场 Sapa…". Routes to the chat thread.
+    public func scheduleGroupMessage(
+        conversationId: String,
+        senderName: String,
+        preview: String
+    ) async {
+        guard isAuthorized else { return }
+        let content = UNMutableNotificationContent()
+        content.title = senderName
+        content.body = preview
+        content.sound = .default
+        // Group by conversation so threads stack on the lock screen (the design's
+        // "+2 条" stacked notification).
+        content.threadIdentifier = "conv-\(conversationId)"
+        content.userInfo = ["type": "message", "conversationId": conversationId]
+        await deliver(content, id: "msg-\(conversationId)-\(UUID().uuidString)", after: 1)
+    }
+
+    /// ⑤ 已成团 — low-priority result confirmation, one line.
+    public func scheduleGroupFormed(routeId: String, title: String, body: String) async {
+        guard isAuthorized else { return }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        content.interruptionLevel = .passive
+        content.userInfo = ["routeId": routeId, "kind": "groupFormed"]
+        await deliver(content, id: "formed-\(routeId)", after: 2)
+    }
+
+    /// US-026: route a quick-action tap. "我已出发" is fire-and-forget (no nav);
+    /// "查看路线" / "接受" / "查看申请" deep-link into the matching surface via the
+    /// existing pendingDeepLink mechanism.
+    public func handleActionResponse(actionIdentifier: String, userInfo: [AnyHashable: Any]) {
+        switch actionIdentifier {
+        case SCNotificationCategory.actionDeparted:
+            // Acknowledged — no navigation. (A future story can mark the member
+            // as en route in the group thread.)
+            break
+        case SCNotificationCategory.actionAccept, SCNotificationCategory.actionViewRequest:
+            let requestId = userInfo["requestId"] as? String
+            pendingDeepLink = .friendRequestInbox(requestId: requestId)
+        case SCNotificationCategory.actionViewRoute:
+            // The map observes pendingDeepLink; a route deep link reuses the
+            // chat-conversation channel when a group thread exists, else falls
+            // through to a plain tap (handled by handleRemotePayload).
+            handleRemotePayload(userInfo)
+        default:
+            handleRemotePayload(userInfo)
+        }
+    }
+
+    /// Shared scheduling tail — removes any prior request with the same id, then
+    /// adds a short-delay one-shot trigger. Errors are non-critical (the in-app
+    /// surface is primary).
+    private func deliver(_ content: UNMutableNotificationContent, id: String, after seconds: TimeInterval) async {
+        await center.removePendingNotificationRequests(withIdentifiers: [id])
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, seconds), repeats: false)
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        try? await center.add(request)
+    }
+
     // MARK: - Helpers
 
     private func secondsUntilMorning(quietHoursEnd: Int) -> TimeInterval {
