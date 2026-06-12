@@ -13,15 +13,6 @@ public final class LocationService: NSObject {
     public private(set) var lastError: Error?
     public private(set) var heading: CLHeading?
 
-    #if DEBUG
-    /// Test hook: inject a GPS fix without a live CLLocationManager, so logic
-    /// that branches on `currentLocation` (e.g. `MapViewModel.bindToLocation`)
-    /// is unit-testable. DEBUG-only — never compiled into Release.
-    public func setTestLocation(_ coordinate: CLLocationCoordinate2D) {
-        currentLocation = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-    }
-    #endif
-
     /// Geohash precision-6 (~600m×600m) of `currentLocation`. Nil when
     /// no location is known. Precise coordinates are never exposed — only
     /// the coarse cell string computed locally on device.

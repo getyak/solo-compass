@@ -136,7 +136,7 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
         // Simulate the traveler being physically in Vientiane, Laos — ~12,000 km
         // from the picked San Francisco.
         let laos = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
-        locationService.setTestLocation(laos)
+        locationService.simulate(location: CLLocation(latitude: laos.latitude, longitude: laos.longitude))
 
         // The first GPS fix fires bindToLocation (CompassMapView's onChange).
         vm.bindToLocation()
@@ -181,7 +181,7 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
         vm.selectedCity = nil
 
         let laos = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
-        locationService.setTestLocation(laos)
+        locationService.simulate(location: CLLocation(latitude: laos.latitude, longitude: laos.longitude))
         vm.bindToLocation()
 
         let region = try XCTUnwrap(vm.cameraPosition.region)
