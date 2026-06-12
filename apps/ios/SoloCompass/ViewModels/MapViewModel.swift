@@ -221,16 +221,23 @@ public final class MapViewModel {
         // city (persisted or `-startCity`) must not be yanked to the first GPS
         // fix. In the simulator that fix defaults to San Francisco, so without
         // this guard a `cmi` cold start shows the "Chiang Mai" header over a San
-        // Francisco map with an empty nearby list. We skip only the *camera
-        // recenter* for a preset (non-custom) city; the auto-explore check below
-        // still runs so a data-sparse landing can offer to fetch nearby places.
-        // The user can still pull to their real location via the explicit
-        // recenter button (`recenterOnUser`), which bypasses `hasAutoCentered`.
+        // Francisco map with an empty nearby list. The user can still pull to
+        // their real location via the explicit recenter button
+        // (`recenterOnUser`), which bypasses `hasAutoCentered`.
+        //
+        // Bugfix (V-007): when a preset city owns the camera we must ALSO skip
+        // `autoExploreIfEmpty`, not just the recenter. The auto-explore runs at
+        // the *GPS* coordinate, and on success `exploreNearby` ends with both
+        // `selectCity(discoveredCity)` and `recenter(gpsCoord)` — which silently
+        // overrode the user's explicit city pick (e.g. picking a China city
+        // while physically in Laos snapped the map + nearby list back to Laos).
+        // A user who picked a city wants that city; GPS-anchored auto-explore is
+        // only appropriate when we're actually following GPS (no city selected).
         let cityOwnsCamera = (selectedCity.map { !$0.hasPrefix("custom_") }) ?? false
         if !cityOwnsCamera {
             recenter(on: coordinate)
+            autoExploreIfEmpty(at: coordinate)
         }
-        autoExploreIfEmpty(at: coordinate)
     }
 
     /// Whether a GPS fix is available right now — drives the custom recenter
@@ -248,12 +255,24 @@ public final class MapViewModel {
         recenter(on: coordinate)
     }
 
+    #if DEBUG
+    /// Test-only counter: how many times `autoExploreIfEmpty` has been entered.
+    /// Lets the V-007 regression test assert that a preset-city `bindToLocation`
+    /// does NOT trigger GPS-anchored auto-explore (the path whose `exploreNearby`
+    /// tail overrode the user's city pick). Synchronous + deterministic, so it
+    /// catches the regression without racing the async `exploreNearby` Task.
+    @ObservationIgnored public private(set) var autoExploreInvocationCount = 0
+    #endif
+
     /// Auto-trigger Explore when the user lands in a data-sparse area
     /// (e.g. Vientiane with zero seed data). Fires once after the first
     /// GPS fix. Skips when there's already ≥3 experiences within 5 km,
     /// or when a recent (<7 day) offline region cache covers the spot.
     /// `exploreNearby` handles the paywall + consent gates internally.
     private func autoExploreIfEmpty(at coordinate: CLLocationCoordinate2D) {
+        #if DEBUG
+        autoExploreInvocationCount += 1
+        #endif
         let nearby = experienceService.getExperiences(near: coordinate, radiusKm: 5.0)
         guard nearby.count < 3 else { return }
 

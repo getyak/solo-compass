@@ -108,4 +108,92 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
             "Unknown, unseeded city must fall back to the default center"
         )
     }
+
+    // MARK: - V-007: a GPS fix must not override an explicit city pick
+
+    /// Regression (V-007): when the user has picked a preset city, the first GPS
+    /// fix at a far-away real location (e.g. picking a SF/China city while
+    /// physically in Laos) must NOT snap the camera back to the GPS location.
+    ///
+    /// Before the fix, `bindToLocation` skipped the camera recenter for a preset
+    /// city but still ran `autoExploreIfEmpty(at: gps)`, whose `exploreNearby`
+    /// tail called `selectCity(discoveredCity)` + `recenter(gps)` — silently
+    /// overriding the pick. The fix moves `autoExploreIfEmpty` inside the
+    /// "no city selected" branch so a preset city is left untouched.
+    func testGPSFixDoesNotOverridePresetCity() throws {
+        let locationService = LocationService()
+        let prefs = UserPreferences(defaults: makeIsolatedDefaults())
+        prefs.lastSelectedCity = "san-francisco"
+        let vm = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+        XCTAssertEqual(vm.selectedCity, "san-francisco")
+        let sf = try XCTUnwrap(MapViewModel.knownCityCenters["san-francisco"])
+
+        // Simulate the traveler being physically in Vientiane, Laos — ~12,000 km
+        // from the picked San Francisco.
+        let laos = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
+        locationService.simulate(location: CLLocation(latitude: laos.latitude, longitude: laos.longitude))
+
+        // The first GPS fix fires bindToLocation (CompassMapView's onChange).
+        vm.bindToLocation()
+
+        // Core regression assertion: a preset city must NOT trigger GPS-anchored
+        // auto-explore at all. (`exploreNearby`'s tail — selectCity + recenter —
+        // is async, so asserting on the count is the deterministic way to prove
+        // the override path is never entered; reverting the fix makes this fail.)
+        XCTAssertEqual(
+            vm.autoExploreInvocationCount, 0,
+            "A preset-city GPS fix must not run GPS-anchored auto-explore"
+        )
+        // The pick must survive: city unchanged, camera still on SF.
+        XCTAssertEqual(
+            vm.selectedCity, "san-francisco",
+            "A GPS fix must not change an explicit preset-city pick"
+        )
+        let region = try XCTUnwrap(vm.cameraPosition.region)
+        XCTAssertLessThan(
+            distanceKm(region.center, sf), 1.0,
+            "Camera must stay on the picked city, not snap to the GPS location"
+        )
+        XCTAssertGreaterThan(
+            distanceKm(region.center, laos), 1000.0,
+            "Camera must NOT be anywhere near the real GPS location"
+        )
+    }
+
+    /// Complement to the above: with NO city selected (pure GPS-follow mode), the
+    /// first GPS fix SHOULD recenter the camera on the user — the auto-recenter
+    /// path the fix must preserve.
+    func testGPSFixRecentersWhenNoCitySelected() throws {
+        let locationService = LocationService()
+        let prefs = UserPreferences(defaults: makeIsolatedDefaults())
+        prefs.lastSelectedCity = nil
+        let vm = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+        vm.selectedCity = nil
+
+        let laos = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
+        locationService.simulate(location: CLLocation(latitude: laos.latitude, longitude: laos.longitude))
+        vm.bindToLocation()
+
+        let region = try XCTUnwrap(vm.cameraPosition.region)
+        XCTAssertLessThan(
+            distanceKm(region.center, laos), 5.0,
+            "With no city selected, the first GPS fix must recenter on the user"
+        )
+        // GPS-follow mode must still run auto-explore (the behavior the fix
+        // preserves) — so a genuinely data-sparse landing still fetches places.
+        XCTAssertEqual(
+            vm.autoExploreInvocationCount, 1,
+            "With no city selected, the GPS fix must still run auto-explore"
+        )
+    }
 }
