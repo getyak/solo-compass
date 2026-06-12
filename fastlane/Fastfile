@@ -252,13 +252,17 @@ platform :ios do
   # identifier — so a brand-new bundle id (e.g. the widget extension) fails with
   # "Could not find App ID with bundle identifier …" until `produce` registers
   # it. produce is idempotent: it's a no-op when the App ID already exists.
+  #
+  # NOTE: `produce` predates fastlane's `api_key:` option and does NOT accept it.
+  # It authenticates via the Spaceship::ConnectAPI global token instead, which
+  # `app_store_connect_api_key` (called once at the top of the lane with the
+  # default set_spaceship_token: true) installs. So we must NOT pass api_key here.
   def ensure_app_id(app_id)
     produce(
       app_identifier: app_id,
       app_name:       app_id,
       team_id:        ENV["DEVELOPMENT_TEAM"] || "6RG2F8YY59",
-      skip_itc:       true,   # Developer Portal only; the widget has no ASC app record
-      api_key:        api_key
+      skip_itc:       true   # Developer Portal only; the widget has no ASC app record
     )
   rescue => e
     # produce raises if the App ID already exists in some fastlane versions;
@@ -277,6 +281,12 @@ platform :ios do
   # solo-compass-certs. The next TestFlight build picks the new profiles up.
   desc "Regenerate App Store signing profiles for all signed bundles (writes to certs repo)"
   lane :regen_profiles do
+    # Install the ASC API key as the Spaceship::ConnectAPI global token (the
+    # default set_spaceship_token: true) so the `produce` calls below — which
+    # have no api_key: option — can authenticate. match still takes api_key:
+    # explicitly further down; resolving it once keeps both paths in sync.
+    key = api_key
+
     # Ensure every signed bundle id has an App ID on the Developer Portal before
     # match tries to issue a profile for it.
     SIGNED_IDENTIFIERS.each { |app_id| ensure_app_id(app_id) }
@@ -287,7 +297,7 @@ platform :ios do
       force:          true,
       git_url:        certs_git_url,
       app_identifier: SIGNED_IDENTIFIERS,
-      api_key:        api_key
+      api_key:        key
     )
     UI.success "App Store profiles regenerated and pushed to certs repo: #{SIGNED_IDENTIFIERS.join(', ')}"
   end
