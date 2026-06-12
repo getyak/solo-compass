@@ -10,6 +10,62 @@ end
 
 default_platform(:ios)
 
+# App Store distribution covers two signed bundles: the main app and the
+# Live Activities widget extension (US-026). Each needs its own App ID and
+# provisioning profile — the widget can't ride on the main app's profile, so
+# the archive fails with "profile … has app ID com.solocompass.app, which does
+# not match the bundle ID com.solocompass.app.widgets" if it isn't provisioned
+# separately.
+APP_IDENTIFIER    = "com.solocompass.app".freeze
+WIDGET_IDENTIFIER = "com.solocompass.app.widgets".freeze
+SIGNED_IDENTIFIERS = [APP_IDENTIFIER, WIDGET_IDENTIFIER].freeze
+
+XCODEPROJ_PATH = "apps/ios/SoloCompass.xcodeproj".freeze
+
+# Map each signed bundle ID to the Xcode target that produces it. Used to write
+# the matching provisioning profile into each target's build settings.
+TARGET_FOR_IDENTIFIER = {
+  APP_IDENTIFIER    => "SoloCompass",
+  WIDGET_IDENTIFIER => "SoloCompassWidgets"
+}.freeze
+
+def certs_git_url
+  ENV["MATCH_GIT_URL"] || "git@github-solo-compass-certs:getyak/solo-compass-certs.git"
+end
+
+# match exports the resolved profile name per identifier as
+# `sigh_<bundle-id>_appstore_profile-name`. Fall back to match's default naming
+# convention if the env var isn't set (e.g. a dry parse of the lane).
+def profile_name_for(app_id)
+  ENV["sigh_#{app_id}_appstore_profile-name"] || "match AppStore #{app_id}"
+end
+
+# Pin each target to its own provisioning profile in the generated pbxproj.
+# xcodebuild's `archive` applies a single global PROVISIONING_PROFILE_SPECIFIER
+# xcarg to *every* target, so the only way to sign the app and its widget with
+# different profiles is to bake per-target specifiers into the project before
+# build_app runs.
+def apply_manual_signing(team_id)
+  SIGNED_IDENTIFIERS.each do |app_id|
+    update_code_signing_settings(
+      path:                  XCODEPROJ_PATH,
+      use_automatic_signing: false,
+      team_id:               team_id,
+      targets:               [TARGET_FOR_IDENTIFIER.fetch(app_id)],
+      code_sign_identity:    "Apple Distribution",
+      profile_name:          profile_name_for(app_id)
+    )
+  end
+end
+
+# provisioningProfiles map for gym's export_options — both bundles must be
+# present or `-exportArchive` can't sign the embedded widget.
+def export_provisioning_profiles
+  SIGNED_IDENTIFIERS.each_with_object({}) do |app_id, map|
+    map[app_id] = profile_name_for(app_id)
+  end
+end
+
 def api_key
   return nil unless ENV["APP_STORE_CONNECT_API_KEY_ID"]
 
@@ -64,14 +120,14 @@ platform :ios do
     match(
       type:              "appstore",
       readonly:          true,
-      git_url:           ENV["MATCH_GIT_URL"] || "git@github-solo-compass-certs:getyak/solo-compass-certs.git",
-      app_identifier:    "com.solocompass.app",
+      git_url:           certs_git_url,
+      app_identifier:    SIGNED_IDENTIFIERS,
       keychain_name:     "ci_keychain",
       keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || "ci_temp_password"
     )
 
-    profile_name = ENV["sigh_com.solocompass.app_appstore_profile-name"] || "match AppStore com.solocompass.app"
     team_id = ENV["DEVELOPMENT_TEAM"] || "6RG2F8YY59"
+    apply_manual_signing(team_id)
     build_app(
       scheme:           "SoloCompass",
       project:          "apps/ios/SoloCompass.xcodeproj",
@@ -80,12 +136,12 @@ platform :ios do
       clean:            true,
       output_directory: "build",
       output_name:      "SoloCompass.ipa",
-      xcargs:           "CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM=#{team_id} PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' OTHER_CODE_SIGN_FLAGS='--keychain /Users/runner/Library/Keychains/ci_keychain-db'",
+      xcargs:           "CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM=#{team_id} OTHER_CODE_SIGN_FLAGS='--keychain /Users/runner/Library/Keychains/ci_keychain-db'",
       export_options:   {
         method:               "app-store",
         signingStyle:         "manual",
         teamID:               team_id,
-        provisioningProfiles: { "com.solocompass.app" => profile_name }
+        provisioningProfiles: export_provisioning_profiles
       }
     )
 
@@ -117,14 +173,14 @@ platform :ios do
     match(
       type:              "appstore",
       readonly:          true,
-      git_url:           ENV["MATCH_GIT_URL"] || "git@github-solo-compass-certs:getyak/solo-compass-certs.git",
-      app_identifier:    "com.solocompass.app",
+      git_url:           certs_git_url,
+      app_identifier:    SIGNED_IDENTIFIERS,
       keychain_name:     "ci_keychain",
       keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || "ci_temp_password"
     )
 
-    profile_name = ENV["sigh_com.solocompass.app_appstore_profile-name"] || "match AppStore com.solocompass.app"
     team_id = ENV["DEVELOPMENT_TEAM"] || "6RG2F8YY59"
+    apply_manual_signing(team_id)
     build_app(
       scheme:           "SoloCompass",
       project:          "apps/ios/SoloCompass.xcodeproj",
@@ -133,12 +189,12 @@ platform :ios do
       clean:            true,
       output_directory: "build",
       output_name:      "SoloCompass.ipa",
-      xcargs:           "CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM=#{team_id} PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' OTHER_CODE_SIGN_FLAGS='--keychain /Users/runner/Library/Keychains/ci_keychain-db'",
+      xcargs:           "CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=YES CODE_SIGNING_ALLOWED=YES DEVELOPMENT_TEAM=#{team_id} OTHER_CODE_SIGN_FLAGS='--keychain /Users/runner/Library/Keychains/ci_keychain-db'",
       export_options:   {
         method:               "app-store",
         signingStyle:         "manual",
         teamID:               team_id,
-        provisioningProfiles: { "com.solocompass.app" => profile_name }
+        provisioningProfiles: export_provisioning_profiles
       }
     )
 
@@ -191,23 +247,25 @@ platform :ios do
     UI.message "Build number set to #{build_number} (git commit count)"
   end
 
-  # Regenerate the App Store provisioning profile and push it to the certs repo.
-  # Run this (via the "Regenerate Signing Profiles" workflow) after changing the
-  # App ID's capabilities in the Apple Developer portal — e.g. enabling Push
-  # Notifications for US-021. `force: true` + `readonly: false` re-issues the
-  # profile so it includes the new entitlements, then match encrypts and pushes
-  # it to solo-compass-certs. The next TestFlight build picks it up automatically.
-  desc "Regenerate App Store signing profiles (writes to certs repo)"
+  # Regenerate the App Store provisioning profiles and push them to the certs
+  # repo. Run this (via the "Regenerate Signing Profiles" workflow) when the set
+  # of signed bundles or their capabilities change — e.g. enabling Push
+  # Notifications for US-021, or adding the Live Activities widget extension
+  # (US-026, bundle id com.solocompass.app.widgets). `force: true` +
+  # `readonly: false` (with the ASC API key) creates any missing App ID, re-issues
+  # the profile, then match encrypts and pushes it to solo-compass-certs. The next
+  # TestFlight build picks the new profiles up automatically.
+  desc "Regenerate App Store signing profiles for all signed bundles (writes to certs repo)"
   lane :regen_profiles do
     match(
       type:           "appstore",
       readonly:       false,
       force:          true,
-      git_url:        ENV["MATCH_GIT_URL"] || "git@github-solo-compass-certs:getyak/solo-compass-certs.git",
-      app_identifier: "com.solocompass.app",
+      git_url:        certs_git_url,
+      app_identifier: SIGNED_IDENTIFIERS,
       api_key:        api_key
     )
-    UI.success "App Store profile regenerated and pushed to certs repo."
+    UI.success "App Store profiles regenerated and pushed to certs repo: #{SIGNED_IDENTIFIERS.join(', ')}"
   end
 
   error do |lane, exception|

@@ -1,11 +1,13 @@
 name: Regenerate Signing Profiles
 
-# Manually re-issue the App Store provisioning profile and push it to the
-# solo-compass-certs repo. Run this after changing the App ID's capabilities in
-# the Apple Developer portal (e.g. enabling Push Notifications for US-021): the
-# existing profile is invalidated by Apple and must be regenerated so it carries
-# the new entitlements. Uses the same secrets as the TestFlight deploy — nothing
-# is needed locally.
+# Manually re-issue the App Store provisioning profiles and push them to the
+# solo-compass-certs repo. Run this when the set of signed bundles or their
+# capabilities change — e.g. enabling Push Notifications for US-021, or adding
+# the Live Activities widget extension (US-026, com.solocompass.app.widgets):
+# the existing profiles are invalidated/missing and must be regenerated so they
+# carry the new entitlements and cover every bundle the archive signs. The
+# regen_profiles lane provisions both the main app and the widget extension.
+# Uses the same secrets as the TestFlight deploy — nothing is needed locally.
 on:
   workflow_dispatch:
     inputs:
