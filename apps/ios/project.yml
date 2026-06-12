@@ -146,6 +146,12 @@ targets:
       path: SoloCompassWidgets/Info.plist
       properties:
         CFBundleDisplayName: SoloCompass
+        # Inherit version/build from the target's build settings so the embedded
+        # extension always matches the host app — App Store rejects a mismatch.
+        # The TestFlight workflow rewrites MARKETING_VERSION / CURRENT_PROJECT_VERSION
+        # in pbxproj for every target, and these refs pick that up.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -156,6 +162,14 @@ targets:
         CODE_SIGN_IDENTITY: "Apple Distribution"
         DEVELOPMENT_TEAM: "6RG2F8YY59"
         SKIP_INSTALL: NO
+        # App Store rejects a build whose embedded extension version/build don't
+        # match the host app. These pbxproj keys are rewritten by the TestFlight
+        # workflow's global sed (same as the main app's), and the widget
+        # Info.plist references them via $(MARKETING_VERSION) /
+        # $(CURRENT_PROJECT_VERSION). The literals below are seed values only,
+        # kept in step with the project-level defaults at the top of this file.
+        MARKETING_VERSION: "1.1.0"
+        CURRENT_PROJECT_VERSION: "2"
 
   SoloCompassTests:
     type: bundle.unit-test

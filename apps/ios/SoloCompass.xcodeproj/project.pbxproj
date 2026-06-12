@@ -2142,6 +2142,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 6RG2F8YY59;
 				INFOPLIST_FILE = SoloCompassWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -2150,6 +2151,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.solocompass.app.widgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = NO;
@@ -2162,6 +2164,7 @@
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 6RG2F8YY59;
 				INFOPLIST_FILE = SoloCompassWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -2170,6 +2173,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.solocompass.app.widgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = NO;
