@@ -247,16 +247,40 @@ platform :ios do
     UI.message "Build number set to #{build_number} (git commit count)"
   end
 
+  # Register an App ID on the Developer Portal if it doesn't exist yet. match
+  # can only *issue a profile* for an existing App ID — it does NOT create the
+  # identifier — so a brand-new bundle id (e.g. the widget extension) fails with
+  # "Could not find App ID with bundle identifier …" until `produce` registers
+  # it. produce is idempotent: it's a no-op when the App ID already exists.
+  def ensure_app_id(app_id)
+    produce(
+      app_identifier: app_id,
+      app_name:       app_id,
+      team_id:        ENV["DEVELOPMENT_TEAM"] || "6RG2F8YY59",
+      skip_itc:       true,   # Developer Portal only; the widget has no ASC app record
+      api_key:        api_key
+    )
+  rescue => e
+    # produce raises if the App ID already exists in some fastlane versions;
+    # treat "already exists" as success and let match proceed.
+    raise unless e.message =~ /already (exists|registered|taken)/i
+    UI.message "App ID #{app_id} already exists on the Developer Portal — skipping create."
+  end
+
   # Regenerate the App Store provisioning profiles and push them to the certs
   # repo. Run this (via the "Regenerate Signing Profiles" workflow) when the set
   # of signed bundles or their capabilities change — e.g. enabling Push
   # Notifications for US-021, or adding the Live Activities widget extension
-  # (US-026, bundle id com.solocompass.app.widgets). `force: true` +
-  # `readonly: false` (with the ASC API key) creates any missing App ID, re-issues
-  # the profile, then match encrypts and pushes it to solo-compass-certs. The next
-  # TestFlight build picks the new profiles up automatically.
+  # (US-026, bundle id com.solocompass.app.widgets). It first registers any
+  # missing App ID via `produce`, then `force: true` + `readonly: false` (with
+  # the ASC API key) re-issues each profile and match encrypts and pushes it to
+  # solo-compass-certs. The next TestFlight build picks the new profiles up.
   desc "Regenerate App Store signing profiles for all signed bundles (writes to certs repo)"
   lane :regen_profiles do
+    # Ensure every signed bundle id has an App ID on the Developer Portal before
+    # match tries to issue a profile for it.
+    SIGNED_IDENTIFIERS.each { |app_id| ensure_app_id(app_id) }
+
     match(
       type:           "appstore",
       readonly:       false,
