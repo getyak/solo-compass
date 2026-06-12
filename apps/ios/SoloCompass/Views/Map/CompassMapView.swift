@@ -354,6 +354,15 @@ struct CompassMapContentView: View {
                         viewModel.openExperienceDetail(target)
                     }
                 }
+                // Visual/behavioral-verification entry point: `-startIsland <kind>`
+                // starts a real Live Activity at launch (kind ∈ route | countdown
+                // | recording | compile), so the Dynamic Island can be exercised
+                // without driving the deep UI flow that triggers it (idb/simctl
+                // tapping is unreliable on Xcode 26). Sample data only.
+                if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "-startIsland"),
+                   i + 1 < ProcessInfo.processInfo.arguments.count {
+                    Self.startIslandDemo(kind: ProcessInfo.processInfo.arguments[i + 1])
+                }
                 #endif
                 locationService.requestPermission()
                 // US-021: `viewModel` is built eagerly in `init`, so there is no
@@ -1175,6 +1184,37 @@ struct CompassMapContentView: View {
         f.dateFormat = "HH:mm"
         return f
     }()
+
+    #if DEBUG
+    /// Start a sample Live Activity for the `-startIsland <kind>` launch arg, so
+    /// the Dynamic Island can be verified on a simulator/device without driving
+    /// the real trigger flow. Sample copy mirrors the design handoff.
+    @MainActor
+    static func startIslandDemo(kind: String) {
+        switch kind {
+        case "route":
+            LiveActivityService.shared.startRoute(
+                routeTitle: "湄公河日落散步", nextStopName: "昭阿努翁雕像",
+                nextStopMeta: "步行 7 分 · 540 m", etaText: "17:49",
+                currentStopIndex: 2, totalStops: 3
+            )
+        case "countdown":
+            LiveActivityService.shared.startCountdown(
+                groupTitle: "同伴团 · 30 分钟后集合", meetPointName: "昭阿努翁雕像",
+                departureDate: Date().addingTimeInterval(29 * 60 + 14),
+                memberInitials: ["M", "你", "T"], memberSummary: "Maya(主理) · 你 · Tomas"
+            )
+        case "recording":
+            LiveActivityService.shared.beginRecordingSession(locality: "万象 河堤") { 0.6 }
+        case "compile":
+            LiveActivityService.shared.startCompile(
+                title: "正在编排今日页面", subtitle: "12 条 signal · 3 个地点"
+            )
+        default:
+            break
+        }
+    }
+    #endif
 
     /// Radius (meters) of the translucent circle drawn around the traveler's
     /// own location marker. ~120m reads as a comfortable "right here" bubble at

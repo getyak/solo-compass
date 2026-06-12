@@ -1,6 +1,7 @@
 import Foundation
 import ActivityKit
 import Observation
+import os
 
 /// Starts, updates, and ends the four SoloCompass Live Activities (US-026):
 /// route / countdown / recording / compile. All activities are **local** —
@@ -18,6 +19,8 @@ import Observation
 @Observable
 public final class LiveActivityService {
     public static let shared = LiveActivityService()
+
+    private static let log = OSLog(subsystem: "com.solocompass.app", category: "LiveActivity")
 
     /// The currently running activity, if any. Read-only to callers.
     public private(set) var current: Activity<SoloCompassActivityAttributes>?
@@ -203,7 +206,11 @@ public final class LiveActivityService {
         kind: SoloCompassActivityAttributes.Kind,
         state: SoloCompassActivityState
     ) -> Bool {
-        guard isEnabled else { return false }
+        guard isEnabled else {
+            os_log("LiveActivity start(%{public}@) skipped — activities disabled by user/system",
+                   log: Self.log, type: .info, kind.rawValue)
+            return false
+        }
 
         // Tear down any prior activity so we never stack two — fire-and-forget
         // the async end, then request the new one.
@@ -221,10 +228,15 @@ public final class LiveActivityService {
             )
             current = activity
             currentKind = kind
+            os_log("LiveActivity start(%{public}@) ok — id=%{public}@",
+                   log: Self.log, type: .info, kind.rawValue, activity.id)
             return true
         } catch {
             // Non-critical — the in-app UI is the primary surface; the island is
-            // an enhancement. Swallow (e.g. user disabled activities mid-flight).
+            // an enhancement. Log the reason instead of swallowing silently, so a
+            // failed request (entitlement, budget, throttle) is diagnosable.
+            os_log("LiveActivity start(%{public}@) failed: %{public}@",
+                   log: Self.log, type: .error, kind.rawValue, String(describing: error))
             current = nil
             currentKind = nil
             return false
