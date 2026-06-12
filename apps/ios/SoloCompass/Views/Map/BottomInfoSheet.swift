@@ -752,11 +752,15 @@ struct NearbyExperienceRow: View {
     /// Long-pressing the card floats the quick preview card instead. Optional so
     /// existing callers that only want a tap action keep compiling.
     var onLongPress: (() -> Void)? = nil
+    /// "问 Solo" context-menu action — opens a chat scoped to this experience.
+    /// Optional so callers that don't wire chat keep compiling.
+    var onAskSolo: (() -> Void)? = nil
 
     @State private var pressed = false
     @State private var pulsing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(LocationService.self) private var locationService
+    @Environment(UserPreferences.self) private var preferences
 
     private var isNearby: Bool {
         guard let m = distanceMeters else { return false }
@@ -882,15 +886,77 @@ struct NearbyExperienceRow: View {
         }
         .buttonStyle(.plain)
         .scaleEffect(pressed ? 0.97 : 1.0)
-        // Long-press floats the quick preview card; the tap (above) opens detail.
-        // Attached only when a handler is provided so non-long-press callers are
-        // unaffected.
-        .modifier(LongPressCardModifier(onLongPress: onLongPress))
+        // Long-press now raises the native context menu: a warm-amber preview
+        // card (key info + hero image) floating over a blurred backdrop, plus a
+        // quick-action menu (details · show on map · favorite · navigate · 问
+        // Solo). This replaces the former custom floating-card long-press —
+        // `onLongPress` is still wired as the "show on map" action so that
+        // behavior is preserved, just relocated into the menu.
+        .contextMenu {
+            cardContextMenu
+        } preview: {
+            ExperiencePreviewCard(
+                experience: experience,
+                distanceMeters: distanceMeters,
+                bestNowChipState: bestNowChipState
+            )
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
         .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
             onLongPress?()
+        }
+    }
+
+    /// Quick actions for the long-press context menu. Favorite + navigate act
+    /// inline (preferences / NavigationLauncher); details, show-on-map, and 问
+    /// Solo route through the caller's handlers.
+    @ViewBuilder
+    private var cardContextMenu: some View {
+        Button {
+            onTap()
+        } label: {
+            Label(NSLocalizedString("menu.viewDetails", comment: "View details"), systemImage: "doc.text.magnifyingglass")
+        }
+
+        if let onLongPress {
+            Button {
+                onLongPress()
+            } label: {
+                Label(NSLocalizedString("menu.showOnMap", comment: "Show on map"), systemImage: "mappin.and.ellipse")
+            }
+        }
+
+        if let onAskSolo {
+            Button {
+                onAskSolo()
+            } label: {
+                Label(NSLocalizedString("menu.askSolo", comment: "Ask Solo about this place"), systemImage: "sparkles")
+            }
+        }
+
+        Divider()
+
+        let favorited = preferences.isFavorited(experience.id)
+        Button {
+            Haptics.impact(.light)
+            preferences.toggleFavorite(experience.id)
+        } label: {
+            Label(
+                favorited
+                    ? NSLocalizedString("menu.unfavorite", comment: "Remove from saved")
+                    : NSLocalizedString("menu.favorite", comment: "Save place"),
+                systemImage: favorited ? "heart.slash" : "heart"
+            )
+        }
+
+        if let coord = experience.coordinate {
+            Button {
+                NavigationLauncher.open(app: .appleMaps, coordinate: coord, name: experience.title)
+            } label: {
+                Label(NSLocalizedString("menu.navigate", comment: "Navigate there"), systemImage: "arrow.triangle.turn.up.right.diamond")
+            }
         }
     }
 
@@ -1250,6 +1316,8 @@ struct NearbySection: View {
     /// Long-pressing a row floats the quick preview card instead. Optional so
     /// callers that only wire a tap keep compiling.
     let onLongPressExperience: ((Experience) -> Void)?
+    /// "问 Solo" context-menu action — opens a chat scoped to the experience.
+    let onAskSoloExperience: ((Experience) -> Void)?
     /// When non-nil, passed through to EmptySheetListView to render the
     /// 'Explore another area' CTA that zooms the map out.
     let onExploreElsewhere: (() -> Void)?
@@ -1265,7 +1333,8 @@ struct NearbySection: View {
         showsSectionDivider: Bool = false,
         onExploreElsewhere: (() -> Void)? = nil,
         onSelectExperience: @escaping (Experience) -> Void,
-        onLongPressExperience: ((Experience) -> Void)? = nil
+        onLongPressExperience: ((Experience) -> Void)? = nil,
+        onAskSoloExperience: ((Experience) -> Void)? = nil
     ) {
         self.experiences = experiences
         self.smartPickIds = smartPickIds
@@ -1275,6 +1344,7 @@ struct NearbySection: View {
         self.onExploreElsewhere = onExploreElsewhere
         self.onSelectExperience = onSelectExperience
         self.onLongPressExperience = onLongPressExperience
+        self.onAskSoloExperience = onAskSoloExperience
     }
 
     /// US-036: When true, the Nearby header is preceded by an inset divider so a
@@ -1323,7 +1393,8 @@ struct NearbySection: View {
                             isOpenNow: openNow,
                             bestNowChipState: openNow ? chipState : nil,
                             onTap: { onSelectExperience(exp) },
-                            onLongPress: onLongPressExperience.map { handler in { handler(exp) } }
+                            onLongPress: onLongPressExperience.map { handler in { handler(exp) } },
+                            onAskSolo: onAskSoloExperience.map { handler in { handler(exp) } }
                         )
                     }
                 }

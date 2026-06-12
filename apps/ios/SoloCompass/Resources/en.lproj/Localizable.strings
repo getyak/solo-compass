@@ -352,6 +352,14 @@
 /* Experience card accessibility */
 "experience.card.hint" = "Double tap to view details";
 "experience.card.preview.a11y" = "Show quick preview";
+
+/* Long-press context menu on a place card */
+"menu.viewDetails" = "View details";
+"menu.showOnMap" = "Show on map";
+"menu.askSolo" = "Ask Solo";
+"menu.favorite" = "Save";
+"menu.unfavorite" = "Remove from saved";
+"menu.navigate" = "Directions";
 "card.favorite.add" = "Add to favorites";
 "card.favorite.remove" = "Remove from favorites";
 "card.favorite.added.a11y" = "Saved to favorites";

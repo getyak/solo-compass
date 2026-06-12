@@ -37,6 +37,7 @@
 		1917588F1289C48C928ACF6C /* CompanionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A8062A7E6BA3EE88C6DAF02 /* CompanionService.swift */; };
 		193FE8EBE03520DF740EE78D /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B92F9A65ACFD3B9518A364B0 /* PaywallView.swift */; };
 		1961D53326B8AF67585215F7 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94CD4C674431C0702AD8AED3 /* Color+Hex.swift */; };
+		19AAF9D13B929174D04ADF84 /* ExperiencePreviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DF52264EDAC06D283132721 /* ExperiencePreviewCard.swift */; };
 		1AB73ECFECC13F149F971563 /* SettingsViewQuerySortTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112C1C0DEDB8C518D83CC18 /* SettingsViewQuerySortTest.swift */; };
 		1BF34EAE036021423C1ACE2D /* ExploreCacheRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F76E8EBB87A2F70FEA1BB0 /* ExploreCacheRecord.swift */; };
 		1C87BA1A3EB6B4D7FFCE3EA0 /* CreateExperienceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C7C2D7BA51FFDDF53242A3 /* CreateExperienceSheet.swift */; };
@@ -683,6 +684,7 @@
 		9A1B839F9F82AFDD50655AAE /* SystemTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemTheme.swift; sourceTree = "<group>"; };
 		9BFF9ECB175F4D2219406952 /* IOS18AvailabilityGuardTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOS18AvailabilityGuardTest.swift; sourceTree = "<group>"; };
 		9DA531A7BAD8A34652BA4801 /* CompanionCrossTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionCrossTests.swift; sourceTree = "<group>"; };
+		9DF52264EDAC06D283132721 /* ExperiencePreviewCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperiencePreviewCard.swift; sourceTree = "<group>"; };
 		9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceButton.swift; sourceTree = "<group>"; };
 		9EDF4F9F84F50797290FF9E0 /* VoiceProcessingToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceProcessingToast.swift; sourceTree = "<group>"; };
 		9F0DD079D640DF68659C6483 /* NowSignalCompositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowSignalCompositionTests.swift; sourceTree = "<group>"; };
@@ -865,6 +867,7 @@
 				53F836182A03FC067C4A9AB9 /* CompareTokens.swift */,
 				2294AF173D063B1F55894696 /* CompletionCelebrationView.swift */,
 				EC8F9EFD56A2C839428AA92D /* ConfidenceBadge.swift */,
+				9DF52264EDAC06D283132721 /* ExperiencePreviewCard.swift */,
 				C5C3BA25EFA9F149FB4FAAB3 /* FavoritesListView.swift */,
 				B39F3D5F813E5C3B23C7EE30 /* FlowLayout.swift */,
 				5933575E731D8AC09356AB9F /* GlassmorphismCapsule.swift */,
@@ -1933,6 +1936,7 @@
 				CF8B2BDE6D707CE2537C8688 /* ExperienceDetailView.swift in Sources */,
 				A84320715E7CBDA91FC3F26F /* ExperienceDetailViewModel.swift in Sources */,
 				9E0C778CF1FD76DB9E0CEB9D /* ExperienceImageService.swift in Sources */,
+				19AAF9D13B929174D04ADF84 /* ExperiencePreviewCard.swift in Sources */,
 				116FF0278F882D45402B0E78 /* ExperienceRecord.swift in Sources */,
 				7C14629A3FAB31975BFBB0A6 /* ExperienceRepository.swift in Sources */,
 				E7B5B022519434F7C07818CF /* ExperienceService.swift in Sources */,
