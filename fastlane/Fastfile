@@ -247,28 +247,29 @@ platform :ios do
     UI.message "Build number set to #{build_number} (git commit count)"
   end
 
-  # Register an App ID on the Developer Portal if it doesn't exist yet. match
-  # can only *issue a profile* for an existing App ID — it does NOT create the
+  # Register a Bundle ID on the Developer Portal if it doesn't exist yet. match
+  # can only *issue a profile* for an existing Bundle ID — it does NOT create the
   # identifier — so a brand-new bundle id (e.g. the widget extension) fails with
-  # "Could not find App ID with bundle identifier …" until `produce` registers
-  # it. produce is idempotent: it's a no-op when the App ID already exists.
+  # "Could not find App ID with bundle identifier …" until it's registered.
   #
-  # NOTE: `produce` predates fastlane's `api_key:` option and does NOT accept it.
-  # It authenticates via the Spaceship::ConnectAPI global token instead, which
-  # `app_store_connect_api_key` (called once at the top of the lane with the
-  # default set_spaceship_token: true) installs. So we must NOT pass api_key here.
-  def ensure_app_id(app_id)
-    produce(
-      app_identifier: app_id,
-      app_name:       app_id,
-      team_id:        ENV["DEVELOPMENT_TEAM"] || "6RG2F8YY59",
-      skip_itc:       true   # Developer Portal only; the widget has no ASC app record
-    )
-  rescue => e
-    # produce raises if the App ID already exists in some fastlane versions;
-    # treat "already exists" as success and let match proceed.
-    raise unless e.message =~ /already (exists|registered|taken)/i
-    UI.message "App ID #{app_id} already exists on the Developer Portal — skipping create."
+  # We register it directly via Spaceship::ConnectAPI::BundleId.create rather
+  # than the `produce` action because produce hard-requires a `username` (Apple
+  # ID) even in API-key mode and would trigger an interactive Apple login on CI
+  # ("No value found for 'username'"). The Developer Portal Bundle ID endpoint,
+  # by contrast, works with the JWT token installed by app_store_connect_api_key
+  # (set_spaceship_token: true) — no username, no 2FA. We only need the portal
+  # identifier here; the widget has no App Store Connect app record (that path
+  # still requires Apple ID login and isn't needed for signing).
+  def ensure_bundle_id(app_id)
+    existing = Spaceship::ConnectAPI::BundleId.all.find { |b| b.identifier == app_id }
+    if existing
+      UI.message "Bundle ID #{app_id} already exists on the Developer Portal — skipping create."
+      return
+    end
+
+    UI.message "Registering Bundle ID #{app_id} on the Developer Portal…"
+    Spaceship::ConnectAPI::BundleId.create(name: app_id.tr(".", " "), identifier: app_id)
+    UI.success "Registered Bundle ID #{app_id}."
   end
 
   # Regenerate the App Store provisioning profiles and push them to the certs
@@ -276,20 +277,20 @@ platform :ios do
   # of signed bundles or their capabilities change — e.g. enabling Push
   # Notifications for US-021, or adding the Live Activities widget extension
   # (US-026, bundle id com.solocompass.app.widgets). It first registers any
-  # missing App ID via `produce`, then `force: true` + `readonly: false` (with
-  # the ASC API key) re-issues each profile and match encrypts and pushes it to
-  # solo-compass-certs. The next TestFlight build picks the new profiles up.
+  # missing Bundle ID on the Developer Portal, then `force: true` +
+  # `readonly: false` (with the ASC API key) re-issues each profile and match
+  # encrypts and pushes it to solo-compass-certs. The next TestFlight build
+  # picks the new profiles up.
   desc "Regenerate App Store signing profiles for all signed bundles (writes to certs repo)"
   lane :regen_profiles do
     # Install the ASC API key as the Spaceship::ConnectAPI global token (the
-    # default set_spaceship_token: true) so the `produce` calls below — which
-    # have no api_key: option — can authenticate. match still takes api_key:
-    # explicitly further down; resolving it once keeps both paths in sync.
+    # default set_spaceship_token: true) so the BundleId API calls below and
+    # match can both authenticate via JWT. Resolving it once keeps them in sync.
     key = api_key
 
-    # Ensure every signed bundle id has an App ID on the Developer Portal before
-    # match tries to issue a profile for it.
-    SIGNED_IDENTIFIERS.each { |app_id| ensure_app_id(app_id) }
+    # Ensure every signed bundle id has a Bundle ID on the Developer Portal
+    # before match tries to issue a profile for it.
+    SIGNED_IDENTIFIERS.each { |app_id| ensure_bundle_id(app_id) }
 
     match(
       type:           "appstore",
