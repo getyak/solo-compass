@@ -191,6 +191,14 @@
 "experience.card.hint" = "双击查看详情";
 "experience.card.preview.a11y" = "显示快速预览";
 
+/* 地点卡片长按上下文菜单 */
+"menu.viewDetails" = "查看详情";
+"menu.showOnMap" = "在地图上显示";
+"menu.askSolo" = "问 Solo";
+"menu.favorite" = "收藏";
+"menu.unfavorite" = "取消收藏";
+"menu.navigate" = "导航前往";
+
 /* Voice recognition error alert */
 "voice.error.title" = "语音识别错误";
 "voice.error.permission" = "麦克风或语音识别权限被拒绝。请在「设置」中允许。";

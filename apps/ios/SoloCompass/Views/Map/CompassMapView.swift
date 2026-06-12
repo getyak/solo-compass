@@ -771,12 +771,24 @@ struct CompassMapContentView: View {
                                         }
                                     },
                                     onLongPressExperience: { exp in
-                                        // Long-press → float the quick preview
-                                        // card (the former tap behavior). Backing
-                                        // out of detail still lands on this card.
+                                        // Context-menu "show on map" → float the
+                                        // quick preview card (the former tap
+                                        // behavior). Backing out of detail still
+                                        // lands on this card.
                                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                                             viewModel.selectExperience(exp)
                                         }
+                                    },
+                                    onAskSoloExperience: { exp in
+                                        // Context-menu "问 Solo" → open a chat
+                                        // scoped to this place (same path as the
+                                        // detail sheet's Ask-Solo button): ensure
+                                        // the orchestrator, then inject the
+                                        // <experience_context> block before the
+                                        // sheet content evaluates.
+                                        chatStartMode = .text
+                                        ensureOrchestrator(viewModel: viewModel)
+                                        voiceOrchestrator?.rebindContext(exp)
                                     }
                                 )
                             }
