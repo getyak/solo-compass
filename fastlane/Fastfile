@@ -268,7 +268,16 @@ platform :ios do
     end
 
     UI.message "Registering Bundle ID #{app_id} on the Developer Portal…"
-    Spaceship::ConnectAPI::BundleId.create(name: app_id.tr(".", " "), identifier: app_id)
+    # fastlane 2.234's BundleId.create leaves `platform` nil and passes it
+    # straight through to the App Store Connect API, which rejects the request
+    # with "missing a required attribute … 'platform'". Pass it explicitly. The
+    # value is forwarded verbatim into the JSON body, so it must be the literal
+    # Apple enum string ("IOS" | "MAC_OS" | "UNIVERSAL"), not a Ruby constant.
+    Spaceship::ConnectAPI::BundleId.create(
+      name:       app_id.tr(".", " "),
+      identifier: app_id,
+      platform:   "UNIVERSAL"
+    )
     UI.success "Registered Bundle ID #{app_id}."
   end
 
