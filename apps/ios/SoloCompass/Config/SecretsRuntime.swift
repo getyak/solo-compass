@@ -46,6 +46,9 @@ extension Secrets {
         /// US-003: per-process UserDefaults override for the OpenWeather key.
         /// Lets devs / TestFlight users plug in a key without re-building.
         static let openWeatherApiKey = "runtimeOpenWeatherKey"
+        /// Per-process UserDefaults override for the Amap (AutoNavi) key.
+        /// Lets devs / TestFlight users plug in a key without re-building.
+        static let amapApiKey = "runtimeAmapKey"
         // In-app AI provider settings (written by AIProviderSettingsView via UserPreferences).
         // These shadow the build-time GeneratedSecrets values when non-empty.
         static let aiApiKey = "runtimeAIApiKey"
@@ -99,6 +102,17 @@ extension Secrets {
             return override
         }
         return foursquareApiKey
+    }
+
+    /// Effective Amap (AutoNavi) API key: UserDefaults override → build-time baked.
+    /// Returns "" when neither is set; the China explore branch gates on empty
+    /// and degrades back to OverpassService so an absent key never crashes.
+    static var resolvedAmapKey: String {
+        if let override = UserDefaults.standard.string(forKey: RuntimeKeys.amapApiKey),
+           !override.isEmpty {
+            return override
+        }
+        return amapApiKey
     }
 
     /// Effective OpenWeather API key (US-003). Resolution chain:

@@ -97,6 +97,9 @@
 "ai.explanation.title" = "AI 洞察";
 "ai.error.missingKey" = "AI 功能尚未配置。";
 "ai.error.request" = "AI 请求失败（状态 %d）。";
+"amap.error.missingKey" = "高德 Key 未配置，已改用全球数据源。";
+"amap.error.request" = "高德请求失败（状态 %d）。";
+"amap.error.api" = "高德 API 错误 %@：%@";
 "ai.fallback.explanation" = "推荐给独行旅人：座位安静、员工不打扰、本地信号强。";
 "ai.fallback.voice" = "正在显示附近适合独行的体验。";
 "ai.skeleton.pill" = "数据有限";
