@@ -44,7 +44,10 @@ public final class MapViewModel {
         mapKitService: MapKitPOIService(),
         foursquareService: foursquareService,
         geocodeService: geocodeService,
-        aiService: aiService
+        aiService: aiService,
+        // Mainland-China POI source. Inside China it becomes the authoritative
+        // base (OSM is ~9× sparser there); an absent key degrades to Overpass.
+        amapService: AmapPOIService()
     )
     /// Optional so existing tests / previews can construct without a
     /// real StoreKit-aware service. Production wires this from the
@@ -425,6 +428,11 @@ public final class MapViewModel {
         // and slug like the other cities.
         "VTE": CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331),
         "vientiane": CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331),
+        // Shenzhen (mainland China) — Futian CBD. Pinned so a cold start in
+        // China lands on a real center and routes through the Amap explore
+        // branch. WGS84 (converted to GCJ-02 inside AmapPOIService).
+        "SZX": CLLocationCoordinate2D(latitude: 22.5431, longitude: 114.0579),
+        "shenzhen": CLLocationCoordinate2D(latitude: 22.5431, longitude: 114.0579),
     ]
 
     /// V-004: human-readable city slugs (used by the city header / persisted
