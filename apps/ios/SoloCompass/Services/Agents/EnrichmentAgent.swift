@@ -61,19 +61,80 @@ public final class EnrichmentAgent {
     private let foursquareService: FoursquareService
     private let geocodeService: any ReverseGeocoding
     private let aiService: AIService
+    /// Mainland-China POI source. Optional so existing tests / previews can
+    /// construct without it; when nil (or its key is absent) the China branch
+    /// transparently degrades to Overpass.
+    private let amapService: AmapPOIService?
 
     public init(
         overpassService: OverpassService,
         mapKitService: MapKitPOIService,
         foursquareService: FoursquareService,
         geocodeService: any ReverseGeocoding,
-        aiService: AIService
+        aiService: AIService,
+        amapService: AmapPOIService? = nil
     ) {
         self.overpassService = overpassService
         self.mapKitService = mapKitService
         self.foursquareService = foursquareService
         self.geocodeService = geocodeService
         self.aiService = aiService
+        self.amapService = amapService
+    }
+
+    /// Authoritative base-POI collection with China-vs-overseas routing.
+    ///
+    /// Inside mainland China (`CoordinateConverter.isInsideChinaMainland`) the
+    /// authoritative source is Amap, because OSM coverage there is ~9× thinner
+    /// than reality. Amap is best-effort: a missing key or any failure falls
+    /// back to Overpass so the China branch never crashes (ADR §3.3). Overseas
+    /// (and on fallback) Overpass remains authoritative. MapKit is always
+    /// folded in as a best-effort enrichment via the same coordinate-cell merge.
+    ///
+    /// Returns WGS84 POIs regardless of source — Amap's GCJ-02 conversion is
+    /// confined to `AmapPOIService`, so callers downstream see only WGS84.
+    private func basePOIs(
+        near coordinate: CLLocationCoordinate2D,
+        radiusMeters: Int,
+        category: ExperienceCategory?
+    ) async throws -> [OverpassService.POI] {
+        // MapKit runs concurrently with the primary source (Amap or Overpass) in
+        // every branch — serializing them would add the slower source's latency
+        // to every explore call (a regression for the overseas majority).
+        async let mapKitTask = mapKitPOIsBestEffort(
+            near: coordinate, radiusMeters: radiusMeters, category: category
+        )
+
+        if CoordinateConverter.isInsideChinaMainland(coordinate), let amap = amapService {
+            // Amap is authoritative on the mainland; run it in parallel with
+            // MapKit. Best-effort: any failure resolves to [] so we fall through
+            // to Overpass without crashing (ADR §3.3).
+            async let amapTask: [OverpassService.POI] = {
+                do {
+                    return try await amap.fetchPOIs(
+                        near: coordinate, radiusMeters: radiusMeters, category: category
+                    )
+                } catch {
+                    Self.logger.error("Amap fetch failed, falling back to Overpass: \(String(describing: error), privacy: .public)")
+                    return []
+                }
+            }()
+            let amapPois = await amapTask
+            if !amapPois.isEmpty {
+                let mapKitPois = await mapKitTask
+                return FoursquareService.enrichMerge(base: amapPois, enrichment: mapKitPois)
+            }
+            // Empty Amap result (quota / no match / error): fall through to
+            // Overpass. `mapKitTask` is still in flight and consumed below.
+        }
+
+        // Overseas, or China fallback: Overpass is authoritative.
+        async let overpassTask = overpassService.fetchPOIs(
+            near: coordinate, radiusMeters: radiusMeters, category: category
+        )
+        let overpassPois = try await overpassTask
+        let mapKitPois = await mapKitTask
+        return FoursquareService.enrichMerge(base: overpassPois, enrichment: mapKitPois)
     }
 
     /// Run the deep-dive enrichment for a coordinate. Returns synthesized
@@ -88,20 +149,12 @@ public final class EnrichmentAgent {
         locale: Locale = .current,
         topN: Int = EnrichmentAgent.defaultTopN
     ) async throws -> [Experience] {
-        // 1. Concurrent base collection. Overpass is the authoritative source
-        //    and may throw; MapKit is best-effort (empty array on failure).
-        async let overpassTask = overpassService.fetchPOIs(
+        // 1. Base collection, routed by region: Amap inside mainland China
+        //    (authoritative there), Overpass overseas / on fallback. MapKit is
+        //    folded in best-effort. Returns WGS84 regardless of source.
+        var pois = try await basePOIs(
             near: coordinate, radiusMeters: radiusMeters, category: category
         )
-        async let mapKitTask = mapKitPOIsBestEffort(
-            near: coordinate, radiusMeters: radiusMeters, category: category
-        )
-
-        let overpassPois = try await overpassTask
-        let mapKitPois = await mapKitTask
-
-        // Merge base sources by cell; Overpass wins identity on overlap.
-        var pois = FoursquareService.enrichMerge(base: overpassPois, enrichment: mapKitPois)
         guard !pois.isEmpty else { return [] }
 
         // 2. Fold Foursquare hard signals into the matching base POIs. One
@@ -237,20 +290,15 @@ public final class EnrichmentAgent {
             await onProgress(.scanning(radiusKm: radiusKm))
 
             // Fetch the full disk at this radius; then keep only the new annulus.
-            let category = categories.first  // OverpassService takes one category
+            // `basePOIs` routes Amap (mainland China) vs Overpass (overseas).
+            let category = categories.first  // single category per source call
             let allPois: [OverpassService.POI]
             do {
-                async let overpassTask = overpassService.fetchPOIs(
+                allPois = try await basePOIs(
                     near: coordinate, radiusMeters: radius, category: category
                 )
-                async let mapKitTask = mapKitPOIsBestEffort(
-                    near: coordinate, radiusMeters: radius, category: category
-                )
-                let rawOverpass = try await overpassTask
-                let rawMapKit = await mapKitTask
-                allPois = FoursquareService.enrichMerge(base: rawOverpass, enrichment: rawMapKit)
             } catch {
-                Self.logger.error("Stage \(radius, privacy: .public)m Overpass fetch failed: \(String(describing: error), privacy: .public)")
+                Self.logger.error("Stage \(radius, privacy: .public)m base fetch failed: \(String(describing: error), privacy: .public)")
                 prevRadius = radius
                 continue
             }
