@@ -52,6 +52,10 @@ public struct FilterBarView: View {
     @State private var lastResultCount: Int = 0
     @State private var emptyShake: Int = 0
 
+    /// Opacity for count badges — dims while the map is panning to signal
+    /// the count is stale and will update once the gesture ends.
+    private var countBadgeOpacity: Double { isMapPanning ? 0.35 : 1.0 }
+
     /// Routes a pill tap to either deselect (toggle-off) or select, with distinct haptics.
     /// When `isSelected` is true the active pill is tapped again — call `onClear` with a
     /// light-impact (deselect) haptic. Otherwise call `select` with a selection haptic.
@@ -389,6 +393,7 @@ public struct FilterBarView: View {
                 if isSelected && resultCount > 0 {
                     countBadge(count: resultCount, tint: Self.selectedFill)
                         .offset(x: 6, y: -6)
+                        .opacity(countBadgeOpacity)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -437,6 +442,7 @@ public struct FilterBarView: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.white.opacity(0.28)))
+                        .opacity(countBadgeOpacity)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -519,6 +525,7 @@ public struct FilterBarView: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.white.opacity(0.28)))
+                        .opacity(countBadgeOpacity)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -561,6 +568,7 @@ public struct FilterBarView: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.white.opacity(0.28)))
+                        .opacity(countBadgeOpacity)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -611,6 +619,7 @@ public struct FilterBarView: View {
                     if isSelected && resultCount > 0 {
                         countBadge(count: resultCount, tint: .accentColor)
                             .offset(x: 6, y: -6)
+                            .opacity(countBadgeOpacity)
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
