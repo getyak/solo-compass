@@ -32,7 +32,7 @@
 - [x] **#12 "Nearby" button purpose is unclear** — `CompassMapView` — 地图右下角 "Nearby" 文字按钮功能与底部 sheet 重叠，应移除或明确其独特用途
 - [x] **#13 Solo Score badge lacks context** — `SoloScoreBadge.swift` — "Solo 7.8" 无标尺说明（满分 10？100？），无颜色编码区分好坏。应加 "/10" 后缀 + 渐变色
 - [x] **#14 "BEST FOR RIGHT NOW" header redundant when Now filter is off** — `BottomInfoSheet.swift` — "All" 筛选时仍显示 "BEST FOR RIGHT NOW"，暗示时间相关但卡片可能并非当前最佳
-- [ ] **#15 Chat input bar at bottom of DayPage is confusing** — `MeSheet.swift` — 底部 "Capture this moment" + 麦克风图标，分不清是文字输入还是语音录制，是日记还是聊天
+- [x] **#15 Chat input bar at bottom of DayPage is confusing** — `MeSheet.swift` — 底部 "Capture this moment" + 麦克风图标，分不清是文字输入还是语音录制，是日记还是聊天
 - [x] **#16 Missing haptic feedback on map pin tap** — `CompassMapView.swift` — 点击地图 pin 显示 PeekSummaryCard 但无触觉反馈，FilterBar pill 有 haptics 但主要交互（pin tap）没有
 - [x] **#17 "+" FAB button has no label/tooltip** — `CompassMapView.swift` — 右下角大黑 "+" 按钮无上下文说明，创建的是 Experience？Route？Note？
 - [ ] **#18 Onboarding is only 2 steps — too thin** — `OnboardingView.swift` — 仅 welcome + style-selection，未解释核心概念（Experience/Solo Score/Now/DayPage）
@@ -50,7 +50,7 @@
 - [x] **#25 Map style options are hidden** — 无可见方式切换卫星/标准/混合地图，顶部笔形图标含义模糊
 - [x] **#26 No transition animation between peek/mid/full sheet states** — `BottomInfoSheet.swift` — detent 状态切换缺乏统一的 spring 动画
 - [x] **#27 "Good spots for right now" timestamp shows exact time** — `BottomInfoSheet.swift` — 显示 "00:17" 原始时间无意义，应改为 "Updated just now" 或移除
-- [ ] **#28 Compass/navigation icons in top bar are ambiguous** — 顶栏指南针和定位箭头与 MapKit 内置控件功能重叠
+- [x] **#28 Compass/navigation icons in top bar are ambiguous** — 顶栏指南针和定位箭头与 MapKit 内置控件功能重叠
 - [x] **#29 "All Cities" dropdown doesn't show current city name** — `CityPickerSheet.swift` — 左上角始终显示 "All Cities" 而非当前城市名 "Chiang Mai"
 - [x] **#30 Accessibility: reduce-motion not respected everywhere** — 多处动画（pulsing/heart burst）未统一检查 `reduceMotion`
 
