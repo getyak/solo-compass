@@ -45,7 +45,7 @@
 
 - [x] **#21 No pull-to-refresh on the experience list** — `BottomInfoSheet.swift` — NearbySection 无下拉刷新手势，iOS 用户普遍期望
 - [ ] **#22 No search functionality** — 无全局搜索，体验 50+ 时只能滚动或用筛选器，效率低
-- [ ] **#23 No image/photo on experience cards** — `BottomInfoSheet.swift` NearbyExperienceRow — 卡片仅文字无图片预览，`ExperienceImageService` 已存在但未接入列表卡片
+- [x] **#23 No image/photo on experience cards** — `BottomInfoSheet.swift` NearbyExperienceRow — 卡片仅文字无图片预览，`ExperienceImageService` 已存在但未接入列表卡片
 - [x] **#24 Settings gear icon on DayPage is low-contrast** — `MeSheet.swift` — DayPage 右上角齿轮图标过小且低对比度
 - [ ] **#25 Map style options are hidden** — 无可见方式切换卫星/标准/混合地图，顶部笔形图标含义模糊
 - [x] **#26 No transition animation between peek/mid/full sheet states** — `BottomInfoSheet.swift` — detent 状态切换缺乏统一的 spring 动画

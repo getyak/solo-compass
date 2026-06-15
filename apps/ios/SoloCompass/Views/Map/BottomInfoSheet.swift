@@ -986,7 +986,28 @@ struct NearbyExperienceRow: View {
 
     // MARK: - Sub-views
 
+    @ViewBuilder
     private var categoryDisc: some View {
+        if let firstURL = experience.location.photoUrls?.first,
+           let url = URL(string: firstURL) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                default:
+                    categoryIcon
+                }
+            }
+        } else {
+            categoryIcon
+        }
+    }
+
+    private var categoryIcon: some View {
         ZStack {
             Circle()
                 .fill(experience.category.color)
