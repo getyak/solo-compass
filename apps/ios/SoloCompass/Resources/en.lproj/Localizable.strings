@@ -847,6 +847,7 @@
 /* "+" quick-action button — single chat entry point */
 "plus.button.a11y" = "Chat with Solo";
 "plus.button.hint" = "Tap to type, hold to talk";
+"plus.button.label" = "Ask";
 
 /* Voice-first state view shown inside ChatSheet on voice entry */
 "chat.voice.title" = "Talk to Solo";

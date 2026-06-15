@@ -2437,13 +2437,18 @@ private struct MapControlBar: View {
 
             Spacer()
 
-            PlusActionButton(
-                onShortTap: {
-                    Haptics.impact(.medium)
-                    onOpenChat(.text)
-                },
-                onLongPress: { onOpenChat(.voice) }
-            )
+            VStack(spacing: 4) {
+                PlusActionButton(
+                    onShortTap: {
+                        Haptics.impact(.medium)
+                        onOpenChat(.text)
+                    },
+                    onLongPress: { onOpenChat(.voice) }
+                )
+                Text(NSLocalizedString("plus.button.label", comment: "FAB label"))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
             .padding(.trailing, 20)
             .padding(.bottom, bottomInset)
         }

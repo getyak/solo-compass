@@ -516,6 +516,7 @@
 /* "+" quick-action button — single chat entry point */
 "plus.button.a11y" = "和 Solo 聊天";
 "plus.button.hint" = "点击文字输入，长按语音说话";
+"plus.button.label" = "问问";
 
 /* Chat voice surface */
 "chat.voice.title" = "和 Solo 说话";
