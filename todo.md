@@ -20,7 +20,7 @@
 - [x] **#5 FilterBar category icons lack labels** — `FilterBarView.swift` — 类别 pill 仅显示 emoji 图标无文字，新用户无法区分 food/culture 等图标含义。需增加文字标签或长按提示
 - [x] **#6 "Now" filter shows 0 items at midnight with no explanation** — `FilterBarView.swift`, `MapViewModel.swift` — 深夜时 Now 筛选无结果且无提示。应增加时间感知空状态："It's late — most spots are closed"
 - [x] **#7 PeekSummaryCard text truncation on long titles** — `PeekSummaryCard.swift` — 标题 "Eat khao soi at the family s..." 被截断，Experience.title 是完整句子非短名。应允许 2-3 行或使用 shortName
-- [ ] **#8 DayPage/Me screen is sparse and low-value** — `MeSheet.swift` — 显示 "Tuesday" + "Still up?" + "0 SIGNALS" + "Nothing surfaced yet." 全是空状态，"signal" 概念无解释，orb 动画装饰性强但令人困惑
+- [x] **#8 DayPage/Me screen is sparse and low-value** — `MeSheet.swift` — 显示 "Tuesday" + "Still up?" + "0 SIGNALS" + "Nothing surfaced yet." 全是空状态，"signal" 概念无解释，orb 动画装饰性强但令人困惑
 - [x] **#9 Map pin density — clusters are hard to distinguish** — `CompassMapView.swift`, `MarkerIconView.swift` — 中等缩放下 4-5 个 pin 重叠，无聚合注释或防重叠逻辑。应使用 MapKit ClusterAnnotation
 - [x] **#10 "Smart" sort has no explanation** — `BottomInfoSheet.swift` SortMode picker — 默认排序 "Smart" 无解释其依据，用户不理解或不信任排名。应增加 "(based on time, distance & score)" 副标题
 - [x] **#11 Dark mode contrast issues on cards** — `BottomInfoSheet.swift` smart-pick gradient — `CT.sunGoldSoft.opacity(0.55)` → `CT.surfaceWhite` 渐变在暗色模式下视觉层次反转，金色看起来像错误状态

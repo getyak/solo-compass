@@ -1679,6 +1679,9 @@
 "me.friends.empty" = "还没有好友";
 "me.stats.saved" = "收藏";
 "me.stats.explored" = "探索";
+"me.empty.title" = "旅程从这里开始";
+"me.empty.subtitle" = "探索地图，收藏喜欢的地点，记录你去过的每一处。";
+"me.empty.cta" = "回到地图";
 "me.avatar.a11y" = "打开个人中心";
 "me.avatar.a11y.pending" = "你有待处理的好友申请";
 

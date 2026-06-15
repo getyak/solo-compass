@@ -47,6 +47,14 @@ struct MeSheet: View {
                     .listRowBackground(Color.clear)
                 }
 
+                if preferences.favoritedExperiences.isEmpty {
+                    Section {
+                        MeEmptyStateCard()
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                    }
+                }
+
                 Section {
                     NavigationLink {
                         FriendsHubView()
@@ -422,6 +430,54 @@ private struct MeRow: View {
                 .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgSubtle)
         }
         .padding(.vertical, 6)
+    }
+}
+
+// MARK: - Empty-state guidance
+
+private struct MeEmptyStateCard: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "map.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(.tint)
+
+            Text(NSLocalizedString("me.empty.title", comment: "Empty state title"))
+                .font(.headline)
+                .multilineTextAlignment(.center)
+
+            Text(NSLocalizedString("me.empty.subtitle", comment: "Empty state subtitle"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                dismiss()
+            } label: {
+                Text(NSLocalizedString("me.empty.cta", comment: "Back to map CTA"))
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Color.accentColor, in: Capsule())
+                    .foregroundStyle(.white)
+            }
+            .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(CT.borderSubtle, lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
     }
 }
 

@@ -306,6 +306,9 @@
 "me.stats.saved" = "Saved";
 "me.stats.explored" = "Explored";
 "me.profile.progress.a11y" = "%d of %d saved places explored";
+"me.empty.title" = "Your journey starts here";
+"me.empty.subtitle" = "Explore the map, save your favorite spots, and track which ones you've visited.";
+"me.empty.cta" = "Back to the map";
 
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";
