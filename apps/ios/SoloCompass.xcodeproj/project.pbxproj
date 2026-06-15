@@ -293,6 +293,7 @@
 		BA0DD7D5C46016E81A23B2B4 /* ChatInputBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B88D9F377D7AF634DAE07A3E /* ChatInputBar.swift */; };
 		BA870AD09C34F9B1E703086D /* DiscoverFriendGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 820F9980B60883E879851303 /* DiscoverFriendGate.swift */; };
 		BAC775E6105DD571F71ACBC1 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 80020844C0A45A5993333741 /* Localizable.strings */; };
+		BAD5DD88DEA26FC3F5E4E304 /* RoutesSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176E799668057C7DD5C559AD /* RoutesSectionView.swift */; };
 		BB0BC19A9BE687E947C48034 /* VoiceAgentOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94EF0AA0049BDCC88E125164 /* VoiceAgentOrchestrator.swift */; };
 		BB2B54BC5A41E7956362E1CE /* MarkerClosingSoonStyleTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC34BA3586B5607F63F86CC0 /* MarkerClosingSoonStyleTest.swift */; };
 		BB684C82CF82A2EB3F924C75 /* SystemTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1B839F9F82AFDD50655AAE /* SystemTheme.swift */; };
@@ -358,6 +359,7 @@
 		D7CC906B358ED5337880A942 /* seed_experiences.json in Resources */ = {isa = PBXBuildFile; fileRef = 61ED51ACFDCE6E0ED274BB60 /* seed_experiences.json */; };
 		D825B4D4C81AC33373DA1437 /* AgentMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5DCEFC3560FED53D0CB5D19 /* AgentMessage.swift */; };
 		D8A9D1CB20E6D46FD5EE373C /* PeekSummarySelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710E82F0D31AB629848EA729 /* PeekSummarySelectionTests.swift */; };
+		D92DAEAE71963052C9D7AA15 /* NearbySectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E35A08D354E34532B69206 /* NearbySectionView.swift */; };
 		DB1CF6212A00A37058317559 /* StartRouteCoordinateResolutionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 377590D8F67E082E58EDEAB9 /* StartRouteCoordinateResolutionTests.swift */; };
 		DC8EEFCE455618DDDF900B28 /* ExperienceImageServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28FE205E7AA6068F6E0C837 /* ExperienceImageServiceTests.swift */; };
 		DD17BA9771494EA9F0E4ECC5 /* TopOverlayLayoutTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D30D09E054C6CE013359301E /* TopOverlayLayoutTest.swift */; };
@@ -399,6 +401,7 @@
 		F2814ADB3CC8ACAC244B8375 /* CompanionReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2BE90CD51D94B3FEE2F5AFA /* CompanionReport.swift */; };
 		F3461FC7F38900F40A880255 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = A17FB51E410084B1D8337FBA /* Localizable.stringsdict */; };
 		F34C1A42668EF5151AFEE3C3 /* AISynthesisCacheRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E69F3EF6F0100CFA47DAFE /* AISynthesisCacheRecord.swift */; };
+		F3A9291D6B6EECE2F1EF87FC /* NearbyExperienceRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1A75C3B221367255908953 /* NearbyExperienceRow.swift */; };
 		F3B6B76087182DEAF1BD0556 /* RouteRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE044EB043B89CD798F4ED83 /* RouteRecord.swift */; };
 		F3C01191CC2B37DE4F3E5DEB /* SunsetSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051AD3C3A41FDF75D2C4BD8C /* SunsetSignalTests.swift */; };
 		F3D0A3E30E7D7825805C2801 /* ShareCardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D78BE6F7E5B4B82CEAC0A3 /* ShareCardRenderer.swift */; };
@@ -477,6 +480,7 @@
 		0C6FC4A3B60FA8D9DC3A4779 /* SoloScoreRadarA11yTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloScoreRadarA11yTest.swift; sourceTree = "<group>"; };
 		0CB5FD37267074EF4015F95D /* ConversationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationListView.swift; sourceTree = "<group>"; };
 		0E0157D30FF53B21FF31D519 /* MarkerIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkerIconView.swift; sourceTree = "<group>"; };
+		0F1A75C3B221367255908953 /* NearbyExperienceRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyExperienceRow.swift; sourceTree = "<group>"; };
 		0FCE40A39EEEDA3A22E17689 /* SavedCity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCity.swift; sourceTree = "<group>"; };
 		10F48D7FA14E29D606FD11EA /* RouteCompanionStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCompanionStateMachineTests.swift; sourceTree = "<group>"; };
 		112319E8315F5F6961C95264 /* VoiceAgentSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgentSession.swift; sourceTree = "<group>"; };
@@ -493,6 +497,7 @@
 		14A2953D1F2B46AFC9F85D42 /* AddToItinerarySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddToItinerarySheet.swift; sourceTree = "<group>"; };
 		154BDAAACF2DDCFE0953E722 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Secrets.plist; sourceTree = "<group>"; };
 		15C512E1C0A5CFFE798CEEEA /* AppLaunchPerformanceTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLaunchPerformanceTest.swift; sourceTree = "<group>"; };
+		176E799668057C7DD5C559AD /* RoutesSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutesSectionView.swift; sourceTree = "<group>"; };
 		187534C119545F7D61CE693B /* GuideAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuideAgent.swift; sourceTree = "<group>"; };
 		18AAA718024540127A95A827 /* GeohashUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeohashUtils.swift; sourceTree = "<group>"; };
 		1A8062A7E6BA3EE88C6DAF02 /* CompanionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionService.swift; sourceTree = "<group>"; };
@@ -695,6 +700,7 @@
 		9748B0A808BC06F6EDED3C3B /* RecentExploreRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentExploreRegion.swift; sourceTree = "<group>"; };
 		977F66FB36894EA4088C2905 /* WebSearchEnrichmentSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSearchEnrichmentSource.swift; sourceTree = "<group>"; };
 		97CFC524C0531291FC21FE47 /* ExperienceRecordHighlightsRoundTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceRecordHighlightsRoundTripTests.swift; sourceTree = "<group>"; };
+		97E35A08D354E34532B69206 /* NearbySectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbySectionView.swift; sourceTree = "<group>"; };
 		97E92D314B6B62ED3B6EA2AE /* ShareCardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardComponents.swift; sourceTree = "<group>"; };
 		97FCA9C12D9640983F75474E /* NowSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowSignal.swift; sourceTree = "<group>"; };
 		98A9885BEB8D9686F5384BEC /* AttachmentInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentInputBar.swift; sourceTree = "<group>"; };
@@ -1002,9 +1008,12 @@
 				323B1BAB8D4A2BE116D8A789 /* LocationPickerSheet.swift */,
 				D3DBD8BED52DB4E9DD339BFD /* MapPinPickerView.swift */,
 				0E0157D30FF53B21FF31D519 /* MarkerIconView.swift */,
+				0F1A75C3B221367255908953 /* NearbyExperienceRow.swift */,
+				97E35A08D354E34532B69206 /* NearbySectionView.swift */,
 				C73B8E83B3522CC4FFEBE10B /* PeekPickResolver.swift */,
 				554BDD1F80E1A3D35F7FDF2B /* PeekSummaryCard.swift */,
 				1C23113554E651AA08FD2430 /* POILoadingBanner.swift */,
+				176E799668057C7DD5C559AD /* RoutesSectionView.swift */,
 				B8E4951132B1E16F8A260402 /* UserLocationMarker.swift */,
 				9EDF4F9F84F50797290FF9E0 /* VoiceProcessingToast.swift */,
 			);
@@ -2069,6 +2078,8 @@
 				4F85ADCAE47D7654A6A91068 /* MyRequestsListView.swift in Sources */,
 				690ED25AA3EDA8529E915850 /* MyWalkedRoutesListView.swift in Sources */,
 				C306F7501DA85110BE3C85B5 /* NavigationLauncher.swift in Sources */,
+				F3A9291D6B6EECE2F1EF87FC /* NearbyExperienceRow.swift in Sources */,
+				D92DAEAE71963052C9D7AA15 /* NearbySectionView.swift in Sources */,
 				6AA87132BC6ACDDDC6D98735 /* NetworkMonitor.swift in Sources */,
 				6E89D69A55FBB0EE0E476728 /* NotificationCategories.swift in Sources */,
 				C53DB60CA9E95907A2CBF2C0 /* NotificationService.swift in Sources */,
@@ -2117,6 +2128,7 @@
 				59A9E2DAC8378384BBCD8A57 /* RouteShareSheet.swift in Sources */,
 				CB7524D681F638DFD45BA1FA /* RouteShareStyle.swift in Sources */,
 				963BC062494BCC3B655AFDC0 /* RouteStore.swift in Sources */,
+				BAD5DD88DEA26FC3F5E4E304 /* RoutesSectionView.swift in Sources */,
 				CE75A768DA8AD2A14C3046AF /* SavedCity.swift in Sources */,
 				FBE9F5951D501A611EB19EEC /* SecretsRuntime.swift in Sources */,
 				6F0618797804108791374E34 /* SeedUser.swift in Sources */,
