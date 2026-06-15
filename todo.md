@@ -10,7 +10,7 @@
 
 - [x] **#1 Empty state for non-seed cities is a dead end** — `BottomInfoSheet.swift`, `MapViewModel.swift` — Launching in Shenzhen/Bangkok 等非清迈城市显示 "No experiences nearby"，只有 "Expand to 25 km" 和 "Clear filters"，两者都无用。应增加城市级空状态引导："This city doesn't have experiences yet — try Chiang Mai" + 一键切城 CTA
 - [x] **#2 Distance shows 12,398.6km — absurdly large** — `BottomInfoSheet.swift` NearbyExperienceRow — 模拟器在 SF 但展示清迈数据时距离显示 12,398.6km，跨洲距离无意义。超过 500km 时应隐藏距离或显示 "In Chiang Mai"
-- [ ] **#3 Bottom sheet lacks loading skeleton** — `BottomInfoSheet.swift` — sheet 展开到数据加载之间有 ~500ms 空白区域，无 shimmer/skeleton/spinner。`SkeletonView.swift` 已存在但未接入
+- [x] **#3 Bottom sheet lacks loading skeleton** — `BottomInfoSheet.swift` — sheet 展开到数据加载之间有 ~500ms 空白区域，无 shimmer/skeleton/spinner。`SkeletonView.swift` 已存在但未接入
 - [ ] **#4 Location permission banner is non-actionable** — `CompassMapView` — 黄色 banner "Can't find your location..." 无 "Open Settings" 按钮，用户必须手动去系统设置
 
 ---

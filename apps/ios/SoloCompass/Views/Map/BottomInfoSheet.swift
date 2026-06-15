@@ -1364,12 +1364,15 @@ struct NearbySection: View {
     @Environment(BestNowClock.self) private var clock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    let isLoading: Bool
+
     init(
         experiences: [Experience],
         smartPickIds: [String],
         referenceCoordinate: CLLocationCoordinate2D?,
         sortMode: SortMode = .smart,
         showsSectionDivider: Bool = false,
+        isLoading: Bool = false,
         onExploreElsewhere: (() -> Void)? = nil,
         suggestedCityName: String? = nil,
         onSwitchToSuggestedCity: (() -> Void)? = nil,
@@ -1382,6 +1385,7 @@ struct NearbySection: View {
         self.referenceCoordinate = referenceCoordinate
         self.sortMode = sortMode
         self.showsSectionDivider = showsSectionDivider
+        self.isLoading = isLoading
         self.onExploreElsewhere = onExploreElsewhere
         self.suggestedCityName = suggestedCityName
         self.onSwitchToSuggestedCity = onSwitchToSuggestedCity
@@ -1400,7 +1404,9 @@ struct NearbySection: View {
             // US-036: inset divider + localized "Nearby" header separates this
             // section from Routes above (showsDivider gated by composition).
             SheetSectionSeparator(titleKey: "sheet.section.nearby", showsDivider: showsSectionDivider)
-            if experiences.isEmpty {
+            if isLoading && experiences.isEmpty {
+                NearbyRowSkeletonList()
+            } else if experiences.isEmpty {
                 // US-050: empty Nearby list. Announce on appear so VoiceOver
                 // users learn the list is empty rather than thinking the sheet
                 // froze; a visible row keeps the state legible to everyone.
@@ -1495,6 +1501,72 @@ struct NearbySection: View {
         let from = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
         let to = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
         return from.distance(from: to)
+    }
+}
+
+// MARK: - NearbyRowSkeletonList
+
+struct NearbyRowSkeletonList: View {
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(0..<3, id: \.self) { _ in
+                NearbyRowSkeleton()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(NSLocalizedString("skeleton.loading", comment: "Loading")))
+        .accessibilityAddTraits(.updatesFrequently)
+        .allowsHitTesting(false)
+    }
+}
+
+private struct NearbyRowSkeleton: View {
+    @State private var shimmerPhase: CGFloat = -1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(shimmerFill)
+                .frame(width: 44, height: 44)
+            VStack(alignment: .leading, spacing: 6) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(shimmerFill)
+                    .frame(height: 14)
+                    .frame(maxWidth: .infinity)
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(shimmerFill)
+                    .frame(width: 120, height: 10)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(uiColor: .systemGray6))
+        )
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+                shimmerPhase = 1.0
+            }
+        }
+    }
+
+    private var shimmerFill: some ShapeStyle {
+        let base = Color(uiColor: .systemGray5)
+        let highlight = Color.white.opacity(0.6)
+        let center = (shimmerPhase + 1) / 2
+        return LinearGradient(
+            stops: [
+                .init(color: base, location: max(0, center - 0.3)),
+                .init(color: highlight, location: center),
+                .init(color: base, location: min(1, center + 0.3)),
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 }
 

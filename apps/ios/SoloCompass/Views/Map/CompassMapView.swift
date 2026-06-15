@@ -744,6 +744,7 @@ struct CompassMapContentView: View {
                                     // Outside Now the Routes section is hidden, so the divider would
                                     // dangle above the very first section; suppress it there.
                                     showsSectionDivider: viewModel.isNowFilter,
+                                    isLoading: viewModel.isFetchingPOIs,
                                     onExploreElsewhere: {
                                         // Zoom the map out one step by doubling the visible span,
                                         // capped at ±90° lat / ±180° lon, so out-of-range
