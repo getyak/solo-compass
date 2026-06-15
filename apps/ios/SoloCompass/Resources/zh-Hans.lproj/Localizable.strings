@@ -1794,3 +1794,8 @@
 "mood.worthFinding" = "值得找";
 "mood.hardToFind" = "不太好找";
 "mood.veryFew" = "人很少";
+
+/* Map style picker */
+"map.style.standard" = "标准";
+"map.style.satellite" = "卫星";
+"map.style.hybrid" = "混合";

@@ -1880,3 +1880,8 @@
 "mood.worthFinding" = "Worth finding";
 "mood.hardToFind" = "Hard to find";
 "mood.veryFew" = "Very few people";
+
+/* Map style picker */
+"map.style.standard" = "Standard";
+"map.style.satellite" = "Satellite";
+"map.style.hybrid" = "Hybrid";

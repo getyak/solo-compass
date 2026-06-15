@@ -47,7 +47,7 @@
 - [ ] **#22 No search functionality** — 无全局搜索，体验 50+ 时只能滚动或用筛选器，效率低
 - [x] **#23 No image/photo on experience cards** — `BottomInfoSheet.swift` NearbyExperienceRow — 卡片仅文字无图片预览，`ExperienceImageService` 已存在但未接入列表卡片
 - [x] **#24 Settings gear icon on DayPage is low-contrast** — `MeSheet.swift` — DayPage 右上角齿轮图标过小且低对比度
-- [ ] **#25 Map style options are hidden** — 无可见方式切换卫星/标准/混合地图，顶部笔形图标含义模糊
+- [x] **#25 Map style options are hidden** — 无可见方式切换卫星/标准/混合地图，顶部笔形图标含义模糊
 - [x] **#26 No transition animation between peek/mid/full sheet states** — `BottomInfoSheet.swift` — detent 状态切换缺乏统一的 spring 动画
 - [x] **#27 "Good spots for right now" timestamp shows exact time** — `BottomInfoSheet.swift` — 显示 "00:17" 原始时间无意义，应改为 "Updated just now" 或移除
 - [ ] **#28 Compass/navigation icons in top bar are ambiguous** — 顶栏指南针和定位箭头与 MapKit 内置控件功能重叠

@@ -2,6 +2,42 @@ import SwiftUI
 import MapKit
 import os
 
+enum MapStyleChoice: String, CaseIterable {
+    case standard
+    case imagery
+    case hybrid
+
+    var label: String {
+        switch self {
+        case .standard: return NSLocalizedString("map.style.standard", comment: "Standard map")
+        case .imagery:  return NSLocalizedString("map.style.satellite", comment: "Satellite map")
+        case .hybrid:   return NSLocalizedString("map.style.hybrid", comment: "Hybrid map")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .standard: return "map"
+        case .imagery:  return "globe.americas"
+        case .hybrid:   return "square.on.square"
+        }
+    }
+
+    var mapStyle: MapStyle {
+        switch self {
+        case .standard: return .standard(elevation: .flat, pointsOfInterest: .excludingAll)
+        case .imagery:  return .imagery(elevation: .flat)
+        case .hybrid:   return .hybrid(elevation: .flat, pointsOfInterest: .excludingAll)
+        }
+    }
+
+    mutating func cycle() {
+        let all = Self.allCases
+        guard let idx = all.firstIndex(of: self) else { return }
+        self = all[(idx + 1) % all.count]
+    }
+}
+
 /// Which route-related sheet is currently presented over the map. A single
 /// `.sheet(item:)` keyed on this enum replaces the two stacked
 /// `.sheet(isPresented:)` modifiers that SwiftUI silently collapsed (only the
@@ -141,6 +177,7 @@ struct CompassMapContentView: View {
     /// `ChatSheet`), giving the reply room to breathe instead of being read in a
     /// cramped half-sheet.
     @State private var chatDetent: PresentationDetent = .medium
+    @State private var mapStyleChoice: MapStyleChoice = .standard
 
     // US-017: Companion map layer (default off)
     @State private var isCompanionLayerOn: Bool = false
@@ -588,6 +625,7 @@ struct CompassMapContentView: View {
                     dismissedQuotaInfo: $dismissedQuotaInfo,
                     dismissedLocationError: $dismissedLocationError,
                     isMapPanning: $isMapPanning,
+                    mapStyleChoice: $mapStyleChoice,
                     pendingRequestCount: friendService.incomingRequests.count,
                     onTapAvatar: { isShowingMe = true }
                 )
@@ -1542,7 +1580,7 @@ struct CompassMapContentView: View {
                     }
                 }
             }
-            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+            .mapStyle(mapStyleChoice.mapStyle)
             // Only keep the compass (which auto-hides unless the map is
             // rotated). The built-in MapUserLocationButton is intentionally
             // dropped: because the map sets `.ignoresSafeArea()` to bleed tiles
@@ -1722,6 +1760,7 @@ private struct MapOverlayView: View {
     @Binding var dismissedQuotaInfo: String?
     @Binding var dismissedLocationError: Bool
     @Binding var isMapPanning: Bool
+    @Binding var mapStyleChoice: MapStyleChoice
     // US-007: pending friend-request count drives the avatar's red dot;
     // the tap opens the personal hub (MeSheet).
     var pendingRequestCount: Int = 0
@@ -1766,6 +1805,8 @@ private struct MapOverlayView: View {
                 // personal hub (MeSheet). Placed before the recenter button so
                 // it stays fully on-screen in this safe-area-respecting overlay
                 // row (top-right), clear of the status bar.
+                mapStyleButton
+                    .padding(.trailing, 4)
                 MapAvatarBubble(
                     hasPendingRequests: pendingRequestCount > 0,
                     action: onTapAvatar
@@ -2185,6 +2226,26 @@ private struct MapOverlayView: View {
         }
         .accessibilityLabel(Text(cityName))
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
+    }
+
+    private var mapStyleButton: some View {
+        Button {
+            Haptics.impact(.light)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                mapStyleChoice.cycle()
+            }
+        } label: {
+            Image(systemName: mapStyleChoice.icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(CT.accent)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                )
+        }
+        .accessibilityLabel(Text(mapStyleChoice.label))
     }
 
     private var recenterButton: some View {
