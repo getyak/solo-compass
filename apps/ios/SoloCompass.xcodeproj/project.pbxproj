@@ -283,6 +283,7 @@
 		B6FA45D117293C3829DE99A9 /* RouteMapSnapshotter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8970A53A6D6C42A614F7B414 /* RouteMapSnapshotter.swift */; };
 		B7366111257111EC98F4A0C4 /* ChatSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9263FC2737FA209F3CD4B5E /* ChatSheet.swift */; };
 		B80813E9E3CDD855C12F7D58 /* LockScreenLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02DB2C9C0BC30785E0A80F3 /* LockScreenLiveActivityView.swift */; };
+		B9AFA2FC4C9102AF0B27DFFF /* AmapLiveIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D22DBF50B6C3FABE64A9DE2 /* AmapLiveIntegrationTests.swift */; };
 		B9EDA827F7E00B19DF97512C /* ConversationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12888843433B2A00D7CAB18 /* ConversationRecord.swift */; };
 		BA0DD7D5C46016E81A23B2B4 /* ChatInputBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B88D9F377D7AF634DAE07A3E /* ChatInputBar.swift */; };
 		BA870AD09C34F9B1E703086D /* DiscoverFriendGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 820F9980B60883E879851303 /* DiscoverFriendGate.swift */; };
@@ -617,6 +618,7 @@
 		69C8C17C79CD2B4EAE72F385 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.stringsdict"; sourceTree = "<group>"; };
 		6C5CA5533D846B39EF16CDFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		6CE165B6335EEBF5DDED2C47 /* AmapPOIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmapPOIServiceTests.swift; sourceTree = "<group>"; };
+		6D22DBF50B6C3FABE64A9DE2 /* AmapLiveIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmapLiveIntegrationTests.swift; sourceTree = "<group>"; };
 		6D31F422914779D9228B0278 /* RouteCardNowReasonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCardNowReasonTests.swift; sourceTree = "<group>"; };
 		6DFBC1C003B8745713588A23 /* City.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = City.swift; sourceTree = "<group>"; };
 		7022B4362225428DCEB74D59 /* SettingsAdminUnlockTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAdminUnlockTest.swift; sourceTree = "<group>"; };
@@ -998,6 +1000,7 @@
 				88DFC61CD1B433E92301FB18 /* AddFriendSheetTests.swift */,
 				E5DB59261DB471FD587F4134 /* AgentTests.swift */,
 				D9CF57D3342E9C609CD56801 /* AISynthesisQualityTests.swift */,
+				6D22DBF50B6C3FABE64A9DE2 /* AmapLiveIntegrationTests.swift */,
 				6CE165B6335EEBF5DDED2C47 /* AmapPOIServiceTests.swift */,
 				15C512E1C0A5CFFE798CEEEA /* AppLaunchPerformanceTest.swift */,
 				804618047547A9D7F3F8EAAA /* ApprovalTrustSignalTest.swift */,
@@ -1740,6 +1743,7 @@
 				2C15829741157EA5A2EC8A5C /* AddFriendButtonRenderTest.swift in Sources */,
 				217F30D0C177D27828B5661E /* AddFriendSheetTests.swift in Sources */,
 				8632F83028F07E07435FE075 /* AgentTests.swift in Sources */,
+				B9AFA2FC4C9102AF0B27DFFF /* AmapLiveIntegrationTests.swift in Sources */,
 				5A0A16C0E997E1C0A8FD8BFE /* AmapPOIServiceTests.swift in Sources */,
 				E3E70311CE0E4C0CB1C47462 /* AppLaunchPerformanceTest.swift in Sources */,
 				352247C1FBF4C8F901D17F32 /* ApprovalTrustSignalTest.swift in Sources */,
