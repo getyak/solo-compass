@@ -614,8 +614,13 @@ struct SortCountToolbar: View {
             showSortSheet = true
         } label: {
             HStack(spacing: 4) {
-                Text(sortMode.localizedTitle)
-                    .font(.caption.weight(.medium))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(sortMode.localizedTitle)
+                        .font(.caption.weight(.medium))
+                    Text(NSLocalizedString(sortMode.subtitleKey, comment: "Sort mode subtitle"))
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                }
                 Image(systemName: "chevron.down")
                     .font(.caption2.weight(.semibold))
             }
