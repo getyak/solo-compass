@@ -99,6 +99,7 @@
 		3C5AB28556912D115AEC4AEC /* LocationPickerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 052B6F076F405C203184CB88 /* LocationPickerState.swift */; };
 		3CB7E26BCF3339F2CE297528 /* ItineraryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76D60D55727FB72C1C202C90 /* ItineraryListView.swift */; };
 		3CBA775B8C215CBAE3A73EA0 /* CardBottomInsetClearanceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0674DC5D526883C657A63C38 /* CardBottomInsetClearanceTest.swift */; };
+		3CF8D0F2B2BB4A5B8D0430F3 /* FilterBarLabeledPillsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E40C49968AC6150E89CC02F /* FilterBarLabeledPillsTest.swift */; };
 		3D393CD7ACFD865D7297FA5D /* AIProviderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7295DF9392F0361C0B2E313D /* AIProviderSettingsView.swift */; };
 		3DEF046380F3BD907DE834C0 /* IslandPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CCB9E36FDC56604136090F /* IslandPalette.swift */; };
 		3E24606FB907D7BB18E3C496 /* Itinerary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3F5D58C93D87AC9205148CC /* Itinerary.swift */; };
@@ -543,6 +544,7 @@
 		3B0C9228AD213C6D5FE01FCE /* RoutePolylineShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePolylineShape.swift; sourceTree = "<group>"; };
 		3C9A1F22AAE512199548C269 /* FilterBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterBarView.swift; sourceTree = "<group>"; };
 		3DFAB38A4600C667B8D7CD2B /* ChatHistoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryListView.swift; sourceTree = "<group>"; };
+		3E40C49968AC6150E89CC02F /* FilterBarLabeledPillsTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterBarLabeledPillsTest.swift; sourceTree = "<group>"; };
 		3E7AFBAAF6E42AE8043F476D /* VoiceInterruptionToastTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceInterruptionToastTest.swift; sourceTree = "<group>"; };
 		402644EEDBCD7DD3658E6DD5 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		405A56207920EA0DDADF8FC5 /* CompanionRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionRequest.swift; sourceTree = "<group>"; };
@@ -1052,6 +1054,7 @@
 				AA17ED8FE9ABA2F5CC1D557E /* FavoriteFilterTests.swift */,
 				F8547EB44AE47A5D653D3994 /* FavoritesBounceAvailabilityTest.swift */,
 				5C94CC0395CC7FCC0A56D077 /* FavoritesClosingSoonThresholdTest.swift */,
+				3E40C49968AC6150E89CC02F /* FilterBarLabeledPillsTest.swift */,
 				FFED848E66BBE2A234AAA3CC /* FilterBarScrollAffordanceTest.swift */,
 				E1694A46513909CFE464D92E /* FilterBarViewTests.swift */,
 				35E8F519A353F18BDE4C3307 /* FilterChipContrastTest.swift */,
@@ -1800,6 +1803,7 @@
 				37D5A0FD622C9649308BD14D /* FavoriteFilterTests.swift in Sources */,
 				F721E7FE777AF2AFA0FA264D /* FavoritesBounceAvailabilityTest.swift in Sources */,
 				4617863D79206886BE4A5586 /* FavoritesClosingSoonThresholdTest.swift in Sources */,
+				3CF8D0F2B2BB4A5B8D0430F3 /* FilterBarLabeledPillsTest.swift in Sources */,
 				63A45A90C2748A2729742C2F /* FilterBarScrollAffordanceTest.swift in Sources */,
 				8B118DFAAE23443EF7D90735 /* FilterBarViewTests.swift in Sources */,
 				8E347182E133BD35C712AADB /* FilterChipContrastTest.swift in Sources */,

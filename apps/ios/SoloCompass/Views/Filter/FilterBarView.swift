@@ -547,35 +547,37 @@ public struct FilterBarView: View {
         Button {
             handleTap(isSelected: isSelected, select: action)
         } label: {
-            Image(systemName: category.symbol)
-                .font(.body.weight(.semibold))
-                .frame(width: 34, height: 34)
-                .foregroundStyle(isSelected ? .white : category.color)
-                .background {
-                    if isSelected {
-                        Circle()
-                            .fill(category.color)
-                            .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
-                    }
+            HStack(spacing: 5) {
+                Image(systemName: category.symbol)
+                    .font(.caption.weight(.semibold))
+
+                Text(category.localizedTitle)
+                    .font(.subheadline.weight(.medium))
+
+                if isSelected && resultCount > 0 {
+                    Text(Self.compactCount(resultCount))
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .contentTransition(reduceMotion ? .identity : .numericText(value: Double(resultCount)))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.28)))
+                        .transition(.scale.combined(with: .opacity))
                 }
-                .overlay(
-                    Circle().stroke(isSelected ? Color.clear : category.color, lineWidth: 1)
-                )
-                .overlay(alignment: .topTrailing) {
-                    if isSelected && resultCount > 0 {
-                        countBadge(count: resultCount, tint: category.color)
-                            .offset(x: 6, y: -6)
-                            .transition(.scale.combined(with: .opacity))
-                    }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .foregroundStyle(isSelected ? .white : category.color)
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(category.color)
+                        .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
                 }
-                .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
-                // US-019: keep the visible chip 36×36 but expand the tappable
-                // region to the 44pt HIG minimum.
-                .frame(
-                    minWidth: HitTargetMetrics.minimum,
-                    minHeight: HitTargetMetrics.minimum
-                )
-                .contentShape(Rectangle())
+            }
+            .overlay(
+                Capsule().stroke(isSelected ? Color.clear : category.color, lineWidth: 1)
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
         }
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(Text(category.localizedTitle))
