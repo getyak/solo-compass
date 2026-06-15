@@ -1360,6 +1360,7 @@ struct NearbySection: View {
     /// no experiences. Passed through to EmptySheetListView.
     let suggestedCityName: String?
     let onSwitchToSuggestedCity: (() -> Void)?
+    let isNowFilter: Bool
 
     @Environment(BestNowClock.self) private var clock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -1373,6 +1374,7 @@ struct NearbySection: View {
         sortMode: SortMode = .smart,
         showsSectionDivider: Bool = false,
         isLoading: Bool = false,
+        isNowFilter: Bool = false,
         onExploreElsewhere: (() -> Void)? = nil,
         suggestedCityName: String? = nil,
         onSwitchToSuggestedCity: (() -> Void)? = nil,
@@ -1386,6 +1388,7 @@ struct NearbySection: View {
         self.sortMode = sortMode
         self.showsSectionDivider = showsSectionDivider
         self.isLoading = isLoading
+        self.isNowFilter = isNowFilter
         self.onExploreElsewhere = onExploreElsewhere
         self.suggestedCityName = suggestedCityName
         self.onSwitchToSuggestedCity = onSwitchToSuggestedCity
@@ -1411,6 +1414,7 @@ struct NearbySection: View {
                 // users learn the list is empty rather than thinking the sheet
                 // froze; a visible row keeps the state legible to everyone.
                 EmptySheetListView(
+                    isNowFilter: isNowFilter,
                     onExploreElsewhere: onExploreElsewhere,
                     suggestedCityName: suggestedCityName,
                     onSwitchToSuggestedCity: onSwitchToSuggestedCity
@@ -1581,6 +1585,8 @@ struct EmptySheetListView: View {
     /// announcement. Exposed via the same key the test asserts on.
     static let announcementKey = "a11y.empty.nearby"
 
+    var isNowFilter: Bool = false
+
     /// When non-nil, renders an 'Explore another area' CTA that fires this
     /// callback on tap (after a selection haptic). Omit in previews / tests
     /// where no map action is wired up.
@@ -1595,35 +1601,73 @@ struct EmptySheetListView: View {
     @State private var breathing = false
 
     var localizedEmptyText: String {
-        NSLocalizedString(Self.announcementKey, comment: "Announced when the Nearby list is empty")
+        if isNowFilter && Self.isLateNight {
+            return NSLocalizedString("empty.now.latenight", comment: "Now filter empty at night")
+        }
+        return NSLocalizedString(Self.announcementKey, comment: "Announced when the Nearby list is empty")
     }
 
     private var hasSuggestedCity: Bool {
         suggestedCityName != nil && onSwitchToSuggestedCity != nil
     }
 
+    static var isLateNight: Bool {
+        let hour = Calendar.current.component(.hour, from: Date())
+        return hour >= 23 || hour < 6
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             VStack(spacing: 8) {
-                Image(systemName: "mappin.slash")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-                    .scaleEffect(breathing ? 1.08 : 1.0)
-                    .opacity(breathing ? 0.7 : 1.0)
-                Text(NSLocalizedString("empty.nearby.headline", comment: "Empty Nearby headline"))
-                    .font(.headline)
-                    .foregroundStyle(CT.fgPrimary)
-                    .multilineTextAlignment(.center)
-                if hasSuggestedCity {
-                    Text(NSLocalizedString("empty.nearby.subtitle.nocity", comment: "Empty Nearby subtitle when city has no data"))
+                if isNowFilter && Self.isLateNight {
+                    Image(systemName: "moon.zzz.fill")
+                        .font(.title2)
+                        .foregroundStyle(CT.sunGold)
+                        .scaleEffect(breathing ? 1.08 : 1.0)
+                        .opacity(breathing ? 0.7 : 1.0)
+                    Text(NSLocalizedString("empty.now.latenight.headline", comment: "Late night Now empty headline"))
+                        .font(.headline)
+                        .foregroundStyle(CT.fgPrimary)
+                        .multilineTextAlignment(.center)
+                    Text(NSLocalizedString("empty.now.latenight.subtitle", comment: "Late night Now empty subtitle"))
+                        .font(.subheadline)
+                        .foregroundStyle(CT.fgMuted)
+                        .multilineTextAlignment(.center)
+                } else if isNowFilter {
+                    Image(systemName: "clock.badge.questionmark")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                        .scaleEffect(breathing ? 1.08 : 1.0)
+                        .opacity(breathing ? 0.7 : 1.0)
+                    Text(NSLocalizedString("empty.now.headline", comment: "Now filter empty headline"))
+                        .font(.headline)
+                        .foregroundStyle(CT.fgPrimary)
+                        .multilineTextAlignment(.center)
+                    Text(NSLocalizedString("empty.now.subtitle", comment: "Now filter empty subtitle"))
                         .font(.subheadline)
                         .foregroundStyle(CT.fgMuted)
                         .multilineTextAlignment(.center)
                 } else {
-                    Text(NSLocalizedString("empty.nearby.subtitle", comment: "Empty Nearby supporting subline"))
-                        .font(.subheadline)
-                        .foregroundStyle(CT.fgMuted)
+                    Image(systemName: "mappin.slash")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                        .scaleEffect(breathing ? 1.08 : 1.0)
+                        .opacity(breathing ? 0.7 : 1.0)
+                    Text(NSLocalizedString("empty.nearby.headline", comment: "Empty Nearby headline"))
+                        .font(.headline)
+                        .foregroundStyle(CT.fgPrimary)
                         .multilineTextAlignment(.center)
+                    if hasSuggestedCity {
+                        Text(NSLocalizedString("empty.nearby.subtitle.nocity", comment: "Empty Nearby subtitle when city has no data"))
+                            .font(.subheadline)
+                            .foregroundStyle(CT.fgMuted)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Text(NSLocalizedString("empty.nearby.subtitle", comment: "Empty Nearby supporting subline"))
+                            .font(.subheadline)
+                            .foregroundStyle(CT.fgMuted)
+                            .multilineTextAlignment(.center)
+                    }
                 }
             }
 

@@ -238,6 +238,7 @@
 		980B4B61D10AA12BFF2CD171 /* FriendService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3671315E80FB41CDA396AF69 /* FriendService.swift */; };
 		98245881AB35CB7BB16688FC /* JoinRouteRequestSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099B762F3026466B64C18015 /* JoinRouteRequestSheet.swift */; };
 		987A873E2C50C8064135E1EF /* ShareCardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5895B058A34A2634E816A72F /* ShareCardModel.swift */; };
+		98CE98CA3A71C84641FBC39D /* NowEmptyStateTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD56A4594D8707F59CA25E33 /* NowEmptyStateTest.swift */; };
 		98DC71F30B967806B525E8F0 /* VoiceButtonA11yTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8E84778A6C646142DDE3841 /* VoiceButtonA11yTests.swift */; };
 		99E3055C98F6477EF46D260C /* ChatCardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7989FA184B0EFCE68C961241 /* ChatCardViews.swift */; };
 		9A6B147D089D0942438D8972 /* BestTimesSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3645957E10E52142EBF468C0 /* BestTimesSignal.swift */; };
@@ -760,6 +761,7 @@
 		BBD7871A003B28A7C46AC8D7 /* ItineraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryStoreTests.swift; sourceTree = "<group>"; };
 		BC185539C95D5D940693BCB7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BCE4DB6455FBF5257A3709D9 /* EmptyStateCitySuggestionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateCitySuggestionTest.swift; sourceTree = "<group>"; };
+		BD56A4594D8707F59CA25E33 /* NowEmptyStateTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowEmptyStateTest.swift; sourceTree = "<group>"; };
 		BE044EB043B89CD798F4ED83 /* RouteRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRecord.swift; sourceTree = "<group>"; };
 		BEDD4F6238B484BB7C20904B /* SkeletonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonView.swift; sourceTree = "<group>"; };
 		C0F20A91F36C7CA4041BEEC9 /* WeatherServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherServiceTests.swift; sourceTree = "<group>"; };
@@ -1089,6 +1091,7 @@
 				D08AFC181DB143A21E97A2ED /* NextBestExperienceClockTest.swift */,
 				CE95C3399C8616CBDE8B44BE /* NoProductionPrintTests.swift */,
 				F1D68F42114231582501CB90 /* NowCountCacheTests.swift */,
+				BD56A4594D8707F59CA25E33 /* NowEmptyStateTest.swift */,
 				4C93A2F826BD75AF124C1210 /* NowScoreOfflineDegradeTest.swift */,
 				5F4797445C33B1F6FB4AEF15 /* NowScoreSentryReportTest.swift */,
 				0C04A7D4DE12B98E4801D7C4 /* NowScoreTests.swift */,
@@ -1838,6 +1841,7 @@
 				FC1E25FED02B767FBFB5EFE2 /* NextBestExperienceClockTest.swift in Sources */,
 				B42207A02271655D3498B723 /* NoProductionPrintTests.swift in Sources */,
 				C3A87993F509B921A9F7FE06 /* NowCountCacheTests.swift in Sources */,
+				98CE98CA3A71C84641FBC39D /* NowEmptyStateTest.swift in Sources */,
 				E9564C8B20CD0D661C736750 /* NowScoreOfflineDegradeTest.swift in Sources */,
 				4E7C7EFAA55A1CF7834CBC82 /* NowScoreSentryReportTest.swift in Sources */,
 				F0A84EA46BBABC431C14C439 /* NowScoreTestSupport.swift in Sources */,

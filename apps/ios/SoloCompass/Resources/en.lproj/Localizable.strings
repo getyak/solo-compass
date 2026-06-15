@@ -1641,6 +1641,13 @@
 "empty.nearby.cta.city" = "Explore %@";
 "empty.nearby.a11y.city.hint" = "Switch to %@ which has curated experiences";
 
+/* Now filter empty — time-aware */
+"empty.now.headline" = "Nothing open right now";
+"empty.now.subtitle" = "Check back later — experiences rotate based on time of day.";
+"empty.now.latenight" = "It's late — most spots are closed";
+"empty.now.latenight.headline" = "It's late — rest up";
+"empty.now.latenight.subtitle" = "Most spots are closed for the night. Check back in the morning for fresh picks.";
+
 /* Distance replaced by city name when > 500km */
 "nearby.distance.inCity" = "In %@";
 "nearby.distance.inCity.a11y" = "Located in %@";
