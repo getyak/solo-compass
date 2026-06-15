@@ -36,7 +36,7 @@
 - [x] **#16 Missing haptic feedback on map pin tap** — `CompassMapView.swift` — 点击地图 pin 显示 PeekSummaryCard 但无触觉反馈，FilterBar pill 有 haptics 但主要交互（pin tap）没有
 - [ ] **#17 "+" FAB button has no label/tooltip** — `CompassMapView.swift` — 右下角大黑 "+" 按钮无上下文说明，创建的是 Experience？Route？Note？
 - [ ] **#18 Onboarding is only 2 steps — too thin** — `OnboardingView.swift` — 仅 welcome + style-selection，未解释核心概念（Experience/Solo Score/Now/DayPage）
-- [ ] **#19 CJK text truncation in NowHintRow** — `BottomInfoSheet.swift` — `.lineLimit(1)` 导致中日文提示 "此刻是拍摄落日的黄金时刻" 截断。应允许 `.lineLimit(2)` 或 `minimumScaleFactor`
+- [x] **#19 CJK text truncation in NowHintRow** — `BottomInfoSheet.swift` — `.lineLimit(1)` 导致中日文提示 "此刻是拍摄落日的黄金时刻" 截断。应允许 `.lineLimit(2)` 或 `minimumScaleFactor`
 - [ ] **#20 Walk-time estimate uses naive constant** — `PeekSummaryCard.swift` — 步行时间假设 ~80m/min 不考虑地形。应加 "~" 前缀或使用 MapKit 实际步行路线
 
 ---
