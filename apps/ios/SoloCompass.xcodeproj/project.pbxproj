@@ -375,6 +375,7 @@
 		E5A671C7D6965762EEE8A93A /* MapTopOverlayRenderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792E683DA00FBA63A77161A3 /* MapTopOverlayRenderTest.swift */; };
 		E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71DE291BE5569E719413B74 /* SoloCompassApp.swift */; };
 		E611DCAFD85FC84D6BF6CADD /* FoursquareService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67DAE302128E657E150C4B0D /* FoursquareService.swift */; };
+		E6255FBC669D77DC7B16A740 /* ProximityConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B242879E1B8685965F73727 /* ProximityConfig.swift */; };
 		E6A3296293F74FFD51E56B4C /* InlineBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D7A24EA7AB5379E0D5DC2B2 /* InlineBanner.swift */; };
 		E7454BEAD925FCC11C83D83E /* OnboardingSkipTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BCDB936C9D0BE9138C617B /* OnboardingSkipTest.swift */; };
 		E7B5B022519434F7C07818CF /* ExperienceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12F087E4FA7161529378098C /* ExperienceService.swift */; };
@@ -595,6 +596,7 @@
 		5895B058A34A2634E816A72F /* ShareCardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardModel.swift; sourceTree = "<group>"; };
 		5933575E731D8AC09356AB9F /* GlassmorphismCapsule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassmorphismCapsule.swift; sourceTree = "<group>"; };
 		5AB8B58A4F608F9951CBDF3C /* ExploreConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreConsentSheet.swift; sourceTree = "<group>"; };
+		5B242879E1B8685965F73727 /* ProximityConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityConfig.swift; sourceTree = "<group>"; };
 		5BDE3513D89C9CD5FE893606 /* RouteCompanionStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCompanionStateMachine.swift; sourceTree = "<group>"; };
 		5BF2CEF9FE62124F51460453 /* RouteCompanionForceUnwrapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCompanionForceUnwrapTests.swift; sourceTree = "<group>"; };
 		5C62D0EFA5859698D9C70B7D /* OfflineBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineBanner.swift; sourceTree = "<group>"; };
@@ -1300,6 +1302,7 @@
 				B3F5D58C93D87AC9205148CC /* Itinerary.swift */,
 				052B6F076F405C203184CB88 /* LocationPickerState.swift */,
 				E75D6A32EAF01F792AFAE15E /* NowScore.swift */,
+				5B242879E1B8685965F73727 /* ProximityConfig.swift */,
 				038BEE46BF2DFAF762B605D5 /* Route.swift */,
 				66273C940FD90B51EBCD97BC /* RouteBuilder.swift */,
 				884AFD2A4ADF051FA9643166 /* RouteItineraryBridge.swift */,
@@ -2102,6 +2105,7 @@
 				50495257AD65A0507DD43D41 /* PlacePhotoStore.swift in Sources */,
 				60FA57D3A56ED061C1F9B899 /* PresenceService.swift in Sources */,
 				40C8E92653FC718890E3CA5D /* PressableButtonStyle.swift in Sources */,
+				E6255FBC669D77DC7B16A740 /* ProximityConfig.swift in Sources */,
 				CDFE61514D60EAC16659A119 /* PushTokenService.swift in Sources */,
 				C4FE64920461E93F76D76919 /* QRScannerView.swift in Sources */,
 				48DF01972A1FB107BFFF0684 /* QueryAgent.swift in Sources */,

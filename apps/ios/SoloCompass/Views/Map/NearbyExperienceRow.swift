@@ -41,7 +41,7 @@ struct NearbyExperienceRow: View {
 
     private var isNearby: Bool {
         guard let m = distanceMeters else { return false }
-        return m < 150
+        return m < ProximityConfig.nearbyThreshold(for: experience.location.cityCode)
     }
 
     private static let distanceFormatter: MeasurementFormatter = {

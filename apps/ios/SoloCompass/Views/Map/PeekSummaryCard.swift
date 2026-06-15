@@ -35,7 +35,7 @@ struct PeekSummaryCard: View {
 
     private var isNearby: Bool {
         guard let meters = distanceMeters else { return false }
-        return meters < 150
+        return meters < ProximityConfig.nearbyThreshold(for: experience.location.cityCode)
     }
 
     /// Single shared formatter — re-allocating a `MeasurementFormatter` per body

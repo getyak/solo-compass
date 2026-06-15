@@ -59,7 +59,7 @@
 ## Architecture & Code Quality
 
 - [x] **#A1 BottomInfoSheet.swift is 1400+ lines** — 违反 800 行上限，应拆分 NearbyExperienceRow、RoutesSection、NowHintRow 到独立文件
-- [ ] **#A2 Hardcoded proximity thresholds (150m)** — 无城市密度差异配置，东京 150m = 2 个街区 vs 泰国乡村 150m = 隔壁。应按城市/类别配置
+- [x] **#A2 Hardcoded proximity thresholds (150m)** — 无城市密度差异配置，东京 150m = 2 个街区 vs 泰国乡村 150m = 隔壁。应按城市/类别配置
 - [ ] **#A3 FilterBar and Map count can desync** — `resultCount` 作为 prop 传入 FilterBar 非 source of truth，快速平移时可能显示过期计数
 - [x] **#A4 Dynamic Type scaling gaps** — BottomInfoSheet 通过 `UIFontMetrics` 缩放 detent 高度，但内部 padding 硬编码（`.padding(.bottom, 28)`），AX5 下文字溢出容器
 
