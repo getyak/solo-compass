@@ -1008,7 +1008,7 @@
 "card.favorite.added.a11y" = "已加入收藏";
 "card.favorite.removed.a11y" = "已取消收藏";
 "card.dismiss" = "关闭卡片";
-"card.distance.walk" = "%d 分钟步行";
+"card.distance.walk" = "约 %d 分钟步行";
 "card.distance.walkSub1" = "不到 1 分钟步行";
 "card.distance.arrived" = "你已到达";
 "card.distance.arrived.a11y" = "你已到达";
@@ -1282,8 +1282,8 @@
 "sheet.routes.section.title" = "路线";
 
 /* NearbyExperienceRow card chips — walk-time, Solo score, 此刻最佳, proximity word */
-"nearby.chip.walkMin" = "%d 分钟";
-"nearby.chip.driveMin" = "车程 %d 分钟";
+"nearby.chip.walkMin" = "约 %d 分钟";
+"nearby.chip.driveMin" = "车程约 %d 分钟";
 "nearby.chip.solo" = "Solo %.1f";
 "nearby.chip.bestNow" = "此刻最佳";
 /* 此刻最值得去卡片 + 附近列表上的紧凑「即将关闭」倒计时（剩余 ≤45 分钟）。%d = 分钟。 */

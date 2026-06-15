@@ -370,7 +370,7 @@
 "card.dismiss" = "Dismiss card";
 
 /* Experience card distance pill */
-"card.distance.walk" = "%d min walk";
+"card.distance.walk" = "~%d min walk";
 "card.distance.walkSub1" = "<1 min walk";
 "card.distance.arrived" = "You're here";
 "card.distance.arrived.a11y" = "You're here";
@@ -1415,8 +1415,8 @@
 "sheet.nearby.openNow.a11y" = "Open now";
 
 /* NearbyExperienceRow card chips — walk-time, Solo score, 此刻最佳, proximity word */
-"nearby.chip.walkMin" = "%d min";
-"nearby.chip.driveMin" = "%d min drive";
+"nearby.chip.walkMin" = "~%d min";
+"nearby.chip.driveMin" = "~%d min drive";
 "nearby.chip.solo" = "Solo %.1f";
 "nearby.chip.bestNow" = "Best now";
 /* Compact closing-soon countdown chip on the peek pick + Nearby rows (≤45 min left). %d = minutes. */
