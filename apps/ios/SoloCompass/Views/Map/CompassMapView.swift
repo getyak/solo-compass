@@ -2150,11 +2150,14 @@ private struct MapOverlayView: View {
     @ViewBuilder
     private var cityPill: some View {
         let cityName: String = {
-            // Custom location: use the resolved label stored by LocationPickerSheet.
             if viewModel.isCustomLocation, let label = viewModel.customLocationLabel {
                 return label
             }
             if let code = viewModel.selectedCity,
+               let city = viewModel.availableCities.first(where: { $0.code == code }) {
+                return city.name
+            }
+            if let code = viewModel.nearestSeededCity(to: viewModel.defaultCenterForSelectedCity),
                let city = viewModel.availableCities.first(where: { $0.code == code }) {
                 return city.name
             }

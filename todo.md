@@ -51,7 +51,7 @@
 - [ ] **#26 No transition animation between peek/mid/full sheet states** — `BottomInfoSheet.swift` — detent 状态切换缺乏统一的 spring 动画
 - [x] **#27 "Good spots for right now" timestamp shows exact time** — `BottomInfoSheet.swift` — 显示 "00:17" 原始时间无意义，应改为 "Updated just now" 或移除
 - [ ] **#28 Compass/navigation icons in top bar are ambiguous** — 顶栏指南针和定位箭头与 MapKit 内置控件功能重叠
-- [ ] **#29 "All Cities" dropdown doesn't show current city name** — `CityPickerSheet.swift` — 左上角始终显示 "All Cities" 而非当前城市名 "Chiang Mai"
+- [x] **#29 "All Cities" dropdown doesn't show current city name** — `CityPickerSheet.swift` — 左上角始终显示 "All Cities" 而非当前城市名 "Chiang Mai"
 - [ ] **#30 Accessibility: reduce-motion not respected everywhere** — 多处动画（pulsing/heart burst）未统一检查 `reduceMotion`
 
 ---
