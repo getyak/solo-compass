@@ -1271,6 +1271,9 @@
 "settings.companion.hosted.routes" = "我主理的路线";
 
 /* Sheet */
+"now.time.justNow" = "刚刚";
+"now.time.recent" = "已更新";
+"now.time.minutesAgo" = "%d 分钟前";
 "sheet.sort.button" = "排序";
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";

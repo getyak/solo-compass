@@ -556,8 +556,19 @@ struct NowHintRow: View {
         return f.string(from: date)
     }
 
-    private var formattedTime: String {
-        Self.timeString(for: clock.tick)
+    private var relativeTimeLabel: String {
+        let components = Calendar.current.dateComponents([.minute], from: clock.tick, to: Date())
+        let minutes = abs(components.minute ?? 0)
+        if minutes < 1 {
+            return NSLocalizedString("now.time.justNow", comment: "Updated just now")
+        } else if minutes < 5 {
+            return NSLocalizedString("now.time.recent", comment: "Updated recently")
+        } else {
+            return String(
+                format: NSLocalizedString("now.time.minutesAgo", comment: "Updated N minutes ago"),
+                minutes
+            )
+        }
     }
 
     var body: some View {
@@ -571,12 +582,12 @@ struct NowHintRow: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.85)
             Spacer(minLength: 4)
-            Text(formattedTime)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+            Text(relativeTimeLabel)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(hint) \(formattedTime)"))
+        .accessibilityLabel(Text("\(hint), \(relativeTimeLabel)"))
     }
 }
 

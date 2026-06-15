@@ -1401,6 +1401,9 @@
 "ai.now.hint" = "Good spots for right now";
 /* US-015 — BottomInfoSheet now-mode headline */
 "sheet.now.headline" = "Good spots for right now";
+"now.time.justNow" = "Just now";
+"now.time.recent" = "Updated";
+"now.time.minutesAgo" = "%d min ago";
 "sheet.sort.button" = "Sort";
 "sheet.count.now" = "Now %d";
 "sheet.count.nearby" = "Nearby %d";
