@@ -23,7 +23,7 @@
 - [ ] **#8 DayPage/Me screen is sparse and low-value** — `MeSheet.swift` — 显示 "Tuesday" + "Still up?" + "0 SIGNALS" + "Nothing surfaced yet." 全是空状态，"signal" 概念无解释，orb 动画装饰性强但令人困惑
 - [ ] **#9 Map pin density — clusters are hard to distinguish** — `CompassMapView.swift`, `MarkerIconView.swift` — 中等缩放下 4-5 个 pin 重叠，无聚合注释或防重叠逻辑。应使用 MapKit ClusterAnnotation
 - [x] **#10 "Smart" sort has no explanation** — `BottomInfoSheet.swift` SortMode picker — 默认排序 "Smart" 无解释其依据，用户不理解或不信任排名。应增加 "(based on time, distance & score)" 副标题
-- [ ] **#11 Dark mode contrast issues on cards** — `BottomInfoSheet.swift` smart-pick gradient — `CT.sunGoldSoft.opacity(0.55)` → `CT.surfaceWhite` 渐变在暗色模式下视觉层次反转，金色看起来像错误状态
+- [x] **#11 Dark mode contrast issues on cards** — `BottomInfoSheet.swift` smart-pick gradient — `CT.sunGoldSoft.opacity(0.55)` → `CT.surfaceWhite` 渐变在暗色模式下视觉层次反转，金色看起来像错误状态
 
 ---
 

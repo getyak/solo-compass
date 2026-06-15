@@ -784,6 +784,7 @@ struct NearbyExperienceRow: View {
     @State private var pressed = false
     @State private var pulsing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(LocationService.self) private var locationService
     @Environment(UserPreferences.self) private var preferences
 
@@ -1004,7 +1005,7 @@ struct NearbyExperienceRow: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(experience.title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(CT.fgPrimary)
+                .foregroundStyle(textPrimary)
                 // Long names like "Savor Japanese small plates al…" were cut to
                 // one line; allow two and shrink slightly before truncating.
                 .lineLimit(2)
@@ -1014,7 +1015,7 @@ struct NearbyExperienceRow: View {
             if !sub.isEmpty {
                 Text(sub)
                     .font(.caption)
-                    .foregroundStyle(CT.fgMuted)
+                    .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
                     .lineLimit(1)
             }
         }
@@ -1154,14 +1155,25 @@ struct NearbyExperienceRow: View {
         }
     }
 
+    private var cardFill: Color {
+        colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite
+    }
+
+    private var textPrimary: Color {
+        colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary
+    }
+
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(isSmartPick ? AnyShapeStyle(smartPickGradient) : AnyShapeStyle(CT.surfaceWhite))
+            .fill(isSmartPick ? AnyShapeStyle(smartPickGradient) : AnyShapeStyle(cardFill))
     }
 
     private var smartPickGradient: LinearGradient {
-        LinearGradient(
-            colors: [CT.sunGoldSoft.opacity(0.55), CT.surfaceWhite],
+        let colors: [Color] = colorScheme == .dark
+            ? [CT.sunGoldDeep.opacity(0.25), CT.warmCardDark]
+            : [CT.sunGoldSoft.opacity(0.55), CT.surfaceWhite]
+        return LinearGradient(
+            colors: colors,
             startPoint: .leading,
             endPoint: .trailing
         )
