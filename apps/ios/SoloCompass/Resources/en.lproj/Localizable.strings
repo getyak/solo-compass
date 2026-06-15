@@ -700,6 +700,7 @@
 "explore.osmBadge" = "OpenStreetMap · not enriched";
 "explore.error.nothingFound" = "No public places found nearby. Try moving the map.";
 "location.error.banner" = "Can't find your location — showing a default area. Check Location permissions in Settings.";
+"location.banner.openSettings" = "Open Settings";
 "explore.skeleton.oneLiner" = "A real spot pulled from OpenStreetMap.";
 "explore.skeleton.why" = "We don't have a curated story for this place yet. Visit, then add what you found.";
 "explore.quota.dailyLimit" = "Daily AI limit reached. Showing real places without enrichment until tomorrow.";

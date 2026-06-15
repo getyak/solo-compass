@@ -1863,6 +1863,12 @@ private struct MapOverlayView: View {
                     systemImage: "location.slash.fill",
                     text: locationError,
                     color: .orange,
+                    actionLabel: NSLocalizedString("location.banner.openSettings", comment: "Open Settings"),
+                    onAction: {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    },
                     onDismiss: { dismissedLocationError = true }
                 )
                 .accessibilityIdentifier("locationErrorBanner")
@@ -2326,10 +2332,12 @@ private struct EmptyFilterBanner: View {
     }
 }
 
-private struct DismissibleBanner: View {
+struct DismissibleBanner: View {
     let systemImage: String
     let text: String
     let color: Color
+    var actionLabel: String?
+    var onAction: (() -> Void)?
     let onDismiss: () -> Void
 
     var body: some View {
@@ -2337,6 +2345,16 @@ private struct DismissibleBanner: View {
             Image(systemName: systemImage).foregroundStyle(color)
             Text(text).font(.caption).foregroundStyle(.primary).lineLimit(2)
             Spacer()
+            if let actionLabel, let onAction {
+                Button(action: onAction) {
+                    Text(actionLabel)
+                        .font(.caption.bold())
+                        .foregroundStyle(color)
+                        .frame(minWidth: HitTargetMetrics.minimum, minHeight: HitTargetMetrics.minimum)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel(Text(actionLabel))
+            }
             Button(action: onDismiss) {
                 Image(systemName: "xmark").font(.caption.bold()).foregroundStyle(.secondary)
                     // US-019: expand the small glyph to the 44pt HIG hit target.
