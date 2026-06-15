@@ -32,6 +32,7 @@ struct NearbySection: View {
 
     @Environment(BestNowClock.self) private var clock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var searchText: String = ""
 
     let isLoading: Bool
 
@@ -75,6 +76,13 @@ struct NearbySection: View {
             // US-036: inset divider + localized "Nearby" header separates this
             // section from Routes above (showsDivider gated by composition).
             SheetSectionSeparator(titleKey: "sheet.section.nearby", showsDivider: showsSectionDivider)
+
+            if experiences.count >= 5 {
+                ExperienceSearchBar(text: $searchText)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 4)
+            }
+
             if isLoading && experiences.isEmpty {
                 NearbyRowSkeletonList()
             } else if experiences.isEmpty {
@@ -87,20 +95,9 @@ struct NearbySection: View {
                     suggestedCityName: suggestedCityName,
                     onSwitchToSuggestedCity: onSwitchToSuggestedCity
                 )
-            } else {
-                // Each row now carries its own card chrome, so we separate them
-                // with a 10pt gap (matching RoutesSection) rather than full-bleed
-                // dividers — the list reads as a stack of discrete cards.
-                //
-                // No inner ScrollView: the host BottomInfoSheet wraps the whole
-                // content closure in one ScrollView, so Nearby lays its rows out
-                // inline as part of that single scroll stream. A nested ScrollView
-                // here re-introduced the two-viewport conflict that hid this list
-                // when the Routes section above grew long (and left the route cards
-                // un-scrollable at mid). LazyVStack keeps rows lazily realized for
-                // long lists.
+            } else if !filteredExperiences.isEmpty {
                 LazyVStack(spacing: 10) {
-                    ForEach(sortedExperiences) { exp in
+                    ForEach(filteredExperiences) { exp in
                         // Resolve the live "best now / closing soon" chip state for
                         // EVERY row from the shared clock — not just in Now sort.
                         // The chip is the app's most decision-relevant, perishable
@@ -127,9 +124,25 @@ struct NearbySection: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
                 .padding(.bottom, 8)
+            } else if !searchText.isEmpty {
+                SearchEmptyView(query: searchText)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
             }
         }
         .padding(.top, 8)
+    }
+
+    private var filteredExperiences: [Experience] {
+        let sorted = sortedExperiences
+        let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !query.isEmpty else { return sorted }
+        return sorted.filter { exp in
+            exp.shortName.lowercased().contains(query)
+            || exp.title.lowercased().contains(query)
+            || exp.oneLiner.lowercased().contains(query)
+            || exp.category.rawValue.lowercased().contains(query)
+        }
     }
 
     private var sortedExperiences: [Experience] {
@@ -402,5 +415,70 @@ struct EmptySheetListView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Experience search bar
+
+private struct ExperienceSearchBar: View {
+    @Binding var text: String
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            TextField(
+                NSLocalizedString("search.experiences.placeholder", comment: "Search placeholder"),
+                text: $text
+            )
+            .font(.subheadline)
+            .focused($isFocused)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(.search)
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel(Text(NSLocalizedString("search.clear", comment: "Clear search")))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(uiColor: .tertiarySystemFill))
+        )
+        .accessibilityElement(children: .contain)
+    }
+}
+
+// MARK: - Search empty result
+
+private struct SearchEmptyView: View {
+    let query: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+            Text(String(
+                format: NSLocalizedString("search.empty.title", comment: "No results for query"),
+                query
+            ))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
     }
 }

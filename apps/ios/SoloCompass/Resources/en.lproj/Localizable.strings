@@ -571,6 +571,9 @@
 "favorites.distance.km" = "%.1f km";
 "favorites.distance.m" = "%d m";
 "favorites.distance.mi" = "%.1f mi";
+"search.experiences.placeholder" = "Search experiences";
+"search.clear" = "Clear search";
+"search.empty.title" = "No results for \"%@\"";
 "favorites.search.noResults" = "No matches for \"%@\"";
 "favorites.search.noResults.hint" = "Try a different word, or clear your search.";
 /* VoiceOver announcement when favorites search returns results: "%d matching favorites" */
