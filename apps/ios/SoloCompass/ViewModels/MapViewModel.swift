@@ -1131,6 +1131,7 @@ public final class MapViewModel {
     /// sheet via the card's own expand action. Tapping a card/pin instead routes
     /// through `openExperienceDetail` for a direct jump to the detail sheet.
     public func selectExperience(_ experience: Experience) {
+        Haptics.impact(.light)
         selectedExperience = experience
         // This is the preview-card path (long-press). The detail layer, if the
         // user later expands the card, sits *above* this card — so dismissing
@@ -1147,6 +1148,7 @@ public final class MapViewModel {
     /// `dismissDetail`), and the camera reframes the same way `selectExperience`
     /// does. Long-pressing the same card/pin floats the preview card instead.
     public func openExperienceDetail(_ experience: Experience) {
+        Haptics.selection()
         selectedExperience = experience
         isShowingDetail = true
         // Tap jumped straight to detail with no preview card behind it, so a
