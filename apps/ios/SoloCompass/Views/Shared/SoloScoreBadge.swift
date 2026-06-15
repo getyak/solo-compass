@@ -55,11 +55,16 @@ public struct SoloScoreBadge: View {
                 Text(NSLocalizedString("solo.label", comment: "Solo"))
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.9))
-                Text(formatted(animatedScore))
-                    .font(.caption.bold())
-                    .foregroundStyle(.white)
-                    .monospacedDigit()
-                    .contentTransition(.numericText(value: animatedScore))
+                HStack(alignment: .firstTextBaseline, spacing: 1) {
+                    Text(formatted(animatedScore))
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: animatedScore))
+                    Text("/10")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -120,15 +125,20 @@ public struct SoloScoreBadge: View {
                 Text(NSLocalizedString("solo.scoreTitle", comment: "Solo Score"))
                     .font(.headline)
                 Spacer()
-                Text(formatted(animatedScore))
-                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    .foregroundStyle(score.scoreColor)
-                    .monospacedDigit()
-                    .contentTransition(.numericText(value: animatedScore))
-                    .accessibilityLabel(Text(String(
-                        format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"),
-                        formatted(score.overall)
-                    )))
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(formatted(animatedScore))
+                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                        .foregroundStyle(score.scoreColor)
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: animatedScore))
+                    Text("/10")
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel(Text(String(
+                    format: NSLocalizedString("solo.a11y", comment: "Solo Score %@ of 10"),
+                    formatted(score.overall)
+                )))
             }
             if let hint = score.hint {
                 Text(hint)
@@ -248,11 +258,16 @@ private struct SoloScorePopoverContent: View {
                 Text(NSLocalizedString("solo.breakdown.title", comment: "Solo Score breakdown"))
                     .font(.headline)
                 Spacer()
-                Text(String(format: "%.1f", animatedOverall))
-                    .font(.title3.bold())
-                    .foregroundStyle(score.scoreColor)
-                    .monospacedDigit()
-                    .contentTransition(.numericText(value: animatedOverall))
+                HStack(alignment: .firstTextBaseline, spacing: 1) {
+                    Text(String(format: "%.1f", animatedOverall))
+                        .font(.title3.bold())
+                        .foregroundStyle(score.scoreColor)
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: animatedOverall))
+                    Text("/10")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if let hint = score.hint {
@@ -410,9 +425,14 @@ private struct SoloScorePopoverContent: View {
                         .font(isWeakest || isStrongest ? .caption.bold() : .caption)
                         .foregroundStyle(isWeakest || isStrongest ? .primary : .secondary)
                     Spacer()
-                    Text(String(format: "%.1f", value))
-                        .font(.caption.weight(.medium))
-                        .monospacedDigit()
+                    HStack(alignment: .firstTextBaseline, spacing: 1) {
+                        Text(String(format: "%.1f", value))
+                            .font(.caption.weight(.medium))
+                            .monospacedDigit()
+                        Text("/10")
+                            .font(.system(size: 8, weight: .regular))
+                            .foregroundStyle(.tertiary)
+                    }
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.tertiary)
