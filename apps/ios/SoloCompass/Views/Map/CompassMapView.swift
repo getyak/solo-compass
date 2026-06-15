@@ -703,7 +703,10 @@ struct CompassMapContentView: View {
                         // a user-selected experience, the peek summary card
                         // yields so only one "best pick" card is on screen.
                         isPreviewActive: viewModel.selectedExperience != nil
-                            && !viewModel.isShowingDetail
+                            && !viewModel.isShowingDetail,
+                        onRefresh: {
+                            viewModel.loadNearbyExperiences()
+                        }
                     ) { detent, sortMode in
                         if detent != .peek {
                             VStack(spacing: 0) {

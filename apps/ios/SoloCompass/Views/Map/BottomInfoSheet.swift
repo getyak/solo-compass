@@ -213,6 +213,7 @@ public struct BottomInfoSheet<Content: View>: View {
     /// to a lightweight hint so two competing "best pick" cards never stack —
     /// the user's active selection owns the focus.
     private let isPreviewActive: Bool
+    private let onRefresh: (() async -> Void)?
     private let content: (BottomSheetDetent, Binding<SortMode>) -> Content
 
     public init(
@@ -223,6 +224,7 @@ public struct BottomInfoSheet<Content: View>: View {
         isSmartPick: Bool = false,
         referenceCoordinate: CLLocationCoordinate2D? = nil,
         isPreviewActive: Bool = false,
+        onRefresh: (() async -> Void)? = nil,
         @ViewBuilder content: @escaping (BottomSheetDetent, Binding<SortMode>) -> Content
     ) {
         self.aiHint = aiHint
@@ -232,6 +234,7 @@ public struct BottomInfoSheet<Content: View>: View {
         self.isSmartPick = isSmartPick
         self.referenceCoordinate = referenceCoordinate
         self.isPreviewActive = isPreviewActive
+        self.onRefresh = onRefresh
         self.content = content
     }
 
@@ -323,6 +326,9 @@ public struct BottomInfoSheet<Content: View>: View {
                 // ScrollView would re-clamp its contentOffset against that moving
                 // viewport and fight the drag, producing flicker. Re-enabled the
                 // instant the drag ends.
+                .refreshable {
+                    if let onRefresh { await onRefresh() }
+                }
                 .scrollDisabled(isDragging)
                 .scrollDismissesKeyboard(.interactively)
                 // Show the indicator at mid/full as an affordance that more
