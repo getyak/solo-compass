@@ -189,6 +189,7 @@
 
 /* Map candidate marker accessibility */
 "map.candidate.label" = "候选体验：%@";
+"map.cluster.label" = "此区域有 %d 个体验";
 
 /* Experience card accessibility */
 "experience.card.hint" = "双击查看详情";

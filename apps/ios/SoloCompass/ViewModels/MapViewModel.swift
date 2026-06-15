@@ -614,6 +614,12 @@ public final class MapViewModel {
         return Self.rankedByProminence(visibleExperiences).prefix(limit).map { $0 }
     }
 
+    /// Clustered map items — groups overlapping pins at city/district zoom into
+    /// cluster markers. At street zoom, every pin renders individually.
+    var clusteredMapItems: [MapItem] {
+        MapClusterEngine.cluster(displayedExperiences, spanLatitudeDelta: currentSpanLatitudeDelta)
+    }
+
     /// Span → max number of map pins. Three bands matched to how a solo traveler
     /// reads the map: city overview shows only the standout dozen; district
     /// shows ~30; street/walking scale lifts the cap entirely so every nearby

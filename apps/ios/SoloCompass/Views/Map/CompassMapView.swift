@@ -1454,80 +1454,64 @@ struct CompassMapContentView: View {
                         UserLocationMarker()
                     }
                 }
-                // Zoom-adaptive density: the map renders only the top-ranked
-                // pins for the current zoom (`displayedExperiences`), so a
-                // zoomed-out view stays curated. The bottom list keeps reading
-                // the full `visibleExperiences` set (it intentionally shows
-                // more than the map).
-                ForEach(viewModel.displayedExperiences) { exp in
-                    if let coord = exp.coordinate {
-                        // US-016: compute the marker state once per ForEach
-                        // iteration — its six conditions are otherwise evaluated
-                        // twice per visible marker per frame (icon + badge).
-                        let state = viewModel.markerState(for: exp)
-                        // US-049: resolve closing-soon urgency from the same
-                        // shared source the cards use, off the 60s clock tick so
-                        // the pin escalates to amber live. Only meaningful for a
-                        // best-now pin; `BestNowChipState` returns nil minutes
-                        // (→ not closing soon) for everything else.
-                        let isClosingSoon = BestNowChipState
-                            .resolve(for: exp, at: bestNowClock.tick)
-                            .isClosingSoon
-                        // Pass an empty title so MapKit doesn't auto-render the
-                        // experience name as a pin label (long titles clipped
-                        // off the screen edge); the name lives on the
-                        // accessibilityLabel below instead.
-                        Annotation("", coordinate: coord) {
-                            Button {
-                                // Tap → open the detail sheet directly.
-                                viewModel.openExperienceDetail(exp)
-                                HapticService.shared.impact(style: .light)
-                            } label: {
-                                VStack(spacing: 2) {
-                                    MarkerIconView(
-                                        category: exp.category,
-                                        state: state,
-                                        confidenceLevel: exp.confidence.level,
-                                        isSelected: viewModel.selectedExperience?.id == exp.id,
-                                        // US-035: light up best-now pins when the
-                                        // Now filter pill is active so the two UIs
-                                        // feel connected.
-                                        nowFilterActive: viewModel.isNowFilter,
-                                        // US-049: flip a closing-soon best-now pin
-                                        // to the amber treatment the cards use.
-                                        closingSoon: isClosingSoon
-                                    )
-                                    if case .footprinted = state {
-                                        Text("\(viewModel.footprintCount(for: exp))")
-                                            .font(.caption2.weight(.semibold))
-                                            .foregroundStyle(.white)
-                                            .padding(.horizontal, 4)
-                                            .padding(.vertical, 1)
-                                            .background(Capsule().fill(Color.gray.opacity(0.85)))
+                // Zoom-adaptive density with clustering: at city/district zoom,
+                // overlapping pins collapse into cluster bubbles showing a count.
+                // At street zoom, every pin renders individually.
+                ForEach(viewModel.clusteredMapItems) { item in
+                    switch item {
+                    case .single(let exp):
+                        if let coord = exp.coordinate {
+                            let state = viewModel.markerState(for: exp)
+                            let isClosingSoon = BestNowChipState
+                                .resolve(for: exp, at: bestNowClock.tick)
+                                .isClosingSoon
+                            Annotation("", coordinate: coord) {
+                                Button {
+                                    viewModel.openExperienceDetail(exp)
+                                    HapticService.shared.impact(style: .light)
+                                } label: {
+                                    VStack(spacing: 2) {
+                                        MarkerIconView(
+                                            category: exp.category,
+                                            state: state,
+                                            confidenceLevel: exp.confidence.level,
+                                            isSelected: viewModel.selectedExperience?.id == exp.id,
+                                            nowFilterActive: viewModel.isNowFilter,
+                                            closingSoon: isClosingSoon
+                                        )
+                                        if case .footprinted = state {
+                                            Text("\(viewModel.footprintCount(for: exp))")
+                                                .font(.caption2.weight(.semibold))
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 1)
+                                                .background(Capsule().fill(Color.gray.opacity(0.85)))
+                                        }
                                     }
+                                    .transition(.scale.combined(with: .opacity))
                                 }
-                                // Fade+scale each pin as the visible set changes
-                                // so filter/pan refreshes don't flash (#133).
+                                .buttonStyle(.plain)
+                                .modifier(LongPressCardModifier(onLongPress: {
+                                    withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.72)) {
+                                        viewModel.selectExperience(exp)
+                                    }
+                                }))
                                 .transition(.scale.combined(with: .opacity))
-                            }
-                            .buttonStyle(.plain)
-                            // Long-press a pin → float the quick preview card
-                            // (former tap behavior) instead of opening detail.
-                            // Drive the selection through a spring so the card's
-                            // scale+rise transition reads as "popped out of the
-                            // pin you pressed", not a flat slide-up. The other
-                            // select paths (tap, list) already animate; this one
-                            // was the bare exception. reduceMotion → no spring.
-                            .modifier(LongPressCardModifier(onLongPress: {
-                                withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.72)) {
+                                .accessibilityLabel(Text(exp.title))
+                                .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
                                     viewModel.selectExperience(exp)
                                 }
-                            }))
-                            .transition(.scale.combined(with: .opacity))
-                            .accessibilityLabel(Text(exp.title))
-                            .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
-                                viewModel.selectExperience(exp)
                             }
+                        }
+                    case .cluster(let cluster):
+                        Annotation("", coordinate: cluster.coordinate) {
+                            ClusterAnnotationView(cluster: cluster) {
+                                HapticService.shared.impact(style: .medium)
+                                if let first = cluster.experiences.first {
+                                    viewModel.openExperienceDetail(first)
+                                }
+                            }
+                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                 }

@@ -351,6 +351,7 @@
 
 /* Map candidate marker accessibility */
 "map.candidate.label" = "Candidate experience: %@";
+"map.cluster.label" = "%d experiences in this area";
 
 /* Experience card accessibility */
 "experience.card.hint" = "Double tap to view details";
