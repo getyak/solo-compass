@@ -1385,6 +1385,10 @@
 "empty.nearby.cta.city" = "探索 %@";
 "empty.nearby.a11y.city.hint" = "切换到有精选体验的 %@";
 
+/* Distance replaced by city name when > 500km */
+"nearby.distance.inCity" = "在 %@";
+"nearby.distance.inCity.a11y" = "位于 %@";
+
 /* Favorites */
 "favorites.completed.allDone.a11y" = "已收藏的体验全部完成";
 "favorites.completed.count" = "已完成 %1$d / %2$d";

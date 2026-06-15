@@ -1088,16 +1088,19 @@ struct NearbyExperienceRow: View {
             ? AnyShapeStyle(CT.sunGoldDeep)
             : (hasLiveBearing ? AnyShapeStyle(CT.fgMuted) : AnyShapeStyle(CT.fgSubtle))
         return VStack(alignment: .trailing, spacing: 4) {
-            Image(systemName: "location.north.line.fill")
-                .font(.caption2)
-                .foregroundStyle(arrowColor)
-                .rotationEffect(.degrees(bearing ?? 0))
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
-                .scaleEffect(pulsing ? 1.18 : 1.0)
+            if !isFarAway {
+                Image(systemName: "location.north.line.fill")
+                    .font(.caption2)
+                    .foregroundStyle(arrowColor)
+                    .rotationEffect(.degrees(bearing ?? 0))
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
+                    .scaleEffect(pulsing ? 1.18 : 1.0)
+            }
             if let meters = distanceMeters {
                 Text(formattedDistance(meters))
                     .font(.caption2.monospacedDigit())
-                    .foregroundStyle(isNearby ? AnyShapeStyle(CT.sunGoldDeep) : AnyShapeStyle(CT.fgSubtle))
+                    .foregroundStyle(isFarAway ? AnyShapeStyle(CT.fgMuted) : (isNearby ? AnyShapeStyle(CT.sunGoldDeep) : AnyShapeStyle(CT.fgSubtle)))
+                    .lineLimit(1)
                 if isNearby {
                     Text(NSLocalizedString("peek.card.almostThere", comment: "Almost there micro-label shown when < 150m"))
                         .font(.caption2)
@@ -1143,9 +1146,16 @@ struct NearbyExperienceRow: View {
         var label = experience.title
         label += ", Solo \(String(format: "%.1f", experience.soloScore.overall))"
         if let meters = distanceMeters {
-            label += ", \(formattedDistance(meters))"
+            if isFarAway {
+                label += ", " + String(
+                    format: NSLocalizedString("nearby.distance.inCity.a11y", comment: "VoiceOver: located in city"),
+                    cityDisplayName
+                )
+            } else {
+                label += ", \(formattedDistance(meters))"
+            }
         }
-        if let dirSuffix = compassDirectionSuffix {
+        if !isFarAway, let dirSuffix = compassDirectionSuffix {
             label += ", \(dirSuffix)"
         }
         if isSmartPick {
@@ -1166,8 +1176,33 @@ struct NearbyExperienceRow: View {
         return Text(label)
     }
 
+    /// Beyond this threshold, raw distance is meaningless (cross-continent);
+    /// we show the city name instead.
+    private static let farAwayThreshold: Double = 500_000
+
+    private var isFarAway: Bool {
+        guard let m = distanceMeters else { return false }
+        return m >= Self.farAwayThreshold
+    }
+
+    private var cityDisplayName: String {
+        Self.cityNames[experience.location.cityCode] ?? experience.location.cityCode
+    }
+
+    private static let cityNames: [String: String] = [
+        "cmi": "Chiang Mai",
+        "VTE": "Vientiane",
+        "cn-深圳市": "Shenzhen",
+    ]
+
     private func formattedDistance(_ meters: Double) -> String {
-        Self.distanceFormatter.string(from: Measurement(value: meters, unit: UnitLength.meters))
+        if meters >= Self.farAwayThreshold {
+            return String(
+                format: NSLocalizedString("nearby.distance.inCity", comment: "Distance replaced by city name when > 500km"),
+                cityDisplayName
+            )
+        }
+        return Self.distanceFormatter.string(from: Measurement(value: meters, unit: UnitLength.meters))
     }
 }
 

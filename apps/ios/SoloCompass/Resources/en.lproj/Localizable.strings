@@ -1640,6 +1640,10 @@
 "empty.nearby.cta.city" = "Explore %@";
 "empty.nearby.a11y.city.hint" = "Switch to %@ which has curated experiences";
 
+/* Distance replaced by city name when > 500km */
+"nearby.distance.inCity" = "In %@";
+"nearby.distance.inCity.a11y" = "Located in %@";
+
 /* Compass direction overlay in ExperienceDetailView hero */
 "compass.pointing.title" = "Pointing toward";
 "compass.direction.a11y" = "%1$@ away, pointing %2$@";

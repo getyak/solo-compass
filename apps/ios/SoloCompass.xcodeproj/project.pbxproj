@@ -81,6 +81,7 @@
 		3253E70A5F98389A985CA7B9 /* RouteCardRecruitMiniTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EAB2E028C69B7C63DCAF860 /* RouteCardRecruitMiniTest.swift */; };
 		32C5B270129CEC0562C6D640 /* RouteShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAF934B8ECFB7BB99C9C4791 /* RouteShareCardView.swift */; };
 		337CAFC8B35CF36D175B27CF /* CompareTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53F836182A03FC067C4A9AB9 /* CompareTokens.swift */; };
+		34F2006B922A8F29F62B7317 /* FarAwayDistanceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AA7C71C5E9C16456C7A65D2 /* FarAwayDistanceTest.swift */; };
 		352247C1FBF4C8F901D17F32 /* ApprovalTrustSignalTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804618047547A9D7F3F8EAAA /* ApprovalTrustSignalTest.swift */; };
 		36E1316045802B2F642A9623 /* LocalAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C89CB8D3309FD5646E23434 /* LocalAttachment.swift */; };
 		371DDBAF4C385267248ABC83 /* AgentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38E5736BF6DF5644D687637 /* AgentRouter.swift */; };
@@ -664,6 +665,7 @@
 		88DFC61CD1B433E92301FB18 /* AddFriendSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendSheetTests.swift; sourceTree = "<group>"; };
 		8964F4628C43BB7311B48D38 /* ApprovalQueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalQueueView.swift; sourceTree = "<group>"; };
 		8970A53A6D6C42A614F7B414 /* RouteMapSnapshotter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteMapSnapshotter.swift; sourceTree = "<group>"; };
+		8AA7C71C5E9C16456C7A65D2 /* FarAwayDistanceTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FarAwayDistanceTest.swift; sourceTree = "<group>"; };
 		8B95FD264D171F4F70DFEB26 /* HourOfDaySignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HourOfDaySignal.swift; sourceTree = "<group>"; };
 		8C1DD2BA0AF4E693B9E36F90 /* CompiledPlace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompiledPlace.swift; sourceTree = "<group>"; };
 		8C89CB8D3309FD5646E23434 /* LocalAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAttachment.swift; sourceTree = "<group>"; };
@@ -1042,6 +1044,7 @@
 				BCE4DB6455FBF5257A3709D9 /* EmptyStateCitySuggestionTest.swift */,
 				F28FE205E7AA6068F6E0C837 /* ExperienceImageServiceTests.swift */,
 				97CFC524C0531291FC21FE47 /* ExperienceRecordHighlightsRoundTripTests.swift */,
+				8AA7C71C5E9C16456C7A65D2 /* FarAwayDistanceTest.swift */,
 				AA17ED8FE9ABA2F5CC1D557E /* FavoriteFilterTests.swift */,
 				F8547EB44AE47A5D653D3994 /* FavoritesBounceAvailabilityTest.swift */,
 				5C94CC0395CC7FCC0A56D077 /* FavoritesClosingSoonThresholdTest.swift */,
@@ -1787,6 +1790,7 @@
 				6B06E0141358CBC81CB3ADB2 /* EmptyStateCitySuggestionTest.swift in Sources */,
 				DC8EEFCE455618DDDF900B28 /* ExperienceImageServiceTests.swift in Sources */,
 				80D6C58420D8D1E463936E47 /* ExperienceRecordHighlightsRoundTripTests.swift in Sources */,
+				34F2006B922A8F29F62B7317 /* FarAwayDistanceTest.swift in Sources */,
 				37D5A0FD622C9649308BD14D /* FavoriteFilterTests.swift in Sources */,
 				F721E7FE777AF2AFA0FA264D /* FavoritesBounceAvailabilityTest.swift in Sources */,
 				4617863D79206886BE4A5586 /* FavoritesClosingSoonThresholdTest.swift in Sources */,
