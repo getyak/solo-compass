@@ -317,9 +317,7 @@ public struct BottomInfoSheet<Content: View>: View {
                         // without this the rows visibly jump frame-to-frame as the
                         // sheet grows/shrinks, reading as a flicker.
                         .frame(maxWidth: .infinity, alignment: .top)
-                        // Trailing breathing room so the last card never sits flush
-                        // against the sheet's lower edge / home indicator.
-                        .padding(.bottom, 28)
+                        .padding(.bottom, 28 * BottomSheetDetentScale.factor())
                 }
                 // Freeze the ScrollView while the handle is being dragged. The
                 // sheet height animates every frame during a settle; an active
@@ -891,7 +889,7 @@ struct NearbyExperienceRow: View {
                 distanceColumn
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.vertical, 12 * BottomSheetDetentScale.factor())
             .background(cardBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
