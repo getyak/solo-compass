@@ -363,7 +363,7 @@ public struct BottomInfoSheet<Content: View>: View {
     private var peekContentArea: some View {
         if currentDetent == .peek {
             peekSummaryArea
-        } else {
+        } else if isNowMode {
             NowHintRow(hint: aiHint)
         }
     }
@@ -376,7 +376,9 @@ public struct BottomInfoSheet<Content: View>: View {
     @ViewBuilder
     private var peekSummaryArea: some View {
         VStack(alignment: .leading, spacing: 8) {
-            peekHeaderLabel
+            if isNowMode {
+                peekHeaderLabel
+            }
             if isPreviewActive {
                 // A floating preview card already owns the "best pick" focus —
                 // collapse this card to a one-line hint so the two never
