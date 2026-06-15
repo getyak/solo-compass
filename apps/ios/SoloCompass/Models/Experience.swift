@@ -564,6 +564,15 @@ public struct Experience: Codable, Hashable, Identifiable {
     /// Non-nil category highlights, never nil — UI iterates this directly.
     public var highlights: [CategoryHighlight] { categoryHighlights ?? [] }
 
+    /// Compact display name: romanized place name → local name → full title.
+    public var shortName: String {
+        let candidates = [location.placeNameRomanized, location.placeNameLocal]
+        if let name = candidates.compactMap({ $0 }).first(where: { !$0.isEmpty }) {
+            return name
+        }
+        return title
+    }
+
     /// True when this entry was discovered via OpenStreetMap Explore
     /// (vs. a curated seed entry). Used to surface provenance in the UI.
     public var isFromOpenStreetMap: Bool { id.hasPrefix("exp_osm_") }

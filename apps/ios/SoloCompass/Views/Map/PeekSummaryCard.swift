@@ -115,10 +115,10 @@ struct PeekSummaryCard: View {
     private var titleStack: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Text(experience.title)
+                Text(experience.shortName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(CT.fgPrimary)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 if isSmartPick {
                     aiPickTag
                 }
