@@ -1321,6 +1321,10 @@ struct NearbySection: View {
     /// When non-nil, passed through to EmptySheetListView to render the
     /// 'Explore another area' CTA that zooms the map out.
     let onExploreElsewhere: (() -> Void)?
+    /// Suggested city name shown in the empty state when the current area has
+    /// no experiences. Passed through to EmptySheetListView.
+    let suggestedCityName: String?
+    let onSwitchToSuggestedCity: (() -> Void)?
 
     @Environment(BestNowClock.self) private var clock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -1332,6 +1336,8 @@ struct NearbySection: View {
         sortMode: SortMode = .smart,
         showsSectionDivider: Bool = false,
         onExploreElsewhere: (() -> Void)? = nil,
+        suggestedCityName: String? = nil,
+        onSwitchToSuggestedCity: (() -> Void)? = nil,
         onSelectExperience: @escaping (Experience) -> Void,
         onLongPressExperience: ((Experience) -> Void)? = nil,
         onAskSoloExperience: ((Experience) -> Void)? = nil
@@ -1342,6 +1348,8 @@ struct NearbySection: View {
         self.sortMode = sortMode
         self.showsSectionDivider = showsSectionDivider
         self.onExploreElsewhere = onExploreElsewhere
+        self.suggestedCityName = suggestedCityName
+        self.onSwitchToSuggestedCity = onSwitchToSuggestedCity
         self.onSelectExperience = onSelectExperience
         self.onLongPressExperience = onLongPressExperience
         self.onAskSoloExperience = onAskSoloExperience
@@ -1361,7 +1369,11 @@ struct NearbySection: View {
                 // US-050: empty Nearby list. Announce on appear so VoiceOver
                 // users learn the list is empty rather than thinking the sheet
                 // froze; a visible row keeps the state legible to everyone.
-                EmptySheetListView(onExploreElsewhere: onExploreElsewhere)
+                EmptySheetListView(
+                    onExploreElsewhere: onExploreElsewhere,
+                    suggestedCityName: suggestedCityName,
+                    onSwitchToSuggestedCity: onSwitchToSuggestedCity
+                )
             } else {
                 // Each row now carries its own card chrome, so we separate them
                 // with a 10pt gap (matching RoutesSection) rather than full-bleed
@@ -1467,11 +1479,20 @@ struct EmptySheetListView: View {
     /// where no map action is wired up.
     var onExploreElsewhere: (() -> Void)? = nil
 
+    /// When non-nil, shows a "Try [city]" CTA so users in empty cities can
+    /// one-tap jump to a city that has seed data.
+    var suggestedCityName: String? = nil
+    var onSwitchToSuggestedCity: (() -> Void)? = nil
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var breathing = false
 
     var localizedEmptyText: String {
         NSLocalizedString(Self.announcementKey, comment: "Announced when the Nearby list is empty")
+    }
+
+    private var hasSuggestedCity: Bool {
+        suggestedCityName != nil && onSwitchToSuggestedCity != nil
     }
 
     var body: some View {
@@ -1486,29 +1507,58 @@ struct EmptySheetListView: View {
                     .font(.headline)
                     .foregroundStyle(CT.fgPrimary)
                     .multilineTextAlignment(.center)
-                Text(NSLocalizedString("empty.nearby.subtitle", comment: "Empty Nearby supporting subline"))
-                    .font(.subheadline)
-                    .foregroundStyle(CT.fgMuted)
-                    .multilineTextAlignment(.center)
+                if hasSuggestedCity {
+                    Text(NSLocalizedString("empty.nearby.subtitle.nocity", comment: "Empty Nearby subtitle when city has no data"))
+                        .font(.subheadline)
+                        .foregroundStyle(CT.fgMuted)
+                        .multilineTextAlignment(.center)
+                } else {
+                    Text(NSLocalizedString("empty.nearby.subtitle", comment: "Empty Nearby supporting subline"))
+                        .font(.subheadline)
+                        .foregroundStyle(CT.fgMuted)
+                        .multilineTextAlignment(.center)
+                }
             }
 
-            if let explore = onExploreElsewhere {
-                Button {
-                    #if canImport(UIKit)
-                    Haptics.selection()
-                    #endif
-                    explore()
-                } label: {
-                    Label(
-                        NSLocalizedString("empty.nearby.cta", comment: "CTA to zoom map out when Nearby list is empty"),
-                        systemImage: "arrow.up.left.and.arrow.down.right"
-                    )
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 9)
+            VStack(spacing: 10) {
+                if let cityName = suggestedCityName, let switchCity = onSwitchToSuggestedCity {
+                    Button {
+                        #if canImport(UIKit)
+                        Haptics.impact(.medium)
+                        #endif
+                        switchCity()
+                    } label: {
+                        Label(
+                            String(format: NSLocalizedString("empty.nearby.cta.city", comment: "CTA to switch to a city with data"), cityName),
+                            systemImage: "airplane.departure"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 11)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(CT.accent)
+                    .accessibilityHint(Text(String(format: NSLocalizedString("empty.nearby.a11y.city.hint", comment: "Accessibility hint for city switch CTA"), cityName)))
                 }
-                .buttonStyle(.bordered)
-                .accessibilityHint(Text(NSLocalizedString("empty.nearby.cta", comment: "CTA to zoom map out when Nearby list is empty")))
+
+                if let explore = onExploreElsewhere {
+                    Button {
+                        #if canImport(UIKit)
+                        Haptics.selection()
+                        #endif
+                        explore()
+                    } label: {
+                        Label(
+                            NSLocalizedString("empty.nearby.cta", comment: "CTA to zoom map out when Nearby list is empty"),
+                            systemImage: "arrow.up.left.and.arrow.down.right"
+                        )
+                        .font(.subheadline.weight(.medium))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 9)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityHint(Text(NSLocalizedString("empty.nearby.cta", comment: "CTA to zoom map out when Nearby list is empty")))
+                }
             }
         }
         .frame(maxWidth: .infinity)

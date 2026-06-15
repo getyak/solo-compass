@@ -758,6 +758,10 @@ struct CompassMapContentView: View {
                                             )
                                         }
                                     },
+                                    suggestedCityName: viewModel.suggestedCityName,
+                                    onSwitchToSuggestedCity: viewModel.suggestedCityCode.map { code in
+                                        { viewModel.selectCity(code) }
+                                    },
                                     onSelectExperience: { exp in
                                         // Tap → jump straight to the detail sheet.
                                         // (Long-press floats the preview card via

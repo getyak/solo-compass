@@ -168,6 +168,7 @@
 		680774109C2AD675E26ADA18 /* CreateRouteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0782F4AA0496B97DDAAA380 /* CreateRouteView.swift */; };
 		690ED25AA3EDA8529E915850 /* MyWalkedRoutesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F48906724062C4636DE947 /* MyWalkedRoutesListView.swift */; };
 		6AA87132BC6ACDDDC6D98735 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF007DB5F72E30021CADA555 /* NetworkMonitor.swift */; };
+		6B06E0141358CBC81CB3ADB2 /* EmptyStateCitySuggestionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE4DB6455FBF5257A3709D9 /* EmptyStateCitySuggestionTest.swift */; };
 		6BC4542A9B952BA2AFA9332C /* FilterNowMapSyncTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C75D64D462A03DBEFFC4EB /* FilterNowMapSyncTest.swift */; };
 		6BDE2B5BBBFDFB98C3A12BE4 /* ReportBlockSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023CB5AE8B0D41EBB5E17DAC /* ReportBlockSheet.swift */; };
 		6E89D69A55FBB0EE0E476728 /* NotificationCategories.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46582FC424C8220DC144B906 /* NotificationCategories.swift */; };
@@ -750,6 +751,7 @@
 		BB612E3F9DD324EF3F308FFA /* CompanionPhase3Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionPhase3Tests.swift; sourceTree = "<group>"; };
 		BBD7871A003B28A7C46AC8D7 /* ItineraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryStoreTests.swift; sourceTree = "<group>"; };
 		BC185539C95D5D940693BCB7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		BCE4DB6455FBF5257A3709D9 /* EmptyStateCitySuggestionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateCitySuggestionTest.swift; sourceTree = "<group>"; };
 		BE044EB043B89CD798F4ED83 /* RouteRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteRecord.swift; sourceTree = "<group>"; };
 		BEDD4F6238B484BB7C20904B /* SkeletonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonView.swift; sourceTree = "<group>"; };
 		C0F20A91F36C7CA4041BEEC9 /* WeatherServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherServiceTests.swift; sourceTree = "<group>"; };
@@ -1037,6 +1039,7 @@
 				A7D06753CFAA5198FCB3FF96 /* DiscoverFriendGateTests.swift */,
 				DA75549DB586E5FB6689BEAE /* DiscoverPostDetailRenderTest.swift */,
 				763DF01F638C99097DD5FE20 /* EmptyStateAnnouncementTest.swift */,
+				BCE4DB6455FBF5257A3709D9 /* EmptyStateCitySuggestionTest.swift */,
 				F28FE205E7AA6068F6E0C837 /* ExperienceImageServiceTests.swift */,
 				97CFC524C0531291FC21FE47 /* ExperienceRecordHighlightsRoundTripTests.swift */,
 				AA17ED8FE9ABA2F5CC1D557E /* FavoriteFilterTests.swift */,
@@ -1781,6 +1784,7 @@
 				8D0C03425BA0C7D5E50B016D /* DiscoverFriendGateTests.swift in Sources */,
 				38569000AFC1017483C20063 /* DiscoverPostDetailRenderTest.swift in Sources */,
 				30293CB7BCCE6B600A82C292 /* EmptyStateAnnouncementTest.swift in Sources */,
+				6B06E0141358CBC81CB3ADB2 /* EmptyStateCitySuggestionTest.swift in Sources */,
 				DC8EEFCE455618DDDF900B28 /* ExperienceImageServiceTests.swift in Sources */,
 				80D6C58420D8D1E463936E47 /* ExperienceRecordHighlightsRoundTripTests.swift in Sources */,
 				37D5A0FD622C9649308BD14D /* FavoriteFilterTests.swift in Sources */,
