@@ -393,19 +393,21 @@ private struct MeRow: View {
     let title: String
     var badge: Int = 0
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(CT.accent)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(colorScheme == .dark ? CT.sunGoldSoft : CT.accent)
                 .frame(width: 34, height: 34)
                 .background(
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(CT.accentSoft)
+                        .fill(colorScheme == .dark ? CT.warmSunkenDark : CT.accentSoft)
                 )
             Text(title)
                 .font(.body)
-                .foregroundStyle(CT.fgPrimary)
+                .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
             Spacer()
             if badge > 0 {
                 Text("\(badge)")
@@ -417,7 +419,7 @@ private struct MeRow: View {
             }
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(CT.fgSubtle)
+                .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgSubtle)
         }
         .padding(.vertical, 6)
     }
