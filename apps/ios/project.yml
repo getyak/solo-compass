@@ -112,9 +112,12 @@ targets:
           else
             echo "[generate_secrets] script not found at ${SRCROOT}/../../scripts/generate_secrets.sh — skipping" >&2
           fi
+        inputFiles:
+          - $(SRCROOT)/../../.env
+          - $(SRCROOT)/../../scripts/generate_secrets.sh
         outputFiles:
           - $(SRCROOT)/SoloCompass/Config/GeneratedSecrets.swift
-        basedOnDependencyAnalysis: false
+        basedOnDependencyAnalysis: true
     dependencies:
       - package: Supabase
         product: Supabase

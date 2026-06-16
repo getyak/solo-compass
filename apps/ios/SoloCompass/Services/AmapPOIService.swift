@@ -78,7 +78,7 @@ public final class AmapPOIService {
     /// `public` default argument may not reference internal symbols.
     public init(
         session: URLSession = .shared,
-        maxResults: Int = 25,
+        maxResults: Int = 75,
         keyProvider: (() -> String)? = nil
     ) {
         self.session = session
@@ -105,46 +105,58 @@ public final class AmapPOIService {
             return cached.pois
         }
 
-        // Convert the query center WGS84 → GCJ-02 for Amap. `location` is
-        // "lon,lat" with 6 decimals per the Amap spec.
         let gcj = CoordinateConverter.wgs84ToGcj02(coordinate)
-        guard let url = Self.buildURL(
-            key: key,
-            gcjCenter: gcj,
-            radiusMeters: radiusMeters,
-            category: category,
-            pageSize: maxResults
-        ) else {
-            throw AmapError.requestFailed(status: -1)
-        }
 
         isFetching = true
         defer { isFetching = false }
 
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 20
-        request.setValue("SoloCompass-iOS/1.0", forHTTPHeaderField: "User-Agent")
+        // Amap caps page_size at 25. Paginate up to maxResults (default 75).
+        let pageSize = 25
+        let maxPages = max(1, (maxResults + pageSize - 1) / pageSize)
+        var allPois: [OverpassService.POI] = []
+        var seenIds = Set<Int64>()
 
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-            throw AmapError.requestFailed(status: status)
+        for page in 1...maxPages {
+            guard let url = Self.buildURL(
+                key: key,
+                gcjCenter: gcj,
+                radiusMeters: radiusMeters,
+                category: category,
+                pageSize: pageSize,
+                pageNum: page
+            ) else {
+                throw AmapError.requestFailed(status: -1)
+            }
+
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 20
+            request.setValue("SoloCompass-iOS/1.0", forHTTPHeaderField: "User-Agent")
+
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+                throw AmapError.requestFailed(status: status)
+            }
+
+            let decoded = try JSONDecoder().decode(AroundResponse.self, from: data)
+            guard decoded.status == "1" else {
+                Self.logger.info("Amap non-success status=\(decoded.status, privacy: .public) info=\(decoded.info ?? "nil", privacy: .public)")
+                break
+            }
+
+            let pagePois = (decoded.pois ?? []).compactMap { Self.poi(from: $0) }
+            for poi in pagePois where !seenIds.contains(poi.osmId) {
+                seenIds.insert(poi.osmId)
+                allPois.append(poi)
+            }
+
+            // Stop if this page returned fewer than pageSize (no more data).
+            if pagePois.count < pageSize { break }
+            if allPois.count >= maxResults { break }
         }
 
-        let decoded = try JSONDecoder().decode(AroundResponse.self, from: data)
-        // status "1" = success. Anything else (quota, invalid key, no result)
-        // degrades to empty so the merge step still proceeds with other sources.
-        // Log the `info` field (e.g. "DAILY_QUERY_OVER_LIMIT", "INVALID_USER_KEY")
-        // so a quota/auth failure is observable instead of silently looking like
-        // "no POIs here" — the operator needs to see why China quality dropped.
-        guard decoded.status == "1" else {
-            Self.logger.info("Amap non-success status=\(decoded.status, privacy: .public) info=\(decoded.info ?? "nil", privacy: .public)")
-            return []
-        }
-
-        let pois = (decoded.pois ?? []).compactMap { Self.poi(from: $0) }
-        memoryCache.setObject(CachedPOIs(pois), forKey: cacheKey)
-        return pois
+        memoryCache.setObject(CachedPOIs(allPois), forKey: cacheKey)
+        return allPois
     }
 
     // MARK: - URL building
@@ -154,7 +166,8 @@ public final class AmapPOIService {
         gcjCenter: CLLocationCoordinate2D,
         radiusMeters: Int,
         category: ExperienceCategory?,
-        pageSize: Int
+        pageSize: Int,
+        pageNum: Int = 1
     ) -> URL? {
         var comps = URLComponents(string: "https://restapi.amap.com/v5/place/around")
         // Amap caps radius at 50 km and page_size at 25.
@@ -165,7 +178,7 @@ public final class AmapPOIService {
             URLQueryItem(name: "location", value: String(format: "%.6f,%.6f", gcjCenter.longitude, gcjCenter.latitude)),
             URLQueryItem(name: "radius", value: String(radius)),
             URLQueryItem(name: "page_size", value: String(size)),
-            URLQueryItem(name: "page_num", value: "1"),
+            URLQueryItem(name: "page_num", value: String(pageNum)),
             // Sort by distance so the closest, most relevant POIs survive the cap.
             URLQueryItem(name: "sortrule", value: "distance"),
             // Ask for the richer field set (business hours, rating, etc.) so

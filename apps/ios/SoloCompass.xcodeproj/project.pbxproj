@@ -1746,13 +1746,14 @@
 /* Begin PBXShellScriptBuildPhase section */
 		64D3462D348FFD483BDEABFE /* Generate Secrets from .env */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/../../.env",
+				"$(SRCROOT)/../../scripts/generate_secrets.sh",
 			);
 			name = "Generate Secrets from .env";
 			outputFileListPaths = (

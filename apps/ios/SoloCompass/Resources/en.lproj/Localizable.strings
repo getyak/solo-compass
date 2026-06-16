@@ -1902,6 +1902,34 @@
 "mood.hardToFind" = "Hard to find";
 "mood.veryFew" = "Very few people";
 
+/* Actions — route favorite */
+"action.favorited" = "Favorited";
+"action.notFavorited" = "Not favorited";
+
+/* Chat attachments */
+"chat.attachment.add.a11y" = "Add attachment";
+"chat.attachment.add.title" = "Add attachment";
+"chat.attachment.close.a11y" = "Close attachment";
+"chat.attachment.remove.a11y" = "Remove attachment";
+"chat.attachment.source.camera" = "Camera";
+"chat.attachment.source.cancel" = "Cancel";
+"chat.attachment.source.files" = "Files";
+"chat.attachment.source.photos" = "Photo Library";
+
+/* Foursquare errors */
+"foursquare.error.missingKey" = "Foursquare API key is missing";
+"foursquare.error.request" = "Foursquare request failed (status %d)";
+"foursquare.error.url" = "Invalid Foursquare URL";
+
+/* Friends list — preview */
+"friends.list.error.preview" = "Preview error";
+
+/* Location picker */
+"locationPicker.map.pin" = "Selected location";
+
+/* Preview */
+"preview.raiseScore" = "Raise Score";
+
 /* Map style picker */
 "map.style.standard" = "Standard";
 "map.style.satellite" = "Satellite";
