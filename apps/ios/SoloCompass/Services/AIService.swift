@@ -1101,8 +1101,12 @@ public final class AIService {
                     sources: [
                         InformationSource(
                             type: .user,
-                            url: URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
-                            attribution: "© OpenStreetMap contributors + AI",
+                            url: poi.tags["source"] == "amap"
+                                ? nil
+                                : URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
+                            attribution: poi.tags["source"] == "amap"
+                                ? "© AutoNavi (Amap) + AI"
+                                : "© OpenStreetMap contributors + AI",
                             verifiedAt: now
                         )
                     ],
