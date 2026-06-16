@@ -913,7 +913,40 @@ public final class MapViewModel {
         aiSmartPickIds = []
         recomputeNowCount()
         updateBottomInfo()
+        fitCameraToPinsIfNeeded(nearby)
         scheduleColdStartEmptyWatchdog()
+    }
+
+    /// When pins are clustered in a tight area relative to the current camera
+    /// span, zoom in so every pin is individually visible instead of stacking
+    /// into a single dot at city-overview zoom.
+    private func fitCameraToPinsIfNeeded(_ experiences: [Experience]) {
+        let coords = experiences.compactMap(\.coordinate)
+        guard coords.count >= 2 else { return }
+
+        let lats = coords.map(\.latitude)
+        let lons = coords.map(\.longitude)
+        let minLat = lats.min()!, maxLat = lats.max()!
+        let minLon = lons.min()!, maxLon = lons.max()!
+        let latSpread = maxLat - minLat
+        let lonSpread = maxLon - minLon
+
+        // Only auto-fit when pins are much tighter than the current camera.
+        guard latSpread < currentSpanLatitudeDelta * 0.3 else { return }
+        guard lonSpread < currentSpanLatitudeDelta * 0.3 else { return }
+
+        let padding = max(latSpread, lonSpread, 0.005) * 1.8
+        let newSpan = MKCoordinateSpan(
+            latitudeDelta: max(latSpread + padding, 0.01),
+            longitudeDelta: max(lonSpread + padding, 0.01)
+        )
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        withAnimation(Self.cameraAnimation) {
+            cameraPosition = .region(MKCoordinateRegion(center: center, span: newSpan))
+        }
     }
 
     /// V-004: origin for the nearby query. A *preset* city selection drives the
@@ -2017,7 +2050,17 @@ public final class MapViewModel {
             }
 
             if added > 0 {
-                selectCity(cityCode)
+                // V-007 extension: when the user has an explicit city
+                // selection (non-custom), preserve it — don't let an
+                // explore result at the GPS coordinate hijack the camera.
+                let userOwnsCity = (selectedCity.map { !$0.hasPrefix("custom_") }) ?? false
+                let discoveredMatchesSelected = selectedCity == cityCode
+                    || Self.cityCodeAliases[cityCode] == selectedCity
+                    || Self.cityCodeAliases.first(where: { $0.value == selectedCity })?.key == cityCode
+                if !userOwnsCity || discoveredMatchesSelected {
+                    selectCity(cityCode)
+                    recenter(on: coordinate)
+                }
                 let outerKm = effectiveRadius / 1000
                 if progressiveExpanded, let finalKm = progressiveFinalRadiusKm {
                     // US-006: progressive run that widened past 5 km — show final radius.
@@ -2054,8 +2097,6 @@ public final class MapViewModel {
                                  added)
                 }
             }
-
-            recenter(on: coordinate)
         } catch {
             // US-022: on network failure, look for a recent nearby region and
             // surface its cached SwiftData pins instead of showing an error.

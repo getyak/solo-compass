@@ -36,10 +36,17 @@ enum MapItem: Identifiable {
 }
 
 enum MapClusterEngine {
+    /// Below this pin count, clustering is skipped — a handful of pins never
+    /// visually overlap enough to justify collapsing into a numbered circle.
+    static let skipClusteringThreshold = 15
+
     static func cluster(
         _ experiences: [Experience],
         spanLatitudeDelta: Double
     ) -> [MapItem] {
+        if experiences.count <= skipClusteringThreshold {
+            return experiences.map { .single($0) }
+        }
         let cellSize = cellSize(for: spanLatitudeDelta)
         guard cellSize > 0 else {
             return experiences.map { .single($0) }
@@ -70,7 +77,7 @@ enum MapClusterEngine {
     }
 
     private static func cellSize(for spanLatitudeDelta: Double) -> Double {
-        if spanLatitudeDelta < 0.01 { return 0 }
-        return spanLatitudeDelta / 6.0
+        if spanLatitudeDelta < 0.05 { return 0 }
+        return spanLatitudeDelta / 10.0
     }
 }
