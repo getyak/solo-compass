@@ -189,6 +189,7 @@
 
 /* Map candidate marker accessibility */
 "map.candidate.label" = "候选体验：%@";
+"map.cluster.label" = "此区域有 %d 个体验";
 
 /* Experience card accessibility */
 "experience.card.hint" = "双击查看详情";
@@ -311,6 +312,20 @@
 "onboarding.welcome.skip" = "先逛逛";
 "onboarding.style.title" = "你怎么旅行？";
 "onboarding.style.subtitle" = "这会决定哪些体验优先出现。随时可改。";
+"onboarding.concepts.title" = "不止是地点。";
+"onboarding.concepts.subtitle" = "每个图钉都是一段体验——在对的时间，做值得做的事。";
+"onboarding.concepts.item1.title" = "时间感知";
+"onboarding.concepts.item1.desc" = "每段体验有最佳时段——日出观景、午市人潮、黄金时刻咖啡馆。";
+"onboarding.concepts.item2.title" = "独行优先";
+"onboarding.concepts.item2.desc" = "为一人精选。吧台座、安静小径、一个人也自在的地方。";
+"onboarding.concepts.cta" = "了解了";
+"onboarding.scoring.title" = "智能排序。";
+"onboarding.scoring.subtitle" = "我们用两个信号，浮现此刻最值得去的体验。";
+"onboarding.scoring.item1.title" = "Solo 评分";
+"onboarding.scoring.item1.desc" = "1–10 分评估独行友好度——座位、氛围、安全感，综合考量。";
+"onboarding.scoring.item2.title" = "Now 筛选";
+"onboarding.scoring.item2.desc" = "点「Now」只看此刻最佳——正在营业、不拥挤、状态最好。";
+"onboarding.scoring.cta" = "明白了";
 "onboarding.style.cta" = "开始探索";
 "onboarding.style.skip" = "稍后决定";
 "onboarding.skip" = "跳过";
@@ -379,8 +394,9 @@
 "explore.aiBadge" = "AI 生成 · 来自 OpenStreetMap";
 "explore.osmBadge" = "来自 OpenStreetMap · 未增强";
 "explore.error.nothingFound" = "附近没找到公共场所。试试拖动地图。";
-"location.error.banner" = "无法获取你的位置 — 已显示默认区域。请在“设置”中检查定位权限。";
-"explore.skeleton.oneLiner" = "一处来自 OpenStreetMap 的真实地点。";
+“location.error.banner” = “无法获取你的位置 — 已显示默认区域。请在”设置”中检查定位权限。”;
+“location.banner.openSettings” = “打开设置”;
+“explore.skeleton.oneLiner” = “一处来自 OpenStreetMap 的真实地点。”;
 "explore.skeleton.why" = "我们还没有这个地方的精选故事。去看看，然后告诉我们你发现了什么。";
 "explore.quota.dailyLimit" = "今日 AI 调用次数已达上限。明天恢复前会展示真实地点但不再增强。";
 "explore.toast.addedNamed" = "正在探索 %1$@ · 新增 %2$d 处地点";
@@ -515,6 +531,7 @@
 /* "+" quick-action button — single chat entry point */
 "plus.button.a11y" = "和 Solo 聊天";
 "plus.button.hint" = "点击文字输入，长按语音说话";
+"plus.button.label" = "问问";
 
 /* Chat voice surface */
 "chat.voice.title" = "和 Solo 说话";
@@ -1006,7 +1023,7 @@
 "card.favorite.added.a11y" = "已加入收藏";
 "card.favorite.removed.a11y" = "已取消收藏";
 "card.dismiss" = "关闭卡片";
-"card.distance.walk" = "%d 分钟步行";
+"card.distance.walk" = "约 %d 分钟步行";
 "card.distance.walkSub1" = "不到 1 分钟步行";
 "card.distance.arrived" = "你已到达";
 "card.distance.arrived.a11y" = "你已到达";
@@ -1136,6 +1153,9 @@
 "favorites.search.clear.hint" = "清空搜索框并显示所有收藏";
 "favorites.search.goodNow.cta" = "%d 个此刻很适合";
 "favorites.search.goodNow.cta.a11y" = "%d 个收藏此刻很适合前往";
+"search.experiences.placeholder" = "搜索体验";
+"search.clear" = "清除搜索";
+"search.empty.title" = "没有\"%@\"的结果";
 "favorites.search.noResults" = "没有\"%@\"的匹配结果";
 "favorites.search.noResults.hint" = "换个词试试，或清空搜索。";
 "favorites.search.prompt" = "搜索收藏";
@@ -1269,6 +1289,9 @@
 "settings.companion.hosted.routes" = "我主理的路线";
 
 /* Sheet */
+"now.time.justNow" = "刚刚";
+"now.time.recent" = "已更新";
+"now.time.minutesAgo" = "%d 分钟前";
 "sheet.sort.button" = "排序";
 "sheet.count.now" = "此刻 %d";
 "sheet.count.nearby" = "附近 %d";
@@ -1280,8 +1303,8 @@
 "sheet.routes.section.title" = "路线";
 
 /* NearbyExperienceRow card chips — walk-time, Solo score, 此刻最佳, proximity word */
-"nearby.chip.walkMin" = "%d 分钟";
-"nearby.chip.driveMin" = "车程 %d 分钟";
+"nearby.chip.walkMin" = "约 %d 分钟";
+"nearby.chip.driveMin" = "车程约 %d 分钟";
 "nearby.chip.solo" = "Solo %.1f";
 "nearby.chip.bestNow" = "此刻最佳";
 /* 此刻最值得去卡片 + 附近列表上的紧凑「即将关闭」倒计时（剩余 ≤45 分钟）。%d = 分钟。 */
@@ -1379,6 +1402,22 @@
 "empty.nearby.headline" = "这附近还没有体验";
 "empty.nearby.subtitle" = "移动地图或拉远视野，看看周围有什么。";
 "empty.nearby.cta" = "探索其他区域";
+
+/* Empty Nearby — city has no data, suggest switching */
+"empty.nearby.subtitle.nocity" = "这个区域暂时还没有体验。试试我们精选的城市吧。";
+"empty.nearby.cta.city" = "探索 %@";
+"empty.nearby.a11y.city.hint" = "切换到有精选体验的 %@";
+
+/* Now filter empty — time-aware */
+"empty.now.headline" = "当前没有适合的去处";
+"empty.now.subtitle" = "稍后再看 — 体验会根据时段轮换推荐。";
+"empty.now.latenight" = "夜深了 — 大多数地方已关门";
+"empty.now.latenight.headline" = "夜深了 — 早点休息";
+"empty.now.latenight.subtitle" = "大多数地方已打烊。明早回来看看，会有新鲜推荐。";
+
+/* Distance replaced by city name when > 500km */
+"nearby.distance.inCity" = "在 %@";
+"nearby.distance.inCity.a11y" = "位于 %@";
 
 /* Favorites */
 "favorites.completed.allDone.a11y" = "已收藏的体验全部完成";
@@ -1643,6 +1682,9 @@
 "me.friends.empty" = "还没有好友";
 "me.stats.saved" = "收藏";
 "me.stats.explored" = "探索";
+"me.empty.title" = "旅程从这里开始";
+"me.empty.subtitle" = "探索地图，收藏喜欢的地点，记录你去过的每一处。";
+"me.empty.cta" = "回到地图";
 "me.avatar.a11y" = "打开个人中心";
 "me.avatar.a11y.pending" = "你有待处理的好友申请";
 
@@ -1773,3 +1815,8 @@
 "mood.worthFinding" = "值得找";
 "mood.hardToFind" = "不太好找";
 "mood.veryFew" = "人很少";
+
+/* Map style picker */
+"map.style.standard" = "标准";
+"map.style.satellite" = "卫星";
+"map.style.hybrid" = "混合";

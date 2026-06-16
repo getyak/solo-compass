@@ -213,6 +213,7 @@ public struct BottomInfoSheet<Content: View>: View {
     /// to a lightweight hint so two competing "best pick" cards never stack —
     /// the user's active selection owns the focus.
     private let isPreviewActive: Bool
+    private let onRefresh: (() async -> Void)?
     private let content: (BottomSheetDetent, Binding<SortMode>) -> Content
 
     public init(
@@ -223,6 +224,7 @@ public struct BottomInfoSheet<Content: View>: View {
         isSmartPick: Bool = false,
         referenceCoordinate: CLLocationCoordinate2D? = nil,
         isPreviewActive: Bool = false,
+        onRefresh: (() async -> Void)? = nil,
         @ViewBuilder content: @escaping (BottomSheetDetent, Binding<SortMode>) -> Content
     ) {
         self.aiHint = aiHint
@@ -232,6 +234,7 @@ public struct BottomInfoSheet<Content: View>: View {
         self.isSmartPick = isSmartPick
         self.referenceCoordinate = referenceCoordinate
         self.isPreviewActive = isPreviewActive
+        self.onRefresh = onRefresh
         self.content = content
     }
 
@@ -314,15 +317,16 @@ public struct BottomInfoSheet<Content: View>: View {
                         // without this the rows visibly jump frame-to-frame as the
                         // sheet grows/shrinks, reading as a flicker.
                         .frame(maxWidth: .infinity, alignment: .top)
-                        // Trailing breathing room so the last card never sits flush
-                        // against the sheet's lower edge / home indicator.
-                        .padding(.bottom, 28)
+                        .padding(.bottom, 28 * BottomSheetDetentScale.factor())
                 }
                 // Freeze the ScrollView while the handle is being dragged. The
                 // sheet height animates every frame during a settle; an active
                 // ScrollView would re-clamp its contentOffset against that moving
                 // viewport and fight the drag, producing flicker. Re-enabled the
                 // instant the drag ends.
+                .refreshable {
+                    if let onRefresh { await onRefresh() }
+                }
                 .scrollDisabled(isDragging)
                 .scrollDismissesKeyboard(.interactively)
                 // Show the indicator at mid/full as an affordance that more
@@ -363,7 +367,7 @@ public struct BottomInfoSheet<Content: View>: View {
     private var peekContentArea: some View {
         if currentDetent == .peek {
             peekSummaryArea
-        } else {
+        } else if isNowMode {
             NowHintRow(hint: aiHint)
         }
     }
@@ -376,7 +380,9 @@ public struct BottomInfoSheet<Content: View>: View {
     @ViewBuilder
     private var peekSummaryArea: some View {
         VStack(alignment: .leading, spacing: 8) {
-            peekHeaderLabel
+            if isNowMode {
+                peekHeaderLabel
+            }
             if isPreviewActive {
                 // A floating preview card already owns the "best pick" focus —
                 // collapse this card to a one-line hint so the two never
@@ -548,8 +554,19 @@ struct NowHintRow: View {
         return f.string(from: date)
     }
 
-    private var formattedTime: String {
-        Self.timeString(for: clock.tick)
+    private var relativeTimeLabel: String {
+        let components = Calendar.current.dateComponents([.minute], from: clock.tick, to: Date())
+        let minutes = abs(components.minute ?? 0)
+        if minutes < 1 {
+            return NSLocalizedString("now.time.justNow", comment: "Updated just now")
+        } else if minutes < 5 {
+            return NSLocalizedString("now.time.recent", comment: "Updated recently")
+        } else {
+            return String(
+                format: NSLocalizedString("now.time.minutesAgo", comment: "Updated N minutes ago"),
+                minutes
+            )
+        }
     }
 
     var body: some View {
@@ -560,14 +577,15 @@ struct NowHintRow: View {
             Text(hint)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
             Spacer(minLength: 4)
-            Text(formattedTime)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+            Text(relativeTimeLabel)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(hint) \(formattedTime)"))
+        .accessibilityLabel(Text("\(hint), \(relativeTimeLabel)"))
     }
 }
 
@@ -614,8 +632,13 @@ struct SortCountToolbar: View {
             showSortSheet = true
         } label: {
             HStack(spacing: 4) {
-                Text(sortMode.localizedTitle)
-                    .font(.caption.weight(.medium))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(sortMode.localizedTitle)
+                        .font(.caption.weight(.medium))
+                    Text(NSLocalizedString(sortMode.subtitleKey, comment: "Sort mode subtitle"))
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                }
                 Image(systemName: "chevron.down")
                     .font(.caption2.weight(.semibold))
             }
@@ -728,449 +751,6 @@ struct SortModeSheet: View {
     }
 }
 
-// MARK: - NearbyExperienceRow
-
-/// Single card in the '附近' section of the BottomInfoSheet.
-///
-/// Card layout (mirrors the route-card chrome so the list reads as a stack of
-/// discrete cards rather than ruled rows): a left category color-bar, a filled
-/// category disc, the title + romanized·local subtitle, a chip row
-/// (walk-time · Solo score · 此刻最佳), and a trailing distance + compass arrow.
-struct NearbyExperienceRow: View {
-    let experience: Experience
-    let isSmartPick: Bool
-    /// Distance in meters from the user's current location (or map center).
-    let distanceMeters: Double?
-    /// True when the experience's bestTimes include the current clock hour (Now sort mode only).
-    let isOpenNow: Bool
-    /// Live "best now / closing soon" chip state, resolved by the parent section
-    /// from the shared `BestNowClock` so the countdown stays current. Only read
-    /// when `isOpenNow` is true; nil leaves the chip in its plain form.
-    var bestNowChipState: BestNowChipState? = nil
-    /// Tapping the card jumps straight to the detail sheet.
-    let onTap: () -> Void
-    /// Long-pressing the card floats the quick preview card instead. Optional so
-    /// existing callers that only want a tap action keep compiling.
-    var onLongPress: (() -> Void)? = nil
-    /// "问 Solo" context-menu action — opens a chat scoped to this experience.
-    /// Optional so callers that don't wire chat keep compiling.
-    var onAskSolo: (() -> Void)? = nil
-
-    @State private var pressed = false
-    @State private var pulsing = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(LocationService.self) private var locationService
-    @Environment(UserPreferences.self) private var preferences
-
-    private var isNearby: Bool {
-        guard let m = distanceMeters else { return false }
-        return m < 150
-    }
-
-    private static let distanceFormatter: MeasurementFormatter = {
-        let f = MeasurementFormatter()
-        f.unitOptions = .naturalScale
-        f.unitStyle = .short
-        f.numberFormatter.maximumFractionDigits = 1
-        return f
-    }()
-
-    // MARK: Proximity helpers (mirrors FavoritesListView.Proximity)
-
-    private enum Proximity {
-        case near, mid, far
-
-        static func from(meters: Double) -> Proximity {
-            if meters <= 1000 { return .near }
-            if meters <= 5000 { return .mid }
-            return .far
-        }
-
-        var dotColor: Color {
-            switch self {
-            case .near: return CT.verifiedGreenDot
-            case .mid: return CT.toneForming
-            case .far: return CT.fgSubtle
-            }
-        }
-
-        /// Localized density word shown next to the chip row (稀疏 / 中等 / 较远),
-        /// mirroring the screenshot's proximity caption.
-        var labelKey: String {
-            switch self {
-            case .near: return "nearby.proximity.sparse"
-            case .mid:  return "nearby.proximity.moderate"
-            case .far:  return "nearby.proximity.far"
-            }
-        }
-    }
-
-    private var proximity: Proximity? {
-        guard let m = distanceMeters else { return nil }
-        return Proximity.from(meters: m)
-    }
-
-    // MARK: Bearing helpers
-
-    private var relativeBearing: Double? {
-        guard let coord = experience.coordinate else { return nil }
-        return locationService.relativeBearing(to: coord)
-    }
-
-    /// 8-point compass label derived from an absolute bearing (0 = N, clockwise).
-    private func compassPoint(for absoluteBearing: Double) -> String {
-        let points = [
-            NSLocalizedString("compass.N",  comment: "Compass point: North"),
-            NSLocalizedString("compass.NE", comment: "Compass point: North-East"),
-            NSLocalizedString("compass.E",  comment: "Compass point: East"),
-            NSLocalizedString("compass.SE", comment: "Compass point: South-East"),
-            NSLocalizedString("compass.S",  comment: "Compass point: South"),
-            NSLocalizedString("compass.SW", comment: "Compass point: South-West"),
-            NSLocalizedString("compass.W",  comment: "Compass point: West"),
-            NSLocalizedString("compass.NW", comment: "Compass point: North-West"),
-        ]
-        let index = Int((absoluteBearing + 22.5) / 45) % 8
-        return points[index]
-    }
-
-    private var compassDirectionSuffix: String? {
-        guard let coord = experience.coordinate,
-              let absolute = locationService.bearing(to: coord) else { return nil }
-        let point = compassPoint(for: absolute)
-        let fmt = NSLocalizedString("nearby.direction.suffix",
-                                    comment: "Compass direction suffix, e.g. 'to the North'")
-        return String(format: fmt, point)
-    }
-
-    var body: some View {
-        Button {
-            #if canImport(UIKit)
-            Haptics.selection()
-            if !reduceMotion {
-                withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { pressed = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                    withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { pressed = false }
-                }
-            }
-            #endif
-            onTap()
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                categoryDisc
-                VStack(alignment: .leading, spacing: 7) {
-                    titleStack
-                    chipRow
-                }
-                Spacer(minLength: 4)
-                distanceColumn
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(cardBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(isSmartPick ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
-            )
-            .overlay(alignment: .leading) {
-                // Left color-bar: golden for smart picks, else the category tint.
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 14, bottomLeadingRadius: 14,
-                    bottomTrailingRadius: 0, topTrailingRadius: 0,
-                    style: .continuous
-                )
-                .fill(isSmartPick ? CT.sunGold : experience.category.color)
-                .frame(width: 3)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
-        }
-        .buttonStyle(.plain)
-        .scaleEffect(pressed ? 0.97 : 1.0)
-        // Long-press now raises the native context menu: a warm-amber preview
-        // card (key info + hero image) floating over a blurred backdrop, plus a
-        // quick-action menu (details · show on map · favorite · navigate · 问
-        // Solo). This replaces the former custom floating-card long-press —
-        // `onLongPress` is still wired as the "show on map" action so that
-        // behavior is preserved, just relocated into the menu.
-        .contextMenu {
-            cardContextMenu
-        } preview: {
-            ExperiencePreviewCard(
-                experience: experience,
-                distanceMeters: distanceMeters,
-                bestNowChipState: bestNowChipState
-            )
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(Text(NSLocalizedString("experience.card.hint", comment: "Double tap to view details")))
-        .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
-            onLongPress?()
-        }
-    }
-
-    /// Quick actions for the long-press context menu. Favorite + navigate act
-    /// inline (preferences / NavigationLauncher); details, show-on-map, and 问
-    /// Solo route through the caller's handlers.
-    @ViewBuilder
-    private var cardContextMenu: some View {
-        Button {
-            onTap()
-        } label: {
-            Label(NSLocalizedString("menu.viewDetails", comment: "View details"), systemImage: "doc.text.magnifyingglass")
-        }
-
-        if let onLongPress {
-            Button {
-                onLongPress()
-            } label: {
-                Label(NSLocalizedString("menu.showOnMap", comment: "Show on map"), systemImage: "mappin.and.ellipse")
-            }
-        }
-
-        if let onAskSolo {
-            Button {
-                onAskSolo()
-            } label: {
-                Label(NSLocalizedString("menu.askSolo", comment: "Ask Solo about this place"), systemImage: "sparkles")
-            }
-        }
-
-        Divider()
-
-        let favorited = preferences.isFavorited(experience.id)
-        Button {
-            Haptics.impact(.light)
-            preferences.toggleFavorite(experience.id)
-        } label: {
-            Label(
-                favorited
-                    ? NSLocalizedString("menu.unfavorite", comment: "Remove from saved")
-                    : NSLocalizedString("menu.favorite", comment: "Save place"),
-                systemImage: favorited ? "heart.slash" : "heart"
-            )
-        }
-
-        if let coord = experience.coordinate {
-            Button {
-                NavigationLauncher.open(app: .appleMaps, coordinate: coord, name: experience.title)
-            } label: {
-                Label(NSLocalizedString("menu.navigate", comment: "Navigate there"), systemImage: "arrow.triangle.turn.up.right.diamond")
-            }
-        }
-    }
-
-    // MARK: - Sub-views
-
-    private var categoryDisc: some View {
-        ZStack {
-            Circle()
-                .fill(experience.category.color)
-                .frame(width: 40, height: 40)
-            Image(systemName: experience.category.symbol)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-        }
-        .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private var titleStack: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(experience.title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(CT.fgPrimary)
-                // Long names like "Savor Japanese small plates al…" were cut to
-                // one line; allow two and shrink slightly before truncating.
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
-
-            let sub = subtitleText
-            if !sub.isEmpty {
-                Text(sub)
-                    .font(.caption)
-                    .foregroundStyle(CT.fgMuted)
-                    .lineLimit(1)
-            }
-        }
-    }
-
-    /// Horizontal chip row: walk-time · Solo score · (此刻最佳) · proximity word.
-    private var chipRow: some View {
-        HStack(spacing: 6) {
-            if let meters = distanceMeters, meters < 1500 {
-                walkTimeChip(meters: meters)
-            }
-            soloScoreChip
-            if isOpenNow {
-                bestNowChip
-                    .transition(
-                        reduceMotion ? .identity :
-                            .scale(scale: 0.8).combined(with: .opacity)
-                    )
-            }
-            // The proximity word ("Far"/"Quiet") duplicated the precise distance
-            // already shown in `distanceColumn` and read as a negative signal for
-            // a solo traveler. The km figure on the right is clearer; drop the word.
-        }
-        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: isOpenNow)
-    }
-
-    /// Neutral chip: estimated walk minutes (≈ 80 m/min) for nearby experiences.
-    private func walkTimeChip(meters: Double) -> some View {
-        let minutes = max(1, Int((meters / 80).rounded()))
-        let label = String(
-            format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 分钟'"),
-            minutes
-        )
-        return HStack(spacing: 3) {
-            Image(systemName: "figure.walk")
-                .font(.system(size: 9.5, weight: .semibold))
-            Text(label)
-                .font(.caption2.weight(.medium))
-        }
-        .foregroundStyle(CT.fgMuted)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .background(Capsule().fill(CT.surfaceSunken))
-    }
-
-    /// Green chip: Solo score (e.g. "Solo 7.5").
-    private var soloScoreChip: some View {
-        Text(
-            String(
-                format: NSLocalizedString("nearby.chip.solo", comment: "Solo score chip, e.g. 'Solo 7.5'"),
-                experience.soloScore.overall
-            )
-        )
-        .font(.caption2.weight(.bold))
-        .foregroundStyle(CT.verifiedGreen)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .background(Capsule().fill(CT.verifiedGreen.opacity(0.12)))
-    }
-
-    /// Golden chip: 此刻最佳 — shown when the experience is open in the current
-    /// hour. Flips to an amber "Closing · Nm" countdown when the active window
-    /// has ≤ 45 minutes left, matching the detail card and Saved list.
-    private var bestNowChip: some View {
-        let state = bestNowChipState ?? BestNowChipState(isClosingSoon: false, minutesLeft: nil)
-        return HStack(spacing: 3) {
-            Image(systemName: state.symbol)
-                .font(.system(size: 9, weight: .semibold))
-            Text(state.label)
-                .font(.caption2.weight(.semibold))
-                .monospacedDigit()
-                .contentTransition(reduceMotion ? .identity : .numericText())
-        }
-        .foregroundStyle(state.foreground)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .background(Capsule().fill(state.background))
-    }
-
-    private var subtitleText: String {
-        let parts = [
-            experience.location.placeNameRomanized,
-            experience.location.placeNameLocal
-        ].compactMap { $0?.isEmpty == false ? $0 : nil }
-        if parts.isEmpty {
-            return experience.location.addressHint ?? ""
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    /// Trailing column: compass arrow over the formatted distance, right-aligned.
-    private var distanceColumn: some View {
-        let bearing = relativeBearing
-        let hasLiveBearing = bearing != nil
-        let arrowColor: AnyShapeStyle = isNearby
-            ? AnyShapeStyle(CT.sunGoldDeep)
-            : (hasLiveBearing ? AnyShapeStyle(CT.fgMuted) : AnyShapeStyle(CT.fgSubtle))
-        return VStack(alignment: .trailing, spacing: 4) {
-            Image(systemName: "location.north.line.fill")
-                .font(.caption2)
-                .foregroundStyle(arrowColor)
-                .rotationEffect(.degrees(bearing ?? 0))
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
-                .scaleEffect(pulsing ? 1.18 : 1.0)
-            if let meters = distanceMeters {
-                Text(formattedDistance(meters))
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(isNearby ? AnyShapeStyle(CT.sunGoldDeep) : AnyShapeStyle(CT.fgSubtle))
-                if isNearby {
-                    Text(NSLocalizedString("peek.card.almostThere", comment: "Almost there micro-label shown when < 150m"))
-                        .font(.caption2)
-                        .foregroundStyle(CT.sunGoldDeep)
-                }
-            }
-        }
-        .accessibilityHidden(true)
-        .onAppear { startNearbyPulseIfNeeded() }
-        .onChange(of: isNearby) { _, nearby in
-            if nearby {
-                startNearbyPulseIfNeeded()
-            } else {
-                withAnimation(.default) { pulsing = false }
-            }
-        }
-    }
-
-    private func startNearbyPulseIfNeeded() {
-        guard isNearby, !reduceMotion else {
-            pulsing = false
-            return
-        }
-        withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
-            pulsing = true
-        }
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(isSmartPick ? AnyShapeStyle(smartPickGradient) : AnyShapeStyle(CT.surfaceWhite))
-    }
-
-    private var smartPickGradient: LinearGradient {
-        LinearGradient(
-            colors: [CT.sunGoldSoft.opacity(0.55), CT.surfaceWhite],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-    }
-
-    private var accessibilityLabel: Text {
-        var label = experience.title
-        label += ", Solo \(String(format: "%.1f", experience.soloScore.overall))"
-        if let meters = distanceMeters {
-            label += ", \(formattedDistance(meters))"
-        }
-        if let dirSuffix = compassDirectionSuffix {
-            label += ", \(dirSuffix)"
-        }
-        if isSmartPick {
-            label += ", " + NSLocalizedString("sheet.nearby.smartPick.a11y", comment: "AI pick")
-        }
-        if isOpenNow {
-            // Prefer the live closing-soon phrasing when the window is winding
-            // down; otherwise the plain open-now cue.
-            if let state = bestNowChipState, state.isClosingSoon {
-                label += ", " + state.accessibilityLabel
-            } else {
-                label += ", " + NSLocalizedString("sheet.nearby.openNow.a11y", comment: "Open now accessibility")
-            }
-        }
-        if isNearby {
-            label += ", " + NSLocalizedString("peek.card.almostThere.a11y", comment: "VoiceOver: almost there proximity cue")
-        }
-        return Text(label)
-    }
-
-    private func formattedDistance(_ meters: Double) -> String {
-        Self.distanceFormatter.string(from: Measurement(value: meters, unit: UnitLength.meters))
-    }
-}
-
 // MARK: - SheetSectionSeparator
 
 /// US-036: Visual divider between the Routes and Nearby sections in the
@@ -1209,329 +789,6 @@ struct SheetSectionSeparator: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 6)
                 .accessibilityAddTraits(.isHeader)
-        }
-    }
-}
-
-// MARK: - RoutesSection
-
-/// '路线' section rendered inside BottomInfoSheet above 附近.
-/// Shows RouteStore.nearby routes. When isNowFilter is true only bestNow routes appear.
-struct RoutesSection: View {
-    let routes: [Route]
-    let isNowFilter: Bool
-    let onSelectRoute: (Route) -> Void
-
-    private var displayed: [Route] {
-        // Now-context uses the runtime check (derived from bestStartHour) so the
-        // 此刻適合 section surfaces routes inside their window — the static
-        // `bestNow` seed flag is all-false today, which would empty the section.
-        isNowFilter ? routes.filter { $0.isBestNow() } : routes
-    }
-
-    var body: some View {
-        let items = displayed
-        Group {
-            if !items.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    // US-036: Routes is the first section, so its header omits the
-                    // leading inset divider (the sheet must not open with a rule).
-                    // RouteCard now carries its own card chrome (.sc-route-card:
-                    // white fill, border, shadow), so rows are separated by 10pt
-                    // spacing rather than full-bleed dividers.
-                    //
-                    // In now-context the section gets a dedicated golden header
-                    // (sparkles + 「路線 · 此刻適合」+ AI · NOW), mirroring the
-                    // 此刻精選 AI region — see styles.css `.sc-section-label .lhs.now`.
-                    if isNowFilter {
-                        RouteNowSectionHeader()
-                    } else {
-                        SheetSectionSeparator(titleKey: "sheet.section.routes", showsDivider: false)
-                    }
-                    ForEach(items) { route in
-                        Button { onSelectRoute(route) } label: {
-                            RouteCard(route: route, nowContext: isNowFilter)
-                        }
-                        // PressableButtonStyle drives the press-scale via the
-                        // system tap recognizer. RouteCard no longer owns a local
-                        // zero-distance DragGesture (which swallowed the tap inside
-                        // this ScrollView — see RouteCard), so the tap now reaches
-                        // this Button's action and opens the route detail.
-                        .buttonStyle(PressableButtonStyle(pressedScale: 0.985))
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-            }
-        }
-    }
-}
-
-// MARK: - RouteNowSectionHeader
-
-/// Dedicated golden header for the 路线 section in now-context.
-///
-/// Mirrors styles.css `.sc-section-label` with the `.lhs.now` treatment and the
-/// 此刻精選 AI region: left → sparkles + 「路線 · 此刻適合」(uppercase display,
-/// sun-gold-deep), right → mono `AI · NOW` badge in fg-subtle.
-struct RouteNowSectionHeader: View {
-    var body: some View {
-        HStack(alignment: .center) {
-            HStack(spacing: 7) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(CT.sunGoldDeep)
-                Text(NSLocalizedString("sheet.section.routes.now", comment: "路線 · 此刻適合 section header"))
-                    .font(CT.display(11, .bold))
-                    .tracking(1.3)
-                    .textCase(.uppercase)
-                    .foregroundStyle(CT.sunGoldDeep)
-            }
-            Spacer(minLength: 8)
-            Text(verbatim: "AI · NOW")
-                .font(CT.mono(11, .regular))
-                .tracking(0.4)
-                .foregroundStyle(CT.fgSubtle)
-        }
-        .padding(.horizontal, 4)
-        .padding(.top, 6)
-        .padding(.bottom, 2)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-}
-
-// MARK: - NearbySection
-
-/// '附近' section rendered inside BottomInfoSheet when detent > .peek.
-struct NearbySection: View {
-    let experiences: [Experience]
-    /// IDs of AI-ranked top picks (up to 3 pinned at top).
-    let smartPickIds: [String]
-    /// Reference coordinate for distance calculation (user location or map center).
-    let referenceCoordinate: CLLocationCoordinate2D?
-    let sortMode: SortMode
-    /// Tapping a row jumps straight to the detail sheet.
-    let onSelectExperience: (Experience) -> Void
-    /// Long-pressing a row floats the quick preview card instead. Optional so
-    /// callers that only wire a tap keep compiling.
-    let onLongPressExperience: ((Experience) -> Void)?
-    /// "问 Solo" context-menu action — opens a chat scoped to the experience.
-    let onAskSoloExperience: ((Experience) -> Void)?
-    /// When non-nil, passed through to EmptySheetListView to render the
-    /// 'Explore another area' CTA that zooms the map out.
-    let onExploreElsewhere: (() -> Void)?
-
-    @Environment(BestNowClock.self) private var clock
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    init(
-        experiences: [Experience],
-        smartPickIds: [String],
-        referenceCoordinate: CLLocationCoordinate2D?,
-        sortMode: SortMode = .smart,
-        showsSectionDivider: Bool = false,
-        onExploreElsewhere: (() -> Void)? = nil,
-        onSelectExperience: @escaping (Experience) -> Void,
-        onLongPressExperience: ((Experience) -> Void)? = nil,
-        onAskSoloExperience: ((Experience) -> Void)? = nil
-    ) {
-        self.experiences = experiences
-        self.smartPickIds = smartPickIds
-        self.referenceCoordinate = referenceCoordinate
-        self.sortMode = sortMode
-        self.showsSectionDivider = showsSectionDivider
-        self.onExploreElsewhere = onExploreElsewhere
-        self.onSelectExperience = onSelectExperience
-        self.onLongPressExperience = onLongPressExperience
-        self.onAskSoloExperience = onAskSoloExperience
-    }
-
-    /// US-036: When true, the Nearby header is preceded by an inset divider so a
-    /// clear visual break separates it from the Routes section above. Set false
-    /// when Nearby is rendered standalone (no Routes section present).
-    let showsSectionDivider: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // US-036: inset divider + localized "Nearby" header separates this
-            // section from Routes above (showsDivider gated by composition).
-            SheetSectionSeparator(titleKey: "sheet.section.nearby", showsDivider: showsSectionDivider)
-            if experiences.isEmpty {
-                // US-050: empty Nearby list. Announce on appear so VoiceOver
-                // users learn the list is empty rather than thinking the sheet
-                // froze; a visible row keeps the state legible to everyone.
-                EmptySheetListView(onExploreElsewhere: onExploreElsewhere)
-            } else {
-                // Each row now carries its own card chrome, so we separate them
-                // with a 10pt gap (matching RoutesSection) rather than full-bleed
-                // dividers — the list reads as a stack of discrete cards.
-                //
-                // No inner ScrollView: the host BottomInfoSheet wraps the whole
-                // content closure in one ScrollView, so Nearby lays its rows out
-                // inline as part of that single scroll stream. A nested ScrollView
-                // here re-introduced the two-viewport conflict that hid this list
-                // when the Routes section above grew long (and left the route cards
-                // un-scrollable at mid). LazyVStack keeps rows lazily realized for
-                // long lists.
-                LazyVStack(spacing: 10) {
-                    ForEach(sortedExperiences) { exp in
-                        // Resolve the live "best now / closing soon" chip state for
-                        // EVERY row from the shared clock — not just in Now sort.
-                        // The chip is the app's most decision-relevant, perishable
-                        // signal; hiding it in the distance/smart/soloScore sorts
-                        // meant a traveler browsing by distance couldn't tell a
-                        // nearby spot was in its golden hour (or closing in minutes)
-                        // without opening it. A nil `minutesLeft` means "not best
-                        // now", so the row keeps its plain form.
-                        let chipState = BestNowChipState.resolve(for: exp, at: clock.tick)
-                        let openNow = chipState.minutesLeft != nil
-                        NearbyExperienceRow(
-                            experience: exp,
-                            isSmartPick: sortMode == .smart && smartPickIds.contains(exp.id),
-                            distanceMeters: distance(to: exp),
-                            isOpenNow: openNow,
-                            bestNowChipState: openNow ? chipState : nil,
-                            onTap: { onSelectExperience(exp) },
-                            onLongPress: onLongPressExperience.map { handler in { handler(exp) } },
-                            onAskSolo: onAskSoloExperience.map { handler in { handler(exp) } }
-                        )
-                    }
-                }
-                .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8), value: sortMode)
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-            }
-        }
-        .padding(.top, 8)
-    }
-
-    private var sortedExperiences: [Experience] {
-        switch sortMode {
-        case .smart:
-            let smartSet = Set(smartPickIds)
-            let picks = smartPickIds.compactMap { id in experiences.first { $0.id == id } }
-            let rest = experiences
-                .filter { !smartSet.contains($0.id) }
-                .sorted { distance(to: $0) ?? .infinity < distance(to: $1) ?? .infinity }
-            return picks + rest
-        case .distance:
-            return experiences.sorted { distance(to: $0) ?? .infinity < distance(to: $1) ?? .infinity }
-        case .soloScore:
-            return experiences.sorted { $0.soloScore.overall > $1.soloScore.overall }
-        case .now:
-            let now = clock.tick
-            return experiences.sorted { lhs, rhs in
-                let lhsNow = isOpenNow(lhs, at: now)
-                let rhsNow = isOpenNow(rhs, at: now)
-                if lhsNow != rhsNow { return lhsNow }
-                return distance(to: lhs) ?? .infinity < distance(to: rhs) ?? .infinity
-            }
-        }
-    }
-
-    /// True when `experience` is genuinely at its best at `date`.
-    ///
-    /// Uses `minutesLeftInBestWindow` (the same source the visible chip reads)
-    /// rather than a bare "current hour ∈ bestTimes" check, so weekday- and
-    /// season-scoped windows and midnight-wrapping windows are honored — a
-    /// Saturday-only sunset window no longer floats to the top of the Now sort
-    /// (or shows a "Best now" chip) on a weekday.
-    private func isOpenNow(_ experience: Experience, at date: Date) -> Bool {
-        experience.minutesLeftInBestWindow(at: date) != nil
-    }
-
-    private func distance(to experience: Experience) -> Double? {
-        guard let ref = referenceCoordinate,
-              let coord = experience.coordinate else { return nil }
-        let from = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
-        let to = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
-        return from.distance(from: to)
-    }
-}
-
-// MARK: - EmptySheetListView
-
-/// US-050: Empty-state row for the BottomInfoSheet's Nearby list. When no
-/// experiences are visible we show a localized message AND post a VoiceOver
-/// announcement on appear, so VoiceOver users know the list is genuinely empty
-/// instead of assuming the UI froze.
-struct EmptySheetListView: View {
-    /// Localized text used both for the on-screen label and the VoiceOver
-    /// announcement. Exposed via the same key the test asserts on.
-    static let announcementKey = "a11y.empty.nearby"
-
-    /// When non-nil, renders an 'Explore another area' CTA that fires this
-    /// callback on tap (after a selection haptic). Omit in previews / tests
-    /// where no map action is wired up.
-    var onExploreElsewhere: (() -> Void)? = nil
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var breathing = false
-
-    var localizedEmptyText: String {
-        NSLocalizedString(Self.announcementKey, comment: "Announced when the Nearby list is empty")
-    }
-
-    var body: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 8) {
-                Image(systemName: "mappin.slash")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-                    .scaleEffect(breathing ? 1.08 : 1.0)
-                    .opacity(breathing ? 0.7 : 1.0)
-                Text(NSLocalizedString("empty.nearby.headline", comment: "Empty Nearby headline"))
-                    .font(.headline)
-                    .foregroundStyle(CT.fgPrimary)
-                    .multilineTextAlignment(.center)
-                Text(NSLocalizedString("empty.nearby.subtitle", comment: "Empty Nearby supporting subline"))
-                    .font(.subheadline)
-                    .foregroundStyle(CT.fgMuted)
-                    .multilineTextAlignment(.center)
-            }
-
-            if let explore = onExploreElsewhere {
-                Button {
-                    #if canImport(UIKit)
-                    Haptics.selection()
-                    #endif
-                    explore()
-                } label: {
-                    Label(
-                        NSLocalizedString("empty.nearby.cta", comment: "CTA to zoom map out when Nearby list is empty"),
-                        systemImage: "arrow.up.left.and.arrow.down.right"
-                    )
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 9)
-                }
-                .buttonStyle(.bordered)
-                .accessibilityHint(Text(NSLocalizedString("empty.nearby.cta", comment: "CTA to zoom map out when Nearby list is empty")))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .padding(.horizontal, 16)
-        .accessibilityElement(children: .contain)
-        .onAppear {
-            #if canImport(UIKit)
-            UIAccessibility.post(notification: .announcement, argument: localizedEmptyText)
-            #endif
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                breathing = true
-            }
-        }
-        .onChange(of: reduceMotion) { _, reduced in
-            if reduced {
-                withAnimation(.default) { breathing = false }
-            } else {
-                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                    breathing = true
-                }
-            }
         }
     }
 }

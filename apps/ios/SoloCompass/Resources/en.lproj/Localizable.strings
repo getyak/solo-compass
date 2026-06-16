@@ -306,6 +306,9 @@
 "me.stats.saved" = "Saved";
 "me.stats.explored" = "Explored";
 "me.profile.progress.a11y" = "%d of %d saved places explored";
+"me.empty.title" = "Your journey starts here";
+"me.empty.subtitle" = "Explore the map, save your favorite spots, and track which ones you've visited.";
+"me.empty.cta" = "Back to the map";
 
 /* Map empty / loading */
 "map.empty.title" = "No experiences nearby";
@@ -351,6 +354,7 @@
 
 /* Map candidate marker accessibility */
 "map.candidate.label" = "Candidate experience: %@";
+"map.cluster.label" = "%d experiences in this area";
 
 /* Experience card accessibility */
 "experience.card.hint" = "Double tap to view details";
@@ -370,7 +374,7 @@
 "card.dismiss" = "Dismiss card";
 
 /* Experience card distance pill */
-"card.distance.walk" = "%d min walk";
+"card.distance.walk" = "~%d min walk";
 "card.distance.walkSub1" = "<1 min walk";
 "card.distance.arrived" = "You're here";
 "card.distance.arrived.a11y" = "You're here";
@@ -529,6 +533,20 @@
 "onboarding.welcome.skip" = "Browse first";
 "onboarding.style.title" = "How do you travel?";
 "onboarding.style.subtitle" = "This shapes which experiences float to the top. You can change it anytime.";
+"onboarding.concepts.title" = "Not just places.";
+"onboarding.concepts.subtitle" = "Every pin is an Experience — a specific thing worth doing, at the right time.";
+"onboarding.concepts.item1.title" = "Time-aware";
+"onboarding.concepts.item1.desc" = "Each experience has best hours — sunrise spots, lunch crowds, golden-hour cafés.";
+"onboarding.concepts.item2.title" = "Solo-first";
+"onboarding.concepts.item2.desc" = "Curated for one. Counter seats, quiet trails, places where solo feels natural.";
+"onboarding.concepts.cta" = "Got it";
+"onboarding.scoring.title" = "Smart ranking.";
+"onboarding.scoring.subtitle" = "We surface the best experiences for right now, using two signals.";
+"onboarding.scoring.item1.title" = "Solo Score";
+"onboarding.scoring.item1.desc" = "A 1–10 rating of how solo-friendly a spot is — seating, vibe, safety, all considered.";
+"onboarding.scoring.item2.title" = "Now filter";
+"onboarding.scoring.item2.desc" = "Tap \"Now\" to see only what's great at this hour — open, uncrowded, at its best.";
+"onboarding.scoring.cta" = "Makes sense";
 "onboarding.style.cta" = "Start exploring";
 "onboarding.style.skip" = "Decide later";
 "onboarding.skip" = "Skip";
@@ -553,6 +571,9 @@
 "favorites.distance.km" = "%.1f km";
 "favorites.distance.m" = "%d m";
 "favorites.distance.mi" = "%.1f mi";
+"search.experiences.placeholder" = "Search experiences";
+"search.clear" = "Clear search";
+"search.empty.title" = "No results for \"%@\"";
 "favorites.search.noResults" = "No matches for \"%@\"";
 "favorites.search.noResults.hint" = "Try a different word, or clear your search.";
 /* VoiceOver announcement when favorites search returns results: "%d matching favorites" */
@@ -700,6 +721,7 @@
 "explore.osmBadge" = "OpenStreetMap · not enriched";
 "explore.error.nothingFound" = "No public places found nearby. Try moving the map.";
 "location.error.banner" = "Can't find your location — showing a default area. Check Location permissions in Settings.";
+"location.banner.openSettings" = "Open Settings";
 "explore.skeleton.oneLiner" = "A real spot pulled from OpenStreetMap.";
 "explore.skeleton.why" = "We don't have a curated story for this place yet. Visit, then add what you found.";
 "explore.quota.dailyLimit" = "Daily AI limit reached. Showing real places without enrichment until tomorrow.";
@@ -846,6 +868,7 @@
 /* "+" quick-action button — single chat entry point */
 "plus.button.a11y" = "Chat with Solo";
 "plus.button.hint" = "Tap to type, hold to talk";
+"plus.button.label" = "Ask";
 
 /* Voice-first state view shown inside ChatSheet on voice entry */
 "chat.voice.title" = "Talk to Solo";
@@ -1399,6 +1422,9 @@
 "ai.now.hint" = "Good spots for right now";
 /* US-015 — BottomInfoSheet now-mode headline */
 "sheet.now.headline" = "Good spots for right now";
+"now.time.justNow" = "Just now";
+"now.time.recent" = "Updated";
+"now.time.minutesAgo" = "%d min ago";
 "sheet.sort.button" = "Sort";
 "sheet.count.now" = "Now %d";
 "sheet.count.nearby" = "Nearby %d";
@@ -1413,8 +1439,8 @@
 "sheet.nearby.openNow.a11y" = "Open now";
 
 /* NearbyExperienceRow card chips — walk-time, Solo score, 此刻最佳, proximity word */
-"nearby.chip.walkMin" = "%d min";
-"nearby.chip.driveMin" = "%d min drive";
+"nearby.chip.walkMin" = "~%d min";
+"nearby.chip.driveMin" = "~%d min drive";
 "nearby.chip.solo" = "Solo %.1f";
 "nearby.chip.bestNow" = "Best now";
 /* Compact closing-soon countdown chip on the peek pick + Nearby rows (≤45 min left). %d = minutes. */
@@ -1634,6 +1660,22 @@
 
 /* Empty Nearby CTA — nudges the traveler to recenter/zoom out */
 "empty.nearby.cta" = "Explore another area";
+
+/* Empty Nearby — city has no data, suggest switching */
+"empty.nearby.subtitle.nocity" = "This area doesn't have experiences yet. Try a city we've curated for you.";
+"empty.nearby.cta.city" = "Explore %@";
+"empty.nearby.a11y.city.hint" = "Switch to %@ which has curated experiences";
+
+/* Now filter empty — time-aware */
+"empty.now.headline" = "Nothing open right now";
+"empty.now.subtitle" = "Check back later — experiences rotate based on time of day.";
+"empty.now.latenight" = "It's late — most spots are closed";
+"empty.now.latenight.headline" = "It's late — rest up";
+"empty.now.latenight.subtitle" = "Most spots are closed for the night. Check back in the morning for fresh picks.";
+
+/* Distance replaced by city name when > 500km */
+"nearby.distance.inCity" = "In %@";
+"nearby.distance.inCity.a11y" = "Located in %@";
 
 /* Compass direction overlay in ExperienceDetailView hero */
 "compass.pointing.title" = "Pointing toward";
@@ -1859,3 +1901,8 @@
 "mood.worthFinding" = "Worth finding";
 "mood.hardToFind" = "Hard to find";
 "mood.veryFew" = "Very few people";
+
+/* Map style picker */
+"map.style.standard" = "Standard";
+"map.style.satellite" = "Satellite";
+"map.style.hybrid" = "Hybrid";

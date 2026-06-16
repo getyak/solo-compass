@@ -10,10 +10,11 @@ public struct CityPickerSheet: View {
     @State private var userLocation: CLLocation?
     @State private var justSelectedCode: String? = nil
     @State private var citySearchText = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private func selectCity(_ code: String?) {
         Haptics.impact(.light)
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6)) {
             justSelectedCode = code ?? "all"
             viewModel.selectCity(code)
         }
@@ -68,8 +69,8 @@ public struct CityPickerSheet: View {
                                             Image(systemName: "checkmark")
                                                 .foregroundStyle(.tint)
                                                 .font(.body.weight(.semibold))
-                                                .scaleEffect(justSelectedCode == "all" ? 1.3 : 1.0)
-                                                .symbolEffect(.bounce, value: justSelectedCode)
+                                                .scaleEffect(reduceMotion ? 1.0 : (justSelectedCode == "all" ? 1.3 : 1.0))
+                                                .symbolEffect(.bounce, value: reduceMotion ? nil : justSelectedCode)
                                         }
                                     }
                                 }
@@ -101,8 +102,8 @@ public struct CityPickerSheet: View {
                                                 Image(systemName: "checkmark")
                                                     .foregroundStyle(.tint)
                                                     .font(.body.weight(.semibold))
-                                                    .scaleEffect(justSelectedCode == city.code ? 1.3 : 1.0)
-                                                    .symbolEffect(.bounce, value: justSelectedCode)
+                                                    .scaleEffect(reduceMotion ? 1.0 : (justSelectedCode == city.code ? 1.3 : 1.0))
+                                                    .symbolEffect(.bounce, value: reduceMotion ? nil : justSelectedCode)
                                             }
                                             HStack(spacing: 3) {
                                                 if let prox {

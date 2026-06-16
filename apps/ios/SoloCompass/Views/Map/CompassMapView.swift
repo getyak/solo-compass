@@ -2,6 +2,42 @@ import SwiftUI
 import MapKit
 import os
 
+enum MapStyleChoice: String, CaseIterable {
+    case standard
+    case imagery
+    case hybrid
+
+    var label: String {
+        switch self {
+        case .standard: return NSLocalizedString("map.style.standard", comment: "Standard map")
+        case .imagery:  return NSLocalizedString("map.style.satellite", comment: "Satellite map")
+        case .hybrid:   return NSLocalizedString("map.style.hybrid", comment: "Hybrid map")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .standard: return "map"
+        case .imagery:  return "globe.americas"
+        case .hybrid:   return "square.on.square"
+        }
+    }
+
+    var mapStyle: MapStyle {
+        switch self {
+        case .standard: return .standard(elevation: .flat, pointsOfInterest: .excludingAll)
+        case .imagery:  return .imagery(elevation: .flat)
+        case .hybrid:   return .hybrid(elevation: .flat, pointsOfInterest: .excludingAll)
+        }
+    }
+
+    mutating func cycle() {
+        let all = Self.allCases
+        guard let idx = all.firstIndex(of: self) else { return }
+        self = all[(idx + 1) % all.count]
+    }
+}
+
 /// Which route-related sheet is currently presented over the map. A single
 /// `.sheet(item:)` keyed on this enum replaces the two stacked
 /// `.sheet(isPresented:)` modifiers that SwiftUI silently collapsed (only the
@@ -141,6 +177,7 @@ struct CompassMapContentView: View {
     /// `ChatSheet`), giving the reply room to breathe instead of being read in a
     /// cramped half-sheet.
     @State private var chatDetent: PresentationDetent = .medium
+    @State private var mapStyleChoice: MapStyleChoice = .standard
 
     // US-017: Companion map layer (default off)
     @State private var isCompanionLayerOn: Bool = false
@@ -588,6 +625,7 @@ struct CompassMapContentView: View {
                     dismissedQuotaInfo: $dismissedQuotaInfo,
                     dismissedLocationError: $dismissedLocationError,
                     isMapPanning: $isMapPanning,
+                    mapStyleChoice: $mapStyleChoice,
                     pendingRequestCount: friendService.incomingRequests.count,
                     onTapAvatar: { isShowingMe = true }
                 )
@@ -703,7 +741,10 @@ struct CompassMapContentView: View {
                         // a user-selected experience, the peek summary card
                         // yields so only one "best pick" card is on screen.
                         isPreviewActive: viewModel.selectedExperience != nil
-                            && !viewModel.isShowingDetail
+                            && !viewModel.isShowingDetail,
+                        onRefresh: {
+                            viewModel.loadNearbyExperiences()
+                        }
                     ) { detent, sortMode in
                         if detent != .peek {
                             VStack(spacing: 0) {
@@ -744,6 +785,8 @@ struct CompassMapContentView: View {
                                     // Outside Now the Routes section is hidden, so the divider would
                                     // dangle above the very first section; suppress it there.
                                     showsSectionDivider: viewModel.isNowFilter,
+                                    isLoading: viewModel.isFetchingPOIs,
+                                    isNowFilter: viewModel.isNowFilter,
                                     onExploreElsewhere: {
                                         // Zoom the map out one step by doubling the visible span,
                                         // capped at ±90° lat / ±180° lon, so out-of-range
@@ -757,6 +800,10 @@ struct CompassMapContentView: View {
                                                 MKCoordinateRegion(center: region.center, span: newSpan)
                                             )
                                         }
+                                    },
+                                    suggestedCityName: viewModel.suggestedCityName,
+                                    onSwitchToSuggestedCity: viewModel.suggestedCityCode.map { code in
+                                        { viewModel.selectCity(code) }
                                     },
                                     onSelectExperience: { exp in
                                         // Tap → jump straight to the detail sheet.
@@ -1407,80 +1454,64 @@ struct CompassMapContentView: View {
                         UserLocationMarker()
                     }
                 }
-                // Zoom-adaptive density: the map renders only the top-ranked
-                // pins for the current zoom (`displayedExperiences`), so a
-                // zoomed-out view stays curated. The bottom list keeps reading
-                // the full `visibleExperiences` set (it intentionally shows
-                // more than the map).
-                ForEach(viewModel.displayedExperiences) { exp in
-                    if let coord = exp.coordinate {
-                        // US-016: compute the marker state once per ForEach
-                        // iteration — its six conditions are otherwise evaluated
-                        // twice per visible marker per frame (icon + badge).
-                        let state = viewModel.markerState(for: exp)
-                        // US-049: resolve closing-soon urgency from the same
-                        // shared source the cards use, off the 60s clock tick so
-                        // the pin escalates to amber live. Only meaningful for a
-                        // best-now pin; `BestNowChipState` returns nil minutes
-                        // (→ not closing soon) for everything else.
-                        let isClosingSoon = BestNowChipState
-                            .resolve(for: exp, at: bestNowClock.tick)
-                            .isClosingSoon
-                        // Pass an empty title so MapKit doesn't auto-render the
-                        // experience name as a pin label (long titles clipped
-                        // off the screen edge); the name lives on the
-                        // accessibilityLabel below instead.
-                        Annotation("", coordinate: coord) {
-                            Button {
-                                // Tap → open the detail sheet directly.
-                                viewModel.openExperienceDetail(exp)
-                                HapticService.shared.impact(style: .light)
-                            } label: {
-                                VStack(spacing: 2) {
-                                    MarkerIconView(
-                                        category: exp.category,
-                                        state: state,
-                                        confidenceLevel: exp.confidence.level,
-                                        isSelected: viewModel.selectedExperience?.id == exp.id,
-                                        // US-035: light up best-now pins when the
-                                        // Now filter pill is active so the two UIs
-                                        // feel connected.
-                                        nowFilterActive: viewModel.isNowFilter,
-                                        // US-049: flip a closing-soon best-now pin
-                                        // to the amber treatment the cards use.
-                                        closingSoon: isClosingSoon
-                                    )
-                                    if case .footprinted = state {
-                                        Text("\(viewModel.footprintCount(for: exp))")
-                                            .font(.caption2.weight(.semibold))
-                                            .foregroundStyle(.white)
-                                            .padding(.horizontal, 4)
-                                            .padding(.vertical, 1)
-                                            .background(Capsule().fill(Color.gray.opacity(0.85)))
+                // Zoom-adaptive density with clustering: at city/district zoom,
+                // overlapping pins collapse into cluster bubbles showing a count.
+                // At street zoom, every pin renders individually.
+                ForEach(viewModel.clusteredMapItems) { item in
+                    switch item {
+                    case .single(let exp):
+                        if let coord = exp.coordinate {
+                            let state = viewModel.markerState(for: exp)
+                            let isClosingSoon = BestNowChipState
+                                .resolve(for: exp, at: bestNowClock.tick)
+                                .isClosingSoon
+                            Annotation("", coordinate: coord) {
+                                Button {
+                                    viewModel.openExperienceDetail(exp)
+                                    HapticService.shared.impact(style: .light)
+                                } label: {
+                                    VStack(spacing: 2) {
+                                        MarkerIconView(
+                                            category: exp.category,
+                                            state: state,
+                                            confidenceLevel: exp.confidence.level,
+                                            isSelected: viewModel.selectedExperience?.id == exp.id,
+                                            nowFilterActive: viewModel.isNowFilter,
+                                            closingSoon: isClosingSoon
+                                        )
+                                        if case .footprinted = state {
+                                            Text("\(viewModel.footprintCount(for: exp))")
+                                                .font(.caption2.weight(.semibold))
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 1)
+                                                .background(Capsule().fill(Color.gray.opacity(0.85)))
+                                        }
                                     }
+                                    .transition(.scale.combined(with: .opacity))
                                 }
-                                // Fade+scale each pin as the visible set changes
-                                // so filter/pan refreshes don't flash (#133).
+                                .buttonStyle(.plain)
+                                .modifier(LongPressCardModifier(onLongPress: {
+                                    withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.72)) {
+                                        viewModel.selectExperience(exp)
+                                    }
+                                }))
                                 .transition(.scale.combined(with: .opacity))
-                            }
-                            .buttonStyle(.plain)
-                            // Long-press a pin → float the quick preview card
-                            // (former tap behavior) instead of opening detail.
-                            // Drive the selection through a spring so the card's
-                            // scale+rise transition reads as "popped out of the
-                            // pin you pressed", not a flat slide-up. The other
-                            // select paths (tap, list) already animate; this one
-                            // was the bare exception. reduceMotion → no spring.
-                            .modifier(LongPressCardModifier(onLongPress: {
-                                withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.72)) {
+                                .accessibilityLabel(Text(exp.title))
+                                .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
                                     viewModel.selectExperience(exp)
                                 }
-                            }))
-                            .transition(.scale.combined(with: .opacity))
-                            .accessibilityLabel(Text(exp.title))
-                            .accessibilityAction(named: Text(NSLocalizedString("experience.card.preview.a11y", comment: "Preview action: float the quick preview card"))) {
-                                viewModel.selectExperience(exp)
                             }
+                        }
+                    case .cluster(let cluster):
+                        Annotation("", coordinate: cluster.coordinate) {
+                            ClusterAnnotationView(cluster: cluster) {
+                                HapticService.shared.impact(style: .medium)
+                                if let first = cluster.experiences.first {
+                                    viewModel.openExperienceDetail(first)
+                                }
+                            }
+                            .transition(.scale.combined(with: .opacity))
                         }
                     }
                 }
@@ -1533,7 +1564,7 @@ struct CompassMapContentView: View {
                     }
                 }
             }
-            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+            .mapStyle(mapStyleChoice.mapStyle)
             // Only keep the compass (which auto-hides unless the map is
             // rotated). The built-in MapUserLocationButton is intentionally
             // dropped: because the map sets `.ignoresSafeArea()` to bleed tiles
@@ -1713,6 +1744,7 @@ private struct MapOverlayView: View {
     @Binding var dismissedQuotaInfo: String?
     @Binding var dismissedLocationError: Bool
     @Binding var isMapPanning: Bool
+    @Binding var mapStyleChoice: MapStyleChoice
     // US-007: pending friend-request count drives the avatar's red dot;
     // the tap opens the personal hub (MeSheet).
     var pendingRequestCount: Int = 0
@@ -1757,6 +1789,8 @@ private struct MapOverlayView: View {
                 // personal hub (MeSheet). Placed before the recenter button so
                 // it stays fully on-screen in this safe-area-respecting overlay
                 // row (top-right), clear of the status bar.
+                mapStyleButton
+                    .padding(.trailing, 4)
                 MapAvatarBubble(
                     hasPendingRequests: pendingRequestCount > 0,
                     action: onTapAvatar
@@ -1858,6 +1892,12 @@ private struct MapOverlayView: View {
                     systemImage: "location.slash.fill",
                     text: locationError,
                     color: .orange,
+                    actionLabel: NSLocalizedString("location.banner.openSettings", comment: "Open Settings"),
+                    onAction: {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    },
                     onDismiss: { dismissedLocationError = true }
                 )
                 .accessibilityIdentifier("locationErrorBanner")
@@ -2135,11 +2175,14 @@ private struct MapOverlayView: View {
     @ViewBuilder
     private var cityPill: some View {
         let cityName: String = {
-            // Custom location: use the resolved label stored by LocationPickerSheet.
             if viewModel.isCustomLocation, let label = viewModel.customLocationLabel {
                 return label
             }
             if let code = viewModel.selectedCity,
+               let city = viewModel.availableCities.first(where: { $0.code == code }) {
+                return city.name
+            }
+            if let code = viewModel.nearestSeededCity(to: viewModel.defaultCenterForSelectedCity),
                let city = viewModel.availableCities.first(where: { $0.code == code }) {
                 return city.name
             }
@@ -2167,6 +2210,26 @@ private struct MapOverlayView: View {
         }
         .accessibilityLabel(Text(cityName))
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
+    }
+
+    private var mapStyleButton: some View {
+        Button {
+            Haptics.impact(.light)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                mapStyleChoice.cycle()
+            }
+        } label: {
+            Image(systemName: mapStyleChoice.icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(CT.accent)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                )
+        }
+        .accessibilityLabel(Text(mapStyleChoice.label))
     }
 
     private var recenterButton: some View {
@@ -2321,10 +2384,12 @@ private struct EmptyFilterBanner: View {
     }
 }
 
-private struct DismissibleBanner: View {
+struct DismissibleBanner: View {
     let systemImage: String
     let text: String
     let color: Color
+    var actionLabel: String?
+    var onAction: (() -> Void)?
     let onDismiss: () -> Void
 
     var body: some View {
@@ -2332,6 +2397,16 @@ private struct DismissibleBanner: View {
             Image(systemName: systemImage).foregroundStyle(color)
             Text(text).font(.caption).foregroundStyle(.primary).lineLimit(2)
             Spacer()
+            if let actionLabel, let onAction {
+                Button(action: onAction) {
+                    Text(actionLabel)
+                        .font(.caption.bold())
+                        .foregroundStyle(color)
+                        .frame(minWidth: HitTargetMetrics.minimum, minHeight: HitTargetMetrics.minimum)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel(Text(actionLabel))
+            }
             Button(action: onDismiss) {
                 Image(systemName: "xmark").font(.caption.bold()).foregroundStyle(.secondary)
                     // US-019: expand the small glyph to the 44pt HIG hit target.
@@ -2413,13 +2488,18 @@ private struct MapControlBar: View {
 
             Spacer()
 
-            PlusActionButton(
-                onShortTap: {
-                    Haptics.impact(.medium)
-                    onOpenChat(.text)
-                },
-                onLongPress: { onOpenChat(.voice) }
-            )
+            VStack(spacing: 4) {
+                PlusActionButton(
+                    onShortTap: {
+                        Haptics.impact(.medium)
+                        onOpenChat(.text)
+                    },
+                    onLongPress: { onOpenChat(.voice) }
+                )
+                Text(NSLocalizedString("plus.button.label", comment: "FAB label"))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
             .padding(.trailing, 20)
             .padding(.bottom, bottomInset)
         }

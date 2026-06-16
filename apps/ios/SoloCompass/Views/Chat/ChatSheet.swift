@@ -208,18 +208,11 @@ public struct ChatSheet: View {
     /// script) over the experience's long descriptive `title` so the pill reads
     /// "Asking about Wat Suandok", not a truncated sentence.
     private var scopedPlaceName: String? {
-        orchestrator.scopedExperience.map(Self.shortName)
+        orchestrator.scopedExperience.map(\.shortName)
     }
 
-    /// A concise place name for an experience: its romanized or local-script
-    /// place name when present, else the descriptive title. Static + pure so
-    /// the hero card and the composer pill agree without recomputation.
     static func shortName(_ place: Experience) -> String {
-        let candidates = [place.location.placeNameRomanized, place.location.placeNameLocal]
-        if let name = candidates.compactMap({ $0 }).first(where: { !$0.isEmpty }) {
-            return name
-        }
-        return place.title
+        place.shortName
     }
 
     /// Inline card surfaced when the orchestrator started in the

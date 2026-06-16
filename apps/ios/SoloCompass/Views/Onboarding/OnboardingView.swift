@@ -21,7 +21,8 @@ enum OnboardingA11ySortPriority {
     static let documentedOrder: [Double] = [title, subtitle, content, primaryCTA, skip]
 }
 
-/// Three-step first-run flow shown once via `.fullScreenCover` from CompassMapView.
+/// Four-step first-run flow shown once via `.fullScreenCover` from CompassMapView.
+/// Steps: Welcome → Experiences concept → Solo Score & Now → Travel style.
 /// Gated by `UserPreferences.hasCompletedOnboarding`.
 public struct OnboardingView: View {
     @Environment(LocationService.self) private var locationService
@@ -30,6 +31,8 @@ public struct OnboardingView: View {
     let onComplete: () -> Void
 
     @State private var step: Int = 0
+
+    private static let totalSteps = 4
 
     private var slideTransition: AnyTransition {
         reduceMotion
@@ -49,10 +52,18 @@ public struct OnboardingView: View {
                 welcomeStep
                     .transition(slideTransition)
                     .id(0)
+            case 1:
+                conceptsStep
+                    .transition(slideTransition)
+                    .id(1)
+            case 2:
+                scoringStep
+                    .transition(slideTransition)
+                    .id(2)
             default:
                 styleStep
                     .transition(slideTransition)
-                    .id(1)
+                    .id(3)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -84,7 +95,7 @@ public struct OnboardingView: View {
 
     private var stepIndicator: some View {
         HStack(spacing: 6) {
-            ForEach(0..<2) { index in
+            ForEach(0..<Self.totalSteps, id: \.self) { index in
                 Capsule()
                     .fill(index == step ? Color.accentColor : Color.secondary.opacity(0.3))
                     .frame(width: index == step ? 20 : 6, height: 6)
@@ -158,7 +169,167 @@ public struct OnboardingView: View {
         .accessibilityElement(children: .contain)
     }
 
-    // MARK: - Step 1: Travel style
+    // MARK: - Step 1: Core concepts (Experience)
+
+    private var conceptsStep: some View {
+        VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 24)
+
+            Spacer(minLength: 0)
+
+            VStack(spacing: 24) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 56))
+                    .foregroundStyle(.tint)
+                    .accessibilityHidden(true)
+
+                VStack(spacing: 8) {
+                    Text(NSLocalizedString("onboarding.concepts.title", comment: "What is an Experience?"))
+                        .font(.title.bold())
+                        .multilineTextAlignment(.center)
+                        .accessibilitySortPriority(OnboardingA11ySortPriority.title)
+
+                    Text(NSLocalizedString("onboarding.concepts.subtitle", comment: "Not just places"))
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                        .accessibilitySortPriority(OnboardingA11ySortPriority.subtitle)
+                }
+            }
+
+            Spacer(minLength: 16)
+
+            VStack(spacing: 16) {
+                conceptRow(
+                    icon: "mappin.and.ellipse",
+                    title: NSLocalizedString("onboarding.concepts.item1.title", comment: ""),
+                    description: NSLocalizedString("onboarding.concepts.item1.desc", comment: "")
+                )
+                conceptRow(
+                    icon: "clock.badge.checkmark",
+                    title: NSLocalizedString("onboarding.concepts.item2.title", comment: ""),
+                    description: NSLocalizedString("onboarding.concepts.item2.desc", comment: "")
+                )
+            }
+            .padding(.horizontal, 24)
+            .accessibilitySortPriority(OnboardingA11ySortPriority.content)
+
+            Spacer(minLength: 0)
+
+            Button {
+                step = 2
+            } label: {
+                Text(NSLocalizedString("onboarding.concepts.cta", comment: "Got it"))
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 48)
+            .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    // MARK: - Step 2: Solo Score & Now
+
+    private var scoringStep: some View {
+        VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 24)
+
+            Spacer(minLength: 0)
+
+            VStack(spacing: 24) {
+                Image(systemName: "gauge.open.with.lines.needle.33percent.and.arrowtriangle")
+                    .font(.system(size: 56))
+                    .foregroundStyle(.tint)
+                    .accessibilityHidden(true)
+
+                VStack(spacing: 8) {
+                    Text(NSLocalizedString("onboarding.scoring.title", comment: "Smart ranking"))
+                        .font(.title.bold())
+                        .multilineTextAlignment(.center)
+                        .accessibilitySortPriority(OnboardingA11ySortPriority.title)
+
+                    Text(NSLocalizedString("onboarding.scoring.subtitle", comment: "How we rank"))
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                        .accessibilitySortPriority(OnboardingA11ySortPriority.subtitle)
+                }
+            }
+
+            Spacer(minLength: 16)
+
+            VStack(spacing: 16) {
+                conceptRow(
+                    icon: "star.fill",
+                    title: NSLocalizedString("onboarding.scoring.item1.title", comment: ""),
+                    description: NSLocalizedString("onboarding.scoring.item1.desc", comment: "")
+                )
+                conceptRow(
+                    icon: "sun.horizon.fill",
+                    title: NSLocalizedString("onboarding.scoring.item2.title", comment: ""),
+                    description: NSLocalizedString("onboarding.scoring.item2.desc", comment: "")
+                )
+            }
+            .padding(.horizontal, 24)
+            .accessibilitySortPriority(OnboardingA11ySortPriority.content)
+
+            Spacer(minLength: 0)
+
+            Button {
+                step = 3
+            } label: {
+                Text(NSLocalizedString("onboarding.scoring.cta", comment: "Makes sense"))
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 48)
+            .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    // MARK: - Concept row helper
+
+    private func conceptRow(icon: String, title: String, description: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(.tint)
+                .frame(width: 36, height: 36)
+                .background(Color.accentColor.opacity(0.12), in: Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.secondarySystemBackground))
+        )
+    }
+
+    // MARK: - Step 3: Travel style
 
     private var styleStep: some View {
         VStack(spacing: 0) {

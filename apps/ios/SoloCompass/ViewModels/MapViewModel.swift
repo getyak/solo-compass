@@ -410,6 +410,8 @@ public final class MapViewModel {
     /// `DiscoveredCityRecord` via `availableCities`.
     private let cityNameMap: [String: String] = [
         "cmi": "Chiang Mai",
+        "VTE": "Vientiane",
+        "cn-深圳市": "Shenzhen",
     ]
 
     /// Well-known city centers keyed by both their seed/discovered codes and
@@ -444,6 +446,8 @@ public final class MapViewModel {
     static let cityCodeAliases: [String: String] = [
         "chiang-mai": "cmi",
         "vientiane": "VTE",
+        "shenzhen": "cn-深圳市",
+        "szx": "cn-深圳市",
     ]
 
     /// True when `seedCityCode` (an experience's `location.cityCode`) belongs to
@@ -500,6 +504,40 @@ public final class MapViewModel {
         ))
         loadNearbyExperiences()
         updateBottomInfo()
+    }
+
+    /// When the current area has no experiences, returns the name of the first
+    /// available city so the empty state can offer a one-tap redirect.
+    /// Reads `experienceService.allExperiences` directly instead of
+    /// `availableCities` to avoid the `@ObservationIgnored` cache, which
+    /// SwiftUI cannot track for re-evaluation.
+    public var suggestedCityName: String? {
+        guard visibleExperiences.isEmpty else { return nil }
+        guard let code = firstAvailableCityCode else { return nil }
+        return cityNameMap[code] ?? code
+    }
+
+    /// When the current area has no experiences, returns the code of the first
+    /// available city for programmatic city-switch.
+    public var suggestedCityCode: String? {
+        guard visibleExperiences.isEmpty else { return nil }
+        return firstAvailableCityCode
+    }
+
+    /// Derive the first city code that has seed data, bypassing the memoized
+    /// `availableCities` so SwiftUI observation tracks the read.
+    /// Uses `cityCodeMatches` to properly exclude the selected city and its
+    /// aliases (e.g. "shenzhen" ↔ "cn-深圳市").
+    private var firstAvailableCityCode: String? {
+        guard let selected = selectedCity else { return nil }
+        var seen = Set<String>()
+        for exp in experienceService.allExperiences {
+            let code = exp.location.cityCode
+            if !Self.cityCodeMatches(code, selected: selected) && seen.insert(code).inserted {
+                return code
+            }
+        }
+        return nil
     }
 
     /// Returns the city code whose experiences are collectively closest to the given coordinate.
@@ -574,6 +612,12 @@ public final class MapViewModel {
         let limit = Self.spanToLimit(currentSpanLatitudeDelta)
         guard visibleExperiences.count > limit else { return visibleExperiences }
         return Self.rankedByProminence(visibleExperiences).prefix(limit).map { $0 }
+    }
+
+    /// Clustered map items — groups overlapping pins at city/district zoom into
+    /// cluster markers. At street zoom, every pin renders individually.
+    var clusteredMapItems: [MapItem] {
+        MapClusterEngine.cluster(displayedExperiences, spanLatitudeDelta: currentSpanLatitudeDelta)
     }
 
     /// Span → max number of map pins. Three bands matched to how a solo traveler
@@ -1093,6 +1137,7 @@ public final class MapViewModel {
     /// sheet via the card's own expand action. Tapping a card/pin instead routes
     /// through `openExperienceDetail` for a direct jump to the detail sheet.
     public func selectExperience(_ experience: Experience) {
+        Haptics.impact(.light)
         selectedExperience = experience
         // This is the preview-card path (long-press). The detail layer, if the
         // user later expands the card, sits *above* this card — so dismissing
@@ -1109,6 +1154,7 @@ public final class MapViewModel {
     /// `dismissDetail`), and the camera reframes the same way `selectExperience`
     /// does. Long-pressing the same card/pin floats the preview card instead.
     public func openExperienceDetail(_ experience: Experience) {
+        Haptics.selection()
         selectedExperience = experience
         isShowingDetail = true
         // Tap jumped straight to detail with no preview card behind it, so a

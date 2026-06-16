@@ -15,6 +15,7 @@ struct LocationPickerSheet: View {
     @State private var searchDebounceTask: Task<Void, Never>? = nil
     @State private var userLocation: CLLocation?
     @State private var customCityStore = CustomCityStore.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(viewModel: MapViewModel, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
@@ -368,7 +369,7 @@ struct LocationPickerSheet: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                                 .font(.title3)
-                                .symbolEffect(.bounce, value: state.mapSaveConfirmed)
+                                .symbolEffect(.bounce, value: reduceMotion ? false : state.mapSaveConfirmed)
                             Text(NSLocalizedString("locationPicker.map.saveCity.confirmed", comment: "Location saved!"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.green)
