@@ -117,13 +117,21 @@ public final class AIService {
     /// Synthesis cache TTL — 30 days.
     public static let synthesisCacheTTLSeconds: TimeInterval = 30 * 86_400
 
+    /// Shared system prompt — identical across all call kinds to maximise
+    /// DeepSeek's automatic prefix caching (same prefix → cached KV state).
+    /// Keep this stable: every edit invalidates the cache fleet-wide.
+    static let sharedSystemPrompt =
+        "You are Solo Compass's AI engine for solo travelers. " +
+        "Output exactly what the user prompt asks for. " +
+        "When asked for JSON, return only a single valid JSON value with no markdown fences and no commentary."
+
     /// Model routing. DeepSeek currently exposes one general chat model
     /// (`deepseek-chat` / `deepseek-v4-pro`) via the OpenAI-compatible
     /// endpoint, so all three call kinds share the same model name resolved
     /// from `Secrets.resolvedDeepSeekModel`. The kind is still passed
     /// through so future per-kind tuning (max_tokens, temperature, model
     /// override env var) can land without changing call sites.
-    public enum ModelKind {
+    public enum ModelKind: String, Sendable {
         case synthesis, explanation, voice
     }
 
@@ -528,13 +536,25 @@ public final class AIService {
             timeout: 30
         )
 
+        let callStart = CFAbsoluteTimeGetCurrent()
         let (data, response) = try await session.data(for: request)
+        let latencyMs = Int((CFAbsoluteTimeGetCurrent() - callStart) * 1000)
         guard let http = response as? HTTPURLResponse else {
             throw AIError.requestFailed(status: 0, body: "no response")
         }
         guard (200..<300).contains(http.statusCode) else {
             let bodyText = String(data: data, encoding: .utf8) ?? ""
             throw AIError.requestFailed(status: http.statusCode, body: bodyText)
+        }
+
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let tokenUsage = AIObservability.extractUsage(
+               from: json,
+               model: Self.modelName(for: .voice),
+               kind: ModelKind.voice.rawValue,
+               latencyMs: latencyMs
+           ) {
+            await AIObservability.shared.record(tokenUsage)
         }
 
         return try Self.parseAgentResponse(data)
@@ -642,17 +662,10 @@ public final class AIService {
         await MainActor.run { self.isProcessing = true }
         defer { Task { @MainActor [weak self] in self?.isProcessing = false } }
 
-        // System prompt forbids markdown fences explicitly — DeepSeek can
-        // still emit them, so we also strip defensively after parsing.
-        let systemPrompt =
-            "You are Solo Compass's AI engine for solo travelers. " +
-            "Output exactly what the user prompt asks for. " +
-            "When asked for JSON, return only a single valid JSON value with no markdown fences and no commentary."
-
         let body: [String: Any] = [
             "model": Self.modelName(for: kind),
             "messages": [
-                ["role": "system", "content": systemPrompt],
+                ["role": "system", "content": Self.sharedSystemPrompt],
                 ["role": "user", "content": prompt],
             ],
             "max_tokens": kind == .synthesis ? 2048 : 1024,
@@ -665,7 +678,9 @@ public final class AIService {
             timeout: 60
         )
 
+        let callStart = CFAbsoluteTimeGetCurrent()
         let (data, response) = try await session.data(for: request)
+        let latencyMs = Int((CFAbsoluteTimeGetCurrent() - callStart) * 1000)
         guard let http = response as? HTTPURLResponse else {
             throw AIError.requestFailed(status: 0, body: "no response")
         }
@@ -684,6 +699,16 @@ public final class AIService {
         else {
             throw AIError.decodingFailed("Unexpected response shape")
         }
+
+        if let tokenUsage = AIObservability.extractUsage(
+            from: json,
+            model: Self.modelName(for: kind),
+            kind: kind.rawValue,
+            latencyMs: latencyMs
+        ) {
+            await AIObservability.shared.record(tokenUsage)
+        }
+
         return Self.stripMarkdownFences(content)
     }
 
@@ -936,6 +961,9 @@ public final class AIService {
 
         if let cached = await loadCachedSynthesis(cacheKey: cacheKey) {
             await MainActor.run { self.lastSynthesisQuality = .cached }
+            await AIObservability.shared.trackEvent(.synthesisCacheHit, metadata: [
+                "city": cityCode, "poi_count": String(capped.count),
+            ])
             return cached
         }
 
@@ -985,6 +1013,10 @@ public final class AIService {
                 modelName: modelName
             )
             await MainActor.run { self.lastSynthesisQuality = .real }
+            await AIObservability.shared.trackEvent(.synthesisSuccess, metadata: [
+                "city": cityCode, "poi_count": String(capped.count),
+                "experience_count": String(experiences.count),
+            ])
             return experiences
         } catch {
             // Skeleton fallback — never written to cache so a
