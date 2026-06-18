@@ -24,21 +24,6 @@ public enum FeatureFlags {
         readBool("FF_ROUTE_AI_THROUGH_EDGE", default: false)
     }
 
-    /// When true, explanation and voice intents still call DeepSeek
-    /// directly from the device (using the local key). Used as a staged
-    /// rollout gate: synthesis moves to the Edge Function first
-    /// (US-034) while explanation/voice migrate later. Off by default.
-    public static var localAIFallback: Bool {
-        readBool("FF_LOCAL_AI_FALLBACK", default: false)
-    }
-
-    /// When true, AgentRouter (Intent→Query→Guide pipeline) is used in place of
-    /// the legacy VoiceAgentOrchestrator. Default on; set FF_AGENT_ROUTER_ENABLED=0
-    /// to fall back to the old path while the flag is still in place.
-    public static var agentRouterEnabled: Bool {
-        readBool("FF_AGENT_ROUTER_ENABLED", default: true)
-    }
-
     /// DEBUG-only. When true, SKStoreReviewController.requestReview() fires
     /// immediately on any markCompleted() call, bypassing the 3-completion
     /// threshold and the reviewPromptShown guard. Use this to verify the

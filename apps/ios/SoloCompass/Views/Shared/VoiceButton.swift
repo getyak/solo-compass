@@ -334,7 +334,11 @@ public struct VoiceButton: View {
 
 #Preview("Default") {
     VoiceButton(voiceService: VoiceService()) { transcript in
-        print("Got: \(transcript)")
+        #if DEBUG
+        print("VoiceButton preview transcript: \(transcript)")
+        #else
+        _ = transcript
+        #endif
     }
     .padding()
 }

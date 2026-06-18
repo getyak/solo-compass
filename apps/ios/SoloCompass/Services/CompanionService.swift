@@ -381,23 +381,8 @@ public final class CompanionService {
     }
 
     private func supabaseConfig() -> SupabaseConfig? {
-        let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"]
-        let envKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
-            ?? ProcessInfo.processInfo.environment["SUPABASE_KEY"]
-        let urlString = envURL ?? secretsPlistValue("SUPABASE_URL")
-        let key = envKey ?? secretsPlistValue("SUPABASE_ANON_KEY") ?? secretsPlistValue("SUPABASE_KEY")
-        guard let urlString, let url = URL(string: urlString), let key, !key.isEmpty else {
-            return nil
-        }
-        return SupabaseConfig(url: url, anonKey: key)
-    }
-
-    private func secretsPlistValue(_ key: String) -> String? {
-        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
-              let data = try? Data(contentsOf: url),
-              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
-        else { return nil }
-        return plist[key] as? String
+        guard let resolved = Secrets.resolvedSupabaseConfig() else { return nil }
+        return SupabaseConfig(url: resolved.url, anonKey: resolved.anonKey)
     }
 
     // MARK: - US-014: Report

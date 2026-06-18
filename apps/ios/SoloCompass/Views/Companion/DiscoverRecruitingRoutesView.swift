@@ -200,7 +200,7 @@ private struct RecruitingEmptyIllustration: View {
 // MARK: - Preview
 
 #Preview("With recruiting routes") {
-    let container = try! ModelContainer(for: RouteRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let container = previewContainer()
     let context = ModelContext(container)
     let store = RouteStore(context: context)
 
@@ -275,8 +275,22 @@ private struct RecruitingEmptyIllustration: View {
     NavigationStack {
         DiscoverRecruitingRoutesView(
             currentCityCode: "TYO",
-            storeProvider: { RouteStore(context: ModelContext(try! ModelContainer(for: RouteRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))) }
+            storeProvider: { RouteStore(context: ModelContext(previewContainer())) }
         )
     }
     .environment(UserPreferences())
+}
+
+/// Builds an in-memory ModelContainer for #Preview infra. Wraps `try` so the
+/// preview can fail loudly with a clear message rather than a generic `try!` crash.
+@MainActor
+private func previewContainer() -> ModelContainer {
+    do {
+        return try ModelContainer(
+            for: RouteRecord.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+    } catch {
+        preconditionFailure("Preview ModelContainer failed: \(error)")
+    }
 }

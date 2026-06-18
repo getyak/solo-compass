@@ -138,7 +138,15 @@ struct ExploreConsentSheetModifier: ViewModifier {
 
 #Preview("ExploreConsentSheet") {
     ExploreConsentSheet(
-        onAccept: { print("accepted") },
-        onCancel: { print("cancelled") }
+        onAccept: {
+            #if DEBUG
+            print("ExploreConsentSheet preview: accepted")
+            #endif
+        },
+        onCancel: {
+            #if DEBUG
+            print("ExploreConsentSheet preview: cancelled")
+            #endif
+        }
     )
 }

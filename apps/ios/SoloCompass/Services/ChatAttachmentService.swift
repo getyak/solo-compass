@@ -95,23 +95,8 @@ public final class SupabaseAttachmentService: AttachmentUploading {
     private struct Config { let url: URL; let anonKey: String }
 
     private func loadConfig() -> Config? {
-        let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"]
-        let envKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
-            ?? ProcessInfo.processInfo.environment["SUPABASE_KEY"]
-        let urlStr = envURL ?? plistValue("SUPABASE_URL")
-            ?? (Secrets.supabaseURL.isEmpty ? nil : Secrets.supabaseURL)
-        let key = envKey ?? plistValue("SUPABASE_ANON_KEY") ?? plistValue("SUPABASE_KEY")
-            ?? (Secrets.supabaseAnonKey.isEmpty ? nil : Secrets.supabaseAnonKey)
-        guard let urlStr, let url = URL(string: urlStr), let key, !key.isEmpty else { return nil }
-        return Config(url: url, anonKey: key)
-    }
-
-    private func plistValue(_ key: String) -> String? {
-        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
-              let data = try? Data(contentsOf: url),
-              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
-        else { return nil }
-        return plist[key] as? String
+        guard let resolved = Secrets.resolvedSupabaseConfig() else { return nil }
+        return Config(url: resolved.url, anonKey: resolved.anonKey)
     }
 
     // MARK: - Upload

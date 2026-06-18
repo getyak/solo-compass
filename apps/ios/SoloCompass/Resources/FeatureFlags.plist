@@ -6,9 +6,17 @@
     <false/>
     <key>FF_ROUTE_AI_THROUGH_EDGE</key>
     <false/>
-    <key>FF_LOCAL_AI_FALLBACK</key>
-    <false/>
     <key>FF_FORCE_REVIEW_PROMPT</key>
+    <false/>
+    <key>FF_PRO_MULTI_RING_EXPLORE</key>
+    <false/>
+    <key>FF_DEEP_DIVE_ENRICHMENT</key>
+    <true/>
+    <key>FF_WEB_SEARCH_ENRICHMENT</key>
+    <false/>
+    <key>FF_COMPANION</key>
+    <false/>
+    <key>FF_COMPANION_LAYER_ENABLED</key>
     <false/>
 </dict>
 </plist>

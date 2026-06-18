@@ -129,4 +129,50 @@ extension Secrets {
         }
         return openWeatherApiKey.isEmpty ? nil : openWeatherApiKey
     }
+
+    // MARK: - Supabase config
+
+    /// Resolved Supabase config tuple (url, anonKey). Resolution chain:
+    /// 1. Env vars `SUPABASE_URL` + `SUPABASE_ANON_KEY`/`SUPABASE_KEY`
+    /// 2. Bundled `Secrets.plist` with the same keys
+    /// 3. Build-time `Secrets.supabaseURL` / `Secrets.supabaseAnonKey`
+    ///    (from `.env` via `scripts/generate_secrets.sh`)
+    ///
+    /// Returns nil when neither URL nor key resolves to non-empty values.
+    /// Collapses the five copies of `readSecretsString` / `plistValue` /
+    /// `plistRealtimeValue` / `secretsPlistValue` that used to live in
+    /// SupabaseClient, ChatService, ChatAttachmentService, FriendService,
+    /// and CompanionService.
+    static func resolvedSupabaseConfig() -> (url: URL, anonKey: String)? {
+        let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"]
+        let envKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
+            ?? ProcessInfo.processInfo.environment["SUPABASE_KEY"]
+
+        let urlStr = envURL
+            ?? secretsPlistString("SUPABASE_URL")
+            ?? (supabaseURL.isEmpty ? nil : supabaseURL)
+        let key = envKey
+            ?? secretsPlistString("SUPABASE_ANON_KEY")
+            ?? secretsPlistString("SUPABASE_KEY")
+            ?? (supabaseAnonKey.isEmpty ? nil : supabaseAnonKey)
+
+        guard let urlStr,
+              let url = URL(string: urlStr),
+              let key,
+              !key.isEmpty else {
+            return nil
+        }
+        return (url, key)
+    }
+
+    /// Single bundled-plist string reader used by `resolvedSupabaseConfig()`.
+    /// Kept private so callers always go through a typed surface like
+    /// `resolvedSupabaseConfig()` rather than reading raw keys ad-hoc.
+    private static func secretsPlistString(_ key: String) -> String? {
+        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
+              let data = try? Data(contentsOf: url),
+              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+        else { return nil }
+        return plist[key] as? String
+    }
 }

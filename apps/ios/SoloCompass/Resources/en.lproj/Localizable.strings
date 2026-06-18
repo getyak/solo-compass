@@ -987,12 +987,6 @@
 "city.header.nearest.hint" = "Selects the closest discovered city";
 
 
-/* AgentRouter fallback replies (US-034) */
-"router.fallback.find" = "I found some nearby spots — check the map!";
-"router.fallback.recommend" = "Based on your preferences, here are some great options nearby.";
-"router.fallback.settings" = "You can adjust your preferences in the Settings tab.";
-"router.fallback.smallTalk" = "I'm here to help you discover solo-friendly places. What are you looking for?";
-
 /* Markdown PKM export (US-037) */
 "detail.exportNote" = "Export Note";
 "export.preview" = "Markdown preview";

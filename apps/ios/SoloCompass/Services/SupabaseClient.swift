@@ -93,23 +93,8 @@ public final class SupabaseClient: SupabaseClientProtocol {
     }
 
     private static func loadConfig() -> Config? {
-        let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"]
-        let envKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
-            ?? ProcessInfo.processInfo.environment["SUPABASE_KEY"]
-        let urlString = envURL ?? readSecretsString("SUPABASE_URL")
-        let key = envKey ?? readSecretsString("SUPABASE_ANON_KEY") ?? readSecretsString("SUPABASE_KEY")
-        guard let urlString, let url = URL(string: urlString), let key, !key.isEmpty else {
-            return nil
-        }
-        return Config(url: url, anonKey: key)
-    }
-
-    private static func readSecretsString(_ key: String) -> String? {
-        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
-              let data = try? Data(contentsOf: url),
-              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
-        else { return nil }
-        return plist[key] as? String
+        guard let resolved = Secrets.resolvedSupabaseConfig() else { return nil }
+        return Config(url: resolved.url, anonKey: resolved.anonKey)
     }
 
     // MARK: - Auth

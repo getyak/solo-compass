@@ -806,21 +806,8 @@ public final class FriendService {
     private struct RealtimeConfig { let url: URL; let anonKey: String }
 
     private func loadRealtimeConfig() -> RealtimeConfig? {
-        let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"]
-        let envKey = ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"]
-            ?? ProcessInfo.processInfo.environment["SUPABASE_KEY"]
-        let urlStr = envURL ?? plistRealtimeValue("SUPABASE_URL")
-        let key = envKey ?? plistRealtimeValue("SUPABASE_ANON_KEY") ?? plistRealtimeValue("SUPABASE_KEY")
-        guard let urlStr, let url = URL(string: urlStr), let key, !key.isEmpty else { return nil }
-        return RealtimeConfig(url: url, anonKey: key)
-    }
-
-    private func plistRealtimeValue(_ key: String) -> String? {
-        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
-              let data = try? Data(contentsOf: url),
-              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
-        else { return nil }
-        return plist[key] as? String
+        guard let resolved = Secrets.resolvedSupabaseConfig() else { return nil }
+        return RealtimeConfig(url: resolved.url, anonKey: resolved.anonKey)
     }
 
     // MARK: - Queries

@@ -1272,12 +1272,6 @@
 "route.detail.pace.standard" = "适中";
 "route.detail.pace.packed" = "紧凑";
 
-/* Router fallback */
-"router.fallback.find" = "找到了一些附近的好地方，快看地图！";
-"router.fallback.recommend" = "根据你的偏好，这里有一些不错的附近选择。";
-"router.fallback.settings" = "你可以在设置中调整你的偏好。";
-"router.fallback.smallTalk" = "我在这里帮你发现适合独行的好地方，你在找什么？";
-
 /* Settings — AI Provider */
 "settings.aiProvider" = "AI 提供商";
 "settings.aiProvider.header" = "人工智能";

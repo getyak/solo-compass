@@ -305,91 +305,28 @@ public final class FoursquareService {
         return Int64(bitPattern: positive | 0x4000_0000_0000_0000)
     }
 
-    // MARK: - Merge
+    // MARK: - Merge (thin wrappers around POIMerger — see audit M3)
 
-    /// Merge Overpass + Foursquare POIs, dedup'd by 4-decimal coordinate cell
-    /// (~11 m). When both sources contain a POI in the same cell, the
-    /// Overpass record is kept (OSM data is generally richer for our use).
-    /// Preserves input order of `overpass` first, then appends any non-dupe
-    /// Foursquare entries in their original order.
+    /// Winner-takes-all dedup, kept for backward compatibility. Forwards to
+    /// `POIMerger.merge(primary:secondary:)`.
     public static func merge(
         overpass: [OverpassService.POI],
         foursquare: [OverpassService.POI]
     ) -> [OverpassService.POI] {
-        var seen = Set<String>()
-        var result: [OverpassService.POI] = []
-        for poi in overpass {
-            let key = cellKey(lat: poi.lat, lon: poi.lon)
-            if seen.insert(key).inserted {
-                result.append(poi)
-            }
-        }
-        for poi in foursquare {
-            let key = cellKey(lat: poi.lat, lon: poi.lon)
-            if seen.insert(key).inserted {
-                result.append(poi)
-            }
-        }
-        return result
+        POIMerger.merge(primary: overpass, secondary: foursquare)
     }
 
-    /// 4-decimal lat/lon bucket key used by `merge`. Two POIs whose
-    /// coordinates round to the same cell (~11 m) are considered duplicates.
-    static func cellKey(lat: Double, lon: Double) -> String {
-        let rLat = (lat * 10_000).rounded() / 10_000
-        let rLon = (lon * 10_000).rounded() / 10_000
-        return String(format: "%.4f_%.4f", rLat, rLon)
-    }
-
-    /// Enrichment merge used by the deep-dive pipeline. Unlike `merge` — which
-    /// keeps one POI per cell and discards the other — this folds the *signal*
-    /// tags from `enrichment` POIs INTO the matching `base` POI in the same
-    /// cell, so an OSM/MapKit place gains Foursquare's rating/hours/price
-    /// without losing its identity. Enrichment-only cells (no base match) are
-    /// appended as standalone POIs.
-    ///
-    /// Only the hard-signal keys are folded; `base`'s own tags win on any
-    /// key collision so we never overwrite a more authoritative source name.
+    /// Signal-fold enrichment merge, kept for backward compatibility.
+    /// Forwards to `POIMerger.enrichMerge(base:enrichment:)`.
     static func enrichMerge(
         base: [OverpassService.POI],
         enrichment: [OverpassService.POI]
     ) -> [OverpassService.POI] {
-        let signalKeys = ["fsq_rating", "opening_hours", "fsq_price", "website", "phone", "fsq_popularity", "addr"]
-        // Index enrichment POIs by cell for O(1) lookup.
-        var enrichmentByCell: [String: OverpassService.POI] = [:]
-        for poi in enrichment {
-            enrichmentByCell[cellKey(lat: poi.lat, lon: poi.lon), default: poi] = poi
-        }
+        POIMerger.enrichMerge(base: base, enrichment: enrichment)
+    }
 
-        var usedCells = Set<String>()
-        var result: [OverpassService.POI] = []
-        for poi in base {
-            let key = cellKey(lat: poi.lat, lon: poi.lon)
-            usedCells.insert(key)
-            guard let match = enrichmentByCell[key] else {
-                result.append(poi)
-                continue
-            }
-            var tags = poi.tags
-            for sk in signalKeys where tags[sk] == nil {
-                if let value = match.tags[sk] { tags[sk] = value }
-            }
-            result.append(OverpassService.POI(
-                osmId: poi.osmId,
-                name: poi.name,
-                nameEn: poi.nameEn,
-                lat: poi.lat,
-                lon: poi.lon,
-                tags: tags
-            ))
-        }
-        // Enrichment-only cells become standalone POIs.
-        for poi in enrichment {
-            let key = cellKey(lat: poi.lat, lon: poi.lon)
-            if usedCells.insert(key).inserted {
-                result.append(poi)
-            }
-        }
-        return result
+    /// 4-decimal coord cell key, kept for tests. Forwards to `POIMerger.cellKey`.
+    static func cellKey(lat: Double, lon: Double) -> String {
+        POIMerger.cellKey(lat: lat, lon: lon)
     }
 }
