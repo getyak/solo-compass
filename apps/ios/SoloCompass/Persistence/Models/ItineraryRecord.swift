@@ -58,11 +58,25 @@ public final class ItineraryRecord {
 
 extension ItineraryRecord {
     public convenience init(from itinerary: Itinerary) {
+        // Encoding `[String]` cannot realistically fail. We keep the
+        // do/catch as a safety net: a malformed value persists as an
+        // empty blob plus Sentry breadcrumb instead of crashing.
         let blob: Data
-        do {
-            blob = try JSONEncoder().encode(itinerary.experienceIds)
-        } catch {
-            fatalError("Failed to encode experienceIds for itinerary \(itinerary.id.rawValue): \(error)")
+        if let encoded = try? JSONEncoder().encode(itinerary.experienceIds) {
+            blob = encoded
+        } else {
+            PersistenceLog.recordDecodeFailure(
+                PersistenceCodecError(
+                    context: "ItineraryRecord.init(from:)",
+                    recordId: itinerary.id.rawValue,
+                    underlying: NSError(
+                        domain: "PersistenceCodec",
+                        code: -5,
+                        userInfo: [NSLocalizedDescriptionKey: "experienceIds encode failed; persisted as []"]
+                    )
+                )
+            )
+            blob = Data("[]".utf8)
         }
         self.init(
             id: itinerary.id.rawValue,
@@ -80,12 +94,9 @@ extension ItineraryRecord {
     }
 
     public var asValue: Itinerary {
-        let ids: [String]
-        do {
-            ids = try JSONDecoder().decode([String].self, from: experienceIdsBlob)
-        } catch {
-            fatalError("Failed to decode experienceIdsBlob for ItineraryRecord \(id): \(error)")
-        }
+        // Schema-evolution safety: an unreadable experienceIds blob used
+        // to crash the app on launch. We now degrade to `[]` and log.
+        let ids: [String] = decodeOrLog([String].self, from: experienceIdsBlob, field: "experienceIds")
         return Itinerary(
             id: ItineraryId(rawValue: id),
             ownerId: ownerId,

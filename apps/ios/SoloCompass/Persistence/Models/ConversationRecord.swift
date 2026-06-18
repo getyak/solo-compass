@@ -52,11 +52,23 @@ public final class ConversationRecord {
 
 extension ConversationRecord {
     public static func fromValue(_ conversation: Conversation) -> ConversationRecord {
-        let blob: Data
-        do {
-            blob = try JSONEncoder().encode(conversation.participantIds)
-        } catch {
-            fatalError("Failed to encode participantIds for ConversationRecord \(conversation.id.rawValue): \(error)")
+        // Encoding `[String]` to JSON cannot fail in practice. We keep the
+        // do/catch so a future, lossy participantIds shape still produces a
+        // record (with an empty blob) and a Sentry breadcrumb rather than
+        // crashing the app at write time.
+        let blob: Data = (try? JSONEncoder().encode(conversation.participantIds)) ?? Data("[]".utf8)
+        if blob.count == 2 && !conversation.participantIds.isEmpty {
+            PersistenceLog.recordDecodeFailure(
+                PersistenceCodecError(
+                    context: "ConversationRecord.fromValue",
+                    recordId: conversation.id.rawValue,
+                    underlying: NSError(
+                        domain: "PersistenceCodec",
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: "participantIds encode failed; persisted as empty blob"]
+                    )
+                )
+            )
         }
         return ConversationRecord(
             id: conversation.id.rawValue,
@@ -72,11 +84,27 @@ extension ConversationRecord {
     }
 
     public var asValue: Conversation {
+        // Schema-evolution safety: a malformed blob from an older app
+        // version used to call `fatalError` and crash the app on launch.
+        // We now downgrade to an empty participants list and log the
+        // failure so the row stays visible (and triagable) instead of
+        // bringing the whole UI down.
         let participantIds: [String]
-        do {
-            participantIds = try JSONDecoder().decode([String].self, from: participantIdsBlob)
-        } catch {
-            fatalError("Failed to decode participantIdsBlob for ConversationRecord \(id): \(error)")
+        if let decoded = try? JSONDecoder().decode([String].self, from: participantIdsBlob) {
+            participantIds = decoded
+        } else {
+            PersistenceLog.recordDecodeFailure(
+                PersistenceCodecError(
+                    context: "ConversationRecord.asValue",
+                    recordId: id,
+                    underlying: NSError(
+                        domain: "PersistenceCodec",
+                        code: -2,
+                        userInfo: [NSLocalizedDescriptionKey: "participantIdsBlob decode failed"]
+                    )
+                )
+            )
+            participantIds = []
         }
         return Conversation(
             id: ConversationId(rawValue: id),

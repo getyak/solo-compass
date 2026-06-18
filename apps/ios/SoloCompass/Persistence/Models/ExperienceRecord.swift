@@ -177,6 +177,43 @@ private func encodedHighlights(_ highlights: [CategoryHighlight]?, encoder: JSON
 }
 
 extension ExperienceRecord {
+    // MARK: - Beta-P0-B safe defaults
+    //
+    // Used by `asValue` and the `init(from:)` fallback path when a blob is
+    // malformed. These deliberately read as "neutral / unknown" so the row
+    // stays renderable without misleading the user with confident numbers.
+    static let neutralBreakdown = SoloScore.Breakdown(
+        seatingFriendly: 5,
+        soloPatronRatio: 5,
+        staffPressure: 5,
+        soloPortioning: 5,
+        ambianceFit: 5,
+        safety: 5
+    )
+    static let neutralSoloScore = SoloScore(
+        overall: 5,
+        breakdown: neutralBreakdown,
+        hint: nil,
+        basedOnCount: 0
+    )
+    static let neutralSignals = Confidence.Signals(
+        aiScrapeAgeDays: 999,
+        passiveGpsHits30d: 0,
+        activeReports30d: 0,
+        trustedVerifications: 0
+    )
+    static let neutralConfidence = Confidence(
+        level: 0,
+        lastVerifiedAt: Date(timeIntervalSince1970: 0),
+        reason: "schema_fallback",
+        signals: neutralSignals
+    )
+    static let neutralStats = Experience.Stats(
+        completionCount: 0,
+        averageRating: 0,
+        lastCompletedAt: nil
+    )
+
     /// Build a record from an `Experience` value. Encoding errors are
     /// fatal — they only happen if the value violates the encoder's
     /// expectations, which would be a programmer error.
@@ -220,7 +257,55 @@ extension ExperienceRecord {
                 categoryHighlightsBlob: encodedHighlights(experience.categoryHighlights, encoder: encoder)
             )
         } catch {
-            fatalError("Failed to encode Experience \(experience.id): \(error)")
+            // Schema-evolution safety: an unencodable Experience used to
+            // crash on save. Now we log to Sentry and fall back to a
+            // minimal record so the surrounding transaction succeeds.
+            PersistenceLog.recordDecodeFailure(
+                PersistenceCodecError(
+                    context: "ExperienceRecord.init(from:)",
+                    recordId: experience.id,
+                    underlying: error
+                )
+            )
+            let empty = Data("[]".utf8)
+            let neutralScore = (try? JSONEncoder.iso8601Encoder.encode(ExperienceRecord.neutralSoloScore)) ?? Data("{}".utf8)
+            let neutralConfidence = (try? JSONEncoder.iso8601Encoder.encode(ExperienceRecord.neutralConfidence)) ?? Data("{}".utf8)
+            let neutralStats = (try? JSONEncoder.iso8601Encoder.encode(ExperienceRecord.neutralStats)) ?? Data("{}".utf8)
+            self.init(
+                id: experience.id,
+                title: experience.title,
+                oneLiner: experience.oneLiner,
+                whyItMatters: experience.whyItMatters,
+                category: experience.category.rawValue,
+                longitude: lon,
+                latitude: lat,
+                cityCode: experience.location.cityCode,
+                addressHint: experience.location.addressHint,
+                placeNameLocal: experience.location.placeNameLocal,
+                placeNameRomanized: experience.location.placeNameRomanized,
+                rating: experience.location.rating,
+                openingHours: experience.location.openingHours,
+                priceLevel: experience.location.priceLevel,
+                website: experience.location.website,
+                phone: experience.location.phone,
+                durationMin: experience.durationMinutes.min,
+                durationMax: experience.durationMinutes.max,
+                status: experience.status.rawValue,
+                createdAt: experience.createdAt,
+                updatedAt: experience.updatedAt,
+                bestTimesBlob: empty,
+                howToBlob: empty,
+                realInconveniencesBlob: empty,
+                sourcesBlob: empty,
+                soloScoreBlob: neutralScore,
+                confidenceBlob: neutralConfidence,
+                statsBlob: neutralStats,
+                nearbyExperienceIdsBlob: empty,
+                userTagsBlob: nil,
+                photoUrlsBlob: nil,
+                categoryHighlightsBlob: nil
+            )
+            return
         }
     }
 
@@ -234,43 +319,55 @@ extension ExperienceRecord {
         let highlights: [CategoryHighlight]? = categoryHighlightsBlob.flatMap {
             try? decoder.decode([CategoryHighlight].self, from: $0)
         }
-        do {
-            return Experience(
-                id: id,
-                title: title,
-                oneLiner: oneLiner,
-                whyItMatters: whyItMatters,
-                category: ExperienceCategory(rawValue: category) ?? .hidden,
-                location: ExperienceLocation(
-                    coordinates: [longitude, latitude],
-                    cityCode: cityCode,
-                    addressHint: addressHint,
-                    placeNameLocal: placeNameLocal,
-                    placeNameRomanized: placeNameRomanized,
-                    rating: rating,
-                    openingHours: openingHours,
-                    priceLevel: priceLevel,
-                    website: website,
-                    phone: phone,
-                    photoUrls: photoUrlsBlob.flatMap { try? decoder.decode([String].self, from: $0) }
-                ),
-                bestTimes: try decoder.decode([TimeWindow].self, from: bestTimesBlob),
-                durationMinutes: .init(min: durationMin, max: durationMax),
-                howTo: try decoder.decode([HowToStep].self, from: howToBlob),
-                realInconveniences: try decoder.decode([RealInconvenience].self, from: realInconveniencesBlob),
-                soloScore: try decoder.decode(SoloScore.self, from: soloScoreBlob),
-                sources: try decoder.decode([InformationSource].self, from: sourcesBlob),
-                confidence: try decoder.decode(Confidence.self, from: confidenceBlob),
-                nearbyExperienceIds: try decoder.decode([String].self, from: nearbyExperienceIdsBlob),
-                stats: try decoder.decode(Experience.Stats.self, from: statsBlob),
-                status: Experience.Status(rawValue: status) ?? .active,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                userTags: userTagsBlob.map { (try? decoder.decode([String].self, from: $0)) ?? [] } ?? [],
-                categoryHighlights: highlights
-            )
-        } catch {
-            fatalError("Failed to decode ExperienceRecord \(id): \(error)")
-        }
+        // Schema-evolution safety: previously a single bad blob would
+        // crash the app via `fatalError`. We now degrade each field to
+        // a safe default (empty arrays, neutral score/confidence) and
+        // log via Sentry so the row stays readable.
+        let bestTimes = decodeOrLog([TimeWindow].self, from: bestTimesBlob, field: "bestTimes", fallback: { [] })
+        let howTo = decodeOrLog([HowToStep].self, from: howToBlob, field: "howTo", fallback: { [] })
+        let realInconveniences = decodeOrLog([RealInconvenience].self, from: realInconveniencesBlob, field: "realInconveniences", fallback: { [] })
+        let soloScore = decodeOrLog(SoloScore.self, from: soloScoreBlob, field: "soloScore", fallback: { ExperienceRecord.neutralSoloScore })
+        let sources = decodeOrLog([InformationSource].self, from: sourcesBlob, field: "sources", fallback: { [] })
+        let confidence = decodeOrLog(Confidence.self, from: confidenceBlob, field: "confidence", fallback: { ExperienceRecord.neutralConfidence })
+        let nearbyExperienceIds = decodeOrLog([String].self, from: nearbyExperienceIdsBlob, field: "nearbyExperienceIds")
+        let stats = decodeOrLog(Experience.Stats.self, from: statsBlob, field: "stats", fallback: { ExperienceRecord.neutralStats })
+        let userTagsList: [String] = {
+            guard let blob = userTagsBlob else { return [] }
+            return (try? decoder.decode([String].self, from: blob)) ?? []
+        }()
+        return Experience(
+            id: id,
+            title: title,
+            oneLiner: oneLiner,
+            whyItMatters: whyItMatters,
+            category: ExperienceCategory(rawValue: category) ?? .hidden,
+            location: ExperienceLocation(
+                coordinates: [longitude, latitude],
+                cityCode: cityCode,
+                addressHint: addressHint,
+                placeNameLocal: placeNameLocal,
+                placeNameRomanized: placeNameRomanized,
+                rating: rating,
+                openingHours: openingHours,
+                priceLevel: priceLevel,
+                website: website,
+                phone: phone,
+                photoUrls: photoUrlsBlob.flatMap { try? decoder.decode([String].self, from: $0) }
+            ),
+            bestTimes: bestTimes,
+            durationMinutes: .init(min: durationMin, max: durationMax),
+            howTo: howTo,
+            realInconveniences: realInconveniences,
+            soloScore: soloScore,
+            sources: sources,
+            confidence: confidence,
+            nearbyExperienceIds: nearbyExperienceIds,
+            stats: stats,
+            status: Experience.Status(rawValue: status) ?? .active,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            userTags: userTagsList,
+            categoryHighlights: highlights
+        )
     }
 }

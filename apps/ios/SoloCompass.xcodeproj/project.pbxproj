@@ -232,6 +232,7 @@
 		8D67669050D844812FA06CC8 /* RouteItineraryBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 884AFD2A4ADF051FA9643166 /* RouteItineraryBridge.swift */; };
 		8E347182E133BD35C712AADB /* FilterChipContrastTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E8F519A353F18BDE4C3307 /* FilterChipContrastTest.swift */; };
 		8F8ED2236A149DAE2B3923CF /* ShareCardComponentsL10nTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D7324256A8D7E93FBA67F91 /* ShareCardComponentsL10nTest.swift */; };
+		905A93A872B2942AE13B7F08 /* PersistenceDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 511EDFCCBC74626702DDCE8C /* PersistenceDecoding.swift */; };
 		90C2EC1E98DDE7C3D3A5B4E9 /* GroupConversationAutoCreateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48ADAE2497800574C4E8819B /* GroupConversationAutoCreateTests.swift */; };
 		915E4532026427BA9F00B39D /* ModerationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71031524B916484E4C152E6 /* ModerationView.swift */; };
 		95389B7D23017957CB6C69E0 /* RouteBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66273C940FD90B51EBCD97BC /* RouteBuilder.swift */; };
@@ -584,6 +585,7 @@
 		4F7202B977A555239F367D02 /* FriendsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsListView.swift; sourceTree = "<group>"; };
 		4F7AE422ACCFA23FCA7DF90D /* ChatSessionRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSessionRecord.swift; sourceTree = "<group>"; };
 		4FE945F792AFD68B33B7E8B5 /* UserDirectoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDirectoryTests.swift; sourceTree = "<group>"; };
+		511EDFCCBC74626702DDCE8C /* PersistenceDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceDecoding.swift; sourceTree = "<group>"; };
 		520EDA3B7A8A6136FB0355A4 /* SupabaseRouteCompanionRemote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseRouteCompanionRemote.swift; sourceTree = "<group>"; };
 		531D01560A12EAE904126D15 /* Friendship.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Friendship.swift; sourceTree = "<group>"; };
 		535B5FA4ADF216CEC74FE056 /* RouteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteTests.swift; sourceTree = "<group>"; };
@@ -1452,6 +1454,7 @@
 				E575898B14533C58035EFC79 /* ConversationStore.swift */,
 				A250916F91C8EF0BE90DF763 /* ExperienceRepository.swift */,
 				397E1B23A9CF2D6470C7C954 /* ItineraryStore.swift */,
+				511EDFCCBC74626702DDCE8C /* PersistenceDecoding.swift */,
 				EF3FB0F0B974CA1C89BA5201 /* RouteStore.swift */,
 				A5435FBA9527C07A9FB07D46 /* SoloCompassModelContainer.swift */,
 				91DB88CF9AE303E72C776B72 /* TravelerNoteStore.swift */,
@@ -2135,6 +2138,7 @@
 				AA75B3147A29FDA55E61B24A /* PendingCheckInBanner.swift in Sources */,
 				ACBA4CEE6B78AA04DBD26709 /* PendingCheckInRecord.swift in Sources */,
 				641D80BD116D6F255A9ED26A /* PendingSyncRecord.swift in Sources */,
+				905A93A872B2942AE13B7F08 /* PersistenceDecoding.swift in Sources */,
 				3F74295066332816AAE7FD1C /* PlaceCorrectionRecord.swift in Sources */,
 				50495257AD65A0507DD43D41 /* PlacePhotoStore.swift in Sources */,
 				60FA57D3A56ED061C1F9B899 /* PresenceService.swift in Sources */,

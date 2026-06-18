@@ -130,23 +130,31 @@ extension RouteRecord {
     }
 
     public var asValue: Route {
+        // Schema-evolution safety: malformed blobs degrade to empty
+        // arrays / nil companion and surface a Sentry breadcrumb rather
+        // than crashing the route store on read.
         let decoder = JSONDecoder()
-        let experienceIds: [String]
-        let walkedBy: [String]
-        let tags: [String]
-        let companion: RouteCompanion?
-        do {
-            experienceIds = try decoder.decode([String].self, from: experienceIdsBlob)
-            walkedBy = try decoder.decode([String].self, from: walkedByBlob)
-            tags = try decoder.decode([String].self, from: tagsBlob)
-            if let blob = companionBlob {
-                companion = try decoder.decode(RouteCompanion.self, from: blob)
-            } else {
-                companion = nil
+        let experienceIds = decodeOrLog([String].self, from: experienceIdsBlob, field: "experienceIds")
+        let walkedBy = decodeOrLog([String].self, from: walkedByBlob, field: "walkedBy")
+        let tags = decodeOrLog([String].self, from: tagsBlob, field: "tags")
+        let companion: RouteCompanion? = {
+            guard let blob = companionBlob else { return nil }
+            if let value = try? decoder.decode(RouteCompanion.self, from: blob) {
+                return value
             }
-        } catch {
-            fatalError("Failed to decode blobs for RouteRecord \(id): \(error)")
-        }
+            PersistenceLog.recordDecodeFailure(
+                PersistenceCodecError(
+                    context: "RouteRecord.asValue.companion",
+                    recordId: id,
+                    underlying: NSError(
+                        domain: "PersistenceCodec",
+                        code: -4,
+                        userInfo: [NSLocalizedDescriptionKey: "companion decode failed; using nil"]
+                    )
+                )
+            )
+            return nil
+        }()
         let paceValue = Pace(rawValue: pace) ?? .standard
         let sourceValue = RouteSource(rawValue: source) ?? .editorial
         let statusValue = VerificationStatus(rawValue: verificationStatus) ?? .proposed

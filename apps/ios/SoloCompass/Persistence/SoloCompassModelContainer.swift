@@ -288,9 +288,19 @@ public enum SoloCompassModelContainer {
                 configurations: config
             )
         } catch {
-            // If we can't open the store at boot the app is unusable; crash
-            // loud rather than silently degrading. This is intentional.
-            fatalError("Failed to initialize SoloCompass SwiftData container: \(error)")
+            // Disk-full / sandbox / corrupt-store cases used to fatalError
+            // here. For Beta we fall back to an in-memory container so the
+            // app stays launchable; the user just sees a clean state.
+            // Sentry receives both the original error and the fallback
+            // breadcrumb so the on-call has the full chain.
+            PersistenceLog.recordDecodeFailure(
+                PersistenceCodecError(
+                    context: "SoloCompassModelContainer.shared.diskInit",
+                    recordId: "ModelContainer",
+                    underlying: error
+                )
+            )
+            return makeInMemory()
         }
     }()
 
@@ -327,6 +337,16 @@ public enum SoloCompassModelContainer {
                 configurations: config
             )
         } catch {
+            // In-memory container init should never fail in practice. If it
+            // does, we have no usable fallback — surface a clear error to
+            // Sentry and re-throw via fatalError as a last resort.
+            PersistenceLog.recordDecodeFailure(
+                PersistenceCodecError(
+                    context: "SoloCompassModelContainer.makeInMemory",
+                    recordId: "InMemoryContainer",
+                    underlying: error
+                )
+            )
             fatalError("Failed to initialize in-memory SoloCompass container: \(error)")
         }
     }
