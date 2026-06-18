@@ -243,13 +243,26 @@ public enum SoloCompassModelContainer {
                 isStoredInMemoryOnly: false
             )
             // Note: we intentionally do *not* pass `migrationPlan:` here.
-            // The only on-disk change between v1.0 and v1.1 is a new optional
-            // `Data?` column on `ExperienceRecord`, which SwiftData handles
-            // as an implicit lightweight migration. `SoloCompassMigrationPlan`
-            // exists for the schema-version history record, but the lightweight
-            // migration stage isn't usable when both versions register the
-            // same in-memory model class — declaring it explicitly trips
-            // `NSLightweightMigrationStage` at boot.
+            // Every hop in `SoloCompassMigrationPlan` so far has been either
+            // a new optional `Data?` column or an additive @Model table,
+            // which SwiftData handles as an implicit lightweight migration.
+            // Declaring `.lightweight(from:to:)` explicitly while both
+            // versions register the same in-memory model classes trips
+            // `NSLightweightMigrationStage` at boot, so the plan is kept
+            // only as a historical record of which versions have shipped.
+            //
+            // *** DANGER, future devs: ***
+            //
+            // The moment you introduce a non-lightweight migration step
+            // (column rename, type change, table split, NOT NULL→required
+            // promotion), this implicit-only path will silently drop or
+            // corrupt that change because SwiftData never sees the explicit
+            // stage. Before adding a non-lightweight step you MUST:
+            //   1. Pass `migrationPlan: SoloCompassMigrationPlan.self` here
+            //   2. Add a `.custom(from:to:willMigrate:didMigrate:)` stage
+            //   3. Write an XCTest that opens a copy of a real prior-version
+            //      sqlite fixture under `Tests/Fixtures/` and asserts the
+            //      migrated values — see audit task H13 in the audit log.
             return try ModelContainer(
                 for: ExperienceRecord.self,
                 UserCompletionRecord.self,

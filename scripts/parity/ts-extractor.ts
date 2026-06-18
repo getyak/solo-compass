@@ -114,6 +114,28 @@ export const SCHEMA_INTERFACES = new Set([
 ]);
 
 /**
+ * INTERFACES INTENTIONALLY EXCLUDED FROM PARITY.
+ *
+ * Some TS interfaces describe a *product* contract that is intentionally
+ * narrower than the Swift runtime representation. Listing them here makes
+ * the divergence explicit: parity tooling treats absence-from-parity as
+ * either "not yet wired up" or "deliberately diverged" — this set is the
+ * latter so the choice survives any future scan / refactor.
+ *
+ * UserPreferences (packages/core/src/user.ts):
+ *   TS shape is the minimal personalization vocabulary (interests / pace /
+ *   crowdTolerance / budgetTier / voiceIntroTranscript / languages).
+ *   Swift `Models/UserPreferences` is an `@Observable` runtime container
+ *   that *also* holds local-only state (completed experiences, favorites,
+ *   companion visibility, AI API key, etc.). Wiring it through parity
+ *   would either bloat the shared schema with iOS-only state or strip
+ *   Swift of state the app needs locally. Tracked as audit C7 — the long
+ *   term fix is renaming the Swift class to `LocalUserState` and adding a
+ *   slim `UserPreferences` that matches the TS shape exactly.
+ */
+export const PARITY_EXCLUDED_INTERFACES = new Set<string>(["UserPreferences"]);
+
+/**
  * TS interfaces that mirror SwiftData @Model classes in Persistence/Models/.
  * These are checked by the SwiftData parity pass (not the struct pass above).
  */

@@ -19,8 +19,8 @@ import os
 ///   5. Hand the enriched, ranked POIs to `AIService.synthesizeExperiences`,
 ///      which now cites the real signals instead of writing generic filler.
 ///
-/// Not an `Agent` (that protocol returns text/metadata for the voice pipeline);
-/// this returns strongly-typed `[Experience]`, so it stands alone.
+/// Returns strongly-typed `[Experience]` rather than free-form text — it is
+/// not part of any voice/chat agent protocol; it stands alone.
 @MainActor
 public final class EnrichmentAgent {
     private static let logger = Logger(subsystem: "com.solocompass", category: "EnrichmentAgent")

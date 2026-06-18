@@ -69,6 +69,39 @@ public enum CT {
     public static let heatmapLow    = rgb(0xE6, 0xD9, 0xC3)
     public static let heatmapEmpty  = rgb(0xF0, 0xEB, 0xE3)
 
+    // MARK: - Scrims & overlays (audit H10)
+    //
+    // Use these tokens when the dim / wash / shadow is applied *over a
+    // warm-amber surface* and should evolve with the palette — for example
+    // peek-sheet handle bars, modal scrims, glassmorphism capsules over a
+    // map background, or shadow tints on cards.
+    //
+    // What NOT to convert: `Color.black/.white.opacity()` is the *right*
+    // primitive when the surface is intentionally a deep dark-bubble
+    // (chat AI bubble, share-card hero gradient, voice-record mic, dark
+    // marker) — those want literal black/white regardless of palette and
+    // forcing them through this namespace would invert the contrast when
+    // someone tweaks the warm scrim later. The audit (H10) flagged ~17
+    // files; a careful pass shows ~13 are this decorative-on-dark case
+    // (ShareCard*, AttachmentBubble, VoiceButton mic, MarkerIconView
+    // fallback, ChatSheet dark-bubble overlay, etc.) and should stay as
+    // literal `Color.black/.white.opacity()`. The remaining four are
+    // FilterBar badge highlights and the SkeletonView shimmer — small
+    // enough that introducing wash tokens for them costs more than the
+    // duplication. Conclusion: keep these tokens available for the
+    // *new* surfaces that need to be palette-aware; do not bulk-rewrite
+    // existing call sites.
+    /// Light dim used over warm map backgrounds (e.g. peek sheet handle bar).
+    public static let scrimSoft     = Color.black.opacity(0.08)
+    /// Card / sheet shadow tint.
+    public static let scrimShadow   = Color.black.opacity(0.12)
+    /// Heavier overlay used behind modal alerts / takeover sheets.
+    public static let scrimModal    = Color.black.opacity(0.32)
+    /// White wash used over hero photos to lift legibility of overlay text.
+    public static let washLight     = Color.white.opacity(0.85)
+    /// Glassmorphism capsule fill — warm white with subtle translucency.
+    public static let washCapsule   = Color.white.opacity(0.72)
+
     // MARK: - Typography (Space Grotesk / Inter / JetBrains Mono → system fallback)
     // `display` keeps the existing default-design fallback so chat/route surfaces
     // that already shipped stay byte-identical. `displayRounded` is the new

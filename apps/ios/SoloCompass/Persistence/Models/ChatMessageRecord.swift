@@ -1,14 +1,22 @@
 import Foundation
 import SwiftData
 
-/// SwiftData representation of one persisted chat message inside a saved
-/// conversation. Mirrors `RouteRecord`'s strategy: scalar fields stored
-/// natively, the tool-call array stored as a JSON `Data` blob, branded/UUID
-/// ids stored as `String`, and timestamps stored as ISO 8601 UTC strings.
+/// SwiftData representation of one persisted message inside a saved
+/// **voice-agent** session — NOT the same thing as `Models/ChatMessage`,
+/// which is the social-DM concept used by `ChatService`. Audit H14 flagged
+/// the naming collision; this `@Model` class keeps its on-disk name because
+/// SwiftData uses the Swift class name as the SQLite entity name (renaming
+/// it would orphan every existing user's stored sessions). The eventual
+/// migration path is a `.custom` stage in `SoloCompassMigrationPlan` that
+/// renames the entity in one cohesive change — see audit task H14.
 ///
-/// One `ChatMessageRecord` maps to one `VoiceAgentSession.Message`. The link
-/// to its owning conversation is a plain `sessionId` foreign key (no
-/// `@Relationship`) to stay consistent with the rest of the persistence layer.
+/// Mirrors `RouteRecord`'s strategy: scalar fields stored natively, the
+/// tool-call array stored as a JSON `Data` blob, branded/UUID ids stored as
+/// `String`, and timestamps stored as ISO 8601 UTC strings.
+///
+/// One row maps to one `VoiceAgentSession.Message`. The link to its owning
+/// conversation is a plain `sessionId` foreign key (no `@Relationship`) to
+/// stay consistent with the rest of the persistence layer.
 @Model
 public final class ChatMessageRecord {
     @Attribute(.unique) public var id: String
