@@ -121,7 +121,7 @@ public struct MessageBubble: View {
             // Assistant replies render Markdown (code/lists/links/quotes).
             // Streaming throttle (batched ~50–80 chars / ~80ms) lives in the
             // orchestrator (Phase D) so this view re-renders smoothly.
-            MarkdownMessageText(text: text.isEmpty ? " " : text)
+            MarkdownMessageText(text: MessageBubble.renderCitations(text.isEmpty ? " " : text))
                 .padding(.horizontal, 15)
                 .padding(.vertical, 10)
                 .background {
@@ -257,6 +257,34 @@ public struct MessageBubble: View {
         default:
             return "gearshape"
         }
+    }
+
+    // MARK: - Beta-P0-E: citation rendering
+    //
+    // The assistant's system prompt now requires that any place mentioned by
+    // name be tagged with [exp:<id>] (or the sentence prefixed with "Guess —"
+    // when the model is hunching). We translate those tags into a small
+    // markdown link so the user can visually distinguish a Solo-grounded
+    // recommendation from a free-form guess. The link target is a custom
+    // scheme `solocompass://experience/<id>` — ChatSheet's openURL handler
+    // (or the system-wide handler) can route this to the detail screen.
+    // Streaming tokens that contain an incomplete `[exp:` are left alone so
+    // a partial fragment doesn't render as a broken link mid-stream.
+    nonisolated static func renderCitations(_ text: String) -> String {
+        guard text.contains("[exp:") else { return text }
+        let pattern = #"\[exp:([A-Za-z0-9._\-]+)\]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return text
+        }
+        let mutable = NSMutableString(string: text)
+        let range = NSRange(location: 0, length: mutable.length)
+        regex.replaceMatches(
+            in: mutable,
+            options: [],
+            range: range,
+            withTemplate: " [↗](solocompass://experience/$1)"
+        )
+        return mutable as String
     }
 }
 
