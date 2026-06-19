@@ -61,6 +61,21 @@ public final class SyncService {
     // failures are surfaced instead of being silently swallowed (US-002).
     var reporter: any SyncErrorReporting = LiveSyncErrorReporter()
 
+    /// Beta-P0-C: replacement for `try? context.save()` throughout the
+    /// sync layer. SwiftData save failures used to drop completions,
+    /// favorites, and itinerary merges silently — a write that vanishes
+    /// is the worst class of bug because the user trusts the spinner.
+    /// We now surface every save failure to Sentry tagged by the op so
+    /// the on-call can see *what* was lost, not just *that* something
+    /// was lost.
+    fileprivate func saveOrReport(_ context: ModelContext, op: String) {
+        do {
+            try context.save()
+        } catch {
+            reporter.capture(error, context: "SyncService.\(op).save", payload: nil)
+        }
+    }
+
     init() {}
 
     deinit {
@@ -165,7 +180,7 @@ public final class SyncService {
                 row.retryCount += 1
             }
         }
-        try? context.save()
+        saveOrReport(context, op: "flush")
         refreshCount(context: context)
         return sent
     }
@@ -305,7 +320,7 @@ public final class SyncService {
             _ = updatedAt  // used for cursor advancement, not per-row LWW here
             _ = myDeviceID
         }
-        try? context.save()
+        saveOrReport(context, op: "mergeCompletion")
     }
 
     private func mergeFavorite(_ data: Data, _ context: ModelContext, _ myDeviceID: String) {
@@ -366,7 +381,7 @@ public final class SyncService {
             }
             // Remote says unfavorited and we have no local row — already in sync.
         }
-        try? context.save()
+        saveOrReport(context, op: "mergeFavorite")
     }
 
     // MARK: - Itinerary LWW merge (US-007)
@@ -451,7 +466,7 @@ public final class SyncService {
                 ))
             }
         }
-        try? context.save()
+        saveOrReport(context, op: "mergeItinerary")
     }
 
     // MARK: - US-035: Pull aggregated Solo Scores
@@ -499,7 +514,7 @@ public final class SyncService {
                 changed = true
             }
         }
-        if changed { try? context.save() }
+        if changed { saveOrReport(context, op: "pullAggregatedSoloScores") }
     }
 
     /// Encode an experience-id list to a blob, reporting (rather than swallowing)
