@@ -42,6 +42,16 @@ public final class RouteRecord {
     /// JSON-encoded `RouteCompanion?` — nil when no companion attached.
     public var companionBlob: Data?
 
+    // Beta-P0-A: active-route progress (Schema V1.7). Optional so existing
+    // rows migrate without rewrite. iOS-local only; not synced to backend
+    // because the Route schema upstream has no equivalent fields.
+    public var activeStartedAt: Date?
+    public var currentStopIndex: Int?
+    /// JSON-encoded `[String]` — Experience IDs the user has marked done
+    /// inside this in-progress route. nil for routes that were never
+    /// started or were already completed.
+    public var completedStopIdsBlob: Data?
+
     public init(
         id: String,
         title: String,
@@ -61,7 +71,10 @@ public final class RouteRecord {
         experienceIdsBlob: Data,
         walkedByBlob: Data,
         tagsBlob: Data,
-        companionBlob: Data?
+        companionBlob: Data?,
+        activeStartedAt: Date? = nil,
+        currentStopIndex: Int? = nil,
+        completedStopIdsBlob: Data? = nil
     ) {
         self.id = id
         self.title = title
@@ -82,6 +95,9 @@ public final class RouteRecord {
         self.walkedByBlob = walkedByBlob
         self.tagsBlob = tagsBlob
         self.companionBlob = companionBlob
+        self.activeStartedAt = activeStartedAt
+        self.currentStopIndex = currentStopIndex
+        self.completedStopIdsBlob = completedStopIdsBlob
     }
 }
 

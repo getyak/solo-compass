@@ -182,7 +182,21 @@ public enum SoloCompassSchemaV1_6: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → … → v1.6. Each change is additive (an
+/// Schema v1.7 (Beta-P0-A) — adds three optional active-route progress
+/// columns to `RouteRecord`: `activeStartedAt`, `currentStopIndex`, and
+/// `completedStopIdsBlob`. All three are optional, so existing rows
+/// migrate with NULL and no data is rewritten — additive lightweight.
+/// Model set is identical to v1.6; only the columns are new.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_7: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 7, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_6.models
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → … → v1.7. Each change is additive (an
 /// optional `Data?` column, new @Model tables) or a NOT NULL relaxation, so every
 /// hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
@@ -195,6 +209,7 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             SoloCompassSchemaV1_4.self,
             SoloCompassSchemaV1_5.self,
             SoloCompassSchemaV1_6.self,
+            SoloCompassSchemaV1_7.self,
         ]
     }
 
@@ -223,6 +238,10 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_5.self,
                 toVersion: SoloCompassSchemaV1_6.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_6.self,
+                toVersion: SoloCompassSchemaV1_7.self
             ),
         ]
     }

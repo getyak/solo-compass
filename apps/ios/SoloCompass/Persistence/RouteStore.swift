@@ -125,6 +125,103 @@ public final class RouteStore {
         )
     }
 
+    // MARK: - Beta-P0-A: active-route progress
+    //
+    // The "in-progress route" used to live as @State on CompassMapView,
+    // so closing the app or being killed in the background lost the
+    // user's place in a half-day walk. We now persist three optional
+    // RouteRecord columns (activeStartedAt, currentStopIndex,
+    // completedStopIdsBlob) so a relaunch can resume exactly where the
+    // user left off. We deliberately keep this iOS-local — there's no
+    // upstream Route schema column for "in-progress", and the user
+    // signal is per-device by definition.
+
+    /// Mark the given route as started for the user. No-op if the
+    /// route record can't be found. Resets currentStopIndex to 0 and
+    /// the completedStopIds blob to an empty array so a re-start of a
+    /// finished route gets a clean slate.
+    public func startRoute(_ id: RouteId, at date: Date = Date()) {
+        guard let rec = record(for: id.rawValue) else { return }
+        rec.activeStartedAt = date
+        rec.currentStopIndex = 0
+        rec.completedStopIdsBlob = Data("[]".utf8)
+        do {
+            try context.save()
+        } catch {
+            assertionFailure("RouteStore.startRoute failed: \(error)")
+        }
+        postChange(routeId: id.rawValue)
+    }
+
+    /// Advance to the next stop in an active route. `completedExperienceId`
+    /// is appended to the persisted completed list. No-op if the route is
+    /// not currently active. Returns the new currentStopIndex (nil if
+    /// nothing changed) so callers can chain UI updates.
+    @discardableResult
+    public func advanceStop(_ id: RouteId, completedExperienceId: String) -> Int? {
+        guard let rec = record(for: id.rawValue),
+              let current = rec.currentStopIndex else { return nil }
+        var completed: [String] = []
+        if let blob = rec.completedStopIdsBlob,
+           let decoded = try? JSONDecoder().decode([String].self, from: blob) {
+            completed = decoded
+        }
+        if !completed.contains(completedExperienceId) {
+            completed.append(completedExperienceId)
+        }
+        rec.completedStopIdsBlob = (try? JSONEncoder().encode(completed)) ?? rec.completedStopIdsBlob
+        let next = current + 1
+        rec.currentStopIndex = next
+        do {
+            try context.save()
+        } catch {
+            assertionFailure("RouteStore.advanceStop failed: \(error)")
+        }
+        postChange(routeId: id.rawValue)
+        return next
+    }
+
+    /// Finish the route — clears active progress fields so subsequent
+    /// queries no longer pick it up as the resume candidate. The route
+    /// itself stays in the store for history.
+    public func completeRoute(_ id: RouteId) {
+        guard let rec = record(for: id.rawValue) else { return }
+        rec.activeStartedAt = nil
+        rec.currentStopIndex = nil
+        rec.completedStopIdsBlob = nil
+        do {
+            try context.save()
+        } catch {
+            assertionFailure("RouteStore.completeRoute failed: \(error)")
+        }
+        postChange(routeId: id.rawValue)
+    }
+
+    /// Snapshot of any currently-active route, for cold-start recovery.
+    /// Returns the route value, its current stop index, and the set of
+    /// already-completed experience ids. When multiple routes are
+    /// marked active (shouldn't happen normally, but defensive against
+    /// orphan rows) the most-recently-started one wins.
+    public func loadActiveRoute() -> (route: Route, stopIndex: Int, completedIds: Set<String>)? {
+        let descriptor = FetchDescriptor<RouteRecord>(
+            predicate: #Predicate { $0.activeStartedAt != nil }
+        )
+        guard let records = try? context.fetch(descriptor), !records.isEmpty else {
+            return nil
+        }
+        let sorted = records.sorted { a, b in
+            (a.activeStartedAt ?? .distantPast) > (b.activeStartedAt ?? .distantPast)
+        }
+        guard let rec = sorted.first,
+              let index = rec.currentStopIndex else { return nil }
+        var completed: Set<String> = []
+        if let blob = rec.completedStopIdsBlob,
+           let decoded = try? JSONDecoder().decode([String].self, from: blob) {
+            completed = Set(decoded)
+        }
+        return (rec.asValue, index, completed)
+    }
+
     // MARK: - Seed import
 
     private static let seedLog = OSLog(subsystem: "com.solocompass.app", category: "RouteStore")
