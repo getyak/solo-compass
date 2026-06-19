@@ -237,10 +237,45 @@ public final class MapViewModel {
         // A user who picked a city wants that city; GPS-anchored auto-explore is
         // only appropriate when we're actually following GPS (no city selected).
         let cityOwnsCamera = (selectedCity.map { !$0.hasPrefix("custom_") }) ?? false
-        if !cityOwnsCamera {
+        // Beta-P0-F: a first-launch user with no persisted city used to land
+        // on the simulator's San Francisco fix even when the GPS reading was
+        // clearly outside any seeded city. We additionally guard auto-recenter
+        // by checking that the fix sits within the radius of one of our
+        // known city centers; otherwise we keep the seed default (Chiang Mai)
+        // so the cold-start screen always shows real Experiences instead of
+        // an empty SF map.
+        let isWithinKnownCity = Self.coordinateIsNearKnownCityCenter(coordinate)
+        if !cityOwnsCamera && isWithinKnownCity {
             recenter(on: coordinate)
             autoExploreIfEmpty(at: coordinate)
         }
+        SentryService.capture(
+            message: "map.coldStart.cameraResolution",
+            level: .info,
+            context: [
+                "selectedCity": selectedCity ?? "nil",
+                "cityOwnsCamera": cityOwnsCamera,
+                "withinKnownCity": isWithinKnownCity,
+                "lat": coordinate.latitude,
+                "lon": coordinate.longitude
+            ]
+        )
+    }
+
+    /// Beta-P0-F: returns true when `coordinate` sits within ~200 km of any
+    /// city we ship seed Experiences for. Used to suppress auto-recenter on
+    /// a clearly out-of-region GPS fix (the typical simulator SF case for
+    /// users whose actual cold-start city is Chiang Mai or Vientiane).
+    private static func coordinateIsNearKnownCityCenter(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        let user = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let limitMeters: CLLocationDistance = 200_000
+        for (_, center) in Self.knownCityCenters {
+            let centerLoc = CLLocation(latitude: center.latitude, longitude: center.longitude)
+            if user.distance(from: centerLoc) <= limitMeters {
+                return true
+            }
+        }
+        return false
     }
 
     /// Whether a GPS fix is available right now — drives the custom recenter
