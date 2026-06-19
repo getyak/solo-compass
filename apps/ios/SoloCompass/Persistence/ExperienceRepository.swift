@@ -284,6 +284,27 @@ public final class ExperienceRepository {
         return ((try? context.fetch(descriptor)) ?? []).map(\.experienceId)
     }
 
+    /// Beta-P1-I: count completions per ExperienceCategory by looking up
+    /// the category of each completed Experience. Drives a small boost
+    /// in MapViewModel sort so "the kind of place you keep coming back
+    /// to" floats up next time. We deliberately don't decay over time —
+    /// for Beta the signal is too sparse to justify a half-life curve.
+    public func categoryAffinity() -> [ExperienceCategory: Int] {
+        let completedIds = allCompletions()
+        guard !completedIds.isEmpty else { return [:] }
+        let allById = Dictionary(uniqueKeysWithValues: allRecords().compactMap { rec -> (String, ExperienceCategory)? in
+            guard let cat = ExperienceCategory(rawValue: rec.category) else { return nil }
+            return (rec.id, cat)
+        })
+        var counts: [ExperienceCategory: Int] = [:]
+        for id in completedIds {
+            if let cat = allById[id] {
+                counts[cat, default: 0] += 1
+            }
+        }
+        return counts
+    }
+
     // MARK: - Micro-survey writeback (Epic C US-020)
 
     /// Record one micro-survey row. Comfort/pressure/recommend are all

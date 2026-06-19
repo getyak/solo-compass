@@ -646,7 +646,9 @@ public final class MapViewModel {
     public var displayedExperiences: [Experience] {
         let limit = Self.spanToLimit(currentSpanLatitudeDelta)
         guard visibleExperiences.count > limit else { return visibleExperiences }
-        return Self.rankedByProminence(visibleExperiences).prefix(limit).map { $0 }
+        let affinity = experienceService.repo.categoryAffinity()
+        return Self.rankedByProminence(visibleExperiences, categoryAffinity: affinity)
+            .prefix(limit).map { $0 }
     }
 
     /// Clustered map items — groups overlapping pins at city/district zoom into
@@ -675,12 +677,24 @@ public final class MapViewModel {
     /// best-now (most time-relevant), Solo-Score (fit for solo travelers),
     /// confidence level (data we trust), and passive footprint hits (places
     /// people actually go). All weighted into a single comparable Double.
-    static func prominenceScore(for exp: Experience, now: Date = Date()) -> Double {
+    static func prominenceScore(
+        for exp: Experience,
+        now: Date = Date(),
+        categoryAffinity: [ExperienceCategory: Int] = [:]
+    ) -> Double {
         var score = 0.0
         if exp.isBestNow(at: now) { score += 100 }       // time-relevant dominates
         score += exp.soloScore.overall * 5                // 0–10 → 0–50
         score += Double(exp.confidence.level) * 4         // 0–5  → 0–20
         score += min(Double(exp.confidence.signals.passiveGpsHits30d), 10) * 1.5 // capped footprint
+
+        // Beta-P1-I: personal data flywheel. Each prior completion in this
+        // category contributes +6, capped at +30 so a heavy bias toward
+        // (say) cafes doesn't swamp time-relevant best-now picks. The
+        // cap is intentional: we want the rank to nudge, not lock in.
+        if let n = categoryAffinity[exp.category], n > 0 {
+            score += min(Double(n) * 6, 30)
+        }
         return score
     }
 
@@ -688,11 +702,15 @@ public final class MapViewModel {
     /// by prominence. Swift's `sorted(by:)` is *not* guaranteed stable, so we
     /// carry the original index and use it as an explicit tiebreak — keeping
     /// equal-prominence pins in their incoming (nearest-first) order.
-    static func rankedByProminence(_ experiences: [Experience], now: Date = Date()) -> [Experience] {
+    static func rankedByProminence(
+        _ experiences: [Experience],
+        now: Date = Date(),
+        categoryAffinity: [ExperienceCategory: Int] = [:]
+    ) -> [Experience] {
         experiences.enumerated()
             .sorted { lhs, rhs in
-                let ls = prominenceScore(for: lhs.element, now: now)
-                let rs = prominenceScore(for: rhs.element, now: now)
+                let ls = prominenceScore(for: lhs.element, now: now, categoryAffinity: categoryAffinity)
+                let rs = prominenceScore(for: rhs.element, now: now, categoryAffinity: categoryAffinity)
                 if ls != rs { return ls > rs }
                 return lhs.offset < rhs.offset // distance order as tiebreak
             }
