@@ -50,6 +50,49 @@ public struct ExperienceCardView: View {
         aiService.lastSynthesisQuality == .skeleton
     }
 
+    /// Beta-P0-D: per-card source-strength signal. Computed from the
+    /// experience's own `sources` array + confidence level, *not* the
+    /// last global synthesis state — so a list mixing fresh AI cards and
+    /// older / sparse cards differentiates row by row.
+    private enum SourceStrength {
+        case none, single, multi, verified
+    }
+
+    private var sourceStrength: SourceStrength {
+        let count = experience.sources.count
+        let confidenceLevel = experience.confidence.level
+        if count >= 3 || confidenceLevel >= 4 { return .verified }
+        if count >= 2 { return .multi }
+        if count == 1 { return .single }
+        return .none
+    }
+
+    @ViewBuilder
+    private var sourceStrengthChip: some View {
+        let (symbol, label, tint) : (String, String, Color) = {
+            switch sourceStrength {
+            case .verified: return ("checkmark.seal.fill", NSLocalizedString("card.source.verified", comment: "Cross-verified across multiple sources"), CT.accent)
+            case .multi:    return ("link", NSLocalizedString("card.source.multi", comment: "Multiple sources agreeing"), CT.accent.opacity(0.7))
+            case .single:   return ("link.circle", NSLocalizedString("card.source.single", comment: "One source"), CT.fgMuted)
+            case .none:     return ("", "", .clear)
+            }
+        }()
+        if sourceStrength != .none {
+            HStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.system(size: 10, weight: .semibold))
+                Text(label)
+                    .font(CT.body(10, .medium))
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(tint.opacity(0.08)))
+            .accessibilityElement()
+            .accessibilityLabel(label)
+        }
+    }
+
 
     private var isArrived: Bool {
         (distanceMeters ?? .greatestFiniteMagnitude) <= Self.arrivedThresholdMeters
@@ -280,13 +323,20 @@ public struct ExperienceCardView: View {
 
             Text(experience.oneLiner)
                 .font(.subheadline)
-                .foregroundStyle(.primary)
+                .italic(isSkeletonData)
+                .foregroundStyle(isSkeletonData ? .secondary : .primary)
                 .lineLimit(3)
 
-            // US-004: transparency pill — only for degraded skeleton data,
-            // never for real or cached AI synthesis.
-            if isSkeletonData {
-                SkeletonBadgeView()
+            // US-004 / Beta-P0-D: transparency rail. Skeleton cards get the
+            // muted "still listening" pill; cards with real AI synthesis get
+            // a source-strength chip showing how thick the signal is. Both
+            // give the user a quick read of "should I trust this row".
+            HStack(spacing: 8) {
+                if isSkeletonData {
+                    SkeletonBadgeView()
+                } else {
+                    sourceStrengthChip
+                }
             }
 
             FlowLayout(spacing: 8) {

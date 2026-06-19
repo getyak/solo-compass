@@ -193,6 +193,9 @@
 "ai.fallback.voice" = "Showing solo-friendly experiences nearby.";
 "ai.skeleton.pill" = "Solo is still listening…";
 "ai.skeleton.pill.a11y" = "Solo is still gathering details for this place. Full insight loads when sources arrive.";
+"card.source.verified" = "verified";
+"card.source.multi" = "multi-source";
+"card.source.single" = "1 source";
 
 /* Common */
 "common.ok" = "OK";

@@ -104,6 +104,9 @@
 "ai.fallback.voice" = "正在显示附近适合独行的体验。";
 "ai.skeleton.pill" = "Solo 正在了解中…";
 "ai.skeleton.pill.a11y" = "Solo 还在为这里搜集信息。来源就位后会给你完整画面。";
+"card.source.verified" = "已交叉核实";
+"card.source.multi" = "多来源";
+"card.source.single" = "单来源";
 
 /* Common */
 "common.ok" = "好";
