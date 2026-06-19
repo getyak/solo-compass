@@ -115,6 +115,49 @@ public final class LocationService: NSObject {
         }
     }
 
+    // MARK: - Beta-P1-H: route geofencing
+    //
+    // Per-stop CLCircularRegions tied to the active route. Reuses the
+    // same CLCircularRegion plumbing as `startMonitoring(visits:)` but
+    // identifiers are prefixed with `routeStop:` so the dispatch path
+    // (handled by the existing didEnterRegion delegate) can publish a
+    // routeStopEntered notification distinct from visit check-ins.
+    //
+    // iOS caps regions at 20 per app. We deliberately register at most
+    // 5 route stops so the visits monitor still has 15 slots — typical
+    // route in this app is 3–6 stops, so the cap is enough for the
+    // common case.
+
+    public static let routeStopEntered = Notification.Name("SoloCompass.LocationService.routeStopEntered")
+    public static let routeRegionPrefix = "routeStop:"
+    public static let maxRouteRegions = 5
+
+    /// Register up to `maxRouteRegions` CLCircularRegions for the given
+    /// route stops, on top of (not replacing) the existing visit
+    /// monitors. Pass an empty array to clear just the route regions.
+    public func startMonitoringRouteStops(_ stops: [Experience]) {
+        // Strip any previously-installed route regions.
+        let oldRouteIds = monitoredIdentifiers.filter { $0.hasPrefix(Self.routeRegionPrefix) }
+        for id in oldRouteIds {
+            if let region = manager.monitoredRegions.first(where: { $0.identifier == id }) {
+                manager.stopMonitoring(for: region)
+            }
+            monitoredIdentifiers.remove(id)
+        }
+
+        guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else { return }
+
+        for exp in stops.prefix(Self.maxRouteRegions) {
+            guard let coord = exp.coordinate else { continue }
+            let identifier = Self.routeRegionPrefix + exp.id
+            let region = CLCircularRegion(center: coord, radius: 200, identifier: identifier)
+            region.notifyOnEntry = true
+            region.notifyOnExit = false
+            manager.startMonitoring(for: region)
+            monitoredIdentifiers.insert(identifier)
+        }
+    }
+
     /// Tear down all geofences this service installed, so no further
     /// arrival or departure check-ins fire.
     public func stopMonitoringAll() {
@@ -228,6 +271,23 @@ extension LocationService: CLLocationManagerDelegate {
     /// a pending check-in and prompting them to log the visit.
     public func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         guard monitoredIdentifiers.contains(region.identifier) else { return }
+
+        // Beta-P1-H: route-stop regions go down a separate publish path
+        // so callers binding to the active route can advance the stop
+        // index, refresh Live Activity copy, etc, without touching the
+        // visit check-in flow that fires for every monitored Experience.
+        if region.identifier.hasPrefix(Self.routeRegionPrefix) {
+            let expId = String(region.identifier.dropFirst(Self.routeRegionPrefix.count))
+            Task { @MainActor in
+                NotificationCenter.default.post(
+                    name: Self.routeStopEntered,
+                    object: self,
+                    userInfo: ["experienceId": expId]
+                )
+            }
+            return
+        }
+
         let expTitle = monitoredVisits[region.identifier]?.title ?? region.identifier
         Task { @MainActor in
             self.preferences?.recordPendingCheckIn(region.identifier)
