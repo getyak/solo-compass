@@ -413,7 +413,14 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
     private func runTurn(transcript: String) {
         let safe = VoiceAgentOrchestrator.sanitizeUserInput(transcript)
-        session.beginUserTurn(transcript: safe)
+        // Beta-P1-J: refresh the latest spatial-temporal context before each
+        // turn so the agent knows where the user is *now* and what hour
+        // it is, even after the user has been walking around the city for
+        // 30 minutes. The original system prompt is baked in at session
+        // seed and never updates — this avoids stale viewport-of-place
+        // answers without invalidating the conversation history.
+        let prefixed = Self.prependContextRefresh(to: safe)
+        session.beginUserTurn(transcript: prefixed)
         thinkingStep = NSLocalizedString("agent.step.thinking", comment: "Thinking…")
         streamingContent = ""
         uiState = .processing
@@ -787,5 +794,36 @@ public final class VoiceAgentOrchestrator: Identifiable {
         return windows.map { w in
             String(format: "%02d-%02d", w.startHour, w.endHour)
         }.joined(separator: ", ")
+    }
+
+    /// Beta-P1-J: build a tiny "latest_context" preamble that gets
+    /// prepended to each user turn so the agent always has the user's
+    /// current hour-of-day and GPS coordinate at hand. The original
+    /// system prompt is baked at session seed and never refreshed — a
+    /// user who walked from one neighborhood to another mid-session
+    /// would otherwise keep getting answers about the wrong place.
+    /// The preamble is plain text inside a `<latest_context>` block
+    /// so it parses the same way Claude treats other Solo context
+    /// envelopes (see buildSystemPrompt below).
+    static func prependContextRefresh(to transcript: String) -> String {
+        let now = Date()
+        let hour = Calendar.current.component(.hour, from: now)
+        let timeZone = TimeZone.current.identifier
+        let coord = LocationService.shared.currentLocation?.coordinate
+        let coordLine: String
+        if let c = coord {
+            coordLine = String(format: "user_coord: %.4f,%.4f", c.latitude, c.longitude)
+        } else {
+            coordLine = "user_coord: unknown"
+        }
+        return """
+        <latest_context>
+        hour_local: \(hour)
+        timezone: \(timeZone)
+        \(coordLine)
+        </latest_context>
+
+        \(transcript)
+        """
     }
 }
