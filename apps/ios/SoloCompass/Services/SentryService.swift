@@ -112,11 +112,27 @@ public enum SentryService {
         return "\(bundleId)@\(version)+\(build)"
     }
 
+    /// Beta-P0-G: environment is one of `debug | beta | release` so the
+    /// Sentry dashboard can monitor TestFlight crash-free sessions
+    /// separately from App Store traffic. Detection rule for TestFlight:
+    /// the embedded mobile provisioning profile lands at
+    /// `Bundle.main.appStoreReceiptURL` ending in `sandboxReceipt`.
     private static var environmentString: String {
         #if DEBUG
         return "debug"
         #else
+        if Self.isTestFlightBuild {
+            return "beta"
+        }
         return "release"
         #endif
+    }
+
+    /// `appStoreReceiptURL` ends in `sandboxReceipt` for TestFlight
+    /// installs and `receipt` for App Store installs. Bundle.main reads
+    /// the value lazily so this is cheap to evaluate at bootstrap.
+    private static var isTestFlightBuild: Bool {
+        guard let url = Bundle.main.appStoreReceiptURL else { return false }
+        return url.lastPathComponent == "sandboxReceipt"
     }
 }
