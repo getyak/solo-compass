@@ -102,8 +102,8 @@
 "amap.error.api" = "高德 API 错误 %@：%@";
 "ai.fallback.explanation" = "推荐给独行旅人：座位安静、员工不打扰、本地信号强。";
 "ai.fallback.voice" = "正在显示附近适合独行的体验。";
-"ai.skeleton.pill" = "数据有限";
-"ai.skeleton.pill.a11y" = "占位内容";
+"ai.skeleton.pill" = "Solo 正在了解中…";
+"ai.skeleton.pill.a11y" = "Solo 还在为这里搜集信息。来源就位后会给你完整画面。";
 
 /* Common */
 "common.ok" = "好";

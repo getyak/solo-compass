@@ -191,8 +191,8 @@
 "amap.error.api" = "Amap API error %@: %@";
 "ai.fallback.explanation" = "Recommended for solo travelers based on quiet seating, low staff pressure, and a strong local signal.";
 "ai.fallback.voice" = "Showing solo-friendly experiences nearby.";
-"ai.skeleton.pill" = "Limited data";
-"ai.skeleton.pill.a11y" = "placeholder content";
+"ai.skeleton.pill" = "Solo is still listening…";
+"ai.skeleton.pill.a11y" = "Solo is still gathering details for this place. Full insight loads when sources arrive.";
 
 /* Common */
 "common.ok" = "OK";
