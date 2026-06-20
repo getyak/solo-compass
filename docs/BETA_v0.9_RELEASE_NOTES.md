@@ -10,29 +10,29 @@
 
 11 atomic commits, every one BUILD SUCCEEDED on iPhone 17 Pro / iOS latest. `pnpm parity:check` 4/4.
 
-| # | Commit | Area | Beta red line addressed |
-|---|--------|------|--------------------------|
-| 1 | `dd40aed` Beta-P0-B | Persistence fatalError → Sentry + graceful fallback | #5 crash-free ≥99.5 |
-| 2 | `97d7723` Beta-P0-G | Sentry environment = `debug \| beta \| release` | #5 crash-free monitoring |
-| 3 | `edb3577` Beta-P1-K | Skeleton copy "Solo is still listening…" | #2 real-vs-skeleton feel |
-| 4 | `0fa085b` Beta-P0-F | Suppress GPS auto-recenter outside known cities | #1 cold start ≤10s, no SF empty map |
-| 5 | `ab45e36` Beta-P0-C | SyncService `try? save()` → `saveOrReport` + Sentry | #5 no silent data loss |
-| 6 | `57c2258` Beta-P1-I | UserCompletionRecord → categoryAffinity → prominence | flywheel differentiation |
-| 7 | `908c2f1` Beta-P1-J | `<latest_context>` prepend per turn | #3 fresh context per ask |
-| 8 | `2362233` Beta-P0-E | `[exp:id]` citation enforcement + visual link | #3 evidence-grounded reply |
-| 9 | `c65b4c2` Beta-P0-D | Per-card source-strength chip + italic skeleton oneLiner | #2 real-vs-skeleton feel |
-| 10 | `402b785` Beta-P0-A | Schema V1.7 + RouteStore active-route persistence | #4 no lost route progress |
-| 11 | `972ccf6` Beta-P1-H | Route-stop geofences + `routeStopEntered` notification | #4 auto-advance route stops |
+| #   | Commit              | Area                                                     | Beta red line addressed             |
+| --- | ------------------- | -------------------------------------------------------- | ----------------------------------- |
+| 1   | `dd40aed` Beta-P0-B | Persistence fatalError → Sentry + graceful fallback      | #5 crash-free ≥99.5                 |
+| 2   | `97d7723` Beta-P0-G | Sentry environment = `debug \| beta \| release`          | #5 crash-free monitoring            |
+| 3   | `edb3577` Beta-P1-K | Skeleton copy "Solo is still listening…"                 | #2 real-vs-skeleton feel            |
+| 4   | `0fa085b` Beta-P0-F | Suppress GPS auto-recenter outside known cities          | #1 cold start ≤10s, no SF empty map |
+| 5   | `ab45e36` Beta-P0-C | SyncService `try? save()` → `saveOrReport` + Sentry      | #5 no silent data loss              |
+| 6   | `57c2258` Beta-P1-I | UserCompletionRecord → categoryAffinity → prominence     | flywheel differentiation            |
+| 7   | `908c2f1` Beta-P1-J | `<latest_context>` prepend per turn                      | #3 fresh context per ask            |
+| 8   | `2362233` Beta-P0-E | `[exp:id]` citation enforcement + visual link            | #3 evidence-grounded reply          |
+| 9   | `c65b4c2` Beta-P0-D | Per-card source-strength chip + italic skeleton oneLiner | #2 real-vs-skeleton feel            |
+| 10  | `402b785` Beta-P0-A | Schema V1.7 + RouteStore active-route persistence        | #4 no lost route progress           |
+| 11  | `972ccf6` Beta-P1-H | Route-stop geofences + `routeStopEntered` notification   | #4 auto-advance route stops         |
 
 ## Beta red lines — status
 
-| # | Red line | Status | Notes |
-|---|----------|--------|-------|
-| 1 | Cold start ≤10s, see 5 cards, zero black screen | ✅ | seed sync + SF guard + warm skeleton copy |
-| 2 | AI real output vs skeleton visually distinguishable | ✅ | per-card source-strength chip + italic oneLiner + "still listening" pill |
-| 3 | Solo gives at least one cited evidence-grounded reply | ✅ | system prompt enforces `[exp:id]` or "Guess —" prefix; chip rendered in chat bubble |
-| 4 | Half-day route, no crash, no lost data | ⚠️ partial | RouteStore + Schema V1.7 + geofence notification done; CompassMapView UI rehydration left to follow-up |
-| 5 | Sentry 24h crash-free <0.5% | ✅ | environment tagging + Persistence fatalError treated as recoverable + SyncService save failures captured |
+| #   | Red line                                              | Status     | Notes                                                                                                    |
+| --- | ----------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- |
+| 1   | Cold start ≤10s, see 5 cards, zero black screen       | ✅         | seed sync + SF guard + warm skeleton copy                                                                |
+| 2   | AI real output vs skeleton visually distinguishable   | ✅         | per-card source-strength chip + italic oneLiner + "still listening" pill                                 |
+| 3   | Solo gives at least one cited evidence-grounded reply | ✅         | system prompt enforces `[exp:id]` or "Guess —" prefix; chip rendered in chat bubble                      |
+| 4   | Half-day route, no crash, no lost data                | ⚠️ partial | RouteStore + Schema V1.7 + geofence notification done; CompassMapView UI rehydration left to follow-up   |
+| 5   | Sentry 24h crash-free <0.5%                           | ✅         | environment tagging + Persistence fatalError treated as recoverable + SyncService save failures captured |
 
 ## What we deferred (and why)
 

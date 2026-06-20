@@ -42,6 +42,7 @@ explore coordinate
 > — Confidence: HIGH (6-0 adversarial vote)
 
 **Validation of current architecture:**
+
 - Amap-only branch for mainland China ✅ (legally mandatory, not optional)
 - NSCache in-memory-only caching ✅ (Amap ToS §3.5/§4.12.2)
 - AI-synthesized Experience objects persisted, raw Amap fields not ✅ (correct legal boundary)
@@ -69,22 +70,22 @@ iOS pipeline (real-time, client-side):
 
 #### Phase 2: Source Expansion
 
-| Source | Region | Value | Priority | Estimated Effort |
-|--------|--------|-------|----------|-----------------|
-| Wikivoyage adapter (already written) | Global | Narrative travel guides, solo-relevant context | HIGH | 1 day (activation) |
-| Google Places adapter (already written) | Global | Real-time ratings, hours, photos | HIGH | 2 days (activation + BudgetTracker) |
-| Amap pricing optimization | China | Monitor 5000/mo free tier consumption | MEDIUM | 0.5 day |
-| Baidu Maps / Tencent Maps | China | Redundancy + cross-validation | LOW | Research needed |
-| UGC platforms (Xiaohongshu, Dianping) | China | Experience-quality content | FUTURE | API access uncertain |
+| Source                                  | Region | Value                                          | Priority | Estimated Effort                    |
+| --------------------------------------- | ------ | ---------------------------------------------- | -------- | ----------------------------------- |
+| Wikivoyage adapter (already written)    | Global | Narrative travel guides, solo-relevant context | HIGH     | 1 day (activation)                  |
+| Google Places adapter (already written) | Global | Real-time ratings, hours, photos               | HIGH     | 2 days (activation + BudgetTracker) |
+| Amap pricing optimization               | China  | Monitor 5000/mo free tier consumption          | MEDIUM   | 0.5 day                             |
+| Baidu Maps / Tencent Maps               | China  | Redundancy + cross-validation                  | LOW      | Research needed                     |
+| UGC platforms (Xiaohongshu, Dianping)   | China  | Experience-quality content                     | FUTURE   | API access uncertain                |
 
 #### Phase 3: Real-Time Signals
 
-| Signal | Source | Use Case |
-|--------|--------|----------|
-| Foot traffic / popular times | Google Places `currentOpeningHours` + `popularTimes` | "Is this busy right now?" |
-| Weather context | Open-Meteo (free, no key) | Filter outdoor experiences in rain |
-| Event data | Eventbrite / local event APIs | Time-sensitive experiences |
-| User-generated micro-surveys | Existing `MicroSurveyRecord` | Solo-specific signal feedback loop |
+| Signal                       | Source                                               | Use Case                           |
+| ---------------------------- | ---------------------------------------------------- | ---------------------------------- |
+| Foot traffic / popular times | Google Places `currentOpeningHours` + `popularTimes` | "Is this busy right now?"          |
+| Weather context              | Open-Meteo (free, no key)                            | Filter outdoor experiences in rain |
+| Event data                   | Eventbrite / local event APIs                        | Time-sensitive experiences         |
+| User-generated micro-surveys | Existing `MicroSurveyRecord`                         | Solo-specific signal feedback loop |
 
 ### 1.4 Open Question
 
@@ -171,10 +172,10 @@ struct MergedPOI {
 
 The 3-stage agent pipeline (even with AgentRouter deleted, VoiceAgentOrchestrator's tool-use loop has repeated system prompts) can benefit from prompt caching:
 
-| Provider | Mechanism | Savings | Applicability |
-|----------|-----------|---------|---------------|
+| Provider  | Mechanism                                                      | Savings                                 | Applicability                        |
+| --------- | -------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
 | Anthropic | `cache_control: {"type": "ephemeral"}` on system prompt blocks | ~90% input token cost on repeated turns | VoiceAgentOrchestrator system prompt |
-| DeepSeek | Automatic prompt prefix caching | ~80% (varies) | EnrichmentAgent synthesis prompts |
+| DeepSeek  | Automatic prompt prefix caching                                | ~80% (varies)                           | EnrichmentAgent synthesis prompts    |
 
 **Action:** Tag system prompts in `AIService.swift` with cache hints. Measure before/after cost per chat session and synthesis batch.
 
@@ -209,18 +210,19 @@ Route: build_route tool creates ordered experience sequences
 
 **Direct mapping to Solo Compass components:**
 
-| Google UI Type | Solo Compass Equivalent | Status |
-|---------------|------------------------|--------|
-| Place Detail | `ChatCard` | ✅ Exists |
-| Inline Map + Route | `RouteProposal` | ✅ Exists |
-| Inline Maps | — | ❌ Missing: mini-map embed in chat |
-| Inline Map Detail | — | ❌ Missing: rich photo/imagery card |
+| Google UI Type     | Solo Compass Equivalent | Status                              |
+| ------------------ | ----------------------- | ----------------------------------- |
+| Place Detail       | `ChatCard`              | ✅ Exists                           |
+| Inline Map + Route | `RouteProposal`         | ✅ Exists                           |
+| Inline Maps        | —                       | ❌ Missing: mini-map embed in chat  |
+| Inline Map Detail  | —                       | ❌ Missing: rich photo/imagery card |
 
 ### 3.3 Improvement: Display-Type-as-Tool-Parameter
 
 Currently, the chat system infers card type from content structure. Google's approach is better: **let the LLM explicitly choose which visual component to render** via a tool parameter.
 
 Current (implicit):
+
 ```swift
 // GuideAgent returns JSON, ChatSheet pattern-matches to pick view
 if response.contains("route") { show RouteProposal }
@@ -228,6 +230,7 @@ else if response.contains("experience") { show ChatCard }
 ```
 
 Proposed (explicit):
+
 ```swift
 // Add display_type to tool call schema
 tools: [
@@ -271,6 +274,7 @@ Use case: "show me cafes near here" → inline mini-map with 3-5 pins + tappable
 Current route generation: LLM orders experiences by proximity + time-of-day heuristics. No retrieval component.
 
 Proposed enhancement (Phase 2):
+
 1. **Retrieve** similar routes from user history or curated travel blogs
 2. **Evaluate** trajectory suggestions with AI agent (conflict detection)
 3. **Evolve** iteratively based on user feedback ("swap lunch spot", "add a break")
@@ -290,12 +294,12 @@ Start simple: when user requests a route, retrieve the 3 most similar past route
 
 **Solo Compass ranking evolution roadmap:**
 
-| Stage | Data Scale | Features | Approach | When |
-|-------|-----------|----------|----------|------|
-| **Current** | ~500 seed experiences | solo_score + category + time-of-day | Rule-based formula | Now |
-| **Stage 1** | 5K+ experiences | + user taps/saves/route-adds | Lightweight GBDT (on-device or edge) | 10K MAU |
-| **Stage 2** | 50K+ interactions | + dwell time, chat queries, weather | Feature expansion, offline model | 50K MAU |
-| **Stage 3** | 500K+ interactions | + collaborative filtering, real-time signals | Online scoring, personalized | 100K MAU |
+| Stage       | Data Scale            | Features                                     | Approach                             | When     |
+| ----------- | --------------------- | -------------------------------------------- | ------------------------------------ | -------- |
+| **Current** | ~500 seed experiences | solo_score + category + time-of-day          | Rule-based formula                   | Now      |
+| **Stage 1** | 5K+ experiences       | + user taps/saves/route-adds                 | Lightweight GBDT (on-device or edge) | 10K MAU  |
+| **Stage 2** | 50K+ interactions     | + dwell time, chat queries, weather          | Feature expansion, offline model     | 50K MAU  |
+| **Stage 3** | 500K+ interactions    | + collaborative filtering, real-time signals | Online scoring, personalized         | 100K MAU |
 
 **Key insight:** Even Stage 1 with 50K training examples delivered +13% bookings for Airbnb. Solo Compass can start collecting interaction signals NOW (tap, save, route-add, dismiss) for future training data, even while using rule-based ranking.
 
@@ -311,13 +315,13 @@ ExperienceRepository.writeExploreCache → SwiftData (geohash-indexed)
 
 #### Proposed: Differential TTL by Field Volatility
 
-| Field Group | Volatility | Suggested TTL | Rationale |
-|-------------|-----------|---------------|-----------|
-| Location, category, name | Very low | 30 days | Rarely changes |
-| Description, solo_score | Low | 14 days | AI synthesis stable |
-| Opening hours, pricing | Medium | 3 days | Business updates weekly |
-| Foot traffic, "open now" | High | 15 minutes | Real-time signal |
-| Weather-dependent flags | High | 1 hour | Weather changes hourly |
+| Field Group              | Volatility | Suggested TTL | Rationale               |
+| ------------------------ | ---------- | ------------- | ----------------------- |
+| Location, category, name | Very low   | 30 days       | Rarely changes          |
+| Description, solo_score  | Low        | 14 days       | AI synthesis stable     |
+| Opening hours, pricing   | Medium     | 3 days        | Business updates weekly |
+| Foot traffic, "open now" | High       | 15 minutes    | Real-time signal        |
+| Weather-dependent flags  | High       | 1 hour        | Weather changes hourly  |
 
 **Implementation:** Add `fieldFreshness: [String: Date]` to cached Experience, refresh only stale field groups instead of full re-synthesis.
 
@@ -326,6 +330,7 @@ ExperienceRepository.writeExploreCache → SwiftData (geohash-indexed)
 **Open question from research:** How to rank when a user arrives in a new city with no interaction history?
 
 **Proposed approach (content-based, no user history needed):**
+
 1. Solo Score (existing) — AI-computed relevance for solo travelers
 2. Time-of-day match — `bestTimes` vs current hour
 3. Distance decay — closer experiences ranked higher
@@ -340,15 +345,15 @@ Currently: no systematic measurement of AI synthesis quality or user satisfactio
 
 Proposed instrumentation:
 
-| Metric | Collection Point | Purpose |
-|--------|-----------------|---------|
-| Synthesis success rate | AIService completion handler | % of explore taps that produce ≥3 experiences |
-| Token cost per session | AIService (log input/output tokens) | Cost optimization baseline |
-| Chat turn count | ChatOrchestrator | Conversation depth before action |
-| Tool call distribution | VoiceAgentOrchestrator | Which tools users trigger most |
-| Experience tap-through rate | MapViewModel pin tap → detail open | Quality signal for ranking |
-| Route adoption rate | RouteStore | % of AI-generated routes that get started |
-| Stale data reports | Detail view "report issue" button | Data freshness signal |
+| Metric                      | Collection Point                    | Purpose                                       |
+| --------------------------- | ----------------------------------- | --------------------------------------------- |
+| Synthesis success rate      | AIService completion handler        | % of explore taps that produce ≥3 experiences |
+| Token cost per session      | AIService (log input/output tokens) | Cost optimization baseline                    |
+| Chat turn count             | ChatOrchestrator                    | Conversation depth before action              |
+| Tool call distribution      | VoiceAgentOrchestrator              | Which tools users trigger most                |
+| Experience tap-through rate | MapViewModel pin tap → detail open  | Quality signal for ranking                    |
+| Route adoption rate         | RouteStore                          | % of AI-generated routes that get started     |
+| Stale data reports          | Detail view "report issue" button   | Data freshness signal                         |
 
 **Implementation:** Sentry breadcrumbs (already integrated) for event tracking; aggregate in Supabase analytics table.
 
@@ -356,19 +361,19 @@ Proposed instrumentation:
 
 ## 5. Priority Matrix
 
-| # | Improvement | Effort | Impact | Priority |
-|---|-------------|--------|--------|----------|
-| 1 | Activate TS source adapters (Wikivoyage + Google Places) | 3 days | HIGH — doubles data richness | P0 |
-| 2 | Display-type-as-tool-parameter in chat | 2 days | MEDIUM — composable chat UX | P1 |
-| 3 | Prompt caching (Anthropic cache hints) | 1 day | MEDIUM — ~50% cost reduction | P1 |
-| 4 | Multi-model routing formalization | 2 days | MEDIUM — cost + quality optimization | P1 |
-| 5 | Interaction signal collection (taps, saves, dismisses) | 2 days | HIGH — future ranking foundation | P1 |
-| 6 | AI observability instrumentation | 1 day | HIGH — can't improve what you can't measure | P1 |
-| 7 | Differential TTL caching | 3 days | MEDIUM — freshness + performance | P2 |
-| 8 | ChatMapEmbed inline component | 2 days | LOW — nice UX enhancement | P2 |
-| 9 | RAG-augmented route planning | 5 days | MEDIUM — better routes | P2 |
-| 10 | GBDT ranking (Stage 1) | 2 weeks | HIGH — but needs interaction data first | P3 |
-| 11 | Baidu/Tencent Maps research | 1 day | LOW — Amap sufficient for now | P3 |
+| #   | Improvement                                              | Effort  | Impact                                      | Priority |
+| --- | -------------------------------------------------------- | ------- | ------------------------------------------- | -------- |
+| 1   | Activate TS source adapters (Wikivoyage + Google Places) | 3 days  | HIGH — doubles data richness                | P0       |
+| 2   | Display-type-as-tool-parameter in chat                   | 2 days  | MEDIUM — composable chat UX                 | P1       |
+| 3   | Prompt caching (Anthropic cache hints)                   | 1 day   | MEDIUM — ~50% cost reduction                | P1       |
+| 4   | Multi-model routing formalization                        | 2 days  | MEDIUM — cost + quality optimization        | P1       |
+| 5   | Interaction signal collection (taps, saves, dismisses)   | 2 days  | HIGH — future ranking foundation            | P1       |
+| 6   | AI observability instrumentation                         | 1 day   | HIGH — can't improve what you can't measure | P1       |
+| 7   | Differential TTL caching                                 | 3 days  | MEDIUM — freshness + performance            | P2       |
+| 8   | ChatMapEmbed inline component                            | 2 days  | LOW — nice UX enhancement                   | P2       |
+| 9   | RAG-augmented route planning                             | 5 days  | MEDIUM — better routes                      | P2       |
+| 10  | GBDT ranking (Stage 1)                                   | 2 weeks | HIGH — but needs interaction data first     | P3       |
+| 11  | Baidu/Tencent Maps research                              | 1 day   | LOW — Amap sufficient for now               | P3       |
 
 ---
 
@@ -376,13 +381,13 @@ Proposed instrumentation:
 
 ### Confirmed (adversarially verified, HIGH confidence)
 
-| # | Source | Finding | Vote |
-|---|--------|---------|------|
-| 1 | [arxiv.org/abs/2509.13487](https://arxiv.org/abs/2509.13487) | Hybrid LLM pipeline (JSON intermediates) 78.5% success; DeepSeek leads at 93.3% | 6-0 |
-| 2 | [Zhong Lun Law Firm / Lexology](https://www.lexology.com/library/detail.aspx?g=9f755dba-12a6-47b5-8b47-c16200cb6d58) | China CNDM prohibition + data residency mandatory | 6-0 |
-| 3 | [Google Maps Agentic UI Toolkit](https://developers.google.com/maps/ai/agentic-ui-toolkit) | 4 inline UI types, display-type-as-parameter pattern | 7-0 |
-| 4 | [arxiv.org/abs/2504.08694](https://arxiv.org/abs/2504.08694) | EvoRAG / TP-RAG benchmark for trajectory-augmented travel planning (EMNLP 2025) | 9-0 |
-| 5 | [Airbnb Engineering Blog](https://medium.com/airbnb-engineering/machine-learning-powered-search-ranking-of-airbnb-experiences-110b4b1a0789) | 4-stage ranking evolution from 50K GBDT to 2M+ online scoring | 3-0 |
+| #   | Source                                                                                                                                      | Finding                                                                         | Vote |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---- |
+| 1   | [arxiv.org/abs/2509.13487](https://arxiv.org/abs/2509.13487)                                                                                | Hybrid LLM pipeline (JSON intermediates) 78.5% success; DeepSeek leads at 93.3% | 6-0  |
+| 2   | [Zhong Lun Law Firm / Lexology](https://www.lexology.com/library/detail.aspx?g=9f755dba-12a6-47b5-8b47-c16200cb6d58)                        | China CNDM prohibition + data residency mandatory                               | 6-0  |
+| 3   | [Google Maps Agentic UI Toolkit](https://developers.google.com/maps/ai/agentic-ui-toolkit)                                                  | 4 inline UI types, display-type-as-parameter pattern                            | 7-0  |
+| 4   | [arxiv.org/abs/2504.08694](https://arxiv.org/abs/2504.08694)                                                                                | EvoRAG / TP-RAG benchmark for trajectory-augmented travel planning (EMNLP 2025) | 9-0  |
+| 5   | [Airbnb Engineering Blog](https://medium.com/airbnb-engineering/machine-learning-powered-search-ranking-of-airbnb-experiences-110b4b1a0789) | 4-stage ranking evolution from 50K GBDT to 2M+ online scoring                   | 3-0  |
 
 ### Additional Sources Consulted (22 total, 5 search angles)
 

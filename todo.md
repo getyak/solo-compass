@@ -67,11 +67,11 @@
 
 ## Summary
 
-| Priority | Count | Effort (Est.) |
-|----------|-------|---------------|
-| P0 Critical | 4 | 2-3 days |
-| P1 High | 7 | 3-5 days |
-| P2 Medium | 9 | 5-7 days |
-| P3 Low | 10 | 5-7 days |
-| Arch | 4 | 3-4 days |
-| **Total** | **34** | **~18-26 days** |
+| Priority    | Count  | Effort (Est.)   |
+| ----------- | ------ | --------------- |
+| P0 Critical | 4      | 2-3 days        |
+| P1 High     | 7      | 3-5 days        |
+| P2 Medium   | 9      | 5-7 days        |
+| P3 Low      | 10     | 5-7 days        |
+| Arch        | 4      | 3-4 days        |
+| **Total**   | **34** | **~18-26 days** |

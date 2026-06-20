@@ -11,10 +11,10 @@
 
 用户在深圳 explore 时数据极少。已实测根因：
 
-| 城市 | 同查询 3km 内 OSM/Overpass POI 数 |
-| --- | --- |
-| 深圳福田 CBD | **260** |
-| 清迈古城 | **2244**（8.6×） |
+| 城市         | 同查询 3km 内 OSM/Overpass POI 数 |
+| ------------ | --------------------------------- |
+| 深圳福田 CBD | **260**                           |
+| 清迈古城     | **2244**（8.6×）                  |
 
 - AI 链路（DeepSeek）正常、API key 就位、**没有走 skeleton**——证明这不是 key 问题。
 - 瓶颈在**数据源头**：OSM 在中国大陆覆盖稀疏（大陆主流是高德/腾讯，OSM 几乎无人维护）。
@@ -33,6 +33,7 @@ explore 坐标
 ```
 
 理由：
+
 1. **合规隔离**：高德禁止数据落库（见 §3.2），只有中国坐标才需要承担这个约束；海外维持 OSM（ODbL，可自由落库）不受影响。
 2. **复用现有抽象**：项目已有多源 POI 管线——`OverpassService` / `MapKitPOIService` / `FoursquareService` 都返回同构的 `OverpassService.POI`，由 `EnrichmentAgent`（`Services/Agents/EnrichmentAgent.swift:83`）用 `FoursquareService.enrichMerge(base:enrichment:)` 按坐标格子合并。**高德只需新增一个同构 Service，插进同一个合并器**，不动管线骨架。
 3. **零成本起步**：高德个人实名认证即可用「周边搜索 v5/place/around」，**搜索类免费 5000 次/月**，超额接口报错不自动扣费。
@@ -54,11 +55,11 @@ explore 坐标
 
 应对（分层处理）：
 
-| 数据 | 能否落库 | 处理 |
-| --- | --- | --- |
-| 高德原始 POI 字段（名称/坐标/营业时间/评分） | ❌ 禁止 | 仅**会话级内存缓存**（`AmapPOIService` 内部 NSCache，进程退出即清），绝不写 SwiftData |
-| AI 合成后的 `Experience`（你的衍生文案 + soloScore） | ✅ 允许 | 这是 SoloCompass 自己生成的内容，可正常落库。**但 sources attribution 必须标注 © AutoNavi/高德**，且不得回填高德原始结构化字段（如原始营业时间表）作为可分发数据 |
-| 高德 POI ID | ✅ 允许（仅 ID） | 落库只存 ID + 你的衍生内容，需要刷新时实时回查 |
+| 数据                                                 | 能否落库         | 处理                                                                                                                                                             |
+| ---------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 高德原始 POI 字段（名称/坐标/营业时间/评分）         | ❌ 禁止          | 仅**会话级内存缓存**（`AmapPOIService` 内部 NSCache，进程退出即清），绝不写 SwiftData                                                                            |
+| AI 合成后的 `Experience`（你的衍生文案 + soloScore） | ✅ 允许          | 这是 SoloCompass 自己生成的内容，可正常落库。**但 sources attribution 必须标注 © AutoNavi/高德**，且不得回填高德原始结构化字段（如原始营业时间表）作为可分发数据 |
+| 高德 POI ID                                          | ✅ 允许（仅 ID） | 落库只存 ID + 你的衍生内容，需要刷新时实时回查                                                                                                                   |
 
 **关键改动**：`EnrichmentAgent` 在中国分支必须**跳过 explore 落库缓存**（`OverpassService` 的 geohash 缓存路径），改走"实时查 + 内存缓存"。
 
@@ -70,27 +71,27 @@ explore 坐标
 
 ## 4. 实现蓝图（文件级）
 
-| 文件 | 改动 | 说明 |
-| --- | --- | --- |
-| `Services/AmapPOIService.swift` | **新建** | 同构 `fetchPOIs(near:radiusMeters:category:) async throws -> [OverpassService.POI]`；内部做 WGS84↔GCJ-02 转换；NSCache 会话缓存；ExperienceCategory → 高德 POI typecode 映射；范本参考 `Services/MapKitPOIService.swift:81`（`poi(from:)` 把外部源塞回 `OverpassService.POI`） |
-| `Services/Geo/CoordinateConverter.swift` | **新建** | `wgs84ToGcj02` / `gcj02ToWgs84`（开源算法）；纯函数易测；附 `isInsideChinaMainland(_:)` 判定（国测局通用的国界粗包围盒，境外直接跳过转换） |
-| `Models/Secrets.swift` + `Config/GeneratedSecrets.swift` | 加字段 | `resolvedAmapKey`（UserDefaults > Generated > env `AMAP_API_KEY`） |
-| `Services/Agents/EnrichmentAgent.swift` | 改 `enrich(at:)`（L83） | 开头按 `CoordinateConverter.isInsideChinaMainland(coordinate)` 分流：中国 → `amapService.fetchPOIs` 作 base + 跳过落库；境外 → 维持 `overpassService` |
-| `ViewModels/MapViewModel.swift` | 注入 | 构造 `AmapPOIService` 并传入 `EnrichmentAgent`；`exploreNearby*`（L1713 / L2186）的旧路径同样加中国分流 |
-| `Resources/*.lproj/Localizable.strings` | 加键 | 高德 attribution、错误文案 |
-| `Tests/AmapPOIServiceTests.swift`、`CoordinateConverterTests.swift` | 新建 | 转换往返误差 < 1m；深圳坐标判定为境内；境外坐标不转换；category 映射；空 key 降级 |
+| 文件                                                                | 改动                    | 说明                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Services/AmapPOIService.swift`                                     | **新建**                | 同构 `fetchPOIs(near:radiusMeters:category:) async throws -> [OverpassService.POI]`；内部做 WGS84↔GCJ-02 转换；NSCache 会话缓存；ExperienceCategory → 高德 POI typecode 映射；范本参考 `Services/MapKitPOIService.swift:81`（`poi(from:)` 把外部源塞回 `OverpassService.POI`） |
+| `Services/Geo/CoordinateConverter.swift`                            | **新建**                | `wgs84ToGcj02` / `gcj02ToWgs84`（开源算法）；纯函数易测；附 `isInsideChinaMainland(_:)` 判定（国测局通用的国界粗包围盒，境外直接跳过转换）                                                                                                                                     |
+| `Models/Secrets.swift` + `Config/GeneratedSecrets.swift`            | 加字段                  | `resolvedAmapKey`（UserDefaults > Generated > env `AMAP_API_KEY`）                                                                                                                                                                                                             |
+| `Services/Agents/EnrichmentAgent.swift`                             | 改 `enrich(at:)`（L83） | 开头按 `CoordinateConverter.isInsideChinaMainland(coordinate)` 分流：中国 → `amapService.fetchPOIs` 作 base + 跳过落库；境外 → 维持 `overpassService`                                                                                                                          |
+| `ViewModels/MapViewModel.swift`                                     | 注入                    | 构造 `AmapPOIService` 并传入 `EnrichmentAgent`；`exploreNearby*`（L1713 / L2186）的旧路径同样加中国分流                                                                                                                                                                        |
+| `Resources/*.lproj/Localizable.strings`                             | 加键                    | 高德 attribution、错误文案                                                                                                                                                                                                                                                     |
+| `Tests/AmapPOIServiceTests.swift`、`CoordinateConverterTests.swift` | 新建                    | 转换往返误差 < 1m；深圳坐标判定为境内；境外坐标不转换；category 映射；空 key 降级                                                                                                                                                                                              |
 
 **新建 .swift 后必须 `cd apps/ios && xcodegen`**（项目惯例：新测试文件不跑 xcodegen 会静默执行 0 用例假绿）。
 
 ## 5. 风险与权衡
 
-| 风险 | 缓解 |
-| --- | --- |
-| 高德条款禁止落库，与现有缓存架构冲突 | 中国分支强制走内存缓存；落库的只有自生成 `Experience` + POI ID（见 §3.2） |
-| GCJ-02→WGS84 无官方反向接口，有精度损失 | 用成熟开源逆变换，米级精度对 explore 足够；坐标转换全封装在 Service 边界 |
-| 5000 次/月 免费额度可能被真实用户量打爆 | 会话内存缓存 + 同 geohash 去重；接近额度时降级 Overpass；规模化再上企业认证 |
-| 香港/澳门/台湾坐标系边界（港澳台用 WGS84，不偏移） | `isInsideChinaMainland` 只圈**大陆**，港澳台走境外 Overpass 分支 |
-| 双向坐标转换累积误差 | 同一 explore 内只转一轮（进 WGS84→GCJ 查，出 GCJ→WGS84 存），不反复转换 |
+| 风险                                               | 缓解                                                                        |
+| -------------------------------------------------- | --------------------------------------------------------------------------- |
+| 高德条款禁止落库，与现有缓存架构冲突               | 中国分支强制走内存缓存；落库的只有自生成 `Experience` + POI ID（见 §3.2）   |
+| GCJ-02→WGS84 无官方反向接口，有精度损失            | 用成熟开源逆变换，米级精度对 explore 足够；坐标转换全封装在 Service 边界    |
+| 5000 次/月 免费额度可能被真实用户量打爆            | 会话内存缓存 + 同 geohash 去重；接近额度时降级 Overpass；规模化再上企业认证 |
+| 香港/澳门/台湾坐标系边界（港澳台用 WGS84，不偏移） | `isInsideChinaMainland` 只圈**大陆**，港澳台走境外 Overpass 分支            |
+| 双向坐标转换累积误差                               | 同一 explore 内只转一轮（进 WGS84→GCJ 查，出 GCJ→WGS84 存），不反复转换     |
 
 ## 6. 验收
 
