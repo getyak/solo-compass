@@ -196,7 +196,23 @@ public enum SoloCompassSchemaV1_7: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → … → v1.7. Each change is additive (an
+/// Schema v1.8 — adds the chat-card / reasoning-summary persistence tables
+/// `ChatCardRecord` and `ChatReasoningRecord` so reopened chats restore the
+/// inline place/route cards and collapsed reasoning chips. Additive lightweight
+/// migration — existing stores gain two empty tables, no data is rewritten.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_8: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 8, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_7.models + [
+            ChatCardRecord.self,
+            ChatReasoningRecord.self,
+        ]
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → … → v1.8. Each change is additive (an
 /// optional `Data?` column, new @Model tables) or a NOT NULL relaxation, so every
 /// hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
@@ -210,6 +226,7 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             SoloCompassSchemaV1_5.self,
             SoloCompassSchemaV1_6.self,
             SoloCompassSchemaV1_7.self,
+            SoloCompassSchemaV1_8.self,
         ]
     }
 
@@ -242,6 +259,10 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_6.self,
                 toVersion: SoloCompassSchemaV1_7.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_7.self,
+                toVersion: SoloCompassSchemaV1_8.self
             ),
         ]
     }
@@ -300,6 +321,8 @@ public enum SoloCompassModelContainer {
                 WeatherCacheRecord.self,
                 ChatSessionRecord.self,
                 ChatMessageRecord.self,
+                ChatCardRecord.self,
+                ChatReasoningRecord.self,
                 FriendRequestRecord.self,
                 FriendshipRecord.self,
                 TravelerNoteRecord.self,
@@ -356,6 +379,8 @@ public enum SoloCompassModelContainer {
                 WeatherCacheRecord.self,
                 ChatSessionRecord.self,
                 ChatMessageRecord.self,
+                ChatCardRecord.self,
+                ChatReasoningRecord.self,
                 FriendRequestRecord.self,
                 FriendshipRecord.self,
                 TravelerNoteRecord.self,
