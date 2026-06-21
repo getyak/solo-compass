@@ -1569,6 +1569,9 @@
 "terms.links.tos" = "Terms of Service";
 "terms.button.accept" = "I agree, continue";
 "terms.button.decline" = "Not now";
+"terms.declined.title" = "Consent required to continue";
+"terms.declined.body" = "Solo Compass cannot show the map, fetch nearby places, or use AI without your agreement to the Privacy Policy and Terms. Nothing has been collected. Tap below to review again.";
+"terms.declined.review" = "Review again";
 "nearby.chip.closingNow" = "Closing now";
 
 /* US-058 — RouteCard walked-by row (CompareCanvas A-003) */

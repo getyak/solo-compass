@@ -129,11 +129,19 @@ struct SoloCompassApp: App {
     private let supabaseClient = SupabaseClient.shared
     private let themeService = ThemeService.shared
 
-    /// First-launch Terms / Privacy gate. Reads UserDefaults at init so the
-    /// gate fires synchronously before any data-touching code runs in body.
-    /// Set to true via TermsConsentSheet.onAccept — same UserDefaults key
-    /// the static `hasAccepted` reads, so the cover dismisses immediately.
-    @State private var showingTermsSheet: Bool = !TermsConsentSheet.hasAccepted
+    /// First-launch gate state machine. Terms then Onboarding were previously
+    /// driven by two separate `.fullScreenCover` modifiers on different views
+    /// in the tree — SwiftUI silently drops one when stacked, which let a
+    /// fresh install skip onboarding entirely. A single enum-driven cover
+    /// keeps the sequence intact and transitions Terms → Onboarding without
+    /// a dismiss/re-present race.
+    private enum FirstLaunchCover: Identifiable {
+        case terms
+        case onboarding
+        var id: Int { self == .terms ? 0 : 1 }
+    }
+
+    @State private var firstLaunchCover: FirstLaunchCover? = !TermsConsentSheet.hasAccepted ? .terms : nil
 
     var body: some Scene {
         WindowGroup {
@@ -158,103 +166,140 @@ struct SoloCompassApp: App {
                     // so CompassMapView's existing observer handles them.
                     NotificationService.shared.handleURL(url)
                 }
-                .fullScreenCover(isPresented: $showingTermsSheet) {
+                .fullScreenCover(item: $firstLaunchCover) { cover in
                     // Terms + data-use disclosure — App Store 5.1.1 / PIPL /
                     // GDPR require affirmative consent before any data is
                     // collected. fullScreenCover (not sheet) so the user
                     // can't swipe-dismiss; TermsConsentSheet also calls
                     // .interactiveDismissDisabled() for belt-and-suspenders.
-                    TermsConsentSheet(
-                        onAccept: {
-                            showingTermsSheet = false
-                            // First user-initiated tap is the right moment to
-                            // ask for push permission — the iOS prompt now has
-                            // context ("I just said yes to Solo Compass, of
-                            // course it wants to notify me"). PushTokenService
-                            // is idempotent so a re-grant on later launches
-                            // is a no-op. Without this hook, push was never
-                            // requested cold-start and the user discovered it
-                            // only after opening Friends or Settings.
-                            Task { await PushTokenService.shared.requestAuthorizationAndRegister() }
-                        },
-                        onDecline: {
-                            // Per Apple HIG, declining is allowed — the app
-                            // degrades to view-only / no-data-out mode. For
-                            // now we just dismiss + leave the bit unset, so
-                            // the gate re-fires next launch. A future task
-                            // can route into a true "no data" mode.
-                            showingTermsSheet = false
+                    // Onboarding lives on the same cover so SwiftUI can't
+                    // arbitrate two stacked fullScreenCovers and drop one.
+                    switch cover {
+                    case .terms:
+                        TermsConsentSheet(
+                            onAccept: {
+                                // Transition straight to onboarding (or finish
+                                // the gate if already done) instead of letting
+                                // the cover fully dismiss and re-present —
+                                // that race is exactly what hid onboarding on
+                                // fresh installs.
+                                firstLaunchCover = preferences.hasCompletedOnboarding ? nil : .onboarding
+                                // First user-initiated tap is the right moment to
+                                // ask for push permission — the iOS prompt now has
+                                // context ("I just said yes to Solo Compass, of
+                                // course it wants to notify me"). PushTokenService
+                                // is idempotent so a re-grant on later launches
+                                // is a no-op. Without this hook, push was never
+                                // requested cold-start and the user discovered it
+                                // only after opening Friends or Settings.
+                                Task { await PushTokenService.shared.requestAuthorizationAndRegister() }
+                            },
+                            onDecline: {
+                                // Per Apple 5.1.1 / PIPL / GDPR: refusal must NOT
+                                // grant silent access. Keep the cover up — the
+                                // sheet itself swaps to a permanent disabled-state
+                                // screen with a "Review again" button. The
+                                // `acceptedKey` UserDefaults bit stays unset, so
+                                // the gate also re-fires next launch.
+                            }
+                        )
+                    case .onboarding:
+                        OnboardingView {
+                            // OnboardingView sets preferences.hasCompletedOnboarding
+                            // internally via preferences.completeOnboarding().
+                            firstLaunchCover = nil
                         }
-                    )
+                        .environment(locationService)
+                        .environment(preferences)
+                    }
                 }
                 .onAppear {
-                    // TipKit bootstrap — registers the tip database + bumps
-                    // the cold-launch counter that `FilterBarTip.rules` reads.
-                    // Idempotent / non-throwing; tips just no-op on failure.
-                    SoloCompassTips.bootstrap()
-
-                    // Location wiring stays inline: it is cheap, must happen
-                    // before any region monitoring fires, and requestPermission()
-                    // already hands off to the system asynchronously.
-                    locationService.preferences = preferences
-                    locationService.notificationService = notificationService
-                    locationService.requestPermission()
-
-                    // US-020: cold-start TTI must not block on a serial main-thread
-                    // init chain. Each piece of bootstrap below is independent —
-                    // there is no ordering dependency between pruning check-ins,
-                    // wiring the repository, importing seed routes, loading the
-                    // user directory, or refreshing the subscription entitlement.
-                    // Dispatching each into its own Task lets the WindowGroup body
-                    // complete (and the map render) without waiting for any of them
-                    // to finish, while still running them on the main actor where
-                    // the @MainActor services require it.
-
-                    // Auto-clear stale pending check-ins.
-                    Task { @MainActor in preferences.pruneStaleCheckIns() }
-
-                    // Wire SwiftData mirroring for completion/favorite mutations
-                    // and run the one-shot UserDefaults → SwiftData migration on
-                    // first launch of v1.1.
-                    Task { @MainActor in
-                        preferences.attachRepository(experienceService.repo)
+                    // If terms were accepted on a previous launch but the
+                    // 4-step onboarding never completed (user killed the app
+                    // mid-flow), surface onboarding now. The Terms-accept
+                    // branch in the cover handles the same case for first
+                    // launches; this covers warm re-entry.
+                    if firstLaunchCover == nil
+                        && TermsConsentSheet.hasAccepted
+                        && !preferences.hasCompletedOnboarding {
+                        firstLaunchCover = .onboarding
                     }
 
-                    Task { await notificationService.checkAuthorizationStatus() }
-
-                    // US-021: on a warm launch, re-register for remote push only
-                    // when the user already granted permission. This refreshes a
-                    // possibly-rotated APNs token without showing a prompt. The
-                    // permission *request* itself happens later, from a social
-                    // surface — never at cold start.
-                    Task { await PushTokenService.shared.registerIfAuthorized() }
-
-                    // Refresh subscription entitlement from StoreKit on launch.
-                    // Pre-launch UI already reflects the Keychain-cached value
-                    // so this just confirms / corrects it once the network is up.
-                    Task {
-                        await subscriptionService.loadProducts()
-                        await subscriptionService.refreshEntitlement()
-                    }
-                    // Bootstrap anonymous Supabase session (Epic E US-028).
-                    // No-op when FF_BACKEND_SYNC is off.
-                    Task { await DeviceIdentityService.shared.bootstrap() }
-                    // Start the outbox sync timer (Epic E US-029).
-                    // Idempotent across re-renders.
-                    SyncService.shared.start()
-
-                    // Load seed user fixtures into the in-memory UserDirectory.
-                    Task { @MainActor in UserDirectory.shared.loadIfNeeded() }
-
-                    // Seed RouteStore from bundled `seed_routes.json` on first
-                    // launch (no-op once any route exists). Routes referencing
-                    // unknown experienceIds are skipped with an os_log warning.
-                    Task { @MainActor in
-                        let knownExperienceIds = Set(experienceService.allExperiences.map(\.id))
-                        routeStore.importSeedIfNeeded(knownExperienceIds: knownExperienceIds)
-                    }
+                    runBootstrapIfConsented()
+                }
+                .onChange(of: firstLaunchCover) { _, cover in
+                    // Bridge consent → bootstrap. .onAppear fires once when
+                    // CompassMapView first enters the hierarchy, which on a
+                    // fresh install is BEFORE the user has tapped Accept; it
+                    // does NOT fire again when the cover dismisses. Without
+                    // this hook the user accepts → cover closes → map sits
+                    // dark until next cold launch. Fires when the cover state
+                    // settles to nil (terms accepted + onboarding done, or
+                    // onboarding skipped). Idempotent: each service inside
+                    // runBootstrapIfConsented re-entry-safe.
+                    if cover == nil { runBootstrapIfConsented() }
                 }
         }
         .modelContainer(SoloCompassModelContainer.shared)
+    }
+
+    /// Cold-start bootstrap, deferred until after the Terms gate clears.
+    /// Touches location, push, AI cache, Supabase session, outbox sync, seed
+    /// loaders — none of which may run before affirmative consent (App Store
+    /// 5.1.1 / PIPL / GDPR). Idempotent across re-entry — each Task wraps a
+    /// service that is itself idempotent.
+    @MainActor
+    private func runBootstrapIfConsented() {
+        // Block bootstrap while EITHER cover (terms or onboarding) is up.
+        // Terms is the legal gate; onboarding is the UX gate but doesn't
+        // expose any data-out surface, so we only hard-block on terms.
+        guard TermsConsentSheet.hasAccepted else { return }
+
+        // TipKit bootstrap — registers the tip database + bumps the
+        // cold-launch counter that `FilterBarTip.rules` reads. Idempotent
+        // / non-throwing; tips just no-op on failure.
+        SoloCompassTips.bootstrap()
+
+        // Location wiring stays inline: it is cheap, must happen before any
+        // region monitoring fires, and requestPermission() already hands off
+        // to the system asynchronously.
+        locationService.preferences = preferences
+        locationService.notificationService = notificationService
+        locationService.requestPermission()
+
+        // US-020: cold-start TTI must not block on a serial main-thread
+        // init chain. Each piece of bootstrap below is independent — no
+        // ordering dependency between pruning check-ins, wiring the
+        // repository, importing seed routes, loading the user directory,
+        // or refreshing the subscription entitlement. Dispatching each
+        // into its own Task lets the WindowGroup body complete (and the
+        // map render) without waiting on any of them.
+
+        Task { @MainActor in preferences.pruneStaleCheckIns() }
+
+        Task { @MainActor in
+            preferences.attachRepository(experienceService.repo)
+        }
+
+        Task { await notificationService.checkAuthorizationStatus() }
+
+        // US-021: on a warm launch, re-register for remote push only when
+        // the user already granted permission. Refreshes a possibly-rotated
+        // APNs token without showing a prompt.
+        Task { await PushTokenService.shared.registerIfAuthorized() }
+
+        Task {
+            await subscriptionService.loadProducts()
+            await subscriptionService.refreshEntitlement()
+        }
+        Task { await DeviceIdentityService.shared.bootstrap() }
+        SyncService.shared.start()
+
+        Task { @MainActor in UserDirectory.shared.loadIfNeeded() }
+
+        Task { @MainActor in
+            let knownExperienceIds = Set(experienceService.allExperiences.map(\.id))
+            routeStore.importSeedIfNeeded(knownExperienceIds: knownExperienceIds)
+        }
     }
 }

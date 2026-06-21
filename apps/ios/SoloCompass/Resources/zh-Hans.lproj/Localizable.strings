@@ -1509,6 +1509,9 @@
 "terms.links.tos" = "用户协议";
 "terms.button.accept" = "同意并继续";
 "terms.button.decline" = "暂不";
+"terms.declined.title" = "需要同意后才能继续";
+"terms.declined.body" = "未获得你对《隐私政策》和《用户协议》的同意前，Solo Compass 无法展示地图、获取附近地点或调用 AI。我们尚未收集任何数据。点击下方按钮可重新查看。";
+"terms.declined.review" = "重新查看";
 "nearby.chip.closingNow" = "即将关闭";
 
 /* Solo score breakdown */

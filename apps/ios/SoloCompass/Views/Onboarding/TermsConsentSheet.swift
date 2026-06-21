@@ -25,12 +25,29 @@ public struct TermsConsentSheet: View {
         UserDefaults.standard.bool(forKey: acceptedKey)
     }
 
+    /// Local refused-state. When true we render a permanent disabled-state
+    /// screen instead of the consent form, keeping the fullScreenCover up so
+    /// no map / AI / Supabase bootstrap runs (App Store 5.1.1 / PIPL: refusal
+    /// must NOT silently grant access). User can tap "Review again" to return.
+    @State private var declined: Bool = false
+
     public init(onAccept: @escaping () -> Void, onDecline: @escaping () -> Void = {}) {
         self.onAccept = onAccept
         self.onDecline = onDecline
     }
 
     public var body: some View {
+        Group {
+            if declined {
+                declinedScreen
+            } else {
+                consentScreen
+            }
+        }
+        .interactiveDismissDisabled() // Force user to choose; PIPL requires affirmative consent.
+    }
+
+    private var consentScreen: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -84,7 +101,10 @@ public struct TermsConsentSheet: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
 
-                Button(role: .cancel, action: onDecline) {
+                Button(role: .cancel) {
+                    declined = true
+                    onDecline()
+                } label: {
                     Text(NSLocalizedString("terms.button.decline", comment: "Decline"))
                         .font(.subheadline)
                         .frame(maxWidth: .infinity)
@@ -94,7 +114,35 @@ public struct TermsConsentSheet: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
         }
-        .interactiveDismissDisabled() // Force user to choose; PIPL requires affirmative consent.
+    }
+
+    private var declinedScreen: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            Image(systemName: "hand.raised.fill")
+                .font(.system(size: 48, weight: .regular))
+                .foregroundStyle(.secondary)
+            Text(NSLocalizedString("terms.declined.title", comment: "Refused gate title"))
+                .font(.title3.weight(.semibold))
+                .multilineTextAlignment(.center)
+            Text(NSLocalizedString("terms.declined.body", comment: "Refused gate body"))
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Spacer()
+            Button {
+                declined = false
+            } label: {
+                Text(NSLocalizedString("terms.declined.review", comment: "Return to consent"))
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
     }
 
     @ViewBuilder

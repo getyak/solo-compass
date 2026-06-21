@@ -504,16 +504,14 @@ struct CompassMapContentView: View {
                     isShowingMe = true
                     notificationService.pendingDeepLink = nil
                 case .experienceDetail(let experienceId):
-                    // solocompass://experience/<id> — the deep-link plumbing
-                    // exists end-to-end (Info.plist scheme → onOpenURL →
-                    // NotificationService.handleURL → pendingDeepLink); the
-                    // UI router for opening the detail sheet from a deep
-                    // link is the next step. Logging today so the URL is
-                    // observably received until that wiring lands.
-                    print("🔗 deep-link experienceDetail id=\(experienceId)")
+                    if let exp = experienceService.getExperience(id: experienceId) {
+                        viewModel.openExperienceDetail(exp)
+                    }
                     notificationService.pendingDeepLink = nil
                 case .routePreview(let routeId):
-                    print("🔗 deep-link routePreview id=\(routeId)")
+                    if let route = routeStore.get(RouteId(rawValue: routeId)) {
+                        routeSheet = .detail(route)
+                    }
                     notificationService.pendingDeepLink = nil
                 case .none:
                     break
@@ -583,7 +581,6 @@ struct CompassMapContentView: View {
                 )
             }
             .modifier(ExploreConsentSheetModifier(viewModel: viewModel, preferences: preferences))
-            .fullScreenCover(isPresented: onboardingCoverBinding) { onboardingCoverContent }
     }
 
     /// Content for the route detail / create sheet, driven by `routeSheet`.
@@ -1047,13 +1044,6 @@ struct CompassMapContentView: View {
         )
     }
 
-    private var onboardingCoverBinding: Binding<Bool> {
-        Binding(
-            get: { !preferences.hasCompletedOnboarding },
-            set: { if $0 { } else { preferences.completeOnboarding() } }
-        )
-    }
-
     // MARK: - Sheet Contents
 
     @ViewBuilder
@@ -1417,16 +1407,6 @@ struct CompassMapContentView: View {
         })
         .environment(subscriptionService)
     }
-
-    @ViewBuilder
-    private var onboardingCoverContent: some View {
-        OnboardingView {
-            // onComplete — preferences.hasCompletedOnboarding already set inside
-        }
-        .environment(locationService)
-        .environment(preferences)
-    }
-
 
     /// Load up to 8 routes for the current city from RouteStore (US-025).
     private func refreshNearbyRoutes(cityCode: String?) {
