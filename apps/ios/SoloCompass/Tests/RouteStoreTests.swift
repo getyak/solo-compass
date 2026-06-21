@@ -210,7 +210,9 @@ final class RouteStoreTests: XCTestCase {
         "exp_vte_wat_si_saket_morning",
         "exp_vte_slow_coffee_dao",
         "exp_vte_pha_that_luang_dawn",
-        "exp_vte_patuxai_view"
+        "exp_vte_patuxai_view",
+        "exp_cmi_nimman_coffee",
+        "exp_cmi_bookstore_work"
     ]
 
     func testImportSeedIfNeededOnFreshLaunchLoadsFourRoutes() {
@@ -222,13 +224,19 @@ final class RouteStoreTests: XCTestCase {
             bundle: bundle
         )
 
-        XCTAssertEqual(added, 4, "importSeedIfNeeded should insert all 4 Vientiane seed routes")
-        XCTAssertEqual(store.all().count, 4)
+        XCTAssertEqual(added, 5, "importSeedIfNeeded should insert all 4 Vientiane + 1 Chiang Mai seed routes")
+        XCTAssertEqual(store.all().count, 5)
 
         let ids = Set(store.all().map { $0.id.rawValue })
         XCTAssertEqual(
             ids,
-            Set(["mekong-sunset", "slow-coffee-day", "morning-ritual", "vientiane-monuments"])
+            Set([
+                "mekong-sunset",
+                "slow-coffee-day",
+                "morning-ritual",
+                "vientiane-monuments",
+                "nimman-slow-morning"
+            ])
         )
     }
 

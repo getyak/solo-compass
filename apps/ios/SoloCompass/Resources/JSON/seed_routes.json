@@ -154,5 +154,28 @@
       "visibility": "public",
       "hostMessage": "All three landmarks in one go — we made it!"
     }
+  },
+  {
+    "id": "nimman-slow-morning",
+    "title": "Nimman Slow Morning",
+    "summary": "A two-stop morning drift through Nimman: a hidden pour-over roaster, then a quiet upstairs in a 100-year-old bookstore.",
+    "experienceIds": ["exp_cmi_nimman_coffee", "exp_cmi_bookstore_work"],
+    "cityCode": "cmi",
+    "region": "Nimman",
+    "estimatedDuration": 180,
+    "distanceMeters": 1400,
+    "pace": "relaxed",
+    "tags": ["coffee", "morning", "slow", "solo-friendly"],
+    "source": "editorial",
+    "authorId": "editorial-team",
+    "bestStartHour": 8.0,
+    "bestNow": false,
+    "reasonNow": "上午正好 · 咖啡剛烘、書店上樓人少",
+    "verification": {
+      "status": "walkedBy",
+      "walkedByCount": 9,
+      "walkedBy": ["maya", "leo", "nora"]
+    },
+    "companion": null
   }
 ]

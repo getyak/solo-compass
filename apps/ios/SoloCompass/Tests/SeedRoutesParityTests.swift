@@ -11,11 +11,14 @@ final class SeedRoutesParityTests: XCTestCase {
         let experiences = try loadExperiences()
         let knownIds = Set(experiences.map(\.id))
 
-        XCTAssertEqual(routes.count, 4, "seed_routes.json should contain exactly 4 Vientiane routes")
+        XCTAssertEqual(routes.count, 5, "seed_routes.json should contain 4 Vientiane + 1 Chiang Mai route")
 
         var missing: [(routeId: String, experienceId: String)] = []
         for route in routes {
-            XCTAssertEqual(route.cityCode, "VTE", "All seed routes are Vientiane (cityCode=VTE)")
+            XCTAssertTrue(
+                ["VTE", "cmi"].contains(route.cityCode),
+                "Seed route cityCode must be one of the curated cities (got \(route.cityCode))"
+            )
             XCTAssertFalse(
                 route.experienceIds.isEmpty,
                 "Route \(route.id.rawValue) must reference at least one experience"
@@ -37,7 +40,13 @@ final class SeedRoutesParityTests: XCTestCase {
         let ids = Set(routes.map { $0.id.rawValue })
         XCTAssertEqual(
             ids,
-            Set(["mekong-sunset", "slow-coffee-day", "morning-ritual", "vientiane-monuments"])
+            Set([
+                "mekong-sunset",
+                "slow-coffee-day",
+                "morning-ritual",
+                "vientiane-monuments",
+                "nimman-slow-morning"
+            ])
         )
     }
 
