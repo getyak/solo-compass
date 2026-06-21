@@ -351,6 +351,13 @@ public final class MapViewModel {
         didSet {
             guard selectedCity != oldValue else { return }
             invalidateCityCache()
+            // #86: candidateExperiences live under the previous city's
+            // coordinates; carrying them to a new city leaves invisible pins
+            // far off-map and can collide with new candidates by id. The
+            // user dropped these pins on the previous map — switching cities
+            // resets that local layer cleanly. visibleExperiences gets
+            // rebuilt by the subsequent fetch.
+            candidateExperiences.removeAll()
             syncCameraToSelectedCity()
         }
     }

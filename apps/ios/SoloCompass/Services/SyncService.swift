@@ -31,6 +31,15 @@ public final class SyncService {
     public private(set) var lastFlushAt: Date?
     public private(set) var pendingCount: Int = 0
 
+    /// #87: dead-letter threshold for PendingSyncRecord. Rows that fail
+    /// more than this many times are dropped + Sentry-reported. Prevents
+    /// a single broken payload (bad schema, deleted FK, banned table)
+    /// from blocking the head of the outbox forever and burning a round
+    /// trip on every flush. 10 retries × exponential foreground backoff
+    /// (~minutes) gives genuine transient failures plenty of room before
+    /// we give up; the metric is "tries", not "wall-clock minutes".
+    private static let retryCeiling = 10
+
     nonisolated(unsafe) private var foregroundTimer: Timer?
     nonisolated(unsafe) private var foregroundObserver: NSObjectProtocol?
 
@@ -170,6 +179,9 @@ public final class SyncService {
                 result = await supabaseClient.post(table: row.tableName, body: row.payloadJSON)
             default:
                 row.retryCount += 1
+                // #87: unrecognized op should also hit the dead-letter
+                // ceiling so a corrupt row doesn't block forever.
+                if row.retryCount > Self.retryCeiling { context.delete(row) }
                 continue
             }
             switch result {
@@ -178,6 +190,24 @@ public final class SyncService {
                 sent += 1
             case .failure:
                 row.retryCount += 1
+                // #87: dead-letter rows that have failed too many times so
+                // the queue can actually drain. A single broken payload
+                // (bad schema, deleted FK, etc) used to sit at the head
+                // forever, wasting a network round-trip on every flush and
+                // starving legitimate pending rows. Surface to Sentry so a
+                // systematic schema drift is visible, not a silent loss.
+                if row.retryCount > Self.retryCeiling {
+                    SentryService.capture(
+                        message: "PendingSyncRecord dead-lettered after \(row.retryCount) retries",
+                        level: .warning,
+                        context: [
+                            "table": row.tableName,
+                            "operation": row.operation,
+                            "retry_count": row.retryCount
+                        ]
+                    )
+                    context.delete(row)
+                }
             }
         }
         saveOrReport(context, op: "flush")

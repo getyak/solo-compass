@@ -106,7 +106,12 @@ public final class ChatHistoryStore {
     public func messages(sessionId: String) -> [VoiceAgentSession.Message] {
         let descriptor = FetchDescriptor<ChatMessageRecord>(
             predicate: #Predicate { $0.sessionId == sessionId },
-            sortBy: [SortDescriptor(\.orderIndex)]
+            // #85: secondary sort on createdAt so two messages that ended up
+            // with the same orderIndex (rare — only possible after a crash
+            // during a turn commit) still render in a deterministic order
+            // instead of shuffling between launches. SwiftData's sort is
+            // otherwise unstable for equal keys.
+            sortBy: [SortDescriptor(\.orderIndex), SortDescriptor(\.createdAt)]
         )
         return (try? context.fetch(descriptor))?.map(\.asMessage) ?? []
     }

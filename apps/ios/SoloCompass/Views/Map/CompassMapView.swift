@@ -419,6 +419,19 @@ struct CompassMapContentView: View {
                     // lands directly on a city with seeded routes shows an empty
                     // Routes section, and 开始路线 is unreachable from the map.
                     refreshNearbyRoutes(cityCode: viewModel.selectedCity)
+                    // #80: Cold-start resume. If RouteStore has an active route
+                    // persisted from a previous session, rebuild the in-memory
+                    // ActiveRoute @State so the polyline, numbered pins, and
+                    // banner reappear automatically. Without this, persistence
+                    // is invisible — user opens the app expecting to keep
+                    // walking, but the map is back to "no route".
+                    if let (route, _, _) = routeStore.loadActiveRoute() {
+                        let resolved = route.experienceIds
+                            .compactMap { experienceService.getExperience(id: $0)?.coordinate }
+                        if !resolved.isEmpty {
+                            activeRoute = ActiveRoute(route: route, coordinates: resolved)
+                        }
+                    }
                 }
                 viewModel.checkForPendingCheckIns()
             }
@@ -1252,6 +1265,15 @@ struct CompassMapContentView: View {
         activeRoute = ActiveRoute(route: route, coordinates: coords)
         viewModel.cameraPosition = .region(Self.region(enclosing: coords))
         HapticService.shared.impact(style: .medium)
+
+        // #80: Persist the active-route progress so a cold-start can resume
+        // where the user left off. RouteStore.startRoute stamps activeStartedAt
+        // + zeros currentStopIndex / completedStopIds; pairs with the
+        // .onAppear cold-start hydration (see resumeActiveRouteIfNeeded) and
+        // the skipStop / pauseRoute / advanceStop calls from the banner +
+        // geofence. Without this call the entire Beta-P0-A persistence
+        // contract was dead-on-arrival — only tests exercised it.
+        routeStore.startRoute(route.id)
 
         // US-026: start the "路线进行中" Live Activity so the next stop, walking
         // ETA, and overall progress live in the Dynamic Island. The first stop's

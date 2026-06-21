@@ -129,8 +129,17 @@ public final class AIService {
         return URL(string: base + "/chat/completions")
     }
 
-    /// Synthesis cache TTL — 30 days.
-    public static let synthesisCacheTTLSeconds: TimeInterval = 30 * 86_400
+    /// Synthesis cache TTL — 7 days.
+    ///
+    /// #88: was 30 days. A traveler revisiting a neighbourhood 4 weeks later
+    /// was served the original AI synthesis even after the model / prompt
+    /// improved, with no in-UI signal that the content was stale. 7 days
+    /// keeps the cache useful for a single trip but forces a re-synthesis
+    /// on a return visit, so prompt + model improvements actually surface.
+    /// The `.cached` badge is the user-visible signal that synthesis came
+    /// from cache; this constant controls the upper bound on how old that
+    /// cache can be before the entry is rejected.
+    public static let synthesisCacheTTLSeconds: TimeInterval = 7 * 86_400
 
     /// Shared system prompt — identical across all call kinds to maximise
     /// DeepSeek's automatic prefix caching (same prefix → cached KV state).
@@ -156,7 +165,15 @@ public final class AIService {
         // Restore quota-exceeded from UserDefaults, but auto-clear if the
         // local day has rolled — daily caps reset at midnight per US-015.
         if let saved = UserDefaults.standard.object(forKey: Self.quotaExceededAtUDKey) as? Date {
-            if Calendar.current.isDateInToday(saved) {
+            // #82: Compare the saved timestamp to "today" using the SAME UTC
+            // calendar AIUsageRecord uses for its day-key. Earlier this was
+            // Calendar.current.isDateInToday, which used the device's local
+            // tz — on a UTC-8 device the local day rolls 8 hours AFTER the
+            // UTC counter resets, leaving the banner stuck on "today's quota
+            // exhausted" while the underlying counter was already empty.
+            // Now: same UTC midnight → still today → keep banner; different
+            // UTC day → counter has reset → clear banner.
+            if AIUsageRecord.todayUTC(saved) == AIUsageRecord.todayUTC() {
                 self.quotaExceededAt = saved
             } else {
                 UserDefaults.standard.removeObject(forKey: Self.quotaExceededAtUDKey)

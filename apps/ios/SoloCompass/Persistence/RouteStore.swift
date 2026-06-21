@@ -47,9 +47,28 @@ public final class RouteStore {
 
     /// Persist a route. If a record with the same id exists it is replaced
     /// (delete-then-insert) so callers can treat `save` as idempotent upsert.
+    ///
+    /// #81: The v1.7 active-route progress columns (activeStartedAt,
+    /// currentStopIndex, completedStopIdsBlob) are NOT carried on the
+    /// `Route` value type — they're per-device state, not part of the
+    /// content schema. RouteRecord.fromValue therefore leaves them nil,
+    /// which would silently wipe in-progress progress every time anyone
+    /// re-saves the same route (companion change, AI re-generation, etc).
+    /// We snapshot the three fields off the old record before deleting,
+    /// then restore them onto the freshly-inserted one. Idempotent: when
+    /// no record existed before, the three remain nil as expected.
     public func save(_ route: Route) {
+        let prior = record(for: route.id.rawValue)
+        let priorActiveStartedAt = prior?.activeStartedAt
+        let priorCurrentStopIndex = prior?.currentStopIndex
+        let priorCompletedBlob = prior?.completedStopIdsBlob
+
         deleteRecord(id: route.id.rawValue)
-        context.insert(RouteRecord.fromValue(route))
+        let fresh = RouteRecord.fromValue(route)
+        fresh.activeStartedAt = priorActiveStartedAt
+        fresh.currentStopIndex = priorCurrentStopIndex
+        fresh.completedStopIdsBlob = priorCompletedBlob
+        context.insert(fresh)
         do {
             try context.save()
         } catch {

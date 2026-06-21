@@ -440,6 +440,15 @@ public final class VoiceAgentOrchestrator: Identifiable {
         // "thinking" step so the elegant trace panel never starts empty.
         reasoningTrace = [ReasoningStep(kind: .thinking, label: thinkingStep)]
 
+        // #83: cancel any in-flight turn before launching a new one. Every
+        // other entry point that reassigns turnTask (stop, rebindContext,
+        // restoreConversation) cancels first; runTurn was the lone exception.
+        // Without this, a user tapping send twice within ~100ms launches two
+        // concurrent turn Tasks that race on session.messages and produce
+        // duplicate AI calls + duplicate assistant bubbles.
+        turnTask?.cancel()
+        turnTask = nil
+
         turnTask = Task {
             let turnStart = Date()
             var shouldContinue = true
@@ -447,6 +456,22 @@ public final class VoiceAgentOrchestrator: Identifiable {
             while shouldContinue, !Task.isCancelled, !session.isEnded {
                 if session.hasExceededRecursionBudget {
                     await sendForceText(prompt: "You are out of tool-call budget. Summarize what you know and give a direct answer in one or two sentences.")
+                    return
+                }
+
+                // #84: check the turn timeout BEFORE consuming another
+                // streaming round + commit. Previously the check sat at the
+                // bottom of the loop AFTER persistConversation(), so a turn
+                // that finished at exactly turnTimeoutSeconds had its
+                // assistant message committed AND THEN the session was
+                // ended with .timeout — a zombie conversation: messages
+                // saved but next send fails with .sessionEnded. Moving the
+                // check here aborts before commit; the user sees a clean
+                // retry instead.
+                if Date().timeIntervalSince(turnStart) > VoiceAgentSession.turnTimeoutSeconds {
+                    session.end(reason: .timeout)
+                    thinkingStep = ""
+                    streamingContent = ""
                     return
                 }
 
@@ -478,12 +503,6 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     // Turn complete — persist the conversation so it survives the
                     // sheet closing and shows up in history.
                     persistConversation()
-                }
-
-                if Date().timeIntervalSince(turnStart) > VoiceAgentSession.turnTimeoutSeconds {
-                    session.end(reason: .timeout)
-                    thinkingStep = ""
-                    return
                 }
             }
         }
