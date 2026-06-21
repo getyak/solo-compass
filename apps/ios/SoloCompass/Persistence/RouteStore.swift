@@ -181,6 +181,55 @@ public final class RouteStore {
         return next
     }
 
+    /// Skip the current stop without marking it completed. Same index advance
+    /// as `advanceStop` but the experience id is NOT appended to the
+    /// completed list — useful when the user wants to drop a stop ("下雨了，
+    /// 跳过这家咖啡") without faking attendance. Returns the new
+    /// currentStopIndex (nil if no-op).
+    @discardableResult
+    public func skipStop(_ id: RouteId) -> Int? {
+        guard let rec = record(for: id.rawValue),
+              let current = rec.currentStopIndex else { return nil }
+        let next = current + 1
+        rec.currentStopIndex = next
+        do {
+            try context.save()
+        } catch {
+            assertionFailure("RouteStore.skipStop failed: \(error)")
+        }
+        postChange(routeId: id.rawValue)
+        return next
+    }
+
+    /// Pause an active route — keeps progress (`currentStopIndex` and
+    /// `completedStopIdsBlob`) but clears `activeStartedAt` so
+    /// `loadActiveRoute()` stops returning it. Allows the user to step
+    /// away mid-route ("接个电话，先暂停") without losing their place.
+    public func pauseRoute(_ id: RouteId) {
+        guard let rec = record(for: id.rawValue) else { return }
+        rec.activeStartedAt = nil
+        do {
+            try context.save()
+        } catch {
+            assertionFailure("RouteStore.pauseRoute failed: \(error)")
+        }
+        postChange(routeId: id.rawValue)
+    }
+
+    /// Resume a paused route — re-stamps `activeStartedAt` so the loader
+    /// finds it again. `currentStopIndex` and completed list are preserved
+    /// from before the pause.
+    public func resumeRoute(_ id: RouteId, at date: Date = Date()) {
+        guard let rec = record(for: id.rawValue) else { return }
+        rec.activeStartedAt = date
+        do {
+            try context.save()
+        } catch {
+            assertionFailure("RouteStore.resumeRoute failed: \(error)")
+        }
+        postChange(routeId: id.rawValue)
+    }
+
     /// Finish the route — clears active progress fields so subsequent
     /// queries no longer pick it up as the resume candidate. The route
     /// itself stays in the store for history.

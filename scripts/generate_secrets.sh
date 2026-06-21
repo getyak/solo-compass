@@ -86,5 +86,31 @@ AMAP_API_KEY=$(read_env_value "AMAP_API_KEY")
 [[ -z "${DEEPSEEK_BASE_URL}" ]] && DEEPSEEK_BASE_URL="https://api.deepseek.com/v1"
 [[ -z "${DEEPSEEK_MODEL}"    ]] && DEEPSEEK_MODEL="deepseek-chat"
 
+# Per-key sanity check. Warn (don't fail) so open-source devs without keys
+# still get a green build that degrades gracefully. AMAP_API_KEY surface
+# was previously invisible until runtime (see ADR-amap-china-poi +
+# AmapPOIService.fetchPOIs guard) — "no amap data on device" silently.
+check_key() {
+    local name="$1" value="$2" min_len="$3"
+    if [[ -z "${value}" ]]; then
+        echo "[generate_secrets] WARN: ${name} is empty — feature will degrade" >&2
+        return
+    fi
+    if [[ ${#value} -lt ${min_len} ]]; then
+        echo "[generate_secrets] WARN: ${name} length=${#value} < ${min_len} (suspicious — typo or placeholder?)" >&2
+        return
+    fi
+    # Detect quoted leak: AMAP_API_KEY="abc" would have surrounding quotes.
+    if [[ "${value:0:1}" == "\"" || "${value:0:1}" == "'" ]]; then
+        echo "[generate_secrets] WARN: ${name} starts with a quote — .env value is literally quoted; SecretsRuntime.sanitizeKey will strip it but please fix .env" >&2
+    fi
+    echo "[generate_secrets] OK: ${name} len=${#value}"
+}
+
+check_key "DEEPSEEK_API_KEY"   "${DEEPSEEK_API_KEY}"   16
+check_key "AMAP_API_KEY"       "${AMAP_API_KEY}"       24
+check_key "FOURSQUARE_API_KEY" "${FOURSQUARE_API_KEY}" 16
+check_key "OPENWEATHER_API_KEY" "${OPENWEATHER_API_KEY}" 16
+
 emit_swift "${DEEPSEEK_API_KEY}" "${DEEPSEEK_BASE_URL}" "${DEEPSEEK_MODEL}" "${SUPABASE_URL}" "${SUPABASE_ANON_KEY}" "${SENTRY_DSN}" "${FOURSQUARE_API_KEY}" "${OPENWEATHER_API_KEY}" "${AMAP_API_KEY}"
 echo "[generate_secrets] wrote ${OUTPUT_FILE}"

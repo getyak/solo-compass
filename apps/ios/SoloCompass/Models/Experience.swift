@@ -439,7 +439,10 @@ public struct Confidence: Codable, Hashable {
 public struct InformationSource: Codable, Hashable, Identifiable {
     /// The kind of place an experience's information was sourced from.
     public enum SourceType: String, Codable, Hashable {
-        case wikivoyage, wikipedia, reddit, blog, youtube, user, fieldVisit = "field_visit"
+        // `amap` marks AutoNavi/高德 as provenance for mainland-China POIs.
+        // Per ADR-amap-china-poi §3.2 only this attribution flag persists,
+        // never the raw structured fields (address/phone/rating/hours).
+        case wikivoyage, wikipedia, reddit, blog, youtube, user, fieldVisit = "field_visit", amap
     }
 
     public let type: SourceType
@@ -829,7 +832,11 @@ public struct Experience: Codable, Hashable, Identifiable {
         }
 
         let minutes = Int(end.timeIntervalSince(date) / 60)
-        return max(1, minutes)
+        // Return 0 when the window has effectively closed (< 1 minute left),
+        // not the previous min-clamp of 1. UI surfaces should special-case 0
+        // to read "即将关闭 / Closing now" instead of misreporting "1m left"
+        // when the window is actually closing within seconds (see #73).
+        return max(0, minutes)
     }
 }
 

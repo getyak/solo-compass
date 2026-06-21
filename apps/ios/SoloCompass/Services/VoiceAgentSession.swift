@@ -319,17 +319,30 @@ public final class VoiceAgentSession {
 
         // Build a coarse summary. We pull at most 3 user turns for
         // the summary; verbosity here costs tokens forever.
+        // Per-snippet cap (120 chars) + total cap (800 chars) so a
+        // long voice transcript can't bloat the summary message after
+        // many compaction cycles — see #67 / loop session 15.
+        let perSnippetCap = 120
+        let totalSummaryCap = 800
         let userSnippets = dropping
             .filter { $0.role == .user }
             .compactMap { $0.content }
             .suffix(3)
-        let summary: String
+            .map { snippet -> String in
+                snippet.count > perSnippetCap
+                    ? String(snippet.prefix(perSnippetCap)) + "…"
+                    : snippet
+            }
+        let rawSummary: String
         if userSnippets.isEmpty {
-            summary = "Earlier turns omitted to stay within the model context budget."
+            rawSummary = "Earlier turns omitted to stay within the model context budget."
         } else {
-            summary = "Earlier user turns (summarised): "
+            rawSummary = "Earlier user turns (summarised): "
                 + userSnippets.joined(separator: " | ")
         }
+        let summary = rawSummary.count > totalSummaryCap
+            ? String(rawSummary.prefix(totalSummaryCap)) + "… (truncated)"
+            : rawSummary
 
         let summaryMsg = Message(role: .system, content: summary)
         messages = head + [summaryMsg] + tail

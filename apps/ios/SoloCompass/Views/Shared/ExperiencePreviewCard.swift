@@ -116,6 +116,9 @@ struct ExperiencePreviewCard: View {
         .foregroundStyle(chip.foreground)
         .padding(.horizontal, 7).padding(.vertical, 3)
         .background(Capsule().fill(chip.background))
+        // <15min urgency pulse: subtle breathing scale so the chip catches
+        // the eye without strobing. Honors reduceMotion (UrgencyPulse no-ops).
+        .modifier(UrgencyPulse(active: chip.isUrgent))
     }
 
     // MARK: - Details

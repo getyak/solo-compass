@@ -43,11 +43,14 @@ struct RouteStopBadge: View {
 
 // MARK: - ActiveRouteBanner
 
-/// Top banner shown while a route is active: a walking glyph, the route title,
-/// the stop count, and an end button that clears the route from the map.
+/// Top banner shown while a route is active. Walking glyph + title + stop count
+/// + 3 mid-route controls (skip / pause / end). The skip and pause callbacks
+/// are optional so older callsites that only pass `onEnd` keep compiling.
 struct ActiveRouteBanner: View {
     let title: String
     let stopCount: Int
+    var onSkip: (() -> Void)? = nil
+    var onPause: (() -> Void)? = nil
     let onEnd: () -> Void
 
     var body: some View {
@@ -68,15 +71,19 @@ struct ActiveRouteBanner: View {
                 .foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
-            Button(action: onEnd) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 30, height: 30)
-                    .background(Circle().fill(Color.secondary.opacity(0.12)))
+            if let onSkip {
+                circleButton(systemImage: "forward.end.fill",
+                             a11y: NSLocalizedString("route.active.skip", comment: "Skip this stop"),
+                             action: onSkip)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(NSLocalizedString("route.active.end", comment: "End route")))
+            if let onPause {
+                circleButton(systemImage: "pause.fill",
+                             a11y: NSLocalizedString("route.active.pause", comment: "Pause route"),
+                             action: onPause)
+            }
+            circleButton(systemImage: "xmark",
+                         a11y: NSLocalizedString("route.active.end", comment: "End route"),
+                         action: onEnd)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -84,9 +91,23 @@ struct ActiveRouteBanner: View {
         .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
         .accessibilityElement(children: .combine)
     }
+
+    @ViewBuilder
+    private func circleButton(systemImage: String, a11y: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.secondary)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(Color.secondary.opacity(0.12)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(a11y))
+    }
 }
 
 #Preview("ActiveRouteBanner") {
-    ActiveRouteBanner(title: "湄公河日落散步", stopCount: 3, onEnd: {})
+    ActiveRouteBanner(title: "湄公河日落散步", stopCount: 3,
+                      onSkip: {}, onPause: {}, onEnd: {})
         .padding()
 }

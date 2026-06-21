@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -261,6 +262,10 @@ public struct FilterBarView: View {
         }
         .modifier(ShakeEffect(animatableData: CGFloat(emptyShake)))
         .padding(.horizontal, 16)
+        // TipKit popover — first-time hint after 2 cold launches. TipKit
+        // tracks "shown / dismissed" lifecycle so this fires once per user.
+        // No-ops automatically when no rule matches.
+        .popoverTip(FilterBarTip())
         .opacity(isMapPanning ? 0.4 : 1.0)
         .scaleEffect(isMapPanning ? 0.85 : 1.0)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isMapPanning)

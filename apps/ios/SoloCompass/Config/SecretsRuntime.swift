@@ -107,12 +107,30 @@ extension Secrets {
     /// Effective Amap (AutoNavi) API key: UserDefaults override → build-time baked.
     /// Returns "" when neither is set; the China explore branch gates on empty
     /// and degrades back to OverpassService so an absent key never crashes.
+    /// Sanitized to defend against `.env` quoted values (`AMAP_API_KEY="abc"`)
+    /// and UserDefaults paste with trailing whitespace — both pass the previous
+    /// `!isEmpty` check and silently produce 401 from Amap.
     static var resolvedAmapKey: String {
-        if let override = UserDefaults.standard.string(forKey: RuntimeKeys.amapApiKey),
-           !override.isEmpty {
-            return override
+        if let override = UserDefaults.standard.string(forKey: RuntimeKeys.amapApiKey) {
+            let cleaned = sanitizeKey(override)
+            if !cleaned.isEmpty { return cleaned }
         }
-        return amapApiKey
+        return sanitizeKey(amapApiKey)
+    }
+
+    /// Strip surrounding whitespace + matching quote pair. A literal `"abc"`
+    /// leaked from a quoted `.env` value would otherwise be sent verbatim to
+    /// the provider and rejected.
+    static func sanitizeKey(_ raw: String) -> String {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.count >= 2 {
+            let first = s.first, last = s.last
+            if (first == "\"" && last == "\"") || (first == "'" && last == "'") {
+                s = String(s.dropFirst().dropLast())
+                s = s.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return s
     }
 
     /// Effective OpenWeather API key (US-003). Resolution chain:

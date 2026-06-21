@@ -963,7 +963,9 @@
 "location.openIn.apple" = "Apple Maps";
 "location.openIn.google" = "Google Maps";
 "location.openIn.amap" = "Amap";
-"action.cancel" = "Cancel";
+// "action.cancel" — duplicate of the canonical entry under
+// "Shared actions" (line 1362). Removed to silence runtime
+// "Duplicate key" warnings; bundle prefers first match either way.
 
 /* US-014: Additional chat localization keys */
 "chat.error.network" = "Connection error — please check your network and try again.";
@@ -1551,6 +1553,23 @@
 "route.active.stops" = "%d 站 · 路線中";
 "route.active.stop.a11y" = "Stop %d";
 "route.active.end" = "結束路線";
+"route.active.skip" = "Skip this stop";
+"route.active.pause" = "Pause route";
+"filter.tip.title" = "Browse by mood";
+"filter.tip.message" = "Tap a category or 'Now' to find places worth going right now — not just everything nearby.";
+"terms.title" = "Welcome to Solo Compass";
+"terms.intro" = "Before you start exploring, here's a one-screen summary of what we collect and how we use it. The full documents are linked below.";
+"terms.dataUse.title" = "What we collect";
+"terms.dataUse.location" = "Your location, used live to show nearby places. Coordinates stay on this device unless you explicitly share a place with a friend.";
+"terms.dataUse.chat" = "Chat content sent to our AI to compose recommendations. Chats are stored on this device; only the messages you send are transmitted to the AI provider.";
+"terms.dataUse.noContacts" = "We do not access your address book, photos, calendar, or browser history.";
+"terms.dataUse.noTrackers" = "No third-party analytics or advertising trackers.";
+"terms.links.title" = "Read the full documents";
+"terms.links.privacy" = "Privacy Policy";
+"terms.links.tos" = "Terms of Service";
+"terms.button.accept" = "I agree, continue";
+"terms.button.decline" = "Not now";
+"nearby.chip.closingNow" = "Closing now";
 
 /* US-058 — RouteCard walked-by row (CompareCanvas A-003) */
 "route.card.walkedBy" = "%d 位旅人走过";

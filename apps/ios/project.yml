@@ -77,6 +77,13 @@ targets:
         LSApplicationQueriesSchemes:
           - comgooglemaps
           - iosamap
+        # solocompass:// scheme — share-sheet / paste-link entry routed by
+        # SoloCompassApp.body.onOpenURL → NotificationService.handleURL.
+        # Recognized paths: experience/<id> · route/<id> · chat/<id> · friends.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.daypage.solocompass
+            CFBundleURLSchemes:
+              - solocompass
         # localhost ATS exception is only exercised in DEBUG. Release builds short-circuit
         # in ReviewsService before any network request when SOLO_API_BASE_URL is unset.
         NSAppTransportSecurity:

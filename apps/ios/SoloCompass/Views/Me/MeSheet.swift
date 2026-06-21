@@ -39,10 +39,20 @@ struct MeSheet: View {
         NavigationStack(path: $path) {
             List {
                 Section {
-                    ProfileHeader(
-                        favoritedCount: preferences.favoritedExperiences.count,
-                        exploredCount: preferences.completedExperiences.count
-                    )
+                    // One-tap to edit profile — previously buried under
+                    // Companion Hub → My Profile (3 taps). NavigationLink wraps
+                    // the whole header so the avatar/name/stats area is the
+                    // hit-target; .plain buttonStyle suppresses the chevron
+                    // so the identity-card look is unchanged.
+                    NavigationLink {
+                        MyProfileEditView()
+                    } label: {
+                        ProfileHeader(
+                            favoritedCount: preferences.favoritedExperiences.count,
+                            exploredCount: preferences.completedExperiences.count
+                        )
+                    }
+                    .buttonStyle(.plain)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                 }

@@ -1493,6 +1493,23 @@
 "route.active.stops" = "%d 站 · 路线中";
 "route.active.stop.a11y" = "第 %d 站";
 "route.active.end" = "结束路线";
+"route.active.skip" = "跳过这一站";
+"route.active.pause" = "暂停路线";
+"filter.tip.title" = "按心情筛选";
+"filter.tip.message" = "点一个分类或「Now」，找此刻最值得去的地方——而不只是附近所有地方。";
+"terms.title" = "欢迎使用 Solo Compass";
+"terms.intro" = "在开始探索之前，先用一屏告诉你我们收集什么数据、怎么用。完整文档在下方链接里。";
+"terms.dataUse.title" = "我们会收集";
+"terms.dataUse.location" = "你的位置：实时用于展示附近地点。坐标只留在本设备，除非你主动分享某个地方给朋友。";
+"terms.dataUse.chat" = "你和 AI 的对话内容：用于生成推荐。对话本地存储；仅你发送的消息会传给 AI 提供商。";
+"terms.dataUse.noContacts" = "我们不读取你的通讯录、相册、日历或浏览记录。";
+"terms.dataUse.noTrackers" = "无第三方分析或广告追踪。";
+"terms.links.title" = "阅读完整文档";
+"terms.links.privacy" = "隐私政策";
+"terms.links.tos" = "用户协议";
+"terms.button.accept" = "同意并继续";
+"terms.button.decline" = "暂不";
+"nearby.chip.closingNow" = "即将关闭";
 
 /* Solo score breakdown */
 "solo.breakdown.title" = "独行评分";
@@ -1840,8 +1857,9 @@
 /* Chat history */
 "chat.history.empty.title" = "暂无对话记录";
 
-/* Explore skeleton */
-"explore.skeleton.oneLiner" = "来自 OpenStreetMap 的真实地点。";
+// "explore.skeleton.oneLiner" — canonical entry lives at line 402
+// ("一处来自 OpenStreetMap 的真实地点。"). This duplicate was overriding
+// it with a shorter copy; removed so the canonical reads everywhere.
 
 /* Favorites journey */
 "favorites.journey.halfway" = "完成一半 — 已探索 %1$d / %2$d";
@@ -1901,9 +1919,8 @@
 "friends.request.accept" = "接受";
 "friends.request.decline" = "拒绝";
 
-/* Location */
-"location.banner.openSettings" = "打开设置";
-"location.error.banner" = "无法获取你的位置，正在显示默认区域。请在设置中检查定位权限。";
+/* Location — canonical entries live at lines 400-401; duplicates here
+   shadowed them with a less concise copy ("正在显示" vs "已显示"). Removed. */
 
 /* Location picker */
 "locationPicker.map.pin" = "选定位置";

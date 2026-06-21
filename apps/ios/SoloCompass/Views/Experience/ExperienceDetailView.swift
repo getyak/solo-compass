@@ -1409,6 +1409,7 @@ public struct ExperienceDetailView: View {
         case .youtube:                return "play.rectangle"
         case .user:                   return "person.crop.circle"
         case .fieldVisit:             return "figure.walk"
+        case .amap:                   return "map.fill"
         }
     }
 

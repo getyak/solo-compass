@@ -381,8 +381,20 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// the chat bubble — so it must stay clean and tag-free. The `<user_input>`
     /// safety wrapper is applied separately, only when serializing for the API
     /// (`AIService.wrapUserContentForAPI`), so the guard never leaks into the UI.
+    /// Maximum user-input length we'll feed to the model. Voice transcripts
+    /// rarely exceed a paragraph; anything beyond this is either accidental
+    /// (microphone caught background chatter for 5 minutes) or a deliberate
+    /// token-burn / context-flood attempt. Truncation > rejection so the
+    /// user still gets a partial response instead of silent failure.
+    static let userInputMaxChars = 500
+
     static func sanitizeUserInput(_ text: String) -> String {
+        // Length cap is the first line of defense — blocks token-burn /
+        // context-flood before regex passes even see the input.
         var sanitized = text
+        if sanitized.count > Self.userInputMaxChars {
+            sanitized = String(sanitized.prefix(Self.userInputMaxChars)) + "…"
+        }
         // Strip sequences that try to override the system prompt.
         let blockedPatterns: [String] = [
             "(?i)ignore\\s+(all\\s+)?(previous|prior|above)\\s+instructions?",

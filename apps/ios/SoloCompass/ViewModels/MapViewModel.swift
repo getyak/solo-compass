@@ -106,6 +106,19 @@ public final class MapViewModel {
     // MARK: - Explore-here state
     public var isExploring: Bool = false
     public var lastExploreError: String?
+    /// Classifies the *reason* an explore failed so the UI can show
+    /// a kind-specific banner instead of the generic "something broke".
+    /// nil = no failure (or already presented + dismissed).
+    /// Strictly an enrichment of `lastExploreError`: the human-readable
+    /// string still flows through that property for detail.
+    public enum ExploreFailureKind: Equatable {
+        case offline           // NetworkMonitor said disconnected
+        case apiTimeout        // DeepSeek / Supabase / Overpass timed out
+        case apiServerError    // HTTP 5xx
+        case quotaExceeded     // AI daily cap hit; user can retry tomorrow
+        case noResults         // request succeeded but the area is empty
+    }
+    public var lastFailureKind: ExploreFailureKind?
     public var lastExploreAddedCount: Int = 0
     /// Set when the AI synthesis daily quota cap fires. The map view
     /// shows a banner derived from this. Cleared on the next UTC day
@@ -711,7 +724,11 @@ public final class MapViewModel {
             .sorted { lhs, rhs in
                 let ls = prominenceScore(for: lhs.element, now: now, categoryAffinity: categoryAffinity)
                 let rs = prominenceScore(for: rhs.element, now: now, categoryAffinity: categoryAffinity)
-                if ls != rs { return ls > rs }
+                // Epsilon comparison so rounding error from prominenceScore's
+                // weighted sum doesn't randomly flip equally-ranked cards
+                // each render — without this, the tie-break by distance is
+                // not actually reached when the math rounds slightly apart.
+                if abs(ls - rs) > 1e-9 { return ls > rs }
                 return lhs.offset < rhs.offset // distance order as tiebreak
             }
             .map { $0.element }
@@ -1855,13 +1872,23 @@ public final class MapViewModel {
         radiusMeters: Int = 3000,
         category: ExperienceCategory? = nil
     ) async {
-        guard !isExploring else { return }
+        // DIAG: trace why amap is/isn't reached — entry, gates, flag.
+        // All gates short-circuit before EnrichmentAgent.basePOIs ever runs,
+        // so without this log a user reporting "no amap data" can't tell
+        // whether the call was even attempted.
+        print("🧭 exploreNearby entry: coord=(\(coordinate.latitude),\(coordinate.longitude)) r=\(radiusMeters) cat=\(category?.rawValue ?? "nil") isExploring=\(isExploring) isProUser=\(isProUser) consent=\(preferences.hasAcceptedExploreConsent) deepDive=\(FeatureFlags.deepDiveEnrichment)")
+
+        guard !isExploring else {
+            print("🧭 exploreNearby: skipped — already exploring")
+            return
+        }
         // Track center so expandOneStage can reuse it (US-021).
         lastExploreCenter = coordinate
 
         // US-024: free-tier gate. Park the original action so the
         // paywall's onUnlocked can resume it after purchase, then bail.
         if !isProUser {
+            print("🧭 exploreNearby: gated by paywall (free tier)")
             onPaywallUnlocked = { [weak self] in
                 Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters, category: category) }
             }
@@ -1873,6 +1900,7 @@ public final class MapViewModel {
         // first OSM + Anthropic call. Same park-and-resume pattern as
         // the paywall.
         if !preferences.hasAcceptedExploreConsent {
+            print("🧭 exploreNearby: gated by explore consent (not yet accepted)")
             onExploreConsentAccepted = { [weak self] in
                 Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters, category: category) }
             }
@@ -1882,6 +1910,7 @@ public final class MapViewModel {
 
         isExploring = true
         lastExploreError = nil
+        lastFailureKind = nil
         lastExploreAddedCount = 0
         lastQuotaInfo = nil
         lastExploreToast = nil
@@ -1989,6 +2018,7 @@ public final class MapViewModel {
                         return
                     }
                     lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
+                    lastFailureKind = .noResults
                     return
                 }
                 // Use the full accumulated set for appendGenerated count tracking.
@@ -2035,6 +2065,7 @@ public final class MapViewModel {
                         }
                     }
                     lastExploreError = NSLocalizedString("explore.error.nothingFound", comment: "No POIs found nearby")
+                    lastFailureKind = .noResults
                     return
                 }
 
@@ -2179,7 +2210,29 @@ public final class MapViewModel {
                 }
             }
             lastExploreError = error.localizedDescription
+            lastFailureKind = Self.classifyFailure(error)
         }
+    }
+
+    /// Classify a thrown error into a UI-presentable bucket so the banner
+    /// can pick the right icon + copy ("offline" vs "service slow" vs
+    /// "quota for today is used up"). Defaults to .apiServerError for
+    /// anything unrecognized — the worst it can do is show the generic
+    /// retry chip, which is still better than the old uncategorized state.
+    static func classifyFailure(_ error: Error) -> ExploreFailureKind {
+        if !NetworkMonitor.shared.isConnected { return .offline }
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut, .cannotConnectToHost, .cannotFindHost,
+                 .networkConnectionLost, .dnsLookupFailed:
+                return .apiTimeout
+            case .notConnectedToInternet, .dataNotAllowed:
+                return .offline
+            default:
+                return .apiServerError
+            }
+        }
+        return .apiServerError
     }
 
     /// Pro multi-ring radii in meters (PRD docs/PRD/pro-radial-explore.md §3.1).

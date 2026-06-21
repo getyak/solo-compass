@@ -21,6 +21,13 @@ public final class NotificationService {
         /// push arrived). The conversation lives inside the personal hub's
         /// Messages list, which auto-opens the thread once surfaced.
         case chatConversation(conversationId: String)
+        /// Open the experience detail sheet for `experienceId`. Routed from
+        /// `solocompass://experience/<id>` shared via the iOS share sheet or
+        /// pasted into Safari/Messages.
+        case experienceDetail(experienceId: String)
+        /// Open the route detail / preview for `routeId`. Routed from
+        /// `solocompass://route/<id>`.
+        case routePreview(routeId: String)
     }
 
     /// The latest deep link awaiting presentation. The UI sets it back to `nil`
@@ -40,6 +47,41 @@ public final class NotificationService {
     /// and the `message-notify` payload
     /// (`{ type: "message", conversationId, senderHandle, preview }`) →
     /// `.chatConversation`. Unknown payloads are ignored.
+    /// Route a `solocompass://` URL (custom scheme registered in Info.plist
+    /// CFBundleURLTypes) into the same `pendingDeepLink` mechanism that APNs
+    /// payloads use. Recognized paths:
+    ///   - `experience/<id>` → `.experienceDetail`
+    ///   - `route/<id>`      → `.routePreview`
+    ///   - `chat/<id>`       → `.chatConversation`
+    ///   - `friends`         → `.friendRequestInbox(nil)`
+    /// Unknown paths are ignored. Returns true when a link was routed,
+    /// false otherwise — handy for tests / telemetry.
+    @discardableResult
+    public func handleURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "solocompass" else { return false }
+        // URL.host carries the first path segment for opaque-style URLs
+        // (solocompass://experience/abc → host="experience", path="/abc").
+        let segments = (url.host.map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" }
+        guard let kind = segments.first?.lowercased() else { return false }
+        let id = segments.dropFirst().joined(separator: "/")
+        switch kind {
+        case "experience" where !id.isEmpty:
+            pendingDeepLink = .experienceDetail(experienceId: id)
+            return true
+        case "route" where !id.isEmpty:
+            pendingDeepLink = .routePreview(routeId: id)
+            return true
+        case "chat" where !id.isEmpty:
+            pendingDeepLink = .chatConversation(conversationId: id)
+            return true
+        case "friends":
+            pendingDeepLink = .friendRequestInbox(requestId: nil)
+            return true
+        default:
+            return false
+        }
+    }
+
     public func handleRemotePayload(_ userInfo: [AnyHashable: Any]) {
         guard let type = userInfo["type"] as? String else { return }
         switch type {

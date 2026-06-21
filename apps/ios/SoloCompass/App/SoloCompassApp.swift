@@ -116,6 +116,12 @@ struct SoloCompassApp: App {
     private let supabaseClient = SupabaseClient.shared
     private let themeService = ThemeService.shared
 
+    /// First-launch Terms / Privacy gate. Reads UserDefaults at init so the
+    /// gate fires synchronously before any data-touching code runs in body.
+    /// Set to true via TermsConsentSheet.onAccept — same UserDefaults key
+    /// the static `hasAccepted` reads, so the cover dismisses immediately.
+    @State private var showingTermsSheet: Bool = !TermsConsentSheet.hasAccepted
+
     var body: some Scene {
         WindowGroup {
             CompassMapView()
@@ -133,7 +139,47 @@ struct SoloCompassApp: App {
                 .environment(bestNowClock)
                 .environment(supabaseClient)
                 .environment(\.themeService, themeService)
+                .onOpenURL { url in
+                    // solocompass:// share-sheet / paste-link entry. Routes
+                    // through the same pendingDeepLink mechanism APNs uses
+                    // so CompassMapView's existing observer handles them.
+                    NotificationService.shared.handleURL(url)
+                }
+                .fullScreenCover(isPresented: $showingTermsSheet) {
+                    // Terms + data-use disclosure — App Store 5.1.1 / PIPL /
+                    // GDPR require affirmative consent before any data is
+                    // collected. fullScreenCover (not sheet) so the user
+                    // can't swipe-dismiss; TermsConsentSheet also calls
+                    // .interactiveDismissDisabled() for belt-and-suspenders.
+                    TermsConsentSheet(
+                        onAccept: {
+                            showingTermsSheet = false
+                            // First user-initiated tap is the right moment to
+                            // ask for push permission — the iOS prompt now has
+                            // context ("I just said yes to Solo Compass, of
+                            // course it wants to notify me"). PushTokenService
+                            // is idempotent so a re-grant on later launches
+                            // is a no-op. Without this hook, push was never
+                            // requested cold-start and the user discovered it
+                            // only after opening Friends or Settings.
+                            Task { await PushTokenService.shared.requestAuthorizationAndRegister() }
+                        },
+                        onDecline: {
+                            // Per Apple HIG, declining is allowed — the app
+                            // degrades to view-only / no-data-out mode. For
+                            // now we just dismiss + leave the bit unset, so
+                            // the gate re-fires next launch. A future task
+                            // can route into a true "no data" mode.
+                            showingTermsSheet = false
+                        }
+                    )
+                }
                 .onAppear {
+                    // TipKit bootstrap — registers the tip database + bumps
+                    // the cold-launch counter that `FilterBarTip.rules` reads.
+                    // Idempotent / non-throwing; tips just no-op on failure.
+                    SoloCompassTips.bootstrap()
+
                     // Location wiring stays inline: it is cheap, must happen
                     // before any region monitoring fires, and requestPermission()
                     // already hands off to the system asynchronously.

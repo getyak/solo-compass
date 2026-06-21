@@ -16,6 +16,7 @@
 		0A830B26D4A18948D16F3A42 /* Experience.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C97F8159A6FA7953D28DAB /* Experience.swift */; };
 		0A9FB49B7459777E59EDA55A /* LongPressCardModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA7F7C7168AB78E23C3AB0 /* LongPressCardModifier.swift */; };
 		0AF933A2FC20BD18F71ECDCA /* ConversationListRenderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5B6016449DF7A639F54DE3 /* ConversationListRenderTest.swift */; };
+		0B77739CFA29BF6CE2A12F45 /* SoloCompassTips.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98EFEBC6789178136BCFDC39 /* SoloCompassTips.swift */; };
 		0B7CC2BD1359B8AB3E4A590D /* HapticServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4609B3C2E77F98A59871C26E /* HapticServiceTests.swift */; };
 		0C0580E1BF61F5C02C2EE640 /* BottomSheetUnifiedScrollGuardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36E41DCA29798B5D8E49B7CA /* BottomSheetUnifiedScrollGuardTest.swift */; };
 		0DE8ECCE242F2FDFFD69C199 /* VoiceInterruptionToastTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7AFBAAF6E42AE8043F476D /* VoiceInterruptionToastTest.swift */; };
@@ -106,6 +107,7 @@
 		3CBA775B8C215CBAE3A73EA0 /* CardBottomInsetClearanceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0674DC5D526883C657A63C38 /* CardBottomInsetClearanceTest.swift */; };
 		3CF8D0F2B2BB4A5B8D0430F3 /* FilterBarLabeledPillsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E40C49968AC6150E89CC02F /* FilterBarLabeledPillsTest.swift */; };
 		3D393CD7ACFD865D7297FA5D /* AIProviderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7295DF9392F0361C0B2E313D /* AIProviderSettingsView.swift */; };
+		3D7FE2F68B29C2E1D80DA460 /* UrgencyPulse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB6DC54C82CAD121880FE2D /* UrgencyPulse.swift */; };
 		3DEF046380F3BD907DE834C0 /* IslandPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CCB9E36FDC56604136090F /* IslandPalette.swift */; };
 		3E24606FB907D7BB18E3C496 /* Itinerary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3F5D58C93D87AC9205148CC /* Itinerary.swift */; };
 		3E92704051F386C38C3A5533 /* RouteBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C8EE9D6C64872261609DEF /* RouteBuilderTests.swift */; };
@@ -261,6 +263,7 @@
 		9DA3FB74B38298C6CFB72B08 /* ConversationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB5FD37267074EF4015F95D /* ConversationListView.swift */; };
 		9E0C778CF1FD76DB9E0CEB9D /* ExperienceImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11F91F51C79F4EC2D9464FDA /* ExperienceImageService.swift */; };
 		9F8D8133FC74C4E206A11DB9 /* ItineraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD7871A003B28A7C46AC8D7 /* ItineraryStoreTests.swift */; };
+		9FBFE21BAE9951882F6BD5E7 /* TermsConsentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0364599CF5416C94D9711120 /* TermsConsentSheet.swift */; };
 		9FDC9CE4E9D3B505758EDB7D /* AttachmentBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9055347887EF473171916120 /* AttachmentBubble.swift */; };
 		A12DF78B6B05519D2177A519 /* RouteCompanionForceUnwrapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF2CEF9FE62124F51460453 /* RouteCompanionForceUnwrapTests.swift */; };
 		A217FA55BD40922DB3B8DEE6 /* SoloScoreRadarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */; };
@@ -470,6 +473,7 @@
 		013CB7ADB0525E4F4E8EE959 /* DiscoverRecruitingRoutesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverRecruitingRoutesView.swift; sourceTree = "<group>"; };
 		023CB5AE8B0D41EBB5E17DAC /* ReportBlockSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportBlockSheet.swift; sourceTree = "<group>"; };
 		02AED8B43F4C4059CD005C0A /* PreviewCardLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewCardLifecycleTests.swift; sourceTree = "<group>"; };
+		0364599CF5416C94D9711120 /* TermsConsentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsConsentSheet.swift; sourceTree = "<group>"; };
 		038BEE46BF2DFAF762B605D5 /* Route.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Route.swift; sourceTree = "<group>"; };
 		04709B5AD986143D04CA0A08 /* BottomInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomInfoSheet.swift; sourceTree = "<group>"; };
 		04A1C430911A739A1127CDC3 /* MergedPOI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergedPOI.swift; sourceTree = "<group>"; };
@@ -665,6 +669,7 @@
 		7989FA184B0EFCE68C961241 /* ChatCardViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatCardViews.swift; sourceTree = "<group>"; };
 		79B73212B8F704EABD27EF5B /* FeatureFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlags.swift; sourceTree = "<group>"; };
 		7A6F9AAA8749FA23B91F7C93 /* ReviewsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewsServiceTests.swift; sourceTree = "<group>"; };
+		7AB6DC54C82CAD121880FE2D /* UrgencyPulse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UrgencyPulse.swift; sourceTree = "<group>"; };
 		7B2B85A119750C65697903E0 /* CustomCityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomCityStore.swift; sourceTree = "<group>"; };
 		7B88A8CA4BEE6CDF6D7C5DEF /* RouteCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCard.swift; sourceTree = "<group>"; };
 		7BA9EA4E29955D78499E3AAC /* RouteCompanionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCompanionTests.swift; sourceTree = "<group>"; };
@@ -720,6 +725,7 @@
 		97E92D314B6B62ED3B6EA2AE /* ShareCardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardComponents.swift; sourceTree = "<group>"; };
 		97FCA9C12D9640983F75474E /* NowSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowSignal.swift; sourceTree = "<group>"; };
 		98A9885BEB8D9686F5384BEC /* AttachmentInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentInputBar.swift; sourceTree = "<group>"; };
+		98EFEBC6789178136BCFDC39 /* SoloCompassTips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassTips.swift; sourceTree = "<group>"; };
 		98FD22B1AECC41A796A891F8 /* MeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeSheet.swift; sourceTree = "<group>"; };
 		9945A4E03F4C75ED89674594 /* SoloCompass.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SoloCompass.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		994CE03CD59A3B638A7570AD /* NearbySkeletonRenderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbySkeletonRenderTest.swift; sourceTree = "<group>"; };
@@ -933,8 +939,10 @@
 				A744E7B767BDEC07E9C58F4D /* PressableButtonStyle.swift */,
 				659B2C7C4B36A086968A28EF /* SkeletonBadgeView.swift */,
 				BEDD4F6238B484BB7C20904B /* SkeletonView.swift */,
+				98EFEBC6789178136BCFDC39 /* SoloCompassTips.swift */,
 				EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */,
 				4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */,
+				7AB6DC54C82CAD121880FE2D /* UrgencyPulse.swift */,
 				9E8ABF85EEFDF9969C94B441 /* VoiceButton.swift */,
 				8D0CBFD5114CC6728D6AA876 /* VoiceWaveformView.swift */,
 			);
@@ -1574,6 +1582,7 @@
 			isa = PBXGroup;
 			children = (
 				C660F7996B1E4387C37720B3 /* OnboardingView.swift */,
+				0364599CF5416C94D9711120 /* TermsConsentSheet.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -2187,6 +2196,7 @@
 				14CEE4C5885B0643A52E0DA3 /* SoloCompassActivityAttributes.swift in Sources */,
 				E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */,
 				13E5AEAEE5194DDB79AE92AC /* SoloCompassModelContainer.swift in Sources */,
+				0B77739CFA29BF6CE2A12F45 /* SoloCompassTips.swift in Sources */,
 				86F4628473C2D520D4C2FFFB /* SoloScoreBadge.swift in Sources */,
 				A217FA55BD40922DB3B8DEE6 /* SoloScoreRadarChart.swift in Sources */,
 				52B53BDA14EBACE5242FC016 /* StopsList.swift in Sources */,
@@ -2196,11 +2206,13 @@
 				C485F7BEDA3727C3C26BFBAB /* SupabaseRouteCompanionRemote.swift in Sources */,
 				B478C92BB2249C0D5009AABD /* SyncService.swift in Sources */,
 				BB684C82CF82A2EB3F924C75 /* SystemTheme.swift in Sources */,
+				9FBFE21BAE9951882F6BD5E7 /* TermsConsentSheet.swift in Sources */,
 				01EEEE1B470DED9075038A93 /* Theme.swift in Sources */,
 				B4A33EDD3C85BBA89CD4EC05 /* ThemeService.swift in Sources */,
 				3BDFE453122F7D464FEF5490 /* TravelerNoteRecord.swift in Sources */,
 				579468F851C408D34CDC7025 /* TravelerNoteStore.swift in Sources */,
 				11A5A4C66E90F1E73698AE74 /* TravelerNotesSection.swift in Sources */,
+				3D7FE2F68B29C2E1D80DA460 /* UrgencyPulse.swift in Sources */,
 				219718C8521B1013D17AE22F /* UserCompletionRecord.swift in Sources */,
 				B0EFE759B67951C4D10B16FD /* UserDirectory.swift in Sources */,
 				D53E53A5AA9AE6F77EF82418 /* UserFavoriteRecord.swift in Sources */,

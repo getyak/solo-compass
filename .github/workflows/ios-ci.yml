@@ -49,11 +49,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create placeholder .env
+        env:
+          # Optional: inject the real Amap key from repo secrets so the
+          # CI build matches what TestFlight ships. Empty when the secret
+          # isn't configured (open-source forks) — AmapPOIService still
+          # builds and the wire-format contract tests still run because
+          # they decode inline JSON fixtures, not live network responses.
+          AMAP_API_KEY: ${{ secrets.AMAP_API_KEY }}
         run: |
           printf 'DEEPSEEK_API_KEY=\n' > .env
           printf 'DEEPSEEK_BASE_URL=https://api.deepseek.com/v1\n' >> .env
           printf 'DEEPSEEK_MODEL=deepseek-chat\n' >> .env
           printf 'SENTRY_DSN=\n' >> .env
+          printf 'AMAP_API_KEY=%s\n' "${AMAP_API_KEY}" >> .env
           printf 'DEVELOPMENT_TEAM=%s\n' "$DEVELOPMENT_TEAM" >> .env
 
       - name: Select Xcode

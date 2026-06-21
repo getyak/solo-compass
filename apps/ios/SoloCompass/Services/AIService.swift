@@ -92,8 +92,23 @@ public final class AIService {
     /// fallback, `.cached` on a cache hit. Drives the transparency badge. // anti-pattern-lint:allow transparency indicator for AI synthesis quality, not gamification
     public private(set) var lastSynthesisQuality: AISynthesisQuality = .real
     /// Set when the daily AI quota cap fires (Epic B US-015). The map
-    /// view shows a banner derived from this.
-    public private(set) var quotaExceededAt: Date?
+    /// view shows a banner derived from this. Persisted across cold
+    /// starts via UserDefaults — without persistence the user could
+    /// trigger Explore 30 times, hit quota, restart, and silently get
+    /// skeleton results on every call with no banner.
+    /// `quotaResetIfPastMidnight()` clears it when the local day rolls.
+    public private(set) var quotaExceededAt: Date? {
+        didSet {
+            if let date = quotaExceededAt {
+                UserDefaults.standard.set(date, forKey: Self.quotaExceededAtUDKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.quotaExceededAtUDKey)
+            }
+        }
+    }
+
+    /// UserDefaults key for the persisted quota-exceeded timestamp.
+    private static let quotaExceededAtUDKey = "SoloCompass.AIService.quotaExceededAt"
 
     /// Set by MapViewModel (or tests) to reflect the current subscription
     /// tier. Defaults to `true` so previews and tests without a
@@ -138,6 +153,15 @@ public final class AIService {
     public init(session: URLSession = .shared, modelContext: ModelContext? = nil) {
         self.session = session
         self.modelContext = modelContext
+        // Restore quota-exceeded from UserDefaults, but auto-clear if the
+        // local day has rolled — daily caps reset at midnight per US-015.
+        if let saved = UserDefaults.standard.object(forKey: Self.quotaExceededAtUDKey) as? Date {
+            if Calendar.current.isDateInToday(saved) {
+                self.quotaExceededAt = saved
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.quotaExceededAtUDKey)
+            }
+        }
     }
 
     /// Initialise with an `ExperienceRepository`; the repository's context
@@ -1131,8 +1155,12 @@ public final class AIService {
                     realInconveniences: [],
                     soloScore: SoloScore(overall: overall, breakdown: breakdown, hint: item.soloHint, basedOnCount: 0),
                     sources: [
+                        // type=.amap surfaces AutoNavi provenance in
+                        // ExperienceDetailView's source-strength chip so users
+                        // on the mainland can see amap actually contributed
+                        // (previously the chip just showed "user").
                         InformationSource(
-                            type: .user,
+                            type: poi.tags["source"] == "amap" ? .amap : .user,
                             url: poi.tags["source"] == "amap"
                                 ? nil
                                 : URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),

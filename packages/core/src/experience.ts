@@ -154,7 +154,10 @@ export interface InformationSource {
     | "blog"
     | "youtube"
     | "user"
-    | "field_visit";
+    | "field_visit"
+    | "amap"; // AutoNavi/高德 — mainland-China POI provenance marker. Per
+              // ADR-amap-china-poi §3.2 only the attribution flag is persisted,
+              // never the raw structured fields.
   readonly url?: string;
   readonly attribution?: string; // user handle, blog name, etc.
   readonly verifiedAt: string; // ISO 8601

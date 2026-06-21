@@ -425,6 +425,17 @@ struct CompassMapContentView: View {
             .onChange(of: locationService.currentLocation) { _, _ in
                 viewModel.bindToLocation()
             }
+            // Beta-P1-H follow-up: LocationService.routeStopEntered fires when
+            // the user crosses a 200m route-stop geofence, but until now nothing
+            // was listening — Live Activity froze on stop 1, no notification
+            // fired, and the user got zero feedback for "I arrived". Wire it
+            // through here: advance the persisted route + refresh Dynamic Island.
+            .onReceive(NotificationCenter.default.publisher(for: LocationService.routeStopEntered)) { note in
+                guard let expId = note.userInfo?["experienceId"] as? String else { return }
+                Task { @MainActor in
+                    await handleRouteStopEntered(experienceId: expId)
+                }
+            }
             .onChange(of: preferences.pendingCheckIns) { _, _ in
                 viewModel.checkForPendingCheckIns()
             }
@@ -478,6 +489,18 @@ struct CompassMapContentView: View {
                     // Messages list, which auto-pushes the matching ChatView.
                     deepLinkConversationId = conversationId
                     isShowingMe = true
+                    notificationService.pendingDeepLink = nil
+                case .experienceDetail(let experienceId):
+                    // solocompass://experience/<id> — the deep-link plumbing
+                    // exists end-to-end (Info.plist scheme → onOpenURL →
+                    // NotificationService.handleURL → pendingDeepLink); the
+                    // UI router for opening the detail sheet from a deep
+                    // link is the next step. Logging today so the URL is
+                    // observably received until that wiring lands.
+                    print("🔗 deep-link experienceDetail id=\(experienceId)")
+                    notificationService.pendingDeepLink = nil
+                case .routePreview(let routeId):
+                    print("🔗 deep-link routePreview id=\(routeId)")
                     notificationService.pendingDeepLink = nil
                 case .none:
                     break
@@ -918,6 +941,20 @@ struct CompassMapContentView: View {
                         ActiveRouteBanner(
                             title: active.route.title,
                             stopCount: active.coordinates.count,
+                            onSkip: {
+                                // Drop the current stop without crediting it
+                                // as completed — see RouteStore.skipStop docs.
+                                routeStore.skipStop(active.route.id)
+                            },
+                            onPause: {
+                                // Pause: keep progress, clear activeStartedAt
+                                // so loadActiveRoute stops returning it. The
+                                // banner stays mounted; user can resume from
+                                // the route list. Live Activity ends so the
+                                // island doesn't lie about being in-progress.
+                                routeStore.pauseRoute(active.route.id)
+                                Task { await LiveActivityService.shared.end() }
+                            },
                             onEnd: {
                                 withAnimation(.easeInOut(duration: 0.25)) { activeRoute = nil }
                                 // US-026: tear down the route Live Activity too.
@@ -1233,6 +1270,43 @@ struct CompassMapContentView: View {
             etaText: etaText,
             currentStopIndex: 1,
             totalStops: coords.count
+        )
+    }
+
+    /// Triggered by `LocationService.routeStopEntered` (200m geofence around
+    /// any active-route experience). Advances persisted progress and refreshes
+    /// the Dynamic Island so the user gets immediate "你已到达" feedback. If
+    /// the entered experience is the last stop, ends the Live Activity.
+    @MainActor
+    private func handleRouteStopEntered(experienceId: String) async {
+        guard let (route, _, _) = routeStore.loadActiveRoute() else { return }
+        guard let arrivedIndex = route.experienceIds.firstIndex(of: experienceId) else { return }
+
+        routeStore.advanceStop(route.id, completedExperienceId: experienceId)
+
+        let totalStops = route.experienceIds.count
+        let nextIndex = arrivedIndex + 1
+        if nextIndex >= totalStops {
+            // Last stop — close out the activity; CompletionMoment / UI flow
+            // takes over for the回顾.
+            await LiveActivityService.shared.end()
+            return
+        }
+
+        // Otherwise refresh the island with the *next* stop's data.
+        let nextExpId = route.experienceIds[nextIndex]
+        guard let nextExp = experienceService.getExperience(id: nextExpId) else { return }
+        let nextName = nextExp.location.placeNameRomanized
+            ?? nextExp.location.placeNameLocal
+            ?? nextExp.title
+        let legMinutes = max(1, route.estimatedDuration / max(totalStops, 1))
+        let etaText = Self.islandTimeFormatter.string(from: Date().addingTimeInterval(Double(legMinutes) * 60))
+        await LiveActivityService.shared.updateRoute(
+            nextStopName: nextName,
+            nextStopMeta: "步行约 \(legMinutes) 分 · 还剩 \(totalStops - nextIndex) 站",
+            etaText: etaText,
+            currentStopIndex: nextIndex + 1, // 1-indexed for human display
+            totalStops: totalStops
         )
     }
 

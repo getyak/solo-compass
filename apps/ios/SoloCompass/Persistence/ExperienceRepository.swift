@@ -566,13 +566,234 @@ public final class ExperienceRepository {
     // MARK: - Bulk operations
 
     /// Wipe every user-data row. Does NOT delete experiences (they reseed
-    /// from bundle). Used by GDPR delete and the Settings reset.
+    /// from bundle) or shared/cached lookups (DiscoveredCity / ExploreCache /
+    /// AISynthesisCache / WeatherCache — public data with no PHI).
+    /// Used by GDPR delete and the Settings reset.
+    ///
+    /// **All other @Model classes containing user-produced PHI MUST be
+    /// listed here** — leaving any out re-exposes the data on the next launch
+    /// (or to anyone who restores the device backup).
     public func clearAllUserData() {
+        // Personal interactions with experiences.
         try? context.delete(model: UserCompletionRecord.self)
         try? context.delete(model: UserFavoriteRecord.self)
         try? context.delete(model: MicroSurveyRecord.self)
         try? context.delete(model: PendingCheckInRecord.self)
+        // Social graph + chat (most sensitive — was previously leaking on
+        // delete-account: see PRD-friends-social-graph + ADR §3 PHI scope).
+        try? context.delete(model: FriendshipRecord.self)
+        try? context.delete(model: FriendRequestRecord.self)
+        try? context.delete(model: ConversationRecord.self)
+        try? context.delete(model: ChatMessageRecord.self)
+        try? context.delete(model: ChatSessionRecord.self)
+        // Authored content (notes, route plans, itineraries, corrections).
+        try? context.delete(model: TravelerNoteRecord.self)
+        try? context.delete(model: PlaceCorrectionRecord.self)
+        try? context.delete(model: RouteRecord.self)
+        try? context.delete(model: ItineraryRecord.self)
+        // Outbound sync queue + AI usage history must also clear so the
+        // wiped data isn't pushed back to the cloud after deletion.
+        try? context.delete(model: PendingSyncRecord.self)
+        try? context.delete(model: AIUsageRecord.self)
         try? context.save()
+    }
+
+    // MARK: - GDPR export
+
+    /// Subject Access Request export — returns a single JSON blob containing
+    /// every user-produced row across all @Model tables. Pair with
+    /// `clearAllUserData()` so a user can run "download then delete" the way
+    /// GDPR Articles 15 + 17 require.
+    ///
+    /// The schema is `{ "export_version": 1, "generated_at": <iso8601>,
+    /// "tables": { "favorites": [...], "completions": [...], ... } }`.
+    /// Records that don't already conform to Codable are projected to a
+    /// plain dictionary of their primary fields — enough to be a faithful
+    /// record but free of SwiftData @Model internals that would refuse to
+    /// re-import elsewhere.
+    ///
+    /// Returns `nil` only if JSON encoding fails (should never happen with
+    /// the curated dictionary). Caller writes/shares the bytes itself —
+    /// keeping IO out of the repo so unit tests don't need a sandbox.
+    ///
+    /// Field selection follows the schemas in `Persistence/Models/*.swift`.
+    /// Only stable user-visible fields are exported; SwiftData internals,
+    /// `*Blob: Data` columns, and re-derivable cache rows are intentionally
+    /// omitted to keep the JSON portable and human-readable.
+    public func exportAllUserData() -> Data? {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        // RouteRecord/Friendship/etc store createdAt as a String already;
+        // pass through as-is. AIUsage/PendingSync/MicroSurvey use Date —
+        // format those explicitly through `iso`.
+        func decodeBlob(_ blob: Data?) -> [String] {
+            blob.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
+        }
+
+        var tables: [String: Any] = [:]
+
+        // Favorites + completions — already string-id lists.
+        tables["favorites"] = allFavorites()
+        tables["completions"] = allCompletions()
+
+        if let pending = try? context.fetch(FetchDescriptor<PendingCheckInRecord>()) {
+            tables["pending_checkins"] = pending.map { ["experienceId": $0.experienceId] }
+        }
+
+        if let surveys = try? context.fetch(FetchDescriptor<MicroSurveyRecord>()) {
+            tables["surveys"] = surveys.map { rec -> [String: Any] in
+                [
+                    "id": rec.id.uuidString,
+                    "experienceId": rec.experienceId,
+                    "comfort": rec.comfort,
+                    "pressure": rec.pressure,
+                    "recommend": rec.recommend,
+                    "submittedAt": iso.string(from: rec.submittedAt)
+                ]
+            }
+        }
+
+        if let routes = try? context.fetch(FetchDescriptor<RouteRecord>()) {
+            tables["routes"] = routes.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "title": rec.title,
+                    "summary": rec.summary,
+                    "cityCode": rec.cityCode,
+                    "experienceIds": decodeBlob(rec.experienceIdsBlob),
+                    "currentStopIndex": rec.currentStopIndex ?? -1
+                ]
+            }
+        }
+
+        if let itineraries = try? context.fetch(FetchDescriptor<ItineraryRecord>()) {
+            tables["itineraries"] = itineraries.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "ownerId": rec.ownerId,
+                    "title": rec.title,
+                    "cityCode": rec.cityCode,
+                    "startDate": rec.startDate,
+                    "endDate": rec.endDate,
+                    "experienceIds": decodeBlob(rec.experienceIdsBlob),
+                    "createdAt": rec.createdAt
+                ]
+            }
+        }
+
+        if let friends = try? context.fetch(FetchDescriptor<FriendshipRecord>()) {
+            tables["friendships"] = friends.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "userLowId": rec.userLowId,
+                    "userHighId": rec.userHighId,
+                    "initiatedBy": rec.initiatedBy,
+                    "acceptedAt": rec.acceptedAt,
+                    "createdAt": rec.createdAt
+                ]
+            }
+        }
+        if let requests = try? context.fetch(FetchDescriptor<FriendRequestRecord>()) {
+            tables["friend_requests"] = requests.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "requesterId": rec.requesterId,
+                    "recipientId": rec.recipientId,
+                    "status": rec.status,
+                    "createdAt": rec.createdAt
+                ]
+            }
+        }
+
+        // Chat (most sensitive — full plaintext export so user has a copy).
+        if let convs = try? context.fetch(FetchDescriptor<ConversationRecord>()) {
+            tables["conversations"] = convs.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "type": rec.type,
+                    "createdAt": rec.createdAt,
+                    "lastMessageAt": rec.lastMessageAt ?? ""
+                ]
+            }
+        }
+        if let msgs = try? context.fetch(FetchDescriptor<ChatMessageRecord>()) {
+            tables["chat_messages"] = msgs.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "sessionId": rec.sessionId,
+                    "role": rec.role,
+                    "content": rec.content ?? "",
+                    "orderIndex": rec.orderIndex,
+                    "createdAt": rec.createdAt
+                ]
+            }
+        }
+        if let sessions = try? context.fetch(FetchDescriptor<ChatSessionRecord>()) {
+            tables["chat_sessions"] = sessions.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "title": rec.title ?? "",
+                    "createdAt": rec.createdAt,
+                    "messageCount": rec.messageCount
+                ]
+            }
+        }
+
+        if let notes = try? context.fetch(FetchDescriptor<TravelerNoteRecord>()) {
+            tables["traveler_notes"] = notes.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "experienceId": rec.experienceId,
+                    "text": rec.text,
+                    "createdAt": rec.createdAt,
+                    "isMine": rec.isMine
+                ]
+            }
+        }
+        if let corrs = try? context.fetch(FetchDescriptor<PlaceCorrectionRecord>()) {
+            tables["place_corrections"] = corrs.map { rec -> [String: Any] in
+                [
+                    "id": rec.id,
+                    "experienceId": rec.experienceId,
+                    "field": rec.field,
+                    "oldVal": rec.oldVal,
+                    "newVal": rec.newVal,
+                    "createdAt": rec.createdAt
+                ]
+            }
+        }
+
+        // Sync queue + AI usage history so user can verify nothing's in flight.
+        if let pendingSync = try? context.fetch(FetchDescriptor<PendingSyncRecord>()) {
+            tables["pending_sync"] = pendingSync.map { rec -> [String: Any] in
+                [
+                    "id": rec.id.uuidString,
+                    "tableName": rec.tableName,
+                    "operation": rec.operation,
+                    "createdAt": iso.string(from: rec.createdAt),
+                    "retryCount": rec.retryCount
+                ]
+            }
+        }
+        if let usage = try? context.fetch(FetchDescriptor<AIUsageRecord>()) {
+            tables["ai_usage"] = usage.map { rec -> [String: Any] in
+                [
+                    "date": iso.string(from: rec.date),
+                    "synthesisCalls": rec.synthesisCalls,
+                    "explanationCalls": rec.explanationCalls
+                ]
+            }
+        }
+
+        let envelope: [String: Any] = [
+            "export_version": 1,
+            "generated_at": iso.string(from: Date()),
+            "tables": tables
+        ]
+        return try? JSONSerialization.data(
+            withJSONObject: envelope,
+            options: [.prettyPrinted, .sortedKeys]
+        )
     }
 
     // MARK: - Internals

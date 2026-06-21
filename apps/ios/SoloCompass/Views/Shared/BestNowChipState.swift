@@ -27,6 +27,19 @@ struct BestNowChipState {
     /// pill so all four surfaces agree on what "closing soon" means.
     static let closingSoonThresholdMinutes = 45
 
+    /// Threshold below which the chip earns the additional pulse animation —
+    /// "you have minutes, not an hour" urgency. closingSoon (≤45) swaps
+    /// colors; urgent (≤15) earns the breathing motion on top.
+    static let urgentThresholdMinutes = 15
+
+    /// True when the active best-time window has ≤ `urgentThresholdMinutes`
+    /// left. Views opt into a subtle scaleEffect pulse based on this so the
+    /// user feels the time pressure on the peek card / list row.
+    var isUrgent: Bool {
+        guard let minutes = minutesLeft else { return false }
+        return minutes <= Self.urgentThresholdMinutes
+    }
+
     /// Amber used for the closing-soon treatment — identical to
     /// `BestNowBadge.amber` (#F59E0B) so the urgency tone reads the same on the
     /// peek card, the Nearby row, the detail card, and the Saved list.
@@ -63,9 +76,18 @@ struct BestNowChipState {
     }
 
     /// Visible chip label. When closing soon and a minute count is known, shows
-    /// the compact countdown ("Closing · Nm"); otherwise the plain "Best now".
+    /// the compact countdown ("Closing · Nm"); 0 minutes special-cases to
+    /// "即将关闭 / Closing now" so we don't keep saying "1m left" when the
+    /// window is actually closing within seconds (see #73). Otherwise the
+    /// plain "Best now".
     var label: String {
         if isClosingSoon, let minutes = minutesLeft {
+            if minutes <= 0 {
+                return NSLocalizedString(
+                    "nearby.chip.closingNow",
+                    comment: "Chip when best-time window is closing within the minute"
+                )
+            }
             return String(
                 format: NSLocalizedString(
                     "nearby.chip.closingSoon",

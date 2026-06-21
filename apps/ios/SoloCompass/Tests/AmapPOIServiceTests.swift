@@ -189,4 +189,49 @@ final class AmapPOIServiceTests: XCTestCase {
             XCTFail("expected AmapError.missingKey, got \(error)")
         }
     }
+
+    // MARK: - Wire-format contract (CI-safe replacement for AmapLiveIntegrationTests
+    // which XCTSkipIfs without a real key). Locks down the JSON contract so a
+    // silent decoder regression (e.g. amap returning int `1` instead of `"1"`)
+    // trips here instead of on device with no diagnostic.
+
+    func testFlexibleDecoderAcceptsStringStatus() throws {
+        let json = #"{"status":"1","info":"OK","infocode":"10000","pois":[{"id":"B1","name":"Café","location":"114.0579,22.5431","typecode":"050500"}]}"#
+        let data = Data(json.utf8)
+        let decoded = try JSONDecoder().decode(AmapPOIService.AroundResponse.self, from: data)
+        XCTAssertEqual(decoded.status, "1")
+        XCTAssertEqual(decoded.infocode, "10000")
+        XCTAssertEqual(decoded.pois?.count, 1)
+        XCTAssertEqual(decoded.pois?.first?.name, "Café")
+    }
+
+    func testFlexibleDecoderAcceptsIntStatus() throws {
+        // Some amap edge / proxy paths historically returned `status: 1` as
+        // an int — the previous strict `String` decoder threw typeMismatch
+        // and the EnrichmentAgent silently fell back to Overpass.
+        let json = #"{"status":1,"info":"OK","infocode":10000,"pois":[]}"#
+        let data = Data(json.utf8)
+        let decoded = try JSONDecoder().decode(AmapPOIService.AroundResponse.self, from: data)
+        XCTAssertEqual(decoded.status, "1")
+        XCTAssertEqual(decoded.infocode, "10000")
+        XCTAssertEqual(decoded.pois?.count ?? 0, 0)
+    }
+
+    func testInfocodeHintCoversWellKnownErrors() {
+        XCTAssertTrue(AmapPOIService.infocodeHint("10001").contains("INVALID_KEY"))
+        XCTAssertTrue(AmapPOIService.infocodeHint("10009").contains("数字签名"))
+        XCTAssertTrue(AmapPOIService.infocodeHint("10044").contains("USER_DAY_QUERY_OVER_LIMIT"))
+        XCTAssertTrue(AmapPOIService.infocodeHint(nil).contains("unknown"))
+        XCTAssertTrue(AmapPOIService.infocodeHint("99999").contains("unmapped"))
+    }
+
+    func testParseLocationRejectsOutOfRangeAndNaN() {
+        // Defends against poisoned cache from a malformed amap response.
+        XCTAssertNil(AmapPOIService.parseLocation("nan,nan"))
+        XCTAssertNil(AmapPOIService.parseLocation("999,999"))   // out of range
+        XCTAssertNil(AmapPOIService.parseLocation("0,0"))       // null island
+        XCTAssertNil(AmapPOIService.parseLocation("114.0"))     // single value
+        XCTAssertNil(AmapPOIService.parseLocation(""))
+        XCTAssertNotNil(AmapPOIService.parseLocation("114.0579,22.5431"))
+    }
 }

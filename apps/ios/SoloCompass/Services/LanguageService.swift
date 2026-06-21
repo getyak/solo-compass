@@ -47,6 +47,18 @@ public final class LanguageService {
             self.current = option
         } else {
             self.current = .system
+            // First launch (no override yet): if the system language is
+            // Chinese, persist .simplifiedChinese so the bundle picks up
+            // zh-Hans strings even when Bundle's preferred-localization
+            // resolution picks .en due to a stale AppleLanguages value
+            // left by another app. This makes the "iPhone in 中文 → app
+            // opens in Chinese" expectation actually hold on first launch.
+            let sysCode = Locale.current.language.languageCode?.identifier ?? ""
+            if sysCode.lowercased().hasPrefix("zh") {
+                self.current = .simplifiedChinese
+                defaults.set(Option.simplifiedChinese.rawValue, forKey: Self.overrideKey)
+                defaults.set([Option.simplifiedChinese.rawValue], forKey: Self.appleLanguagesKey)
+            }
         }
     }
 

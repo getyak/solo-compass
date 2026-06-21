@@ -282,7 +282,7 @@ public enum SoloCompassModelContainer {
             //   3. Write an XCTest that opens a copy of a real prior-version
             //      sqlite fixture under `Tests/Fixtures/` and asserts the
             //      migrated values — see audit task H13 in the audit log.
-            return try ModelContainer(
+            let container = try ModelContainer(
                 for: ExperienceRecord.self,
                 UserCompletionRecord.self,
                 UserFavoriteRecord.self,
@@ -306,6 +306,13 @@ public enum SoloCompassModelContainer {
                 PlaceCorrectionRecord.self,
                 configurations: config
             )
+            // Tag the SQLite store + WAL/SHM siblings with
+            // `.completeUntilFirstUserAuthentication` so a stolen-while-locked
+            // device can't read chat/friend/notes data off disk. Not `.complete`
+            // (full lock-screen) because background route-stop geofence handlers
+            // and Supabase sync need to write when the screen is off.
+            protectStoreFiles(at: config.url)
+            return container
         } catch {
             // Disk-full / sandbox / corrupt-store cases used to fatalError
             // here. For Beta we fall back to an in-memory container so the
@@ -367,6 +374,36 @@ public enum SoloCompassModelContainer {
                 )
             )
             fatalError("Failed to initialize in-memory SoloCompass container: \(error)")
+        }
+    }
+
+    /// Apply iOS data-protection class `.completeUntilFirstUserAuthentication`
+    /// to the SQLite store + its WAL/SHM siblings. Required even though the
+    /// app's default class is set in entitlements — SwiftData creates the
+    /// store files at runtime, after entitlement-driven defaults are applied,
+    /// so a freshly-made WAL inherits whatever Foundation defaulted to (often
+    /// `.completeUnlessOpen`). Setting explicitly ensures every file we touch
+    /// has the same class. Failures only log a warning (non-fatal: container
+    /// already exists; data is still accessible to the app itself).
+    static func protectStoreFiles(at storeURL: URL?) {
+        guard let storeURL else { return }
+        let fm = FileManager.default
+        let siblings = [storeURL,
+                        storeURL.appendingPathExtension("wal"),
+                        storeURL.deletingPathExtension().appendingPathExtension("sqlite-wal"),
+                        storeURL.appendingPathExtension("shm"),
+                        storeURL.deletingPathExtension().appendingPathExtension("sqlite-shm")]
+        for url in siblings where fm.fileExists(atPath: url.path) {
+            do {
+                try fm.setAttributes(
+                    [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+                    ofItemAtPath: url.path
+                )
+            } catch {
+                // Logged to Sentry on first miss; subsequent files silently
+                // ignored to avoid spamming. Non-fatal: store is still usable.
+                print("⚠️ FileProtection set failed for \(url.lastPathComponent): \(error)")
+            }
         }
     }
 }

@@ -23,6 +23,12 @@ public struct ExperienceCardView: View {
 
     @GestureState private var dragState = DragState()
     @State private var dragOffset: CGFloat = 0
+    /// Loosen lineLimit at accessibility text sizes — at .accessibility1+
+    /// (the iOS slider's "Larger Accessibility Sizes" section) the existing
+    /// hard caps of 1/2/3 truncate Chinese descriptions to a single visible
+    /// word per line. Read at render so a user who slides the slider mid-
+    /// session sees the new layout immediately.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var heartBounce = 0
     @State private var heartBurst = false
     @State private var arrivedPulse = false
@@ -257,11 +263,11 @@ public struct ExperienceCardView: View {
                     // continuous with the redesigned detail page's hero title.
                     Text(experience.title)
                         .font(.system(.headline, design: .rounded, weight: .semibold))
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
                     Text(experience.location.placeNameRomanized ?? experience.location.addressHint ?? "")
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                 }
                 Spacer()
                 Button {
@@ -325,7 +331,7 @@ public struct ExperienceCardView: View {
                 .font(.subheadline)
                 .italic(isSkeletonData)
                 .foregroundStyle(isSkeletonData ? .secondary : .primary)
-                .lineLimit(3)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 6 : 3)
 
             // US-004 / Beta-P0-D: transparency rail. Skeleton cards get the
             // muted "still listening" pill; cards with real AI synthesis get
