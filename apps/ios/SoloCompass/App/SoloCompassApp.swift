@@ -77,6 +77,19 @@ struct SoloCompassApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     init() {
+        // #68: ExperienceCardView uses bare `AsyncImage(url:)`, which talks to
+        // `URLSession.shared` and therefore shares `URLCache.shared`. The
+        // system default is ~4MB memory / ~20MB disk — too small for a map
+        // scrolling 40+ category thumbnails. Bumping the shared cache before
+        // any image fires lets cards hit cache on the second pass instead of
+        // re-downloading. 50MB mem / 200MB disk keeps disk usage modest
+        // (images are small JPEGs). Must run before App body materializes any
+        // view that triggers a fetch.
+        URLCache.shared = URLCache(
+            memoryCapacity: 50 * 1024 * 1024,
+            diskCapacity: 200 * 1024 * 1024
+        )
+
         // Start Sentry as early as possible so we catch crashes during the
         // rest of App init / first render. No-op when DSN is empty.
         SentryService.bootstrap()

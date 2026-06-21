@@ -11,6 +11,11 @@ import Foundation
 ///   (wrap-around-midnight) distance in minutes, with `sigma = 90min`.
 public struct HourOfDaySignal: NowSignal {
     public static let key = "hourOfDay"
+    /// **Relative** weight — see `BestTimesSignal.weight` for the
+    /// normalization story. 0.2 means "half as decisive as bestTimes" in
+    /// today's two-signal stack; the absolute number is meaningless on its
+    /// own and only takes effect after `composeNowScore` divides by the
+    /// total weight of all signals that contributed.
     public static let weight = 0.2
 
     /// Full width of the Gaussian, in minutes.

@@ -704,9 +704,14 @@ public struct Experience: Codable, Hashable, Identifiable {
 
     /// A continuous timeliness score in `[0, 1]` for the given date.
     ///
-    /// Iterates the registered signals (`bestTimes` × 0.4, `hourOfDay` × 0.2)
-    /// and produces a weight-normalized average of their values, concatenating
-    /// each signal's reason with ` · `. An empty signal list yields `0.5`.
+    /// Iterates the registered signals and produces a *weight-normalized*
+    /// average of their values, concatenating each signal's reason with ` · `.
+    /// "Weight-normalized" matters: each signal exposes a `weight` (bestTimes
+    /// 0.4, hourOfDay 0.2 today), but `composeNowScore` divides by the **sum**
+    /// of participating weights — so the absolute weight is meaningless and
+    /// only the relative ratio (bestTimes counts twice as much as hourOfDay)
+    /// shapes the verdict. Adding or removing a signal doesn't require
+    /// rebalancing the others. An empty signal list yields `0.5`.
     public func nowScore(at date: Date = Date()) -> NowScore {
         // Delegates to the shared engine. The synchronous path runs the two pure,
         // local signals; the failure-tolerant async path (`NowScoreEngine.evaluate`)
@@ -804,6 +809,19 @@ public struct Experience: Codable, Hashable, Identifiable {
 
     /// Minutes remaining in the currently-active bestTimes window, or nil when not best now.
     /// Handles windows that wrap past midnight (endHour < startHour).
+    ///
+    /// **Time-zone contract (#72):** `bestTimes.startHour/endHour` are
+    /// interpreted in the **device's current local time** via
+    /// `Calendar.current`. The Experience model deliberately does NOT carry a
+    /// `placeTimezone` field today — solo travelers overwhelmingly browse
+    /// places near their current location (the map centers on the user) and
+    /// the device tz tracks them. When the design eventually supports
+    /// browse-from-afar (e.g. saved Hanoi places while sitting in New York),
+    /// add `Experience.placeTimezone: String?` and switch this Calendar to a
+    /// place-tz-anchored one — the rest of the logic (window matching,
+    /// midnight wrap) carries over unchanged. Until then, accept the known
+    /// edge case rather than silently mis-rendering "best now" for far-away
+    /// places.
     public func minutesLeftInBestWindow(at date: Date = Date()) -> Int? {
         let cal = Calendar.current
         let hour = cal.component(.hour, from: date)

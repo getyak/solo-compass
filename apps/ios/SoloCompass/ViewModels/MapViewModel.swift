@@ -899,6 +899,31 @@ public final class MapViewModel {
     /// `.hidden` category and a distinct (dashed) marker.
     public var candidateExperiences: [Experience] = []
 
+    /// Hard cap on `candidateExperiences` (#70). A long session of "drop a pin"
+    /// + voice creates one entry each — left unbounded, a power user could
+    /// pile up hundreds and pay the SwiftUI diff cost on every map redraw.
+    /// 200 is roughly the marker budget MapKit handles smoothly at city zoom;
+    /// older entries fall off the head first (FIFO) so the most-recent
+    /// candidates always survive.
+    public static let candidateExperiencesCap = 200
+
+    /// Append a candidate with dedupe-by-id + FIFO cap. Replaces an existing
+    /// entry in place (preserving order) when the same id is added twice —
+    /// matches the existing replace-by-id contract that `applyEnrichedCandidate`
+    /// relies on.
+    private func appendCandidate(_ candidate: Experience) {
+        if let i = candidateExperiences.firstIndex(where: { $0.id == candidate.id }) {
+            candidateExperiences[i] = candidate
+            return
+        }
+        candidateExperiences.append(candidate)
+        if candidateExperiences.count > Self.candidateExperiencesCap {
+            candidateExperiences.removeFirst(
+                candidateExperiences.count - Self.candidateExperiencesCap
+            )
+        }
+    }
+
     public init(
         locationService: LocationService,
         experienceService: ExperienceService,
@@ -1607,7 +1632,7 @@ public final class MapViewModel {
         _ = experienceService.recordUserExperience(candidate)
         // Render right away: keep it in the candidate layer (distinct marker)
         // and surface it among visible experiences without a full reload.
-        candidateExperiences.append(candidate)
+        appendCandidate(candidate)
         withAnimation(Self.markerSetAnimation) {
             visibleExperiences.append(candidate)
             nearbySoloCount = computeNearbySoloCount(in: visibleExperiences)
@@ -1682,7 +1707,7 @@ public final class MapViewModel {
                 createdAt: now,
                 updatedAt: now
             )
-            candidateExperiences.append(candidate)
+            appendCandidate(candidate)
             aiExplanation = response.explanation
             lastAIError = nil
         } catch {

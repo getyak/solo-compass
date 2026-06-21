@@ -299,6 +299,145 @@ final class RouteStoreTests: XCTestCase {
         XCTAssertEqual(monuments?.companion?.confirmedMembers.count, 4)
     }
 
+    // MARK: - Beta-P0-A: active route progress (#78)
+    //
+    // skipStop / pauseRoute / resumeRoute were added after Beta v0.9 to let the
+    // user drop a stop without faking attendance, and to step away from a
+    // half-day walk without losing their place. These regressions are easy to
+    // introduce in the SwiftData layer (forgetting to nil activeStartedAt,
+    // bumping the index when no route is active, …) — lock the contract in.
+
+    private func seededActiveRoute(id: String = "route_active") -> Route {
+        let route = Route(
+            id: RouteId(rawValue: id),
+            title: "Active Walk",
+            summary: "Two-stop walk",
+            experienceIds: ["exp_a", "exp_b", "exp_c"],
+            cityCode: "vte",
+            region: "Riverside",
+            estimatedDuration: 60,
+            distanceMeters: 1500,
+            pace: .standard,
+            tags: [],
+            source: .editorial
+        )
+        store.save(route)
+        store.startRoute(route.id)
+        return route
+    }
+
+    func testSkipStopAdvancesIndexWithoutMarkingCompleted() {
+        let route = seededActiveRoute()
+        guard let snapshot = store.loadActiveRoute() else {
+            return XCTFail("startRoute should leave the route active")
+        }
+        XCTAssertEqual(snapshot.stopIndex, 0)
+        XCTAssertTrue(snapshot.completedIds.isEmpty)
+
+        let next = store.skipStop(route.id)
+        XCTAssertEqual(next, 1, "skipStop must advance the index by one")
+
+        guard let after = store.loadActiveRoute() else {
+            return XCTFail("route should still be active after a skip")
+        }
+        XCTAssertEqual(after.stopIndex, 1)
+        XCTAssertTrue(
+            after.completedIds.isEmpty,
+            "skipStop must NOT append to completedStopIds — that is advanceStop's job"
+        )
+    }
+
+    func testSkipStopIsNoOpForInactiveRoute() {
+        let route = Route(
+            id: RouteId(rawValue: "route_inactive"),
+            title: "Inactive",
+            summary: "",
+            experienceIds: ["exp_x"],
+            cityCode: "vte",
+            region: "",
+            estimatedDuration: 10,
+            distanceMeters: 100,
+            pace: .standard,
+            tags: [],
+            source: .editorial
+        )
+        store.save(route) // saved but never startRoute() → currentStopIndex nil
+
+        XCTAssertNil(
+            store.skipStop(route.id),
+            "skipStop on a never-started route must return nil"
+        )
+    }
+
+    func testSkipStopReturnsNilForMissingRoute() {
+        XCTAssertNil(store.skipStop(RouteId(rawValue: "route_does_not_exist")))
+    }
+
+    func testPauseRouteClearsActiveStartedAtButPreservesProgress() {
+        let route = seededActiveRoute()
+        store.advanceStop(route.id, completedExperienceId: "exp_a")
+        // advanceStop bumped the index AND appended "exp_a" to completed.
+
+        store.pauseRoute(route.id)
+
+        XCTAssertNil(
+            store.loadActiveRoute(),
+            "loadActiveRoute must skip paused routes (activeStartedAt cleared)"
+        )
+        // Re-fetch the raw record via get() to verify progress survived the pause.
+        XCTAssertNotNil(store.get(route.id), "the route record itself must still exist")
+    }
+
+    func testResumeRouteRestoresActiveLookupAndPreservesProgress() {
+        let route = seededActiveRoute()
+        store.advanceStop(route.id, completedExperienceId: "exp_a")
+        store.pauseRoute(route.id)
+        XCTAssertNil(store.loadActiveRoute(), "precondition: paused → not active")
+
+        store.resumeRoute(route.id)
+
+        guard let snapshot = store.loadActiveRoute() else {
+            return XCTFail("resumeRoute must surface the route again")
+        }
+        XCTAssertEqual(snapshot.stopIndex, 1, "currentStopIndex must survive pause/resume")
+        XCTAssertEqual(
+            snapshot.completedIds,
+            ["exp_a"],
+            "completedStopIds must survive pause/resume"
+        )
+    }
+
+    func testPauseAndResumeAreNoOpsForMissingRoute() {
+        store.pauseRoute(RouteId(rawValue: "route_missing"))
+        store.resumeRoute(RouteId(rawValue: "route_missing"))
+        XCTAssertTrue(store.all().isEmpty)
+    }
+
+    func testSkipStopPostsDidChangeNotification() {
+        let route = seededActiveRoute(id: "route_skip_notify")
+        let exp = expectation(forNotification: RouteStore.didChange, object: store) { note in
+            (note.userInfo?["routeId"] as? String) == "route_skip_notify"
+        }
+        store.skipStop(route.id)
+        wait(for: [exp], timeout: 1.0)
+    }
+
+    func testPauseResumePostsDidChangeNotifications() {
+        let route = seededActiveRoute(id: "route_pr_notify")
+
+        let pauseExp = expectation(forNotification: RouteStore.didChange, object: store) { note in
+            (note.userInfo?["routeId"] as? String) == "route_pr_notify"
+        }
+        store.pauseRoute(route.id)
+        wait(for: [pauseExp], timeout: 1.0)
+
+        let resumeExp = expectation(forNotification: RouteStore.didChange, object: store) { note in
+            (note.userInfo?["routeId"] as? String) == "route_pr_notify"
+        }
+        store.resumeRoute(route.id)
+        wait(for: [resumeExp], timeout: 1.0)
+    }
+
     /// Locate the bundle hosting `seed_routes.json`. Mirrors the lookup in
     /// `SeedRoutesParityTests`: prefer the test bundle if it carries the
     /// resource, otherwise fall back to `Bundle.main` — under

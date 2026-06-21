@@ -291,6 +291,27 @@ public final class AIService {
                 reasonNow: plan.reasonNow?.isEmpty == false ? plan.reasonNow : nil
             )
         } catch {
+            // #66: Surface JSON parse failures to Sentry so we can spot the
+            // model drifting away from the route-plan schema before the
+            // fallback masks it forever. We capture metadata only — never the
+            // raw body, which can contain user-adjacent place names from the
+            // prompt; the error message + candidate count is enough to
+            // diagnose a truncation or wrong-shape response. SentryService is
+            // @MainActor, hop over fire-and-forget so the fallback isn't
+            // blocked waiting for the report.
+            let captureErr = error.localizedDescription
+            let captureCount = candidates.count
+            Task { @MainActor in
+                SentryService.capture(
+                    message: "AI JSON parse failed: generateRoute",
+                    level: .warning,
+                    context: [
+                        "prompt_type": "route_generation",
+                        "error": captureErr,
+                        "candidate_count": captureCount
+                    ]
+                )
+            }
             // Local fallback: top Solo-scored candidates, walked nearest-first.
             let top = candidates
                 .sorted { lhs, rhs in
@@ -1242,7 +1263,30 @@ public final class AIService {
             let durationMaxMinutes: Int?
             let realInconveniences: [InconvenienceItem]?
         }
-        guard let decoded = try? JSONDecoder().decode(EnrichResponse.self, from: data) else { return nil }
+        let decoded: EnrichResponse
+        do {
+            decoded = try JSONDecoder().decode(EnrichResponse.self, from: data)
+        } catch {
+            // #66: previously `try?` silently swallowed the parse failure, so
+            // the user just saw their UGC place permanently stuck on the
+            // skeleton Solo Score with no signal to debug. Capture metadata
+            // (no raw body) so we can find the wrong-shape responses.
+            // SentryService is @MainActor; hop over fire-and-forget.
+            let captureErr = error.localizedDescription
+            let captureLen = data.count
+            Task { @MainActor in
+                SentryService.capture(
+                    message: "AI JSON parse failed: enrichUserExperience",
+                    level: .warning,
+                    context: [
+                        "prompt_type": "enrich",
+                        "error": captureErr,
+                        "raw_body_length": captureLen
+                    ]
+                )
+            }
+            return nil
+        }
         let item = decoded.enriched
 
         let overall = max(0, min(10, item.soloOverall))

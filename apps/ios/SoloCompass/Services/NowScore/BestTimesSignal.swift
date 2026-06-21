@@ -9,6 +9,13 @@ import Foundation
 /// - empty `bestTimes`     → `0.5` (neutral; no timing signal to judge by)
 public struct BestTimesSignal: NowSignal {
     public static let key = "bestTimes"
+    /// **Relative** weight (not absolute) within the active signal set.
+    /// `Experience.composeNowScore` divides by the sum of all participating
+    /// weights so the final score is always in [0,1] regardless of which
+    /// signals are registered. Concretely: with today's two stock signals
+    /// (bestTimes 0.4, hourOfDay 0.2) bestTimes carries 0.4/0.6 ≈ 66.7% of
+    /// the verdict. Add a third signal at 0.4 and bestTimes naturally drops
+    /// to 0.4/1.0 = 40% — the absolute numbers stay stable, the share shifts.
     public static let weight = 0.4
 
     public init() {}

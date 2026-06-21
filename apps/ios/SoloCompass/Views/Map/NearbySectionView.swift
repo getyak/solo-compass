@@ -192,10 +192,18 @@ struct NearbySection: View {
 // MARK: - NearbyRowSkeletonList
 
 struct NearbyRowSkeletonList: View {
+    /// Shared shimmer phase (#69) — driven by ONE `repeatForever` animation
+    /// in this parent view and pushed down to each row. Previously every
+    /// NearbyRowSkeleton owned its own @State + `repeatForever`, so a 3-row
+    /// list ran 3 independent animation timers that drifted apart and tripled
+    /// the SwiftUI tick cost on a surface that the user only sees for ~600ms.
+    @State private var shimmerPhase: CGFloat = -1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         VStack(spacing: 10) {
             ForEach(0..<3, id: \.self) { _ in
-                NearbyRowSkeleton()
+                NearbyRowSkeleton(shimmerPhase: shimmerPhase)
             }
         }
         .padding(.horizontal, 16)
@@ -204,12 +212,18 @@ struct NearbyRowSkeletonList: View {
         .accessibilityLabel(Text(NSLocalizedString("skeleton.loading", comment: "Loading")))
         .accessibilityAddTraits(.updatesFrequently)
         .allowsHitTesting(false)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+                shimmerPhase = 1.0
+            }
+        }
     }
 }
 
 private struct NearbyRowSkeleton: View {
-    @State private var shimmerPhase: CGFloat = -1.0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Driven by the parent so 3 rows share 1 phase + 1 timer (#69).
+    let shimmerPhase: CGFloat
 
     var body: some View {
         HStack(spacing: 12) {
@@ -231,12 +245,6 @@ private struct NearbyRowSkeleton: View {
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color(uiColor: .systemGray6))
         )
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
-                shimmerPhase = 1.0
-            }
-        }
     }
 
     private var shimmerFill: some ShapeStyle {

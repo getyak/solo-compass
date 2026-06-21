@@ -56,4 +56,14 @@ public final class NetworkMonitor {
     deinit {
         monitor.cancel()
     }
+
+    #if DEBUG
+    /// Test-only override so unit tests can drive callers that branch on
+    /// `isConnected` (e.g. `MapViewModel.classifyFailure`) without standing
+    /// up a real `NWPathMonitor`. Production code MUST NOT call this — the
+    /// production path is `pathUpdateHandler` above.
+    func _setConnectedForTesting(_ value: Bool) {
+        isConnected = value
+    }
+    #endif
 }
