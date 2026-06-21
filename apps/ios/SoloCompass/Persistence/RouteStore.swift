@@ -95,12 +95,41 @@ public final class RouteStore {
     /// otherwise unordered, which made the list shuffle on each cold start).
     public func nearby(cityCode: String, limit: Int) -> [Route] {
         guard limit > 0 else { return [] }
-        var descriptor = FetchDescriptor<RouteRecord>(
-            predicate: #Predicate { $0.cityCode == cityCode },
+        let candidates = Self.cityCodeCandidates(for: cityCode)
+        let descriptor = FetchDescriptor<RouteRecord>(
             sortBy: [SortDescriptor(\.title)]
         )
-        descriptor.fetchLimit = limit
-        return (try? context.fetch(descriptor))?.map(\.asValue) ?? []
+        let all = (try? context.fetch(descriptor)) ?? []
+        let matched = all.filter { record in
+            candidates.contains { $0.caseInsensitiveCompare(record.cityCode) == .orderedSame }
+        }
+        return Array(matched.prefix(limit)).map(\.asValue)
+    }
+
+    /// Mirrors `MapViewModel.cityCodeAliases` — kept local so the persistence
+    /// layer doesn't depend on a view model. When the persisted
+    /// `lastSelectedCity` is the human slug (`vientiane`) but seed routes are
+    /// coded as `VTE`, the literal `==` predicate dropped every row; expanding
+    /// the query into the alias-equivalent set keeps the Routes section
+    /// populated on cold start.
+    private static let cityCodeAliases: [String: String] = [
+        "chiang-mai": "cmi",
+        "vientiane": "VTE",
+        "shenzhen": "cn-深圳市",
+        "szx": "cn-深圳市",
+    ]
+
+    private static func cityCodeCandidates(for cityCode: String) -> [String] {
+        var result: [String] = [cityCode]
+        let lower = cityCode.lowercased()
+        if let forward = cityCodeAliases[lower] {
+            result.append(forward)
+        }
+        for (slug, seed) in cityCodeAliases
+        where seed.caseInsensitiveCompare(cityCode) == .orderedSame {
+            result.append(slug)
+        }
+        return result
     }
 
     // MARK: - Private helpers
