@@ -408,8 +408,15 @@ struct CompassMapContentView: View {
                 // `viewModel == nil` guard.
                 if !hasRunFirstAppear {
                     hasRunFirstAppear = true
-                    // On first launch with no saved city and no GPS, prompt city picker.
-                    if preferences.lastSelectedCity == nil && locationService.currentLocation == nil {
+                    // On first launch with no resolved city and no GPS, prompt city
+                    // picker. We consult `viewModel.selectedCity` (not just persisted
+                    // `lastSelectedCity`) so the DEBUG `-startCity` launch arg — which
+                    // never writes back to preferences — actually suppresses the
+                    // picker. Without this guard a cold launch with `-startCity` still
+                    // unexpectedly opens the picker over the consent gate.
+                    if viewModel.selectedCity == nil
+                        && preferences.lastSelectedCity == nil
+                        && locationService.currentLocation == nil {
                         isShowingCityPicker = true
                     }
                     // Populate the Routes section for the initial city. `selectedCity`
@@ -2254,6 +2261,14 @@ private struct MapOverlayView: View {
             if viewModel.isCustomLocation, let label = viewModel.customLocationLabel {
                 return label
             }
+            // Friendly fallback for the synthetic `osm_<lat>_<lon>` code that
+            // MapViewModel emits when reverse-geocoding misses on an Explore
+            // jump. Rendering "osm_18.8_99.0" in the city pill exposes an
+            // internal sentinel to the user — we'd rather show a localized
+            // "Nearby" and let the chevron offer the picker as the recovery.
+            if let code = viewModel.selectedCity, code.hasPrefix("osm_") {
+                return NSLocalizedString("city.nearby", comment: "Fallback city label for synthetic osm_ codes")
+            }
             if let code = viewModel.selectedCity,
                let city = viewModel.availableCities.first(where: { $0.code == code }) {
                 return city.name
@@ -2289,6 +2304,11 @@ private struct MapOverlayView: View {
     }
 
     private var mapStyleButton: some View {
+        // Demoted to secondary affordance (32pt + reduced opacity) so the
+        // top-right cluster reads as a hierarchy — Recenter (44pt primary) >
+        // Avatar (40pt identity) > MapStyle (32pt secondary). The previous
+        // three-equal-circles layout pushed the city pill off-center and made
+        // the column feel cluttered on cold-start screenshots.
         Button {
             Haptics.impact(.light)
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -2296,13 +2316,13 @@ private struct MapOverlayView: View {
             }
         } label: {
             Image(systemName: mapStyleChoice.icon)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(CT.accent)
-                .frame(width: 36, height: 36)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(CT.accent.opacity(0.75))
+                .frame(width: 32, height: 32)
                 .background(
                     Circle()
                         .fill(.ultraThinMaterial)
-                        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                        .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
                 )
         }
         .accessibilityLabel(Text(mapStyleChoice.label))
@@ -2625,7 +2645,12 @@ private struct PlusActionButton: View {
                 )
 
             Circle()
-                .fill(Color.black.opacity(0.85))
+                // Amber-fill the Ask Solo FAB so it reads as the brand's own
+                // primary action (matched to consent / onboarding CTAs) rather
+                // than a generic "system action" black puck. The previous
+                // .black.opacity(0.85) made the right side of the map look like
+                // an Apple-default control sat next to red pin markers.
+                .fill(CT.accent)
                 .frame(width: 56, height: 56)
                 .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
                 .scaleEffect(isPressed ? 1.08 : 1.0)

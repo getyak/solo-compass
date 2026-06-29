@@ -25,7 +25,13 @@ public final class UserPreferences {
         var preferredCategories: [ExperienceCategory] = []
         var dislikedCategories: [ExperienceCategory] = []
         var soloTravelStyle: SoloTravelStyle = .explorer
-        var maxDistanceKm: Double = 5.0
+        // First-launch default raised 5 → 8 km so a cold start in a seeded city
+        // (e.g. Chiang Mai, where Doi Suthep sits at ~7.8 km from the centroid)
+        // surfaces all curated Experiences instead of showing an "empty within
+        // 5 km" peek. 8 km matches the practical radius a solo traveler covers
+        // on foot + tuk-tuk in a half day, and remains well under the 25 km
+        // auto-expand fallback. Persisted users keep their stored value.
+        var maxDistanceKm: Double = 8.0
         var visitHistory: [String: Date] = [:]
         var completedExperiences: Set<String> = []
         var favoritedExperiences: Set<String> = []
@@ -187,7 +193,7 @@ public final class UserPreferences {
             self.preferredCategories = try container.decodeIfPresent([ExperienceCategory].self, forKey: .preferredCategories) ?? []
             self.dislikedCategories = try container.decodeIfPresent([ExperienceCategory].self, forKey: .dislikedCategories) ?? []
             self.soloTravelStyle = try container.decodeIfPresent(SoloTravelStyle.self, forKey: .soloTravelStyle) ?? .explorer
-            self.maxDistanceKm = try container.decodeIfPresent(Double.self, forKey: .maxDistanceKm) ?? 5.0
+            self.maxDistanceKm = try container.decodeIfPresent(Double.self, forKey: .maxDistanceKm) ?? 8.0
             self.visitHistory = try container.decodeIfPresent([String: Date].self, forKey: .visitHistory) ?? [:]
             self.completedExperiences = try container.decodeIfPresent(Set<String>.self, forKey: .completedExperiences) ?? []
             self.favoritedExperiences = try container.decodeIfPresent(Set<String>.self, forKey: .favoritedExperiences) ?? []
@@ -399,6 +405,21 @@ public final class UserPreferences {
         self.companionConsentGivenAt = snapshot.companionConsentGivenAt
         self.companionEnabled = snapshot.companionEnabled
         self.companionModuleStrengthRaw = snapshot.companionModuleStrengthRaw
+
+        // One-time migration: bump the historical 5 km default to the new 8 km
+        // cold-start default for users who never touched the distance slider.
+        // Without this, returning users who installed a build before the 8 km
+        // change keep seeing "Quiet patch of map." in a seeded city like
+        // Chiang Mai where a hero seed (Doi Suthep) sits at 7.83 km. The flag
+        // guards against re-running so users who explicitly chose 5 km again
+        // aren't surprised.
+        let migrationFlagKey = "SoloCompass.didMigrateRadius8"
+        if !defaults.bool(forKey: migrationFlagKey) {
+            if self.maxDistanceKm == 5.0 {
+                self.maxDistanceKm = 8.0
+            }
+            defaults.set(true, forKey: migrationFlagKey)
+        }
     }
 
     private static func load(from defaults: UserDefaults) -> Snapshot {

@@ -314,9 +314,9 @@
 "me.empty.cta" = "Back to the map";
 
 /* Map empty / loading */
-"map.empty.title" = "No experiences nearby";
-"map.empty.hint" = "Try clearing filters or moving the map.";
-"map.empty.radius" = "No experiences within %.0fkm";
+"map.empty.title" = "Quiet patch of map.";
+"map.empty.hint" = "Pan to a busier corner, or clear filters.";
+"map.empty.radius" = "Showing within %.0f km — try a wider radius.";
 "map.empty.expand" = "Expand to 25km";
 "map.empty.browse" = "Browse %@";
 "map.empty.clearFilters" = "Clear filters";
@@ -337,6 +337,7 @@
 
 /* City picker */
 "city.all" = "All Cities";
+"city.nearby" = "Nearby";
 "city.picker.title" = "Choose a city";
 "city.experienceCount" = "%d experiences";
 "city.empty.title" = "No cities yet";
@@ -1674,11 +1675,11 @@
 "a11y.empty.list" = "No experiences to show";
 
 /* Empty Nearby two-tier empty state (headline + subtitle) */
-"empty.nearby.headline" = "Nothing here — yet";
-"empty.nearby.subtitle" = "Pan the map or widen the view to find experiences around you.";
+"empty.nearby.headline" = "Quiet patch of map.";
+"empty.nearby.subtitle" = "Pan, or widen the radius to see what's around.";
 
 /* Empty Nearby CTA — nudges the traveler to recenter/zoom out */
-"empty.nearby.cta" = "Explore another area";
+"empty.nearby.cta" = "Take me somewhere alive";
 
 /* Empty Nearby — city has no data, suggest switching */
 "empty.nearby.subtitle.nocity" = "This area doesn't have experiences yet. Try a city we've curated for you.";

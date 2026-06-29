@@ -154,9 +154,9 @@
 "map.userLocation.label" = "你的位置";
 
 /* Map empty / loading */
-"map.empty.title" = "附近暂无体验";
-"map.empty.hint" = "试试清除筛选或拖动地图。";
-"map.empty.radius" = "%.0f 公里内暂无体验";
+"map.empty.title" = "这片地图还很安静。";
+"map.empty.hint" = "拖到更热闹的一角，或清除筛选。";
+"map.empty.radius" = "目前在 %.0f 公里内 — 试试更大半径。";
 "map.empty.expand" = "扩展到 25 公里";
 "map.empty.browse" = "浏览 %@";
 "map.empty.clearFilters" = "清除筛选";
@@ -172,6 +172,7 @@
 
 /* City picker */
 "city.all" = "全部城市";
+"city.nearby" = "附近";
 "city.picker.title" = "选择城市";
 "city.experienceCount" = "%d 处体验";
 "city.empty.title" = "暂无城市";
@@ -522,7 +523,7 @@
 "chat.error.network" = "网络连接出错 — 请检查网络后重试。";
 "chat.error.apiKey" = "API 密钥无效 — 请在设置中检查你的密钥。";
 "chat.error.permission" = "需要麦克风权限 — 请在设置中启用。";
-"chat.error.unknown" = "出现错误 — 请重试。";
+"chat.error.unknown" = "没发出去。再试一次。";
 
 /* Send-rejected hints + unconfigured banner shown above the chat input bar */
 "chat.send.hint.notReady" = "稍等片刻 — Solo 正在唤醒，请再次点击发送。";
@@ -1396,9 +1397,9 @@
 "detail.nearby.open.hint" = "打开体验详情";
 
 /* Empty states */
-"empty.nearby.headline" = "这附近还没有体验";
-"empty.nearby.subtitle" = "移动地图或拉远视野，看看周围有什么。";
-"empty.nearby.cta" = "探索其他区域";
+"empty.nearby.headline" = "这片地图还很安静。";
+"empty.nearby.subtitle" = "拖动地图，或拉大半径看看周围。";
+"empty.nearby.cta" = "带我去热闹一点的地方";
 
 /* Empty Nearby — city has no data, suggest switching */
 "empty.nearby.subtitle.nocity" = "这个区域暂时还没有体验。试试我们精选的城市吧。";
