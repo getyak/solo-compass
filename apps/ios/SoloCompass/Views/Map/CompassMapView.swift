@@ -2261,6 +2261,14 @@ private struct MapOverlayView: View {
             if viewModel.isCustomLocation, let label = viewModel.customLocationLabel {
                 return label
             }
+            // Friendly fallback for the synthetic `osm_<lat>_<lon>` code that
+            // MapViewModel emits when reverse-geocoding misses on an Explore
+            // jump. Rendering "osm_18.8_99.0" in the city pill exposes an
+            // internal sentinel to the user — we'd rather show a localized
+            // "Nearby" and let the chevron offer the picker as the recovery.
+            if let code = viewModel.selectedCity, code.hasPrefix("osm_") {
+                return NSLocalizedString("city.nearby", comment: "Fallback city label for synthetic osm_ codes")
+            }
             if let code = viewModel.selectedCity,
                let city = viewModel.availableCities.first(where: { $0.code == code }) {
                 return city.name

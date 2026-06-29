@@ -564,8 +564,12 @@ public struct FilterBarView: View {
                 Image(systemName: category.symbol)
                     .font(.caption.weight(.semibold))
                     // Keep category identity in the glyph so users still scan
-                    // the row by color, while text + border stay neutral.
-                    .foregroundStyle(isSelected ? .white : category.color)
+                    // the row by color, while text + border stay neutral. The
+                    // opacity is held to 0.85 on unselected pills so the row
+                    // reads as quiet color hints rather than five competing
+                    // category beacons — the previous full-saturation chips
+                    // pulled the eye away from the active selection.
+                    .foregroundStyle(isSelected ? .white : category.color.opacity(0.85))
 
                 Text(category.localizedTitle)
                     .font(.subheadline.weight(.medium))

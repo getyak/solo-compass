@@ -337,6 +337,7 @@
 
 /* City picker */
 "city.all" = "All Cities";
+"city.nearby" = "Nearby";
 "city.picker.title" = "Choose a city";
 "city.experienceCount" = "%d experiences";
 "city.empty.title" = "No cities yet";

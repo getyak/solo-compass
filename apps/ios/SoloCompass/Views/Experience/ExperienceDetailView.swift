@@ -1640,7 +1640,12 @@ public struct ExperienceDetailView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 11)
-        .padding(.bottom, 12)
+        // Bottom padding raised 12 → 26 pt so the Mark-done pill no longer
+        // visually crashes into the home-indicator area on iPhone 17. The
+        // background ZStack below already ignoresSafeArea(.bottom), so the
+        // bar's blur extends to the screen edge; this extra inner padding is
+        // what gives the row breathing room above the indicator strip.
+        .padding(.bottom, 26)
         .background(
             // Opaque warm bar: reserves its own space via safeAreaInset (no manual
             // bottom padding), so content never scrolls behind it. Warm-white blur
