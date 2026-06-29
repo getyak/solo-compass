@@ -436,18 +436,15 @@ public struct FilterBarView: View {
                 Text(label)
                     .font(.subheadline.weight(.medium))
 
-                // Inline result count — mirrors the Now pill's inline badge so
-                // every filter chip speaks one visual language. Replaces the old
-                // floating topTrailing badge, which read as a stray dot hovering
-                // off the chip's corner.
+                // Inline result count — slimmed to a plain number (no inner
+                // capsule background, no extra padding) so the chip stops
+                // visually swelling on count change and the row reads as one
+                // even cadence rather than "All 5" suddenly twice as wide.
                 if isSelected && resultCount > 0 {
                     Text(Self.compactCount(resultCount))
                         .font(.caption2.monospacedDigit().weight(.semibold))
                         .contentTransition(reduceMotion ? .identity : .numericText(value: Double(resultCount)))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.white.opacity(0.28)))
-                        .opacity(countBadgeOpacity)
+                        .opacity(countBadgeOpacity * 0.85)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -536,7 +533,11 @@ public struct FilterBarView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .foregroundStyle(isSelected ? .white : tint)
+            // Unselected pills now share a single neutral text color across the
+            // bar (Now/All/Saved/category) so the row reads as one component
+            // instead of a parade of red/orange/green outlines. The category
+            // identity color survives as the inline glyph tint (heart icon).
+            .foregroundStyle(isSelected ? .white : CT.fgPrimary)
             .background {
                 if isSelected {
                     Capsule()
@@ -545,7 +546,7 @@ public struct FilterBarView: View {
                 }
             }
             .overlay(
-                Capsule().stroke(isSelected ? Color.clear : tint.opacity(0.7), lineWidth: 1)
+                Capsule().stroke(isSelected ? Color.clear : CT.borderDefault, lineWidth: 1)
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
         }
@@ -562,6 +563,9 @@ public struct FilterBarView: View {
             HStack(spacing: 5) {
                 Image(systemName: category.symbol)
                     .font(.caption.weight(.semibold))
+                    // Keep category identity in the glyph so users still scan
+                    // the row by color, while text + border stay neutral.
+                    .foregroundStyle(isSelected ? .white : category.color)
 
                 Text(category.localizedTitle)
                     .font(.subheadline.weight(.medium))
@@ -579,7 +583,11 @@ public struct FilterBarView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .foregroundStyle(isSelected ? .white : category.color)
+            // Same unification as favoritePill: unselected = neutral text +
+            // neutral border. Category identity color stays as the inline glyph
+            // tint (the `category.symbol` Image keeps its colored stroke via the
+            // base foregroundStyle, but text and border read as one system.
+            .foregroundStyle(isSelected ? .white : CT.fgPrimary)
             .background {
                 if isSelected {
                     Capsule()
@@ -588,7 +596,7 @@ public struct FilterBarView: View {
                 }
             }
             .overlay(
-                Capsule().stroke(isSelected ? Color.clear : category.color, lineWidth: 1)
+                Capsule().stroke(isSelected ? Color.clear : CT.borderDefault, lineWidth: 1)
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
         }

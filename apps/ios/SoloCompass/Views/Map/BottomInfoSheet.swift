@@ -460,12 +460,16 @@ public struct BottomInfoSheet<Content: View>: View {
     // MARK: - Drag Handle
 
     private var dragHandleArea: some View {
-        // ≥44pt hit area (60×44) containing a 36×4 visible pill so VoiceOver /
+        // ≥44pt hit area (60×44) containing a 36×5 visible pill so VoiceOver /
         // Switch Control users can reliably grab the handle (Apple HIG).
+        // Pill widened slightly (4→5pt) and opacity bumped (0.5→0.7) so the
+        // grabber actually reads as a drag affordance against the warm peek
+        // background — the previous spec was so subtle the peek looked like a
+        // stranded toast rather than a pull-up sheet.
         ZStack {
             Capsule()
-                .fill(Color.secondary.opacity(0.5))
-                .frame(width: 36, height: 4)
+                .fill(Color.secondary.opacity(0.7))
+                .frame(width: 36, height: 5)
         }
         .frame(
             minWidth: BottomSheetMetrics.handleHitTargetWidth,

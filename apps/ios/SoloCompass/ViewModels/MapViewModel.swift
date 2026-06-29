@@ -500,6 +500,11 @@ public final class MapViewModel {
     /// consults this table both directions so either form selects the city.
     static let cityCodeAliases: [String: String] = [
         "chiang-mai": "cmi",
+        // PascalCase variants people actually type when launching with
+        // `-startCity ChiangMai` from the command line / Xcode scheme. Without
+        // these the alias lookup falls through to `Self.defaultCenter` and the
+        // cold-start map silently lands on SF.
+        "chiangmai": "cmi",
         "vientiane": "VTE",
         "shenzhen": "cn-深圳市",
         "szx": "cn-深圳市",
@@ -552,6 +557,10 @@ public final class MapViewModel {
         customLocationLabel = nil
         selectedCity = cityCode
         preferences.lastSelectedCity = cityCode
+        // Reset the one-shot auto-recovery flag so a freshly selected city gets
+        // its own chance at the empty-state widen — without this, jumping to a
+        // second seeded city in the same session would silently render empty.
+        didAutoRecoverEmpty = false
         let center = defaultCenterForSelectedCity
         cameraPosition = .region(MKCoordinateRegion(
             center: center,
@@ -1001,12 +1010,19 @@ public final class MapViewModel {
     /// Recompute the experiences shown on the map for the current origin,
     /// distance, and active filters, refreshing markers and the info bar.
     public func loadNearbyExperiences() {
+        loadNearbyExperiences(overrideRadiusKm: nil)
+    }
+
+    /// Internal load that lets the cold-start auto-recovery widen the radius
+    /// in-memory (without persisting the change to `preferences.maxDistanceKm`).
+    /// Pass `nil` for the normal preference-driven path.
+    private func loadNearbyExperiences(overrideRadiusKm: Double?) {
         // US-017: the experience set (and thus discovered cities) may have
         // changed since the last load — e.g. after an Explore added pins.
         // Drop the city cache so the next `availableCities` read recomputes.
         invalidateCityCache()
         let center = nearbyQueryOrigin
-        let radiusKm = max(1.0, preferences.maxDistanceKm)
+        let radiusKm = max(1.0, overrideRadiusKm ?? preferences.maxDistanceKm)
         let nearby = applyFilters(near: center, radiusKm: radiusKm)
         withAnimation(Self.markerSetAnimation) {
             visibleExperiences = nearby
@@ -1067,12 +1083,22 @@ public final class MapViewModel {
 
     // MARK: - Cold-start empty-state watchdog (V-004 / US-033)
 
-    /// Seconds a selected city may stay empty before we report it to Sentry.
-    static let coldStartEmptyWatchdogSeconds: UInt64 = 5
+    /// Seconds a selected city may stay empty before we report it to Sentry
+    /// AND auto-recover. Was 5; tightened to 1 because the user-visible
+    /// "Quiet patch of map." panel renders within the first frame, so a
+    /// 5-second wait felt like the app was broken to anyone watching. The
+    /// auto-recovery path only widens the radius in-memory and only once.
+    static let coldStartEmptyWatchdogSeconds: UInt64 = 1
 
     /// Set true once we've reported a given empty cold start so the watchdog
     /// doesn't spam Sentry on every subsequent reload while the map stays empty.
     @ObservationIgnored private var reportedColdStartEmpty = false
+
+    /// Set true after the watchdog has auto-recovered an empty cold start
+    /// once by widening the radius in-memory to 25 km. Prevents oscillation
+    /// when the user later returns to a genuinely empty area in the same
+    /// session. Reset by `selectCity` so a fresh city pick gets a fresh shot.
+    @ObservationIgnored private var didAutoRecoverEmpty = false
 
     /// In-flight watchdog so repeated `loadNearbyExperiences` calls don't pile
     /// up parallel timers. `@ObservationIgnored` — pure bookkeeping.
@@ -1114,6 +1140,19 @@ public final class MapViewModel {
                     "totalExperiences": self.experienceService.allExperiences.count
                 ]
             )
+            // R8 auto-recovery: a selected city that lands 0 nearby after the
+            // grace window is almost always a too-tight radius (seeded city,
+            // user's preferred 5–8 km vs a hero pin at 7–10 km). Widen the
+            // radius in-memory to 25 km exactly once per session so the user
+            // sees the city's curated set instead of "Quiet patch of map."
+            // Persisted preference is intentionally left alone — this is a
+            // recovery, not a re-configuration.
+            if !self.didAutoRecoverEmpty {
+                self.didAutoRecoverEmpty = true
+                await MainActor.run {
+                    self.loadNearbyExperiences(overrideRadiusKm: 25)
+                }
+            }
         }
     }
 
