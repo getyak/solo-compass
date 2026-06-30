@@ -759,6 +759,39 @@
 "paywall.error.unavailable" = "Subscriptions aren't available right now. Please check your connection and try again in a moment.";
 "paywall.close" = "Close";
 "paywall.continueFree" = "Continue with Free";
+"paywall.cta.startMonthFree" = "Start 1-month free trial";
+"paywall.cta.subscribe" = "Subscribe";
+"paywall.fineprint.month" = "Free for 1 month, then charged automatically each month. Cancel anytime in Settings → Apple ID → Subscriptions. By subscribing you agree to the App Store EULA and our terms.";
+"paywall.trialBadge" = "1 month free";
+"paywall.trialBanner.headline" = "Try Pro free for 1 month";
+"paywall.trialBanner.format" = "Then %@ per month — cancel anytime";
+"paywall.trialBanner.fallback" = "Cancel anytime before the trial ends";
+"paywall.midTrial.headline.format" = "Trial active · %d days left";
+"paywall.midTrial.detail.format" = "Billing starts %@. Tap Manage Subscription to change.";
+"paywall.midTrial.detail.fallback" = "Manage your subscription anytime in Settings.";
+
+/* Me — Entitlement banner */
+"me.entitlement.a11y.hint" = "Opens subscription details";
+"me.entitlement.trial.headline.format" = "Trial · %d days left";
+"me.entitlement.trial.lastDay" = "Last day of trial";
+"me.entitlement.trial.detail.format" = "Billing starts %@";
+"me.entitlement.trial.detail.fallback" = "Cancel anytime before the trial ends";
+"me.entitlement.pro.title" = "Solo Compass Pro";
+"me.entitlement.pro.detail.format" = "Renews %@";
+"me.entitlement.pro.detail.fallback" = "Auto-renewing subscription";
+"me.entitlement.upsell.title" = "Try Pro free for 1 month";
+"me.entitlement.upsell.detail" = "AI Explore, voice intent, per-place insights";
+
+/* Onboarding — paywall step (step 5) */
+"onboarding.paywall.title" = "Your free month, on us";
+"onboarding.paywall.subtitle" = "Solo Compass Pro is free for 30 days. Cancel before the trial ends and you won't be charged.";
+"onboarding.paywall.bullet.explore" = "Explore here — AI-enriched real places, in any city";
+"onboarding.paywall.bullet.voice" = "Describe what you want by voice, get a filtered map";
+"onboarding.paywall.bullet.insight" = "Per-experience AI insight on demand";
+"onboarding.paywall.cta" = "Start 1-month free trial";
+"onboarding.paywall.later" = "Maybe later";
+"onboarding.paywall.fineprint.format" = "Free for 30 days, then %@ per month. Cancel anytime.";
+"onboarding.paywall.fineprint.fallback" = "Free for 30 days. Cancel anytime before it ends.";
 
 /* Settings — Subscription */
 "settings.subscription" = "Subscription";
@@ -902,6 +935,16 @@
 "chat.empty.prompt.nearby" = "What's good around me?";
 "chat.empty.prompt.coffee" = "Find me a quiet café";
 "chat.empty.prompt.evening" = "Plan my evening";
+
+/* Half-detent empty state — a minimal "companion is waiting" entry */
+"chat.empty.half.invite" = "Ask me where to go";
+"chat.empty.half.micHint" = "Hold to talk";
+"chat.empty.half.mic.a11y" = "Hold to talk to Solo";
+"chat.empty.half.tag.nearby" = "Nearby";
+"chat.empty.half.tag.coffee" = "Coffee";
+"chat.empty.half.tag.sunset" = "Sunset";
+"chat.empty.half.tag.evening" = "Tonight";
+"chat.empty.half.prompt.sunset" = "Where can I watch the sunset nearby?";
 
 /* Place-anchored chat — opened from a place detail's "Ask Solo" */
 "chat.empty.place.title" = "Ask about %@";

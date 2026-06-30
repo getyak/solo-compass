@@ -196,6 +196,7 @@ final class UIAuditSnapshotTests: XCTestCase {
         let page = OnboardingView(onComplete: {})
             .environment(LocationService.shared)
             .environment(UserPreferences())
+            .environment(SubscriptionService())
         try write(renderPage(page), "onboarding")
     }
 

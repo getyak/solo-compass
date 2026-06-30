@@ -397,15 +397,10 @@ public struct ChatInputBar: View {
             .onAppear { if !reduceMotion { listeningPulse = true } }
             .onDisappear { listeningPulse = false }
         case .thinking:
-            HStack(spacing: 6) {
-                ProgressView()
-                    .scaleEffect(0.7)
-                Text(NSLocalizedString("chat.state.thinking", comment: "Thinking…"))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .transition(.opacity)
+            // Single source of truth: the message-list `AgentStatusLine` shows
+            // the live thinking step. A duplicate label here read as two
+            // competing loaders.
+            EmptyView()
         case .idle, .error:
             EmptyView()
         }
@@ -474,8 +469,12 @@ public struct ChatInputBar: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(fieldFocused ? CT.accentBorder : inputBorder, lineWidth: fieldFocused ? 1 : 0.5)
         )
+        .overlay {
+            thinkingShimmer(active: micState == .thinking)
+        }
         .shadow(color: fieldFocused ? CT.accent.opacity(0.1) : .clear, radius: 6, y: 1)
         .animation(.easeOut(duration: 0.18), value: fieldFocused)
+        .animation(.easeOut(duration: 0.25), value: micState)
         .submitLabel(.send)
         .onSubmit(submitDraft)
         .accessibilityLabel(Text(fieldPlaceholder))
@@ -518,6 +517,18 @@ public struct ChatInputBar: View {
         }
         .buttonStyle(PressableButtonStyle(pressedScale: 0.88))
         .accessibilityLabel(Text(NSLocalizedString("chat.input.send.a11y", comment: "Send")))
+    }
+
+    /// Animated 1.4s sweep that traces the input field border while the agent
+    /// is thinking — a calm GPT-5-style cue that the composer is "busy" without
+    /// adding a second label. Static (no animation) when reduceMotion is on.
+    @ViewBuilder
+    private func thinkingShimmer(active: Bool) -> some View {
+        if active {
+            ThinkingBorderShimmer()
+                .allowsHitTesting(false)
+                .transition(.opacity)
+        }
     }
 
     private var micButton: some View {

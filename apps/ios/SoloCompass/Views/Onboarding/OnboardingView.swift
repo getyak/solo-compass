@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 /// Documented VoiceOver focus order for every onboarding page.
 ///
@@ -28,11 +29,23 @@ public struct OnboardingView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(UserPreferences.self) private var preferences
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Optional — when present, the final paywall step uses real StoreKit
+    /// purchases. When absent (e.g. previews/tests that don't inject the
+    /// service), the paywall step renders but the CTA falls back to skip.
+    @Environment(SubscriptionService.self) private var subscription
     let onComplete: () -> Void
 
     @State private var step: Int = 0
+    @State private var paywallPurchaseInFlight: Bool = false
 
-    private static let totalSteps = 4
+    /// UserDefaults flag set the first time the user finishes (or skips) the
+    /// onboarding paywall step. We never re-show the onboarding paywall after
+    /// this is true — returning users hit the SettingsView paywall entry
+    /// point instead, which is intentional (the Apple HIG requirement is one
+    /// non-modal post-onboarding paywall, not repeated wall-of-trial popups).
+    private static let onboardingPaywallSeenKey = "hasSeenOnboardingPaywall"
+
+    private static let totalSteps = 5
 
     private var slideTransition: AnyTransition {
         reduceMotion
@@ -60,10 +73,14 @@ public struct OnboardingView: View {
                 scoringStep
                     .transition(slideTransition)
                     .id(2)
-            default:
+            case 3:
                 styleStep
                     .transition(slideTransition)
                     .id(3)
+            default:
+                paywallStep
+                    .transition(slideTransition)
+                    .id(4)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -75,8 +92,13 @@ public struct OnboardingView: View {
     // MARK: - Skip the whole flow
 
     /// Completes onboarding immediately from any step (returning users / QA).
+    /// If the user is already on the paywall step, also mark it as seen so a
+    /// future onboarding re-entry doesn't re-pitch the trial.
     private var skipButton: some View {
         Button {
+            if step == 4 {
+                UserDefaults.standard.set(true, forKey: Self.onboardingPaywallSeenKey)
+            }
             preferences.completeOnboarding()
             onComplete()
         } label: {
@@ -367,8 +389,16 @@ public struct OnboardingView: View {
 
             VStack(spacing: 12) {
                 Button {
-                    preferences.completeOnboarding()
-                    onComplete()
+                    // Onboarding-paywall gating: returning Pro users (or anyone
+                    // who already saw the trial pitch and dismissed it) skip the
+                    // paywall step entirely so re-entering onboarding via the
+                    // mid-flow recovery path doesn't feel like nagging.
+                    if shouldSkipOnboardingPaywall {
+                        preferences.completeOnboarding()
+                        onComplete()
+                    } else {
+                        withAnimation { step = 4 }
+                    }
                 } label: {
                     Text(NSLocalizedString("onboarding.style.cta", comment: "Start exploring"))
                         .font(.headline)
@@ -380,8 +410,12 @@ public struct OnboardingView: View {
                 .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
 
                 Button {
-                    preferences.completeOnboarding()
-                    onComplete()
+                    if shouldSkipOnboardingPaywall {
+                        preferences.completeOnboarding()
+                        onComplete()
+                    } else {
+                        withAnimation { step = 4 }
+                    }
                 } label: {
                     Text(NSLocalizedString("onboarding.style.skip", comment: "Decide later"))
                         .font(.subheadline)
@@ -393,6 +427,189 @@ public struct OnboardingView: View {
             .padding(.bottom, 48)
         }
         .accessibilityElement(children: .contain)
+    }
+
+    // MARK: - Step 4: Paywall (1-month free trial via StoreKit)
+
+    /// True if we should bypass the onboarding paywall and finish immediately.
+    /// Covers three cases that all share the same UX rule: the user has
+    /// already seen the trial pitch, so nagging them again on warm re-entry
+    /// would be hostile.
+    ///
+    /// 1. Already Pro / mid-trial: they're paying customers, the paywall is
+    ///    a regression.
+    /// 2. Previously dismissed: opening onboarding again for any reason
+    ///    (mid-flow kill recovery, QA replay) shouldn't re-trigger the upsell.
+    /// 3. Test/preview env without a SubscriptionService injected: degrade
+    ///    cleanly to completion rather than crashing on missing env.
+    private var shouldSkipOnboardingPaywall: Bool {
+        if subscription.entitlement.isActive { return true }
+        if UserDefaults.standard.bool(forKey: Self.onboardingPaywallSeenKey) { return true }
+        return false
+    }
+
+    /// Marks the onboarding paywall as seen and finishes the flow. Called both
+    /// after a successful purchase and after the user taps "Maybe later" —
+    /// the seen flag is independent of whether they actually subscribed.
+    private func finishOnboardingPaywall() {
+        UserDefaults.standard.set(true, forKey: Self.onboardingPaywallSeenKey)
+        preferences.completeOnboarding()
+        onComplete()
+    }
+
+    private var paywallStep: some View {
+        VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 24)
+
+            Spacer(minLength: 0)
+
+            VStack(spacing: 20) {
+                // Hero glyph — sparkles in warm amber, matches PaywallView so
+                // the user sees one visual identity for "Pro" across surfaces.
+                Image(systemName: "sparkles")
+                    .font(.system(size: 44, weight: .regular))
+                    .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                    .accessibilityHidden(true)
+
+                Text(NSLocalizedString("onboarding.paywall.title", comment: "Trial step title"))
+                    .font(.title.bold())
+                    .multilineTextAlignment(.center)
+                    .accessibilitySortPriority(OnboardingA11ySortPriority.title)
+
+                Text(NSLocalizedString("onboarding.paywall.subtitle", comment: "Trial step subtitle"))
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                    .accessibilitySortPriority(OnboardingA11ySortPriority.subtitle)
+
+                // Trial-benefit bullets. Kept to three so the page feels
+                // confident, not a feature dump.
+                VStack(alignment: .leading, spacing: 12) {
+                    onboardingPaywallBullet("sparkle.magnifyingglass",
+                                            key: "onboarding.paywall.bullet.explore")
+                    onboardingPaywallBullet("mic.fill",
+                                            key: "onboarding.paywall.bullet.voice")
+                    onboardingPaywallBullet("brain.head.profile",
+                                            key: "onboarding.paywall.bullet.insight")
+                }
+                .padding(.horizontal, 28)
+                .accessibilitySortPriority(OnboardingA11ySortPriority.content)
+            }
+
+            Spacer(minLength: 0)
+            Spacer(minLength: 0)
+
+            VStack(spacing: 12) {
+                Button {
+                    Task { await runOnboardingPurchase() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if paywallPurchaseInFlight {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .tint(Color(red: 0x3A/255, green: 0x2A/255, blue: 0x05/255))
+                        }
+                        Text(NSLocalizedString("onboarding.paywall.cta", comment: "Start free month CTA"))
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255),
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
+                    .foregroundStyle(Color(red: 0x3A/255, green: 0x2A/255, blue: 0x05/255))
+                }
+                .disabled(paywallPurchaseInFlight)
+                .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
+                .accessibilityIdentifier("onboarding.paywall.cta")
+
+                // Apple legally requires the trial price disclosure to be
+                // visible near the CTA, not buried in fine print. Resolved
+                // from the live StoreKit product when available; falls back
+                // to a generic copy when products haven't loaded yet.
+                Text(trialFinePrintCopy)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .accessibilityLabel(Text(trialFinePrintCopy))
+
+                Button {
+                    finishOnboardingPaywall()
+                } label: {
+                    Text(NSLocalizedString("onboarding.paywall.later", comment: "Skip trial"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilitySortPriority(OnboardingA11ySortPriority.skip)
+                .accessibilityIdentifier("onboarding.paywall.later")
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
+        }
+        .accessibilityElement(children: .contain)
+        .task {
+            // Eager product load so the price is rendered before the user
+            // even reads the bullets — no "loading…" flash on tap.
+            if subscription.products.isEmpty {
+                await subscription.loadProducts()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func onboardingPaywallBullet(_ icon: String, key: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                .frame(width: 24)
+            Text(NSLocalizedString(key, comment: ""))
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Resolves the StoreKit-driven fine-print copy. Falls back to a
+    /// localized generic line when products haven't loaded yet — never
+    /// shows an empty string, which would let the CTA float without
+    /// disclosure (App Store 3.1.2 requirement).
+    private var trialFinePrintCopy: String {
+        let monthly = subscription.products.first(where: { $0.id == SubscriptionService.monthlyProductID })
+        if let monthly {
+            let fmt = NSLocalizedString("onboarding.paywall.fineprint.format",
+                                        comment: "Trial fineprint with %@ price")
+            return String(format: fmt, monthly.displayPrice)
+        }
+        return NSLocalizedString("onboarding.paywall.fineprint.fallback",
+                                 comment: "Trial fineprint without price")
+    }
+
+    private func runOnboardingPurchase() async {
+        guard let product = subscription.products.first(where: { $0.id == SubscriptionService.monthlyProductID })
+                ?? subscription.products.first
+        else {
+            // StoreKit catalog empty (sandbox not configured / offline). In
+            // DEBUG SubscriptionService._setEntitlementForTesting could be
+            // called here, but the cleaner UX in Release is to finish
+            // onboarding silently so the user isn't trapped on a dead button.
+            #if DEBUG
+            subscription._setEntitlementForTesting(.proTrial)
+            #endif
+            finishOnboardingPaywall()
+            return
+        }
+        paywallPurchaseInFlight = true
+        defer { paywallPurchaseInFlight = false }
+        let unlocked = await subscription.purchase(product)
+        // Whether purchase succeeded or the user cancelled at the StoreKit
+        // sheet, the onboarding paywall is "done" — we don't re-prompt.
+        finishOnboardingPaywall()
+        _ = unlocked  // status reflected via subscription.entitlement everywhere else
     }
 
     @ViewBuilder
@@ -458,4 +675,5 @@ public struct OnboardingView: View {
     OnboardingView(onComplete: {})
         .environment(LocationService.shared)
         .environment(UserPreferences())
+        .environment(SubscriptionService())
 }

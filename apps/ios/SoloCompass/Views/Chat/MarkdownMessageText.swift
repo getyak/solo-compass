@@ -17,18 +17,23 @@ private typealias MarkdownTheme = MarkdownUI.Theme
 @MainActor
 struct MarkdownMessageText: View {
     let text: String
+    let bodyFont: Font
+    let bodyLineSpacing: CGFloat
 
     @Environment(\.colorScheme) private var colorScheme
 
-    init(text: String) {
+    init(text: String, bodyFont: Font = .body, bodyLineSpacing: CGFloat = 0) {
         self.text = text
+        self.bodyFont = bodyFont
+        self.bodyLineSpacing = bodyLineSpacing
     }
 
     var body: some View {
         Markdown(text)
             .markdownTheme(chatTheme)
-            // Body text matches the surrounding bubble: system body, primary fg.
-            .font(.body)
+            // Body text matches the surrounding bubble: caller picks font + leading.
+            .font(bodyFont)
+            .lineSpacing(bodyLineSpacing)
             .foregroundStyle(.primary)
     }
 

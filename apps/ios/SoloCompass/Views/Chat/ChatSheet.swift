@@ -330,7 +330,11 @@ public struct ChatSheet: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 10) {
+                    // Editorial rhythm: 18pt between turns reads as paragraphs,
+                    // not chat-density. Serif assistant text and bubble-less
+                    // replies need the breathing room (Claude.ai / GPT-5
+                    // standard ~16-20pt).
+                    LazyVStack(alignment: .leading, spacing: 18) {
                         ForEach(visibleMessages) { msg in
                             MessageBubble(
                                 role: msg.role,
@@ -376,15 +380,17 @@ public struct ChatSheet: View {
                             // user bubble so the chat shows what's being
                             // captured in real time, with a small sun-gold
                             // pulse dot marking that the mic is still hot.
+                            // Slight transparency reads as "not yet committed".
                             MessageBubble(
                                 role: .user,
                                 text: liveTranscript
                             )
                             .id(Self.liveTranscriptID)
-                            .opacity(0.85)
+                            .opacity(0.82)
                             .overlay(alignment: .topLeading) {
                                 recordingPulseDot
                             }
+                            .transition(.opacity)
                         }
 
                         if isAgentWorking {
@@ -556,10 +562,62 @@ public struct ChatSheet: View {
     private var emptyState: some View {
         if let place = orchestrator.scopedExperience {
             placeEmptyState(place)
+        } else if detent == .medium {
+            // Half-expanded: a minimal doorway — orb + invitation + pills +
+            // centered push-to-talk mic. Reads as "a companion is waiting"
+            // rather than a settings panel.
+            halfExpandedGenericEmptyState
         } else {
             genericEmptyState
         }
     }
+
+    /// The minimal half-detent layout. Wires `starterPrompts` into the
+    /// `HalfExpandedEmptyState` pills so taps still produce the same full
+    /// question the large state would have sent, and routes push-to-talk
+    /// through the existing `handleMicPress` so the orchestrator handlers
+    /// stay one path. The fourth pill ("sunset") is half-detent-only —
+    /// there's room for one more punchy tag and it nudges a moment-aware
+    /// question without crowding the large state.
+    private var halfExpandedGenericEmptyState: some View {
+        HalfExpandedEmptyState(
+            nowChipText: Self.nowContextCopy(hour: nowHour),
+            suggestions: Self.halfExpandedSuggestions,
+            onSendPrompt: { handleSend($0) },
+            onMicPress: handleMicPress,
+            isMicListening: voiceService.isListening
+        )
+    }
+
+    /// Punchy 2-4 char tags + the full sentence they expand to on tap. The
+    /// short tag is what reads on the pill; the full sentence is what the
+    /// orchestrator receives, so the answer quality matches the large state.
+    private static let halfExpandedSuggestions: [HalfExpandedEmptyState.Suggestion] = [
+        .init(
+            label: NSLocalizedString("chat.empty.half.tag.nearby", comment: "Nearby short tag"),
+            icon: "mappin.and.ellipse",
+            tint: CT.accent,
+            fullPrompt: NSLocalizedString("chat.empty.prompt.nearby", comment: "Starter chip — what's good around me")
+        ),
+        .init(
+            label: NSLocalizedString("chat.empty.half.tag.coffee", comment: "Coffee short tag"),
+            icon: "cup.and.saucer.fill",
+            tint: CT.sunGoldDeep,
+            fullPrompt: NSLocalizedString("chat.empty.prompt.coffee", comment: "Starter chip — find a quiet café")
+        ),
+        .init(
+            label: NSLocalizedString("chat.empty.half.tag.sunset", comment: "Sunset short tag"),
+            icon: "sun.horizon.fill",
+            tint: CT.sunGoldDeep,
+            fullPrompt: NSLocalizedString("chat.empty.half.prompt.sunset", comment: "Where to watch the sunset")
+        ),
+        .init(
+            label: NSLocalizedString("chat.empty.half.tag.evening", comment: "Evening short tag"),
+            icon: "moon.stars.fill",
+            tint: Color(.sRGB, red: 0x6B / 255, green: 0x4E / 255, blue: 0x7D / 255, opacity: 1),
+            fullPrompt: NSLocalizedString("chat.empty.prompt.evening", comment: "Starter chip — plan my evening")
+        ),
+    ]
 
     /// Hour-aware global empty state (the "+" entry). Sequence: hero glyph →
     /// title → subtitle → NOW banner → starter cards. Rebuilt for a single warm

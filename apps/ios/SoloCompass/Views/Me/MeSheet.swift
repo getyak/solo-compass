@@ -57,6 +57,17 @@ struct MeSheet: View {
                     .listRowBackground(Color.clear)
                 }
 
+                // Subscription status banner — shows trial progress for
+                // mid-trial users, Pro renewal date for paying users, and
+                // the "start free month" CTA for free users. Tappable in
+                // every state: routes to PaywallView (handles its own
+                // mid-trial vs upsell rendering).
+                Section {
+                    EntitlementBanner()
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Color.clear)
+                }
+
                 if preferences.favoritedExperiences.isEmpty {
                     Section {
                         MeEmptyStateCard()
