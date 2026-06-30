@@ -1541,6 +1541,13 @@
 /* Create-route entry card + flow */
 "route.create.entry.title" = "創建你自己的路線";
 "route.create.entry.subtitle" = "串聯幾個地點 · 可選擇招募同伴一起走";
+
+/* Direction 3 — warm cold-start placeholder for the Now routes section */
+"routes.now.empty.title" = "Today’s walk · let Solo string one together";
+"routes.now.empty.cta" = "I’ll pick three nearby stops you’ll actually like — tap to start.";
+"route.duration.hours" = "%dh";
+"route.duration.hoursMinutes" = "%dh %dmin";
+"route.duration.minutes" = "%dmin";
 "route.create.title" = "創建路線";
 "route.create.ai" = "✨ 讓 AI 幫我串成路線";
 "route.create.titleLabel" = "路線名稱";
@@ -1711,6 +1718,8 @@
 "peek.card.almostThere" = "Almost there";
 "peek.card.almostThere.a11y" = "Almost there";
 "peek.preview.active.hint" = "Viewing your pick · pull up for all nearby";
+"peek.reason.aiPick" = "Right now I'd take you here — %@.";
+"peek.reason.warmStart" = "Strongest %@ pick in view right now · Solo %.1f";
 "sheet.handle.hint" = "Tap to expand, drag to resize";
 
 /* NowScore weather signal (US-005) — %d is the temperature in whole °C. */

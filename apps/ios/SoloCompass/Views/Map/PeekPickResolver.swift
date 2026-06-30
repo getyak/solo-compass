@@ -10,7 +10,10 @@ import CoreLocation
 /// Precedence:
 ///  1. The first AI smart-pick id (`smartPickIds.first`) that is present in
 ///     `experiences` — the AI's top recommendation, when it is currently visible.
-///  2. Otherwise the experience nearest the reference coordinate.
+///  2. Warm-start fallback: the visible experience with the highest Solo Score.
+///     Surfaces the strongest real pick the instant the map loads, before the
+///     AI ranker has had a chance to run. Ties (Δ < 0.05) break to the nearest
+///     one so the suggestion is plausibly walkable.
 ///  3. `nil` when `experiences` is empty.
 enum PeekPickResolver {
     /// Resolve the peek experience from the visible set.
@@ -18,9 +21,8 @@ enum PeekPickResolver {
     /// - Parameters:
     ///   - experiences: the currently visible experiences.
     ///   - smartPickIds: AI-ranked top pick ids (highest priority first).
-    ///   - referenceCoordinate: user location or map center; used for the
-    ///     nearest-fallback. When `nil`, the first visible experience is returned
-    ///     as the fallback (no distance ordering is possible).
+    ///   - referenceCoordinate: user location or map center; used to break
+    ///     Solo-Score ties in the warm-start fallback.
     /// - Returns: the experience to feature in the peek card, or `nil` if none.
     static func resolve(
         experiences: [Experience],
@@ -36,14 +38,18 @@ enum PeekPickResolver {
             }
         }
 
-        // 2. Fallback: nearest to the reference coordinate.
-        guard let ref = referenceCoordinate else {
-            return experiences.first
+        // 2. Warm-start: highest Solo Score. "Best place in view" beats
+        //    "whatever happens to be nearest", which can be a low-quality pin.
+        let refLocation = referenceCoordinate.map {
+            CLLocation(latitude: $0.latitude, longitude: $0.longitude)
         }
-        // Allocate the reference CLLocation once, outside the comparison closure.
-        let refLocation = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
-        return experiences.min(by: { lhs, rhs in
-            distance(from: refLocation, to: lhs) < distance(from: refLocation, to: rhs)
+        return experiences.max(by: { lhs, rhs in
+            let scoreGap = rhs.soloScore.overall - lhs.soloScore.overall
+            if abs(scoreGap) < 0.05, let ref = refLocation {
+                // Effectively tied → prefer closer.
+                return distance(from: ref, to: lhs) > distance(from: ref, to: rhs)
+            }
+            return scoreGap > 0
         })
     }
 

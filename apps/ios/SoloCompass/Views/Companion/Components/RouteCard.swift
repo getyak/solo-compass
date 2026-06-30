@@ -34,11 +34,29 @@ public struct RouteCard: View {
         return "\(durationLabel) · \(dist) · \(route.pace.localizedLabel)"
     }
 
-    /// Compact duration label (e.g. `1h30m` / `90min`) used in the head tag.
+    /// Compact duration label (e.g. `1h30m` / `90min` / `3 小时` / `90 分钟`).
+    /// Localized — zh-Hans gets "3 小时 / 30 分钟" instead of the H/M form so the
+    /// uppercased head tag doesn't render an alien "3H00M" inside a Chinese card.
     private var durationLabel: String {
-        route.estimatedDuration >= 60
-            ? String(format: "%dh%02dm", route.estimatedDuration / 60, route.estimatedDuration % 60)
-            : "\(route.estimatedDuration)min"
+        let mins = route.estimatedDuration
+        if mins >= 60 {
+            let h = mins / 60
+            let m = mins % 60
+            if m == 0 {
+                return String(
+                    format: NSLocalizedString("route.duration.hours", comment: "%d hours"),
+                    h
+                )
+            }
+            return String(
+                format: NSLocalizedString("route.duration.hoursMinutes", comment: "%d h %d min"),
+                h, m
+            )
+        }
+        return String(
+            format: NSLocalizedString("route.duration.minutes", comment: "%d minutes"),
+            mins
+        )
     }
 
     /// Uppercase head tag: "路线 · N 站 · DURATION".

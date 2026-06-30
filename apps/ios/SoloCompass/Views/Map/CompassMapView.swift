@@ -215,6 +215,14 @@ struct CompassMapContentView: View {
     @State private var lastPanAt: Date = .distantPast
     @State private var panDebounceTask: Task<Void, Never>? = nil
 
+    // Direction 2: on the first frame after the map loads, only the 3 AI
+    // smart-pick pins "shine"; every other pin is dimmed (~35% opacity, ~85%
+    // scale) so the map reads as a curated short-list, not a wall of dots.
+    // Flips off on the user's first map drag/tap or when Explore mode kicks in,
+    // and never re-activates within this view's lifetime — the curation cue is
+    // a cold-start affordance, not a permanent treatment.
+    @State private var smartPickHighlightActive: Bool = true
+
     // Tracks whether we've seen a disconnect so the success haptic only fires
     // after a real offline→online transition, never on cold launch.
     @State private var hasDisconnected: Bool = false
@@ -414,10 +422,20 @@ struct CompassMapContentView: View {
                     // never writes back to preferences — actually suppresses the
                     // picker. Without this guard a cold launch with `-startCity` still
                     // unexpectedly opens the picker over the consent gate.
-                    if viewModel.selectedCity == nil
+                    // DEBUG: screenshot harness can pass -skipLocationPicker to keep
+                    // the home view clean (no modal sheet covering peek/pins/FAB).
+                    let skipPicker = ProcessInfo.processInfo.arguments.contains("-skipLocationPicker")
+                    if !skipPicker
+                        && viewModel.selectedCity == nil
                         && preferences.lastSelectedCity == nil
                         && locationService.currentLocation == nil {
                         isShowingCityPicker = true
+                    }
+                    // DEBUG: screenshot harness can pass -startNow to switch the
+                    // filter to Now mode on cold start, so the RoutesSection's
+                    // empty-state placeholder can be captured deterministically.
+                    if ProcessInfo.processInfo.arguments.contains("-startNow") {
+                        viewModel.isNowFilter = true
                     }
                     // Populate the Routes section for the initial city. `selectedCity`
                     // is resolved in the view model's init (from a persisted city or
@@ -803,6 +821,15 @@ struct CompassMapContentView: View {
                                         isNowFilter: true,
                                         onSelectRoute: { route in
                                             routeSheet = .detail(route)
+                                        },
+                                        // Direction 3 — cold start in Now mode: when
+                                        // RoutesSection finds zero displayed items it
+                                        // renders NowEmptyRoutePlaceholder; its CTA must
+                                        // hit the same flow as CreateRouteEntryCard
+                                        // below so we keep a single create-route code
+                                        // path (no new orchestration).
+                                        onProposeRoute: {
+                                            routeSheet = .create
                                         }
                                     )
 
@@ -1548,6 +1575,11 @@ struct CompassMapContentView: View {
                             let isClosingSoon = BestNowChipState
                                 .resolve(for: exp, at: bestNowClock.tick)
                                 .isClosingSoon
+                            let smartPickRank = viewModel.effectiveSmartPickIds.firstIndex(of: exp.id)
+                            let isSmartPick = smartPickRank != nil
+                            let highlightActive = smartPickHighlightActive
+                                && !viewModel.effectiveSmartPickIds.isEmpty
+                                && viewModel.exploreRadiusOverlay == nil
                             Annotation("", coordinate: coord) {
                                 Button {
                                     viewModel.openExperienceDetail(exp)
@@ -1571,6 +1603,12 @@ struct CompassMapContentView: View {
                                                 .background(Capsule().fill(Color.gray.opacity(0.85)))
                                         }
                                     }
+                                    .modifier(SmartPickHighlightModifier(
+                                        isSmartPick: isSmartPick,
+                                        highlightActive: highlightActive,
+                                        reduceMotion: reduceMotion,
+                                        smartPickRank: smartPickRank
+                                    ))
                                     .transition(.scale.combined(with: .opacity))
                                 }
                                 .buttonStyle(.plain)
@@ -1587,6 +1625,19 @@ struct CompassMapContentView: View {
                             }
                         }
                     case .cluster(let cluster):
+                        // A cluster bubble is, by definition, a bag of "not the
+                        // top 3" pins — so during the cold-start curation pass
+                        // it follows the same dim-and-shrink treatment as any
+                        // non-smart-pick. If a smart pick happens to fall into
+                        // the cluster it's still surfaced, just not visually
+                        // forced; the home-screen narrative ("look at these
+                        // three") stays clean.
+                        let clusterRanks = cluster.experiences.compactMap { viewModel.effectiveSmartPickIds.firstIndex(of: $0.id) }
+                        let clusterHasSmartPick = !clusterRanks.isEmpty
+                        let clusterTopRank = clusterRanks.min()
+                        let clusterHighlightActive = smartPickHighlightActive
+                            && !viewModel.effectiveSmartPickIds.isEmpty
+                            && viewModel.exploreRadiusOverlay == nil
                         Annotation("", coordinate: cluster.coordinate) {
                             ClusterAnnotationView(cluster: cluster) {
                                 HapticService.shared.impact(style: .medium)
@@ -1594,12 +1645,21 @@ struct CompassMapContentView: View {
                                     viewModel.openExperienceDetail(first)
                                 }
                             }
+                            .modifier(SmartPickHighlightModifier(
+                                isSmartPick: clusterHasSmartPick,
+                                highlightActive: clusterHighlightActive,
+                                reduceMotion: reduceMotion,
+                                smartPickRank: clusterTopRank
+                            ))
                             .transition(.scale.combined(with: .opacity))
                         }
                     }
                 }
                 ForEach(viewModel.candidateExperiences) { cand in
                     if let coord = cand.coordinate {
+                        let candHighlightActive = smartPickHighlightActive
+                            && !viewModel.effectiveSmartPickIds.isEmpty
+                            && viewModel.exploreRadiusOverlay == nil
                         Annotation("", coordinate: coord) {
                             MarkerIconView(
                                 category: cand.category,
@@ -1607,6 +1667,11 @@ struct CompassMapContentView: View {
                                 confidenceLevel: cand.confidence.level,
                                 isSelected: viewModel.selectedExperience?.id == cand.id
                             )
+                            .modifier(SmartPickHighlightModifier(
+                                isSmartPick: false,
+                                highlightActive: candHighlightActive,
+                                reduceMotion: reduceMotion
+                            ))
                             .accessibilityLabel(Text(String(
                                 format: NSLocalizedString("map.candidate.label", comment: "Candidate experience: %@"),
                                 cand.title
@@ -1683,6 +1748,16 @@ struct CompassMapContentView: View {
                     viewModel.currentSpanLatitudeDelta = context.region.span.latitudeDelta
                 }
                 viewModel.refreshForLocation(context.region.center)
+                // Direction 2: the curation dim-out is a cold-start cue. Once
+                // the camera settles for the first time after the user has
+                // panned or zoomed (isMapPanning flipped during the move),
+                // restore every pin to full opacity so Explore feels like the
+                // whole map again — not a guided tour.
+                if smartPickHighlightActive && isMapPanning {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+                        smartPickHighlightActive = false
+                    }
+                }
             }
             .simultaneousGesture(
                 LongPressGesture(minimumDuration: 0.6)
@@ -1929,7 +2004,12 @@ private struct MapOverlayView: View {
                 )
             }
 
-            if isFilterActive {
+            // Show the floating chip ONLY when it's adding information the
+            // FilterBar can't: zero matches (with optional "next best" jump)
+            // or zero-after-search empty state. When count > 0 the active
+            // filter chip in the FilterBar already shows the match count as a
+            // badge ("此刻 1"), so the mid-map "1 个匹配" is pure duplication.
+            if isFilterActive && viewModel.visibleExperiences.isEmpty {
                 filterResultBadge
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -2656,9 +2736,12 @@ private struct PlusActionButton: View {
                 .scaleEffect(isPressed ? 1.08 : 1.0)
                 .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isPressed)
 
-            Image(systemName: "plus")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.white)
+            // Replace the generic "+" glyph with the Solo mascot — the cartoon
+            // girl who IS Solo. She greets the traveler from the homepage and
+            // is the entry-point to Solo Chat. The amber circle + shadow +
+            // press-ring above stay byte-identical, so hit-target and FAB
+            // layout are unchanged. `isPressed` drives her cheek sparkle.
+            SoloMascotView(isPressed: isPressed)
         }
         .contentShape(Circle())
         .onLongPressGesture(
@@ -3049,6 +3132,172 @@ private struct NowEmptyOverlay: View {
         guard !reduceMotion else { return }
         withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
             iconPulse = true
+        }
+    }
+}
+
+/// Direction 2 — first-frame curation cue.
+///
+/// Wraps a map marker so the 3 AI-ranked "smart picks" read as the only thing
+/// worth looking at on cold start, and everything else recedes into context.
+///
+/// Behaviour
+/// =========
+/// * `highlightActive == false` → identity transform; this is the steady-state
+///   once the user pans, zooms, or enters Explore mode.
+/// * `highlightActive == true` + `isSmartPick == true` → keep full size +
+///   opacity, layer a soft sun-gold ring + glow underneath, and (motion
+///   permitting) a slow breathe. Tap target is untouched.
+/// * `highlightActive == true` + `isSmartPick == false` → fade to 35% opacity
+///   and 85% scale so the pin still has presence (geographic context, density
+///   hint) but lets the gold picks do the talking.
+///
+/// Reduce Motion strips the breathe; the ring/glow + opacity/scale change are
+/// purely static styling and stay on.
+private struct SmartPickHighlightModifier: ViewModifier {
+    let isSmartPick: Bool
+    let highlightActive: Bool
+    let reduceMotion: Bool
+    /// 0-based rank within the smart-pick triple (0, 1, 2). Drives the numeric
+    /// badge in the corner so the viewer reads "1, 2, 3" not "three identical
+    /// glowing pins." `nil` for non-smart pins or when rank is unknown.
+    var smartPickRank: Int? = nil
+
+    @State private var breathe: Bool = false
+
+    func body(content: Content) -> some View {
+        // MapKit Annotation clips its overlay layer to the SwiftUI content's
+        // intrinsic frame. Wrap the pin in an explicit 120pt frame so the
+        // 112pt outer bloom + the corner rank badge both have room to draw
+        // without being cropped to the pin's tiny native bounds.
+        ZStack {
+            highlightOrnament
+                .compositingGroup()
+            content
+                .scaleEffect(scale, anchor: .center)
+                .opacity(opacity)
+            // Rank badge sits in the same ZStack, positioned via offset
+            // relative to the 120pt canvas center so it lands at the upper-
+            // right of the pin (pin is ~32pt; +16 right / -18 up lands the
+            // badge just outside the pin's corner).
+            rankBadge
+                .offset(x: 18, y: -20)
+        }
+        .frame(width: 120, height: 120)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: highlightActive)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: isSmartPick)
+            .onAppear {
+                guard isSmartPick, highlightActive, !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                    breathe = true
+                }
+            }
+            .onChange(of: highlightActive) { _, active in
+                guard !reduceMotion else { return }
+                if active && isSmartPick {
+                    withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                        breathe = true
+                    }
+                } else {
+                    withAnimation(nil) { breathe = false }
+                }
+            }
+    }
+
+    private var scale: CGFloat {
+        guard highlightActive else { return 1.0 }
+        return isSmartPick ? 1.0 : 0.85
+    }
+
+    private var opacity: Double {
+        guard highlightActive else { return 1.0 }
+        // Non-smart pins drop to 25% (was 35%) so the smart trio absolutely
+        // pops. Anything above 30% on a busy OSM tile reads as "still active"
+        // and steals attention from the curated picks.
+        return isSmartPick ? 1.0 : 0.25
+    }
+
+    @ViewBuilder
+    private var highlightOrnament: some View {
+        if isSmartPick && highlightActive {
+            ZStack {
+                // Outermost soft bloom — wide, low-alpha gold reaching 100pt.
+                // This is the layer the eye picks up first from across the map;
+                // it's the "this region is special" cue before the user even
+                // reads the pin shape.
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                CT.sunGold.opacity(0.45),
+                                CT.sunGold.opacity(0.0)
+                            ],
+                            center: .center,
+                            startRadius: 12,
+                            endRadius: 56
+                        )
+                    )
+                    .frame(width: 112, height: 112)
+                    .blur(radius: 6)
+                // Core halo — tighter, brighter ring of sunGoldDeep. Bumped
+                // from 0.75 → 0.95 alpha and grown to 92pt so the glow
+                // survives on green/yellow OSM tiles where the previous
+                // pass got eaten by the background.
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                CT.sunGoldDeep.opacity(0.95),
+                                CT.sunGold.opacity(0.55),
+                                CT.sunGold.opacity(0.0)
+                            ],
+                            center: .center,
+                            startRadius: 4,
+                            endRadius: 46
+                        )
+                    )
+                    .frame(width: 92, height: 92)
+                    .scaleEffect(reduceMotion ? 1.0 : (breathe ? 1.12 : 0.90))
+                    .opacity(reduceMotion ? 0.92 : (breathe ? 1.0 : 0.78))
+                // White contrast disc — sits between the glow and the inner
+                // ring. Without this, the gold halo blends into the OSM
+                // greens/yellows; with it, the smart pick reads as "lit from
+                // within" against any tile.
+                Circle()
+                    .fill(Color.white.opacity(0.65))
+                    .frame(width: 54, height: 54)
+                    .blur(radius: 3)
+                // Inner crisp ring — sun-gold stroke that hugs the pin so the
+                // "this is curated" cue lands even without motion.
+                Circle()
+                    .strokeBorder(CT.sunGoldDeep, lineWidth: 2.4)
+                    .frame(width: 52, height: 52)
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+    }
+
+    /// Tiny numbered badge (1/2/3) anchored to the upper-right of the pin.
+    /// Reads as a clear rank cue at a glance — three glowing pins look the
+    /// same; "1 2 3" tells the viewer instantly which is the top pick.
+    @ViewBuilder
+    fileprivate var rankBadge: some View {
+        if isSmartPick && highlightActive, let rank = smartPickRank {
+            Text("\(rank + 1)")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(width: 18, height: 18)
+                .background(
+                    Circle()
+                        .fill(CT.sunGoldDeep)
+                        .shadow(color: .black.opacity(0.25), radius: 1.5, y: 1)
+                )
+                .overlay(
+                    Circle().stroke(Color.white.opacity(0.9), lineWidth: 1.2)
+                )
+                .accessibilityHidden(true)
+                .allowsHitTesting(false)
         }
     }
 }

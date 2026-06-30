@@ -8,6 +8,11 @@ struct RoutesSection: View {
     let routes: [Route]
     let isNowFilter: Bool
     let onSelectRoute: (Route) -> Void
+    /// Optional CTA invoked by the warm cold-start placeholder card when the Now
+    /// section has zero real routes. Wired by the parent to the same code path
+    /// as `CreateRouteEntryCard` so users get a single, predictable route-build
+    /// flow. When `nil` the placeholder degrades to a static hint (no button).
+    var onProposeRoute: (() -> Void)? = nil
 
     private var displayed: [Route] {
         // Now-context uses the runtime check (derived from bestStartHour) so the
@@ -49,8 +54,99 @@ struct RoutesSection: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
+            } else if isNowFilter {
+                // Direction 3 — Cold start in Now mode: no nearby routes yet
+                // (RouteStore still loading, or simply none in window). Surface a
+                // single warm-amber placeholder card that proposes
+                // "今天的一条路线 · 让 Solo 为你拼一条" and routes its CTA through
+                // the same `create route` flow as CreateRouteEntryCard (wired by
+                // CompassMapView). The card disappears the moment a real route
+                // arrives because `items` is no longer empty.
+                VStack(alignment: .leading, spacing: 10) {
+                    RouteNowSectionHeader()
+                    NowEmptyRoutePlaceholder(onTap: onProposeRoute)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
             }
         }
+    }
+}
+
+// MARK: - NowEmptyRoutePlaceholder
+
+/// Warm-amber cold-start card for the Now routes section when there are no
+/// nearby routes yet. Friend-voice copy ("今天的一条路线 · 让 Solo 为你拼一条")
+/// and a single primary CTA that reuses the existing `create route` action —
+/// no new orchestration is introduced.
+///
+/// Palette: CT.sunGoldSoft → CT.sunGoldDeep gradient on a soft amber surface,
+/// matching the warm-amber dock language used in ExperienceDetailView.
+struct NowEmptyRoutePlaceholder: View {
+    let onTap: (() -> Void)?
+
+    var body: some View {
+        Button(action: { onTap?() }) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [CT.sunGoldSoft, CT.sunGoldDeep],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(NSLocalizedString(
+                        "routes.now.empty.title",
+                        comment: "Warm cold-start placeholder when Now routes are empty"
+                    ))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(CT.sunGoldDeep)
+                    Text(NSLocalizedString(
+                        "routes.now.empty.cta",
+                        comment: "CTA on the warm cold-start placeholder — let Solo build a route"
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(CT.fgMuted)
+                    .lineLimit(2)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(CT.sunGoldDeep.opacity(0.7))
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(CT.sunGoldSoft.opacity(0.55))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(CT.sunGoldDeep.opacity(0.25), lineWidth: 1)
+            )
+        }
+        // Match CreateRouteEntryCard's press feedback so the warm placeholder
+        // feels like a first-class member of the routes stack — and so the tap
+        // is not swallowed by BottomInfoSheet's ScrollView (see
+        // [[project_dead_fab_sheet_wiring]] kin).
+        .buttonStyle(PressableButtonStyle(pressedScale: 0.985))
+        .disabled(onTap == nil)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(NSLocalizedString(
+            "routes.now.empty.title",
+            comment: "Warm cold-start placeholder when Now routes are empty"
+        )))
+        .accessibilityHint(Text(NSLocalizedString(
+            "routes.now.empty.cta",
+            comment: "CTA on the warm cold-start placeholder — let Solo build a route"
+        )))
     }
 }
 

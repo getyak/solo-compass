@@ -174,6 +174,7 @@
 		63A45A90C2748A2729742C2F /* FilterBarScrollAffordanceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFED848E66BBE2A234AAA3CC /* FilterBarScrollAffordanceTest.swift */; };
 		63DCAC4B5E83B26B9B175344 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE4515228D70D8804596299D /* AIProvider.swift */; };
 		641D80BD116D6F255A9ED26A /* PendingSyncRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81A92E0AE1868C3A165F3E95 /* PendingSyncRecord.swift */; };
+		647C7A31BABBA01C49C7E463 /* SoloMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B93F1CB6D9C18B38957CAF1D /* SoloMascotView.swift */; };
 		65E57E8B02E7889BD8EE8DD4 /* ContextManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1F5F43F42E03BA5F10FA2F /* ContextManager.swift */; };
 		66C352786CB25AA13017F933 /* CreateRouteEntryTappableGuardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45BB36326BBDD7860ECD722B /* CreateRouteEntryTappableGuardTest.swift */; };
 		67D784ECDFE24AE5384975D2 /* Friendship.swift in Sources */ = {isa = PBXBuildFile; fileRef = 531D01560A12EAE904126D15 /* Friendship.swift */; };
@@ -800,6 +801,7 @@
 		B922F1B566195E79BD671D85 /* SolarEventsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarEventsTests.swift; sourceTree = "<group>"; };
 		B922F9040238050C82A5F312 /* WeatherSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSignal.swift; sourceTree = "<group>"; };
 		B92F9A65ACFD3B9518A364B0 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		B93F1CB6D9C18B38957CAF1D /* SoloMascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloMascotView.swift; sourceTree = "<group>"; };
 		B9864D3AA45FA7D5ADC4D2ED /* Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conversation.swift; sourceTree = "<group>"; };
 		BA6A3144D85CDAD01FA0FECB /* CompassMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompassMapView.swift; sourceTree = "<group>"; };
 		BB612E3F9DD324EF3F308FFA /* CompanionPhase3Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionPhase3Tests.swift; sourceTree = "<group>"; };
@@ -952,6 +954,7 @@
 				659B2C7C4B36A086968A28EF /* SkeletonBadgeView.swift */,
 				BEDD4F6238B484BB7C20904B /* SkeletonView.swift */,
 				98EFEBC6789178136BCFDC39 /* SoloCompassTips.swift */,
+				B93F1CB6D9C18B38957CAF1D /* SoloMascotView.swift */,
 				EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */,
 				4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */,
 				7AB6DC54C82CAD121880FE2D /* UrgencyPulse.swift */,
@@ -2221,6 +2224,7 @@
 				E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */,
 				13E5AEAEE5194DDB79AE92AC /* SoloCompassModelContainer.swift in Sources */,
 				0B77739CFA29BF6CE2A12F45 /* SoloCompassTips.swift in Sources */,
+				647C7A31BABBA01C49C7E463 /* SoloMascotView.swift in Sources */,
 				86F4628473C2D520D4C2FFFB /* SoloScoreBadge.swift in Sources */,
 				A217FA55BD40922DB3B8DEE6 /* SoloScoreRadarChart.swift in Sources */,
 				52B53BDA14EBACE5242FC016 /* StopsList.swift in Sources */,
