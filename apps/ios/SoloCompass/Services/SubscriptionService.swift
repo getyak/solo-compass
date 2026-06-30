@@ -65,6 +65,38 @@ public final class SubscriptionService {
     public private(set) var isLoading: Bool = false
     public private(set) var lastError: String?
 
+    /// Renewal / trial-end date of the currently-active StoreKit transaction.
+    /// `nil` when there is no active transaction (free / proExpired) or when
+    /// running under the DEBUG force-Pro override. The Paywall and MeSheet
+    /// entitlement banner read this to render the "trial ends Mar 12" /
+    /// "X days remaining" copy the App Store fine-print legally requires
+    /// once a user is mid-trial.
+    public private(set) var currentExpirationDate: Date?
+
+    /// Days remaining in the current Introductory Offer trial, rounded up so
+    /// the user never sees "0 days" while the trial is still active. `nil`
+    /// when not in a trial period (so call-sites can short-circuit the UI).
+    public var trialDaysRemaining: Int? {
+        guard entitlement == .proTrial, let exp = currentExpirationDate else { return nil }
+        let s = exp.timeIntervalSinceNow
+        return s > 0 ? Int(ceil(s / 86_400)) : 0
+    }
+
+    /// Returns true when the App Store reports this Apple ID is still eligible
+    /// for the product's Introductory Offer (i.e. has not previously redeemed
+    /// the free month on this or any product in the subscription group). The
+    /// paywall hides the "1-month free" badge when this returns false, so we
+    /// never advertise a trial the user can't actually claim.
+    ///
+    /// Returns true on lookup failure — the paywall already gracefully
+    /// degrades and StoreKit will reject the introductory price at purchase
+    /// time, so an optimistic display is safer than hiding the badge for a
+    /// network blip.
+    public func isEligibleForIntroOffer(_ product: Product) async -> Bool {
+        guard let subscription = product.subscription else { return false }
+        return await subscription.isEligibleForIntroOffer
+    }
+
     // MARK: - Init
 
     private static let keychainAccount = "entitlement"
@@ -139,6 +171,7 @@ public final class SubscriptionService {
         #endif
         var resolved: Entitlement = .free
         var latestTransaction: Transaction?
+        var resolvedExpiration: Date?
         for await result in Transaction.currentEntitlements {
             guard case .verified(let txn) = result else { continue }
             guard Self.allProductIDs.contains(txn.productID) else { continue }
@@ -158,21 +191,28 @@ public final class SubscriptionService {
             if #available(iOS 17.2, *) {
                 if let offerType = txn.offer?.type, offerType == .introductory {
                     resolved = .proTrial
+                    resolvedExpiration = txn.expirationDate
                 } else {
                     resolved = .pro
+                    resolvedExpiration = txn.expirationDate
                     break
                 }
             } else {
                 // Best-effort: offerType lives at txn.offerType on 17.0/17.1.
                 if txn.offerType == .introductory {
                     resolved = .proTrial
+                    resolvedExpiration = txn.expirationDate
                 } else {
                     resolved = .pro
+                    resolvedExpiration = txn.expirationDate
                     break
                 }
             }
         }
         let prior = entitlement
+        // Always update expiration alongside entitlement so the banner /
+        // paywall can't show stale "5 days left" copy after a renewal.
+        currentExpirationDate = resolvedExpiration
         setEntitlement(resolved)
         // Epic E US-032: emit a subscription_events row when the
         // resolved entitlement changes. Routed through the SyncService

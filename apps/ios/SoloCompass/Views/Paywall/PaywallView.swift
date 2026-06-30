@@ -2,7 +2,7 @@ import SwiftUI
 import StoreKit
 
 /// First user-visible paid moment. Shows the two product cards (yearly
-/// emphasized as "Best value"), the 7-day free trial CTA, restore link,
+/// emphasized as "Best value"), the 1-month free trial CTA, restore link,
 /// and fine-print legal copy.
 ///
 /// Driven by `SubscriptionService` from the environment. On a successful
@@ -12,9 +12,21 @@ public struct PaywallView: View {
     @Environment(SubscriptionService.self) private var subscription
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedProductID: String = SubscriptionService.yearlyProductID
+    // Default selection = monthly because the Introductory Offer (1-month
+    // free trial) is configured on the monthly SKU. Pre-selecting yearly
+    // would suppress the trial pitch — bad funnel design even though yearly
+    // has higher LTV.
+    @State private var selectedProductID: String = SubscriptionService.monthlyProductID
     @State private var purchaseInFlight = false
     @State private var purchaseError: String?
+    /// Whether the App Store Apple ID currently looking at this paywall is
+    /// still eligible for the monthly Introductory Offer (1 month free).
+    /// Defaults to `true` so the trial banner is visible while we're still
+    /// resolving — false positives are recoverable (StoreKit will fall back
+    /// to the regular price at purchase time and the user will see it in
+    /// Apple's own purchase sheet); false negatives would silently hide our
+    /// most important hook.
+    @State private var introOfferEligible: Bool = true
 
     /// Called after a successful purchase or restore so callers can
     /// resume the action that triggered the paywall.
@@ -26,8 +38,16 @@ public struct PaywallView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 20) {
                 hero
+                // Mid-trial state takes precedence: a paying-trial user
+                // re-opening the paywall (from MeSheet) should see "X days
+                // left" + manage, not the upsell pitch again.
+                if subscription.entitlement == .proTrial {
+                    midTrialBanner
+                } else if introOfferEligible {
+                    trialBanner
+                }
                 bullets
                 productCards
                 ctaButton
@@ -53,6 +73,16 @@ public struct PaywallView: View {
             if subscription.products.isEmpty {
                 await subscription.loadProducts()
             }
+            // Refresh intro-offer eligibility after products are in hand.
+            // Done in a separate Task so a slow StoreKit call doesn't block
+            // the bullets/CTA from rendering — if it's late, the optimistic
+            // default keeps the banner visible until the truth lands.
+            if let monthly = subscription.products.first(where: { $0.id == SubscriptionService.monthlyProductID }) {
+                introOfferEligible = await subscription.isEligibleForIntroOffer(monthly)
+            }
+            // Make sure the mid-trial banner reads from a fresh
+            // currentExpirationDate. refreshEntitlement is idempotent.
+            await subscription.refreshEntitlement()
         }
         .alert(
             NSLocalizedString("paywall.error.title", comment: "Purchase error"),
@@ -79,6 +109,94 @@ public struct PaywallView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    /// "Get 1 month free" pitch banner shown to eligible Apple IDs.
+    /// Pulls live monthly displayPrice so the price disclosure satisfies
+    /// App Store 3.1.2 without us hard-coding currency-localized strings.
+    private var trialBanner: some View {
+        let amber = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+        let monthly = subscription.products.first(where: { $0.id == SubscriptionService.monthlyProductID })
+        let priceCopy: String = {
+            if let monthly {
+                let fmt = NSLocalizedString("paywall.trialBanner.format",
+                                            comment: "Trial banner with %@ monthly price")
+                return String(format: fmt, monthly.displayPrice)
+            }
+            return NSLocalizedString("paywall.trialBanner.fallback",
+                                     comment: "Trial banner without price")
+        }()
+        return HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "gift.fill")
+                .font(.title3)
+                .foregroundStyle(amber)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(NSLocalizedString("paywall.trialBanner.headline",
+                                       comment: "Trial banner headline"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(priceCopy)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(amber.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(amber.opacity(0.35), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Status banner for users already inside the trial period — replaces
+    /// the "Get 1 month free" pitch with renewal context and a manage link.
+    private var midTrialBanner: some View {
+        let amber = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+        let days = subscription.trialDaysRemaining ?? 0
+        let headline: String = {
+            let fmt = NSLocalizedString("paywall.midTrial.headline.format",
+                                        comment: "Trial-active headline (%d days)")
+            return String(format: fmt, days)
+        }()
+        let detail: String = {
+            guard let exp = subscription.currentExpirationDate else {
+                return NSLocalizedString("paywall.midTrial.detail.fallback",
+                                         comment: "Trial-active detail without date")
+            }
+            let df = DateFormatter()
+            df.dateStyle = .medium
+            df.timeStyle = .none
+            let fmt = NSLocalizedString("paywall.midTrial.detail.format",
+                                        comment: "Trial-active detail with renewal date")
+            return String(format: fmt, df.string(from: exp))
+        }()
+        return HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.title3)
+                .foregroundStyle(amber)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(headline)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(amber.opacity(0.12))
+        )
+        .accessibilityElement(children: .combine)
     }
 
     private var bullets: some View {
@@ -117,7 +235,12 @@ public struct PaywallView: View {
 
     private func productCard(_ product: Product) -> some View {
         let isYearly = product.id == SubscriptionService.yearlyProductID
+        let isMonthly = product.id == SubscriptionService.monthlyProductID
         let isSelected = selectedProductID == product.id
+        let showTrialBadge = isMonthly && introOfferEligible && subscription.entitlement != .proTrial
+        // Dark brown for badge text — same WCAG-AA-clear pairing the CTA uses
+        // on the amber fill.
+        let badgeText = Color(red: 0x3A/255, green: 0x2A/255, blue: 0x05/255)
         return Button {
             selectedProductID = product.id
         } label: {
@@ -126,13 +249,21 @@ public struct PaywallView: View {
                     HStack(spacing: 6) {
                         Text(product.displayName)
                             .font(.headline)
-                        if isYearly {
+                        if showTrialBadge {
+                            Text(NSLocalizedString("paywall.trialBadge",
+                                                   comment: "1-month free trial badge"))
+                                .font(.caption2.weight(.bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)))
+                                .foregroundStyle(badgeText)
+                        } else if isYearly {
                             Text(NSLocalizedString("paywall.bestValue", comment: "Best value badge"))
                                 .font(.caption2.weight(.bold))
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(Capsule().fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(badgeText)
                         }
                     }
                     Text(product.description)
@@ -179,6 +310,20 @@ public struct PaywallView: View {
         }
     }
 
+    /// Dynamic CTA copy: emphasize the free month when eligible, fall back
+    /// to "Subscribe" for ineligible Apple IDs (returning users who already
+    /// burned the introductory offer) so we don't promise what StoreKit
+    /// won't deliver.
+    private var ctaTitle: String {
+        let isMonthly = selectedProductID == SubscriptionService.monthlyProductID
+        if isMonthly && introOfferEligible && subscription.entitlement != .proTrial {
+            return NSLocalizedString("paywall.cta.startMonthFree",
+                                     comment: "Start 1-month free trial CTA")
+        }
+        return NSLocalizedString("paywall.cta.subscribe",
+                                 comment: "Plain subscribe CTA")
+    }
+
     private var ctaButton: some View {
         // The CTA must always be tappable (except mid-purchase). Previously
         // Release builds disabled it whenever `products.isEmpty`, which made
@@ -199,7 +344,7 @@ public struct PaywallView: View {
                 if purchaseInFlight {
                     ProgressView().tint(ctaText)
                 } else {
-                    Text(NSLocalizedString("paywall.cta.startTrial", comment: "Start 7-day free trial"))
+                    Text(ctaTitle)
                         .font(.headline)
                 }
             }
@@ -225,7 +370,17 @@ public struct PaywallView: View {
     }
 
     private var fineprint: some View {
-        Text(NSLocalizedString("paywall.fineprint", comment: "Subscription fine print"))
+        // Re-resolve copy by trial vs no-trial so the legal disclosure
+        // matches what the CTA actually offers — Apple's Reviewer #1 thing.
+        let key: String
+        if selectedProductID == SubscriptionService.monthlyProductID
+            && introOfferEligible
+            && subscription.entitlement != .proTrial {
+            key = "paywall.fineprint.month"
+        } else {
+            key = "paywall.fineprint"
+        }
+        return Text(NSLocalizedString(key, comment: "Subscription fine print"))
             .font(.caption2)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.leading)

@@ -86,7 +86,7 @@
             "internalID" : "INTRO-MONTHLY",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
-            "subscriptionPeriod" : "P1W"
+            "subscriptionPeriod" : "P1M"
           },
           "localizations" : [
             {
@@ -118,7 +118,7 @@
             "internalID" : "INTRO-YEARLY",
             "numberOfPeriods" : 1,
             "paymentMode" : "free",
-            "subscriptionPeriod" : "P1W"
+            "subscriptionPeriod" : "P1M"
           },
           "localizations" : [
             {

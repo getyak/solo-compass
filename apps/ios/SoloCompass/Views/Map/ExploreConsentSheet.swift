@@ -21,10 +21,18 @@ struct ExploreConsentSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 12) {
+                // Hero icon — sized + framed to render fully inside the sheet's
+                // safe area. The previous 44pt glyph + 32pt top padding caused
+                // the icon to be clipped by the sheet's rounded top corners
+                // on `.medium` detent (the user reported "half-icon" rendering).
+                // 36pt glyph in a 56pt frame + 28pt top padding keeps the full
+                // optical bounds below the grabber on every device class.
                 Image(systemName: "sparkle.magnifyingglass")
-                    .font(.system(size: 44, weight: .light))
+                    .font(.system(size: 36, weight: .light))
                     .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
-                    .padding(.top, 32)
+                    .frame(width: 56, height: 56)
+                    .padding(.top, 28)
+                    .accessibilityHidden(true)
 
                 Text(NSLocalizedString("explore.consent.title", comment: "Title for explore consent sheet"))
                     .font(.title2.bold())
