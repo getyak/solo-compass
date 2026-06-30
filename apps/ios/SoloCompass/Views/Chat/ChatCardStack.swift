@@ -281,8 +281,17 @@ struct ReasoningSummaryChip: View {
         .onAppear {
             if reduceMotion {
                 settled = true
-            } else {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { settled = true }
+                return
+            }
+            // Throttle: stagger the settle spring by a deterministic per-chip
+            // delay so a tool chain that unwinds several summaries in the same
+            // frame doesn't fire N concurrent springs (read as visual noise).
+            // Capped at ~240ms.
+            let staggerDelay = Double(abs(summary.summary.hashValue) % 4) * 0.08
+            DispatchQueue.main.asyncAfter(deadline: .now() + staggerDelay) {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
+                    settled = true
+                }
             }
         }
         .accessibilityElement(children: .combine)

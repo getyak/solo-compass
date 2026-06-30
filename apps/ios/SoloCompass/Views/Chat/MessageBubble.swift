@@ -60,18 +60,18 @@ public struct MessageBubble: View {
 
     private var userBubble: some View {
         HStack {
-            Spacer(minLength: 48)
+            Spacer(minLength: 56)
             VStack(alignment: .trailing, spacing: 5) {
                 if let voiceDuration {
                     voiceBadge(voiceDuration)
                 }
                 Text(text)
-                    .font(.system(size: 14.5))
+                    .font(.system(size: 15))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 15)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
                     .background(CT.accent, in: userBubbleShape)
-                    .shadow(color: CT.accent.opacity(0.22), radius: 8, y: 3)
+                    .shadow(color: CT.accent.opacity(0.18), radius: 6, y: 2)
                     .accessibilityLabel(Text(String(
                     format: NSLocalizedString("chat.bubble.user.a11y", comment: "You said: %@"),
                     text
@@ -113,27 +113,24 @@ public struct MessageBubble: View {
     }
 
     private var assistantBubble: some View {
-        // No per-message avatar — the compass mark used to repeat on every
-        // single reply, which read as generic "AI assistant" chrome. The reply
-        // simply sits left-aligned in a warm, low-contrast bubble that belongs
-        // to the app's parchment palette rather than a stark white card.
+        // Editorial voice — no bubble, no border. The assistant reply sits
+        // directly on the warm sheet in a serif body face with generous
+        // leading, so a long answer reads like a letter rather than a chat
+        // chrome block. Tokens fade in (handled in ChatSheet via .transition);
+        // no blinking caret — the cursor was visual noise at scale.
         HStack(spacing: 0) {
-            // Assistant replies render Markdown (code/lists/links/quotes).
-            // Streaming throttle (batched ~50–80 chars / ~80ms) lives in the
-            // orchestrator (Phase D) so this view re-renders smoothly.
-            MarkdownMessageText(text: MessageBubble.renderCitations(text.isEmpty ? " " : text))
-                .padding(.horizontal, 15)
-                .padding(.vertical, 10)
-                .background {
-                    assistantBubbleShape.fill(MessageBubble.assistantFill(colorScheme))
-                }
-                .overlay(assistantBubbleShape.strokeBorder(CT.borderSubtle, lineWidth: 0.5))
-                .overlay(alignment: .trailing) {
-                    if isStreaming {
-                        StreamingCursor()
-                            .padding(.trailing, 10)
-                    }
-                }
+            MarkdownMessageText(
+                text: MessageBubble.renderCitations(text.isEmpty ? " " : text),
+                bodyFont: .system(size: 16, design: .serif),
+                bodyLineSpacing: 6
+            )
+                .foregroundStyle(MessageBubble.assistantTextColor(colorScheme))
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .id(isStreaming ? "streaming-\(text.count)" : "final")
+                .transition(.opacity)
+                .animation(.easeOut(duration: 0.18), value: text)
                 .contextMenu {
                     if !text.isEmpty && !isStreaming {
                         Button {
@@ -146,7 +143,7 @@ public struct MessageBubble: View {
                         }
                     }
                 }
-            Spacer(minLength: 48)
+            Spacer(minLength: 24)
         }
         .accessibilityLabel(Text(String(
             format: NSLocalizedString("chat.bubble.assistant.a11y", comment: "Solo said: %@"),
@@ -157,12 +154,17 @@ public struct MessageBubble: View {
         }
     }
 
-    /// AI bubble fill: clean surface-white with a hairline in light mode (the
-    /// design-handoff voice — a soft card that floats on the warm sheet, not a
-    /// muddy parchment block), and the dark token in dark mode so it doesn't
-    /// glare on a near-black sheet.
+    /// AI bubble fill — kept for `TypingIndicatorBubble` compatibility. The main
+    /// assistant message no longer uses a bubble; it sits directly on the warm
+    /// sheet in serif body text.
     static func assistantFill(_ scheme: ColorScheme) -> Color {
         scheme == .dark ? CT.chatAIBubbleBgDark : CT.surfaceWhite
+    }
+
+    /// Editorial body color for the bubble-less assistant text. Slightly softer
+    /// than pure primary so long passages read like newsprint instead of headlines.
+    static func assistantTextColor(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary
     }
 
     private var toolIndicator: some View {
@@ -182,29 +184,12 @@ public struct MessageBubble: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// User bubble: 18pt rounded, but the bottom-trailing corner tucks to 5pt so
-    /// the bubble "points" back toward the sender — a quiet directional cue that
-    /// reads as a tail without drawing one (design `border-bottom-right-radius`).
+    /// User bubble: even 18pt rounded rectangle. The old tucked corner pointed
+    /// toward the sender, but top-tier chat apps (Claude / ChatGPT / iMessage
+    /// 2025) settled on symmetric rounded rects — the alignment + color already
+    /// signal authorship, no tail required.
     private var userBubbleShape: some InsettableShape {
-        UnevenRoundedRectangle(
-            topLeadingRadius: 18,
-            bottomLeadingRadius: 18,
-            bottomTrailingRadius: 5,
-            topTrailingRadius: 18,
-            style: .continuous
-        )
-    }
-
-    /// Assistant bubble: mirror image — the bottom-leading corner tucks to 5pt
-    /// so the reply points toward Solo on the left.
-    private var assistantBubbleShape: some InsettableShape {
-        UnevenRoundedRectangle(
-            topLeadingRadius: 18,
-            bottomLeadingRadius: 5,
-            bottomTrailingRadius: 18,
-            topTrailingRadius: 18,
-            style: .continuous
-        )
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
     }
 
     // MARK: - Actions
@@ -400,29 +385,6 @@ private struct BouncingDot: View {
                 value: bouncing
             )
             .onAppear { if !reduceMotion { bouncing = true } }
-            .accessibilityHidden(true)
-    }
-}
-
-/// Blinking caret rendered on the trailing edge of a streaming bubble, echoing
-/// a text-cursor so the live response reads as "still typing". Pure visual —
-/// no semantic meaning for VoiceOver.
-private struct StreamingCursor: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var visible = true
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 1, style: .continuous)
-            .fill(CT.accent)
-            .frame(width: 2, height: 14)
-            .opacity(visible ? 1.0 : 0.15)
-            .animation(
-                reduceMotion
-                    ? nil
-                    : .easeInOut(duration: 0.55).repeatForever(autoreverses: true),
-                value: visible
-            )
-            .onAppear { if !reduceMotion { visible = false } }
             .accessibilityHidden(true)
     }
 }

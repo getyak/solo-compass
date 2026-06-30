@@ -432,6 +432,39 @@
 "paywall.error.unavailable" = "订阅暂时不可用。请检查网络后稍候重试。";
 "paywall.close" = "关闭";
 "paywall.continueFree" = "免费继续使用";
+"paywall.cta.startMonthFree" = "开始 1 个月免费试用";
+"paywall.cta.subscribe" = "立即订阅";
+"paywall.fineprint.month" = "前 1 个月免费，之后每月自动扣费。可在「设置 → Apple ID → 订阅」中随时取消。订阅即表示同意 App Store EULA 与我们的条款。";
+"paywall.trialBadge" = "含 1 个月免费";
+"paywall.trialBanner.headline" = "免费试用 1 个月";
+"paywall.trialBanner.format" = "之后每月 %@ · 可随时取消";
+"paywall.trialBanner.fallback" = "试用结束前可随时取消";
+"paywall.midTrial.headline.format" = "试用中 · 剩 %d 天";
+"paywall.midTrial.detail.format" = "%@ 开始扣费。点此管理订阅即可调整。";
+"paywall.midTrial.detail.fallback" = "可在「设置」中随时管理你的订阅。";
+
+/* Me — Entitlement banner */
+"me.entitlement.a11y.hint" = "查看订阅详情";
+"me.entitlement.trial.headline.format" = "试用中 · 剩 %d 天";
+"me.entitlement.trial.lastDay" = "试用最后一天";
+"me.entitlement.trial.detail.format" = "%@ 开始扣费";
+"me.entitlement.trial.detail.fallback" = "试用结束前可随时取消";
+"me.entitlement.pro.title" = "Solo Compass 高级版";
+"me.entitlement.pro.detail.format" = "%@ 续期";
+"me.entitlement.pro.detail.fallback" = "自动续订订阅";
+"me.entitlement.upsell.title" = "免费试用 1 个月 Pro";
+"me.entitlement.upsell.detail" = "AI 探索、语音意图、逐地点 AI 洞察";
+
+/* Onboarding — 第 5 步 paywall */
+"onboarding.paywall.title" = "送你的免费一个月";
+"onboarding.paywall.subtitle" = "Solo Compass Pro 前 30 天免费。试用结束前取消，不会被扣费。";
+"onboarding.paywall.bullet.explore" = "在这里探索 — 任意城市的 AI 真实地点";
+"onboarding.paywall.bullet.voice" = "语音描述需求，地图自动筛选";
+"onboarding.paywall.bullet.insight" = "对任一体验提供按需 AI 洞察";
+"onboarding.paywall.cta" = "开始 1 个月免费试用";
+"onboarding.paywall.later" = "稍后再说";
+"onboarding.paywall.fineprint.format" = "前 30 天免费，之后每月 %@。可随时取消。";
+"onboarding.paywall.fineprint.fallback" = "前 30 天免费。结束前可随时取消。";
 
 /* Settings — Subscription */
 "settings.subscription" = "订阅";
@@ -1041,6 +1074,16 @@
 "chat.empty.prompt.nearby" = "附近有什么好玩的？";
 "chat.empty.prompt.coffee" = "找一家安静的咖啡馆";
 "chat.empty.prompt.evening" = "帮我计划今晚的行程";
+
+/* Half-detent empty state — a minimal "companion is waiting" entry */
+"chat.empty.half.invite" = "问我，要去哪儿";
+"chat.empty.half.micHint" = "按住说话";
+"chat.empty.half.mic.a11y" = "按住对 Solo 说话";
+"chat.empty.half.tag.nearby" = "附近";
+"chat.empty.half.tag.coffee" = "咖啡";
+"chat.empty.half.tag.sunset" = "落日";
+"chat.empty.half.tag.evening" = "今晚";
+"chat.empty.half.prompt.sunset" = "附近哪里看落日好？";
 
 /* Place-anchored chat — opened from a place detail's "Ask Solo" */
 "chat.empty.place.title" = "问问 %@";
