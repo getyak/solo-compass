@@ -1586,6 +1586,20 @@ public final class MapViewModel {
     /// a sun-gold border and warm gradient bg.
     public var aiSmartPickIds: [String] = []
 
+    /// Smart-pick ids actually surfaced to the UI. Falls back to the
+    /// Solo-Score top-3 of the visible set when AI ranking hasn't produced
+    /// any picks yet (cold start, missing AI key, or offline). Without this
+    /// the map looks like a wall of identical pins on first open — the curation
+    /// signal only appears after the AI ranker finishes, which may never happen
+    /// for users without an API key.
+    public var effectiveSmartPickIds: [String] {
+        if !aiSmartPickIds.isEmpty { return aiSmartPickIds }
+        return visibleExperiences
+            .sorted { $0.soloScore.overall > $1.soloScore.overall }
+            .prefix(3)
+            .map { $0.id }
+    }
+
     /// Reorder the visible experiences using AI ranking and highlight the top
     /// three as smart picks, leaving the list intact if ranking fails.
     public func runAIRanking() async {

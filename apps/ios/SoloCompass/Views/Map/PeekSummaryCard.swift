@@ -61,14 +61,20 @@ struct PeekSummaryCard: View {
             #endif
             onTap()
         } label: {
-            HStack(alignment: .top, spacing: 12) {
-                categoryDisc
-                VStack(alignment: .leading, spacing: 7) {
-                    titleStack
-                    chipRow
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 12) {
+                    categoryDisc
+                    VStack(alignment: .leading, spacing: 7) {
+                        titleStack
+                        chipRow
+                    }
+                    Spacer(minLength: 4)
+                    distanceColumn
                 }
-                Spacer(minLength: 4)
-                distanceColumn
+                // Warm-start reason: one line of friend-voice copy under the
+                // card. The map opens and Solo already has a *reason* to
+                // suggest this spot — not just a name.
+                warmReasonLine
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -98,6 +104,60 @@ struct PeekSummaryCard: View {
     }
 
     // MARK: - Sub-views
+
+    /// One-line warm-amber rationale shown under the chip row. Friend voice —
+    /// "I'd take you here right now because…". Empty when there's nothing
+    /// honest to say so the card stays clean.
+    @ViewBuilder
+    private var warmReasonLine: some View {
+        let copy = reasonCopy
+        if !copy.isEmpty {
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: isSmartPick ? "sparkles" : "heart.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(CT.sunGoldDeep)
+                    .padding(.top, 2)
+                Text(copy)
+                    .font(.footnote)
+                    .foregroundStyle(CT.sunGoldDeep)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text(copy))
+        }
+    }
+
+    /// The reason copy to show. Friend voice in both languages — never bare facts.
+    /// Order: AI rationale → "best spot in view" warm-start line → empty.
+    private var reasonCopy: String {
+        if isSmartPick {
+            let why = experience.whyItMatters.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !why.isEmpty {
+                // First sentence only, keeps the row to ≤ 2 lines.
+                let firstSentence = why
+                    .split(whereSeparator: { ".。！？!?".contains($0) })
+                    .first
+                    .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) } ?? why
+                let format = NSLocalizedString(
+                    "peek.reason.aiPick",
+                    comment: "AI smart pick rationale, friend voice. %@ = why-it-matters first sentence."
+                )
+                return String(format: format, firstSentence)
+            }
+        }
+        // Warm-start fallback: surface the score + category as a friend's nudge.
+        let format = NSLocalizedString(
+            "peek.reason.warmStart",
+            comment: "Warm-start fallback reason, friend voice. %.1f = Solo score, %@ = category name."
+        )
+        // %@ first (category name), %.1f second (Solo score) — order MUST match
+        // both en + zh-Hans strings entries. Reversing them crashes with EXC_BAD_ACCESS
+        // because %@ tries to message the Double as an NSObject.
+        return String(format: format, experience.category.localizedTitle, experience.soloScore.overall)
+    }
 
     private var categoryDisc: some View {
         ZStack {
@@ -299,10 +359,16 @@ struct PeekSummaryCard: View {
             experience.location.placeNameRomanized,
             experience.location.placeNameLocal
         ].compactMap { $0?.isEmpty == false ? $0 : nil }
-        if parts.isEmpty {
-            return experience.location.addressHint ?? ""
+        // Drop place-name parts that just duplicate the card's shortName — a
+        // peek card titled "Nimman Roasters" subtitled "Nimman Roasters" reads
+        // as a render bug. Keep neighborhood-ish parts, swap pure duplicates
+        // for a soft category hint.
+        let shortName = experience.shortName
+        let deduped = parts.filter { $0.caseInsensitiveCompare(shortName) != .orderedSame }
+        if deduped.isEmpty {
+            return experience.category.localizedTitle
         }
-        return parts.joined(separator: " · ")
+        return deduped.joined(separator: " · ")
     }
 
     /// Live "best now / closing soon" chip state, recomputed each time the shared

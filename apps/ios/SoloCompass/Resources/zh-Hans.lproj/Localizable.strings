@@ -1481,6 +1481,13 @@
 /* Create-route entry card + flow */
 "route.create.entry.title" = "创建你自己的路线";
 "route.create.entry.subtitle" = "串联几个地点 · 可选择招募同伴一起走";
+
+/* Direction 3 — 当下 / Now 路线区冷启动占位卡 */
+"routes.now.empty.title" = "今天的一条路线 · 让 Solo 为你拼一条";
+"routes.now.empty.cta" = "我从附近挑 3 个你会喜欢的点，串成一条 · 点这里开始";
+"route.duration.hours" = "%d 小时";
+"route.duration.hoursMinutes" = "%d 小时 %d 分";
+"route.duration.minutes" = "%d 分钟";
 "route.create.title" = "创建路线";
 "route.create.ai" = "✨ 让 AI 帮我串成路线";
 "route.create.titleLabel" = "路线名称";
@@ -1551,6 +1558,8 @@
 "peek.card.almostThere" = "就快到了";
 "peek.card.almostThere.a11y" = "就快到了";
 "peek.preview.active.hint" = "正在查看你选中的 · 上拉看全部";
+"peek.reason.aiPick" = "现在我最想带你去这里——%@。";
+"peek.reason.warmStart" = "此刻视野里最值得去的%@ · Solo %.1f";
 "sheet.handle.hint" = "点击展开，拖动调整";
 
 /* NowScore 天气信号 (US-005) — %d 为整数温度（°C）。 */
