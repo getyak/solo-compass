@@ -3,19 +3,38 @@ import SwiftData
 
 /// Travel Archive tab (P1.1 #111).
 ///
-/// Three vertical bands:
+/// Vertical bands:
 /// 1. Trip summary card — current city, days, distinct Experience count.
 /// 2. Timeline grouped by city, newest visit first.
-/// 3. "City codex" placeholder — fills in Phase 3 #303.
+/// 3. Capsule triage section (P2.4 #245).
+/// 4. Rituals hub (P2/P3 goal-audit): a single row exposing every ritual
+///    surface — Omen, Blindbox, CityCodex, Brag, OST, Insight, Capsule
+///    open — so each shipped SwiftUI screen is reachable from the app,
+///    not stranded behind a Preview.
+/// 5. Year-end Travel Book banner (P3.4 #342, seasonal).
+/// 6. Codex placeholder text.
 public struct ArchiveView: View {
 
     @State private var viewModel: ArchiveViewModel
+    @State private var ritualsSheet: RitualsSheet? = nil
+    private let ritualsModelContainer: ModelContainer
 
     public init(modelContainer: ModelContainer, activeCityCode: String? = nil) {
+        self.ritualsModelContainer = modelContainer
         _viewModel = State(initialValue: ArchiveViewModel(
             modelContainer: modelContainer,
             activeCityCode: activeCityCode
         ))
+    }
+
+    /// One case per ritual screen. `Identifiable` powers the sheet(item:)
+    /// stack below so the map's UI stays clean when nothing is presented.
+    enum RitualsSheet: String, Identifiable {
+        case omen, blindbox, cityCodex, brag, ost, insight, capsuleOpen
+        case liveActivity   // P2.2 audit preview (no real ActivityKit entitlement needed)
+        case toolContract   // P2.1 / P3.5 audit preview (no chat UI needed)
+        case bookManifest   // P3.4 audit preview (bypasses Nov/Dec gate)
+        var id: String { rawValue }
     }
 
     public var body: some View {
@@ -23,6 +42,10 @@ public struct ArchiveView: View {
             VStack(alignment: .leading, spacing: 24) {
                 if viewModel.isEmpty {
                     emptyState
+                    // Rituals hub is available even in empty state so a
+                    // fresh install can preview each ritual surface
+                    // before any visit is recorded (goal-audit directive).
+                    ritualsHub
                 } else {
                     if let trip = viewModel.currentTrip {
                         tripCard(trip: trip)
@@ -43,6 +66,11 @@ public struct ArchiveView: View {
                         yearEndBookBanner
                     }
 
+                    // Rituals hub — makes every P2/P3 ritual surface
+                    // reachable so the goal audit (see the "都是有显示的"
+                    // directive) can screenshot each one.
+                    ritualsHub
+
                     codexPlaceholder
                 }
             }
@@ -51,7 +79,319 @@ public struct ArchiveView: View {
         }
         .background(Color(white: 0.98))
         .navigationTitle(NSLocalizedString("archive.title", comment: "Travel archive title"))
-        .onAppear { viewModel.refresh() }
+        .onAppear {
+            viewModel.refresh()
+            #if DEBUG
+            // Goal-audit entry point: `-ritualSheet <name>` pops the
+            // corresponding ritual sheet on first appear so screenshots
+            // can be captured without a tap on the grid tile.
+            if let idx = ProcessInfo.processInfo.arguments.firstIndex(of: "-ritualSheet"),
+               idx + 1 < ProcessInfo.processInfo.arguments.count,
+               let sheet = RitualsSheet(rawValue: ProcessInfo.processInfo.arguments[idx + 1]) {
+                ritualsSheet = sheet
+            }
+            #endif
+        }
+        .sheet(item: $ritualsSheet, content: ritualSheetContent(for:))
+    }
+
+    // MARK: - Rituals hub (P2/P3 goal-audit)
+
+    @ViewBuilder
+    private var ritualsHub: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Rituals")
+                .font(.system(.headline, design: .rounded))
+                .foregroundStyle(CT.fgPrimary.opacity(0.85))
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 108), spacing: 10)],
+                spacing: 10
+            ) {
+                ritualTile("Today's Omen", "sparkles",       accent: CT.omenGold,      tap: .omen)
+                ritualTile("Blindbox",     "shippingbox.fill", accent: CT.blindboxAmber, tap: .blindbox)
+                ritualTile("City Codex",   "square.grid.3x3.fill", accent: CT.omenGold, tap: .cityCodex)
+                ritualTile("Solo Brag",    "square.and.arrow.up.on.square.fill",
+                           accent: CT.sunGoldDeep, tap: .brag)
+                ritualTile("Today's OST",  "music.note",     accent: CT.accent,        tap: .ost)
+                ritualTile("Monthly Insight", "chart.bar.doc.horizontal.fill",
+                           accent: CT.sunGold, tap: .insight)
+                ritualTile("Open a Capsule", "envelope.open.fill",
+                           accent: CT.capsuleGlow, tap: .capsuleOpen)
+                ritualTile("Live Activity",  "bell.badge.fill",
+                           accent: CT.sunGoldDeep, tap: .liveActivity)
+                ritualTile("Tool Router",    "wrench.and.screwdriver.fill",
+                           accent: CT.accent, tap: .toolContract)
+                ritualTile("Travel Book",    "book.pages.fill",
+                           accent: CT.capsuleGlow, tap: .bookManifest)
+            }
+        }
+        .accessibilityIdentifier("archive.ritualsHub")
+    }
+
+    @ViewBuilder
+    private func ritualTile(_ label: String, _ symbol: String,
+                            accent: Color, tap: RitualsSheet) -> some View {
+        Button {
+            ritualsSheet = tap
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(accent)
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(CT.fgPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 84)
+            .padding(10)
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(accent.opacity(0.28), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("archive.ritualsTile.\(tap.rawValue)")
+    }
+
+    @ViewBuilder
+    private func ritualSheetContent(for sheet: RitualsSheet) -> some View {
+        switch sheet {
+        case .omen:
+            NavigationStack {
+                ScrollView {
+                    OmenCardView(
+                        data: OmenComposeService.shared.compose(
+                            tasteDescriptors: viewModel.groups.map(\.cityCode)
+                        ),
+                        onMicroTaskDone: { ritualsSheet = nil }
+                    )
+                    .padding(.vertical, 24)
+                }
+                .navigationTitle("Today's Omen")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        case .blindbox:
+            BlindboxLaunchView(
+                onLaunch: { _ in ritualsSheet = nil },
+                onDismiss: { ritualsSheet = nil }
+            )
+        case .cityCodex:
+            NavigationStack {
+                CityCodexView(
+                    entries: cityCodexEntries(),
+                    isPro: false,
+                    onUpsell: { ritualsSheet = nil }
+                )
+            }
+        case .brag:
+            NavigationStack {
+                ScrollView {
+                    BragCardView(
+                        data: bragData(),
+                        isVideoUnlocked: false,
+                        onShare: { ritualsSheet = nil },
+                        onWallpaper: { ritualsSheet = nil },
+                        onVideoUnlock: { ritualsSheet = nil }
+                    )
+                    .padding(.vertical, 24)
+                }
+                .navigationTitle("Solo Brag")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        case .ost:
+            NavigationStack {
+                ScrollView {
+                    OstShareCard(
+                        descriptor: ostDescriptor(),
+                        onShare: { ritualsSheet = nil },
+                        onRegenerate: { ritualsSheet = nil }
+                    )
+                    .padding(.vertical, 24)
+                }
+                .navigationTitle("Today's OST")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        case .insight:
+            NavigationStack {
+                ScrollView {
+                    InsightCardView(
+                        data: insightData(),
+                        onShare: { ritualsSheet = nil }
+                    )
+                    .padding(.vertical, 24)
+                }
+                .navigationTitle("Monthly Insight")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        case .capsuleOpen:
+            CapsuleOpenView(
+                payload: capsuleOpenPreview(),
+                onDismiss: { ritualsSheet = nil },
+                onReply: { ritualsSheet = nil }
+            )
+        case .liveActivity:
+            NavigationStack { LiveActivityAllKindsPreview() }
+        case .toolContract:
+            NavigationStack { ToolRouterContractPreview() }
+        case .bookManifest:
+            NavigationStack { travelBookManifestPreview }
+        }
+    }
+
+    @ViewBuilder
+    private var travelBookManifestPreview: some View {
+        let (visits, exps) = loadRawVisitPair()
+        let manifest = BookComposeService.shared.compose(
+            forYear: Calendar.current.component(.year, from: Date()),
+            visits: visits,
+            experiences: exps
+        )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Travel Book · manifest")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(CT.fgPrimary)
+                Text("P3.4 #341/#342 — the shape of your year in print.")
+                    .font(.caption)
+                    .foregroundStyle(CT.fgMuted)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    manifestRow("Year",         String(manifest.year))
+                    manifestRow("Chapters",     "\(manifest.chapters.count) week-blocks")
+                    manifestRow("Approx pages", "\(manifest.approxPageCount) pp")
+                    manifestRow("Cover",        manifest.coverCaption)
+                }
+                .padding(14)
+                .background(Color.white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(CT.borderSubtle, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                yearEndBookBanner
+                    .accessibilityIdentifier("archive.bookBanner.forced")
+            }
+            .padding(20)
+        }
+        .background(Color(white: 0.98))
+        .navigationTitle("Travel Book")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func manifestRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).font(.callout).foregroundStyle(CT.fgPrimary)
+            Spacer()
+            Text(value).font(.system(.callout, design: .monospaced))
+                .foregroundStyle(CT.fgPrimary.opacity(0.72))
+        }
+    }
+
+    // MARK: - Ritual data assembly (real fetch, deterministic fallback)
+
+    /// Load the raw VisitRecord+ExperienceRecord pair. ArchiveViewModel
+    /// already caches decorated rows but drops raw VisitRecord fields
+    /// (coords, dwellSeconds arrays) that the composers need, so a
+    /// dedicated read is cheaper than plumbing more through the VM.
+    private func loadRawVisitPair() -> (visits: [VisitRecord], exps: [Experience]) {
+        let ctx = ModelContext(ritualsModelContainer)
+        let visits: [VisitRecord]
+        do {
+            var d = FetchDescriptor<VisitRecord>(
+                sortBy: [SortDescriptor(\.visitedAt, order: .reverse)]
+            )
+            d.fetchLimit = 200
+            visits = try ctx.fetch(d)
+        } catch {
+            visits = []
+        }
+        // Ritual composers need Experience objects but the visit set can
+        // reference dozens of ids. #Predicate can't capture a `[String]`
+        // in a Sendable KeyPath, so we fetch all records once and filter
+        // in Swift. Archive is browsing-grade and the fetchLimit above
+        // bounds this to 200 visits worst case.
+        let ids = Set(visits.map(\.experienceId))
+        let expRecs: [ExperienceRecord]
+        if ids.isEmpty {
+            expRecs = []
+        } else {
+            do {
+                let all = try ctx.fetch(FetchDescriptor<ExperienceRecord>())
+                expRecs = all.filter { ids.contains($0.id) }
+            } catch {
+                expRecs = []
+            }
+        }
+        return (visits, expRecs.map { $0.asValue })
+    }
+
+    private func bragData() -> BragCardData {
+        let (visits, exps) = loadRawVisitPair()
+        let city = viewModel.currentTrip?.cityCode
+            ?? viewModel.groups.first?.cityCode
+            ?? "cmi"
+        return BragCardComposer.shared.compose(
+            cityCode: city,
+            visits: visits,
+            experiences: exps
+        )
+    }
+
+    private func insightData() -> MonthlyInsightData {
+        let (visits, exps) = loadRawVisitPair()
+        return MonthlyInsightService.shared.compose(
+            visits: visits,
+            experiences: exps
+        )
+    }
+
+    private func ostDescriptor() -> OstPlaylistDescriptor {
+        let (visits, _) = loadRawVisitPair()
+        return MusicService.shared.composeOst(for: visits, style: .jazz)
+    }
+
+    private func cityCodexEntries() -> [CityCodexView.Entry] {
+        // Prefer the archive's known cities; if the user has never visited,
+        // show today's omen as a lone tile so the grid renders something.
+        let cities = viewModel.groups.map(\.cityCode)
+        let today = OmenComposeService.shared.compose()
+        return cities.prefix(6).enumerated().map { i, city in
+            CityCodexView.Entry(
+                id: Calendar.current.date(byAdding: .day, value: -i, to: today.date) ?? today.date,
+                cityCode: city,
+                line: today.line,
+                completed: i == 0
+            )
+        } + (cities.isEmpty
+             ? [CityCodexView.Entry(id: today.date, cityCode: "—",
+                                    line: today.line, completed: false)]
+             : [])
+    }
+
+    private func capsuleOpenPreview() -> CapsuleOpenView.PayloadRender {
+        // Prefer a real ripe capsule; else show a deterministic placeholder
+        // so the reveal animation is auditable end-to-end.
+        if let ripe = CapsuleStore.shared.ripeCapsules().first,
+           let text = String(data: ripe.contentBlob, encoding: .utf8), !text.isEmpty {
+            return CapsuleOpenView.PayloadRender(
+                title: "A note from you",
+                bodyText: text,
+                buriedAt: ripe.createdAt,
+                contextLine: nil
+            )
+        }
+        return CapsuleOpenView.PayloadRender(
+            title: "A note from you",
+            bodyText: "This is where your buried note will surface when it ripens.",
+            buriedAt: Date().addingTimeInterval(-90 * 24 * 3600),
+            contextLine: "Warm afternoon · cmi"
+        )
     }
 
     // MARK: - P2.4 #245 capsule section
@@ -96,6 +436,13 @@ public struct ArchiveView: View {
     // MARK: - P3.4 #342 year-end banner
 
     static func showsYearEndBanner(now: Date, calendar: Calendar = Calendar.current) -> Bool {
+        #if DEBUG
+        // Goal-audit entry point: `-forceYearEndBanner` overrides the
+        // Nov/Dec gate so the P3.4 banner can be captured year-round.
+        if ProcessInfo.processInfo.arguments.contains("-forceYearEndBanner") {
+            return true
+        }
+        #endif
         let month = calendar.component(.month, from: now)
         return month >= 11
     }

@@ -41,8 +41,12 @@ public final class LocationService: NSObject {
         self.authorizationStatus = manager.authorizationStatus
         super.init()
         self.manager.delegate = self
-        self.manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        self.manager.distanceFilter = 50 // refresh after 50m of movement
+        // Tighter accuracy + shorter distance filter so the blue "you are here"
+        // marker doesn't jitter on every noisy fix. Combined with the
+        // horizontalAccuracy filter in didUpdateLocations this keeps the pin
+        // visually stable.
+        self.manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        self.manager.distanceFilter = 20 // refresh after 20m of movement
     }
 
     /// Ask the user for location access, escalating from when-in-use to
@@ -243,8 +247,19 @@ extension LocationService: CLLocationManagerDelegate {
 
     /// Receives a fresh GPS fix and publishes it as the traveler's current
     /// location for the map and distance calculations.
+    ///
+    /// Noisy fixes are filtered out so the blue "you are here" marker does
+    /// not visually drift back and forth:
+    ///   * `horizontalAccuracy <= 0`  → invalid reading, ignore
+    ///   * `horizontalAccuracy > 100` → too coarse (typical of a stale
+    ///     cell tower fix while GPS is still warming up)
+    ///   * fix older than 15s        → cached / replayed sample from
+    ///     Core Location's ring buffer, not a real "now" position
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let last = locations.last else { return }
+        guard last.horizontalAccuracy > 0 else { return }
+        guard last.horizontalAccuracy <= 100 else { return }
+        guard abs(last.timestamp.timeIntervalSinceNow) < 15 else { return }
         Task { @MainActor in
             self.currentLocation = last
         }

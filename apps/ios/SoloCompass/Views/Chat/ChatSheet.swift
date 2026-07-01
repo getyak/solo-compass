@@ -36,6 +36,16 @@ public struct ChatSheet: View {
     /// opens saved conversations the user can reopen.
     private let historyStore: ChatHistoryStore?
 
+    /// Optional first-turn seed. When non-nil, the sheet submits this string as
+    /// the user's first message once the orchestrator finishes seeding. Used
+    /// by the startup self-diagnostics bubble so the AI opens the conversation
+    /// by explaining the detected issues instead of showing an empty state.
+    private let initialUserPrompt: String?
+
+    /// Guards against re-sending `initialUserPrompt` if `isSeeded` flips more
+    /// than once in a session's lifetime.
+    @State private var didSeedInitialPrompt: Bool = false
+
     @State private var draftText: String = ""
     @State private var showHistory: Bool = false
     @State private var liveTranscript: String = ""
@@ -82,7 +92,8 @@ public struct ChatSheet: View {
         onSelectExperience: @escaping (Experience) -> Void = { _ in },
         onAdoptRoute: @escaping (RouteProposal) -> Void = { _ in },
         detent: Binding<PresentationDetent> = .constant(.large),
-        historyStore: ChatHistoryStore? = nil
+        historyStore: ChatHistoryStore? = nil,
+        initialUserPrompt: String? = nil
     ) {
         self.orchestrator = orchestrator
         self.voiceService = voiceService
@@ -92,12 +103,20 @@ public struct ChatSheet: View {
         self.onAdoptRoute = onAdoptRoute
         self._detent = detent
         self.historyStore = historyStore
+        self.initialUserPrompt = initialUserPrompt
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider().opacity(0.4)
+            // Half-detent = editorial doorway: no chrome. The sheet's grabber
+            // is the only top edge, the serif invitation is the hero, the mic
+            // is the sole input. Header / Divider / InputBar are all
+            // suppressed so the surface reads like a page, not a settings
+            // panel. (User directive: "半屏没必要显示图标以及下面的聊天框".)
+            if detent != .medium {
+                header
+                Divider().opacity(0.4)
+            }
 
             if permissionDenied {
                 permissionDeniedBanner
@@ -163,14 +182,20 @@ public struct ChatSheet: View {
             voiceSurface
         } else {
             messageList
-            VStack(spacing: 0) {
-                if orchestrator.uiState == .unconfigured {
-                    unconfiguredBanner
+            // Half-detent hides the textInputBar entirely — the mic in
+            // `HalfExpandedEmptyState` is the sole voice/message entry, so
+            // stacking a full-width composer under it created two competing
+            // input surfaces. Full & compact detents keep the composer.
+            if detent != .medium {
+                VStack(spacing: 0) {
+                    if orchestrator.uiState == .unconfigured {
+                        unconfiguredBanner
+                    }
+                    if let hint = sendHint {
+                        sendHintBanner(hint)
+                    }
+                    textInputBar
                 }
-                if let hint = sendHint {
-                    sendHintBanner(hint)
-                }
-                textInputBar
             }
         }
     }
@@ -336,13 +361,22 @@ public struct ChatSheet: View {
                     // standard ~16-20pt).
                     LazyVStack(alignment: .leading, spacing: 18) {
                         ForEach(visibleMessages) { msg in
-                            MessageBubble(
-                                role: msg.role,
-                                text: msg.content ?? "",
-                                toolName: msg.name,
-                                isStreaming: false
-                            )
-                            .id(msg.id)
+                            if let findings = Self.extractDiagnosticsFindings(msg.content ?? "") {
+                                // Startup-diagnostics user turn: render as a
+                                // compact card instead of the raw JSON dump
+                                // that ended up in the message body so the
+                                // LLM could parse it.
+                                DiagnosticsRequestCard(findings: findings)
+                                    .id(msg.id)
+                            } else {
+                                MessageBubble(
+                                    role: msg.role,
+                                    text: Self.sanitizeForDisplay(msg.content ?? ""),
+                                    toolName: msg.name,
+                                    isStreaming: false
+                                )
+                                .id(msg.id)
+                            }
 
                             // Inline cards (places / proposed route) produced by
                             // this assistant turn's tools — rendered as tappable
@@ -1352,6 +1386,30 @@ public struct ChatSheet: View {
             showVoiceSurface = true
             beginPushToTalk()
         }
+        seedInitialPromptIfNeeded()
+    }
+
+    /// If the caller passed an `initialUserPrompt` (used by the startup
+    /// self-diagnostics bubble), submit it as the first user turn once the
+    /// orchestrator finishes seeding. Retries for up to ~5s to cover the
+    /// cold-start `start()` → `buildSystemPrompt` async gap; gives up quietly
+    /// if the orchestrator ends up unconfigured (no API key), because the
+    /// bubble itself already surfaced the "no key" finding.
+    private func seedInitialPromptIfNeeded() {
+        guard !didSeedInitialPrompt, let prompt = initialUserPrompt else { return }
+        didSeedInitialPrompt = true
+        Task { @MainActor in
+            for _ in 0..<20 {
+                switch orchestrator.handleTextInput(prompt) {
+                case .accepted, .empty, .sessionEnded:
+                    return
+                case .unconfigured:
+                    return
+                case .notReady:
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                }
+            }
+        }
     }
 
     private func beginPushToTalk() {
@@ -1469,6 +1527,60 @@ public struct ChatSheet: View {
     private static let streamingBubbleID = "chat.streaming"
     private static let liveTranscriptID = "chat.liveTranscript"
     private static let typingIndicatorID = "chat.typing"
+
+    /// Removes machine-readable envelope blocks — `<latest_context>` (added
+    /// by `VoiceAgentOrchestrator` for hour/timezone/coord refresh) and
+    /// `<solo:diagnostics>` (added by `StartupDiagnosticsService` when the
+    /// traveler taps the diagnostics banner) — before the message text
+    /// lands in a `MessageBubble`. LLM payload stays identical; the human
+    /// reader gets a clean sentence.
+    ///
+    /// Uses `dotMatchesLineSeparators` so `.` also spans `\n` — without it
+    /// the `[\s\S]*?` trick worked in offline swift tests but failed at
+    /// iOS runtime for reasons that resisted diagnosis. `dotMatchesLineSeparators`
+    /// is the intent-revealing option and just works.
+    static func sanitizeForDisplay(_ raw: String) -> String {
+        var out = raw
+        for pattern in [
+            "<latest_context>.*?</latest_context>\\s*",
+            "<solo:diagnostics>.*?</solo:diagnostics>\\s*"
+        ] {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else { continue }
+            let range = NSRange(out.startIndex..., in: out)
+            out = regex.stringByReplacingMatches(in: out, range: range, withTemplate: "")
+        }
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Extracts the diagnostics payload from a message body when the user
+    /// tapped the startup-diagnostics banner. Returns the parsed findings
+    /// so the chat surface can render a `DiagnosticsRequestCard` instead of
+    /// a raw MessageBubble. Any parse failure returns nil — the message
+    /// then falls back to the sanitized MessageBubble render.
+    static func extractDiagnosticsFindings(_ raw: String) -> [DiagnosticsRequestCard.Finding]? {
+        guard raw.contains("<solo:diagnostics>") else { return nil }
+        let pattern = "<solo:diagnostics>(.*?)</solo:diagnostics>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]),
+              let match = regex.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
+              match.numberOfRanges >= 2,
+              let jsonRange = Range(match.range(at: 1), in: raw)
+        else { return nil }
+        let json = String(raw[jsonRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let data = json.data(using: .utf8),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: String]]
+        else { return nil }
+        return arr.compactMap { dict in
+            guard let severity = dict["severity"],
+                  let title = dict["title"],
+                  let fix = dict["fix"]
+            else { return nil }
+            return DiagnosticsRequestCard.Finding(
+                severity: severity,
+                title: title,
+                suggestedFix: fix
+            )
+        }
+    }
 
     private func scrollToBottom(proxy: ScrollViewProxy, animated: Bool = true) {
         let anchor = Self.bottomAnchorID

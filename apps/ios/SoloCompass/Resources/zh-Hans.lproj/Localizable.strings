@@ -2063,3 +2063,33 @@
 "settings.forgetMe.confirm.action" = "忘记我";
 "settings.forgetMe.toast.success" = "已清空——下次开聊时,Agent 会重新认识你。";
 "settings.forgetMe.toast.failure" = "暂时无法清空,请稍后再试。";
+
+/* 启动自检 (StartupDiagnosticsService + SoloAgentBubble) */
+"diagnostics.anthropic.missing.title" = "AI 大脑没接上";
+"diagnostics.anthropic.missing.detail" = "没检测到 AI API key,Solo 现在只会用离线排序推荐地点,不会跟你自然对话。";
+"diagnostics.anthropic.missing.fix" = "去 设置 → AI Provider 填一个 Anthropic 或 DeepSeek 的 key。";
+"diagnostics.amap.missing.title" = "高德地图没接上";
+"diagnostics.amap.missing.detail" = "在中国区域,Solo 优先用高德查周边。当前没检测到高德 key,会回退到 Overpass 公共数据,结果可能不全。";
+"diagnostics.amap.missing.fix" = "在设置或环境变量里配一个 AMAP_API_KEY,再重启 App。";
+"diagnostics.location.denied.title" = "定位被拒了";
+"diagnostics.location.denied.detail" = "地图不知道你在哪,附近推荐、Now 排序、Live Activity 都会失效。";
+"diagnostics.location.denied.fix" = "去 系统设置 → Solo Compass → 位置 → 使用期间。";
+"diagnostics.location.pending.title" = "还没授权定位";
+"diagnostics.location.pending.detail" = "点一下右下角 Solo 或者定位按钮,我会请求一次位置授权。";
+"diagnostics.location.pending.fix" = "触发一次定位授权弹窗。";
+"diagnostics.mic.denied.title" = "语音识别被关了";
+"diagnostics.mic.denied.detail" = "长按 Solo 说话没法转成文字,只能打字聊。";
+"diagnostics.mic.denied.fix" = "去 系统设置 → Solo Compass → 语音识别 打开。";
+"diagnostics.notification.denied.title" = "通知被拒了";
+"diagnostics.notification.denied.detail" = "拿不到孤独时段提醒、灵动岛胶囊、每月洞察推送。";
+"diagnostics.notification.denied.fix" = "去 系统设置 → Solo Compass → 通知 打开。";
+"diagnostics.onboarding.incomplete.title" = "onboarding 还没走完";
+"diagnostics.onboarding.incomplete.detail" = "没有 vibe / 城市 / 品味偏好,推荐会退化成通用榜。";
+"diagnostics.onboarding.incomplete.fix" = "回到 onboarding 把三步选完。";
+"diagnostics.seed.empty.title" = "地点数据是空的";
+"diagnostics.seed.empty.detail" = "seed_experiences.json 没加载出来,SwiftData 里也没历史数据。地图会是空的。";
+"diagnostics.seed.empty.fix" = "重装 App,或者报 bug 给我。";
+"diagnostics.seed.header" = "刚启动时你帮我做了一遍体检,发现下面这些问题。逐条解释一下影响,并告诉我怎么修:";
+"solo.agent.bubble.dismiss" = "关掉";
+"solo.agent.bubble.diagnostics.cta" = "问 Solo 怎么修 →";
+"solo.agent.bubble.diagnostics.subtitle.multi" = "还有 %d 个问题,点开我一起说。";

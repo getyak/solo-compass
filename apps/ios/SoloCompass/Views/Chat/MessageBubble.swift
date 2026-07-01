@@ -27,6 +27,15 @@ public struct MessageBubble: View {
     public let voiceDuration: String?
 
     @Environment(\.colorScheme) private var colorScheme
+    /// User-turn long-text collapse state. WeChat-style: >240 chars or
+    /// multi-line content clips to a preview until the traveler taps to
+    /// expand. Assistant / streaming bubbles are unaffected.
+    @State private var isExpanded: Bool = false
+
+    /// Threshold above which a user bubble collapses. 240 chars ≈ 6 lines
+    /// on iPhone width — enough to write a real sentence but small enough
+    /// to spare the scroll view a paragraph dump.
+    private static let collapseThreshold: Int = 240
 
     public init(
         role: VoiceAgentSession.Role,
@@ -40,6 +49,10 @@ public struct MessageBubble: View {
         self.toolName = toolName
         self.isStreaming = isStreaming
         self.voiceDuration = voiceDuration
+    }
+
+    private var isLongUserText: Bool {
+        role == .user && text.count > Self.collapseThreshold
     }
 
     public var body: some View {
@@ -60,19 +73,81 @@ public struct MessageBubble: View {
 
     private var userBubble: some View {
         HStack {
-            Spacer(minLength: 56)
-            VStack(alignment: .trailing, spacing: 5) {
+            Spacer(minLength: 64)
+            VStack(alignment: .trailing, spacing: 6) {
                 if let voiceDuration {
                     voiceBadge(voiceDuration)
                 }
-                Text(text)
-                    .font(.system(size: 15))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .background(CT.accent, in: userBubbleShape)
-                    .shadow(color: CT.accent.opacity(0.18), radius: 6, y: 2)
-                    .accessibilityLabel(Text(String(
+                if isLongUserText && !isExpanded {
+                    collapsedUserBubble
+                } else {
+                    expandedUserBubble
+                }
+            }
+        }
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: isExpanded)
+    }
+
+    /// Collapsed WeChat-style preview: first ~3 lines with a fade + tap
+    /// affordance. Tapping the bubble expands to the full text.
+    private var collapsedUserBubble: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            Text(text)
+                .font(.system(size: 15, weight: .regular, design: .default))
+                .lineSpacing(4)
+                .foregroundStyle(.white)
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: 260, alignment: .leading)
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+                .background(CT.accent, in: userBubbleShape)
+                .shadow(color: CT.accent.opacity(0.14), radius: 8, y: 3)
+
+            Button {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                    isExpanded = true
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Text(NSLocalizedString(
+                        "chat.bubble.expand",
+                        value: "查看原文",
+                        comment: "Expand a collapsed long user message"
+                    ))
+                    .font(.system(size: 12, weight: .medium))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(CT.accent.opacity(0.75))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule().fill(CT.accentSoft)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("chat.bubble.expand")
+        }
+    }
+
+    /// Full-text bubble (default for short messages, and for long ones after
+    /// expansion). Typography aligns to SF Pro Text with generous line
+    /// spacing + rounded corners tuned to iMessage/Claude-style aesthetics.
+    private var expandedUserBubble: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            Text(text)
+                .font(.system(size: 15, weight: .regular, design: .default))
+                .lineSpacing(4)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 13)
+                .background(CT.accent, in: userBubbleShape)
+                .shadow(color: CT.accent.opacity(0.14), radius: 8, y: 3)
+                .accessibilityLabel(Text(String(
                     format: NSLocalizedString("chat.bubble.user.a11y", comment: "You said: %@"),
                     text
                 )))
@@ -91,6 +166,31 @@ public struct MessageBubble: View {
                         }
                     }
                 }
+
+            if isLongUserText && isExpanded {
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                        isExpanded = false
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(NSLocalizedString(
+                            "chat.bubble.collapse",
+                            value: "收起",
+                            comment: "Collapse an expanded long user message"
+                        ))
+                        .font(.system(size: 12, weight: .medium))
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(CT.accent.opacity(0.75))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(CT.accentSoft))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
+                .accessibilityIdentifier("chat.bubble.collapse")
             }
         }
     }
@@ -189,7 +289,10 @@ public struct MessageBubble: View {
     /// 2025) settled on symmetric rounded rects — the alignment + color already
     /// signal authorship, no tail required.
     private var userBubbleShape: some InsettableShape {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        // 20pt matches iMessage 2024 / Claude iOS chat bubble radius — the
+        // sweet spot between iOS 6 pill (too playful) and Material Design
+        // sharp corners (too utilitarian) for a warm, editorial tone.
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
     }
 
     // MARK: - Actions

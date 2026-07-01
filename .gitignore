@@ -17,6 +17,11 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 
+# Playwright / E2E artifacts (regenerated each run)
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/e2e/report/
+
 # Environment
 .env
 .env.local

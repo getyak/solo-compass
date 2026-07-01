@@ -39,40 +39,39 @@ struct HalfExpandedEmptyState: View {
     @State private var appeared = false
 
     var body: some View {
+        // Editorial half-sheet — "B. Minimal Voice":
+        //   line 1  language tag  (mood copy, tracked all-caps micro-label)
+        //   line 2  serif hero invitation (2 lines, 26pt)
+        //   line 3  four punchy pills
+        //   line 4  Hold-to-talk mic (single voice entry)
+        // Deliberately no orb, no InputBar, no chrome — the sheet's grabber is
+        // the only top edge. Chat header, Divider, and textInputBar are all
+        // suppressed by `ChatSheet` when `detent == .medium`, so this view IS
+        // the whole half-sheet surface.
         VStack(spacing: 0) {
-            Spacer(minLength: 18)
+            Spacer(minLength: 20)
 
-            SoloOrb(size: 60)
-                .padding(.bottom, 18)
+            momentTag
+                .padding(.bottom, 14)
 
             Text(NSLocalizedString(
                 "chat.empty.half.invite",
                 comment: "Half-detent serif invitation — Ask me where to go"
             ))
-                .font(.system(size: 19, weight: .semibold, design: .serif))
+                .font(.system(size: 26, weight: .semibold, design: .serif))
+                .tracking(-0.3)
                 .foregroundStyle(titleColor)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .padding(.bottom, 10)
-
-            momentChip
-                .padding(.bottom, 18)
-
-            suggestionRow
+                .lineSpacing(3)
+                .padding(.horizontal, 36)
                 .padding(.bottom, 22)
 
+            suggestionRow
+                .padding(.bottom, 28)
+
             micHandle
-                .padding(.bottom, 6)
 
-            Text(NSLocalizedString(
-                "chat.empty.half.micHint",
-                comment: "Micro caption under push-to-talk mic"
-            ))
-                .font(.system(size: 11.5, weight: .medium))
-                .foregroundStyle(.secondary)
-                .opacity(isMicListening ? 0 : 1)
-
-            Spacer(minLength: 14)
+            Spacer(minLength: 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .opacity(appeared ? 1 : 0)
@@ -80,20 +79,25 @@ struct HalfExpandedEmptyState: View {
         .onAppear { appeared = true }
     }
 
-    // MARK: - Moment chip
-
-    private var momentChip: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "sun.haze.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(CT.sunGoldDeep)
-            Text(nowChipText)
-                .font(.system(size: 11.5, weight: .medium))
-                .foregroundStyle(CT.sunGoldDeep)
-        }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 5)
-        .background(Capsule().fill(CT.sunGoldSoft))
+    // MARK: - Moment tag (top micro-label)
+    //
+    // Tiny uppercase language tag instead of the previous filled chip. Reads
+    // as an editorial dateline ("LATE · QUIET") rather than a UI badge — no
+    // fill, no icon, just tracked letterforms in a warm ink tone. Cues the
+    // moment without competing with the serif hero below.
+    private var momentTag: some View {
+        // Editorial dateline. Tracking is heavy, so long copy
+        // ("LATE AND QUIET · A ROOFTOP OR A LAST DRINK") needs a smaller
+        // size + gentle downscale rather than a hard truncation ellipsis —
+        // truncated all-caps letterforms read like an error, not a design.
+        Text(nowChipText.uppercased())
+            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+            .tracking(1.8)
+            .foregroundStyle(CT.sunGoldDeep.opacity(0.85))
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 28)
     }
 
     // MARK: - Suggestion row (horizontal pills)
@@ -103,7 +107,13 @@ struct HalfExpandedEmptyState: View {
     // never used. Removing it also makes the row visible to `ImageRenderer`
     // (which silently drops ScrollView content in snapshot tests).
     private var suggestionRow: some View {
-        HStack(spacing: 8) {
+        // Four tags on a 375pt-wide screen with English localizations
+        // ("Nearby / Coffee / Sunset / Tonight") overflow the horizontal
+        // budget and wrap inside each capsule ("Nearb y"). Icon-only pills
+        // instead: label reads out via .accessibilityLabel for VO, and the
+        // punchy tag is preserved for the moment chip narrative but not
+        // rendered in the row itself.
+        HStack(spacing: 10) {
             ForEach(suggestions) { s in
                 Button {
                     Haptics.impact(.light)
@@ -111,13 +121,16 @@ struct HalfExpandedEmptyState: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: s.icon)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(s.tint)
                         Text(s.label)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 12.5, weight: .semibold))
                             .foregroundStyle(pillTextColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .fixedSize(horizontal: true, vertical: false)
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 11)
                     .padding(.vertical, 8)
                     .background(pillFill, in: Capsule())
                     .overlay(Capsule().strokeBorder(pillBorder, lineWidth: 0.5))
@@ -126,7 +139,7 @@ struct HalfExpandedEmptyState: View {
                 .accessibilityLabel(s.fullPrompt)
             }
         }
-        .padding(.horizontal, 22)
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Push-to-talk mic
