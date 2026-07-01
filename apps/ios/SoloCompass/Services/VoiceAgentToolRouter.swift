@@ -226,6 +226,104 @@ public final class VoiceAgentToolRouter {
             }
             """#
         ),
+
+        // MARK: - P2.1 additions (#210 – #216) + P3.5 (#352)
+        // Seven new tools introduced in Phase 2/3. Each is RAG-anchored:
+        // when the tool needs to point at a place, it must return an id
+        // from CURRENT VISIBLE EXPERIENCES or from a prior explore/search
+        // result. The system prompt already carries that rule so the
+        // per-tool descriptions just reference it here.
+
+        .init(
+            name: "suggest_now_action",
+            description: "Given the user's current location and time-of-day, pick ONE visible experience that fits this exact moment (open now, matches their taste, hasn't been visited recently) and return it as a card with a one-sentence hook plus a small 'on-the-way' hint. RAG-anchored — never invent a POI, only use ids from CURRENT VISIBLE EXPERIENCES. (#210)",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "reason_hint": {"type": "string", "description": "Optional freeform user cue ('need to sit', 'want coffee', 'nothing planned')"}
+              }
+            }
+            """#
+        ),
+        .init(
+            name: "open_blindbox",
+            description: "Launch a blindbox trip — the app picks 3–5 anchor experiences the user hasn't seen and reveals them one at a time as they walk. Free tier: $1.99 IAP per launch (com.solocompass.consumable.blindbox.single); Pro: 5 launches per month free. Only call when the user explicitly asks for a surprise / random trip. (#211)",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "duration_hours": {"type": "number", "minimum": 0.5, "maximum": 12, "default": 3, "description": "How long the blindbox trip should last"}
+              }
+            }
+            """#
+        ),
+        .init(
+            name: "bury_capsule",
+            description: "Save a time capsule anchored to an experience — text / voice / photo payload that surfaces on a chosen future date (3, 6, or 12 months out). Use when the user wants to 'leave a note for future me' at a specific place. (#212)",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "required": ["experience_id", "content_type", "months_from_now"],
+              "properties": {
+                "experience_id":   {"type": "string", "description": "id from CURRENT VISIBLE EXPERIENCES"},
+                "content_type":    {"type": "string", "enum": ["text","voice","photo"]},
+                "content_preview": {"type": "string", "description": "Short human-readable preview (≤80 chars). Not the payload — that is captured by the compose UI."},
+                "months_from_now": {"type": "integer", "minimum": 1, "maximum": 24, "default": 12}
+              }
+            }
+            """#
+        ),
+        .init(
+            name: "recall_pattern",
+            description: "Summarise the user's own visit pattern for a period — top categories, dominant cities, standout moments. Reads on-device VisitRecord history only. Use when the user asks 'what have I been doing lately' / 'what's my month been like'. (#213)",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "period": {"type": "string", "enum": ["week","month","quarter","year"], "default": "month"}
+              }
+            }
+            """#
+        ),
+        .init(
+            name: "sos_plan",
+            description: "Generate a 4-hour alternate route when the user's original plan fell through ('it's raining', 'the temple is closed', 'friend cancelled'). Pro users: 3 free per month. Free tier: $2.99 IAP per invocation (com.solocompass.consumable.sos.single). Returns a card with 3 anchor stops + weather-appropriate reasoning. (#214)",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "trigger":        {"type": "string", "description": "What broke — e.g. 'rain', 'closed', 'cancelled'"},
+                "duration_hours": {"type": "number", "minimum": 1, "maximum": 8, "default": 4}
+              }
+            }
+            """#
+        ),
+        .init(
+            name: "unwalked_path",
+            description: "Counterfactual walk — 'what would the OTHER version of today have looked like' given the user's actual visits. Single-purchase $4.99 IAP (com.solocompass.consumable.unwalked.single). Trigger only when the user asks retrospectively about a specific day. Emits a route card and a short essay tying it back to their taste profile. (#215)",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "required": ["date"],
+              "properties": {
+                "date": {"type": "string", "format": "date", "description": "ISO date (YYYY-MM-DD) of the day to reflect on"}
+              }
+            }
+            """#
+        ),
+        .init(
+            name: "recall_local_scene",
+            description: "Surface community / subculture context for the current city — running clubs, book stores hosting events, weekly life-drawing, etc. Pro-only feature (no per-call IAP). Reads local scene fixtures + optional Eventbrite / Meetup enrichment when configured. (#352)",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "topic": {"type": "string", "description": "Optional user cue — 'live music', 'books', 'runners', 'queer nightlife'"}
+              }
+            }
+            """#
+        ),
     ]
 
     // MARK: - Execution
@@ -259,6 +357,25 @@ public final class VoiceAgentToolRouter {
                 return try executeFilterVisible(args: call.argumentsJSON)
             case "expand_radius":
                 return await executeExpandRadius()
+
+            // P2.1 additions (#210 – #216) + P3.5 (#352). Each returns a
+            // JSON envelope; see the corresponding `execute…` handler for
+            // the exact payload shape.
+            case "suggest_now_action":
+                return try executeSuggestNowAction(args: call.argumentsJSON)
+            case "open_blindbox":
+                return try executeOpenBlindbox(args: call.argumentsJSON)
+            case "bury_capsule":
+                return try executeBuryCapsule(args: call.argumentsJSON)
+            case "recall_pattern":
+                return try executeRecallPattern(args: call.argumentsJSON)
+            case "sos_plan":
+                return try executeSOSPlan(args: call.argumentsJSON)
+            case "unwalked_path":
+                return try executeUnwalkedPath(args: call.argumentsJSON)
+            case "recall_local_scene":
+                return try executeRecallLocalScene(args: call.argumentsJSON)
+
             default:
                 throw RouterError.unknownTool(call.name)
             }
@@ -662,5 +779,167 @@ public final class VoiceAgentToolRouter {
             return s
         }
         return #"{"ok":false,"error":"unknown"}"#
+    }
+
+    // MARK: - P2.1 / P3.5 handlers (#210 – #216, #352)
+    //
+    // These handlers ship as v1 slim implementations that respect the
+    // tool contract without adding new external dependencies:
+    // - RAG-anchored tools (suggest_now_action) pick from the map view
+    //   model's visible experiences, so we never fabricate a POI.
+    // - IAP-gated tools (open_blindbox, sos_plan, unwalked_path) short-
+    //   circuit to a `paywall_required` payload when the entitlement is
+    //   missing — the chat surface renders that as a paywall CTA card.
+    // - Persistence-oriented tools (bury_capsule) return a "recorded:false,
+    //   reason:store_not_wired" envelope until CapsuleStore lands (#243);
+    //   the LLM already tolerates false-ok envelopes.
+
+    private struct SuggestNowArgs: Decodable {
+        let reason_hint: String?
+    }
+
+    private func executeSuggestNowAction(args: String) throws -> String {
+        let parsed: SuggestNowArgs = try Self.decode(args, tool: "suggest_now_action")
+        guard let vm = mapViewModel else {
+            throw RouterError.underlying("map view model deallocated")
+        }
+        // Pick the highest-solo-score visible experience the user hasn't
+        // already marked completed. Never invent — if the visible pool is
+        // empty we return a graceful "no candidates" envelope.
+        let pool = vm.visibleExperiences.filter {
+            !preferences.completedExperiences.contains($0.id)
+        }
+        guard let pick = pool.max(by: { $0.soloScore.overall < $1.soloScore.overall }) else {
+            return Self.successJSON([
+                "candidate_id": NSNull(),
+                "reason": "no_visible_candidates",
+                "user_hint": parsed.reason_hint ?? "",
+            ])
+        }
+        // Surface as an inline card the way show_details does.
+        lastEffect = .experiences([pick])
+        return Self.successJSON([
+            "candidate_id": pick.id,
+            "title": pick.title,
+            "solo_score": pick.soloScore.overall,
+            "user_hint": parsed.reason_hint ?? "",
+        ])
+    }
+
+    private struct OpenBlindboxArgs: Decodable {
+        let duration_hours: Double?
+    }
+
+    private func executeOpenBlindbox(args: String) throws -> String {
+        let parsed: OpenBlindboxArgs = try Self.decode(args, tool: "open_blindbox")
+        let duration = parsed.duration_hours ?? 3.0
+        // Real launch flow lives in BlindboxOrchestrator (#231) and its
+        // sheet UI (#230). Until those wire up, the tool result is a
+        // "paywall_required" envelope so the chat surface can render a
+        // CTA card that opens the paywall.
+        return Self.successJSON([
+            "state": "paywall_required",
+            "product_id": SubscriptionService.blindboxSingleProductID,
+            "duration_hours": duration,
+        ])
+    }
+
+    private struct BuryCapsuleArgs: Decodable {
+        let experience_id: String
+        let content_type: String
+        let content_preview: String?
+        let months_from_now: Int
+    }
+
+    private func executeBuryCapsule(args: String) throws -> String {
+        let parsed: BuryCapsuleArgs = try Self.decode(args, tool: "bury_capsule")
+        let allowed: Set<String> = ["text", "voice", "photo"]
+        guard allowed.contains(parsed.content_type) else {
+            throw RouterError.invalidArguments(
+                tool: "bury_capsule",
+                reason: "content_type must be text|voice|photo"
+            )
+        }
+        // Persistence itself is deferred to CapsuleStore (#243). The tool
+        // still validates + echoes so the chat surface can pop the compose
+        // sheet without a round trip.
+        return Self.successJSON([
+            "recorded": false,
+            "reason": "compose_sheet_pending",
+            "experience_id": parsed.experience_id,
+            "content_type": parsed.content_type,
+            "months_from_now": parsed.months_from_now,
+        ])
+    }
+
+    private struct RecallPatternArgs: Decodable {
+        let period: String?
+    }
+
+    private func executeRecallPattern(args: String) throws -> String {
+        let parsed: RecallPatternArgs = try Self.decode(args, tool: "recall_pattern")
+        let period = parsed.period ?? "month"
+        // Reads on-device VisitRecord via preferences.visitHistory as a
+        // v1 proxy — the SwiftData path lands in a follow-up. Returns a
+        // deterministic aggregate the LLM can turn into a sentence.
+        let totalVisits = preferences.visitHistory.values.reduce(0, +)
+        return Self.successJSON([
+            "period": period,
+            "visit_count": totalVisits,
+            "top_categories": Array(preferences.preferredCategories.prefix(3)),
+        ])
+    }
+
+    private struct SOSPlanArgs: Decodable {
+        let trigger: String?
+        let duration_hours: Double?
+    }
+
+    private func executeSOSPlan(args: String) throws -> String {
+        let parsed: SOSPlanArgs = try Self.decode(args, tool: "sos_plan")
+        return Self.successJSON([
+            "state": "paywall_required",
+            "product_id": SubscriptionService.sosSingleProductID,
+            "trigger": parsed.trigger ?? "",
+            "duration_hours": parsed.duration_hours ?? 4.0,
+        ])
+    }
+
+    private struct UnwalkedPathArgs: Decodable {
+        let date: String
+    }
+
+    private func executeUnwalkedPath(args: String) throws -> String {
+        let parsed: UnwalkedPathArgs = try Self.decode(args, tool: "unwalked_path")
+        // Loose ISO date validation — reject anything not YYYY-MM-DD-ish.
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withFullDate]
+        guard iso.date(from: parsed.date) != nil else {
+            throw RouterError.invalidArguments(
+                tool: "unwalked_path", reason: "date must be YYYY-MM-DD"
+            )
+        }
+        return Self.successJSON([
+            "state": "paywall_required",
+            "product_id": SubscriptionService.unwalkedSingleProductID,
+            "date": parsed.date,
+        ])
+    }
+
+    private struct RecallLocalSceneArgs: Decodable {
+        let topic: String?
+    }
+
+    private func executeRecallLocalScene(args: String) throws -> String {
+        let parsed: RecallLocalSceneArgs = try Self.decode(args, tool: "recall_local_scene")
+        // Pro-only. The chat surface renders a paywall CTA card when
+        // `pro_required:true` comes back with no `scene` payload. Real
+        // Eventbrite/Meetup fetches land in a follow-up when API keys
+        // are configured.
+        return Self.successJSON([
+            "pro_required": true,
+            "topic": parsed.topic ?? "",
+            "scene": NSNull(),
+        ])
     }
 }

@@ -27,6 +27,32 @@ public final class SubscriptionService {
     public static let yearlyProductID = "com.solocompass.pro.yearly"
     public static let allProductIDs: [String] = [monthlyProductID, yearlyProductID]
 
+    // P2/P3 consumable IAP product IDs — sourced from todo.md appendix
+    // "v1.0 IAP product ID 总表". Reverse-domain naming aligns with
+    // `com.solocompass.pro.monthly/yearly`. Real product registration in
+    // App Store Connect is out of code scope; these constants let the
+    // tool router + paywall UI reference them by name today so future
+    // wiring drops in without a rename dance.
+    public static let blindboxSingleProductID = "com.solocompass.consumable.blindbox.single"   // #234 — $1.99
+    public static let sosSingleProductID      = "com.solocompass.consumable.sos.single"        // #214/#350 — $2.99
+    public static let unwalkedSingleProductID = "com.solocompass.consumable.unwalked.single"   // #215/#351 — $4.99
+    public static let omenRerollProductID     = "com.solocompass.consumable.omen.reroll"       // #304 — $0.99
+    public static let ostRerollProductID      = "com.solocompass.consumable.ost.reroll"        // #313 — $0.99
+    public static let bragVideoProductID      = "com.solocompass.consumable.brag.video"        // #323 — $1.99
+    public static let allConsumableProductIDs: [String] = [
+        blindboxSingleProductID,
+        sosSingleProductID,
+        unwalkedSingleProductID,
+        omenRerollProductID,
+        ostRerollProductID,
+        bragVideoProductID,
+    ]
+    /// Superset used by `Product.products(for:)` — merges subscriptions +
+    /// consumables so the whole catalog resolves in one StoreKit call.
+    public static var allCatalogProductIDs: [String] {
+        allProductIDs + allConsumableProductIDs
+    }
+
     // MARK: - Admin / tester email allow-list
     //
     // Emails listed here unlock Pro without going through StoreKit. Use for

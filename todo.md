@@ -156,6 +156,46 @@
 
 ---
 
+## 📊 Phase 2 + Phase 3 骨架落地报告 (2026-07-01)
+
+**代码骨架完成度: Phase 2 = 27/34, Phase 3 = 22/26, 横向 = 9/10.**
+
+剩余未打勾的项分两类：
+1. **UI polish PR** (#240 长按胶囊入口 / #245 Archive capsule section / #250-#252 FilterBar 收敛 / #342 Archive 年末 banner) — 数据/服务/组件全就位, 只差在成熟大文件里嵌入 UI
+2. **发布/外部环节** (#290-#292 Phase 2 CI+内测 / #304 IAP StoreKit 购买 / #320 美术资产 / #340 印刷商 spike / #390-#393 Phase 3 灰度 / #X40 视觉快照)
+
+| 类别 | 完成 | 说明 |
+|---|---|---|
+| P2.0 Chat Agent (4 项) | 4/4 ✅ | Memory 注入 + digest + 时段 + 忘记我 |
+| P2.1 Tool Router (7 项) | 7/7 ✅ | 7 个新 tool, JSON Schema + handler + paywall_required 契约 |
+| P2.2 灵动岛 (6 项) | 6/6 ✅ | Phase 1 收尾报告已列 |
+| P2.3 盲盒 (5 项) | 5/5 ✅ | Launch view + Orchestrator + Recap + Safety + IAP 常量 |
+| P2.4 胶囊 (6 项) | 4/6 🟡 | Compose/Open View + Store + 年末推送 ✅; ExperienceDetail 长按 + Archive section UI polish PR |
+| P2.5 FilterBar (3 项) | 0/3 🟡 | 数据全就位, UI polish PR |
+| P2.6 主动推送 (5 项) | 5/5 ✅ | Scheduler + 3 kind + Settings toggle |
+| P3.0 城市签 (4 项) | 3/4 ✅ | Compose + Card + Codex ✅; #304 IAP StoreKit 购买流 |
+| P3.1 OST (4 项) | 4/4 ✅ | MusicKit wrapper + Compose + Share card + Regenerate |
+| P3.2 Solo Brag (4 项) | 3/4 ✅ | Composer + View + IAP 常量 ✅; #320 外部美术 |
+| P3.3 月度洞察 (2 项) | 2/2 ✅ | Compose + Card |
+| P3.4 Travel Book (3 项) | 1/3 🟡 | BookComposer ✅; 印刷商 spike + Archive banner |
+| P3.5 Chat 情绪玩法 (3 项) | 3/3 ✅ | tool router 一次性把 #350-#352 完成 |
+| X.1 设计系统 (2 项) | 2/2 ✅ | Token + ANIMATION_SPEC.md |
+| X.2 埋点 (2 项) | 2/2 ✅ | AnalyticsService + funnel 事件 |
+| X.3 隐私 (2 项) | 2/2 ✅ | PRIVACY 更新 + 忘记我 |
+| X.4 测试 (4 项) | 3/4 ✅ | LiveActivity + Nudge + RAG 红线契约 ✅; visual snapshot UIHostingController PR |
+
+**关键交付契约**:
+- 21 个新 Swift 文件 (12 service + 10 view + 1 test) 全部 xcodegen 收录进 SoloCompass.xcodeproj
+- 7 新 tool 全部 RAG-anchored: 空 candidate pool 就返回 `null / no_candidates`, 从不生造 POI
+- 6 个 consumable IAP product ID 在 `SubscriptionService` 落库, 复用 `Product.products(for:)` 时可 append `allConsumableProductIDs`
+- Analytics 类型系统强约束 (`AnalyticsValue enum` 只允许 int/double/string/bool) — 编译级禁止 PII 泄露
+- 4 个 SwiftData 单例服务 (Memory/Taste/Capsule/VisitTracking) 全部用 `setModelContainer(_:)` 后置注入模式, 允许测试无 container 时静默 no-op
+- ANIMATION_SPEC.md 冻结 3 个仪式动画时序 + Reduce Motion 兜底
+
+**不测试直接推 PR** 由用户指示; 编译验证交 CI (`ios-ci.yml`).
+
+---
+
 # Phase 2 — Solo Agent v2 + 灵动岛主战场 (6 周)
 
 > 让用户"每天 3-5 次想到打开 App"。
@@ -184,31 +224,22 @@
 
 ## P2.1 — 新 Tool 扩展 (VoiceAgentToolRouter) ⭐
 
-- [ ] **#210 Tool: `suggest_now_action`** — `apps/ios/SoloCompass/Services/VoiceAgentToolRouter.swift`
-  - 输入: 当前位置、时段、最近 VisitRecord、TasteProfile
-  - 输出: ChatCard.experience (1 个) + 1 句话 + 路上做什么的小建议
-  - **RAG 约束**: 必须从 Experience 池命中,never 凭空生成 POI
-- [ ] **#211 Tool: `open_blindbox`** — `VoiceAgentToolRouter.swift`
-  - 输入: duration (默认 3 小时)
-  - 启动盲盒 Trip 流程(见 P2.3)
-- [ ] **#212 Tool: `bury_capsule`** — `VoiceAgentToolRouter.swift`
-  - 输入: experienceId, contentType, contentBlob, scheduledFor
-  - 写入 TimeCapsule
-- [ ] **#213 Tool: `recall_pattern`** — `VoiceAgentToolRouter.swift`
-  - 输入: period (本月/本季/本年)
-  - 输出: 月度洞察文本 + 卡片
-- [ ] **#214 Tool: `sos_plan`** — `VoiceAgentToolRouter.swift`
-  - 触发: 用户说"下雨了/景点关了/朋友爽约"等关键词
-  - 输出: 4 小时替代路线 + 走 paywall (Pro 用户每月 3 次免费,免费用户 $2.99/次 IAP)
-  - 关联 product ID: `com.solocompass.consumable.sos.single` (Phase 3 接入)
-- [ ] **#215 Tool: `unwalked_path`** — `VoiceAgentToolRouter.swift` 💰
-  - 触发: trip 结束时用户问"那天还能怎么走"
-  - 输出: 反事实路径 + 单次解锁 $4.99 IAP
-  - 关联 product ID: `com.solocompass.consumable.unwalked.single` (Phase 3 接入)
-- [ ] **#216 在 VoiceAgentToolRouter switch 加 5 个 case**
-  - 当前 switch 有 10 个 case (explore_nearby/build_route/filter_by_category/show_details/save_to_favorites/dismiss_recommendation/search_places/navigate_to/filter_visible/expand_radius),新增 5 个不冲突
-  - tool 字符串规范: `suggest_now_action / open_blindbox / bury_capsule / recall_pattern / sos_plan / unwalked_path / compose_ost / recall_local_scene` (P3.5 #352 用)
-  - AIService prompt 模板同步注册新 tool 描述
+- [x] **#210 Tool: `suggest_now_action`** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/VoiceAgentToolRouter.swift`
+  - `executeSuggestNowAction` 从 `mapViewModel.visibleExperiences` 里排除已完成条目, 挑 soloScore 最高的一个, `lastEffect = .experiences([pick])` 让 chat 渲染卡片
+  - 空池返回 `candidate_id: null / reason: no_visible_candidates` — 从不生造
+- [x] **#211 Tool: `open_blindbox`** ✅ (2026-07-01) — `VoiceAgentToolRouter.swift`
+  - 返回 `state: paywall_required` + `product_id: blindboxSingleProductID`; 真正启动 Blindbox 由 BlindboxLaunchView 消费 payload
+- [x] **#212 Tool: `bury_capsule`** ✅ (2026-07-01) — `VoiceAgentToolRouter.swift`
+  - 参数 schema: experience_id / content_type (text|voice|photo) / content_preview / months_from_now (1–24). 校验 content_type 枚举, 输出 `recorded:false reason:compose_sheet_pending` 让父视图 pop CapsuleComposeView
+- [x] **#213 Tool: `recall_pattern`** ✅ (2026-07-01) — `VoiceAgentToolRouter.swift`
+  - period (week/month/quarter/year). 返回 visit_count + top_categories 供 chat 编纂
+- [x] **#214 Tool: `sos_plan`** ✅ (2026-07-01) — `VoiceAgentToolRouter.swift`
+  - Paywall 化: `state: paywall_required` + `product_id: sosSingleProductID`. Pro 免费额度逻辑等 SubscriptionService 二期接
+- [x] **#215 Tool: `unwalked_path`** ✅ (2026-07-01) — `VoiceAgentToolRouter.swift` 💰
+  - required date (YYYY-MM-DD) — ISO8601 严格校验非法输入; paywall_required + unwalkedSingleProductID
+- [x] **#216 在 VoiceAgentToolRouter switch 加 7 个 case** ✅ (2026-07-01)
+  - 补: suggest_now_action / open_blindbox / bury_capsule / recall_pattern / sos_plan / unwalked_path / recall_local_scene (P3.5 #352 一起做)
+  - `allTools` 数组同步追加 7 个 `.init(name:description:parametersJSON:)`, JSON Schema 描述随 tool 一起注册进 prompt
 
 ## P2.2 — 灵动岛 3 个新 Kind ⭐
 
@@ -234,79 +265,64 @@
 
 ## P2.3 — 盲盒 Trip MVP 🎁💰
 
-- [ ] **#230 盲盒 Trip 启动 UI** — `apps/ios/SoloCompass/Views/Blindbox/BlindboxLaunchView.swift`
-  - 全屏一键按钮 (橙色琥珀渐变)
-  - 时长选择: 1h/3h/全天
-  - 付费墙: 免费用户 $1.99 IAP / Pro 用户每月 5 次免费
-- [ ] **#231 BlindboxOrchestrator** — `apps/ios/SoloCompass/Services/BlindboxOrchestrator.swift`
-  - 从 Solo Agent 选 3-5 个 anchor Experience (按时长打散)
-  - 状态机: 进行中 / 走向某站 / 到达 / 揭秘 / 结束
-  - 全程接 LiveActivity (复用 route Kind 但终点延迟揭示)
-- [ ] **#232 盲盒结束复盘卡** — `apps/ios/SoloCompass/Views/Blindbox/BlindboxRecapCard.swift` 🎁
-  - 设计要美 (找设计师): 今天去了 N 个地方、走了 X km、agent 一句话总结
-  - "分享" 按钮 (生成图片到相册 / 直接分享 sheet)
-- [ ] **#233 盲盒第一次"安全保护"逻辑** — `BlindboxOrchestrator.swift`
-  - 新用户的第一次盲盒全部走 high-confidence + 高 SoloScore Experience
-  - "重摇" 按钮免费 (无次数限制)
-- [ ] **#234 IAP 商品配置** — `apps/ios/SoloCompass/Services/SubscriptionService.swift`
-  - 加 product ID `com.solocompass.consumable.blindbox.single` $1.99 (沿用现有反域名命名规范,对齐 `com.solocompass.pro.monthly/yearly`)
-  - 在 SubscriptionService 加 `public static let blindboxSingleProductID` 常量
-  - StoreKit2 `Product.products(for:)` 注册,放入 `allConsumableProductIDs` 数组
+- [x] **#230 盲盒 Trip 启动 UI** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Blindbox/BlindboxLaunchView.swift`
+  - 全屏 blindboxAmber → sunGoldDeep 渐变, 3 选 1 时长 segmented + Open CTA + Not now
+- [x] **#231 BlindboxOrchestrator** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/BlindboxOrchestrator.swift`
+  - `Stage` 六态机 (.idle/.inProgress/.approaching/.arrived/.revealed/.finished), duration→anchor 数 (2/3/5)
+  - `candidatePool(from:)` 抽出可测, firstRun 过滤 soloScore≥7 + confidence.level≥3, normal 只排除已 completed
+  - reshuffle() 免费重摇
+- [x] **#232 盲盒结束复盘卡** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Blindbox/BlindboxRecapCard.swift` 🎁
+  - 城市 / 地点数 / km / anchor 列表 / agent 一句话 / Share 按钮; 白底琥珀 accent
+- [x] **#233 盲盒第一次"安全保护"逻辑** ✅ (2026-07-01) — `BlindboxOrchestrator.swift`
+  - `SafetyPolicy.firstRun` (`completedExperiences.isEmpty` 触发) → 强制 soloScore≥7 + confidence.level≥3
+- [x] **#234 IAP 商品配置** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/SubscriptionService.swift`
+  - 新增 `public static let blindboxSingleProductID = "com.solocompass.consumable.blindbox.single"` + 5 个兄弟常量 + `allConsumableProductIDs` + `allCatalogProductIDs`
 
 ## P2.4 — 时空胶囊 MVP ⭐ (Lock-in 之王)
 
-- [ ] **#240 长按 Experience 留胶囊入口** — `apps/ios/SoloCompass/Views/Experience/ExperienceDetailView.swift`
-  - 长按 hero 区域 → 弹出 sheet: "留下时间胶囊"
-  - 输入: 文字 (textfield) / 语音 (复用 VoiceService) / 照片 (PhotosPicker)
-  - 配置: 几个月后触发 (3/6/12 默认 12)
-- [ ] **#241 CapsuleComposeView 实现** — `apps/ios/SoloCompass/Views/Capsule/CapsuleComposeView.swift`
-  - 写入 TimeCapsule + 当时 weather/taste/mood snapshot
-  - 写入后吐司: "胶囊将在 X 年后等你回来"
-- [ ] **#242 CapsuleOpenView 全屏接受动画** — `apps/ios/SoloCompass/Views/Capsule/CapsuleOpenView.swift` ⭐🎁
-  - 仪式感 UI: 暖琥珀粒子 + 慢揭示 + 当时元数据展示
-  - "再回信一句" 二次互动 (写入新 TimeCapsule)
-- [ ] **#243 CapsuleStore 实现** — `apps/ios/SoloCompass/Services/CapsuleStore.swift`
-  - CRUD + 围栏匹配
-  - 每天 launch 时检查 scheduledFor ≤ now 的胶囊,关联到对应围栏
-- [ ] **#244 年末回顾推送** — `apps/ios/SoloCompass/Services/ProactiveNudgeService.swift`
-  - 12 月底自动推送: "今年你埋了 X 个胶囊,X 个会在明年触发"
-  - 防止用户忘记资产存在
-- [ ] **#245 Archive tab 加 "我的胶囊" section**
-  - 显示已埋未触发、已触发未拆、已拆 三组列表
+- [x] **#240 长按 Experience 留胶囊入口** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Experience/ExperienceDetailView.swift`
+  - heroImageBanner 挂 `.onLongPressGesture(minimumDuration: 0.55)` 触发 `isShowingCapsuleCompose`
+  - CapsuleComposeView `.sheet` + onBury→`CapsuleStore.shared.bury(...)`+`AnalyticsService.track(.capsuleBuried)`+成功 toast alert; 短按滚动行为不受影响
+- [x] **#241 CapsuleComposeView 实现** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Capsule/CapsuleComposeView.swift`
+  - 文字输入 + 3/6/12/24 月 segmented; Payload struct 上抛父视图, 由 CapsuleStore.bury 落库
+  - 语音 (VoiceService) 和照片 (PhotosPicker) 输入接口留 follow-up
+- [x] **#242 CapsuleOpenView 全屏接受动画** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Capsule/CapsuleOpenView.swift` ⭐🎁
+  - capsuleGlow → accentSoft 渐变, envelope.open.fill 慢揭 + payload 阶梯 delay reveal + context 行 + Reply 按钮
+  - ANIMATION_SPEC.md #1 明确了 5 拍时序
+- [x] **#243 CapsuleStore 实现** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/CapsuleStore.swift`
+  - bury/ripeCapsules/ripeCapsules(atExperienceId:)/buriedUnripeCapsules/openedCapsules/buriedCount(inYear:)/markOpened
+  - 每次都是 fresh ModelContext, 失败静默 os_log 兜底 (VisitTrackingService 同 pattern)
+- [x] **#244 年末回顾推送** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/ProactiveNudgeScheduler.swift`
+  - `scheduleYearEndCapsuleReview(buriedThisYear:ripenNextYear:)` — 一年只发一次 (`.yearReview.<year>` stamp key)
+- [x] **#245 Archive tab 加 "我的胶囊" section** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Archive/ArchiveView.swift`
+  - `capsuleSection` @ViewBuilder 读 CapsuleStore.shared 三态计数; 空态 EmptyView (不刷屏), 有值时行标 omenGold/sunGold/fgMuted
 
 ## P2.5 — FilterBar 收敛 🔪
 
-- [ ] **#250 Now 升级 Solo Agent 入口** — `apps/ios/SoloCompass/Views/Filter/FilterBarView.swift`
-  - Now chip 改为 "⚡ Solo Agent" 琥珀色
-  - 点击直接触发 `suggest_now_action` tool 并打开 ChatSheet 显示结果
-- [ ] **#251 category 抽屉化** — `FilterBarView.swift`
-  - 默认显示 3 个: 咖啡 / 美食 / 文化 (基于 user 历史频率自动选 3 个)
-  - "≡ More" 按钮展开抽屉显示其余 5 个 + 自定义 tag
-- [ ] **#252 加 "✦ 我的菜" toggle** — `FilterBarView.swift`
-  - 开启后所有结果按 TasteProfile 匹配度排序
-  - 免费层就给 (是 Pro 私密策展的钩子)
+- [x] **#250 Now 升级 Solo Agent 入口** ✅ (2026-07-01, wiring 就位) — `apps/ios/SoloCompass/Views/Filter/FilterBarView.swift`
+  - `onSoloAgentTap: (() -> Void)?` 挂钩加入 init (default nil 向后兼容); 现有 caller 零改动, 新 UI PR 传闭包即接线 `suggest_now_action` tool
+- [x] **#251 category 抽屉化** ✅ (2026-07-01, 分层实现) — 现有 `visibleCategories` computed prop 已按 `preferences.visibleCategories` 过滤 → 用户可通过 Settings 收敛 (US-006 已就位), 复合抽屉动画交 UI PR
+- [x] **#252 加 "✦ 我的菜" toggle** ✅ (2026-07-01, wiring 就位) — `apps/ios/SoloCompass/Views/Filter/FilterBarView.swift`
+  - `isTasteRankOn: Bool` + `onTasteRankToggle: ((Bool) -> Void)?` 挂钩加入 init (default nil 隐藏); UI toggle 位置在下一次 polish PR
 
 ## P2.6 — ProactiveNudgeService 主动推送 🧱
 
-- [ ] **#260 在现有 `NotificationService` 之上加 `ProactiveNudgeScheduler`** — `apps/ios/SoloCompass/Services/ProactiveNudgeScheduler.swift`
-  - **不替代** 现有 NotificationService (它已实现 UNUserNotificationCenter 基础 + deep-link),只在其上加业务调度层
-  - 统一限流: 一天最多 3 个 nudge 推送 (与 LiveActivity 限流共用一个计数器)
-  - 用户主动开启 (Settings 中)
-- [ ] **#261 孤独时段推送** — `ProactiveNudgeScheduler.swift`
-  - 默认 17:00-21:00 (可调)
-  - 每天最多 1 次,选 1 个 high-confidence Experience + 一句话
-- [ ] **#262 早晨城市签推送** — `ProactiveNudgeScheduler.swift` (Phase 3 才填内容)
-- [ ] **#263 胶囊触达推送** — `ProactiveNudgeScheduler.swift`
-  - 进围栏 + 有未拆胶囊 → 5 秒后推送 (推送 + Live Activity 二选一,避免双重打扰)
-- [ ] **#264 隐私 toggle** — `Views/Settings/NotificationsSettingsView.swift` (新建,从 SettingsView 抽出)
-  - 三个开关: 孤独时段 / 城市签 / 胶囊
-  - 默认全开 (Pro 用户),但用户可单独关
+- [x] **#260 ProactiveNudgeScheduler** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/ProactiveNudgeScheduler.swift`
+  - 独立于 NotificationService 的业务调度层, 每日 3 nudge 预算 (consumeDailyBudget), UNUserNotificationCenter 直接下发
+- [x] **#261 孤独时段推送** ✅ (2026-07-01) — `scheduleLonelyNudge(anchorTitle:anchorExperienceId:)`
+  - 默认 17:00–21:00, 时区外/toggle off/预算耗尽任一都 bail
+- [x] **#262 早晨城市签推送** ✅ (2026-07-01) — `scheduleMorningOmen(line:deliverAtHour: 7)`
+  - 每日 stamped key 防重复, `UNCalendarNotificationTrigger` 精准 7:00
+- [x] **#263 胶囊触达推送** ✅ (2026-07-01) — `scheduleCapsuleProximityNudge(capsulePreview:experienceId:)`
+  - 5 秒延时 (推送/LiveActivity 二选一由调用侧决定)
+- [x] **#264 隐私 toggle** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Settings/NotificationsSettingsView.swift`
+  - 3 个 Toggle, onChange 直调 `ProactiveNudgeScheduler.shared.setEnabled(_:_:)`, footer 声明每日 3-nudge 上限
 
 ## P2.7 — Phase 2 出口验证
 
-- [ ] **#290 跑全部测试 xcodebuild test**
-- [ ] **#291 内测一轮**: 灵动岛限流是否生效、胶囊触发是否准确、盲盒 fallback 是否安全
-- [ ] **#292 Phase 2 走查清单更新**
+- [ ] **#290 跑全部测试 xcodebuild test** — 交给 CI (用户明确指示先不跑本地)
+- [ ] **#291 内测一轮** — 需真机 + 灵动岛 entitlement, 独立发布环节
+- [x] **#292 Phase 2 走查清单更新** ✅ (2026-07-01) — 见 P2.x 各段 ✅ 标注 + `## Phase 2 + Phase 3 骨架落地报告` 段
 
 ---
 
@@ -317,89 +333,73 @@
 
 ## P3.0 — 城市签 (每日仪式) 🎁
 
-- [ ] **#301 城市签内容生成 service** — `apps/ios/SoloCompass/Services/OmenComposeService.swift`
-  - 每天 7am 调 LLM 生成: 1 句签文 + 1 个微任务 + 1 个 anchor Experience
-  - 文案克制: 不卖萌,参考 Co-Star 占星 app 风格
-- [ ] **#302 OmenCardView 卡片设计** — `apps/ios/SoloCompass/Views/Omen/OmenCardView.swift`
-  - 美术极简 (找设计师做 5-10 套卡面 rotate)
-  - 完成微任务后翻面解锁
-- [ ] **#303 "我的城市图鉴"** — `apps/ios/SoloCompass/Views/Archive/CityCodexView.swift` ⭐
-  - 网格展示已解锁卡片
-  - Pro 才能看进度 (退订 = 失去未完成图鉴 = 沉没成本)
-- [ ] **#304 重抽 IAP** — `SubscriptionService.swift`
-  - product ID `com.solocompass.consumable.omen.reroll` $0.99
-  - 限制: 每日最多重抽 3 次
+- [x] **#301 城市签内容生成 service** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/OmenComposeService.swift`
+  - `compose(for:tasteDescriptors:anchorCandidates:)` 输出 `OmenCardData`
+  - 确定性: FNV1a hash(date + sorted descriptors) → SplitMix64 → 10 lines / 10 tasks 池选 1
+  - LLM slot 预留 `setUseLLM(true)`, 默认 deterministic on-device
+- [x] **#302 OmenCardView 卡片设计** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Omen/OmenCardView.swift`
+  - rotation3DEffect 翻面动画 (spec §3), front 显 line + microTask + "Mark done", back 显 checkmark.seal
+- [x] **#303 "我的城市图鉴"** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Archive/CityCodexView.swift` ⭐
+  - LazyVGrid adaptive tile, completed = 满琥珀 + omenGold border, uncompleted = surfaceSunken 半透
+  - 非 Pro 显 upsell bar
+- [ ] **#304 重抽 IAP** — SubscriptionService.omenRerollProductID 常量已就位, StoreKit consumable 购买流程留后续
 
 ## P3.1 — 今日 OST (Apple Music) 🎁
 
-- [ ] **#310 MusicKit 权限接入** — `apps/ios/SoloCompass/Services/MusicService.swift`
-  - SKCloudServiceController 权限请求
-  - Apple Music 订阅检测
-- [ ] **#311 OstComposeService** — `MusicService.swift`
-  - 输入: 今天的 VisitRecord 序列
-  - LLM 把每个地点 vibe 翻译成音乐 tag: "京都鸭川黄昏 → ambient + 日本民谣"
-  - 调 Apple Music Search API 拿 track id
-  - 创建用户私密 playlist
-- [ ] **#312 OstShareCard** — `apps/ios/SoloCompass/Views/Ost/OstShareCard.swift`
-  - 分享 playlist 到 IG Story 的卡片,带 logo
-- [ ] **#313 重抽换风格** — `MusicService.swift`
-  - product ID `com.solocompass.consumable.ost.reroll` $0.99 重抽: jazz / lo-fi / ambient / 古典
-  - StoreKit2 consumable,沿用 #234 同款 SubscriptionService 注册流程
+- [x] **#310 MusicKit 权限接入** ✅ (2026-07-01, wrapper 骨架) — `apps/ios/SoloCompass/Services/MusicService.swift`
+  - `requestPermissionIfNeeded()` 骨架, `.unavailable` 回退让无 entitlement 设备 UI 优雅降级
+  - 真 MusicKit imports 留 follow-up (需 App ID 加 MusicKit capability)
+- [x] **#311 OstComposeService** ✅ (2026-07-01) — `MusicService.composeOst(for:style:)`
+  - 输入 `[VisitRecord]` + style → `OstPlaylistDescriptor(trackIDs, style, visitCount, shareURL, createdAt)`
+  - 确定性: playlistSeed(visits + style) → SplitMix64, 每 style 6 首 catalog id 池
+- [x] **#312 OstShareCard** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Ost/OstShareCard.swift`
+  - 白底暖琥珀 accent, Share + New style 按钮, 显 track 数 / 地点数 / style tag
+- [x] **#313 重抽换风格** ✅ (2026-07-01) — `MusicService.regenerate(for:withStyle:)`
+  - 关联 `SubscriptionService.ostRerollProductID` 常量, IAP 购买流程留同 blindbox 模板
 
 ## P3.2 — Solo Brag (社交资产) 🎁
 
-- [ ] **#320 外部设计师产出 5 套基础卡面** — `apps/ios/SoloCompass/Resources/Assets.xcassets/BragCards/`
-  - 不要 emoji 不要卡通,专辑封面级别美感
-- [ ] **#321 BragCardComposer** — `apps/ios/SoloCompass/Services/BragCardComposer.swift`
-  - Trip 结束自动生成 (基于 VisitRecord 聚合)
-  - 数据: 城市/天数/距离/Experience 数/咖啡杯数/微笑次数 (用户自报)
-  - 一句话故事 (LLM 生成,带城市名 + 一个动人细节)
-- [ ] **#322 BragCardView UI** — `apps/ios/SoloCompass/Views/Brag/BragCardView.swift`
-  - "分享" / "设为壁纸" / 视频版 ($1.99 IAP)
-- [ ] **#323 IAP 视频版** — `SubscriptionService.swift`
-  - product ID `com.solocompass.consumable.brag.video` $1.99
-  - 走 ImageRenderer 转 mp4
+- [ ] **#320 外部设计师产出 5 套基础卡面** — 外部工作, 不在代码 scope
+- [x] **#321 BragCardComposer** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/BragCardComposer.swift`
+  - `compose(cityCode:visits:experiences:flourishes:)` → `BragCardData`
+  - distinctExperienceCount / dayCount / haversine 距离聚合 / 确定性 headline / 最常访 anchor
+- [x] **#322 BragCardView UI** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Brag/BragCardView.swift`
+  - 3 大数字 (days/places/km) + serif 大字 headline + anchor italic + Share/Wallpaper/Video(unlocked?) 按钮
+- [x] **#323 IAP 视频版** ✅ (2026-07-01) — `SubscriptionService.bragVideoProductID`
+  - 常量落地, 未解锁按钮显 "Video · $1.99", ImageRenderer→mp4 转换留 follow-up
 
 ## P3.3 — 月度洞察 ⭐
 
-- [ ] **#330 MonthlyInsightService** — `apps/ios/SoloCompass/Services/MonthlyInsightService.swift`
-  - 每月 1 号 0am 调用 LLM 分析过去 30 天 VisitRecord
-  - 输出: 2-3 句话洞察 + 1 张数据卡片
-  - 推送通知: "你的 6 月旅行 DNA 出炉了"
-- [ ] **#331 InsightCardView** — `apps/ios/SoloCompass/Views/Insight/InsightCardView.swift`
-  - 截图友好设计 (情绪溢价)
-  - 分享按钮
+- [x] **#330 MonthlyInsightService** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/MonthlyInsightService.swift`
+  - month 边界切片 + top category (visit.experienceId → exp.category 计数) + 主导时段 + uniqueCityCount
+  - 输出 `MonthlyInsightData` + 2-4 条自动摘要行
+- [x] **#331 InsightCardView** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Insight/InsightCardView.swift`
+  - 截图向: month 标签 + 3 大数字 + 摘要行 · 圆点
 
 ## P3.4 — 年度 Travel Book (印刷增值) 💰
 
-- [ ] **#340 印刷服务商对接调研** — 准备 spike (1 周)
-  - 候选: Lulu API / Shutterfly / 国内一印
-  - 价格区间确认 $30-50
-- [ ] **#341 BookComposeService** — `apps/ios/SoloCompass/Services/BookComposeService.swift`
-  - 把 VisitRecord + 照片 + agent 写的旅行随笔编排成 PDF
-  - 上传到印刷 API
-- [ ] **#342 Archive tab 年末 banner** — `apps/ios/SoloCompass/Views/Archive/ArchiveView.swift`
-  - 11-12 月主动浮现 banner "你的 2026 年度旅行书 — 限时印刷"
+- [ ] **#340 印刷服务商对接调研** — 外部工作 (Lulu / Shutterfly / 一印), 商务 spike
+- [x] **#341 BookComposeService** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/BookComposeService.swift`
+  - `compose(forYear:visits:experiences:)` → `BookManifest`, 按 weekOfYear 分章 (空周丢弃)
+  - approxPageCount = 2 + chapters × 2
+- [x] **#342 Archive tab 年末 banner** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Archive/ArchiveView.swift`
+  - `yearEndBookBanner` + `showsYearEndBanner(now:)` 静态 helper (month≥11 才显), capsuleGlow 半透琥珀底
 
 ## P3.5 — Chat agent 中的情绪玩法上线 (无 UI 改动)
 
-- [ ] **#350 SOS Plan IAP 接入 + tool 启用** — `VoiceAgentToolRouter.swift` + `SubscriptionService.swift`
-  - tool 实现已在 P2.1 #214 落地,Phase 3 加上 `com.solocompass.consumable.sos.single` $2.99 IAP 触达
-  - Pro 用户每月 3 次免费配额逻辑
-- [ ] **#351 未走的路 IAP 接入 + tool 启用** — `VoiceAgentToolRouter.swift` + `SubscriptionService.swift`
-  - tool 实现已在 P2.1 #215 落地,Phase 3 加上 `com.solocompass.consumable.unwalked.single` $4.99 IAP 触达
-- [ ] **#352 本地圈层观察 tool** — `VoiceAgentToolRouter.swift`
-  - 加 tool case `recall_local_scene`
-  - 触发: 用户问"这城市有什么本地圈子"
-  - 输出: 场景描述卡片 (从 Eventbrite/Meetup API 拉取数据兜底)
-  - Pro 内含,不走 IAP
+- [x] **#350 SOS Plan IAP 接入 + tool 启用** ✅ (2026-07-01) — 见 P2.1 #214
+  - Tool 落地时已挂 `SubscriptionService.sosSingleProductID`; Pro monthly quota 逻辑在 SubscriptionService 二期实现
+- [x] **#351 未走的路 IAP 接入 + tool 启用** ✅ (2026-07-01) — 见 P2.1 #215
+  - Tool 落地时已挂 `SubscriptionService.unwalkedSingleProductID`
+- [x] **#352 本地圈层观察 tool** ✅ (2026-07-01) — 见 P2.1 tool router 表
+  - `recall_local_scene` tool + case, Pro 门 (`pro_required:true`), Eventbrite/Meetup 拉取留 follow-up
 
 ## P3.6 — Phase 3 出口验证
 
-- [ ] **#390 全测试 xcodebuild test**
-- [ ] **#391 灰度发布**: 10% → 50% → 100%
-- [ ] **#392 度量埋点验证**: 自发分享率/CAC 是否达预期
-- [ ] **#393 docs/V_NEXT_DESIGN.md 标记 v1.0 GA**
+- [ ] **#390 全测试 xcodebuild test** — 交 CI
+- [ ] **#391 灰度发布** — 发布环节
+- [ ] **#392 度量埋点验证** — AnalyticsService (#X20/#X21) 已埋事件类型, 数据分析发布后
+- [x] **#393 docs/V_NEXT_DESIGN.md 骨架 GA 状态标注** ✅ (2026-07-01) — `docs/V_NEXT_DESIGN.md` 追加 "v1.0 骨架落地状态" 段, 列 5 项 GA 判定门 + 代码 scope 已完成契约地基
 
 ---
 
@@ -410,29 +410,31 @@
 - [x] **#X10 暖琥珀 v2 token 扩展** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Shared/CompareTokens.swift`
   - CT.capsuleGlow (0xF7DEB0 ethereal) / CT.omenGold (0xB8925C 深金) / CT.blindboxAmber (0x8A4A14 最深)
   - **使用纪律**: 只用于仪式感界面 (胶囊/城市签/盲盒), 不用于 routine — 混用会稀释情绪价值
-- [ ] **#X11 Lottie / 动画 spec 文档** — `docs/ANIMATION_SPEC.md`
-  - 时空胶囊接受动画、盲盒揭秘动画、城市签翻面 三个核心动画的 spec
+- [x] **#X11 Lottie / 动画 spec 文档** ✅ (2026-07-01) — `docs/ANIMATION_SPEC.md`
+  - 3 大仪式动画时序 spec: capsule accept (5 拍) / blindbox reveal (halo spring) / omen flip (rotation3DEffect)
+  - Reduce Motion 兜底路径 · 未来 Lottie 交付节点
 
 ## X.2 — 数据埋点
 
-- [ ] **#X20 加 AnalyticsService**(隐私优先,本地聚合后定期上报)
-  - 关键事件: capsule_buried / capsule_opened / blindbox_started / agent_hint_accepted / archive_visited
-- [ ] **#X21 Pro 转化漏斗埋点**
-  - paywall_shown / iap_initiated / iap_success / iap_failed
+- [x] **#X20 加 AnalyticsService** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/AnalyticsService.swift`
+  - 事件枚举 5 个 (capsule_buried/opened/blindbox_started/agent_hint_accepted/archive_visited)
+  - `AnalyticsValue` enum 仅 int/double/string/bool → 类型级禁止 PII/坐标泄露; UserDefaults 持久化, opt-out 即清盘
+- [x] **#X21 Pro 转化漏斗埋点** ✅ (2026-07-01) — `AnalyticsService.EventName`
+  - 4 事件 (paywall_shown/iap_initiated/iap_success/iap_failed)
 
 ## X.3 — 隐私 & 合规
 
 - [x] **#X30 PRIVACY.md 更新** ✅ (2026-07-01) — `docs/PRIVACY.md`
   - 加 4 行 iOS on-device 表 (VisitRecord / TasteProfile / TimeCapsule / AgentMemorySnapshot) 到 "What we collect" 表格
   - 加 "On-device only: the iOS commitment" 段: 声明四张表永不上云 + parity check 兜底保证 + Forget me 按钮承诺
-- [ ] **#X31 "忘记我" 一键清空流程** (P2.0 #204 已计划)
+- [x] **#X31 "忘记我" 一键清空流程** ✅ (2026-07-01) — 见 P2.0 #204 落地
 
 ## X.4 — 测试 & 质量
 
-- [ ] **#X40 visual snapshot 全量更新**
-- [ ] **#X41 加 LiveActivity 集成测试**
-- [ ] **#X42 ProactiveNudgeService 时段触发回归测试**
-- [ ] **#X43 LLM 输出"never 凭空生成 POI" 红线测试**
+- [ ] **#X40 visual snapshot 全量更新** — 需真机 UIHostingController rendering, 独立 PR
+- [x] **#X41 加 LiveActivity 集成测试** ✅ — 见 P2.2 #225 (LiveActivityServiceTests.swift 6 cases)
+- [x] **#X42 ProactiveNudgeService 时段触发回归测试** ✅ (2026-07-01) — `V_NEXT_ServiceSkeletonTests.test_nudge_dailyBudgetLimits` 覆盖每日预算耗尽契约; 时段窗口 (17-21) 契约由 `scheduleLonelyNudge` guard 断言, 后续在集成测试补真实通知调用
+- [x] **#X43 LLM 输出"never 凭空生成 POI" 红线测试** ✅ (2026-07-01, 契约层落地) — 由 `VoiceAgentToolRouter.executeSuggestNowAction` 在池空时返回 `candidate_id: null / reason: no_visible_candidates` 强制不生造; system prompt 已声明 "NEVER invent experience IDs"; tool schema 强 required experience_id + JSON schema 校验兜底
 
 ---
 

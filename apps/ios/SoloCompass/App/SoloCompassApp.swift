@@ -279,6 +279,13 @@ struct SoloCompassApp: App {
         // Same setModelContainer pattern as VisitTrackingService.
         MemoryDigestService.shared.setModelContainer(SoloCompassModelContainer.shared)
 
+        // P2.4 #243: capsule persistence wrapper. Same setModelContainer
+        // pattern; consumed by CapsuleComposeView (#241), CapsuleOpenView
+        // (#242), Archive capsule section (#245), VisitTrackingService
+        // (region enter matcher), and ProactiveNudgeScheduler (#244 year
+        // end review).
+        CapsuleStore.shared.setModelContainer(SoloCompassModelContainer.shared)
+
         // US-020: cold-start TTI must not block on a serial main-thread
         // init chain. Each piece of bootstrap below is independent — no
         // ordering dependency between pruning check-ins, wiring the

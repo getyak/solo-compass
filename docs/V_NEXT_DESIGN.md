@@ -505,3 +505,28 @@
 | FilterBar 收藏入口名 "Favorites" | 代码命名为 "Saved" |
 | IAP product ID 用 `consumable.blindbox.single` | 现有规范是反域名 `com.solocompass.pro.monthly/yearly`,新 consumable 沿用 `com.solocompass.consumable.<feature>.<sku>` |
 | VoiceAgentToolRouter 当前 tool 数 | 实际 grep 出 10 个 (与 explorer 报告一致),新增 8 个不冲突 |
+
+---
+
+## v1.0 骨架落地状态 (2026-07-01)
+
+**Phase 1**: 主线 20/22 = 90.9% ✅ (报告见 `todo.md`)
+**Phase 2**: 骨架 27/34, 剩余 = 独立 UI polish PR + CI/内测 + IAP StoreKit
+**Phase 3**: 骨架 22/26, 剩余 = 外部资产 + 印刷商 spike + 灰度发布
+**横向**: 9/10 (visual snapshot 差 UIHostingController rendering)
+
+**GA 判定 (#393)**: 待以下条件满足才能翻 GA:
+1. `ios-ci.yml` 全绿 (`xcodebuild test` 全套)
+2. 灵动岛 entitlement 内测 1 周
+3. 6 个 IAP consumable 在 App Store Connect 完成配置 + sandbox 购买验证
+4. 印刷商合同签订 (Lulu / Shutterfly / 一印)
+5. 灰度 10% → 50% → 100% 各阶段 CAC / 自发分享率符合预期
+
+**代码 scope 已完成的 v1.0 契约地基**:
+- ✅ 4 张 SwiftData @Model (VisitRecord / TasteProfile / TimeCapsule / AgentMemorySnapshot) 全部 on-device
+- ✅ 7 个 P2.1 tool (suggest_now_action / open_blindbox / bury_capsule / recall_pattern / sos_plan / unwalked_path / recall_local_scene) 全部 RAG-anchored
+- ✅ 6 个 consumable IAP product ID 常量 (blindbox/sos/unwalked/omen/ost/brag) 在 SubscriptionService 落库
+- ✅ ProactiveNudgeScheduler 3 nudge kind + 每日预算共享上限
+- ✅ 3 大仪式动画 spec (ANIMATION_SPEC.md): 胶囊接受 / 盲盒揭秘 / 城市签翻面
+- ✅ AnalyticsService 5 事件 + 4 漏斗事件, `AnalyticsValue` 类型级禁 PII
+- ✅ 忘记我: MemoryDigestService.forgetMe() 同事务清空 memory + taste 单例
