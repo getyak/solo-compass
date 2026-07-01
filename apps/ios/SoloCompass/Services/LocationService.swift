@@ -41,12 +41,17 @@ public final class LocationService: NSObject {
         self.authorizationStatus = manager.authorizationStatus
         super.init()
         self.manager.delegate = self
-        // Tighter accuracy + shorter distance filter so the blue "you are here"
-        // marker doesn't jitter on every noisy fix. Combined with the
-        // horizontalAccuracy filter in didUpdateLocations this keeps the pin
-        // visually stable.
+        // Tighter accuracy so we don't burn battery chasing sub-10m fixes the
+        // map never needs. The distance filter is deliberately *small* (5m) —
+        // not large — so Core Location still hands us the stream of drifting
+        // fixes while the traveler stands still, and the accuracy-aware
+        // `shouldPublish` gate in `didUpdateLocations` decides which ones are
+        // real movement versus GPS jitter. A large OS-level `distanceFilter`
+        // can't tell drift from motion (a 25m noise jump looks like a 25m walk),
+        // so the smoothing has to live in our gate, and the gate needs the
+        // samples to smooth.
         self.manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-        self.manager.distanceFilter = 20 // refresh after 20m of movement
+        self.manager.distanceFilter = 5
     }
 
     /// Ask the user for location access, escalating from when-in-use to
@@ -246,23 +251,75 @@ extension LocationService: CLLocationManagerDelegate {
     }
 
     /// Receives a fresh GPS fix and publishes it as the traveler's current
-    /// location for the map and distance calculations.
-    ///
-    /// Noisy fixes are filtered out so the blue "you are here" marker does
-    /// not visually drift back and forth:
-    ///   * `horizontalAccuracy <= 0`  → invalid reading, ignore
-    ///   * `horizontalAccuracy > 100` → too coarse (typical of a stale
-    ///     cell tower fix while GPS is still warming up)
-    ///   * fix older than 15s        → cached / replayed sample from
-    ///     Core Location's ring buffer, not a real "now" position
+    /// location for the map and distance calculations — but only when
+    /// `shouldPublish` decides the fix is a valid, non-jittery reading. Every
+    /// suppressed fix leaves `currentLocation` untouched, so the SwiftUI map
+    /// marker (and the `onChange(of: currentLocation)` observers) never fire
+    /// for GPS noise, which is what keeps the "you are here" pin planted
+    /// instead of blinking and hopping around.
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let last = locations.last else { return }
-        guard last.horizontalAccuracy > 0 else { return }
-        guard last.horizontalAccuracy <= 100 else { return }
-        guard abs(last.timestamp.timeIntervalSinceNow) < 15 else { return }
         Task { @MainActor in
+            guard Self.shouldPublish(candidate: last, over: self.currentLocation) else { return }
             self.currentLocation = last
         }
+    }
+
+    // MARK: - Jitter rejection
+
+    /// Fixes coarser than this (metres) are discarded — typically a stale cell
+    /// tower fix while GPS is still warming up.
+    static let maxAcceptableAccuracy: CLLocationDistance = 100
+    /// Fixes older than this (seconds) are discarded as cached / replayed
+    /// samples from Core Location's ring buffer, not a real "now" position.
+    static let maxFixAge: TimeInterval = 15
+    /// Movement below this (metres) is always treated as noise, even when the
+    /// two fixes report pinpoint accuracy — GPS never truly holds still, so a
+    /// sub-`jitterFloor` "move" is drift, not walking.
+    static let jitterFloor: CLLocationDistance = 8
+    /// A fix at least this many metres tighter than the current one is accepted
+    /// even without real movement, so the pin converges onto better readings as
+    /// the GPS warms up rather than staying stuck on the first coarse fix.
+    static let accuracyImprovementThreshold: CLLocationDistance = 15
+    /// Upper bound on the drift-rejection radius so a spell of poor accuracy
+    /// (large error circles) can't freeze the marker while the traveler is
+    /// genuinely moving.
+    static let maxJitterRadius: CLLocationDistance = 40
+
+    /// Pure decision: should `candidate` replace `current` as the published
+    /// location, or be suppressed as noise? Kept static and side-effect-free so
+    /// the jitter policy is unit-testable without a live `CLLocationManager`.
+    ///
+    /// Order of rules:
+    ///   1. Reject invalid (`horizontalAccuracy <= 0`), too-coarse, or stale
+    ///      fixes outright.
+    ///   2. Always accept the first fix — there's nothing to compare against.
+    ///   3. Accept a meaningfully tighter fix even if it barely moved, so the
+    ///      pin can converge onto a better reading.
+    ///   4. Otherwise accept only when the traveler moved beyond the noise
+    ///      floor: the two fixes' error circles must have pulled apart
+    ///      (`distance > combined accuracy`) by at least `jitterFloor`, capped
+    ///      at `maxJitterRadius`. Movement inside that radius is
+    ///      indistinguishable from drift, so the marker stays put.
+    static func shouldPublish(
+        candidate: CLLocation,
+        over current: CLLocation?,
+        now: Date = Date()
+    ) -> Bool {
+        guard candidate.horizontalAccuracy > 0 else { return false }
+        guard candidate.horizontalAccuracy <= maxAcceptableAccuracy else { return false }
+        guard abs(candidate.timestamp.timeIntervalSince(now)) < maxFixAge else { return false }
+
+        guard let current else { return true }
+
+        if candidate.horizontalAccuracy + accuracyImprovementThreshold < current.horizontalAccuracy {
+            return true
+        }
+
+        let moved = candidate.distance(from: current)
+        let combinedError = candidate.horizontalAccuracy + current.horizontalAccuracy
+        let noiseRadius = min(maxJitterRadius, max(jitterFloor, combinedError))
+        return moved > noiseRadius
     }
 
     /// Records a location-tracking failure so the UI can surface a
