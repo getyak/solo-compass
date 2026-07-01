@@ -239,6 +239,16 @@ struct CompassMapContentView: View {
     // "prompt only once" behaviour across repeat onAppear fires.
     @State private var hasRunFirstAppear: Bool = false
 
+    /// Startup self-diagnostics — runs once per calendar day 1.5s after first
+    /// paint. Findings drive a `SoloAgentBubble` shown just above the Solo
+    /// mascot FAB; tapping the CTA seeds the findings into ChatSheet as the
+    /// first user turn so the AI opens by explaining each detected issue.
+    @State private var diagnostics: StartupDiagnosticsService? = nil
+    @State private var agentBubbleQueue = SoloAgentBubbleQueue()
+    /// Seed prompt cached at bubble-tap time so `chatSheetContent` can hand
+    /// it to `ChatSheet.initialUserPrompt`.
+    @State private var pendingDiagnosticsPrompt: String? = nil
+
     private let networkMonitor = NetworkMonitor.shared
 
     private var isFilterActive: Bool {
@@ -425,6 +435,75 @@ struct CompassMapContentView: View {
                     chatDetent = .medium
                     ensureOrchestrator(viewModel: viewModel)
                 }
+                // Visual-verification entry point: `-forceDiagnosticsChat`
+                // seeds a synthetic diagnostics finding and immediately
+                // opens ChatSheet with the seed prompt. Screenshots verify
+                // the seed prompt actually gets delivered to the AI without
+                // depending on the bubble being tapped by an unreliable
+                // simctl automation.
+                if ProcessInfo.processInfo.arguments.contains("-forceDiagnosticsChatMulti") {
+                    let error = StartupDiagnosticsService.Finding(
+                        check: .locationAuth, severity: .error,
+                        title: NSLocalizedString("diagnostics.location.denied.title", value: "定位被拒了", comment: ""),
+                        detail: NSLocalizedString("diagnostics.location.denied.detail", value: "地图不知道你在哪。", comment: ""),
+                        suggestedFix: NSLocalizedString("diagnostics.location.denied.fix", value: "去设置 → Solo Compass → 位置。", comment: "")
+                    )
+                    let warn = StartupDiagnosticsService.Finding(
+                        check: .anthropicKey, severity: .warn,
+                        title: NSLocalizedString("diagnostics.anthropic.missing.title", value: "AI 大脑没接上", comment: ""),
+                        detail: NSLocalizedString("diagnostics.anthropic.missing.detail", value: "没检测到 AI API key。", comment: ""),
+                        suggestedFix: NSLocalizedString("diagnostics.anthropic.missing.fix", value: "去设置 → AI Provider 填一个 key。", comment: "")
+                    )
+                    let info = StartupDiagnosticsService.Finding(
+                        check: .userPrefs, severity: .info,
+                        title: NSLocalizedString("diagnostics.onboarding.incomplete.title", value: "onboarding 还没走完", comment: ""),
+                        detail: NSLocalizedString("diagnostics.onboarding.incomplete.detail", value: "推荐会退化。", comment: ""),
+                        suggestedFix: NSLocalizedString("diagnostics.onboarding.incomplete.fix", value: "回到 onboarding 把三步选完。", comment: "")
+                    )
+                    let all = [error, warn, info]
+                    let svc = diagnostics ?? StartupDiagnosticsService(
+                        preferences: preferences,
+                        locationService: locationService,
+                        experienceService: experienceService
+                    )
+                    diagnostics = svc
+                    svc.injectFindingsForTesting(all)
+                    pendingDiagnosticsPrompt = svc.chatSeedPrompt(for: all)
+                    chatStartMode = .text
+                    chatDetent = .large
+                    ensureOrchestrator(viewModel: viewModel)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-forceDiagnosticsChat") {
+                    let stub = StartupDiagnosticsService.Finding(
+                        check: .anthropicKey, severity: .warn,
+                        title: NSLocalizedString(
+                            "diagnostics.anthropic.missing.title",
+                            value: "AI 大脑没接上",
+                            comment: ""
+                        ),
+                        detail: NSLocalizedString(
+                            "diagnostics.anthropic.missing.detail",
+                            value: "没检测到 AI API key。",
+                            comment: ""
+                        ),
+                        suggestedFix: NSLocalizedString(
+                            "diagnostics.anthropic.missing.fix",
+                            value: "去设置 → AI Provider 填一个 key。",
+                            comment: ""
+                        )
+                    )
+                    let svc = diagnostics ?? StartupDiagnosticsService(
+                        preferences: preferences,
+                        locationService: locationService,
+                        experienceService: experienceService
+                    )
+                    diagnostics = svc
+                    svc.injectFindingsForTesting([stub])
+                    pendingDiagnosticsPrompt = svc.chatSeedPrompt(for: [stub])
+                    chatStartMode = .text
+                    chatDetent = .large
+                    ensureOrchestrator(viewModel: viewModel)
+                }
                 #endif
                 locationService.requestPermission()
                 // US-021: `viewModel` is built eagerly in `init`, so there is no
@@ -433,6 +512,7 @@ struct CompassMapContentView: View {
                 // `viewModel == nil` guard.
                 if !hasRunFirstAppear {
                     hasRunFirstAppear = true
+                    kickoffStartupDiagnostics()
                     // On first launch with no resolved city and no GPS, prompt city
                     // picker. We consult `viewModel.selectedCity` (not just persisted
                     // `lastSelectedCity`) so the DEBUG `-startCity` launch arg — which
@@ -1039,6 +1119,30 @@ struct CompassMapContentView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(10)
                 }
+
+                // Startup self-diagnostics banner — slides down from beneath
+                // the filter bar, system-notification style. `SoloAgentBubbleView`
+                // uses `@Bindable` on the queue so its own body observes head
+                // changes; we don't gate the outer VStack (that would need
+                // a manual observation seam here).
+                VStack {
+                    SoloAgentBubbleView(queue: agentBubbleQueue, onTapCTA: { bubble in
+                        if let svc = diagnostics {
+                            pendingDiagnosticsPrompt = svc
+                                .chatSeedPrompt(for: svc.lastRunFindings)
+                        }
+                        agentBubbleQueue.dismiss(id: bubble.id)
+                        chatStartMode = .text
+                        ensureOrchestrator(viewModel: viewModel)
+                    })
+                    .padding(.horizontal, 16)
+                    .padding(.top, MapOverlayMetrics.filterBarTopOffset
+                        + MapOverlayMetrics.filterBarHeight + 8)
+                    Spacer()
+                }
+                .allowsHitTesting(agentBubbleQueue.items.isEmpty ? false : true)
+                .zIndex(12)
+
         }
     }
 
@@ -1494,6 +1598,127 @@ struct CompassMapContentView: View {
         }
     }
 
+    /// Fires the once-per-day startup self-check ~1.5s after first paint. Any
+    /// finding (missing API key, denied permission, incomplete onboarding, …)
+    /// pushes a `SoloAgentBubble` from the mascot FAB inviting the traveler to
+    /// tap through to ChatSheet where the AI opens by explaining each issue.
+    /// A clean bill of health leaves the map untouched.
+    ///
+    /// DEBUG `-forceDiagnosticsBubble` launch arg: injects a synthetic finding
+    /// so screenshot / e2e harnesses can always exercise the bubble without
+    /// depending on the current sim's authorization / key state.
+    private func kickoffStartupDiagnostics() {
+        let svc = diagnostics ?? StartupDiagnosticsService(
+            preferences: preferences,
+            locationService: locationService,
+            experienceService: experienceService
+        )
+        diagnostics = svc
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-forceDiagnosticsBubble") {
+                let stub = StartupDiagnosticsService.Finding(
+                    check: .anthropicKey, severity: .warn,
+                    title: NSLocalizedString(
+                        "diagnostics.anthropic.missing.title",
+                        value: "AI 大脑没接上",
+                        comment: ""
+                    ),
+                    detail: NSLocalizedString(
+                        "diagnostics.anthropic.missing.detail",
+                        value: "没检测到 AI API key。",
+                        comment: ""
+                    ),
+                    suggestedFix: NSLocalizedString(
+                        "diagnostics.anthropic.missing.fix",
+                        value: "去设置 → AI Provider 填一个 key。",
+                        comment: ""
+                    )
+                )
+                svc.injectFindingsForTesting([stub])
+                agentBubbleQueue.enqueue(diagnosticsBubble(for: [stub]))
+                return
+            }
+            // Screenshot harness: `-forceDiagnosticsMulti` injects three
+            // findings of mixed severity so the "N more issues" bubble copy
+            // and the multi-row DiagnosticsRequestCard can be verified.
+            if ProcessInfo.processInfo.arguments.contains("-forceDiagnosticsMulti") {
+                let error = StartupDiagnosticsService.Finding(
+                    check: .locationAuth, severity: .error,
+                    title: NSLocalizedString("diagnostics.location.denied.title", value: "定位被拒了", comment: ""),
+                    detail: NSLocalizedString("diagnostics.location.denied.detail", value: "地图不知道你在哪。", comment: ""),
+                    suggestedFix: NSLocalizedString("diagnostics.location.denied.fix", value: "去设置 → Solo Compass → 位置。", comment: "")
+                )
+                let warn = StartupDiagnosticsService.Finding(
+                    check: .anthropicKey, severity: .warn,
+                    title: NSLocalizedString("diagnostics.anthropic.missing.title", value: "AI 大脑没接上", comment: ""),
+                    detail: NSLocalizedString("diagnostics.anthropic.missing.detail", value: "没检测到 AI API key。", comment: ""),
+                    suggestedFix: NSLocalizedString("diagnostics.anthropic.missing.fix", value: "去设置 → AI Provider 填一个 key。", comment: "")
+                )
+                let info = StartupDiagnosticsService.Finding(
+                    check: .userPrefs, severity: .info,
+                    title: NSLocalizedString("diagnostics.onboarding.incomplete.title", value: "onboarding 还没走完", comment: ""),
+                    detail: NSLocalizedString("diagnostics.onboarding.incomplete.detail", value: "推荐会退化。", comment: ""),
+                    suggestedFix: NSLocalizedString("diagnostics.onboarding.incomplete.fix", value: "回到 onboarding 把三步选完。", comment: "")
+                )
+                let all = [error, warn, info]
+                svc.injectFindingsForTesting(all)
+                agentBubbleQueue.enqueue(diagnosticsBubble(for: all))
+                return
+            }
+            #endif
+            let findings = await svc.runIfNeeded()
+            guard !findings.isEmpty else { return }
+            agentBubbleQueue.enqueue(diagnosticsBubble(for: findings))
+        }
+    }
+
+    /// Highest-severity finding drives the visible bubble copy — one bubble at
+    /// a time so the mascot doesn't scream. Tapping the CTA pulls *all*
+    /// findings into the seeded chat prompt so the user still sees the full
+    /// list once inside ChatSheet.
+    private func diagnosticsBubble(for findings: [StartupDiagnosticsService.Finding]) -> SoloAgentBubble {
+        let priority: (StartupDiagnosticsService.Severity) -> Int = {
+            switch $0 { case .error: return 0; case .warn: return 1; case .info: return 2 }
+        }
+        let sorted = findings.sorted { priority($0.severity) < priority($1.severity) }
+        let head = sorted[0]
+        let tone: SoloAgentBubble.Tone
+        switch head.severity {
+        case .error: tone = .error
+        case .warn:  tone = .warn
+        case .info:  tone = .info
+        }
+        let subtitle: String
+        if findings.count > 1 {
+            subtitle = String(
+                format: NSLocalizedString(
+                    "solo.agent.bubble.diagnostics.subtitle.multi",
+                    value: "还有 %d 个问题,点开我一起说。",
+                    comment: "Bubble subtitle when multiple diagnostics findings"
+                ),
+                findings.count - 1
+            )
+        } else {
+            // Single finding: show the suggested fix (short, action-oriented)
+            // instead of `detail` (a full paragraph that gets truncated to
+            // "…" in the bubble's 3-line limit). Full explanation still lands
+            // inside ChatSheet when the traveler taps through.
+            subtitle = head.suggestedFix
+        }
+        return SoloAgentBubble(
+            tone: tone,
+            title: head.title,
+            subtitle: subtitle,
+            ctaLabel: NSLocalizedString(
+                "solo.agent.bubble.diagnostics.cta",
+                value: "问 Solo 怎么修 →",
+                comment: "Bubble CTA to open ChatSheet with the findings seeded"
+            )
+        )
+    }
+
     /// Lazily instantiates `voiceOrchestrator` on first chat-sheet open.
     /// Keeping the orchestrator around between dismissals would mean the
     /// next session sees stale messages — we discard it when the sheet
@@ -1561,8 +1786,13 @@ struct CompassMapContentView: View {
             // Bound detent lets the sheet auto-expand to full height while the
             // agent is thinking, then the user can still drag it back down.
             detent: $chatDetent,
-            historyStore: chatHistoryStore
+            historyStore: chatHistoryStore,
+            // Startup-diagnostics seed. Non-nil only when the traveler tapped
+            // the self-diagnostics bubble's CTA. Cleared inside .onAppear so
+            // a subsequent "+ button" chat opens clean.
+            initialUserPrompt: pendingDiagnosticsPrompt
         )
+        .onAppear { pendingDiagnosticsPrompt = nil }
         .presentationDetents([.medium, .large], selection: $chatDetent)
         .presentationDragIndicator(.visible)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))

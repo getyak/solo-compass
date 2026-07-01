@@ -361,13 +361,22 @@ public struct ChatSheet: View {
                     // standard ~16-20pt).
                     LazyVStack(alignment: .leading, spacing: 18) {
                         ForEach(visibleMessages) { msg in
-                            MessageBubble(
-                                role: msg.role,
-                                text: msg.content ?? "",
-                                toolName: msg.name,
-                                isStreaming: false
-                            )
-                            .id(msg.id)
+                            if let findings = Self.extractDiagnosticsFindings(msg.content ?? "") {
+                                // Startup-diagnostics user turn: render as a
+                                // compact card instead of the raw JSON dump
+                                // that ended up in the message body so the
+                                // LLM could parse it.
+                                DiagnosticsRequestCard(findings: findings)
+                                    .id(msg.id)
+                            } else {
+                                MessageBubble(
+                                    role: msg.role,
+                                    text: Self.sanitizeForDisplay(msg.content ?? ""),
+                                    toolName: msg.name,
+                                    isStreaming: false
+                                )
+                                .id(msg.id)
+                            }
 
                             // Inline cards (places / proposed route) produced by
                             // this assistant turn's tools — rendered as tappable
@@ -1518,6 +1527,60 @@ public struct ChatSheet: View {
     private static let streamingBubbleID = "chat.streaming"
     private static let liveTranscriptID = "chat.liveTranscript"
     private static let typingIndicatorID = "chat.typing"
+
+    /// Removes machine-readable envelope blocks — `<latest_context>` (added
+    /// by `VoiceAgentOrchestrator` for hour/timezone/coord refresh) and
+    /// `<solo:diagnostics>` (added by `StartupDiagnosticsService` when the
+    /// traveler taps the diagnostics banner) — before the message text
+    /// lands in a `MessageBubble`. LLM payload stays identical; the human
+    /// reader gets a clean sentence.
+    ///
+    /// Uses `dotMatchesLineSeparators` so `.` also spans `\n` — without it
+    /// the `[\s\S]*?` trick worked in offline swift tests but failed at
+    /// iOS runtime for reasons that resisted diagnosis. `dotMatchesLineSeparators`
+    /// is the intent-revealing option and just works.
+    static func sanitizeForDisplay(_ raw: String) -> String {
+        var out = raw
+        for pattern in [
+            "<latest_context>.*?</latest_context>\\s*",
+            "<solo:diagnostics>.*?</solo:diagnostics>\\s*"
+        ] {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else { continue }
+            let range = NSRange(out.startIndex..., in: out)
+            out = regex.stringByReplacingMatches(in: out, range: range, withTemplate: "")
+        }
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Extracts the diagnostics payload from a message body when the user
+    /// tapped the startup-diagnostics banner. Returns the parsed findings
+    /// so the chat surface can render a `DiagnosticsRequestCard` instead of
+    /// a raw MessageBubble. Any parse failure returns nil — the message
+    /// then falls back to the sanitized MessageBubble render.
+    static func extractDiagnosticsFindings(_ raw: String) -> [DiagnosticsRequestCard.Finding]? {
+        guard raw.contains("<solo:diagnostics>") else { return nil }
+        let pattern = "<solo:diagnostics>(.*?)</solo:diagnostics>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]),
+              let match = regex.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
+              match.numberOfRanges >= 2,
+              let jsonRange = Range(match.range(at: 1), in: raw)
+        else { return nil }
+        let json = String(raw[jsonRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let data = json.data(using: .utf8),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: String]]
+        else { return nil }
+        return arr.compactMap { dict in
+            guard let severity = dict["severity"],
+                  let title = dict["title"],
+                  let fix = dict["fix"]
+            else { return nil }
+            return DiagnosticsRequestCard.Finding(
+                severity: severity,
+                title: title,
+                suggestedFix: fix
+            )
+        }
+    }
 
     private func scrollToBottom(proxy: ScrollViewProxy, animated: Bool = true) {
         let anchor = Self.bottomAnchorID

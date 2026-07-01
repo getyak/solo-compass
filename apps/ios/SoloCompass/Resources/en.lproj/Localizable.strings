@@ -2053,3 +2053,33 @@
 "settings.forgetMe.confirm.action" = "Forget me";
 "settings.forgetMe.toast.success" = "Done — the agent will start fresh next time you chat.";
 "settings.forgetMe.toast.failure" = "Couldn't clear right now. Try again in a moment.";
+
+/* Startup self-diagnostics (StartupDiagnosticsService + SoloAgentBubble) */
+"diagnostics.anthropic.missing.title" = "AI brain isn't wired up";
+"diagnostics.anthropic.missing.detail" = "No AI API key detected — Solo can only rank places with the offline scorer and won't hold a real conversation.";
+"diagnostics.anthropic.missing.fix" = "Head to Settings → AI Provider and paste an Anthropic or DeepSeek key.";
+"diagnostics.amap.missing.title" = "Amap isn't wired up";
+"diagnostics.amap.missing.detail" = "In China, Solo prefers Amap for nearby lookups. Without a key we fall back to Overpass public data — results may be thin.";
+"diagnostics.amap.missing.fix" = "Set AMAP_API_KEY in Settings or your env file and relaunch.";
+"diagnostics.location.denied.title" = "Location is turned off";
+"diagnostics.location.denied.detail" = "The map can't tell where you are, so nearby picks, the Now filter and Live Activities all go quiet.";
+"diagnostics.location.denied.fix" = "Open Settings → Solo Compass → Location → While Using.";
+"diagnostics.location.pending.title" = "Location isn't authorized yet";
+"diagnostics.location.pending.detail" = "Tap the Solo mascot or the locate button — I'll ask for permission.";
+"diagnostics.location.pending.fix" = "Trigger a location prompt.";
+"diagnostics.mic.denied.title" = "Speech recognition is off";
+"diagnostics.mic.denied.detail" = "Holding the Solo mascot to talk won't transcribe — typing is the only way in.";
+"diagnostics.mic.denied.fix" = "Open Settings → Solo Compass → Speech Recognition.";
+"diagnostics.notification.denied.title" = "Notifications are blocked";
+"diagnostics.notification.denied.detail" = "You'll miss lonely-hour nudges, Dynamic Island capsules and monthly-insight pushes.";
+"diagnostics.notification.denied.fix" = "Open Settings → Solo Compass → Notifications.";
+"diagnostics.onboarding.incomplete.title" = "Onboarding isn't finished";
+"diagnostics.onboarding.incomplete.detail" = "Without a vibe / city / taste, recommendations fall back to a generic list.";
+"diagnostics.onboarding.incomplete.fix" = "Head back to onboarding and finish the three steps.";
+"diagnostics.seed.empty.title" = "Place data is empty";
+"diagnostics.seed.empty.detail" = "seed_experiences.json didn't load and there's nothing in the on-device store — the map will be blank.";
+"diagnostics.seed.empty.fix" = "Reinstall the app or file a bug.";
+"diagnostics.seed.header" = "At launch you ran a quick health check on my behalf and turned up the issues below. Walk me through each one — the impact and how to fix it.";
+"solo.agent.bubble.dismiss" = "Dismiss";
+"solo.agent.bubble.diagnostics.cta" = "Ask Solo how to fix it →";
+"solo.agent.bubble.diagnostics.subtitle.multi" = "%d more to talk through — tap and I'll explain.";
