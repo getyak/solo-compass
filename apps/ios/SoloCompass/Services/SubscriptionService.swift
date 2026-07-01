@@ -102,6 +102,25 @@ public final class SubscriptionService {
     }
     static let developerModeDefaultsKey = "com.solocompass.developerModeUnlocked"
 
+    /// True once an allow-listed tester/admin email has unlocked Pro on this
+    /// device. Persisted in UserDefaults so the unlock survives relaunch.
+    ///
+    /// This is the linchpin that keeps the unlock sticky: the admin unlock
+    /// bypasses StoreKit, so there is no `Transaction` backing it. Without this
+    /// flag, `refreshEntitlement()` — called on every launch — would walk
+    /// `Transaction.currentEntitlements`, find nothing, resolve `.free`, and
+    /// clobber the persisted `.pro`, forcing the tester to re-enter their email
+    /// after every relaunch. `refreshEntitlement()` checks this flag and refuses
+    /// to downgrade an admin-unlocked device.
+    ///
+    /// Distinct from `developerModeUnlocked`: locking the Developer Options
+    /// panel (`lockDeveloperMode()`) hides the dev UI but must NOT revoke the
+    /// earned Pro entitlement, so this flag stays set through that.
+    public private(set) var adminUnlockActive: Bool {
+        didSet { UserDefaults.standard.set(adminUnlockActive, forKey: Self.adminUnlockDefaultsKey) }
+    }
+    static let adminUnlockDefaultsKey = "com.solocompass.adminUnlockActive"
+
     /// Renewal / trial-end date of the currently-active StoreKit transaction.
     /// `nil` when there is no active transaction (free / proExpired) or when
     /// running under the DEBUG force-Pro override. The Paywall and MeSheet
@@ -152,6 +171,10 @@ public final class SubscriptionService {
         // Restore the tester/developer unlock flag so the Developer Options
         // entry survives relaunch once a tester email has unlocked the device.
         self.developerModeUnlocked = UserDefaults.standard.bool(forKey: Self.developerModeDefaultsKey)
+
+        // Restore the admin-unlock flag so refreshEntitlement() below (and on
+        // future launches) won't downgrade a tester-unlocked device to .free.
+        self.adminUnlockActive = UserDefaults.standard.bool(forKey: Self.adminUnlockDefaultsKey)
 
         // Spin up the transaction listener BEFORE the first product/
         // entitlement fetch, so we never miss a renewal that arrives
@@ -210,6 +233,15 @@ public final class SubscriptionService {
             return
         }
         #endif
+        // Tester/admin email unlock bypasses StoreKit and has no backing
+        // Transaction. Honour the persisted unlock so the currentEntitlements
+        // walk below (which sees nothing) can't reset an unlocked device to
+        // .free on every launch. Restore/purchase still layer real StoreKit
+        // entitlements on top for genuine subscribers.
+        if adminUnlockActive {
+            if entitlement != .pro { setEntitlement(.pro) }
+            return
+        }
         var resolved: Entitlement = .free
         var latestTransaction: Transaction?
         var resolvedExpiration: Date?
@@ -314,6 +346,11 @@ public final class SubscriptionService {
     @discardableResult
     public func unlockWithAdminEmail(_ email: String) -> Bool {
         guard Self.isAdminEmail(email) else { return false }
+        // Mark the device admin-unlocked BEFORE flipping the entitlement so the
+        // sticky flag is persisted first. This is what makes the unlock survive
+        // relaunch: refreshEntitlement() reads it and refuses to downgrade to
+        // .free when there's no backing StoreKit transaction.
+        adminUnlockActive = true
         setEntitlement(.pro)
         // Reveal the Developer Options panel in Settings from now on. Persisted
         // so the tester doesn't have to re-enter the email after every relaunch.

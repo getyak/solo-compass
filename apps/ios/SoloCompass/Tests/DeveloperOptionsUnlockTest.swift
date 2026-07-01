@@ -15,11 +15,13 @@ final class DeveloperOptionsUnlockTest: XCTestCase {
         super.setUp()
         // Start each test from a known state — no lingering flag/overrides.
         UserDefaults.standard.removeObject(forKey: SubscriptionService.developerModeDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: SubscriptionService.adminUnlockDefaultsKey)
         FeatureFlags.clearAllOverrides()
     }
 
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SubscriptionService.developerModeDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: SubscriptionService.adminUnlockDefaultsKey)
         FeatureFlags.clearAllOverrides()
         super.tearDown()
     }
@@ -73,6 +75,64 @@ final class DeveloperOptionsUnlockTest: XCTestCase {
         // The hidden state persists too.
         let relaunched = SubscriptionService()
         XCTAssertFalse(relaunched.developerModeUnlocked)
+    }
+
+    // MARK: - adminUnlockActive (sticky Pro across relaunch)
+
+    func testAllowListedUnlockSetsAdminUnlockActive() {
+        let service = SubscriptionService()
+        service._setEntitlementForTesting(.free)
+        XCTAssertFalse(service.adminUnlockActive,
+                       "Admin-unlock flag must start clear before any unlock")
+
+        _ = service.unlockWithAdminEmail(SubscriptionService.adminEmails.first!)
+
+        XCTAssertTrue(service.adminUnlockActive,
+                      "A successful tester unlock must mark the device admin-unlocked")
+    }
+
+    func testAdminUnlockActiveSurvivesRelaunch() {
+        let first = SubscriptionService()
+        _ = first.unlockWithAdminEmail(SubscriptionService.adminEmails.first!)
+        XCTAssertTrue(first.adminUnlockActive)
+
+        // A fresh instance simulates the next app launch reading persisted state.
+        let relaunched = SubscriptionService()
+        XCTAssertTrue(relaunched.adminUnlockActive,
+                      "Admin unlock must persist across launches so refreshEntitlement " +
+                      "won't downgrade the tester back to .free")
+    }
+
+    func testRefreshEntitlementDoesNotDowngradeAdminUnlock() async {
+        // Regression: the tester-email unlock has no backing StoreKit
+        // transaction, so a plain currentEntitlements walk resolves .free.
+        // refreshEntitlement() must keep .pro for an admin-unlocked device
+        // instead of clobbering it on every launch (the bug that forced a
+        // re-unlock each time the app reopened).
+        let service = SubscriptionService()
+        _ = service.unlockWithAdminEmail(SubscriptionService.adminEmails.first!)
+        XCTAssertEqual(service.entitlement, .pro)
+
+        // Simulate what a relaunch does: recompute entitlement from StoreKit,
+        // which sees no admin-unlock transaction.
+        await service.refreshEntitlement()
+
+        XCTAssertEqual(service.entitlement, .pro,
+                       "refreshEntitlement must NOT downgrade an admin-unlocked device to .free")
+        XCTAssertTrue(service.entitlement.isActive)
+    }
+
+    func testLockDeveloperModeKeepsAdminUnlockActive() {
+        let service = SubscriptionService()
+        _ = service.unlockWithAdminEmail(SubscriptionService.adminEmails.first!)
+        XCTAssertTrue(service.adminUnlockActive)
+
+        service.lockDeveloperMode()
+
+        XCTAssertTrue(service.adminUnlockActive,
+                      "Hiding the dev panel must not clear the admin unlock — Pro must " +
+                      "still survive the next relaunch")
+        XCTAssertEqual(service.entitlement, .pro)
     }
 
     // MARK: - FeatureFlags developer overrides
