@@ -141,7 +141,17 @@ struct SoloCompassApp: App {
         var id: Int { self == .terms ? 0 : 1 }
     }
 
-    @State private var firstLaunchCover: FirstLaunchCover? = !TermsConsentSheet.hasAccepted ? .terms : nil
+    @State private var firstLaunchCover: FirstLaunchCover? = {
+        #if DEBUG
+        // Goal-audit entry point: `-forceOnboarding` pops the onboarding
+        // cover on cold-launch regardless of `hasCompletedOnboarding` so
+        // vibe / city steps can be screenshotted with `-onboardingStep <n>`.
+        if ProcessInfo.processInfo.arguments.contains("-forceOnboarding") {
+            return .onboarding
+        }
+        #endif
+        return !TermsConsentSheet.hasAccepted ? .terms : nil
+    }()
 
     var body: some Scene {
         WindowGroup {
@@ -211,6 +221,12 @@ struct SoloCompassApp: App {
                         }
                         .environment(locationService)
                         .environment(preferences)
+                        // OnboardingView reads `SubscriptionService` on the
+                        // paywall step; without this injection SwiftUI hits
+                        // a fatal "No Observable of type SubscriptionService"
+                        // as soon as the view resolves environment.
+                        .environment(subscriptionService)
+                        .environment(aiService)
                     }
                 }
                 .onAppear {

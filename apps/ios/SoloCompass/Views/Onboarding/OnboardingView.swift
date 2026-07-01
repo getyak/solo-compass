@@ -35,7 +35,20 @@ public struct OnboardingView: View {
     @Environment(SubscriptionService.self) private var subscription
     let onComplete: () -> Void
 
-    @State private var step: Int = 0
+    @State private var step: Int = {
+        #if DEBUG
+        // Goal-audit entry point: `-onboardingStep <n>` (0…6) skips to the
+        // requested step on first appear so simctl screenshot can capture
+        // the vibe / city surfaces without touching the flow.
+        if let idx = ProcessInfo.processInfo.arguments.firstIndex(of: "-onboardingStep"),
+           idx + 1 < ProcessInfo.processInfo.arguments.count,
+           let n = Int(ProcessInfo.processInfo.arguments[idx + 1]),
+           (0...6).contains(n) {
+            return n
+        }
+        #endif
+        return 0
+    }()
     @State private var paywallPurchaseInFlight: Bool = false
 
     /// UserDefaults flag set the first time the user finishes (or skips) the

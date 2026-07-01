@@ -209,6 +209,12 @@ struct MeSheet: View {
                 if ProcessInfo.processInfo.arguments.contains("-openFriends"), path.isEmpty {
                     path = [.friends]
                 }
+                // Goal-audit entry point: `-openArchive` flips the top segmented
+                // switch to the Archive tab so simctl screenshot can capture the
+                // Rituals hub without a tap on the Picker chip.
+                if ProcessInfo.processInfo.arguments.contains("-openArchive") {
+                    topTab = .archive
+                }
                 #endif
             }
         }

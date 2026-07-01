@@ -1929,6 +1929,8 @@ private struct MapOverlayView: View {
 
     @State private var checkInCelebrationTrigger = 0
     @State private var noMatchPop = false
+    /// P2.5 #252: "我的菜" toggle on the filter bar. Local UI state.
+    @State private var isTasteRankOn: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isFilterActive: Bool {
@@ -1997,7 +1999,13 @@ private struct MapOverlayView: View {
                 onSelectCategory: { viewModel.selectCategory($0) },
                 onSelectCustomTag: { viewModel.selectCustomTag($0) },
                 isMapPanning: $isMapPanning,
-                resultCount: viewModel.visibleExperiences.count
+                resultCount: viewModel.visibleExperiences.count,
+                // P2.5 hooks: Solo Agent pill fires the map's ambient
+                // "Ask Solo" affordance; taste rank pill toggles the
+                // TasteProfile-weighted ordering.
+                onSoloAgentTap: { viewModel.selectNowFilter() },
+                isTasteRankOn: isTasteRankOn,
+                onTasteRankToggle: { isTasteRankOn = $0 }
             )
             // US-026: reset the GPS-error dismissal once the error clears so a
             // later failure re-surfaces the banner. Anchored on the always-present
