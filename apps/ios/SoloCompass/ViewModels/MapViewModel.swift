@@ -47,7 +47,8 @@ public final class MapViewModel {
         aiService: aiService,
         // Mainland-China POI source. Inside China it becomes the authoritative
         // base (OSM is ~9× sparser there); an absent key degrades to Overpass.
-        amapService: AmapPOIService()
+        // Fetch width is the developer-tunable `DataSourceSettings.poiFetchLimit`.
+        amapService: AmapPOIService(maxResults: DataSourceSettings.poiFetchLimit)
     )
     /// Optional so existing tests / previews can construct without a
     /// real StoreKit-aware service. Production wires this from the

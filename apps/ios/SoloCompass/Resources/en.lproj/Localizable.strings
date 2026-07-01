@@ -2111,6 +2111,31 @@
 "dev.api.placeholder" = "Paste key to override default";
 "dev.api.clear" = "Clear override";
 
+"dev.dataSource.header" = "Data Sources";
+"dev.dataSource.sectionFooter" = "Choose which base map providers compile in, tune how many places each pulls, and test that every API is reachable.";
+"dev.dataSource.title" = "Data sources";
+"dev.dataSource.count.short" = "%d POIs";
+"dev.dataSource.amap.name" = "AMap (AutoNavi)";
+"dev.dataSource.openMap.name" = "OpenMap (OpenStreetMap)";
+"dev.dataSource.policy.header" = "Source policy";
+"dev.dataSource.policy.label" = "Compile with";
+"dev.dataSource.policy.footer" = "\"Both\" routes by region: AMap inside mainland China, OpenMap overseas, each a fallback for the other. Single-source modes pin every explore to one provider.";
+"dev.dataSource.policy.both" = "Both";
+"dev.dataSource.policy.amapOnly" = "AMap only";
+"dev.dataSource.policy.openMapOnly" = "OpenMap only";
+"dev.dataSource.fetchCount.header" = "Nearby fetch count";
+"dev.dataSource.fetchCount.label" = "POIs per source";
+"dev.dataSource.fetchCount.footer" = "How many nearby places each base source pulls per explore. Ranking still keeps only the strongest few; a wider pool just improves that ranking.";
+"dev.dataSource.probe.header" = "Connectivity";
+"dev.dataSource.probe.footer" = "Fires one tiny real request per provider to confirm the API is reachable and its key valid.";
+"dev.dataSource.probe.test" = "Test";
+"dev.dataSource.probe.disabled" = "Disabled by current policy";
+"dev.dataSource.probe.ok" = "OK · %d places";
+"dev.dataSource.probe.httpFailed" = "HTTP error %d";
+"dev.dataSource.probe.networkFailed" = "Network error: %@";
+"dev.dataSource.probe.badRequest" = "Could not build request";
+"dev.dataSource.probe.noKey" = "No key configured";
+
 "dev.flags.header" = "Feature Flags";
 "dev.flags.footer" = "Flip experimental features on or off. \"Default\" restores the shipped value.";
 "dev.flag.backendSync.title" = "Backend sync";

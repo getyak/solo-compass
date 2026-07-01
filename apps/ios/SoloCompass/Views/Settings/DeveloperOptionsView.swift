@@ -34,6 +34,7 @@ struct DeveloperOptionsView: View {
         List {
             statusSection
             apiConfigSection
+            dataSourceSection
             featureFlagsSection
             debugToolsSection
             lockSection
@@ -110,6 +111,35 @@ struct DeveloperOptionsView: View {
         }
     }
 
+    // MARK: - Data sources
+
+    private var dataSourceSection: some View {
+        Section {
+            NavigationLink {
+                DataSourceSettingsView()
+            } label: {
+                iconLabel(icon: "point.3.connected.trianglepath.dotted", color: .green,
+                          title: NSLocalizedString("dev.dataSource.title", comment: "Data sources"),
+                          subtitle: dataSourceSubtitle)
+            }
+        } header: {
+            header("point.3.connected.trianglepath.dotted",
+                   NSLocalizedString("dev.dataSource.header", comment: "Data sources"))
+        } footer: {
+            Text(NSLocalizedString("dev.dataSource.sectionFooter", comment: "Data sources footer"))
+        }
+    }
+
+    /// Compact "Both · 60 POIs" summary of the current data-source config.
+    private var dataSourceSubtitle: String {
+        let policy = NSLocalizedString(DataSourceSettings.policy.titleKey, comment: "Data source policy")
+        let count = String(
+            format: NSLocalizedString("dev.dataSource.count.short", comment: "N POIs"),
+            DataSourceSettings.poiFetchLimit
+        )
+        return "\(policy) · \(count)"
+    }
+
     // MARK: - Feature flags
 
     private var featureFlagsSection: some View {
@@ -167,6 +197,7 @@ struct DeveloperOptionsView: View {
             ) {
                 Button(NSLocalizedString("dev.tools.resetOverrides", comment: "Reset overrides"), role: .destructive) {
                     FeatureFlags.clearAllOverrides()
+                    DataSourceSettings.reset()
                     flagsRevision += 1
                     Haptics.notify(.success)
                     toast = NSLocalizedString("dev.tools.resetOverrides.done", comment: "Overrides reset toast")
