@@ -61,6 +61,31 @@ public enum CT {
     public static let successSoft   = Color(.sRGB, red: 0x2F / 255, green: 0xA4 / 255, blue: 0x6A / 255, opacity: 0.12)
     public static let successText   = rgb(0x1F, 0x7B, 0x4D) // = verifiedGreen
 
+    // MARK: - Warm-amber v2 scene tokens (Phase 2 X.1 #X10)
+    //
+    // Scene-specific warm-amber tints for Phase 2 signature moments. Each is
+    // a tuned point on the same sunGold/sunset ramp; use them where the base
+    // sunGold triple isn't specific enough to convey the emotional register
+    // (capsule discovery = glow, daily omen = the day's specific hue, blindbox
+    // reveal = deeper amber). Keep semantics disciplined: don't paint routine
+    // affordances with these — that's what the base sunGold/accent ladder is
+    // for. These earn their weight only on ritual surfaces.
+
+    /// TimeCapsule "buried & discovered" glow — a lighter, more ethereal
+    /// amber than sunGold, used for the capsule accept animation surface and
+    /// the Live Activity's capsule kind.
+    public static let capsuleGlow    = rgb(0xF7, 0xDE, 0xB0)
+
+    /// Daily-omen card tint — a deeper, more mineral gold than sunGold, used
+    /// for the OmenCard face and its lock-screen Live Activity accent. Sits
+    /// between sunGold (0xC9A677) and sunGoldDeep (0xA07F4B).
+    public static let omenGold       = rgb(0xB8, 0x92, 0x5C)
+
+    /// Blindbox reveal amber — the richest tone on the ramp, reserved for the
+    /// blindbox recap card and the launch button gradient. Deeper than accent
+    /// (0x5D3000) to avoid competing with the primary accent CTA.
+    public static let blindboxAmber  = rgb(0x8A, 0x4A, 0x14)
+
     // Heatmap scale — Solo-Score dimension bars (styles.css .sc-solo-card .dim .fill).
     // hi=deep amber accent · mid=sun-gold · lo=pale amber · empty=track. An amber
     // ramp replaces red/green so the breakdown stays in the warm system.

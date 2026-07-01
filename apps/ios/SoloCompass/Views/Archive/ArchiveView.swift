@@ -30,6 +30,19 @@ public struct ArchiveView: View {
                     ForEach(viewModel.groups) { group in
                         citySection(group: group)
                     }
+                    // P2.4 #245: capsule triage — buried / ripe / opened.
+                    // Reads directly from `CapsuleStore.shared` so the
+                    // section reflects the same rows the LiveActivity
+                    // trigger uses. Silent when empty (no zero-state).
+                    capsuleSection
+
+                    // P3.4 #342: year-end Travel Book teaser. Only in
+                    // Nov/Dec so the banner is a genuine seasonal moment
+                    // rather than a permanent upsell.
+                    if Self.showsYearEndBanner(now: Date()) {
+                        yearEndBookBanner
+                    }
+
                     codexPlaceholder
                 }
             }
@@ -39,6 +52,68 @@ public struct ArchiveView: View {
         .background(Color(white: 0.98))
         .navigationTitle(NSLocalizedString("archive.title", comment: "Travel archive title"))
         .onAppear { viewModel.refresh() }
+    }
+
+    // MARK: - P2.4 #245 capsule section
+
+    @ViewBuilder
+    private var capsuleSection: some View {
+        let ripe = CapsuleStore.shared.ripeCapsules()
+        let buried = CapsuleStore.shared.buriedUnripeCapsules()
+        let opened = CapsuleStore.shared.openedCapsules()
+        if ripe.isEmpty && buried.isEmpty && opened.isEmpty {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Your capsules")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(CT.fgPrimary.opacity(0.85))
+                capsuleRow(label: "Ripe to open", count: ripe.count, accent: CT.omenGold)
+                capsuleRow(label: "Still buried", count: buried.count, accent: CT.sunGold)
+                capsuleRow(label: "Already unwrapped", count: opened.count, accent: CT.fgMuted)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func capsuleRow(label: String, count: Int, accent: Color) -> some View {
+        HStack {
+            Circle().fill(accent).frame(width: 6, height: 6)
+            Text(label).font(.callout).foregroundStyle(CT.fgPrimary.opacity(0.85))
+            Spacer()
+            Text("\(count)").font(.callout.monospacedDigit()).foregroundStyle(CT.fgMuted)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(CT.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    // MARK: - P3.4 #342 year-end banner
+
+    static func showsYearEndBanner(now: Date, calendar: Calendar = Calendar.current) -> Bool {
+        let month = calendar.component(.month, from: now)
+        return month >= 11
+    }
+
+    @ViewBuilder
+    private var yearEndBookBanner: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Your year, in print.")
+                .font(.system(.headline, design: .serif))
+                .foregroundStyle(CT.fgPrimary)
+            Text("Turn this year's archive into a printed book. Limited window.")
+                .font(.footnote)
+                .foregroundStyle(CT.fgMuted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(CT.capsuleGlow.opacity(0.55))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     // MARK: - Trip card

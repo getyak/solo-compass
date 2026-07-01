@@ -2051,3 +2051,11 @@
 "onboarding.city.afternoon.label" = "你想要怎样的一个下午?";
 "onboarding.city.afternoon.placeholder" = "安静的院子,慢慢的咖啡,没有压力……";
 "onboarding.city.continue" = "继续";
+
+/* Settings — Forget me (P2.0 #204) */
+"settings.forgetMe" = "忘记我";
+"settings.forgetMe.confirm.title" = "忘记你的口味和记忆?";
+"settings.forgetMe.confirm.message" = "清空本地口味画像与 Solo Agent 关于你的所有记忆。你的收藏、路线和偏好会保留。";
+"settings.forgetMe.confirm.action" = "忘记我";
+"settings.forgetMe.toast.success" = "已清空——下次开聊时,Agent 会重新认识你。";
+"settings.forgetMe.toast.failure" = "暂时无法清空,请稍后再试。";

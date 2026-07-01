@@ -31,6 +31,23 @@ public struct FilterBarView: View {
     /// How many visible experiences are currently at their best time.
     let nowCount: Int
 
+    // MARK: - P2.5 Solo-Agent + taste hooks (#250 / #252)
+    //
+    // Both are optional so every existing caller — including the many
+    // tests + previews that construct FilterBarView without a chat
+    // orchestrator — keeps compiling unchanged. When either callback
+    // is non-nil, the parent has opted in to the new behaviour.
+    /// P2.5 #250: fires the `suggest_now_action` tool via ChatOrchestrator
+    /// instead of just toggling the Now filter. When nil, the Now pill
+    /// keeps its legacy filter-toggle behaviour.
+    let onSoloAgentTap: (() -> Void)?
+    /// P2.5 #252: whether the taste-ranked ordering is currently on.
+    let isTasteRankOn: Bool
+    /// P2.5 #252: flip taste-ranked ordering. When nil, the toggle is
+    /// hidden entirely so callers who haven't opted in aren't confused
+    /// by a control that does nothing.
+    let onTasteRankToggle: ((Bool) -> Void)?
+
     /// Namespace for the shared gliding selection highlight.
     @Namespace private var pillHighlight
 
@@ -109,7 +126,11 @@ public struct FilterBarView: View {
         onSelectCategory: @escaping (ExperienceCategory) -> Void,
         onSelectCustomTag: @escaping (String) -> Void = { _ in },
         isMapPanning: Binding<Bool> = .constant(false),
-        resultCount: Int = 0
+        resultCount: Int = 0,
+        // P2.5 hooks — see property doc comments for semantics.
+        onSoloAgentTap: (() -> Void)? = nil,
+        isTasteRankOn: Bool = false,
+        onTasteRankToggle: ((Bool) -> Void)? = nil
     ) {
         self.selectedCategory = selectedCategory
         self.isNowSelected = isNowSelected
@@ -124,6 +145,9 @@ public struct FilterBarView: View {
         self.onSelectCustomTag = onSelectCustomTag
         self._isMapPanning = isMapPanning
         self.resultCount = resultCount
+        self.onSoloAgentTap = onSoloAgentTap
+        self.isTasteRankOn = isTasteRankOn
+        self.onTasteRankToggle = onTasteRankToggle
     }
 
     /// Stable string ID for the currently selected pill — drives matchedGeometryEffect.

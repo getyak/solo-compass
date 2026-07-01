@@ -1,6 +1,6 @@
 # Privacy
 
-> Last updated 2026-05-06. Ground truth lives here; the bot's `/privacy`
+> Last updated 2026-07-01. Ground truth lives here; the bot's `/privacy`
 > command and the web app's privacy footer link to this file.
 
 Solo Compass is built for solo travelers. People moving through unfamiliar
@@ -21,6 +21,10 @@ in the same flow that creates the data.
 | Anonymous device id (web)   | Web app                | Random UUID in localStorage. No fingerprinting.                                                                                         | Until user clears site data.                                                | Retention math.                          | Clear site data.                          |
 | Analytics events            | Bot + web              | Event name + `channel` ("bot" / "web") + hashed user id. **No raw text, no transcripts, no coordinates, no IP.**                        | 90 days.                                                                    | Retention dashboard.                     | `/optout` (bot), localStorage flag (web). |
 | Error reports (Sentry)      | Bot + web              | Stack traces, file paths, code context. **PII scrubbed in `beforeSend`** — no transcripts, no message bodies, no Mapbox tokens, no IPs. | 30 days.                                                                    | Catch crashes.                           | n/a (errors are anonymized at source).    |
+| Visit record (iOS)          | iOS app (geofence)     | `VisitRecord @Model` in on-device SwiftData: experienceId + visitedAt (ISO 8601 UTC) + dwellSeconds + optional weatherCode + coord snapshot `[lon,lat]`. **Never uploaded.** Geofence is opt-in; foreground-only. | Until user clears app data or hits "Forget me" in Settings. | Passive Travel Archive — surface where you've been. | iOS Settings → SoloCompass → Location; in-app "Forget me". |
+| Taste profile (iOS)         | iOS onboarding vibe    | `TasteProfile @Model` on-device: 64-float embedding + descriptor list + confidence + optional source photo IDs. **Never uploaded.** Vibe photos processed on-device (fallback FNV hash; Vision LLM path is feature-flagged off). | Until user clears app data or hits "Forget me". | Rank Experiences by warm-amber match. | in-app "Forget me". |
+| Time capsule (iOS)          | iOS long-press bury    | `TimeCapsule @Model` on-device: content blob (text / voice / photo bytes) + scheduledFor date + context snapshot (weather / mood emoji). **Never uploaded.** | Until scheduledFor is opened or user manually deletes. | Write-to-your-future-self ritual — surfaces years later at the anchor place. | in-app delete on any capsule row. |
+| Agent memory snapshot (iOS) | iOS chat sessions      | `AgentMemorySnapshot @Model` on-device: ≤500-char summary + last trip city + ≤300-char chat digest. **Never uploaded raw.** Summary text is passed to Claude only inside a session (system prompt); no long-term server retention. | Overwritten on every chat session close. | Chat memory — "remember what we talked about last time". | in-app "Forget me". |
 
 ## What we never collect
 
@@ -30,6 +34,19 @@ in the same flow that creates the data.
 - Social-graph data — no follower lists, no contact import, no friend invites.
 - Photos of the user's face.
 - Continuous background location without explicit opt-in.
+
+## On-device only: the iOS commitment
+
+VisitRecord, TasteProfile, TimeCapsule, and AgentMemorySnapshot are all stored
+exclusively in the on-device SwiftData store. **Nothing in these four tables
+ever leaves the device.** The Supabase sync surface deliberately excludes them
+— parity checks (`pnpm parity:check`) enforce this by matching TS payload
+schemas against Swift `@Model` shapes, so a future accidental sync route would
+fail CI before merge.
+
+The Settings screen exposes a **"Forget me"** button that atomically clears
+all four tables (P2.0 #204). Use it any time — no server call is required and
+the data is unrecoverable after the click.
 
 ## Anti-patterns we've ruled out by policy
 

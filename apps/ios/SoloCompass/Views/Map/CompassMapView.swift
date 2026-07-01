@@ -1494,7 +1494,11 @@ struct CompassMapContentView: View {
             voiceService: voiceService,
             mapViewModel: vm,
             preferences: preferences,
-            historyStore: chatHistoryStore
+            historyStore: chatHistoryStore,
+            // P2.0 #201/#202: hand the shared MemoryDigestService so the
+            // agent injects the AgentMemorySnapshot into its system prompt
+            // and refreshes the digest after each completed turn.
+            memoryDigest: MemoryDigestService.shared
         )
         orch.start()
         voiceOrchestrator = orch

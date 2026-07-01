@@ -56,6 +56,13 @@ public struct ExperienceDetailView: View {
     /// "Ask Solo" CTA instead of leaving them on a dead toast.
     @State private var isShowingPaywall: Bool = false
 
+    /// P2.4 #240: presented by a long-press on the hero — lets the user
+    /// bury a time capsule anchored to this experience. Consumed by
+    /// `CapsuleComposeView` and persisted through `CapsuleStore.shared`.
+    @State private var isShowingCapsuleCompose: Bool = false
+    /// Toast text after a successful bury.
+    @State private var capsuleBuryToast: String? = nil
+
     // MARK: - Traveler co-build UI state
     /// Loaded notes/corrections for this place (refreshed from the store on
     /// appear + after every mutation).
@@ -106,6 +113,12 @@ public struct ExperienceDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 26) {
                 heroImageBanner
+                    // P2.4 #240: long-press hero → open time capsule
+                    // compose sheet. Short press keeps standard scroll
+                    // behaviour so the primary flow is untouched.
+                    .onLongPressGesture(minimumDuration: 0.55) {
+                        isShowingCapsuleCompose = true
+                    }
                 // Hero block — provenance tag, category disc + trust chip, title,
                 // place names. Quiet mono meta baseline sits just below it.
                 heroSection
@@ -279,6 +292,44 @@ public struct ExperienceDetailView: View {
             }
             .accessibilityIdentifier("experience.askSolo.paywall")
         }
+        // P2.4 #240 / #241: bury a time capsule anchored to this
+        // experience. Persistence via CapsuleStore.shared; on success
+        // we surface a subtle toast so the user knows the note was
+        // safely stashed.
+        .sheet(isPresented: $isShowingCapsuleCompose) {
+            CapsuleComposeView(
+                experienceId: viewModel.experience.id,
+                experienceTitle: viewModel.experience.title,
+                onBury: { payload in
+                    let ok = CapsuleStore.shared.bury(
+                        experienceId: viewModel.experience.id,
+                        contentType: payload.contentType,
+                        contentBlob: payload.contentBlob,
+                        context: nil,
+                        monthsFromNow: payload.monthsFromNow
+                    ) != nil
+                    if ok {
+                        AnalyticsService.shared.track(
+                            .capsuleBuried,
+                            properties: ["months": .int(payload.monthsFromNow)]
+                        )
+                        capsuleBuryToast = "Buried. It'll surface in \(payload.monthsFromNow) months."
+                    }
+                    isShowingCapsuleCompose = false
+                },
+                onCancel: { isShowingCapsuleCompose = false }
+            )
+        }
+        .alert(
+            capsuleBuryToast ?? "",
+            isPresented: Binding(
+                get: { capsuleBuryToast != nil },
+                set: { if !$0 { capsuleBuryToast = nil } }
+            ),
+            actions: {
+                Button(NSLocalizedString("common.ok", comment: "OK")) { capsuleBuryToast = nil }
+            }
+        )
         .overlay(alignment: .bottom) {
             if let itin = addedItineraryToast {
                 itineraryAddedToast(itin)
