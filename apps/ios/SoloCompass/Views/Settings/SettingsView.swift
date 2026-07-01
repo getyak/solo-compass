@@ -99,6 +99,8 @@ public struct SettingsView: View {
                 exportSection
                 // Section: Subscription
                 subscriptionSection
+                // Section: Developer Options — only after a tester-email unlock
+                developerSection
                 // Section: Companion (US-012) — experimental opt-in
                 companionSection
                 // Section: About / Stats / Data
@@ -845,6 +847,44 @@ public struct SettingsView: View {
             }
         } message: {
             Text(NSLocalizedString("settings.adminUnlock.message", comment: "Admin unlock message"))
+        }
+    }
+
+    // MARK: - Developer Options
+
+    /// Entry point to `DeveloperOptionsView`. Only rendered once a tester email
+    /// has unlocked the device (`SubscriptionService.developerModeUnlocked`) —
+    /// a plain StoreKit Pro purchase does NOT reveal it. `@ViewBuilder` so the
+    /// section fully disappears (no empty row) for everyone else.
+    @ViewBuilder
+    private var developerSection: some View {
+        if subscriptionService.developerModeUnlocked {
+            Section {
+                NavigationLink {
+                    DeveloperOptionsView()
+                        .environment(preferences)
+                        .environment(subscriptionService)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "hammer.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(Color.gray, in: RoundedRectangle(cornerRadius: 7))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(NSLocalizedString("dev.title", comment: "Developer Options"))
+                                .font(.body)
+                            Text(NSLocalizedString("dev.entry.subtitle", comment: "Developer options subtitle"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                settingsSectionHeader("hammer", label: NSLocalizedString("dev.header", comment: "Developer section header"))
+            } footer: {
+                Text(NSLocalizedString("dev.footer", comment: "Developer section footer"))
+            }
         }
     }
 

@@ -127,12 +127,85 @@ public enum FeatureFlags {
         return readBool("FF_COMPANION_LAYER_ENABLED", default: false)
     }
 
+    // MARK: - Developer override registry
+    //
+    // The Developer Options panel (revealed after a tester-email unlock) lets
+    // testers flip these flags at runtime without a rebuild. Overrides are
+    // stored in UserDefaults under the same `FF_` key and consulted by
+    // `readBool` — see the resolution order there. Kept as data so the UI can
+    // render the list generically and stays in sync as flags are added.
+
+    /// A single developer-toggleable flag, described for the Developer Options UI.
+    public struct DeveloperFlag: Identifiable, Sendable {
+        /// UserDefaults / env-var key (e.g. "FF_WEB_SEARCH_ENRICHMENT").
+        public let key: String
+        /// Localization key for the human-readable title.
+        public let titleKey: String
+        /// Localization key for the one-line explanation.
+        public let subtitleKey: String
+        /// The compiled-in default used when no override/plist value exists.
+        public let defaultValue: Bool
+        public var id: String { key }
+    }
+
+    /// Flags surfaced in Developer Options. Order = display order.
+    public static let developerFlags: [DeveloperFlag] = [
+        DeveloperFlag(key: "FF_BACKEND_SYNC", titleKey: "dev.flag.backendSync.title",
+                      subtitleKey: "dev.flag.backendSync.subtitle", defaultValue: false),
+        DeveloperFlag(key: "FF_ROUTE_AI_THROUGH_EDGE", titleKey: "dev.flag.routeAIThroughEdge.title",
+                      subtitleKey: "dev.flag.routeAIThroughEdge.subtitle", defaultValue: false),
+        DeveloperFlag(key: "FF_PRO_MULTI_RING_EXPLORE", titleKey: "dev.flag.proMultiRingExplore.title",
+                      subtitleKey: "dev.flag.proMultiRingExplore.subtitle", defaultValue: false),
+        DeveloperFlag(key: "FF_DEEP_DIVE_ENRICHMENT", titleKey: "dev.flag.deepDiveEnrichment.title",
+                      subtitleKey: "dev.flag.deepDiveEnrichment.subtitle", defaultValue: true),
+        DeveloperFlag(key: "FF_WEB_SEARCH_ENRICHMENT", titleKey: "dev.flag.webSearchEnrichment.title",
+                      subtitleKey: "dev.flag.webSearchEnrichment.subtitle", defaultValue: false),
+        DeveloperFlag(key: "FF_COMPANION", titleKey: "dev.flag.companion.title",
+                      subtitleKey: "dev.flag.companion.subtitle", defaultValue: false),
+        DeveloperFlag(key: "FF_COMPANION_LAYER_ENABLED", titleKey: "dev.flag.companionLayer.title",
+                      subtitleKey: "dev.flag.companionLayer.subtitle", defaultValue: false),
+    ]
+
+    /// The developer override currently stored for `key`, or nil when the
+    /// tester hasn't set one (so the plist/compiled default applies).
+    public static func override(for key: String) -> Bool? {
+        guard UserDefaults.standard.object(forKey: key) != nil else { return nil }
+        return UserDefaults.standard.bool(forKey: key)
+    }
+
+    /// Write (or clear, when `value == nil`) a developer override for `key`.
+    public static func setOverride(_ value: Bool?, for key: String) {
+        if let value {
+            UserDefaults.standard.set(value, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
+    /// Remove every developer override so all flags revert to their
+    /// plist/compiled defaults. Used by the "Reset overrides" action.
+    public static func clearAllOverrides() {
+        for flag in developerFlags {
+            UserDefaults.standard.removeObject(forKey: flag.key)
+        }
+    }
+
     // MARK: - Internals
 
     static func readBool(_ key: String, default fallback: Bool) -> Bool {
+        // 1. Environment variable — highest priority so CI / test schemes and
+        //    Xcode run-args stay deterministic.
         if let env = ProcessInfo.processInfo.environment[key] {
             return env == "1" || env.lowercased() == "true"
         }
+        // 2. Developer Options runtime override (UserDefaults). Only present
+        //    when a tester explicitly toggled the flag in the in-app panel, so
+        //    default installs are unaffected. Works in Release too, which is
+        //    what TestFlight testers run.
+        if let override = override(for: key) {
+            return override
+        }
+        // 3. Bundled FeatureFlags.plist for staged build-time config.
         guard let url = Bundle.main.url(forResource: "FeatureFlags", withExtension: "plist"),
               let data = try? Data(contentsOf: url),
               let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
