@@ -36,6 +36,16 @@ public struct ChatSheet: View {
     /// opens saved conversations the user can reopen.
     private let historyStore: ChatHistoryStore?
 
+    /// Optional first-turn seed. When non-nil, the sheet submits this string as
+    /// the user's first message once the orchestrator finishes seeding. Used
+    /// by the startup self-diagnostics bubble so the AI opens the conversation
+    /// by explaining the detected issues instead of showing an empty state.
+    private let initialUserPrompt: String?
+
+    /// Guards against re-sending `initialUserPrompt` if `isSeeded` flips more
+    /// than once in a session's lifetime.
+    @State private var didSeedInitialPrompt: Bool = false
+
     @State private var draftText: String = ""
     @State private var showHistory: Bool = false
     @State private var liveTranscript: String = ""
@@ -82,7 +92,8 @@ public struct ChatSheet: View {
         onSelectExperience: @escaping (Experience) -> Void = { _ in },
         onAdoptRoute: @escaping (RouteProposal) -> Void = { _ in },
         detent: Binding<PresentationDetent> = .constant(.large),
-        historyStore: ChatHistoryStore? = nil
+        historyStore: ChatHistoryStore? = nil,
+        initialUserPrompt: String? = nil
     ) {
         self.orchestrator = orchestrator
         self.voiceService = voiceService
@@ -92,12 +103,20 @@ public struct ChatSheet: View {
         self.onAdoptRoute = onAdoptRoute
         self._detent = detent
         self.historyStore = historyStore
+        self.initialUserPrompt = initialUserPrompt
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider().opacity(0.4)
+            // Half-detent = editorial doorway: no chrome. The sheet's grabber
+            // is the only top edge, the serif invitation is the hero, the mic
+            // is the sole input. Header / Divider / InputBar are all
+            // suppressed so the surface reads like a page, not a settings
+            // panel. (User directive: "半屏没必要显示图标以及下面的聊天框".)
+            if detent != .medium {
+                header
+                Divider().opacity(0.4)
+            }
 
             if permissionDenied {
                 permissionDeniedBanner
@@ -163,14 +182,20 @@ public struct ChatSheet: View {
             voiceSurface
         } else {
             messageList
-            VStack(spacing: 0) {
-                if orchestrator.uiState == .unconfigured {
-                    unconfiguredBanner
+            // Half-detent hides the textInputBar entirely — the mic in
+            // `HalfExpandedEmptyState` is the sole voice/message entry, so
+            // stacking a full-width composer under it created two competing
+            // input surfaces. Full & compact detents keep the composer.
+            if detent != .medium {
+                VStack(spacing: 0) {
+                    if orchestrator.uiState == .unconfigured {
+                        unconfiguredBanner
+                    }
+                    if let hint = sendHint {
+                        sendHintBanner(hint)
+                    }
+                    textInputBar
                 }
-                if let hint = sendHint {
-                    sendHintBanner(hint)
-                }
-                textInputBar
             }
         }
     }
@@ -1351,6 +1376,30 @@ public struct ChatSheet: View {
         if startInVoiceMode {
             showVoiceSurface = true
             beginPushToTalk()
+        }
+        seedInitialPromptIfNeeded()
+    }
+
+    /// If the caller passed an `initialUserPrompt` (used by the startup
+    /// self-diagnostics bubble), submit it as the first user turn once the
+    /// orchestrator finishes seeding. Retries for up to ~5s to cover the
+    /// cold-start `start()` → `buildSystemPrompt` async gap; gives up quietly
+    /// if the orchestrator ends up unconfigured (no API key), because the
+    /// bubble itself already surfaced the "no key" finding.
+    private func seedInitialPromptIfNeeded() {
+        guard !didSeedInitialPrompt, let prompt = initialUserPrompt else { return }
+        didSeedInitialPrompt = true
+        Task { @MainActor in
+            for _ in 0..<20 {
+                switch orchestrator.handleTextInput(prompt) {
+                case .accepted, .empty, .sessionEnded:
+                    return
+                case .unconfigured:
+                    return
+                case .notReady:
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                }
+            }
         }
     }
 

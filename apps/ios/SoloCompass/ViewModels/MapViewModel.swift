@@ -693,10 +693,34 @@ public final class MapViewModel {
             .prefix(limit).map { $0 }
     }
 
+    /// Cached snapshot of the last `clusteredMapItems` compute, keyed by a
+    /// fingerprint of the inputs. SwiftUI Map's body reads `clusteredMapItems`
+    /// on every render pass (many per second during pan/zoom); recomputing the
+    /// grid + centroid math each time was the second source of "markers drift
+    /// back and forth" — Swift Dictionary iteration is not deterministic, so
+    /// two back-to-back calls with the same inputs could return items in
+    /// different orders. The fingerprint snaps to the same discrete `cellSize`
+    /// bands the engine already uses, so a small pan doesn't invalidate.
+    @ObservationIgnored private var clusteredCacheFingerprint: String?
+    @ObservationIgnored private var clusteredCacheValue: [MapItem] = []
+
     /// Clustered map items — groups overlapping pins at city/district zoom into
     /// cluster markers. At street zoom, every pin renders individually.
     var clusteredMapItems: [MapItem] {
-        MapClusterEngine.cluster(displayedExperiences, spanLatitudeDelta: currentSpanLatitudeDelta)
+        let displayed = displayedExperiences
+        let cellSize = MapClusterEngine.cellSize(for: currentSpanLatitudeDelta)
+        // Fingerprint = (cellSize band, count, joined id list). The id list is
+        // cheap because `displayedExperiences` is already capped by
+        // `spanToLimit`, and it's the only thing that reliably catches both
+        // "a pin appeared" and "the ranked order changed".
+        let fingerprint = "\(cellSize)|\(displayed.count)|\(displayed.map(\.id).joined(separator: ","))"
+        if fingerprint == clusteredCacheFingerprint {
+            return clusteredCacheValue
+        }
+        let items = MapClusterEngine.cluster(displayed, spanLatitudeDelta: currentSpanLatitudeDelta)
+        clusteredCacheFingerprint = fingerprint
+        clusteredCacheValue = items
+        return items
     }
 
     /// Span → max number of map pins. Three bands matched to how a solo traveler

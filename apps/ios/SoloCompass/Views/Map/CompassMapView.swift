@@ -414,6 +414,17 @@ struct CompassMapContentView: View {
                    i + 1 < ProcessInfo.processInfo.arguments.count {
                     Self.startIslandDemo(kind: ProcessInfo.processInfo.arguments[i + 1])
                 }
+                // Visual-verification entry point: `-openChatMedium` opens the
+                // global "+" ChatSheet at half detent on launch so the
+                // editorial half-sheet redesign can be screenshotted without
+                // an on-screen tap (idb/simctl tapping is unreliable on
+                // Xcode 26). No experience scope — this is the generic
+                // "Ask me where to go" doorway.
+                if ProcessInfo.processInfo.arguments.contains("-openChatMedium") {
+                    chatStartMode = .text
+                    chatDetent = .medium
+                    ensureOrchestrator(viewModel: viewModel)
+                }
                 #endif
                 locationService.requestPermission()
                 // US-021: `viewModel` is built eagerly in `init`, so there is no
