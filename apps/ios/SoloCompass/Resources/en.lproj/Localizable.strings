@@ -2083,3 +2083,58 @@
 "solo.agent.bubble.dismiss" = "Dismiss";
 "solo.agent.bubble.diagnostics.cta" = "Ask Solo how to fix it →";
 "solo.agent.bubble.diagnostics.subtitle.multi" = "%d more to talk through — tap and I'll explain.";
+
+/* MARK: - Developer Options (tester-email unlock only) */
+"dev.header" = "Developer";
+"dev.footer" = "Tools for testers and developers. Changes here only affect this device.";
+"dev.title" = "Developer Options";
+"dev.entry.subtitle" = "APIs, feature flags, and debug tools";
+
+"dev.status.header" = "Status";
+"dev.status.footer" = "Read-only diagnostics for the current build.";
+"dev.status.build" = "Build";
+"dev.status.version" = "Version";
+"dev.status.entitlement" = "Entitlement";
+"dev.status.aiModel" = "AI model";
+"dev.status.backendSync" = "Backend sync";
+
+"dev.value.on" = "On";
+"dev.value.off" = "Off";
+"dev.value.default" = "Default";
+
+"dev.api.header" = "API Configuration";
+"dev.api.footer" = "Override a built-in key to point the app at your own account. Leave blank to use the bundled default. Applies immediately — no rebuild.";
+"dev.api.notSet" = "Not set";
+"dev.api.foursquare" = "Foursquare key";
+"dev.api.openWeather" = "OpenWeather key";
+"dev.api.amap" = "Amap key";
+"dev.api.placeholder" = "Paste key to override default";
+"dev.api.clear" = "Clear override";
+
+"dev.flags.header" = "Feature Flags";
+"dev.flags.footer" = "Flip experimental features on or off. \"Default\" restores the shipped value.";
+"dev.flag.backendSync.title" = "Backend sync";
+"dev.flag.backendSync.subtitle" = "Supabase auth, sync, and Edge Functions.";
+"dev.flag.routeAIThroughEdge.title" = "Route AI through Edge";
+"dev.flag.routeAIThroughEdge.subtitle" = "Call the Supabase Edge Function instead of DeepSeek directly.";
+"dev.flag.proMultiRingExplore.title" = "Multi-ring Explore (Pro)";
+"dev.flag.proMultiRingExplore.subtitle" = "4-ring radial schedule for Explore Here.";
+"dev.flag.deepDiveEnrichment.title" = "Deep-dive enrichment";
+"dev.flag.deepDiveEnrichment.subtitle" = "Cross-reference places across Overpass, MapKit, and Foursquare.";
+"dev.flag.webSearchEnrichment.title" = "Web search enrichment";
+"dev.flag.webSearchEnrichment.subtitle" = "Extra AI call to verify hours, website, and phone.";
+"dev.flag.companion.title" = "Companion mode";
+"dev.flag.companion.subtitle" = "Friends, DMs, and companion discovery.";
+"dev.flag.companionLayer.title" = "Companion map layer";
+"dev.flag.companionLayer.subtitle" = "In-map toggle for nearby presence cells.";
+
+"dev.tools.header" = "Debug Tools";
+"dev.tools.entitlement" = "Force entitlement";
+"dev.tools.resetOnboarding" = "Reset onboarding";
+"dev.tools.resetOnboarding.done" = "Onboarding will show on next launch.";
+"dev.tools.resetOverrides" = "Reset all overrides";
+"dev.tools.resetOverrides.confirm" = "Reset every feature-flag override to its default?";
+"dev.tools.resetOverrides.done" = "All overrides cleared.";
+
+"dev.lock" = "Lock developer options";
+"dev.lock.footer" = "Hides this panel until you unlock again with a tester email. Your Pro access is kept.";

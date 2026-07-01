@@ -2093,3 +2093,58 @@
 "solo.agent.bubble.dismiss" = "关掉";
 "solo.agent.bubble.diagnostics.cta" = "问 Solo 怎么修 →";
 "solo.agent.bubble.diagnostics.subtitle.multi" = "还有 %d 个问题,点开我一起说。";
+
+/* MARK: - 开发者选项（仅测试邮箱解锁后可见） */
+"dev.header" = "开发者";
+"dev.footer" = "面向测试者和开发者的工具。此处的更改仅影响本设备。";
+"dev.title" = "开发者选项";
+"dev.entry.subtitle" = "API、功能开关与调试工具";
+
+"dev.status.header" = "状态";
+"dev.status.footer" = "当前构建的只读诊断信息。";
+"dev.status.build" = "构建";
+"dev.status.version" = "版本";
+"dev.status.entitlement" = "会员权益";
+"dev.status.aiModel" = "AI 模型";
+"dev.status.backendSync" = "后端同步";
+
+"dev.value.on" = "开";
+"dev.value.off" = "关";
+"dev.value.default" = "默认";
+
+"dev.api.header" = "API 配置";
+"dev.api.footer" = "覆盖内置密钥，让 App 使用你自己的账号进行调试。留空则使用内置默认值。即时生效，无需重新构建。";
+"dev.api.notSet" = "未设置";
+"dev.api.foursquare" = "Foursquare 密钥";
+"dev.api.openWeather" = "OpenWeather 密钥";
+"dev.api.amap" = "高德（Amap）密钥";
+"dev.api.placeholder" = "粘贴密钥以覆盖默认值";
+"dev.api.clear" = "清除覆盖";
+
+"dev.flags.header" = "功能开关";
+"dev.flags.footer" = "开启或关闭实验性功能。\"默认\"会恢复发布版本的取值。";
+"dev.flag.backendSync.title" = "后端同步";
+"dev.flag.backendSync.subtitle" = "Supabase 鉴权、同步与 Edge Functions。";
+"dev.flag.routeAIThroughEdge.title" = "AI 走 Edge 通道";
+"dev.flag.routeAIThroughEdge.subtitle" = "调用 Supabase Edge Function，而非直连 DeepSeek。";
+"dev.flag.proMultiRingExplore.title" = "多环探索（Pro）";
+"dev.flag.proMultiRingExplore.subtitle" = "「就近探索」采用 4 环径向调度。";
+"dev.flag.deepDiveEnrichment.title" = "深度富化";
+"dev.flag.deepDiveEnrichment.subtitle" = "跨 Overpass、MapKit 与 Foursquare 交叉核对地点。";
+"dev.flag.webSearchEnrichment.title" = "联网搜索富化";
+"dev.flag.webSearchEnrichment.subtitle" = "额外发起一次 AI 调用，核实营业时间、网址与电话。";
+"dev.flag.companion.title" = "同行模式";
+"dev.flag.companion.subtitle" = "好友、私信与同行发现。";
+"dev.flag.companionLayer.title" = "同行地图图层";
+"dev.flag.companionLayer.subtitle" = "地图内的附近在场单元开关。";
+
+"dev.tools.header" = "调试工具";
+"dev.tools.entitlement" = "强制会员权益";
+"dev.tools.resetOnboarding" = "重置引导流程";
+"dev.tools.resetOnboarding.done" = "下次启动将重新显示引导。";
+"dev.tools.resetOverrides" = "重置所有覆盖";
+"dev.tools.resetOverrides.confirm" = "将所有功能开关的覆盖重置为默认值？";
+"dev.tools.resetOverrides.done" = "已清除所有覆盖。";
+
+"dev.lock" = "锁定开发者选项";
+"dev.lock.footer" = "隐藏该面板，直到你再次用测试邮箱解锁。你的 Pro 权益会保留。";
