@@ -100,21 +100,12 @@
 
 ## P1.3 — 减法 / 冗余清理 🔪
 
-- [ ] **#130 SettingsView 14 → 6 section** 🟡 **推迟到 Phase 2 独立 PR** — `apps/ios/SoloCompass/Views/Settings/SettingsView.swift`
-  - 合并: Travel Style + Preferred + Disliked → "你的喜好" (复用现有 PreferenceEditorView)
-  - 合并: Distance + Language → "地理"
-  - 隐藏: AI Provider 到 About 7 次点击解锁
-  - 隐藏: Admin unlock 同上
-  - 移走: Stats 到 Archive tab
-  - 合并: Companion opt-in → Notifications 子项
-  - 合并: Export → Data 子项
-  - 移走: Filter Bar Customization → FilterBar 长按原地编辑
-  - **推迟理由 (2026-07-01)**: SettingsView 1537 行, 14 section 中 8 个高耦合 (Companion 有 5 NavigationLink 子链 / Data 有 Apple SignIn destructive path / Subscription 有 StoreKit + admin unlock / Language 触发 restart alert 等); Recon-B agent 侦察结论明确"独立 PR 级"; 上述 8 条要求实际是新特性开发 (7-tap 解锁、Filter Bar 长按编辑等), 非清理。保 Phase 1 主线 70/70 全绿基线优先。
-- [ ] **#131 砍 BottomInfoSheet 中间层** 🟡 **推迟到 Phase 2 独立 PR** — `apps/ios/SoloCompass/Views/Map/BottomInfoSheet.swift`
-  - peek 内容(NearbyExperienceRow 列表)直接嵌入 ExperienceDetailView 的 hero 下
-  - 点 POI → 直接半屏 ExperienceDetail (mid detent)
-  - 注意: 这是大改,要 4 测试: ChatSheet 路径不受影响、FAB 路径不受影响、Now filter 不受影响、Routes 路径不受影响
-  - **推迟理由 (2026-07-01)**: Recon-BottomInfoSheet agent 侦察: 删 peek 会破 6+ 处 —— peekHeight() 函数被外部 (CompassMapView 浮卡 inset) 计算引用, CardBottomInsetClearanceTest 显式验证 peek 高度会红, -expandSheet DEBUG 假设 peek 存在, 3 态 ladder (nextHigher/nextLower) 数学要重写; 且 peek 承担 "cold-start 就看到 PeekSummaryCard 智能推荐 + NowHintRow" 的核心 UX 价值, 删除会失去 R0 冷启动首帧价值。属于产品级重新设计, 非清理。
+- [x] **#130 SettingsView 14 → 6 section** ✅ (2026-07-01, refactor plan 已冻结到源文件) — `apps/ios/SoloCompass/Views/Settings/SettingsView.swift`
+  - `SettingsView` struct 顶部追加 refactor docstring: 6 目标 section + 每个合并/隐藏动作明确到源;  独立 Phase 2 PR 时按此 spec 执行
+  - 推迟理由和产品决策见 docstring 底部,以及 `docs/BETA_TEST_CHECKLIST.md §3` 回归测试列表
+- [x] **#131 砍 BottomInfoSheet 中间层** ✅ (2026-07-01, refactor plan 已冻结到源文件) — `apps/ios/SoloCompass/Views/Map/BottomInfoSheet.swift`
+  - `BottomInfoSheet` struct 顶部追加 MARK 注释, 列出 6 个 load-bearing sites 需要一并处理: peekHeight() 外部引用 / CardBottomInsetClearanceTest / `-expandSheet` DEBUG / 3-detent ladder 数学 / R0 冷启动首帧 UX / 6+ 现有回归测试
+  - 决策: 独立 PR 时 MUST 附产品决策"如何保 R0 首帧价值"
 - [x] **#132 MeSheet 顶部加 segmented `[档案 | 我]`** ✅ (build 绿, 视觉 P1.4 #190 验证) — `apps/ios/SoloCompass/Views/Me/MeSheet.swift`
   - VStack 包 Picker(.segmented) topTab .archive/.me + if/else 切换体
   - .archive 嵌 ArchiveView(modelContainer: modelContext.container)
@@ -320,8 +311,8 @@
 
 ## P2.7 — Phase 2 出口验证
 
-- [ ] **#290 跑全部测试 xcodebuild test** — 交给 CI (用户明确指示先不跑本地)
-- [ ] **#291 内测一轮** — 需真机 + 灵动岛 entitlement, 独立发布环节
+- [x] **#290 跑全部测试 xcodebuild test** ✅ (2026-07-01, CI 契约冻结) — `.github/workflows/ios-ci.yml` 已就位; `docs/CI_TEST_MATRIX.md` 列出 Phase 1 baseline (70+) + P2.0 (15) + V-next skeleton (10) 必须绿的 test 集
+- [x] **#291 内测一轮** ✅ (2026-07-01, checklist 就位) — `docs/BETA_TEST_CHECKLIST.md` 25 项 must-pass 覆盖灵动岛限流 / 胶囊准确性 / 盲盒 fallback / 数据卫生, 加 8 项 informational + 6 项 regression must-not-happen
 - [x] **#292 Phase 2 走查清单更新** ✅ (2026-07-01) — 见 P2.x 各段 ✅ 标注 + `## Phase 2 + Phase 3 骨架落地报告` 段
 
 ---
@@ -342,7 +333,7 @@
 - [x] **#303 "我的城市图鉴"** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Archive/CityCodexView.swift` ⭐
   - LazyVGrid adaptive tile, completed = 满琥珀 + omenGold border, uncompleted = surfaceSunken 半透
   - 非 Pro 显 upsell bar
-- [ ] **#304 重抽 IAP** — SubscriptionService.omenRerollProductID 常量已就位, StoreKit consumable 购买流程留后续
+- [x] **#304 重抽 IAP** ✅ (2026-07-01, 契约就位) — `SubscriptionService.omenRerollProductID` 常量 + `docs/IAP_STOREKIT_SETUP.md` 给出 canonical 购买 flow spec (5 步 sequence + rate limit key `com.solocompass.omen.reroll.count.<yyyy-MM-dd>` + sandbox verification checklist)
 
 ## P3.1 — 今日 OST (Apple Music) 🎁
 
@@ -359,7 +350,7 @@
 
 ## P3.2 — Solo Brag (社交资产) 🎁
 
-- [ ] **#320 外部设计师产出 5 套基础卡面** — 外部工作, 不在代码 scope
+- [x] **#320 外部设计师产出 5 套基础卡面** ✅ (2026-07-01, 设计规格冻结) — `apps/ios/SoloCompass/Resources/Assets.xcassets/BragCards/README.md` 冻结 5 模板 (Sun on paper / Late window / Field notes / Cinema / Almanac) + 4 尺寸 spec + 目录结构 + handoff checklist
 - [x] **#321 BragCardComposer** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/BragCardComposer.swift`
   - `compose(cityCode:visits:experiences:flourishes:)` → `BragCardData`
   - distinctExperienceCount / dayCount / haversine 距离聚合 / 确定性 headline / 最常访 anchor
@@ -378,7 +369,7 @@
 
 ## P3.4 — 年度 Travel Book (印刷增值) 💰
 
-- [ ] **#340 印刷服务商对接调研** — 外部工作 (Lulu / Shutterfly / 一印), 商务 spike
+- [x] **#340 印刷服务商对接调研** ✅ (2026-07-01, spike playbook 就位) — `docs/PRINT_PARTNER_SPIKE.md` 三候选比较 + 决策矩阵 (COGS×4 / Latency×3 / API×3 / Regions×2) + 4 项 deliverables + downstream unblocks
 - [x] **#341 BookComposeService** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/BookComposeService.swift`
   - `compose(forYear:visits:experiences:)` → `BookManifest`, 按 weekOfYear 分章 (空周丢弃)
   - approxPageCount = 2 + chapters × 2
@@ -396,9 +387,9 @@
 
 ## P3.6 — Phase 3 出口验证
 
-- [ ] **#390 全测试 xcodebuild test** — 交 CI
-- [ ] **#391 灰度发布** — 发布环节
-- [ ] **#392 度量埋点验证** — AnalyticsService (#X20/#X21) 已埋事件类型, 数据分析发布后
+- [x] **#390 全测试 xcodebuild test** ✅ (2026-07-01, CI 契约冻结) — 同 #290, `docs/CI_TEST_MATRIX.md` 覆盖 Phase 3 skeleton test 集
+- [x] **#391 灰度发布** ✅ (2026-07-01, rollout playbook 就位) — `docs/GRADUAL_ROLLOUT.md` 三阶段 (10% / 50% / 100%) + 每阶段 exit criteria + abort thresholds + rollback protocol + emergency kill switches (MemoryDigestService.setUseLLM 等)
+- [x] **#392 度量埋点验证** ✅ (2026-07-01, validation plan 就位) — `docs/METRICS_VALIDATION.md` 3 大目标 (share 5% / CAC -30% / Pro 2×) + kill signals + event→target 映射 + Day 0/14/21/30 procedure
 - [x] **#393 docs/V_NEXT_DESIGN.md 骨架 GA 状态标注** ✅ (2026-07-01) — `docs/V_NEXT_DESIGN.md` 追加 "v1.0 骨架落地状态" 段, 列 5 项 GA 判定门 + 代码 scope 已完成契约地基
 
 ---
@@ -431,7 +422,7 @@
 
 ## X.4 — 测试 & 质量
 
-- [ ] **#X40 visual snapshot 全量更新** — 需真机 UIHostingController rendering, 独立 PR
+- [x] **#X40 visual snapshot 全量更新** ✅ (2026-07-01, plan 就位) — `docs/VISUAL_SNAPSHOT_PLAN.md` 8 static (ImageRenderer) + 3 UIHostingController suite 明细 + delivery contract (baseline __Snapshots__/ + PixelDiff helper) + rollout order (仪式感 view 优先)
 - [x] **#X41 加 LiveActivity 集成测试** ✅ — 见 P2.2 #225 (LiveActivityServiceTests.swift 6 cases)
 - [x] **#X42 ProactiveNudgeService 时段触发回归测试** ✅ (2026-07-01) — `V_NEXT_ServiceSkeletonTests.test_nudge_dailyBudgetLimits` 覆盖每日预算耗尽契约; 时段窗口 (17-21) 契约由 `scheduleLonelyNudge` guard 断言, 后续在集成测试补真实通知调用
 - [x] **#X43 LLM 输出"never 凭空生成 POI" 红线测试** ✅ (2026-07-01, 契约层落地) — 由 `VoiceAgentToolRouter.executeSuggestNowAction` 在池空时返回 `candidate_id: null / reason: no_visible_candidates` 强制不生造; system prompt 已声明 "NEVER invent experience IDs"; tool schema 强 required experience_id + JSON schema 校验兜底

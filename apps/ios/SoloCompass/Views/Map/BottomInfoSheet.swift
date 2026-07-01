@@ -177,6 +177,33 @@ public enum BottomSheetDetent: CaseIterable {
 }
 
 // MARK: - BottomInfoSheet
+//
+// P1.3 #131 REFACTOR PLAN — deferred to an independent Phase 2 PR.
+//
+// The proposed change is to remove the middle "peek" layer so that
+// tapping a POI opens the ExperienceDetailView directly at `.mid`
+// detent, skipping the current peek → mid → full ladder. Reconnaissance
+// on the codebase surfaced six load-bearing sites the change would
+// break:
+//
+// 1. `peekHeight()` is externally referenced by `CompassMapView`'s
+//    floating-card safe-area inset. Removing peek forces re-tuning of
+//    the safe-area formula everywhere the card sits.
+// 2. `CardBottomInsetClearanceTest` explicitly asserts the peek height
+//    – it will red without a rewrite.
+// 3. The `-expandSheet` DEBUG launch argument assumes peek exists so
+//    UI automation (idb/XCUITest) can reach mid-detent cards.
+// 4. The 3-detent ladder (`nextHigher`/`nextLower`) math needs to be
+//    rewritten to 2 detents.
+// 5. Peek carries the R0 cold-start value: `PeekSummaryCard` +
+//    `NowHintRow` are the first frames a fresh user sees. Deleting
+//    peek loses the R1–R6 heat optimisation wins.
+// 6. 6+ existing regression tests depend on peek observing an active
+//    experience.
+//
+// The refactor MUST land as its own PR with a full re-test of the
+// affected surfaces, and MUST come with an explicit product decision
+// on how to preserve the R0 first-frame value elsewhere.
 
 public struct BottomInfoSheet<Content: View>: View {
     @State private var currentDetent: BottomSheetDetent = BottomInfoSheet.initialDetent

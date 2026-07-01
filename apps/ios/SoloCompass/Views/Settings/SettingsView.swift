@@ -3,6 +3,28 @@ import SwiftUI
 
 /// User preferences editor — travel style, category filters, max distance.
 /// Accessed via the map's navigation bar settings button.
+///
+/// P1.3 #130 REFACTOR PLAN — deferred to an independent Phase 2 PR
+/// because this file is >1500 lines and touches highly coupled surfaces
+/// (Companion opt-in with 5 NavigationLink descendants, Apple SignIn
+/// destructive flow, StoreKit + admin unlock, restart alerts).
+///
+/// Consolidation target: **14 sections → 6**.
+///
+/// - Merge "Travel Style" + "Preferred" + "Disliked" → **"你的喜好"**
+///   (reuses `PreferenceEditorView`).
+/// - Merge "Distance" + "Language" → **"地理"**.
+/// - Hide "AI Provider" + "Admin unlock" behind a 7-tap gesture on the
+///   About row.
+/// - Move "Stats" into the Archive tab (already lives there).
+/// - Fold "Companion opt-in" into the Notifications child page.
+/// - Fold "Export" into the Data child page.
+/// - Move "Filter Bar Customization" into an inline long-press on the
+///   FilterBar itself.
+///
+/// The refactor MUST land as its own PR — no unrelated feature work in
+/// the same diff, and it MUST re-verify the 4 UI regression tests
+/// enumerated in `docs/BETA_TEST_CHECKLIST.md §3`.
 public struct SettingsView: View {
     @Environment(UserPreferences.self) private var preferences
     @Environment(ExperienceService.self) private var experienceService
