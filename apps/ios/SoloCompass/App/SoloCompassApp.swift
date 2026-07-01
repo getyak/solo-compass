@@ -267,6 +267,12 @@ struct SoloCompassApp: App {
         locationService.notificationService = notificationService
         locationService.requestPermission()
 
+        // P1.1 #110: passive visit recorder. Chains onto LocationService's
+        // region enter/exit callbacks; the model container injection lets it
+        // write VisitRecord rows from a foreground geofence dwell.
+        VisitTrackingService.shared.setModelContainer(SoloCompassModelContainer.shared)
+        VisitTrackingService.shared.attach()
+
         // US-020: cold-start TTI must not block on a serial main-thread
         // init chain. Each piece of bootstrap below is independent — no
         // ordering dependency between pruning check-ins, wiring the

@@ -2037,4 +2037,128 @@ public final class AIService {
             updatedAt: now
         )
     }
+
+    // MARK: - P1.2 #122 Taste Profile
+
+    /// Deterministic on-device taste profile generator (P1.2 #122).
+    ///
+    /// Returns the embedding/descriptors the new `TasteProfile` model needs
+    /// to bootstrap a user from `OnboardingVibeStep` *without* a server hop.
+    /// Vision-LLM enrichment lives behind a feature flag we can flip on
+    /// later; the fallback here is the contract — onboarding must never
+    /// stall on an LLM round-trip or missing API key.
+    ///
+    /// Confidence grows with input richness — pure style picks land at 0.30,
+    /// adding photos and a free-form vibe nudges it toward 0.55. The real
+    /// 0.95 ceiling comes later from `TasteUpdateService` once 5+ visits
+    /// have refined the embedding.
+    public func generateTasteProfile(
+        photos: [Data],
+        style: UserPreferences.SoloTravelStyle?,
+        freeformVibe: String?
+    ) async -> (embedding: [Float], descriptors: [String], confidence: Double) {
+        let seed = Self.tasteSeed(
+            style: style,
+            photoCount: photos.count,
+            vibe: freeformVibe
+        )
+        let embedding = Self.deterministicEmbedding(seed: seed, dim: 64)
+        let descriptors = Self.descriptors(style: style, vibe: freeformVibe)
+        // Match the descriptor path's trim — a whitespace-only vibe contributes
+        // no descriptors, so it shouldn't bump confidence either.
+        let trimmedVibe = freeformVibe?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let confidence = Self.confidence(
+            photoCount: photos.count,
+            hasStyle: style != nil,
+            hasVibe: !(trimmedVibe?.isEmpty ?? true)
+        )
+        return (embedding, descriptors, confidence)
+    }
+
+    /// Hash the structured inputs to a single seed. Style/photoCount/vibe each
+    /// fold into the same accumulator so changing any one of them shifts the
+    /// whole embedding — exactly the property a user expects when they redo
+    /// onboarding with new answers.
+    static func tasteSeed(
+        style: UserPreferences.SoloTravelStyle?,
+        photoCount: Int,
+        vibe: String?
+    ) -> UInt64 {
+        var acc: UInt64 = 0xCAFE_BABE_DEAD_BEEF
+        if let style = style {
+            for byte in style.rawValue.utf8 {
+                acc &+= UInt64(byte)
+                acc &*= 0x100_0000_01B3 // FNV prime
+            }
+        }
+        acc ^= UInt64(truncatingIfNeeded: photoCount) &* 0x9E37_79B9_7F4A_7C15 as UInt64
+        if let vibe = vibe?.trimmingCharacters(in: .whitespacesAndNewlines), !vibe.isEmpty {
+            for byte in vibe.utf8 {
+                acc &+= UInt64(byte)
+                acc &*= 0x100_0000_01B3
+            }
+        }
+        return acc
+    }
+
+    /// SplitMix64 PRNG → Float vector in [-1, 1]. Self-contained so we don't
+    /// pull in GameplayKit just for a deterministic stream.
+    static func deterministicEmbedding(seed: UInt64, dim: Int) -> [Float] {
+        var state = seed == 0 ? 0xCAFE_BABE_DEAD_BEEF : seed
+        var out: [Float] = []
+        out.reserveCapacity(dim)
+        for _ in 0..<dim {
+            state &+= 0x9E37_79B9_7F4A_7C15
+            var z = state
+            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+            z = z ^ (z >> 31)
+            let normalized = Float(z & 0xFFFF_FFFF) / Float(UInt32.max)
+            out.append(normalized * 2 - 1) // map [0,1] → [-1, 1]
+        }
+        return out
+    }
+
+    /// Map style + vibe to a short descriptor list. Style provides the base
+    /// vocabulary; vibe contributes up to 2 trimmed lowercase words.
+    static func descriptors(
+        style: UserPreferences.SoloTravelStyle?,
+        vibe: String?
+    ) -> [String] {
+        var descriptors: [String] = []
+        if let style = style {
+            switch style {
+            case .explorer:      descriptors.append(contentsOf: ["curious", "wandering", "outdoor"])
+            case .worker:        descriptors.append(contentsOf: ["quiet", "wifi-friendly", "focused"])
+            case .foodie:        descriptors.append(contentsOf: ["culinary", "local", "lively"])
+            case .cultureSeeker: descriptors.append(contentsOf: ["historic", "arty", "reflective"])
+            }
+        }
+        if let vibe = vibe?.trimmingCharacters(in: .whitespacesAndNewlines), !vibe.isEmpty {
+            let extra = vibe
+                .lowercased()
+                .split(whereSeparator: { !$0.isLetter })
+                .prefix(2)
+                .map(String.init)
+            descriptors.append(contentsOf: extra)
+        }
+        if descriptors.isEmpty {
+            descriptors = ["unspecified"]
+        }
+        return Array(descriptors.prefix(5))
+    }
+
+    /// Confidence schedule — fallback floor 0.30, +0.05 per photo (cap 3),
+    /// +0.10 for a non-empty free-form vibe. Stays under the 0.95 ceiling
+    /// reserved for the TasteUpdateService accumulating from real visits.
+    static func confidence(
+        photoCount: Int,
+        hasStyle: Bool,
+        hasVibe: Bool
+    ) -> Double {
+        var c = hasStyle ? 0.30 : 0.20
+        c += min(0.15, 0.05 * Double(photoCount))
+        if hasVibe { c += 0.10 }
+        return min(0.55, c)
+    }
 }

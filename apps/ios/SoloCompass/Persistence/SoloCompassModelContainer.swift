@@ -212,7 +212,31 @@ public enum SoloCompassSchemaV1_8: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → … → v1.8. Each change is additive (an
+/// Schema v1.9 (v1.0 next-major) — adds the four foundation tables that
+/// underpin the v1.0 product pillars: `VisitRecord` (passive travel archive),
+/// `TasteProfile` (vibe embedding, singleton), `TimeCapsule` (the lock-in
+/// keystone — text/voice/photo messages-to-future-self), and
+/// `AgentMemorySnapshot` (cross-session memory injected into chat prompts).
+/// All four are net-new tables, so this is an additive lightweight migration —
+/// existing stores gain four empty tables and no existing data is rewritten.
+///
+/// `TasteProfile` and `AgentMemorySnapshot` carry singleton semantics enforced
+/// at the store layer (not the @Model layer); see each model's docstring.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_9: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 9, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_8.models + [
+            VisitRecord.self,
+            TasteProfile.self,
+            TimeCapsule.self,
+            AgentMemorySnapshot.self,
+        ]
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → … → v1.9. Each change is additive (an
 /// optional `Data?` column, new @Model tables) or a NOT NULL relaxation, so every
 /// hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
@@ -227,6 +251,7 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             SoloCompassSchemaV1_6.self,
             SoloCompassSchemaV1_7.self,
             SoloCompassSchemaV1_8.self,
+            SoloCompassSchemaV1_9.self,
         ]
     }
 
@@ -263,6 +288,10 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_7.self,
                 toVersion: SoloCompassSchemaV1_8.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_8.self,
+                toVersion: SoloCompassSchemaV1_9.self
             ),
         ]
     }
@@ -327,6 +356,11 @@ public enum SoloCompassModelContainer {
                 FriendshipRecord.self,
                 TravelerNoteRecord.self,
                 PlaceCorrectionRecord.self,
+                // v1.9 — next-major-version foundation tables (P1.0 #101-#104).
+                VisitRecord.self,
+                TasteProfile.self,
+                TimeCapsule.self,
+                AgentMemorySnapshot.self,
                 configurations: config
             )
             // Tag the SQLite store + WAL/SHM siblings with
@@ -385,6 +419,11 @@ public enum SoloCompassModelContainer {
                 FriendshipRecord.self,
                 TravelerNoteRecord.self,
                 PlaceCorrectionRecord.self,
+                // v1.9 — next-major-version foundation tables (P1.0 #101-#104).
+                VisitRecord.self,
+                TasteProfile.self,
+                TimeCapsule.self,
+                AgentMemorySnapshot.self,
                 configurations: config
             )
         } catch {

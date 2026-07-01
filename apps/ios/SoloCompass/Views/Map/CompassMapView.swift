@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import SwiftData
 import os
 
 enum MapStyleChoice: String, CaseIterable {
@@ -182,6 +183,11 @@ struct CompassMapContentView: View {
     // US-017: Companion map layer (default off)
     @State private var isCompanionLayerOn: Bool = false
     @State private var nearbyCells: [NearbyCell] = []
+
+    // P1.1 #112: passive visit halo. The model container is supplied at the
+    // WindowGroup level (SoloCompassApp.swift), so @Query just works here.
+    // Sort doesn't matter — we only need the experienceId set.
+    @Query private var visitRecords: [VisitRecord]
 
     // US-025: Routes section in BottomInfoSheet
     @State private var routeStore = RouteStore()
@@ -459,9 +465,18 @@ struct CompassMapContentView: View {
                     }
                 }
                 viewModel.checkForPendingCheckIns()
+                // P1.1 #112: seed the visited-id set so .footprinted halos
+                // light up on first render — without waiting for the next
+                // VisitRecord write to trigger the onChange below.
+                viewModel.attachVisitedExperienceIds(Set(visitRecords.map(\.experienceId)))
             }
             .onChange(of: locationService.currentLocation) { _, _ in
                 viewModel.bindToLocation()
+            }
+            // P1.1 #112: keep the halo set in sync as new VisitRecords land
+            // (the SwiftData @Query auto-refreshes; we re-publish to the vm).
+            .onChange(of: visitRecords.count) { _, _ in
+                viewModel.attachVisitedExperienceIds(Set(visitRecords.map(\.experienceId)))
             }
             // Beta-P1-H follow-up: LocationService.routeStopEntered fires when
             // the user crosses a 200m route-stop geofence, but until now nothing

@@ -2016,3 +2016,38 @@
 "map.style.standard" = "标准";
 "map.style.satellite" = "卫星";
 "map.style.hybrid" = "混合";
+
+/* Travel archive (P1.1 #111) */
+"archive.title" = "旅行档案";
+"archive.trip.days" = "天";
+"archive.trip.places" = "个地方";
+"archive.city.count" = "%d 次到访";
+"archive.codex.title" = "城市图鉴";
+"archive.codex.coming" = "走走逛逛,卡片自动解锁。Phase 3 上线。";
+"archive.empty.title" = "还没有任何足迹";
+"archive.empty.subtitle" = "去一个地方,停留 5 分钟以上,这里会悄悄记得。";
+
+/* MeSheet top-tab segmented (P1.3 #132) */
+"me.tab.archive" = "档案";
+"me.tab.me" = "我";
+
+/* Onboarding vibe step (P1.2 #120) */
+"onboarding.vibe.title" = "让我们看看你的氛围";
+"onboarding.vibe.subtitle" = "选 3 张照片代表你想要的下午——我们会悄悄调推荐。";
+"onboarding.vibe.field.label" = "或者用一句话描述";
+"onboarding.vibe.field.placeholder" = "安静的咖啡馆,慢慢的早晨…";
+"onboarding.vibe.continue" = "继续";
+"onboarding.vibe.skip" = "暂时跳过";
+"onboarding.vibe.skip.hint" = "跳过会让前两周推荐不那么精准——之后可以随时补。";
+
+/* Onboarding city step (P1.2 #121) */
+"city.cmi" = "清迈";
+"city.szx" = "深圳";
+"city.vte" = "万象";
+"city.sf" = "旧金山";
+"onboarding.city.title" = "你从哪里出发?";
+"onboarding.city.subtitle" = "选个城市,地图就在你真实所在的地方打开。";
+"onboarding.city.label" = "城市";
+"onboarding.city.afternoon.label" = "你想要怎样的一个下午?";
+"onboarding.city.afternoon.placeholder" = "安静的院子,慢慢的咖啡,没有压力……";
+"onboarding.city.continue" = "继续";
