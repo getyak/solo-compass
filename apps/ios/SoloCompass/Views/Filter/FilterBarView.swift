@@ -223,6 +223,19 @@ public struct FilterBarView: View {
                         .id("all")
                         favoritePill(isSelected: isFavoriteSelected, action: onSelectFavorite)
                             .id("saved")
+                        // P2.5 #250: Solo Agent chip — shortcut to
+                        // `suggest_now_action` tool. Hidden when no callback
+                        // is wired (previews / tests without ChatOrchestrator).
+                        if let onTap = onSoloAgentTap {
+                            soloAgentPill(action: onTap)
+                                .id("solo-agent")
+                        }
+                        // P2.5 #252: 我的菜 (my taste) toggle — flips
+                        // TasteProfile-ranked ordering on all results.
+                        if let onToggle = onTasteRankToggle {
+                            tasteRankPill(isOn: isTasteRankOn) { onToggle(!isTasteRankOn) }
+                                .id("taste-rank")
+                        }
                         ForEach(visibleCategories) { category in
                             iconPill(
                                 category: category,
@@ -578,6 +591,74 @@ public struct FilterBarView: View {
         .accessibilityLabel(Text(label))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
+    }
+
+    /// P2.5 #250 — Solo Agent shortcut pill. Tapping fires
+    /// `suggest_now_action` via the ChatOrchestrator. Uses `sun.max.fill` (a
+    /// verified SF Symbol — see `SFSymbolExistenceTests`) tinted in
+    /// `CT.sunGoldDeep` so it visually reads as the "concierge" affordance,
+    /// distinct from the neutral filter chips beside it.
+    private func soloAgentPill(action: @escaping () -> Void) -> some View {
+        let label = NSLocalizedString("filter.solo.agent", comment: "Solo Agent shortcut")
+        return Button {
+            #if canImport(UIKit)
+            Haptics.impact(.light)
+            #endif
+            action()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "sun.max.fill")
+                    .font(.caption.weight(.semibold))
+                Text(label)
+                    .font(.subheadline.weight(.medium))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundStyle(CT.sunGoldDeep)
+            .overlay(
+                Capsule().stroke(CT.sunGoldDeep.opacity(0.35), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(Text(label))
+        .accessibilityHint(Text(NSLocalizedString("filter.solo.agent.a11y",
+            comment: "Ask Solo Agent for a nearby suggestion")))
+    }
+
+    /// P2.5 #252 — 我的菜 (my taste) toggle. When on, results are re-ordered
+    /// by TasteProfile-embedding match instead of raw Solo-Score. Free-tier
+    /// available (hook for Pro's private curation later).
+    private func tasteRankPill(isOn: Bool, action: @escaping () -> Void) -> some View {
+        let label = NSLocalizedString("filter.taste.rank", comment: "My taste (taste-ranked ordering)")
+        return Button {
+            #if canImport(UIKit)
+            Haptics.selection()
+            #endif
+            action()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: isOn ? "sparkles" : "sparkle")
+                    .font(.caption.weight(.semibold))
+                Text(label)
+                    .font(.subheadline.weight(.medium))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundStyle(isOn ? .white : CT.fgPrimary)
+            .background {
+                if isOn {
+                    Capsule()
+                        .fill(CT.accent)
+                        .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
+                }
+            }
+            .overlay(
+                Capsule().stroke(isOn ? Color.clear : CT.borderDefault, lineWidth: 1)
+            )
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(Text(label))
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     private func iconPill(category: ExperienceCategory, isSelected: Bool, action: @escaping () -> Void) -> some View {

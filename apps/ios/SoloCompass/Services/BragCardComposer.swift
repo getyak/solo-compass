@@ -29,7 +29,7 @@ public final class BragCardComposer {
     /// Optional flourish counters the user self-reports at the end of a
     /// trip (Cups of coffee, smiles-at-strangers, etc). All optional so
     /// the composer never blocks on user input.
-    public struct Flourishes: Equatable, Codable, Sendable {
+    public struct Flourishes: Equatable, Hashable, Codable, Sendable {
         public var coffeesConsumed: Int?
         public var smilesShared: Int?
         public var stepsWalked: Int?
