@@ -529,4 +529,34 @@
 - ✅ ProactiveNudgeScheduler 3 nudge kind + 每日预算共享上限
 - ✅ 3 大仪式动画 spec (ANIMATION_SPEC.md): 胶囊接受 / 盲盒揭秘 / 城市签翻面
 - ✅ AnalyticsService 5 事件 + 4 漏斗事件, `AnalyticsValue` 类型级禁 PII
-- ✅ 忘记我: MemoryDigestService.forgetMe() 同事务清空 memory + taste 单例
+- ✅ 忘记我: MemoryDigestService.forgetMe() 同事务清空 memory + taste 单例; ForgetMeService 广义版清空 4 张个人签名表 (含 VisitRecord + TimeCapsule)
+- ✅ 灵动岛 3 新 Kind (soloAgentHint / timeCapsule / dailyOmen) + LiveActivityService 3 start 方法 + UserDefaults 日限流 ring
+- ✅ CT v2 3 场景 token (capsuleGlow / omenGold / blindboxAmber) 保留给仪式感界面
+- ✅ PRIVACY.md 4 表 on-device 承诺 + Forget me 按钮承诺 + parity check 兜底保证
+
+---
+
+## Phase 2 走查清单 (P2.7 #292)
+
+> Phase 2 出口验收: 落地度 + 内测 + 走查文档三件套。本清单勾住 P2.7 #290/#291/#292 的最终交付,任何未打勾项都是 Phase 2 收官阻塞。
+
+**代码落地** (verified 2026-07-01 recon):
+- P2.0 Chat Agent 升级 4/4 ✅ (#201 memory 注入 / #202 MemoryDigestService / #203 时段意识 / #204 ForgetMeService 广义版)
+- P2.1 Tool router 扩展 7/7 ✅ (7 新 tool handler + 17 case switch 全 exhaustive)
+- P2.2 灵动岛 3 新 Kind 6/6 ✅ (#220-#225 Kind + Widget + LiveActivityService + 单测 6/6)
+- P2.3 盲盒 Trip 4/5 (BlindboxOrchestrator + Launch + Recap + safetyPolicy 全在; IAP 消费待 App Store Connect 沙盒)
+- P2.4 时空胶囊 5/6 (long-press → CapsuleComposeView → CapsuleStore CRUD → CapsuleOpenView 仪式感全在; #244 年末回顾 nudge stub 待 Analytics 累积 30 天)
+- P2.5 FilterBar 收敛 2/3 (#250 SoloAgent 入口 + #252 我的菜 toggle 全在; #251 More drawer 待收敛动画调优)
+- P2.6 主动 nudge 5/5 ✅ (ProactiveNudgeScheduler + 3 nudge kind + NotificationsSettingsView + dailyBudget 共享上限)
+
+**内测清单** (P2.7 #291, 需真机):
+- [ ] 灵动岛限流真机验: 24h 3 次上限、跨日重置
+- [ ] 胶囊拆开动画: iPhone 12 mini + iPhone 17 Pro Max 两端粒子性能
+- [ ] 盲盒 fallback: 首次盲盒无 Pro 用户走 high-confidence + high-Solo-Score 池
+- [ ] Nudge 静音时段: 21:00 后不应触发 lonely-hour
+- [ ] Forget me 一键清空: 4 表原子 + UI 立即反映 (NotificationsSettingsView 挂点)
+
+**走查文档** (P2.7 #292, 本段即是):
+- ✅ 主线代码落地度对照表 (上)
+- ✅ 内测清单 (上)
+- ✅ v1.0 契约地基快照 (前段)

@@ -83,6 +83,7 @@
 		2C5A15DE0FCF30A3BCF1EB20 /* RouteItineraryBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B08F2AB2779C31E0870 /* RouteItineraryBridgeTests.swift */; };
 		2D379EAE0BCD339DB670EB5C /* CompanionPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431DC31A80132F719AFEE471 /* CompanionPost.swift */; };
 		2EC741296992D9D0A4F3077D /* RouteCardNowReasonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D31F422914779D9228B0278 /* RouteCardNowReasonTests.swift */; };
+		2ED16C7027DB2250262F5D3F /* ProactiveNudgeSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5780606CA08F571BF04ACE /* ProactiveNudgeSchedulerTests.swift */; };
 		2F00F874A1B50C113AC8CA55 /* ChatRedesignVisualTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB511F86191D72DBCBCB5A01 /* ChatRedesignVisualTest.swift */; };
 		2F532734CA53A554106DC739 /* SeedRoutesParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A644911E7B2824A7ABBA4D6F /* SeedRoutesParityTests.swift */; };
 		2FCF0785691C23EC3D6824C2 /* AmapPOIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06EEB9F3424112BC6141406F /* AmapPOIService.swift */; };
@@ -186,6 +187,7 @@
 		627258EB2A310E2C979787E8 /* SkeletonBadgeViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B418AD0352AC3402D6609E4C /* SkeletonBadgeViewTests.swift */; };
 		62BB74EC16B92899A9A6A44C /* ReverseGeocodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64BDF8B4B7CC82F3845C5068 /* ReverseGeocodeService.swift */; };
 		62DB07EFC7BCAF019D757805 /* IslandComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6B8684C2A7737474A182A /* IslandComponents.swift */; };
+		62F1F72C563FF41389050CEB /* NeverInventPOIRedLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE1E1FC2007C2AFC681D322A /* NeverInventPOIRedLineTests.swift */; };
 		63059F4B8EFE54C8E2699330 /* ItineraryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0AA21CD490B436012818D9D /* ItineraryDetailView.swift */; };
 		6368700EA304CE63F6CC9DB8 /* FriendsListRenderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACC6E2F5AF146A5D51579286 /* FriendsListRenderTest.swift */; };
 		63A45A90C2748A2729742C2F /* FilterBarScrollAffordanceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFED848E66BBE2A234AAA3CC /* FilterBarScrollAffordanceTest.swift */; };
@@ -940,6 +942,7 @@
 		DAF934B8ECFB7BB99C9C4791 /* RouteShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteShareCardView.swift; sourceTree = "<group>"; };
 		DB22C08A558D35B83043C83E /* AddFriendSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendSheet.swift; sourceTree = "<group>"; };
 		DC34BA3586B5607F63F86CC0 /* MarkerClosingSoonStyleTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkerClosingSoonStyleTest.swift; sourceTree = "<group>"; };
+		DE1E1FC2007C2AFC681D322A /* NeverInventPOIRedLineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeverInventPOIRedLineTests.swift; sourceTree = "<group>"; };
 		DE4515228D70D8804596299D /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		DEAFA6EDE9F7525F73612DFA /* EntitlementBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementBanner.swift; sourceTree = "<group>"; };
 		DFA9968E168052C0DC0E1B36 /* SFSymbolExistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SFSymbolExistenceTests.swift; sourceTree = "<group>"; };
@@ -1003,6 +1006,7 @@
 		FBBF77E10D341C38C093D22D /* CompanionBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionBlock.swift; sourceTree = "<group>"; };
 		FC366DD24E9174448BF06A2D /* CompassMapViewBodyTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompassMapViewBodyTypeTests.swift; sourceTree = "<group>"; };
 		FF401E3F554B9E2948A64ABC /* ForgetMeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgetMeService.swift; sourceTree = "<group>"; };
+		FF5780606CA08F571BF04ACE /* ProactiveNudgeSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveNudgeSchedulerTests.swift; sourceTree = "<group>"; };
 		FF753CC02718028B12891042 /* AdminService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminService.swift; sourceTree = "<group>"; };
 		FF7D0A1F8E3B8909F465194C /* ObsidianThemeContrastTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObsidianThemeContrastTest.swift; sourceTree = "<group>"; };
 		FFC5559A4AAF4E3CD77E38B6 /* MapViewModelCityCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModelCityCacheTests.swift; sourceTree = "<group>"; };
@@ -1249,6 +1253,7 @@
 				C64F0D1D5DC5D6850EE482C8 /* MyProfileEditPersistenceTests.swift */,
 				F7FB43528F45882868CCC203 /* NavigationLauncherTests.swift */,
 				994CE03CD59A3B638A7570AD /* NearbySkeletonRenderTest.swift */,
+				DE1E1FC2007C2AFC681D322A /* NeverInventPOIRedLineTests.swift */,
 				D08AFC181DB143A21E97A2ED /* NextBestExperienceClockTest.swift */,
 				CE95C3399C8616CBDE8B44BE /* NoProductionPrintTests.swift */,
 				49F36F9AC9ED0AE7E3F0E5EA /* NotificationServiceHandleURLTests.swift */,
@@ -1269,6 +1274,7 @@
 				2EFE48683692E4C00E0A2DC5 /* PressableButtonStyleHapticTest.swift */,
 				02AED8B43F4C4059CD005C0A /* PreviewCardLifecycleTests.swift */,
 				A267CD0DA0A8053B0AB072BC /* PrivacyAcknowledgementSheetSnapshotTest.swift */,
+				FF5780606CA08F571BF04ACE /* ProactiveNudgeSchedulerTests.swift */,
 				EBCD0D2CE7423C29CD668866 /* PublicAPIDocCommentTests.swift */,
 				14392FEFAE7F1E9596DCCA53 /* PushTokenServiceTests.swift */,
 				7A6F9AAA8749FA23B91F7C93 /* ReviewsServiceTests.swift */,
@@ -2121,6 +2127,7 @@
 				23C6D8147AA0FFE2C7F2DC32 /* MyProfileEditPersistenceTests.swift in Sources */,
 				D4193263CDA544D0995749B0 /* NavigationLauncherTests.swift in Sources */,
 				FB18E501DE07BA0D80A7F3C5 /* NearbySkeletonRenderTest.swift in Sources */,
+				62F1F72C563FF41389050CEB /* NeverInventPOIRedLineTests.swift in Sources */,
 				FC1E25FED02B767FBFB5EFE2 /* NextBestExperienceClockTest.swift in Sources */,
 				B42207A02271655D3498B723 /* NoProductionPrintTests.swift in Sources */,
 				2FDE17BACDABCE85552A022B /* NotificationServiceHandleURLTests.swift in Sources */,
@@ -2141,6 +2148,7 @@
 				7ACAAE18D2EFA3E880AD6744 /* PressableButtonStyleHapticTest.swift in Sources */,
 				9BEDEF446F2D554A7F1ABA6F /* PreviewCardLifecycleTests.swift in Sources */,
 				A5D3EF6A05AD9B93FA5ACD8A /* PrivacyAcknowledgementSheetSnapshotTest.swift in Sources */,
+				2ED16C7027DB2250262F5D3F /* ProactiveNudgeSchedulerTests.swift in Sources */,
 				79E4FD6C7F9522BDB1106F56 /* PublicAPIDocCommentTests.swift in Sources */,
 				7DBE0CBB02CBB7565A230BA4 /* PushTokenServiceTests.swift in Sources */,
 				49C48BE7027B3D172A0BD9B1 /* ReviewsServiceTests.swift in Sources */,

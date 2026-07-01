@@ -13,6 +13,10 @@
 "filter.all" = "全部";
 "filter.saved" = "收藏";
 "filter.saved.a11y" = "收藏，%d 个已收藏的体验";
+"filter.solo.agent" = "问 Solo";
+"filter.solo.agent.a11y" = "让 Solo 给一个附近的建议";
+"filter.taste.rank" = "我的菜";
+"filter.taste.rank.a11y" = "按你的口味画像排序结果";
 "filter.a11y.resultsAnnounce" = "%1$@：找到 %2$d 个";
 "filter.a11y.noResultsAnnounce" = "%@：无匹配结果";
 

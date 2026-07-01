@@ -882,7 +882,9 @@ public final class VoiceAgentToolRouter {
         // Reads on-device VisitRecord via preferences.visitHistory as a
         // v1 proxy — the SwiftData path lands in a follow-up. Returns a
         // deterministic aggregate the LLM can turn into a sentence.
-        let totalVisits = preferences.visitHistory.values.reduce(0, +)
+        // visitHistory is `[String: Date]` — one entry per Experience visited.
+        // Count entries (not sum-of-Date) as the v1 proxy for total visits.
+        let totalVisits = preferences.visitHistory.count
         return Self.successJSON([
             "period": period,
             "visit_count": totalVisits,

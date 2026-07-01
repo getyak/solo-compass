@@ -13,6 +13,10 @@
 "filter.all" = "All";
 "filter.saved" = "Saved";
 "filter.saved.a11y" = "Saved, %d favourited experiences";
+"filter.solo.agent" = "Ask Solo";
+"filter.solo.agent.a11y" = "Ask Solo Agent for a nearby suggestion";
+"filter.taste.rank" = "My taste";
+"filter.taste.rank.a11y" = "Sort results by your taste profile";
 "filter.pill.clear.hint" = "Double tap to clear this filter";
 "filter.now.a11y" = "Now, %d experiences at their best";
 "filter.matches.one" = "%d match";
