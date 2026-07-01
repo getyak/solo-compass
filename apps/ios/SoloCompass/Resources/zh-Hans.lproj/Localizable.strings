@@ -2121,6 +2121,31 @@
 "dev.api.placeholder" = "粘贴密钥以覆盖默认值";
 "dev.api.clear" = "清除覆盖";
 
+"dev.dataSource.header" = "数据源";
+"dev.dataSource.sectionFooter" = "选择编译进来的底图数据源、调节每个源拉取的地点数量，并测试各个 API 是否可连通。";
+"dev.dataSource.title" = "数据源";
+"dev.dataSource.count.short" = "%d 个地点";
+"dev.dataSource.amap.name" = "高德（AMap）";
+"dev.dataSource.openMap.name" = "OpenMap（OpenStreetMap）";
+"dev.dataSource.policy.header" = "数据源策略";
+"dev.dataSource.policy.label" = "编译使用";
+"dev.dataSource.policy.footer" = "\"两者\"按区域路由：中国大陆用高德，海外用 OpenMap，二者互为回退。单一数据源模式会把每次探索固定到一个源。";
+"dev.dataSource.policy.both" = "两者";
+"dev.dataSource.policy.amapOnly" = "仅高德";
+"dev.dataSource.policy.openMapOnly" = "仅 OpenMap";
+"dev.dataSource.fetchCount.header" = "周边拉取数量";
+"dev.dataSource.fetchCount.label" = "每个源的地点数";
+"dev.dataSource.fetchCount.footer" = "每次探索时，每个底图数据源拉取的周边地点数量。排序阶段仍只保留最优的少数几个；更大的候选池只会让排序更好。";
+"dev.dataSource.probe.header" = "连通性";
+"dev.dataSource.probe.footer" = "对每个数据源发起一次极小的真实请求，确认 API 可连通且密钥有效。";
+"dev.dataSource.probe.test" = "测试";
+"dev.dataSource.probe.disabled" = "已被当前策略停用";
+"dev.dataSource.probe.ok" = "正常 · %d 个地点";
+"dev.dataSource.probe.httpFailed" = "HTTP 错误 %d";
+"dev.dataSource.probe.networkFailed" = "网络错误：%@";
+"dev.dataSource.probe.badRequest" = "无法构建请求";
+"dev.dataSource.probe.noKey" = "未配置密钥";
+
 "dev.flags.header" = "功能开关";
 "dev.flags.footer" = "开启或关闭实验性功能。\"默认\"会恢复发布版本的取值。";
 "dev.flag.backendSync.title" = "后端同步";

@@ -82,14 +82,21 @@ public final class EnrichmentAgent {
         self.amapService = amapService
     }
 
-    /// Authoritative base-POI collection with China-vs-overseas routing.
+    /// Authoritative base-POI collection with China-vs-overseas routing, gated
+    /// by the developer `DataSourceSettings.policy`.
     ///
-    /// Inside mainland China (`CoordinateConverter.isInsideChinaMainland`) the
-    /// authoritative source is Amap, because OSM coverage there is ~9× thinner
-    /// than reality. Amap is best-effort: a missing key or any failure falls
-    /// back to Overpass so the China branch never crashes (ADR §3.3). Overseas
-    /// (and on fallback) Overpass remains authoritative. MapKit is always
-    /// folded in as a best-effort enrichment via the same coordinate-cell merge.
+    /// Under the default `.both` policy: inside mainland China
+    /// (`CoordinateConverter.isInsideChinaMainland`) the authoritative source is
+    /// Amap, because OSM coverage there is ~9× thinner than reality. Amap is
+    /// best-effort: a missing key or any failure falls back to Overpass so the
+    /// China branch never crashes (ADR §3.3). Overseas (and on fallback)
+    /// Overpass remains authoritative.
+    ///
+    /// The tester can pin the pipeline to a single provider (`.amapOnly` /
+    /// `.openMapOnly`); the disabled provider is then never queried and never
+    /// used as a fallback. MapKit is always folded in as a best-effort
+    /// enrichment via the same coordinate-cell merge, and is the final skeleton
+    /// fallback so the map is never blank.
     ///
     /// Returns WGS84 POIs regardless of source — Amap's GCJ-02 conversion is
     /// confined to `AmapPOIService`, so callers downstream see only WGS84.
@@ -105,110 +112,141 @@ public final class EnrichmentAgent {
             near: coordinate, radiusMeters: radiusMeters, category: category
         )
 
-        // DIAG: confirm CN-gate decision and amap service availability
+        let policy = DataSourceSettings.policy
         let inCN = CoordinateConverter.isInsideChinaMainland(coordinate)
-        Self.logger.info("🌐 inCN(\(coordinate.latitude, privacy: .public),\(coordinate.longitude, privacy: .public))=\(inCN, privacy: .public) amapService=\(self.amapService != nil, privacy: .public)")
-        if inCN, let amap = amapService {
-            // Amap is authoritative on the mainland; run it in parallel with
-            // MapKit. Best-effort: any failure resolves to [] so we fall through
-            // to Overpass without crashing (ADR §3.3).
-            // Capture amap fetch errors as a flag (rather than calling
-            // SentryService inside the nonisolated closure where it's
-            // unreachable on a main-actor-isolated static). The post-await
-            // block below — running back on EnrichmentAgent's @MainActor —
-            // is where we actually emit the breadcrumb.
-            async let amapResult: (pois: [OverpassService.POI], error: String?) = {
-                do {
-                    let pois = try await amap.fetchPOIs(
-                        near: coordinate, radiusMeters: radiusMeters, category: category
-                    )
-                    return (pois, nil)
-                } catch {
-                    Self.logger.error("Amap fetch failed, falling back to Overpass: \(String(describing: error), privacy: .public)")
-                    return ([], String(describing: error))
-                }
-            }()
-            let amapOutcome = await amapResult
-            let amapPois = amapOutcome.pois
-            if let errMsg = amapOutcome.error {
+        let amapAvailable = policy.allowsAmap && amapService != nil
+        let openMapAvailable = policy.allowsOpenMap
+        Self.logger.info("🌐 inCN(\(coordinate.latitude, privacy: .public),\(coordinate.longitude, privacy: .public))=\(inCN, privacy: .public) policy=\(policy.rawValue, privacy: .public) amap=\(amapAvailable, privacy: .public) openMap=\(openMapAvailable, privacy: .public)")
+
+        // Amap goes first inside China (authoritative there) OR whenever OpenMap
+        // is disabled and Amap is the only base we're allowed to use.
+        let amapFirst = amapAvailable && (inCN || !openMapAvailable)
+
+        if amapFirst, let amap = amapService {
+            let amapPois = await fetchAmapBase(
+                amap: amap, coordinate: coordinate, radiusMeters: radiusMeters, category: category
+            )
+            if !amapPois.isEmpty {
+                let mapKitPois = await mapKitTask
+                return FoursquareService.enrichMerge(base: amapPois, enrichment: mapKitPois)
+            }
+            // Amap yielded nothing. Fall back to OpenMap only if the policy still
+            // permits it — under `.amapOnly` we degrade straight to MapKit.
+            if !openMapAvailable {
+                return await mapKitTask
+            }
+            // else: fall through to the Overpass branch below.
+        }
+
+        // Overseas, China fallback, or `.openMapOnly`: Overpass is authoritative.
+        // Best-effort: if Overpass throws (timeout / 429 / decode), drop to
+        // MapKit-only results so the user still sees *something* on the map
+        // instead of an empty error state.
+        if openMapAvailable {
+            let overpassPois = await fetchOverpassBase(
+                coordinate: coordinate, radiusMeters: radiusMeters, category: category
+            )
+            let mapKitPois = await mapKitTask
+            if overpassPois.isEmpty {
+                // Overpass failed AND we want feedback: surface to Sentry so we
+                // can monitor Overpass mirror health from the dashboard.
                 SentryService.capture(
-                    message: "amap.fetch.failed",
+                    message: "overpass.fetch.empty",
                     level: .warning,
                     context: [
                         "lat": coordinate.latitude,
                         "lon": coordinate.longitude,
                         "radius_m": radiusMeters,
                         "category": category?.rawValue ?? "nil",
-                        "error": errMsg
+                        "mapkit_fallback_count": mapKitPois.count
                     ]
                 )
+                // MapKit alone is the skeleton — name + coords, no rich tags.
+                return mapKitPois
             }
-            if !amapPois.isEmpty {
-                // Transient enrichment channel (ADR §3.2 compliant): the count
-                // here is the surface area available to a future AIService
-                // prompt injection. Logged for observability — actual prompt
-                // wiring lives in a follow-up so synthesizeExperiences's
-                // signature stays stable for the hot path.
-                let enrichedCount = amapPois.filter { amap.transientEnrichments[$0.osmId] != nil }.count
-                Self.logger.info("✅ amap returned \(amapPois.count, privacy: .public) POIs (\(enrichedCount, privacy: .public) with transient rating/hours/tel/addr), using as base")
-                let mapKitPois = await mapKitTask
-                return FoursquareService.enrichMerge(base: amapPois, enrichment: mapKitPois)
-            }
-            // Empty Amap result (quota / no match / error): fall through to
-            // Overpass. `mapKitTask` is still in flight and consumed below.
-            // Surface the silent fallback — otherwise users on the mainland
-            // see Overpass data with no indication amap was even attempted.
-            Self.logger.warning("⚠️ amap returned 0 POIs at (\(coordinate.latitude, privacy: .public),\(coordinate.longitude, privacy: .public)) r=\(radiusMeters, privacy: .public)m — falling back to Overpass. Check AmapPOIService logs for infocode.")
-            if amapOutcome.error == nil {
-                // Only emit "empty" if we didn't already emit "failed" above.
-                SentryService.capture(
-                    message: "amap.fetch.empty",
-                    level: .info,
-                    context: [
-                        "lat": coordinate.latitude,
-                        "lon": coordinate.longitude,
-                        "radius_m": radiusMeters,
-                        "category": category?.rawValue ?? "nil"
-                    ]
-                )
-            }
+            return FoursquareService.enrichMerge(base: overpassPois, enrichment: mapKitPois)
         }
 
-        // Overseas, or China fallback: Overpass is authoritative.
-        // Best-effort: if Overpass throws (timeout / 429 / decode), drop to
-        // MapKit-only results so the user still sees *something* on the map
-        // instead of an empty error state. Without this fallback, a flaky
-        // Overpass mirror means "no places at all" instead of "fewer places".
-        async let overpassTask: [OverpassService.POI] = {
-            do {
-                return try await overpassService.fetchPOIs(
-                    near: coordinate, radiusMeters: radiusMeters, category: category
-                )
-            } catch {
-                Self.logger.error("Overpass fetch failed, falling back to MapKit-only: \(String(describing: error), privacy: .public)")
-                return []
-            }
-        }()
-        let overpassPois = await overpassTask
-        let mapKitPois = await mapKitTask
-        if overpassPois.isEmpty {
-            // Both Overpass failed AND we want feedback: surface to Sentry so
-            // we can monitor Overpass mirror health from the dashboard.
+        // No configured base source produced anything usable (e.g. `.amapOnly`
+        // with an empty Amap result). MapKit skeletons keep the map populated.
+        return await mapKitTask
+    }
+
+    /// Best-effort Amap base fetch: returns its WGS84 POIs, or `[]` on failure /
+    /// empty. Emits the same observability breadcrumbs (`amap.fetch.failed` /
+    /// `amap.fetch.empty`) the inline routing used to, from EnrichmentAgent's
+    /// @MainActor so `SentryService` is reachable.
+    private func fetchAmapBase(
+        amap: AmapPOIService,
+        coordinate: CLLocationCoordinate2D,
+        radiusMeters: Int,
+        category: ExperienceCategory?
+    ) async -> [OverpassService.POI] {
+        let outcome: (pois: [OverpassService.POI], error: String?)
+        do {
+            let pois = try await amap.fetchPOIs(
+                near: coordinate, radiusMeters: radiusMeters, category: category
+            )
+            outcome = (pois, nil)
+        } catch {
+            Self.logger.error("Amap fetch failed, falling back per policy: \(String(describing: error), privacy: .public)")
+            outcome = ([], String(describing: error))
+        }
+
+        if let errMsg = outcome.error {
             SentryService.capture(
-                message: "overpass.fetch.empty",
+                message: "amap.fetch.failed",
                 level: .warning,
                 context: [
                     "lat": coordinate.latitude,
                     "lon": coordinate.longitude,
                     "radius_m": radiusMeters,
                     "category": category?.rawValue ?? "nil",
-                    "mapkit_fallback_count": mapKitPois.count
+                    "error": errMsg
                 ]
             )
-            // MapKit alone is the skeleton — name + coords, no rich tags.
-            return mapKitPois
         }
-        return FoursquareService.enrichMerge(base: overpassPois, enrichment: mapKitPois)
+
+        if !outcome.pois.isEmpty {
+            // Transient enrichment channel (ADR §3.2 compliant): the count here
+            // is the surface area available to a future AIService prompt.
+            let enrichedCount = outcome.pois.filter { amap.transientEnrichments[$0.osmId] != nil }.count
+            Self.logger.info("✅ amap returned \(outcome.pois.count, privacy: .public) POIs (\(enrichedCount, privacy: .public) with transient rating/hours/tel/addr), using as base")
+            return outcome.pois
+        }
+
+        Self.logger.warning("⚠️ amap returned 0 POIs at (\(coordinate.latitude, privacy: .public),\(coordinate.longitude, privacy: .public)) r=\(radiusMeters, privacy: .public)m. Check AmapPOIService logs for infocode.")
+        if outcome.error == nil {
+            // Only emit "empty" if we didn't already emit "failed" above.
+            SentryService.capture(
+                message: "amap.fetch.empty",
+                level: .info,
+                context: [
+                    "lat": coordinate.latitude,
+                    "lon": coordinate.longitude,
+                    "radius_m": radiusMeters,
+                    "category": category?.rawValue ?? "nil"
+                ]
+            )
+        }
+        return []
+    }
+
+    /// Best-effort Overpass base fetch: returns its POIs, or `[]` on any failure
+    /// so the caller can degrade to MapKit skeletons.
+    private func fetchOverpassBase(
+        coordinate: CLLocationCoordinate2D,
+        radiusMeters: Int,
+        category: ExperienceCategory?
+    ) async -> [OverpassService.POI] {
+        do {
+            return try await overpassService.fetchPOIs(
+                near: coordinate, radiusMeters: radiusMeters, category: category
+            )
+        } catch {
+            Self.logger.error("Overpass fetch failed, falling back to MapKit-only: \(String(describing: error), privacy: .public)")
+            return []
+        }
     }
 
     /// Run the deep-dive enrichment for a coordinate. Returns synthesized

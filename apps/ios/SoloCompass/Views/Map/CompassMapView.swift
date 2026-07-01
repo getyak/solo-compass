@@ -305,7 +305,7 @@ struct CompassMapContentView: View {
             experienceService: experienceService,
             aiService: aiService,
             preferences: preferences,
-            overpassService: OverpassService(useSharedCache: true)
+            overpassService: OverpassService(maxResults: DataSourceSettings.poiFetchLimit, useSharedCache: true)
         )
         vm.attachSubscriptionService(subscriptionService)
         _viewModel = State(initialValue: vm)
