@@ -62,6 +62,19 @@ public final class MapViewModel {
         self.subscriptionService = service
     }
 
+    /// Set of experience ids the traveler has actually visited (passive
+    /// `VisitRecord`, P1.1 #112). Drives the gold-halo `.footprinted` marker
+    /// state on the map without us having to also write back into the
+    /// existing `passiveGpsHits30d` confidence signal.
+    public private(set) var visitedExperienceIds: Set<String> = []
+
+    /// Attach the set of visited experience ids — called after init from the
+    /// view layer, which owns the SwiftData query over `VisitRecord`. Pass
+    /// an empty set to clear the halo (e.g. when the Settings toggle is off).
+    public func attachVisitedExperienceIds(_ ids: Set<String>) {
+        self.visitedExperienceIds = ids
+    }
+
     /// True when the active entitlement should pass AI gates.
     /// Defaults to `true` when the subscription service hasn't been
     /// attached yet (tests / previews) so we don't accidentally lock
@@ -1457,6 +1470,13 @@ public final class MapViewModel {
         if experience.isBestNow(at: now) { return .bestNow }
         if let upcoming = minutesUntilBestTime(for: experience, from: now), upcoming > 0, upcoming <= 120 {
             return .upcoming(minutes: upcoming)
+        }
+        // P1.1 #112: a passive VisitRecord (5+ min dwell) earns the same
+        // gold-halo footprint treatment as the legacy passiveGpsHits30d
+        // signal, so the new Archive layer lights up without us having to
+        // back-fill the confidence struct.
+        if visitedExperienceIds.contains(experience.id) {
+            return .footprinted
         }
         if experience.confidence.signals.passiveGpsHits30d > 0 {
             return .footprinted

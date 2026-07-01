@@ -21,7 +21,26 @@ struct MeSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(UserPreferences.self) private var preferences
+    @Environment(\.modelContext) private var modelContext
     @State private var showingSettings = false
+    /// P1.3 #132: top-level archive/me segmented switch. Defaults to `.me`
+    /// so the existing entry-point UX is unchanged on first launch.
+    @State private var topTab: TopTab = .me
+
+    /// Two top-level sections inside MeSheet. Archive surfaces the new
+    /// Travel Archive (P1.1 #111); Me keeps the existing profile + social +
+    /// settings hub intact.
+    private enum TopTab: String, CaseIterable, Identifiable {
+        case archive
+        case me
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .archive: return NSLocalizedString("me.tab.archive", comment: "Top-tab label for travel archive")
+            case .me:      return NSLocalizedString("me.tab.me", comment: "Top-tab label for the personal hub")
+            }
+        }
+    }
     /// Platform role gate for the moderation entry. Refreshed on appear; the
     /// admin/moderator section only renders once `canModerate` is true.
     @State private var admin = AdminService.shared
@@ -37,7 +56,23 @@ struct MeSheet: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            List {
+            // P1.3 #132: archive | me segmented switch sits above the existing
+            // hub. The Me list is unchanged inside .me; Archive (P1.1 #111)
+            // takes the same NavigationStack slot in .archive.
+            VStack(spacing: 0) {
+                Picker("", selection: $topTab) {
+                    ForEach(TopTab.allCases) { tab in
+                        Text(tab.label).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+                if topTab == .archive {
+                    ArchiveView(modelContainer: modelContext.container)
+                } else {
+                    List {
                 Section {
                     // One-tap to edit profile — previously buried under
                     // Companion Hub → My Profile (3 taps). NavigationLink wraps
@@ -134,7 +169,9 @@ struct MeSheet: View {
                     }
                     .buttonStyle(.plain)
                 }
-            }
+                    } // close List
+                } // close else
+            } // close VStack
             .navigationTitle(NSLocalizedString("me.title", comment: "Personal hub title"))
             .navigationBarTitleDisplayMode(.inline)
             .task {

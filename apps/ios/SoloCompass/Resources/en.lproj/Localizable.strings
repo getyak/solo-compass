@@ -2006,3 +2006,38 @@
 "map.style.standard" = "Standard";
 "map.style.satellite" = "Satellite";
 "map.style.hybrid" = "Hybrid";
+
+/* Travel archive (P1.1 #111) */
+"archive.title" = "Travel Archive";
+"archive.trip.days" = "days";
+"archive.trip.places" = "places";
+"archive.city.count" = "%d visits";
+"archive.codex.title" = "City Codex";
+"archive.codex.coming" = "Unlock cards as you wander. Phase 3.";
+"archive.empty.title" = "No visits yet";
+"archive.empty.subtitle" = "Wander to a place and stay 5+ min — we'll quietly remember.";
+
+/* MeSheet top-tab segmented (P1.3 #132) */
+"me.tab.archive" = "Archive";
+"me.tab.me" = "Me";
+
+/* Onboarding vibe step (P1.2 #120) */
+"onboarding.vibe.title" = "Show us your vibe";
+"onboarding.vibe.subtitle" = "Pick 3 photos that feel like your kind of afternoon — we'll quietly tune your recommendations.";
+"onboarding.vibe.field.label" = "Or describe it in a sentence";
+"onboarding.vibe.field.placeholder" = "quiet cafés, slow mornings…";
+"onboarding.vibe.continue" = "Continue";
+"onboarding.vibe.skip" = "Skip for now";
+"onboarding.vibe.skip.hint" = "Skipping makes the first two weeks of suggestions less precise — you can come back later.";
+
+/* Onboarding city step (P1.2 #121) */
+"city.cmi" = "Chiang Mai";
+"city.szx" = "Shenzhen";
+"city.vte" = "Vientiane";
+"city.sf" = "San Francisco";
+"onboarding.city.title" = "Where do you start?";
+"onboarding.city.subtitle" = "Pick a city so the map opens where you actually are.";
+"onboarding.city.label" = "City";
+"onboarding.city.afternoon.label" = "What does your kind of afternoon look like?";
+"onboarding.city.afternoon.placeholder" = "Quiet courtyard, slow coffee, no pressure…";
+"onboarding.city.continue" = "Continue";

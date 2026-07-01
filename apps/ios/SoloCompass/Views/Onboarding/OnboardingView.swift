@@ -45,7 +45,9 @@ public struct OnboardingView: View {
     /// non-modal post-onboarding paywall, not repeated wall-of-trial popups).
     private static let onboardingPaywallSeenKey = "hasSeenOnboardingPaywall"
 
-    private static let totalSteps = 5
+    // P1.2: added two new steps after styleStep — vibe (#120) at index 4
+    // and city (#121) at index 5 — so the paywall step now sits at index 6.
+    private static let totalSteps = 7
 
     private var slideTransition: AnyTransition {
         reduceMotion
@@ -77,10 +79,18 @@ public struct OnboardingView: View {
                 styleStep
                     .transition(slideTransition)
                     .id(3)
+            case 4:
+                vibeStep
+                    .transition(slideTransition)
+                    .id(4)
+            case 5:
+                cityStep
+                    .transition(slideTransition)
+                    .id(5)
             default:
                 paywallStep
                     .transition(slideTransition)
-                    .id(4)
+                    .id(6)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -96,7 +106,7 @@ public struct OnboardingView: View {
     /// future onboarding re-entry doesn't re-pitch the trial.
     private var skipButton: some View {
         Button {
-            if step == 4 {
+            if step == 6 {
                 UserDefaults.standard.set(true, forKey: Self.onboardingPaywallSeenKey)
             }
             preferences.completeOnboarding()
@@ -389,16 +399,11 @@ public struct OnboardingView: View {
 
             VStack(spacing: 12) {
                 Button {
-                    // Onboarding-paywall gating: returning Pro users (or anyone
-                    // who already saw the trial pitch and dismissed it) skip the
-                    // paywall step entirely so re-entering onboarding via the
-                    // mid-flow recovery path doesn't feel like nagging.
-                    if shouldSkipOnboardingPaywall {
-                        preferences.completeOnboarding()
-                        onComplete()
-                    } else {
-                        withAnimation { step = 4 }
-                    }
+                    // P1.2: vibe (step 4) + city (step 5) come BEFORE any paywall
+                    // gating now, so styleStep always advances to vibe. The
+                    // "skip the paywall pitch" gate is consulted later, in the
+                    // city step's onContinue handler.
+                    withAnimation { step = 4 }
                 } label: {
                     Text(NSLocalizedString("onboarding.style.cta", comment: "Start exploring"))
                         .font(.headline)
@@ -410,12 +415,7 @@ public struct OnboardingView: View {
                 .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
 
                 Button {
-                    if shouldSkipOnboardingPaywall {
-                        preferences.completeOnboarding()
-                        onComplete()
-                    } else {
-                        withAnimation { step = 4 }
-                    }
+                    withAnimation { step = 4 }
                 } label: {
                     Text(NSLocalizedString("onboarding.style.skip", comment: "Decide later"))
                         .font(.subheadline)
@@ -455,6 +455,41 @@ public struct OnboardingView: View {
         UserDefaults.standard.set(true, forKey: Self.onboardingPaywallSeenKey)
         preferences.completeOnboarding()
         onComplete()
+    }
+
+    // MARK: - Step 4: Vibe (P1.2 #120)
+
+    /// Embed the standalone OnboardingVibeStep view inside the same step
+    /// chrome the rest of the flow uses. The step indicator runs at the
+    /// top; the embedded view owns the photo-picker + CTA + skip.
+    private var vibeStep: some View {
+        VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 24)
+            OnboardingVibeStep {
+                withAnimation { step = 5 }
+            }
+        }
+    }
+
+    // MARK: - Step 5: City + afternoon (P1.2 #121)
+
+    /// After city is picked, the user either lands on the paywall or — if the
+    /// onboarding paywall has already been seen this device — finishes the
+    /// whole flow directly. We never re-pitch the onboarding paywall.
+    private var cityStep: some View {
+        VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 24)
+            OnboardingCityStep {
+                if shouldSkipOnboardingPaywall {
+                    preferences.completeOnboarding()
+                    onComplete()
+                } else {
+                    withAnimation { step = 6 }
+                }
+            }
+        }
     }
 
     private var paywallStep: some View {
