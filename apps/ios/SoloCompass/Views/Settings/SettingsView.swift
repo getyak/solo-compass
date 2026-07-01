@@ -16,6 +16,13 @@ public struct SettingsView: View {
     var onDistanceCommitted: (() -> Void)?
 
     @State private var showingClearConfirm = false
+    // P2.0 #204: "Forget me" — wipes the AgentMemorySnapshot + TasteProfile
+    // singletons so the Chat Agent no longer greets the user by past habits.
+    // Separate confirm from the broader `showingClearConfirm` because this
+    // one specifically targets AI-personalisation state, not routes /
+    // favorites / preferences.
+    @State private var showingForgetMeConfirm = false
+    @State private var forgetMeToast: String?
     @State private var restoreToast: String?
     @State private var restoreInFlight = false
     @State private var showingLanguageRestartAlert = false
@@ -526,6 +533,39 @@ public struct SettingsView: View {
             } message: {
                 Text(NSLocalizedString("settings.clearData.confirm.message", comment: "Clear all data message"))
             }
+
+            // P2.0 #204: "Forget me" — narrower than Clear All Data. Wipes
+            // the AgentMemorySnapshot + TasteProfile singletons so the
+            // Chat Agent forgets any accumulated personalisation. Routes,
+            // favorites, and preferences stay intact. Deliberately placed
+            // AFTER Clear All Data because it's the softer of two nukes.
+            Button(role: .destructive) {
+                showingForgetMeConfirm = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.orange, in: RoundedRectangle(cornerRadius: 7))
+                    Text(NSLocalizedString("settings.forgetMe", comment: "Forget me"))
+                }
+            }
+            .confirmationDialog(
+                NSLocalizedString("settings.forgetMe.confirm.title", comment: "Forget me confirm title"),
+                isPresented: $showingForgetMeConfirm,
+                titleVisibility: .visible
+            ) {
+                Button(NSLocalizedString("settings.forgetMe.confirm.action", comment: "Forget me action"), role: .destructive) {
+                    let ok = MemoryDigestService.shared.forgetMe()
+                    forgetMeToast = ok
+                        ? NSLocalizedString("settings.forgetMe.toast.success", comment: "Forget me success")
+                        : NSLocalizedString("settings.forgetMe.toast.failure", comment: "Forget me failure")
+                }
+                Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+            } message: {
+                Text(NSLocalizedString("settings.forgetMe.confirm.message", comment: "Forget me message"))
+            }
         } header: {
             settingsSectionHeader("externaldrive", label: NSLocalizedString("settings.data.header", comment: "Data section header"))
         }
@@ -541,6 +581,19 @@ public struct SettingsView: View {
             actions: {
                 Button(NSLocalizedString("common.ok", comment: "OK")) {
                     appleSignInToast = nil
+                }
+            }
+        )
+        // P2.0 #204: forget-me result toast. Same writable-binding pattern.
+        .alert(
+            forgetMeToast ?? "",
+            isPresented: Binding(
+                get: { forgetMeToast != nil },
+                set: { if !$0 { forgetMeToast = nil } }
+            ),
+            actions: {
+                Button(NSLocalizedString("common.ok", comment: "OK")) {
+                    forgetMeToast = nil
                 }
             }
         )

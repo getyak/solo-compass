@@ -2041,3 +2041,11 @@
 "onboarding.city.afternoon.label" = "What does your kind of afternoon look like?";
 "onboarding.city.afternoon.placeholder" = "Quiet courtyard, slow coffee, no pressure…";
 "onboarding.city.continue" = "Continue";
+
+/* Settings — Forget me (P2.0 #204) */
+"settings.forgetMe" = "Forget me";
+"settings.forgetMe.confirm.title" = "Forget your taste and memory?";
+"settings.forgetMe.confirm.message" = "Clears the on-device taste profile and everything the Solo Agent remembers about you. Your favorites, routes, and preferences stay intact.";
+"settings.forgetMe.confirm.action" = "Forget me";
+"settings.forgetMe.toast.success" = "Done — the agent will start fresh next time you chat.";
+"settings.forgetMe.toast.failure" = "Couldn't clear right now. Try again in a moment.";

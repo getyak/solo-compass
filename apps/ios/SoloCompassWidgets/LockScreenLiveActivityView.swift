@@ -34,6 +34,12 @@ struct LockScreenLiveActivityView: View {
             IslandIconTile(systemName: "person.2.fill", size: 38)
         case .compile:
             IslandIconTile(systemName: "sparkles", size: 38)
+        case .soloAgentHint:
+            IslandIconTile(systemName: "sparkle", size: 38)
+        case .timeCapsule:
+            IslandIconTile(systemName: "hourglass", size: 38)
+        case .dailyOmen:
+            IslandIconTile(systemName: "sun.max.fill", size: 38)
         }
     }
 
@@ -54,10 +60,13 @@ struct LockScreenLiveActivityView: View {
 
     private var titleText: String {
         switch kind {
-        case .route:     return state.routeTitle
-        case .countdown: return state.groupTitle
-        case .recording: return "正在录制语音 signal"
-        case .compile:   return state.compileTitle
+        case .route:          return state.routeTitle
+        case .countdown:      return state.groupTitle
+        case .recording:      return "正在录制语音 signal"
+        case .compile:        return state.compileTitle
+        case .soloAgentHint:  return state.hintText.isEmpty ? "Solo 有个建议" : state.hintText
+        case .timeCapsule:    return state.capsulePreview.isEmpty ? "有一个胶囊在等你" : state.capsulePreview
+        case .dailyOmen:      return state.omenLine.isEmpty ? "今日的城市签" : state.omenLine
         }
     }
 
@@ -113,6 +122,27 @@ struct LockScreenLiveActivityView: View {
                 .font(.islandMono(11.5, .medium)).textCase(.uppercase)
                 .foregroundStyle(IP.cream(0.5))
                 .lineLimit(1)
+        case .soloAgentHint:
+            if !state.hintAnchorName.isEmpty {
+                Label(state.hintAnchorName, systemImage: "mappin.and.ellipse")
+                    .font(.islandMono(11))
+                    .foregroundStyle(IP.cream(0.5))
+                    .lineLimit(1)
+            }
+        case .timeCapsule:
+            if !state.capsuleAnchorName.isEmpty {
+                Label(state.capsuleAnchorName, systemImage: "hourglass")
+                    .font(.islandMono(11))
+                    .foregroundStyle(IP.cream(0.5))
+                    .lineLimit(1)
+            }
+        case .dailyOmen:
+            if !state.omenMicroTask.isEmpty {
+                Label(state.omenMicroTask, systemImage: "checkmark.circle")
+                    .font(.islandMono(11))
+                    .foregroundStyle(IP.cream(0.5))
+                    .lineLimit(1)
+            }
         }
     }
 
@@ -137,6 +167,9 @@ struct LockScreenLiveActivityView: View {
                 .foregroundStyle(IP.cream)
         case .compile:
             IslandCompileDots()
+        case .soloAgentHint, .timeCapsule, .dailyOmen:
+            // Passive one-shot activities have no ticking number on the trailing edge.
+            EmptyView()
         }
     }
 }

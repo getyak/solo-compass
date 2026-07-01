@@ -70,10 +70,13 @@ private struct ExpandedLeading: View {
     let kind: SoloCompassActivityAttributes.Kind
     var body: some View {
         switch kind {
-        case .route:     IslandIconTile(systemName: "location.north.circle.fill")
-        case .countdown: IslandIconTile(systemName: "person.2.fill")
-        case .recording: IslandIconTile(systemName: "mic.fill", fill: IP.recTile, tint: IP.rec)
-        case .compile:   IslandIconTile(systemName: "sparkles")
+        case .route:          IslandIconTile(systemName: "location.north.circle.fill")
+        case .countdown:      IslandIconTile(systemName: "person.2.fill")
+        case .recording:      IslandIconTile(systemName: "mic.fill", fill: IP.recTile, tint: IP.rec)
+        case .compile:        IslandIconTile(systemName: "sparkles")
+        case .soloAgentHint:  IslandIconTile(systemName: "sparkle")
+        case .timeCapsule:    IslandIconTile(systemName: "hourglass")
+        case .dailyOmen:      IslandIconTile(systemName: "sun.max.fill")
         }
     }
 }
@@ -83,10 +86,13 @@ private struct ExpandedTrailing: View {
     let state: SoloCompassActivityState
     var body: some View {
         switch kind {
-        case .route:     IslandPill(text: "\(state.currentStopIndex) / \(state.totalStops) 站")
-        case .countdown: CountdownPill(date: state.departureDate)
-        case .recording: RecPill(start: state.recordingStartDate)
-        case .compile:   IslandCompileDots()
+        case .route:          IslandPill(text: "\(state.currentStopIndex) / \(state.totalStops) 站")
+        case .countdown:      CountdownPill(date: state.departureDate)
+        case .recording:      RecPill(start: state.recordingStartDate)
+        case .compile:        IslandCompileDots()
+        case .soloAgentHint:  IslandPill(text: "建议")
+        case .timeCapsule:    IslandPill(text: "胶囊")
+        case .dailyOmen:      IslandPill(text: "今日签")
         }
     }
 }
@@ -104,6 +110,18 @@ private struct ExpandedCenter: View {
             RecordingTitle(locality: state.recordingLocality)
         case .compile:
             ExpandedTitle(title: state.compileTitle, sub: state.compileSubtitle)
+        case .soloAgentHint:
+            ExpandedTitle(title: state.hintText.isEmpty ? "Solo 有个建议" : state.hintText,
+                          sub: state.hintAnchorName,
+                          subIcon: "sparkle")
+        case .timeCapsule:
+            ExpandedTitle(title: state.capsulePreview.isEmpty ? "有一个胶囊在等你" : state.capsulePreview,
+                          sub: state.capsuleAnchorName,
+                          subIcon: "hourglass")
+        case .dailyOmen:
+            ExpandedTitle(title: state.omenLine.isEmpty ? "今日的城市签" : state.omenLine,
+                          sub: state.omenMicroTask,
+                          subIcon: "checkmark.circle")
         }
     }
 }
@@ -123,6 +141,10 @@ private struct ExpandedBottom: View {
         case .compile:
             CompileSkeleton(progress: state.compileProgress)
                 .padding(.top, 6)
+        case .soloAgentHint, .timeCapsule, .dailyOmen:
+            // Passive one-shot activities: title + subtitle already carry the payload.
+            // No bottom drawer to avoid the island growing taller than needed.
+            EmptyView()
         }
     }
 }
@@ -200,6 +222,18 @@ private struct CompactLeading: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(IP.sunGold)
+        case .soloAgentHint:
+            Image(systemName: "sparkle")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(IP.sunGold)
+        case .timeCapsule:
+            Image(systemName: "hourglass")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(IP.sunGoldSoft)
+        case .dailyOmen:
+            Image(systemName: "sun.max.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(IP.sunGold)
         }
     }
 }
@@ -225,6 +259,12 @@ private struct CompactTrailing: View {
                 .foregroundStyle(IP.cream)
         case .compile:
             IslandCompileDots()
+        case .soloAgentHint:
+            Text("Solo").font(.islandMono(11, .medium)).foregroundStyle(IP.sunGoldSoft)
+        case .timeCapsule:
+            Text("拆开").font(.islandMono(11, .medium)).foregroundStyle(IP.sunGoldSoft)
+        case .dailyOmen:
+            Text("今日").font(.islandMono(11, .medium)).foregroundStyle(IP.sunGoldSoft)
         }
     }
 }
@@ -243,6 +283,12 @@ private struct MinimalGlyph: View {
             Circle().fill(IP.rec).frame(width: 9, height: 9)
         case .compile:
             Image(systemName: "sparkles").foregroundStyle(IP.sunGold)
+        case .soloAgentHint:
+            Image(systemName: "sparkle").foregroundStyle(IP.sunGold)
+        case .timeCapsule:
+            Image(systemName: "hourglass").foregroundStyle(IP.sunGoldSoft)
+        case .dailyOmen:
+            Image(systemName: "sun.max.fill").foregroundStyle(IP.sunGold)
         }
     }
 }

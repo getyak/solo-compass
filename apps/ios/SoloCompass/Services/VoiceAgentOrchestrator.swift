@@ -33,6 +33,17 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// into the system prompt before each session starts.
     private let contextManager: (any ContextManager)?
 
+    /// P2.0 #201: optional MemoryDigestService — when set, the singleton
+    /// `AgentMemorySnapshot` is injected into every fresh system prompt so
+    /// the agent opens each session with "we've met before" context
+    /// (last trip city, rolling summary, recent chat digest).
+    ///
+    /// P2.0 #202: also invoked from `persistConversation` after each
+    /// completed turn to update the on-device snapshot. Both hooks are
+    /// no-ops when the service is nil so tests can construct an
+    /// orchestrator without SwiftData.
+    private let memoryDigest: MemoryDigestService?
+
     // MARK: - State
 
     public let id = UUID()
@@ -126,13 +137,15 @@ public final class VoiceAgentOrchestrator: Identifiable {
         mapViewModel: MapViewModel,
         preferences: UserPreferences,
         contextManager: (any ContextManager)? = nil,
-        historyStore: ChatHistoryStore? = nil
+        historyStore: ChatHistoryStore? = nil,
+        memoryDigest: MemoryDigestService? = nil
     ) {
         self.aiService = aiService
         self.voiceService = voiceService
         self.mapViewModel = mapViewModel
         self.contextManager = contextManager
         self.historyStore = historyStore
+        self.memoryDigest = memoryDigest
         self.toolRouter = VoiceAgentToolRouter(
             mapViewModel: mapViewModel,
             preferences: preferences,
@@ -144,6 +157,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// Persist the current conversation snapshot (no-op when no store is wired
     /// or there's nothing meaningful yet). Idempotent upsert under
     /// `persistedConversationId`. Called after each completed turn and on close.
+    ///
+    /// P2.0 #202: also fires an async `MemoryDigestService.digestConversation`
+    /// so the singleton `AgentMemorySnapshot` stays fresh. The digest runs
+    /// off-thread and does not block the caller; it re-reads
+    /// `session.messages` from the main actor.
     public func persistConversation() {
         guard let historyStore else { return }
         let wrote = historyStore.saveSession(
@@ -159,6 +177,20 @@ public final class VoiceAgentOrchestrator: Identifiable {
                 .recentSessions(limit: 1)
                 .first(where: { $0.id == persistedConversationId })?
                 .createdAt
+        }
+
+        // P2.0 #202: fire-and-forget digest update. Only kicks in when at
+        // least one user turn exists so we don't churn the snapshot on
+        // stub conversations.
+        if let digest = memoryDigest {
+            let snapshotMessages = session.messages
+            let hasUserTurn = snapshotMessages.contains { $0.role == .user }
+            if hasUserTurn {
+                let cityCode = scopedExperience?.location.cityCode
+                Task { @MainActor in
+                    await digest.digestConversation(snapshotMessages, cityCode: cityCode)
+                }
+            }
         }
     }
 
@@ -754,6 +786,30 @@ public final class VoiceAgentOrchestrator: Identifiable {
             }
         }
 
+        // P2.0 #201: inject the singleton AgentMemorySnapshot so the agent
+        // opens each session already knowing the user. Empty fields are
+        // suppressed inside `systemPromptBlock()` so a cold-start user
+        // sees no noise. Block header intentionally short — the field
+        // labels inside carry meaning.
+        var memoryBlock = ""
+        if let digest = memoryDigest, let snap = digest.currentSnapshot() {
+            let body = snap.systemPromptBlock()
+            if !body.isEmpty {
+                memoryBlock = """
+
+
+                AGENT MEMORY (what you remember about this user):
+                \(body)
+                """
+            }
+        }
+
+        // P2.0 #203: time-of-day + day-of-week awareness. Injected once
+        // per session seed; `prependContextRefresh` keeps mid-session
+        // hour-of-day fresh on every user turn. Static so tests can
+        // pin a fixed reference date.
+        let temporalBlock = Self.temporalContextBlock(now: Date())
+
         // US-002/US-003: when scoped to a specific experience (per-card chat),
         // inject a focused <experience_context> block so the model anchors
         // its answers to that place. When `experience` is `nil`, the chat
@@ -763,7 +819,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
         return """
         You are Solo Compass, a warm and knowledgeable travel companion for solo travelers.
-        The user is at approximately (\(String(format: "%.4f", coord.latitude)), \(String(format: "%.4f", coord.longitude))).\(contextBlock)\(experienceBlock)
+        The user is at approximately (\(String(format: "%.4f", coord.latitude)), \(String(format: "%.4f", coord.longitude))).\(contextBlock)\(memoryBlock)\(temporalBlock)\(experienceBlock)
 
         CURRENT VISIBLE EXPERIENCES (use ONLY these IDs when calling tools):
         \(visibleSummary)
@@ -797,6 +853,49 @@ public final class VoiceAgentOrchestrator: Identifiable {
         - Any place you recommend by name MUST be tagged immediately after the name with [exp:<id>] using an id from CURRENT VISIBLE EXPERIENCES or from a tool result. Example: "The east-facing wat at Wat Phra Singh [exp:cmi-wat-phra-singh] catches the morning light."
         - If you do NOT have a backing id for a claim, prefix the sentence with "Guess —" so the user knows it is a hunch rather than something Solo Compass actually has in its index. NEVER fabricate an id.
         - Do not over-tag: tag a place only once per reply, at first mention. Conversation flow comes first.
+        """
+    }
+
+    /// P2.0 #203: emit a compact temporal context block. Puts hour-band,
+    /// weekday, and a natural-language greeting hint into the prompt so
+    /// the agent's opening lines match the moment — morning gets
+    /// "今天想做什么", evening gets "要不要去坐一会". Buckets:
+    /// 05-11 morning · 11-17 afternoon · 17-21 evening · 21-05 night.
+    /// The greeting hint is intentionally provided in the SAME language
+    /// selection rules the agent already follows: neutral English tokens
+    /// so the model chooses tone per user language rather than being
+    /// forced into one.
+    static func temporalContextBlock(now: Date, calendar: Calendar = Calendar.current) -> String {
+        let hour = calendar.component(.hour, from: now)
+        let weekday = calendar.component(.weekday, from: now) // 1=Sun...7=Sat
+        let weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        let weekdayIndex = weekday - 1
+        let weekdayName = (0..<weekdayNames.count).contains(weekdayIndex) ? weekdayNames[weekdayIndex] : "?"
+
+        let band: String
+        let toneHint: String
+        switch hour {
+        case 5..<11:
+            band = "morning"
+            toneHint = "Open with 'what do you want to do today'-style energy — the day is new."
+        case 11..<17:
+            band = "afternoon"
+            toneHint = "Assume the user is mid-day and already moving; suggest a break or a next stop."
+        case 17..<21:
+            band = "evening"
+            toneHint = "Softer, wind-down tone. 'Want to go sit somewhere for a bit?' fits."
+        default:
+            band = "night"
+            toneHint = "Late hours — favour a quiet neighborhood pick over a big outing."
+        }
+
+        return """
+
+
+        TEMPORAL CONTEXT:
+        - Current time-of-day: \(band) (local hour \(String(format: "%02d", hour)))
+        - Weekday: \(weekdayName)
+        - Tone hint: \(toneHint)
         """
     }
 

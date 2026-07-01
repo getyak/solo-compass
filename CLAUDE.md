@@ -11,10 +11,10 @@ Solo Compass: a map-first companion app for solo travelers. The core unit is `Ex
 | Layer           | Choice                                               | Notes                                                               |
 | --------------- | ---------------------------------------------------- | ------------------------------------------------------------------- |
 | Package manager | **pnpm 9.12.0** workspaces + **turbo**               | `engines.node >=20`. iOS app is **not** a workspace member          |
-| TypeScript      | `strict: true`, `noUncheckedIndexedAccess: true`     | Don't relax. `interface` for object shapes, `type` for unions       |
-| IDs             | **Branded types** (`UserId`, `ExperienceId`)         | Never plain `string`                                                |
-| Geo coords      | `[longitude, latitude]` (GeoJSON / Mapbox / PostGIS) | Convert at the boundary when integrating Google APIs (`[lat, lng]`) |
-| Time            | ISO 8601 UTC at storage; local at display            | `bestTimes` uses 0–23 hour ints in the **experience's** local time  |
+| TypeScript      | `strict: true`, `noUncheckedIndexedAccess: true`     | `interface` for object shapes, `type` for unions                    |
+| IDs             | Branded types (`UserId`, `ExperienceId`)             |                                                                     |
+| Geo coords      | `[longitude, latitude]` (GeoJSON / Mapbox / PostGIS) | Google APIs use `[lat, lng]`                                        |
+| Time            | ISO 8601 UTC at storage; local at display            | `bestTimes` uses 0–23 hour ints in the experience's local time      |
 | Commits         | Conventional Commits, lowercase scope                | See `CONTRIBUTING.md`                                               |
 
 ### Apps & Packages
@@ -35,7 +35,7 @@ packages/
 | Layer        | Choice                                                       | Notes                                                                                                                                                |
 | ------------ | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Platform     | **iOS 17.0+**, Swift 5.10                                    | Single Xcode target `SoloCompass.app`. SwiftPM deps kept minimal: `supabase-swift` (sync backend), `sentry-cocoa` (crash & error tracking)           |
-| Project gen  | **xcodegen** from `apps/ios/project.yml`                     | Regenerate after editing the yml; don't hand-edit `.xcodeproj`                                                                                       |
+| Project gen  | **xcodegen** from `apps/ios/project.yml`                     | Regenerate after editing the yml                                                                                                                     |
 | UI           | SwiftUI + **MapKit**                                         | `CompassMapView` is the root — no tabs, no drawer                                                                                                    |
 | State        | `@Observable` + `@MainActor` services                        | `SWIFT_STRICT_CONCURRENCY: complete` is on                                                                                                           |
 | Architecture | MVVM                                                         | `Views/{Map,Experience,Filter,Shared}` / `Models/` / `Services/` / `ViewModels/`                                                                     |
@@ -43,7 +43,7 @@ packages/
 | Location     | `CLLocationManager` + `CLCircularRegion` (200m, ≤20 regions) | `LocationService.shared`                                                                                                                             |
 | AI           | Anthropic Messages API direct                                | `AIService.swift`, model `claude-opus-4-7`, key from `Secrets.plist` or `ANTHROPIC_API_KEY` env. Falls back to Solo-Score ranking when key is absent |
 | Seed data    | `Resources/JSON/seed_experiences.json` (bundle)              | Falls back to `ExperienceService.hardcodedSeed` for previews/tests                                                                                   |
-| Localization | `NSLocalizedString` from day 1                               | All user strings in `Resources/en.lproj/Localizable.strings`                                                                                         |
+| Localization | `NSLocalizedString`                                          | User strings live in `Resources/en.lproj/Localizable.strings`                                                                                        |
 | Telemetry    | **sentry-cocoa** via SwiftPM                                 | `SentryService.bootstrap()` in `SoloCompassApp.init`; DSN from `Secrets.sentryDSN` (build-time inject); empty DSN → SDK never starts (no-op)         |
 
 ## Project Structure
@@ -68,22 +68,6 @@ solo-compass/
     seed-load.ts            Seed loader
   docs/            PRODUCT_BRIEF, PHASES
 ```
-
-## Coding Conventions
-
-### TypeScript / Web / Bot
-
-- Don't disable `strict` or `noUncheckedIndexedAccess`
-- Branded types for all IDs
-- Coords are `[lon, lat]` — never mix conventions inside one module
-
-### Swift / iOS
-
-- `@MainActor final class` for services and view models
-- `guard let` / `throws` — no force-unwraps in production paths
-- SwiftUI `#Preview` for every view
-- ViewModels and Services should have unit tests (`apps/ios/SoloCompass/Tests/`)
-- All user-facing strings via `NSLocalizedString`
 
 ## Useful Commands
 
@@ -118,20 +102,13 @@ cd scripts/ralph && ./ralph.sh --tool claude 12
 
 ## Testing
 
-**iOS**: XCTest target `SoloCompassTests` (default sim: iPhone 17 Pro, iOS latest). Always start the Simulator in the background — never let it occupy the foreground terminal.
+**iOS**: XCTest target `SoloCompassTests` (default sim: iPhone 17 Pro, iOS latest).
 
 **TS**: per-package `pnpm test` via turbo.
 
-Before marking a task complete:
-
-1. Build affected target (`pnpm typecheck` for TS, `xcodebuild build` for iOS)
-2. Run the relevant tests
-3. For schema changes touching `packages/core/src/experience.ts`, run `pnpm parity:check`
-4. For iOS UI changes, launch in Simulator and verify visually — `#Preview` alone is insufficient
-
 ## Skill Routing
 
-When the user's request matches an available skill, invoke it via the Skill tool as your FIRST action.
+Skills available for common tasks:
 
 | Trigger                                                | Skill                              |
 | ------------------------------------------------------ | ---------------------------------- |

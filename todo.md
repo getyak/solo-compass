@@ -163,20 +163,24 @@
 
 ## P2.0 — Chat Agent 升级 ⭐
 
-- [ ] **#201 ChatOrchestrator 注入 AgentMemorySnapshot** — `apps/ios/SoloCompass/Services/VoiceAgentOrchestrator.swift`
-  - 每次新会话开始时,从 SwiftData 读最近 memory snapshot
-  - 注入 system prompt: "用户最近: <summary>;当前 trip: <city, day N>;最爱: <top 3 experience names>"
-  - 注意: prompt 中包含的所有数据必须脱敏 (不带坐标/手机/身份)
-- [ ] **#202 AgentMemorySnapshot 后台更新** — `apps/ios/SoloCompass/Services/MemoryDigestService.swift`
-  - 每个 chat session 结束时,异步调用 LLM 生成 ≤500 字摘要
-  - 写回 AgentMemorySnapshot
-  - on-device 优先,不上传云端
-- [ ] **#203 ChatOrchestrator 加入时段意识** — `VoiceAgentOrchestrator.swift`
-  - 注入 system prompt: "现在是 <morning/afternoon/evening/night> 的 <周几>"
-  - 早上语气: "今天想做什么", 傍晚: "要不要去坐一会"
-- [ ] **#204 Settings 加 "忘记我" 按钮** — `apps/ios/SoloCompass/Views/Settings/SettingsView.swift`
-  - 一键清空 AgentMemorySnapshot + TasteProfile
-  - 用户隐私焦虑兜底
+- [x] **#201 ChatOrchestrator 注入 AgentMemorySnapshot** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/VoiceAgentOrchestrator.swift`
+  - `memoryDigest: MemoryDigestService?` 注入构造函数, CompassMapView.ensureOrchestrator 已透传 `.shared`
+  - `buildSystemPrompt` 加 `AGENT MEMORY` 块 — 调 `MemoryDigestService.currentSnapshot()?.systemPromptBlock()`, 空字段自动跳过 (docstring 契约)
+  - 脱敏契约由 AgentMemorySnapshot @Model 层保证: 只存 summary/lastTripCity/recentChatDigest, 无坐标/手机/身份字段
+- [x] **#202 AgentMemorySnapshot 后台更新** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/MemoryDigestService.swift`
+  - 新建 `MemoryDigestService` (@MainActor @Observable singleton, 照 TasteUpdateService 模板)
+  - `persistConversation` 加 fire-and-forget `Task { await digest.digestConversation(...) }`, 只在存在 user turn 时触发, cityCode 从 scopedExperience 抽取
+  - 当前实现: on-device deterministic 摘要 (summary ≤500 chars, recentChatDigest ≤300 chars). LLM slot 已预留, `setUseLLM(true)` 一行开关
+  - SoloCompassApp bootstrap 挂 `.setModelContainer(...)`
+  - 15 项 XCTest 覆盖 `MemoryDigestServiceTests`: rollup 空/system-only/时序/超上限/换行/nil-content, 摘要 4 分支, 单例 upsert, forget-me
+- [x] **#203 ChatOrchestrator 加入时段意识** ✅ (2026-07-01) — `VoiceAgentOrchestrator.swift`
+  - 新增静态方法 `temporalContextBlock(now:calendar:)` 输出 `TEMPORAL CONTEXT` 块 (time-of-day / weekday / tone hint)
+  - 时段桶: 05-11 morning · 11-17 afternoon · 17-21 evening · 21-05 night
+  - Tone hint 提示 LLM: 早上"今天想做什么" / 傍晚"要不要去坐一会" / 深夜偏安静
+- [x] **#204 Settings 加 "忘记我" 按钮** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Settings/SettingsView.swift`
+  - dataSection 加 orange `brain.head.profile` icon 按钮 + confirmationDialog + result toast
+  - 调 `MemoryDigestService.shared.forgetMe()` — 同事务清空 AgentMemorySnapshot + TasteProfile 两张单例表
+  - 中英本地化 6 条 `settings.forgetMe.*`, 用户 favorites/routes/preferences 明确保留
 
 ## P2.1 — 新 Tool 扩展 (VoiceAgentToolRouter) ⭐
 
@@ -208,27 +212,25 @@
 
 ## P2.2 — 灵动岛 3 个新 Kind ⭐
 
-- [ ] **#220 在 `SoloCompassActivityAttributes.Kind` 加 3 个 case** — `apps/ios/SoloCompass/Shared/SoloCompassActivityAttributes.swift`
-  - **注意**: Kind enum 在双 target 共享文件,改一处自动两端生效
-  - 加: `case soloAgentHint`, `case timeCapsule`, `case dailyOmen`
-  - 同步在 `SoloCompassActivityState` 加每个 Kind 需要的字段 (hint text / capsule preview / omen line)
-- [ ] **#221 widget 端渲染 3 个新 Kind** — `apps/ios/SoloCompassWidgets/SoloCompassLiveActivity.swift` + `LockScreenLiveActivityView.swift`
-  - 在 `ExpandedLeading/Trailing/Center/Bottom` 4 个 @ViewBuilder switch 加新 case (现有写法已为加 Kind 留好扩展点)
-  - 限流逻辑放主 app 不放 widget (widget 只渲染,不决策)
-- [ ] **#222 `solo_agent_hint` 主 app 触发逻辑** — `apps/ios/SoloCompass/Services/LiveActivityService.swift`
-  - 加 `startSoloAgentHint(hint:experienceId:)` 方法
-  - 限流: 一天最多 3 次 (用 UserDefaults 滚动计数)
-  - expanded region: 建议 + 采纳/换一个/5min 后再提 (intent button)
-- [ ] **#223 `time_capsule` 触发链路** — `LiveActivityService.swift` ⭐
-  - 触发源: 新增的 VisitTrackingService 检测进入有未拆胶囊的围栏 (复用 CLCircularRegion)
-  - 加 `startTimeCapsule(capsuleId:experienceId:preview:)`
-  - 拆开动画走主 app 全屏 (CapsuleOpenView, 见 #242),widget 只负责"邀请拆开"卡片
-- [ ] **#224 `daily_omen` 调度 + 触发** — `LiveActivityService.swift`
-  - 每天 7am 本地通知触发 (复用 NotificationService schedule 能力)
-  - 加 `startDailyOmen(line:experienceId:)`
-- [ ] **#225 LiveActivityService 单测覆盖** — `apps/ios/SoloCompass/Tests/LiveActivityServiceTests.swift`
-  - 每个 start/update/end 路径都覆盖
-  - 限流硬上限测试 (24 小时窗口超过 3 次必须 noop)
+- [x] **#220 在 `SoloCompassActivityAttributes.Kind` 加 3 个 case** ✅ (2026-07-01) — `apps/ios/SoloCompass/Shared/SoloCompassActivityAttributes.swift`
+  - 加 `case soloAgentHint / timeCapsule / dailyOmen` (String Codable rawValue, 向后兼容)
+  - `SoloCompassActivityState` 加 6 个字段 (hintText/hintAnchorName/capsulePreview/capsuleAnchorName/omenLine/omenMicroTask), 全 default "" 兼容旧 payload
+- [x] **#221 widget 端渲染 3 个新 Kind** ✅ (2026-07-01) — `apps/ios/SoloCompassWidgets/SoloCompassLiveActivity.swift` + `LockScreenLiveActivityView.swift`
+  - SoloCompassLiveActivity 6 处 switch 补齐 (ExpandedLeading/Trailing/Center/Bottom + CompactLeading/Trailing + MinimalGlyph)
+  - LockScreenLiveActivityView 4 处 switch 补齐 (leadingTile/titleText/detail/trailing)
+  - 3 个 kind passive one-shot 所以 ExpandedBottom / trailing 用 EmptyView 不长岛
+- [x] **#222 `solo_agent_hint` 主 app 触发逻辑** ✅ (2026-07-01) — `apps/ios/SoloCompass/Services/LiveActivityService.swift`
+  - `startSoloAgentHint(hint:anchorName:maxPerDay:)` 默认 3 次/天上限
+  - 限流: UserDefaults key `solo.liveactivity.count.soloAgentHint.<yyyy-MM-dd>` 计数器, `consumeDailyBudget` internal 供测试驱动
+- [x] **#223 `time_capsule` 触发链路** ✅ (2026-07-01, wire-up 到 VisitTrackingService 留 P2.4) — `LiveActivityService.swift`
+  - `startTimeCapsule(capsuleId:preview:anchorName:)` 已落地
+  - **不加日限流**: 胶囊发现是稀缺时刻, 不能因今天已发过 hint 就错过
+- [x] **#224 `daily_omen` 调度 + 触发** ✅ (2026-07-01) — `LiveActivityService.swift`
+  - `startDailyOmen(line:microTask:maxPerDay:)` 默认 1 次/天 (今日签是仪式)
+  - 7am 本地通知调度接线留到 P3.0 #301 OmenComposeService
+- [x] **#225 LiveActivityService 单测覆盖** ✅ (2026-07-01, 6/6 全绿 0.08s) — `apps/ios/SoloCompass/Tests/LiveActivityServiceTests.swift`
+  - 覆盖: Kind 7 case 契约 (rawValue 唯一性) / hint 3-per-day 上限 / hint 跨日重置 / omen 1-per-day / capsule 无日限流 / state struct 默认值 backward-compat
+  - Activity.request 需真机 entitlement, 单测覆盖到限流+state 契约层, 端到端留内测 (#291)
 
 ## P2.3 — 盲盒 Trip MVP 🎁💰
 
@@ -405,8 +407,9 @@
 
 ## X.1 — 设计系统升级
 
-- [ ] **#X10 暖琥珀 v2 token 扩展** — `apps/ios/SoloCompass/Views/Shared/CompareTokens.swift`
-  - 新增 CT.capsuleGlow / CT.omenGold / CT.blindboxAmber 等场景色
+- [x] **#X10 暖琥珀 v2 token 扩展** ✅ (2026-07-01) — `apps/ios/SoloCompass/Views/Shared/CompareTokens.swift`
+  - CT.capsuleGlow (0xF7DEB0 ethereal) / CT.omenGold (0xB8925C 深金) / CT.blindboxAmber (0x8A4A14 最深)
+  - **使用纪律**: 只用于仪式感界面 (胶囊/城市签/盲盒), 不用于 routine — 混用会稀释情绪价值
 - [ ] **#X11 Lottie / 动画 spec 文档** — `docs/ANIMATION_SPEC.md`
   - 时空胶囊接受动画、盲盒揭秘动画、城市签翻面 三个核心动画的 spec
 
@@ -419,9 +422,9 @@
 
 ## X.3 — 隐私 & 合规
 
-- [ ] **#X30 PRIVACY.md 更新**
-  - 增加 VisitRecord / TasteProfile / TimeCapsule 数据用途说明
-  - 强调全部 on-device,云端不存
+- [x] **#X30 PRIVACY.md 更新** ✅ (2026-07-01) — `docs/PRIVACY.md`
+  - 加 4 行 iOS on-device 表 (VisitRecord / TasteProfile / TimeCapsule / AgentMemorySnapshot) 到 "What we collect" 表格
+  - 加 "On-device only: the iOS commitment" 段: 声明四张表永不上云 + parity check 兜底保证 + Forget me 按钮承诺
 - [ ] **#X31 "忘记我" 一键清空流程** (P2.0 #204 已计划)
 
 ## X.4 — 测试 & 质量

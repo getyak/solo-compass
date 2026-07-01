@@ -273,6 +273,12 @@ struct SoloCompassApp: App {
         VisitTrackingService.shared.setModelContainer(SoloCompassModelContainer.shared)
         VisitTrackingService.shared.attach()
 
+        // P2.0 #201/#202: wire the singleton MemoryDigestService so the
+        // Chat Agent can read the AgentMemorySnapshot when building each
+        // fresh system prompt, and update it after each completed turn.
+        // Same setModelContainer pattern as VisitTrackingService.
+        MemoryDigestService.shared.setModelContainer(SoloCompassModelContainer.shared)
+
         // US-020: cold-start TTI must not block on a serial main-thread
         // init chain. Each piece of bootstrap below is independent — no
         // ordering dependency between pruning check-ins, wiring the

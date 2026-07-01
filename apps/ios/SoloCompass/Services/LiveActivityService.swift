@@ -187,6 +187,121 @@ public final class LiveActivityService {
         await update(state)
     }
 
+    // MARK: - Solo Agent Hint — 主动一句话建议 (Phase 2 P2.2 #222)
+
+    /// Begin a proactive Solo Agent hint activity. Rate-limited to `maxPerDay`
+    /// invocations per calendar day (defaults to 3 — over-nudging burns trust).
+    ///
+    /// Returns `false` when the daily budget is spent OR Live Activities are off.
+    /// Shares the UserDefaults ring with #223/#224 so all passive proactive
+    /// kinds compete for the same daily quota.
+    @discardableResult
+    public func startSoloAgentHint(
+        hint: String,
+        anchorName: String = "",
+        maxPerDay: Int = 3
+    ) -> Bool {
+        guard consumeDailyBudget(for: .soloAgentHint, max: maxPerDay) else {
+            os_log("LiveActivity start(soloAgentHint) skipped — daily budget spent",
+                   log: Self.log, type: .info)
+            return false
+        }
+        let state = SoloCompassActivityState(
+            hintText: hint,
+            hintAnchorName: anchorName
+        )
+        return start(kind: .soloAgentHint, state: state)
+    }
+
+    // MARK: - Time Capsule — 时空胶囊 (Phase 2 P2.2 #223)
+
+    /// Begin a "you have a buried capsule nearby" activity. Wired from
+    /// `VisitTrackingService` on geofence enter matching a capsule anchor.
+    ///
+    /// Not rate-limited by day: capsule discovery is a hard-earned moment.
+    /// Still competes for the "one activity at a time" slot via `start(...)`.
+    @discardableResult
+    public func startTimeCapsule(
+        capsuleId: UUID,
+        preview: String,
+        anchorName: String = ""
+    ) -> Bool {
+        let state = SoloCompassActivityState(
+            capsulePreview: preview,
+            capsuleAnchorName: anchorName
+        )
+        os_log("LiveActivity start(timeCapsule) id=%{public}@",
+               log: Self.log, type: .info, capsuleId.uuidString)
+        return start(kind: .timeCapsule, state: state)
+    }
+
+    // MARK: - Daily Omen — 每日城市签 (Phase 2 P2.2 #224)
+
+    /// Begin the daily city-omen activity. Scheduled at 7am local by
+    /// `NotificationService`; this method presents the Live Activity when the
+    /// notification tap (or app foregrounding) triggers it. Rate-limited to
+    /// once per day (`maxPerDay: 1`) — the omen is the day's fixed ritual.
+    @discardableResult
+    public func startDailyOmen(
+        line: String,
+        microTask: String = "",
+        maxPerDay: Int = 1
+    ) -> Bool {
+        guard consumeDailyBudget(for: .dailyOmen, max: maxPerDay) else {
+            os_log("LiveActivity start(dailyOmen) skipped — already delivered today",
+                   log: Self.log, type: .info)
+            return false
+        }
+        let state = SoloCompassActivityState(
+            omenLine: line,
+            omenMicroTask: microTask
+        )
+        return start(kind: .dailyOmen, state: state)
+    }
+
+    // MARK: - Daily budget (UserDefaults ring)
+
+    /// UserDefaults key layout: `"solo.liveactivity.count.<kind>.<yyyy-MM-dd>"`.
+    /// Old-day keys are left to expire cheaply (they self-scrub via date match
+    /// on the next same-kind read).
+    private static let budgetKeyPrefix = "solo.liveactivity.count"
+
+    /// Consume one unit of today's budget for `kind`. Returns true if the
+    /// activity may fire; false when the day's `max` is already spent.
+    /// Internal (not fileprivate) so `@testable` unit tests can drive the
+    /// counter without going through Activity.request.
+    func consumeDailyBudget(
+        for kind: SoloCompassActivityAttributes.Kind,
+        max: Int,
+        now: Date = Date()
+    ) -> Bool {
+        let key = Self.budgetKey(for: kind, on: now)
+        let current = UserDefaults.standard.integer(forKey: key)
+        guard current < max else { return false }
+        UserDefaults.standard.set(current + 1, forKey: key)
+        return true
+    }
+
+    private static func budgetKey(
+        for kind: SoloCompassActivityAttributes.Kind,
+        on date: Date
+    ) -> String {
+        let fmt = DateFormatter()
+        fmt.calendar = Calendar(identifier: .gregorian)
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.timeZone = .current
+        fmt.dateFormat = "yyyy-MM-dd"
+        return "\(budgetKeyPrefix).\(kind.rawValue).\(fmt.string(from: date))"
+    }
+
+    #if DEBUG
+    /// Test-only escape hatch to reset today's counters for a kind. Not exposed
+    /// in production paths; scoped to DEBUG so the release binary is unchanged.
+    func _resetDailyBudget(for kind: SoloCompassActivityAttributes.Kind, on date: Date = Date()) {
+        UserDefaults.standard.removeObject(forKey: Self.budgetKey(for: kind, on: date))
+    }
+    #endif
+
     // MARK: - End
 
     /// End the running activity immediately and drop the handle.

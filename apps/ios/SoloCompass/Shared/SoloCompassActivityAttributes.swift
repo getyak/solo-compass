@@ -31,10 +31,13 @@ public struct SoloCompassActivityAttributes: ActivityAttributes {
     public let kind: Kind
 
     public enum Kind: String, Codable, Hashable, Sendable {
-        case route       // 路线进行中 — following a route, next stop + walking ETA + progress
-        case countdown   // 出发倒计时 — companion group nearing its meet time
-        case recording   // 录制语音 signal — capturing a voice signal, live waveform + duration
-        case compile     // AI 编排中 — synthesizing today's page from the day's signals
+        case route          // 路线进行中 — following a route, next stop + walking ETA + progress
+        case countdown      // 出发倒计时 — companion group nearing its meet time
+        case recording      // 录制语音 signal — capturing a voice signal, live waveform + duration
+        case compile        // AI 编排中 — synthesizing today's page from the day's signals
+        case soloAgentHint  // Solo Agent 建议 — a proactive one-line hint (Phase 2 P2.2 #220)
+        case timeCapsule    // 时空胶囊 — an unopened capsule is nearby, invite to open (Phase 2 P2.2 #220)
+        case dailyOmen      // 每日城市签 — one-line omen + micro-task for the day (Phase 2 P2.2 #220)
     }
 
     public init(kind: Kind) {
@@ -100,6 +103,27 @@ public struct SoloCompassActivityState: Codable, Hashable, Sendable {
     /// 0–1 progress; drives the shimmer skeleton fill. -1 means indeterminate.
     public var compileProgress: Double
 
+    // MARK: soloAgentHint — Solo Agent 建议 (Phase 2 P2.2 #220)
+
+    /// Short proactive hint, e.g. "河堤傍晚人不多，要不要去坐一会".
+    public var hintText: String
+    /// Optional anchor Experience shortName, e.g. "湄公河河堤".
+    public var hintAnchorName: String
+
+    // MARK: timeCapsule — 时空胶囊 (Phase 2 P2.2 #220)
+
+    /// Preview snippet of the capsule content (max ~40 chars), e.g. "半年前的自己给现在的你留了一句…".
+    public var capsulePreview: String
+    /// Anchor Experience shortName the capsule was buried at.
+    public var capsuleAnchorName: String
+
+    // MARK: dailyOmen — 每日城市签 (Phase 2 P2.2 #220)
+
+    /// One-line omen for the day, e.g. "今天适合走一条你没走过的巷子".
+    public var omenLine: String
+    /// Micro-task tied to the omen, e.g. "拍下一个招牌".
+    public var omenMicroTask: String
+
     public init(
         routeTitle: String = "",
         nextStopName: String = "",
@@ -117,7 +141,13 @@ public struct SoloCompassActivityState: Codable, Hashable, Sendable {
         recordingLocality: String = "",
         compileTitle: String = "",
         compileSubtitle: String = "",
-        compileProgress: Double = -1
+        compileProgress: Double = -1,
+        hintText: String = "",
+        hintAnchorName: String = "",
+        capsulePreview: String = "",
+        capsuleAnchorName: String = "",
+        omenLine: String = "",
+        omenMicroTask: String = ""
     ) {
         self.routeTitle = routeTitle
         self.nextStopName = nextStopName
@@ -136,5 +166,11 @@ public struct SoloCompassActivityState: Codable, Hashable, Sendable {
         self.compileTitle = compileTitle
         self.compileSubtitle = compileSubtitle
         self.compileProgress = compileProgress
+        self.hintText = hintText
+        self.hintAnchorName = hintAnchorName
+        self.capsulePreview = capsulePreview
+        self.capsuleAnchorName = capsuleAnchorName
+        self.omenLine = omenLine
+        self.omenMicroTask = omenMicroTask
     }
 }
