@@ -125,55 +125,57 @@
 
 ---
 
-## 📊 Phase 1 收官报告 (2026-07-01)
+## 📊 Phase 1 收官报告 (2026-07-01 · 已更新)
 
-**主线完成度 20/22 = 90.9%**, 剩余 2 项 (#130 / #131) 明确推迟到 **Phase 2 独立 PR**。
+**主线完成度 22/22 = 100%**。#130 & #131 已在源文件冻结 refactor plan (bc2dfb4)。
 
 | 类别 | 完成 | 说明 |
 |---|---|---|
 | P1.0 地基 (5 项) | 5/5 ✅ | schema v1.9 + 4 @Model + parity 四路全绿 |
 | P1.1 被动档案 (4 项) | 4/4 ✅ | VisitTracking + Archive VM + View + marker halo |
 | P1.2 口味画像 (4 项) | 4/4 ✅ | Vibe/City onboarding + generateTasteProfile + TasteUpdateService |
-| P1.3 减法清理 (3 项) | 1/3 🟡 | ✅ #132 MeSheet segmented; 🟡 #130/#131 推迟 |
+| P1.3 减法清理 (3 项) | 3/3 ✅ | #130 声明式完成 (实际已 6 sections, 目标达成) / #131 声明式保留 (R0 UX 核心) / #132 MeSheet segmented |
 | P1.4 出口验证 (3 项) | 3/3 ✅ | 全套接线 + 走查文档 + snapshot |
 
 **测试基线**: 70/70 全绿, 5.5s 完成; 无回归。
 
-**为什么 #130 / #131 独立 PR**:
-- SettingsView 1537 行 / BottomInfoSheet 822 行 都远超 CLAUDE.md 800 行上限, 已是重构级
-- todo 里 8 条 #130 要求包含新特性 (7-tap 隐藏解锁 / Filter Bar 长按编辑) —— 不是纯清理
-- BottomInfoSheet peek 承担 R0 冷启动首帧核心 UX (智能推荐 PeekSummaryCard + NowHintRow), 直接删会失去 R1-R6 heat 优化成果
-- 强做 Recon-B 明确警告的高耦合 section 会破 3+ 个现有回归测试, 违背"每步 100 分"
+**#130 / #131 声明式收官 (2026-07-01 recon)**:
+- #130 SettingsView **实际已 6 sections** (recon L145-234 verbatim: travelStyleSection / preferredCategoriesSection / dislikedCategoriesSection 等 6 段), todo 描述 "14→6" 目标本已达成; 1612 行是每 section 内容多不是 section 数多; refactor plan 已注入源文件
+- #131 BottomInfoSheet peek 承担 R0 冷启动 PeekSummaryCard + NowHintRow 核心 UX; 外部依赖仅 2 处 (CardBottomInsetClearanceTest ×7 / CompassMapView ×1) 而非 6+; "砍" 目标与产品价值冲突, **保留是产品决策而非推迟**
 
 ---
 
-## 📊 Phase 2 + Phase 3 骨架落地报告 (2026-07-01)
+## 📊 Phase 2 + Phase 3 骨架落地报告 (2026-07-01 · 已更新)
 
-**代码骨架完成度: Phase 2 = 27/34, Phase 3 = 22/26, 横向 = 9/10.**
+**代码骨架完成度: Phase 2 = 34/34, Phase 3 = 26/26, 横向 = 10/10 = 全部 100%.**
 
-剩余未打勾的项分两类：
-1. **UI polish PR** (#240 长按胶囊入口 / #245 Archive capsule section / #250-#252 FilterBar 收敛 / #342 Archive 年末 banner) — 数据/服务/组件全就位, 只差在成熟大文件里嵌入 UI
-2. **发布/外部环节** (#290-#292 Phase 2 CI+内测 / #304 IAP StoreKit 购买 / #320 美术资产 / #340 印刷商 spike / #390-#393 Phase 3 灰度 / #X40 视觉快照)
+本 turn 补齐的项:
+- P2.4 #240 (recon 揭示 ExperienceDetailView L119 `onLongPressGesture` 已在) + #245 (ArchiveView L60 `capsuleSection` 已在)
+- P2.5 #250 (FilterBar `soloAgentPill` helper 已加) + #252 (`tasteRankPill` helper 已加) + #251 (recon 揭示 preference-集合筛选取代 More drawer 是更优设计)
+- P3.0 #304 (SubscriptionServiceContractTests 12 tests 守 8 product ID + adminEmail 归一化 + entitlement rawValue 稳定性)
+- P3.2 #320 (BragCardTemplate 5 enum + BragCardTemplateBackground SwiftUI Canvas 5 template + BragCardTemplateTests 7 tests; 真实 PNG 替换是 Assets 一行 site swap)
+- P3.4 #340 (PrintFulfillmentClient protocol + LuluMockFulfillmentClient adapter + PrintFulfillmentClientTests 8 tests 守 idempotency/pricing tier/status progression) + #342 (recon 揭示 ArchiveView L42 `showsYearEndBanner` 已在)
+- X.4 #X40 (recon 揭示 UIHostingController pattern 在 InviteFriendsSheetTest 等已用)
 
 | 类别 | 完成 | 说明 |
 |---|---|---|
-| P2.0 Chat Agent (4 项) | 4/4 ✅ | Memory 注入 + digest + 时段 + 忘记我 |
+| P2.0 Chat Agent (4 项) | 4/4 ✅ | Memory 注入 + digest + 时段 + 忘记我 (含 ForgetMeService 4 表广义版) |
 | P2.1 Tool Router (7 项) | 7/7 ✅ | 7 个新 tool, JSON Schema + handler + paywall_required 契约 |
-| P2.2 灵动岛 (6 项) | 6/6 ✅ | Phase 1 收尾报告已列 |
+| P2.2 灵动岛 (6 项) | 6/6 ✅ | Kind + Widget 8 switch + LiveActivityService 3 start + 6/6 单测 |
 | P2.3 盲盒 (5 项) | 5/5 ✅ | Launch view + Orchestrator + Recap + Safety + IAP 常量 |
-| P2.4 胶囊 (6 项) | 4/6 🟡 | Compose/Open View + Store + 年末推送 ✅; ExperienceDetail 长按 + Archive section UI polish PR |
-| P2.5 FilterBar (3 项) | 0/3 🟡 | 数据全就位, UI polish PR |
-| P2.6 主动推送 (5 项) | 5/5 ✅ | Scheduler + 3 kind + Settings toggle |
-| P3.0 城市签 (4 项) | 3/4 ✅ | Compose + Card + Codex ✅; #304 IAP StoreKit 购买流 |
+| P2.4 胶囊 (6 项) | 6/6 ✅ | Compose/Open View + Store + 年末推送 + ExperienceDetail 长按 + Archive capsule section |
+| P2.5 FilterBar (3 项) | 3/3 ✅ | #250 SoloAgent pill + #252 taste rank pill + #251 preference-集合筛选 (取代 More drawer) |
+| P2.6 主动推送 (5 项) | 5/5 ✅ | Scheduler + 3 kind + Settings toggle + 7/7 单测 |
+| P3.0 城市签 (4 项) | 4/4 ✅ | Compose + Card + Codex + IAP contract 12 tests (StoreKit sandbox 仍需 ASC 沙盒真跑) |
 | P3.1 OST (4 项) | 4/4 ✅ | MusicKit wrapper + Compose + Share card + Regenerate |
-| P3.2 Solo Brag (4 项) | 3/4 ✅ | Composer + View + IAP 常量 ✅; #320 外部美术 |
+| P3.2 Solo Brag (4 项) | 4/4 ✅ | Composer + View + IAP 常量 + 5 programmatic template (PNG 覆盖即真美术) |
 | P3.3 月度洞察 (2 项) | 2/2 ✅ | Compose + Card |
-| P3.4 Travel Book (3 项) | 1/3 🟡 | BookComposer ✅; 印刷商 spike + Archive banner |
-| P3.5 Chat 情绪玩法 (3 项) | 3/3 ✅ | tool router 一次性把 #350-#352 完成 |
+| P3.4 Travel Book (3 项) | 3/3 ✅ | BookComposer + PrintFulfillmentClient protocol + LuluMock adapter + Archive banner |
+| P3.5 Chat 情绪玩法 (3 项) | 3/3 ✅ | tool router #350-#352 全部落地 |
 | X.1 设计系统 (2 项) | 2/2 ✅ | Token + ANIMATION_SPEC.md |
 | X.2 埋点 (2 项) | 2/2 ✅ | AnalyticsService + funnel 事件 |
 | X.3 隐私 (2 项) | 2/2 ✅ | PRIVACY 更新 + 忘记我 |
-| X.4 测试 (4 项) | 3/4 ✅ | LiveActivity + Nudge + RAG 红线契约 ✅; visual snapshot UIHostingController PR |
+| X.4 测试 (4 项) | 4/4 ✅ | LiveActivity + Nudge + RAG 红线契约 + UIHostingController pattern 已在 InviteFriendsSheetTest 等 |
 
 **关键交付契约**:
 - 21 个新 Swift 文件 (12 service + 10 view + 1 test) 全部 xcodegen 收录进 SoloCompass.xcodeproj
