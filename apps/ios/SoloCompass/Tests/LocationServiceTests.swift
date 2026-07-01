@@ -123,4 +123,101 @@ final class LocationServiceTests: XCTestCase {
         let svc = LocationService()
         XCTAssertNil(svc.relativeBearing(to: sensoji))
     }
+
+    // MARK: - Jitter rejection (shouldPublish)
+
+    private let base = CLLocationCoordinate2D(latitude: 35.0, longitude: 139.0)
+    private let ref = Date(timeIntervalSinceReferenceDate: 700_000_000)
+
+    /// A fix `metresNorth` of `base`, with the given accuracy and age.
+    private func fix(
+        metresNorth: Double = 0,
+        accuracy: CLLocationAccuracy,
+        ageSeconds: TimeInterval = 0
+    ) -> CLLocation {
+        let dLat = metresNorth / 111_320.0
+        let coord = CLLocationCoordinate2D(latitude: base.latitude + dLat, longitude: base.longitude)
+        return CLLocation(
+            coordinate: coord,
+            altitude: 0,
+            horizontalAccuracy: accuracy,
+            verticalAccuracy: 1,
+            timestamp: ref.addingTimeInterval(-ageSeconds)
+        )
+    }
+
+    func test_shouldPublish_firstFix_isAccepted() {
+        XCTAssertTrue(LocationService.shouldPublish(
+            candidate: fix(accuracy: 10), over: nil, now: ref
+        ))
+    }
+
+    func test_shouldPublish_invalidAccuracy_isRejected() {
+        XCTAssertFalse(LocationService.shouldPublish(
+            candidate: fix(accuracy: -1), over: nil, now: ref
+        ))
+        XCTAssertFalse(LocationService.shouldPublish(
+            candidate: fix(accuracy: 0), over: nil, now: ref
+        ))
+    }
+
+    func test_shouldPublish_tooCoarse_isRejected() {
+        XCTAssertFalse(LocationService.shouldPublish(
+            candidate: fix(accuracy: 150), over: nil, now: ref
+        ))
+    }
+
+    func test_shouldPublish_staleFix_isRejected() {
+        // 20s old > maxFixAge (15s).
+        XCTAssertFalse(LocationService.shouldPublish(
+            candidate: fix(accuracy: 10, ageSeconds: 20), over: nil, now: ref
+        ))
+    }
+
+    func test_shouldPublish_stationaryDrift_isSuppressed() {
+        // current & candidate both ±10m accuracy → noise radius 20m.
+        // A 12m "move" is within the combined error → treated as drift.
+        let current = fix(accuracy: 10)
+        let drift = fix(metresNorth: 12, accuracy: 10)
+        XCTAssertFalse(LocationService.shouldPublish(candidate: drift, over: current, now: ref))
+    }
+
+    func test_shouldPublish_realMovement_isAccepted() {
+        // 30m move clears the 20m noise radius → real travel.
+        let current = fix(accuracy: 10)
+        let moved = fix(metresNorth: 30, accuracy: 10)
+        XCTAssertTrue(LocationService.shouldPublish(candidate: moved, over: current, now: ref))
+    }
+
+    func test_shouldPublish_tighterFix_convergesWithoutMoving() {
+        // Coarse current (±50m), a much tighter candidate at (nearly) the same
+        // spot is accepted so the pin snaps onto the better reading.
+        let current = fix(accuracy: 50)
+        let tighter = fix(metresNorth: 2, accuracy: 10)
+        XCTAssertTrue(LocationService.shouldPublish(candidate: tighter, over: current, now: ref))
+    }
+
+    func test_shouldPublish_pinpointFixes_stillHonorJitterFloor() {
+        // Even with 1m accuracy each (noise radius floored at 8m), a 5m nudge
+        // is suppressed, but a 12m step is real.
+        let current = fix(accuracy: 1)
+        XCTAssertFalse(LocationService.shouldPublish(
+            candidate: fix(metresNorth: 5, accuracy: 1), over: current, now: ref
+        ))
+        XCTAssertTrue(LocationService.shouldPublish(
+            candidate: fix(metresNorth: 12, accuracy: 1), over: current, now: ref
+        ))
+    }
+
+    func test_shouldPublish_poorAccuracy_radiusIsCapped() {
+        // Both fixes ±100m → combined 200m, but the radius caps at 40m so a
+        // real 45m walk isn't frozen out, while a 35m wobble still is.
+        let current = fix(accuracy: 100)
+        XCTAssertFalse(LocationService.shouldPublish(
+            candidate: fix(metresNorth: 35, accuracy: 100), over: current, now: ref
+        ))
+        XCTAssertTrue(LocationService.shouldPublish(
+            candidate: fix(metresNorth: 45, accuracy: 100), over: current, now: ref
+        ))
+    }
 }
