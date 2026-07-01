@@ -46,7 +46,7 @@ export function DayPageMock() {
             Café · Chiang Mai
           </span>
         </div>
-        <h3 className="mt-1.5 font-display text-[17px] font-medium leading-tight">Ristr8to</h3>
+        <p className="mt-1.5 font-display text-[17px] font-medium leading-tight text-fg-primary">Ristr8to</p>
         <p className="mt-1 text-[10px] leading-tight text-fg-muted">
           Third-wave espresso worth walking 15 minutes to. Quiet before 10.
         </p>

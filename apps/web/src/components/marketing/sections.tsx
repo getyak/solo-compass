@@ -33,8 +33,6 @@ export function MarketingNav({ copy, locale, homePath, altPath }: Props) {
   const items = [
     { href: `${homePath === "/" ? "" : homePath}/#features`, label: copy.nav.features },
     { href: locale === "zh" ? "/zh/pricing" : "/pricing", label: copy.nav.pricing },
-    { href: locale === "zh" ? "/zh/city" : "/city", label: copy.nav.cities },
-    { href: locale === "zh" ? "/zh/blog" : "/blog", label: copy.nav.blog },
     { href: locale === "zh" ? "/zh/manifesto" : "/manifesto", label: copy.nav.manifesto },
   ];
   return (

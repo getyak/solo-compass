@@ -38,21 +38,14 @@ export const metadata: Metadata = {
       "Map-first. Experience-as-unit. AI that filters — never decides. Made in Kyoto. No ads, no tracking, ever.",
     locale: "en_US",
     alternateLocale: "zh_CN",
-    images: [
-      {
-        url: "/og/home.png",
-        width: 1200,
-        height: 630,
-        alt: "Solo Compass — A map for people who travel alone.",
-      },
-    ],
+    // og image comes from src/app/opengraph-image.tsx (file-based).
   },
   twitter: {
     card: "summary_large_image",
     title: "Solo Compass · A map for people who travel alone",
     description:
       "Map-first companion for solo travelers on iOS. No ads. No tracking. $29 one-time or $50 a year.",
-    images: ["/og/home.png"],
+    // twitter image comes from src/app/opengraph-image.tsx (Next reuses it).
   },
   alternates: {
     canonical: SITE_URL,

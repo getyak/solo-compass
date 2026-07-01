@@ -347,17 +347,15 @@ export const copy: Record<Locale, Copy> = {
         {
           heading: "Product",
           links: [
-            { label: "Features", href: "/features" },
+            { label: "Features", href: "/#features" },
             { label: "Pricing", href: "/pricing" },
-            { label: "Cities", href: "/city" },
-            { label: "Journal", href: "/blog" },
+            { label: "Download", href: "/download" },
           ],
         },
         {
           heading: "Company",
           links: [
             { label: "Manifesto", href: "/manifesto" },
-            { label: "Changelog", href: "/changelog" },
             { label: "Contact", href: "mailto:hello@solocompass.app" },
           ],
         },
@@ -365,8 +363,6 @@ export const copy: Record<Locale, Copy> = {
           heading: "Legal",
           links: [
             { label: "Privacy", href: "/privacy" },
-            { label: "Terms", href: "/terms" },
-            { label: "DPA", href: "/dpa" },
           ],
         },
       ],
@@ -584,17 +580,15 @@ export const copy: Record<Locale, Copy> = {
         {
           heading: "产品",
           links: [
-            { label: "功能", href: "/zh/features" },
+            { label: "功能", href: "/zh/#features" },
             { label: "价格", href: "/zh/pricing" },
-            { label: "城市", href: "/zh/city" },
-            { label: "刊物", href: "/zh/blog" },
+            { label: "下载", href: "/download" },
           ],
         },
         {
           heading: "关于",
           links: [
             { label: "宣言", href: "/zh/manifesto" },
-            { label: "更新日志", href: "/zh/changelog" },
             { label: "联系", href: "mailto:hello@solocompass.app" },
           ],
         },
@@ -602,8 +596,6 @@ export const copy: Record<Locale, Copy> = {
           heading: "法律",
           links: [
             { label: "隐私", href: "/zh/privacy" },
-            { label: "条款", href: "/zh/terms" },
-            { label: "DPA", href: "/zh/dpa" },
           ],
         },
       ],

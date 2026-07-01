@@ -16,10 +16,7 @@ export const metadata: Metadata = {
   applicationName: "Solo Compass",
   referrer: "origin-when-cross-origin",
   formatDetection: { telephone: false, email: false, address: false },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
+  // Icons come from src/app/icon.tsx + src/app/apple-icon.tsx (file-based).
 };
 
 export const viewport: Viewport = {
