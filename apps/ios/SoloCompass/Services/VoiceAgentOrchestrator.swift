@@ -499,7 +499,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         // 30 minutes. The original system prompt is baked in at session
         // seed and never updates — this avoids stale viewport-of-place
         // answers without invalidating the conversation history.
-        let prefixed = Self.prependContextRefresh(to: safe)
+        let prefixed = Self.prependContextRefresh(to: safe, scopedExperience: scopedExperience)
         // ② tool structured errors: a fresh user turn = a fresh retry budget.
         // Without this, a previous turn's exhausted (tool, reason) counter
         // would carry over and the very next call to the same tool would be
@@ -1154,23 +1154,84 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// US-003: Render the `<experience_context>` XML block for a scoped
     /// Experience. Includes identity + metadata only; coordinates are
     /// deliberately omitted so they never leak into the prompt.
+    ///
+    /// The block leads with a plain-language line naming the place so the model
+    /// treats "现在人多吗 / this place / here / 这家" as referring to it, then
+    /// lists the identifying fields. Beyond the bare id/title we surface the
+    /// display name, local script, neighborhood/address, the one-liner, and the
+    /// hard signals (rating, price, hours) when present — everything the agent
+    /// needs to actually answer about *this* restaurant instead of guessing.
     static func renderExperienceContext(_ exp: Experience) -> String {
         let category = exp.category.rawValue
         let confidence = exp.confidence.level
         let score = String(format: "%.1f", exp.soloScore.overall)
         let bestTimes = summarizeBestTimes(exp.bestTimes)
+
+        // Optional identifying lines — only emitted when the field carries
+        // real content so an OSM-only place doesn't get a wall of "nil". None
+        // of these may contain coordinates (guarded by test).
+        var lines: [String] = [
+            "  id: \(exp.id)",
+            "  name: \(exp.shortName)",
+            "  title: \(exp.title)",
+        ]
+        if let local = exp.location.placeNameLocal,
+           !local.isEmpty, local != exp.shortName {
+            lines.append("  nameLocal: \(local)")
+        }
+        let oneLiner = exp.oneLiner.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !oneLiner.isEmpty {
+            lines.append("  oneLiner: \(oneLiner)")
+        }
+        lines.append("  category: \(category)")
+        if let address = exp.location.addressHint,
+           !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            lines.append("  address: \(address)")
+        }
+        lines.append("  cityCode: \(exp.location.cityCode)")
+        if let rating = exp.location.rating {
+            lines.append("  rating: \(String(format: "%.1f", rating))/10")
+        }
+        if let price = exp.location.priceLevel {
+            lines.append("  priceLevel: \(String(format: "%.0f", price))/4")
+        }
+        if let hours = exp.location.openingHours,
+           !hours.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            lines.append("  openingHours: \(hours)")
+        }
+        lines.append("  bestTimes: \(bestTimes)")
+        lines.append("  confidence.level: \(confidence)")
+        lines.append("  soloScore.overall: \(score)")
+
         return """
 
 
         <experience_context>
-          id: \(exp.id)
-          title: \(exp.title)
-          category: \(category)
-          cityCode: \(exp.location.cityCode)
-          bestTimes: \(bestTimes)
-          confidence.level: \(confidence)
-          soloScore.overall: \(score)
+        \(lines.joined(separator: "\n"))
         </experience_context>
+        """
+    }
+
+    /// Compact per-turn anchor reminding the model which place the chat is
+    /// currently focused on. Baked into the system prompt once, the
+    /// `<experience_context>` block drifts far above the latest message after a
+    /// few turns and the model loses the thread ("没找到你具体指的是哪个地方").
+    /// This one-liner rides on *every* user turn next to their message so
+    /// "现在人多吗 / 这家 / here" always resolves to the anchored place. Keeps
+    /// coordinates out (test-guarded), same as the system block.
+    static func renderCurrentPlaceAnchor(_ exp: Experience) -> String {
+        var descriptor = exp.shortName
+        if let local = exp.location.placeNameLocal,
+           !local.isEmpty, local != exp.shortName {
+            descriptor += " (\(local))"
+        }
+        return """
+        <current_place>
+        The user is focused on this specific place right now. Resolve "this place", "here", "这家", "这里", "现在" and similar deictic references to it unless they clearly ask about somewhere else.
+        name: \(descriptor)
+        id: \(exp.id)
+        category: \(exp.category.rawValue)
+        </current_place>
         """
     }
 
@@ -1192,7 +1253,16 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// The preamble is plain text inside a `<latest_context>` block
     /// so it parses the same way Claude treats other Solo context
     /// envelopes (see buildSystemPrompt below).
-    static func prependContextRefresh(to transcript: String) -> String {
+    ///
+    /// When the chat is anchored to a place, a compact `<current_place>` anchor
+    /// is emitted alongside so the scoped restaurant/café rides on every turn —
+    /// the once-seeded `<experience_context>` block drifts out of the model's
+    /// working focus after a few turns, which is exactly how "现在人多吗" ends
+    /// up answered as if no place were selected.
+    static func prependContextRefresh(
+        to transcript: String,
+        scopedExperience: Experience? = nil
+    ) -> String {
         let now = Date()
         let hour = Calendar.current.component(.hour, from: now)
         let timeZone = TimeZone.current.identifier
@@ -1203,12 +1273,13 @@ public final class VoiceAgentOrchestrator: Identifiable {
         } else {
             coordLine = "user_coord: unknown"
         }
+        let placeAnchor = scopedExperience.map { "\n\n" + renderCurrentPlaceAnchor($0) } ?? ""
         return """
         <latest_context>
         hour_local: \(hour)
         timezone: \(timeZone)
         \(coordLine)
-        </latest_context>
+        </latest_context>\(placeAnchor)
 
         \(transcript)
         """

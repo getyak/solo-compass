@@ -108,14 +108,14 @@ public struct ChatSheet: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Half-detent = editorial doorway: no chrome. The sheet's grabber
-            // is the only top edge, the serif invitation is the hero, the mic
-            // is the sole input. Header / Divider / InputBar are all
-            // suppressed so the surface reads like a page, not a settings
-            // panel. (User directive: "半屏没必要显示图标以及下面的聊天框".)
+            // The chat is the whole surface — no titled header bar, no divider.
+            // The old "Solo Compass" title + hairline read as a settings panel
+            // grafted onto a conversation; the user asked for "全部都是聊天主体".
+            // What remains is a chromeless control row: just the history + close
+            // glyphs floating in the top corners over the message stream. On the
+            // half-detent even that is suppressed (the mic is the sole input).
             if detent != .medium {
-                header
-                Divider().opacity(0.4)
+                minimalControls
             }
 
             if permissionDenied {
@@ -285,34 +285,38 @@ public struct ChatSheet: View {
 
     // MARK: - Subviews
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            Text(NSLocalizedString("chat.title", comment: "Chat title — Solo Compass"))
-                .font(.headline)
-            Spacer()
+    /// Chromeless control row that replaces the old titled header. No "Solo
+    /// Compass" label, no divider — just the history glyph on the leading edge
+    /// and the close glyph on the trailing edge, floating over the chat so the
+    /// conversation is the whole surface. The buttons keep their soft circular
+    /// fill so they stay tappable against message bubbles.
+    private var minimalControls: some View {
+        HStack {
             if historyStore != nil {
                 Button { showHistory = true } label: {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 30, height: 30)
                         .background(closeButtonFill, in: Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(NSLocalizedString("chat.history.open.a11y", comment: "Open chat history")))
             }
+            Spacer()
             Button(action: closeSheet) {
                 Image(systemName: "xmark")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 30, height: 30)
                     .background(closeButtonFill, in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text(NSLocalizedString("common.close", comment: "Close")))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.top, 6)
+        .padding(.bottom, 2)
     }
 
     private var permissionDeniedBanner: some View {

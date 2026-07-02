@@ -201,7 +201,8 @@ public struct ChatInputBar: View {
     // MARK: - Composer
 
     /// The normal typing surface: error banner, optional state label, attachment
-    /// strip, context pill, and the plus · field · trailing row.
+    /// strip, and the plus · field · trailing row. The anchored place surfaces
+    /// through the field placeholder rather than a separate banner.
     private var composer: some View {
         VStack(spacing: 8) {
             if let errorMessage {
@@ -215,10 +216,11 @@ public struct ChatInputBar: View {
 
             stateLabel
 
-            if let placeContextName {
-                contextPill(placeContextName)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
+            // The standalone "正在问 <place>" banner is gone — it read as a
+            // horizontal chrome strip bolted above the composer. The anchored
+            // place now lives only in the field placeholder ("问问 <place>…"),
+            // keeping the surface all-chat while the orchestrator still injects
+            // the place into every turn's context (see prependContextRefresh).
 
             if !attachments.isEmpty {
                 AttachmentDraftStrip(attachments: attachments) { id in
@@ -248,61 +250,6 @@ public struct ChatInputBar: View {
                     .frame(height: 0.5)
             }
         }
-    }
-
-    /// Dismissable "Asking about <place>" pill above the composer — the chat's
-    /// visible anchor to a place opened from its detail (design `.ai-ctx-chip`).
-    private func contextPill(_ name: String) -> some View {
-        let dotColor = placeContextColor ?? CT.accent
-        return HStack(spacing: 8) {
-            // Category-tinted dot with a soft halo — the anchor wears the place's
-            // own color instead of a generic pin glyph.
-            ZStack {
-                Circle()
-                    .fill(dotColor.opacity(0.18))
-                    .frame(width: 16, height: 16)
-                Circle()
-                    .fill(dotColor)
-                    .frame(width: 8, height: 8)
-            }
-            (
-                Text(verbatim: askingPrefix(name).prefix) +
-                Text(name).fontWeight(.semibold) +
-                Text(verbatim: askingPrefix(name).suffix)
-            )
-            .font(.system(size: 12))
-            .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if let onClearContext {
-                Button {
-                    Haptics.impact(.light)
-                    onClearContext()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .semibold))
-                        .frame(width: 20, height: 20)
-                        .background(Circle().fill(CT.accent.opacity(0.1)))
-                }
-                .buttonStyle(PressableButtonStyle(pressedScale: 0.85))
-                .accessibilityLabel(Text(NSLocalizedString("chat.context.clear.a11y", comment: "Clear place context")))
-            }
-        }
-        .foregroundStyle(CT.accent)
-        .padding(.vertical, 7)
-        .padding(.leading, 11)
-        .padding(.trailing, 9)
-        .background(
-            Capsule().fill(CT.accentSoft)
-        )
-        .overlay(Capsule().strokeBorder(CT.accentBorder, lineWidth: 0.5))
-    }
-
-    /// Split the localized "Asking about %@" copy around the place name so the
-    /// name can render bold inline regardless of language word order.
-    private func askingPrefix(_ name: String) -> (prefix: String, suffix: String) {
-        let template = NSLocalizedString("chat.context.asking", comment: "Asking about %@")
-        let parts = template.components(separatedBy: "%@")
-        return (parts.first ?? "", parts.count > 1 ? parts[1] : "")
     }
 
     // MARK: - Recording bar (hold-to-talk)
