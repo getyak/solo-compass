@@ -24,11 +24,22 @@ private protocol QualityArgsProvider {
 public final class VoiceAgentToolRouter {
 
     /// Failures encountered while dispatching a voice assistant tool call.
+    ///
+    /// Each case carries the tool name (when known) so the router can
+    /// classify to a `ToolOutcome` on the way out — see `errorJSON(_:)`.
+    /// Kept as `LocalizedError` because the outcome hint falls back to
+    /// `errorDescription` for `.default` catches.
     public enum RouterError: Error, LocalizedError {
         case unknownTool(String)
         case invalidArguments(tool: String, reason: String)
-        case experienceNotFound(String)
-        case underlying(String)
+        case experienceNotFound(tool: String, id: String, visibleHint: String? = nil)
+        /// Prerequisite service (map view model, aiService, etc.) unavailable
+        /// this turn. Always terminal — the model can't recover with different args.
+        case dependencyUnavailable(tool: String, dependency: String, hint: String)
+        /// Wraps an upstream error the tool couldn't recover from. Prefer
+        /// specific cases above whenever possible so the outcome classifier
+        /// can offer a meaningful hint.
+        case underlying(tool: String, message: String)
 
         public var errorDescription: String? {
             switch self {
@@ -36,10 +47,12 @@ public final class VoiceAgentToolRouter {
                 return "Unknown tool: \(name)"
             case .invalidArguments(let tool, let reason):
                 return "Bad arguments for \(tool): \(reason)"
-            case .experienceNotFound(let id):
+            case .experienceNotFound(_, let id, _):
                 return "Experience not found: \(id)"
-            case .underlying(let msg):
-                return msg
+            case .dependencyUnavailable(let tool, let dependency, _):
+                return "\(tool): \(dependency) unavailable"
+            case .underlying(_, let message):
+                return message
             }
         }
     }
@@ -50,6 +63,17 @@ public final class VoiceAgentToolRouter {
     /// so legacy callers (and tests) that don't build routes compile unchanged;
     /// when absent, `build_route` returns a graceful error instead of crashing.
     private let aiService: AIService?
+
+    /// Per-turn retry counter — see `ToolRetryLedger`. The orchestrator resets
+    /// it at each new user turn. `internal` so tests can assert
+    /// budget-exhaustion behaviour end-to-end without leaking the type
+    /// through the router's public surface.
+    let retryLedger = ToolRetryLedger()
+
+    /// ③ Memory三层 slice A: per-orchestrator episode store the
+    /// `recall_memory` tool searches. Populated externally (typically by
+    /// `MemoryDigestService` on session end); tests can seed directly.
+    let memoryStore = MemoryEpisodeStore()
 
     /// Side effect of the last `execute(_:)` call that the chat surface can turn
     /// into an inline card (places to show, a route to adopt). Reset to `nil` at
@@ -324,6 +348,27 @@ public final class VoiceAgentToolRouter {
             }
             """#
         ),
+
+        // ③ Memory三层 slice A: explicit long-term recall.
+        // The model reaches for this when the user says "the last time…",
+        // "that place I liked…", "what did we try before…" — anything that
+        // references prior sessions. Kept out of the always-injected memory
+        // block so cold-start tokens stay lean.
+        .init(
+            name: "recall_memory",
+            description: "Search the user's past sessions for episodes matching a natural-language query (place, mood, decision). Use ONLY when the user explicitly references prior context ('remember that cafe', '上次在深圳', 'what did we do yesterday'). Returns up to `limit` episodes ranked by relevance.",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "required": ["query"],
+              "properties": {
+                "query": {"type": "string", "description": "Natural-language search phrase. Use the user's own words when possible."},
+                "city_code": {"type": "string", "description": "Optional current city code to constrain recall to episodes anchored there or global."},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 5, "default": 3}
+              }
+            }
+            """#
+        ),
     ]
 
     // MARK: - Execution
@@ -375,12 +420,14 @@ public final class VoiceAgentToolRouter {
                 return try executeUnwalkedPath(args: call.argumentsJSON)
             case "recall_local_scene":
                 return try executeRecallLocalScene(args: call.argumentsJSON)
+            case "recall_memory":
+                return try executeRecallMemory(args: call.argumentsJSON)
 
             default:
                 throw RouterError.unknownTool(call.name)
             }
         } catch {
-            return Self.errorJSON(error)
+            return errorJSON(error)
         }
     }
 
@@ -399,9 +446,7 @@ public final class VoiceAgentToolRouter {
 
     private func executeExploreNearby(args: String) async throws -> String {
         let parsed: ExploreNearbyArgs = try Self.decode(args, tool: "explore_nearby")
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "explore_nearby")
         let coord = CLLocationCoordinate2D(
             latitude: parsed.latitude ?? MapViewModel.defaultCenter.latitude,
             longitude: parsed.longitude ?? MapViewModel.defaultCenter.longitude
@@ -497,9 +542,7 @@ public final class VoiceAgentToolRouter {
                 reason: "unknown category '\(parsed.category)'"
             )
         }
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "filter_by_category")
         vm.selectCategory(category)
         return Self.successJSON([
             "category": category.rawValue,
@@ -513,15 +556,17 @@ public final class VoiceAgentToolRouter {
 
     private func executeShowDetails(args: String) throws -> String {
         let parsed: ExperienceIDArgs = try Self.decode(args, tool: "show_details")
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "show_details")
         // PRD: AI must only reference experience_ids it saw in the
         // VISIBLE_EXPERIENCES injection. We hard-fail unknown ids so
         // hallucinated ones round-trip back to the model as
         // `unknown_experience_id` and it can self-correct.
         guard let exp = vm.visibleExperiences.first(where: { $0.id == parsed.experience_id }) else {
-            throw RouterError.experienceNotFound(parsed.experience_id)
+            throw RouterError.experienceNotFound(
+                tool: "show_details",
+                id: parsed.experience_id,
+                visibleHint: visibleIDHint(from: vm)
+            )
         }
         // 不再自动跳转 / 弹详情打断用户 — surface the place as an inline chat card
         // instead. The user taps the card to reveal it on the map (or open its
@@ -542,9 +587,7 @@ public final class VoiceAgentToolRouter {
 
     private func executeDismissRecommendation(args: String) throws -> String {
         let parsed: ExperienceIDArgs = try Self.decode(args, tool: "dismiss_recommendation")
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "dismiss_recommendation")
         vm.dismissFromVisible(parsed.experience_id)
         return Self.successJSON([
             "experience_id": parsed.experience_id,
@@ -566,9 +609,7 @@ public final class VoiceAgentToolRouter {
 
     private func executeSearchPlaces(args: String) async throws -> String {
         let parsed: SearchPlacesArgs = try Self.decode(args, tool: "search_places")
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "search_places")
         let coord = CLLocationCoordinate2D(
             latitude: parsed.latitude ?? MapViewModel.defaultCenter.latitude,
             longitude: parsed.longitude ?? MapViewModel.defaultCenter.longitude
@@ -622,11 +663,9 @@ public final class VoiceAgentToolRouter {
     /// visible set is the pool.
     private func executeBuildRoute(args: String) async throws -> String {
         let parsed: BuildRouteArgs = try Self.decode(args, tool: "build_route")
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "build_route")
         guard let ai = aiService else {
-            throw RouterError.underlying("route building unavailable")
+            throw RouterError.dependencyUnavailable(tool: "build_route", dependency: "aiService", hint: "Route building is not wired in this session. Suggest visible places one at a time instead.")
         }
 
         // Build the candidate pool: preferred ids first (when valid), else the
@@ -669,14 +708,16 @@ public final class VoiceAgentToolRouter {
 
     private func executeNavigateTo(args: String) throws -> String {
         let parsed: ExperienceIDArgs = try Self.decode(args, tool: "navigate_to")
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "navigate_to")
         guard let exp = vm.visibleExperiences.first(where: { $0.id == parsed.experience_id }) else {
-            throw RouterError.experienceNotFound(parsed.experience_id)
+            throw RouterError.experienceNotFound(
+                tool: "navigate_to",
+                id: parsed.experience_id,
+                visibleHint: visibleIDHint(from: vm)
+            )
         }
         guard let coord = exp.coordinate else {
-            throw RouterError.underlying("experience has no coordinate")
+            throw RouterError.underlying(tool: "navigate_to", message: "The chosen experience has no coordinate — cannot open a map link.")
         }
         // Open Apple Maps by default — NavigationLauncher picks the best available app.
         NavigationLauncher.open(app: .appleMaps, coordinate: coord, name: exp.title)
@@ -697,9 +738,7 @@ public final class VoiceAgentToolRouter {
 
     private func executeFilterVisible(args: String) throws -> String {
         let parsed: FilterVisibleArgs = try Self.decode(args, tool: "filter_visible")
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "filter_visible")
         let filter = ExperienceFilter(
             category: parsed.category,
             soloScoreMin: parsed.solo_score_min,
@@ -719,7 +758,7 @@ public final class VoiceAgentToolRouter {
 
     private func executeExpandRadius() async -> String {
         guard let vm = mapViewModel else {
-            return Self.errorJSON(RouterError.underlying("map view model deallocated"))
+            return errorJSON(RouterError.dependencyUnavailable(tool: "expand_radius", dependency: "map view model", hint: "The map session isn't active. Ask the user to reopen the map before this tool can run."))
         }
         if let noopReason = await vm.expandOneStage() {
             return Self.successJSON([
@@ -769,16 +808,110 @@ public final class VoiceAgentToolRouter {
         return #"{"ok":true}"#
     }
 
-    private static func errorJSON(_ error: Error) -> String {
-        let payload: [String: Any] = [
-            "ok": false,
-            "error": (error as? LocalizedError)?.errorDescription ?? "\(error)",
-        ]
-        if let data = try? JSONSerialization.data(withJSONObject: payload),
-           let s = String(data: data, encoding: .utf8) {
-            return s
+    /// Classify a thrown error to a structured `ToolOutcome` wire payload.
+    ///
+    /// Everything the router throws lands here. Router-level cases
+    /// (`RouterError`) map to specific `.retryable` / `.fatal` outcomes with
+    /// hints; anything else is a `.fatal(.unrecoverableUpstream)` so the model
+    /// stops calling the same tool.
+    ///
+    /// `retryLedger` is checked for repeat offences: same (tool, reason) hit
+    /// more than `ToolRetryLedger.retryCap` times this turn escalates to
+    /// `.fatal(.retryBudgetExhausted)` — the model has already had its shots
+    /// at fixing the same problem and must stop.
+    private func errorJSON(_ error: Error) -> String {
+        // Empty-payload outcomes still need a Payload phantom; use `Never` via
+        // an uninhabited Encodable stub so no accidental payload leaks in.
+        typealias Never_ = _EmptyPayload
+        switch error {
+        case RouterError.unknownTool(let name):
+            let outcome: ToolOutcome<Never_> = .fatal(
+                reason: .unknownTool,
+                hint: "'\(name)' is not a known tool. Available tools are listed in the TOOLS AVAILABLE section of the system prompt. Do not retry."
+            )
+            return outcome.encodeForModel()
+
+        case RouterError.invalidArguments(let tool, let reason):
+            let reasonKey = ToolOutcome<Never_>.RetryReason.invalidArgs.rawValue
+            if retryLedger.record(tool: tool, reason: reasonKey) > ToolRetryLedger.retryCap {
+                let outcome: ToolOutcome<Never_> = .fatal(
+                    reason: .retryBudgetExhausted,
+                    hint: "'\(tool)' rejected its arguments \(ToolRetryLedger.retryCap + 1) times this turn. Stop retrying and tell the user what you needed."
+                )
+                return outcome.encodeForModel()
+            }
+            let outcome: ToolOutcome<Never_> = .retryable(
+                reason: .invalidArgs,
+                hint: "'\(tool)' rejected its arguments: \(reason). Read the tool's JSON schema, fix the offending field, and try once more."
+            )
+            return outcome.encodeForModel()
+
+        case RouterError.experienceNotFound(let tool, let id, let visibleHint):
+            let reasonKey = ToolOutcome<Never_>.RetryReason.notFound.rawValue
+            if retryLedger.record(tool: tool, reason: reasonKey) > ToolRetryLedger.retryCap {
+                let outcome: ToolOutcome<Never_> = .fatal(
+                    reason: .retryBudgetExhausted,
+                    hint: "'\(tool)' has been called \(ToolRetryLedger.retryCap + 1) times with an unknown experience id. Ask the user to clarify which place they mean."
+                )
+                return outcome.encodeForModel()
+            }
+            let hint: String = {
+                let base = "experience_id '\(id)' is not in CURRENT VISIBLE EXPERIENCES."
+                if let h = visibleHint { return "\(base) \(h)" }
+                return "\(base) Pick an id from the CURRENT VISIBLE EXPERIENCES list, or call explore_nearby / search_places first."
+            }()
+            let outcome: ToolOutcome<Never_> = .retryable(reason: .notFound, hint: hint)
+            return outcome.encodeForModel()
+
+        case RouterError.dependencyUnavailable(_, _, let hint):
+            let outcome: ToolOutcome<Never_> = .fatal(reason: .dependencyUnavailable, hint: hint)
+            return outcome.encodeForModel()
+
+        case RouterError.underlying(_, let message):
+            let outcome: ToolOutcome<Never_> = .fatal(
+                reason: .unrecoverableUpstream,
+                hint: "Upstream error: \(message). Do not retry this tool this turn — surface the issue to the user."
+            )
+            return outcome.encodeForModel()
+
+        default:
+            let outcome: ToolOutcome<Never_> = .fatal(
+                reason: .unrecoverableUpstream,
+                hint: (error as? LocalizedError)?.errorDescription ?? "\(error)"
+            )
+            return outcome.encodeForModel()
         }
-        return #"{"ok":false,"error":"unknown"}"#
+    }
+
+    /// Placeholder payload for error outcomes — carries no fields but keeps
+    /// `ToolOutcome`'s generic contract satisfied. Never encoded (error cases
+    /// pass `nil` payload).
+    private struct _EmptyPayload: Encodable {}
+
+    /// Shared prerequisite check for every handler that needs the map. Throws
+    /// a `.dependencyUnavailable` fatal outcome when the view model has been
+    /// deallocated — no point retrying this turn.
+    private func requireMapVM(tool: String) throws -> MapViewModel {
+        guard let vm = mapViewModel else {
+            throw RouterError.dependencyUnavailable(
+                tool: tool,
+                dependency: "map view model",
+                hint: "The map session isn't active. Ask the user to reopen the map before this tool can run."
+            )
+        }
+        return vm
+    }
+
+    /// Build a compact hint for `.experienceNotFound` that lists a few valid
+    /// ids from the current visible set — the highest-leverage nudge the model
+    /// can act on without another tool call.
+    private func visibleIDHint(from vm: MapViewModel, limit: Int = 3) -> String {
+        let sample = vm.visibleExperiences.prefix(limit)
+        guard !sample.isEmpty else {
+            return "No experiences are currently visible on the map — call explore_nearby or search_places first."
+        }
+        let list = sample.map { "\($0.id) — \($0.title)" }.joined(separator: "; ")
+        return "Valid ids include: \(list)."
     }
 
     // MARK: - P2.1 / P3.5 handlers (#210 – #216, #352)
@@ -800,9 +933,7 @@ public final class VoiceAgentToolRouter {
 
     private func executeSuggestNowAction(args: String) throws -> String {
         let parsed: SuggestNowArgs = try Self.decode(args, tool: "suggest_now_action")
-        guard let vm = mapViewModel else {
-            throw RouterError.underlying("map view model deallocated")
-        }
+        let vm = try requireMapVM(tool: "suggest_now_action")
         // Pick the highest-solo-score visible experience the user hasn't
         // already marked completed. Never invent — if the visible pool is
         // empty we return a graceful "no candidates" envelope.
@@ -943,5 +1074,95 @@ public final class VoiceAgentToolRouter {
             "topic": parsed.topic ?? "",
             "scene": NSNull(),
         ])
+    }
+
+    // MARK: - recall_memory (③ slice A)
+
+    private struct RecallMemoryArgs: Decodable {
+        let query: String
+        let city_code: String?
+        let limit: Int?
+    }
+
+    /// Payload for a successful `recall_memory` call. Encoded via
+    /// `ToolOutcome` so the wire shape is the new structured envelope, not
+    /// the legacy `successJSON` blob.
+    private struct RecallMemoryPayload: Encodable {
+        struct Hit: Encodable {
+            let id: String
+            let occurred_at: String   // ISO 8601 UTC
+            let city_code: String?
+            let title: String
+            let body: String
+            let tags: [String]
+            let score: Double
+        }
+        let hits: [Hit]
+        let queried: String
+    }
+
+    /// Search the per-orchestrator episode store for context matching the
+    /// user's query. Returns a `retryable` outcome with a widen-scope hint
+    /// on an empty hit set — that's the whole reason to use structured
+    /// outcomes: the model gets a concrete next move instead of "no data".
+    private func executeRecallMemory(args: String) throws -> String {
+        let parsed: RecallMemoryArgs = try Self.decode(args, tool: "recall_memory")
+
+        let trimmed = parsed.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw RouterError.invalidArguments(
+                tool: "recall_memory",
+                reason: "query must be a non-empty search phrase"
+            )
+        }
+        let limit = max(1, min(5, parsed.limit ?? 3))
+
+        let hits = memoryStore.search(
+            query: trimmed,
+            cityCode: parsed.city_code,
+            limit: limit
+        )
+
+        // Empty result → retryable with a specific widen hint. The model
+        // can re-query with the city filter dropped, or drop to broader
+        // wording; the retry ledger stops it from looping.
+        guard !hits.isEmpty else {
+            let hint: String
+            if parsed.city_code != nil {
+                hint = "No episodes matched '\(trimmed)' scoped to city '\(parsed.city_code!)'. Retry once WITHOUT the city_code, or rephrase the query using different keywords the user actually said."
+            } else {
+                hint = "No episodes matched '\(trimmed)'. The store may have no relevant history yet, or the query is too narrow — tell the user you don't have that memory rather than retrying with the same phrase."
+            }
+            let outcome: ToolOutcome<RecallMemoryPayload> = .retryable(
+                reason: .emptyResult,
+                hint: hint,
+                retryableWith: parsed.city_code != nil ? ["city_code": .string("")] : nil,
+                partial: RecallMemoryPayload(hits: [], queried: trimmed)
+            )
+            return outcome.encodeForModel()
+        }
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+
+        let payload = RecallMemoryPayload(
+            hits: hits.map { h in
+                RecallMemoryPayload.Hit(
+                    id: h.episode.id.uuidString,
+                    occurred_at: iso.string(from: h.episode.occurredAt),
+                    city_code: h.episode.cityCode,
+                    title: h.episode.title,
+                    body: h.episode.body,
+                    tags: h.episode.tags,
+                    score: h.score
+                )
+            },
+            queried: trimmed
+        )
+        let outcome: ToolOutcome<RecallMemoryPayload> = .ok(
+            payload: payload,
+            hint: "Cite the surfaced episodes with a natural aside — 'you mentioned X last time' — before your recommendation. Don't dump the full body verbatim."
+        )
+        return outcome.encodeForModel()
     }
 }
