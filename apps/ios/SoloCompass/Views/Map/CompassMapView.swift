@@ -554,6 +554,49 @@ struct CompassMapContentView: View {
                             activeRoute = ActiveRoute(route: route, coordinates: resolved)
                         }
                     }
+                    // DEBUG visual-verification: `-triggerExplore` fires one
+                    // explore at the resolved city center on cold start so a
+                    // screenshot harness can see real POIs (Amap in mainland
+                    // China, Overpass overseas) instead of the "Quiet patch"
+                    // empty state. Mirrors the -openMe/-openExperience
+                    // convention: only DEBUG builds honour it. Pairs with
+                    // `-devConsentAccepted` which flips the Explore-Here
+                    // consent so the sheet never blocks the automated pass.
+                    #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("-devConsentAccepted") {
+                        preferences.acceptExploreConsent()
+                    }
+                    if ProcessInfo.processInfo.arguments.contains("-triggerExplore") {
+                        let center = viewModel.defaultCenterForSelectedCity
+                        Task { await viewModel.exploreNearby(at: center) }
+                    }
+                    // ④ Self-eval Rubric e2e hook: on cold start simulate one
+                    // completed turn matching the "happy path" fixture and
+                    // NSLog the resulting overall score. The e2e watcher greps
+                    // the sim log for the marker to prove the scorer wired
+                    // through to the store end-to-end.
+                    if ProcessInfo.processInfo.arguments.contains("-simulateRubricTurn") {
+                        ensureOrchestrator(viewModel: viewModel)
+                        if let orch = voiceOrchestrator {
+                            // Push a fixture that saturates every dimension:
+                            // 3+ shared content tokens (咖啡馆/附近/安静/推荐),
+                            // real synthesis, at least one card, and a card-
+                            // eligible ask so cardCoverage = 10 too.
+                            orch.debug_simulateCompletedTurn(
+                                user: "附近推荐一家安静的咖啡馆",
+                                assistant: "附近有家咖啡馆很安静，适合独自阅读，推荐。",
+                                toolCalls: ["searchPlaces"],
+                                cards: 1,
+                                quality: .real
+                            )
+                            if let latest = orch.rubricStore.latest {
+                                NSLog("[RUBRIC-E2E] overall=\(latest.overall) verdict=\(latest.verdict.rawValue) weakest=\(latest.weakestDimension) notes=\(latest.notes)")
+                            } else {
+                                NSLog("[RUBRIC-E2E] no report in store")
+                            }
+                        }
+                    }
+                    #endif
                 }
                 viewModel.checkForPendingCheckIns()
                 // P1.1 #112: seed the visited-id set so .footprinted halos

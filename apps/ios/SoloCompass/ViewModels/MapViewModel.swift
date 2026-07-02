@@ -472,6 +472,21 @@ public final class MapViewModel {
             )
         }
 
+        // Include the currently selected city even when seed / discovered rows
+        // don't cover it (冷启动到 SZX 但 seed 只有 cmi/VTE) so the city pill
+        // shows the intended name instead of falling back to nearestSeededCity
+        // — which for Shenzhen picks Vientiane on great-circle distance.
+        if let code = selectedCity, byCode[code] == nil {
+            let center = Self.knownCityCenters[code]
+                ?? Self.cityCodeAliases[code.lowercased()]
+                    .flatMap({ Self.knownCityCenters[$0] })
+                ?? Self.knownCityCenters[code.uppercased()]
+                ?? Self.knownCityCenters[code.lowercased()]
+            if let center {
+                byCode[code] = (code, nameMap[code] ?? code, center)
+            }
+        }
+
         return Array(byCode.values).sorted { $0.name < $1.name }
     }
 
@@ -481,6 +496,13 @@ public final class MapViewModel {
         "cmi": "Chiang Mai",
         "VTE": "Vientiane",
         "cn-深圳市": "Shenzhen",
+        // SZX/szx/shenzhen 三种冷启动/launch-arg 形式都要能反查到显示名,
+        // 否则 selectedCity="SZX" 但 seed 无 SZX experience 时,cityPill
+        // 会回退到 nearestSeededCity(depend on availableCities),把最近的
+        // 万象(Vientiane)当城市名显示——用户看到的城市顶栏就错了。
+        "SZX": "Shenzhen",
+        "szx": "Shenzhen",
+        "shenzhen": "Shenzhen",
     ]
 
     /// Well-known city centers keyed by both their seed/discovered codes and
@@ -1018,6 +1040,16 @@ public final class MapViewModel {
                 let avgLat = coords.map(\.latitude).reduce(0, +) / Double(coords.count)
                 let avgLon = coords.map(\.longitude).reduce(0, +) / Double(coords.count)
                 initialCenter = CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon)
+            } else if let known = Self.knownCityCenters[savedCity]
+                        ?? Self.cityCodeAliases[savedCity.lowercased()]
+                            .flatMap({ Self.knownCityCenters[$0] })
+                        ?? Self.knownCityCenters[savedCity.uppercased()]
+                        ?? Self.knownCityCenters[savedCity.lowercased()] {
+                // V-006/SZX: seed 数据不覆盖 savedCity 时(冷启动到 Shenzhen 但
+                // seed 只有 cmi/VTE),回退到 knownCityCenters,避免落到默认
+                // 中心(SF/清迈)。case 不敏感 + alias 兼容,和
+                // syncCameraToSelectedCity()/defaultCenterForSelectedCity() 一致。
+                initialCenter = known
             } else {
                 initialCenter = Self.defaultCenter
             }

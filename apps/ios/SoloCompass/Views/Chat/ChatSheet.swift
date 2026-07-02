@@ -385,7 +385,17 @@ public struct ChatSheet: View {
                                 ChatCardStack(
                                     cards: cards,
                                     onSelectExperience: handleSelectExperience,
-                                    onAdoptRoute: handleAdoptRoute
+                                    onAdoptRoute: handleAdoptRoute,
+                                    // Slice B: hand the ledger-state
+                                    // projection down so each provisional
+                                    // card gets a countdown + undo pill.
+                                    // Absent when the ledger's projection
+                                    // hasn't landed for this message yet
+                                    // (ChatCardStack degrades gracefully).
+                                    entries: orchestrator.entriesByMessageId[msg.id],
+                                    onUndoCard: { entryId in
+                                        orchestrator.undoCard(id: entryId)
+                                    }
                                 )
                                 .id("cards-\(msg.id)")
                             }

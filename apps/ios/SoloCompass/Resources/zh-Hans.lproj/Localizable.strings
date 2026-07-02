@@ -1003,6 +1003,9 @@
 "chat.card.expand.a11y" = "展开这个地点的更多信息";
 "chat.card.open.a11y" = "在地图上打开 %@";
 "chat.card.solo" = "Solo %@";
+"chat.card.undo.pill" = "撤回 · %ds";
+"chat.card.undo.a11y" = "撤回这张卡片,%d 秒后确认";
+"chat.card.undo.a11y.hint" = "双击可在卡片落定前撤回";
 "chat.route.adopt" = "采用这条路线";
 "chat.route.adopt.a11y" = "双击保存并打开这条路线";
 "chat.route.open" = "打开";
