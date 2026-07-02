@@ -5,25 +5,29 @@ import SwiftUI
 /// "search result" line you can peek or open); a proposed route renders as one
 /// full-width card. Tapping a card is the user's explicit action — see
 /// `ChatExperienceCard` / `ChatRouteProposalCard`.
+///
+/// ⑩ Slice B: when `entries` is provided, each card gets a countdown
+/// `UndoPill` overlay while its ledger entry is still `.provisional`. When
+/// the caller doesn't pass `entries` (early-adopter tests, previews), the
+/// stack falls back to the plain `cards` render — no pill, no swipe.
 @MainActor
 struct ChatCardStack: View {
     let cards: [ChatCard]
     let onSelectExperience: (Experience) -> Void
     let onAdoptRoute: (RouteProposal) -> Void
 
+    /// Slice B: parallel projection with per-card `.provisional/.committed`
+    /// state so the pill can render its countdown. Must be aligned to
+    /// `cards` — same order, same ids. When nil, no pill is drawn.
+    var entries: [ProvisionalCardLedger.Entry]? = nil
+    /// Slice B: called with the ledger entry id when the pill is tapped.
+    /// Wired to `orchestrator.undoCard(id:)` at the ChatSheet layer.
+    var onUndoCard: ((UUID) -> Void)? = nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(cards) { card in
-                switch card {
-                case let .experiences(_, list):
-                    experienceResults(list)
-                case let .route(_, proposal):
-                    ChatRouteProposalCard(
-                        proposal: proposal,
-                        onAdopt: { onAdoptRoute(proposal) },
-                        onTapStop: onSelectExperience
-                    )
-                }
+            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                cardRow(card: card, entry: entries?[safe: index])
             }
         }
         // Sit in the assistant's column but with room to breathe — compact
@@ -34,6 +38,51 @@ struct ChatCardStack: View {
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
+    @ViewBuilder
+    private func cardRow(card: ChatCard, entry: ProvisionalCardLedger.Entry?) -> some View {
+        let content = Group {
+            switch card {
+            case let .experiences(_, list):
+                experienceResults(list)
+            case let .route(_, proposal):
+                ChatRouteProposalCard(
+                    proposal: proposal,
+                    onAdopt: { onAdoptRoute(proposal) },
+                    onTapStop: onSelectExperience
+                )
+            }
+        }
+        // Slice B: overlay the undo pill only while the entry is
+        // provisional. `.topTrailing` so it sits above the card's own
+        // action area without stealing hit targets. A committed / undone
+        // entry gets no pill (case handled by exhaustive switch).
+        if let entry, case let .provisional(deadline) = entry.state {
+            content
+                .overlay(alignment: .topTrailing) {
+                    UndoPill(
+                        deadline: deadline,
+                        onUndo: { onUndoCard?(entry.id) }
+                    )
+                    // Nudge into the card's top-right corner without
+                    // clipping past the padding on ChatCardStack itself.
+                    .padding(.trailing, 6)
+                    .padding(.top, 6)
+                }
+                // Whole-card left swipe as a second undo affordance — the
+                // pill is the primary one; swipe is for muscle-memory.
+                .gesture(
+                    DragGesture(minimumDistance: 30, coordinateSpace: .local)
+                        .onEnded { drag in
+                            if drag.translation.width < -40 {
+                                onUndoCard?(entry.id)
+                            }
+                        }
+                )
+        } else {
+            content
+        }
+    }
+
     /// Vertical stack of compact place rows — the design's `.ai-results` column.
     @ViewBuilder
     private func experienceResults(_ list: [Experience]) -> some View {
@@ -42,6 +91,15 @@ struct ChatCardStack: View {
                 ChatExperienceCard(experience: exp) { onSelectExperience(exp) }
             }
         }
+    }
+}
+
+// Safe subscript so entries.count < cards.count degrades to nil instead of
+// crashing — happens transiently when a new card lands between the
+// snapshot the view rendered from and the updated entries projection.
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
 

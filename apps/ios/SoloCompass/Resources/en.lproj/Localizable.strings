@@ -885,6 +885,9 @@
 "chat.card.expand.a11y" = "Show more about this place";
 "chat.card.open.a11y" = "Open %@ on the map";
 "chat.card.solo" = "Solo %@";
+"chat.card.undo.pill" = "Undo · %ds";
+"chat.card.undo.a11y" = "Undo this card, confirming in %d seconds";
+"chat.card.undo.a11y.hint" = "Double tap to pull the card back before it settles";
 "chat.route.adopt" = "Use this route";
 "chat.route.adopt.a11y" = "Double tap to save this route and open it";
 "chat.route.open" = "Open";

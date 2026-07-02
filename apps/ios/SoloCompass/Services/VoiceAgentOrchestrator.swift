@@ -23,6 +23,13 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// directly, go through `appendCard` / `syncCardsSnapshot()` instead.
     /// `internal` so `ProvisionalCardWiringTests` can assert on it.
     let provisionalCards = ProvisionalCardLedger()
+    /// ④ Self-eval Rubric: every completed turn scores itself against
+    /// six house dimensions (relevance / factuality / conciseness /
+    /// contextUsage / toolHonesty / cardCoverage) and lands in this
+    /// bounded ring buffer. Downstream ⑧ sc-loop and any transparency
+    /// UI read from here. Public so tests + previews can peek.
+    public let rubricStore = RubricStore()
+    private let rubricScorer = RubricScorer()
     /// ① Plan-Execute-Reflect layer: classifies each user turn into
     /// single / compound / clarify. Heuristic fast path stays free; only
     /// the compound branch spends an extra API round-trip.
@@ -89,6 +96,13 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// that assistant bubble so a recommendation appears as a tappable card
     /// instead of the agent seizing the map. Cleared with the session.
     public private(set) var cardsByMessageId: [UUID: [ChatCard]] = [:]
+
+    /// Slice B parallel projection: the same visible entries as
+    /// `cardsByMessageId` but preserving each entry's `state` so the chat can
+    /// render a countdown pill + swipe-to-undo affordance while the entry is
+    /// still `.provisional`. Slice A consumers keep reading `cardsByMessageId`
+    /// unchanged; new UI reads this. Kept in lock-step by `syncCardsSnapshot`.
+    public private(set) var entriesByMessageId: [UUID: [ProvisionalCardLedger.Entry]] = [:]
 
     /// Live, ordered trace of what the agent is reasoning about this turn
     /// (analyzing weather / location / places visited …). Surfaced by the chat
@@ -226,6 +240,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         errorMessage = nil
         provisionalCards.removeAll()
         cardsByMessageId = [:]
+        entriesByMessageId = [:]
         reasoningTrace = []
         reasoningSummaryByMessageId = [:]
 
@@ -304,6 +319,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         // re-scoped chat doesn't show stale recommendations.
         provisionalCards.removeAll()
         cardsByMessageId = [:]
+        entriesByMessageId = [:]
         reasoningTrace = []
         reasoningSummaryByMessageId = [:]
 
@@ -389,6 +405,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         isExecutingTool = false
         provisionalCards.removeAll()
         cardsByMessageId = [:]
+        entriesByMessageId = [:]
         reasoningTrace = []
         reasoningSummaryByMessageId = [:]
         uiState = .idle
@@ -611,6 +628,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     // Turn complete — persist the conversation so it survives the
                     // sheet closing and shows up in history.
                     persistConversation()
+                    // ④ Self-eval Rubric: every finished turn scores itself
+                    // synchronously (heuristic, <1ms). No await, no throw —
+                    // if the scorer ever regresses, log-and-move-on rather
+                    // than blocking the user's next input.
+                    recordRubricForCompletedTurn(userText: safe, assistantText: finalText)
                 }
             }
         }
@@ -757,11 +779,45 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// current wall-clock, promoting any provisional entries whose deadline
     /// has passed. `@Observable` picks up the write and re-renders the chat.
     ///
-    /// Called from every ledger-mutating path (`appendCard`, `undoLastCard`,
-    /// `commitAllProvisionalCards`) and can also be called on a Timer tick
-    /// by slice B to drive the countdown pill.
+    /// Also refreshes the slice-B `entriesByMessageId` projection so any
+    /// countdown pill / undo affordance sees the same visible set as
+    /// `cardsByMessageId`. Called from every ledger-mutating path
+    /// (`appendCard`, `undoLastCard`, `commitAllProvisionalCards`) and can
+    /// also be called on a Timer tick to drive the countdown.
     private func syncCardsSnapshot() {
-        cardsByMessageId = provisionalCards.cardsByMessageId(at: Date())
+        let now = Date()
+        provisionalCards.promoteDueEntries(now: now)
+        cardsByMessageId = provisionalCards.cardsByMessageId(at: now)
+        var byMsg: [UUID: [ProvisionalCardLedger.Entry]] = [:]
+        for entry in provisionalCards.visibleEntries(at: now) {
+            byMsg[entry.messageId, default: []].append(entry)
+        }
+        entriesByMessageId = byMsg
+    }
+
+    /// Slice B: advance the ledger clock without needing a mutation. Chat UI
+    /// invokes this on every timeline tick so provisional entries whose
+    /// deadline just passed flip to `.committed` and the countdown pill
+    /// disappears. Cheap when nothing is provisional (idempotent no-op).
+    public func advanceProvisionalClock() {
+        syncCardsSnapshot()
+    }
+
+    /// Slice B: soonest still-provisional deadline across the whole ledger,
+    /// so the chat can schedule a single Timer publisher instead of polling.
+    /// `nil` when nothing is provisional — the countdown UI can be torn down.
+    public func nextProvisionalDeadline() -> Date? {
+        provisionalCards.nextDeadline()
+    }
+
+    /// Slice B: undo a specific entry by id (e.g. the user swipes/taps *this*
+    /// card's undo pill). Idempotent; returns `true` iff it actually flipped
+    /// something from `.provisional` to `.undone`.
+    @discardableResult
+    public func undoCard(id: UUID) -> Bool {
+        let didUndo = provisionalCards.undo(id: id, at: Date())
+        if didUndo { syncCardsSnapshot() }
+        return didUndo
     }
 
     /// ⑩ Card 可反悔性 — public API: pull the most recent still-provisional
@@ -781,6 +837,75 @@ public final class VoiceAgentOrchestrator: Identifiable {
     public func commitAllProvisionalCards() {
         provisionalCards.commitAllProvisional()
         syncCardsSnapshot()
+    }
+
+    #if DEBUG
+    /// ④ Self-eval Rubric — DEBUG-only entry point for the e2e harness.
+    /// Simulates a completed turn from cold start (no model round-trip) so
+    /// the e2e can assert `rubricStore.latest` is populated. Real turns
+    /// hit the same `record...` path; this bypasses only the streaming
+    /// loop that requires an API key.
+    ///
+    /// Guarded by `#if DEBUG` so release builds cannot inject synthesised
+    /// scores. The launch-arg check lives in the view layer.
+    public func debug_simulateCompletedTurn(
+        user: String,
+        assistant: String,
+        toolCalls: [String] = [],
+        cards: Int = 0,
+        quality: AIService.AISynthesisQuality = .real
+    ) {
+        let input = RubricScorer.TurnInput(
+            turnIndex: session.turnCount + 1,
+            userText: user,
+            assistantText: assistant,
+            toolCallsInvoked: toolCalls,
+            cardsAppended: cards,
+            synthesisQuality: quality,
+            hasScopedExperience: scopedExperience != nil
+        )
+        rubricStore.record(rubricScorer.score(input))
+    }
+    #endif
+
+    // MARK: - ④ Self-eval Rubric wiring
+
+    /// Score the just-completed assistant turn and drop the report into
+    /// `rubricStore`. Called from the turn-done branch of `runTurn`.
+    ///
+    /// The tool-call names are read from the last assistant message that
+    /// carried tool calls in the *current* user turn — the session model
+    /// resets `beginUserTurn`, so scanning back to the last user row and
+    /// collecting assistant tool calls after it gives us exactly the
+    /// tools that fired in service of this reply.
+    private func recordRubricForCompletedTurn(userText: String, assistantText: String) {
+        // 1. Collect tool names invoked since the last user turn.
+        var toolNames: [String] = []
+        for msg in session.messages.reversed() {
+            if msg.role == .user { break }
+            if msg.role == .assistant {
+                toolNames.insert(contentsOf: msg.toolCalls.map { $0.name }, at: 0)
+            }
+        }
+
+        // 2. Count cards appended for the assistant message this turn
+        //    produced. `session.lastAssistantId` is not exposed, so use
+        //    the ledger's projection keyed by "last assistant message id
+        //    with content" — same identity `appendCard` uses.
+        let lastAssistantId = session.messages.reversed().first(where: { $0.role == .assistant })?.id
+        let cardsAppended = lastAssistantId.flatMap { entriesByMessageId[$0]?.count } ?? 0
+
+        let input = RubricScorer.TurnInput(
+            turnIndex: session.turnCount,
+            userText: userText,
+            assistantText: assistantText,
+            toolCallsInvoked: toolNames,
+            cardsAppended: cardsAppended,
+            synthesisQuality: aiService.lastSynthesisQuality,
+            hasScopedExperience: scopedExperience != nil
+        )
+        let report = rubricScorer.score(input)
+        rubricStore.record(report)
     }
 
     /// Distill the live `reasoningTrace` into one collapsed `ReasoningSummary`
