@@ -1893,8 +1893,18 @@ public final class AIService {
         return items.compactMap { item in
             guard let poi = poiById[item.osmId] else { return nil }
             let category = ExperienceCategory(rawValue: item.category) ?? OverpassService.category(for: poi.tags)
+            // Rubric fix: log per-synthesis bestTimes so QA can spot food POIs
+            // stuck on the generic 9–21 fallback vs. real dinner-appropriate
+            // ranges the model returned. `sourceBest` distinguishes model-
+            // provided from clamped-default so a "9–21 for every card" pattern
+            // in DEBUG logs is a red-flag for prompt regression, not routine.
+            let modelProvidedStart = item.bestStartHour != nil
+            let modelProvidedEnd = item.bestEndHour != nil
             let startHour = item.bestStartHour.map { max(0, min(23, $0)) } ?? 9
             let endHour = item.bestEndHour.map { max(0, min(23, $0)) } ?? 21
+            Self.logger.debug(
+                "🕐 bestTimes id=\(poi.osmId, privacy: .public) cat=\(item.category, privacy: .public) start=\(startHour, privacy: .public)h end=\(endHour, privacy: .public)h modelStart=\(modelProvidedStart, privacy: .public) modelEnd=\(modelProvidedEnd, privacy: .public)"
+            )
             let dMin = item.durationMinMinutes ?? 30
             let dMax = max(dMin, item.durationMaxMinutes ?? 90)
             // Wider clamp now that real signals can justify higher/lower scores;
@@ -1932,14 +1942,27 @@ public final class AIService {
                 realInconveniences: [],
                 soloScore: SoloScore(overall: overall, breakdown: breakdown, hint: item.soloHint, basedOnCount: basedOnCount),
                 sources: [
-                    InformationSource(
-                        type: .user,
-                        url: URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
-                        attribution: basedOnCount > 0
-                            ? "© OpenStreetMap contributors + Foursquare/Apple Maps + AI"
-                            : "© OpenStreetMap contributors + AI",
-                        verifiedAt: now
-                    )
+                    // Slice A / rubric fix: honor `poi.tags["source"]=="amap"` on
+                    // the direct-Anthropic path the same way the Edge Function
+                    // path does (see line 1201). Without this, mainland-CN Amap
+                    // POIs were mislabeled as `.user` + OSM attribution — the
+                    // TrustBadge would draw the AutoNavi chip only when hand-
+                    // fed an .amap source, which the direct path never emitted.
+                    {
+                        let isAmap = poi.tags["source"] == "amap"
+                        return InformationSource(
+                            type: isAmap ? .amap : .user,
+                            url: isAmap
+                                ? nil
+                                : URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
+                            attribution: isAmap
+                                ? "© AutoNavi (Amap) + AI"
+                                : (basedOnCount > 0
+                                    ? "© OpenStreetMap contributors + Foursquare/Apple Maps + AI"
+                                    : "© OpenStreetMap contributors + AI"),
+                            verifiedAt: now
+                        )
+                    }()
                 ],
                 confidence: Confidence(
                     // Real provider signals bump confidence one notch above the
@@ -2017,17 +2040,28 @@ public final class AIService {
             realInconveniences: [],
             soloScore: SoloScore(overall: 7.0, breakdown: breakdown, hint: nil, basedOnCount: 0),
             sources: [
-                InformationSource(
-                    type: .user,
-                    url: URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
-                    attribution: "© OpenStreetMap contributors",
-                    verifiedAt: now
-                )
+                // Same provenance-honesty fix as the AI-enriched path — the
+                // skeleton fallback used to also mislabel Amap POIs as .user.
+                {
+                    let isAmap = poi.tags["source"] == "amap"
+                    return InformationSource(
+                        type: isAmap ? .amap : .user,
+                        url: isAmap
+                            ? nil
+                            : URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
+                        attribution: isAmap
+                            ? "© AutoNavi (Amap)"
+                            : "© OpenStreetMap contributors",
+                        verifiedAt: now
+                    )
+                }()
             ],
             confidence: Confidence(
                 level: 1,
                 lastVerifiedAt: now,
-                reason: "OpenStreetMap entry, no AI enrichment",
+                reason: (poi.tags["source"] == "amap")
+                    ? "Amap entry, no AI enrichment"
+                    : "OpenStreetMap entry, no AI enrichment",
                 signals: .init(aiScrapeAgeDays: 0, passiveGpsHits30d: 0, activeReports30d: 0, trustedVerifications: 0)
             ),
             nearbyExperienceIds: [],

@@ -145,6 +145,141 @@ public final class MapViewModel {
     /// - "12 places added near you" (geocode failed / offline)
     public var lastExploreToast: String?
 
+    // MARK: - Explore Mode session (slice C)
+    //
+    // `ExploreSession` is a computed view-model projected from the fields
+    // above. It lets the Explore-Mode overlay bind to a single object
+    // without leaking the multi-flag pipeline shape into the view. Nothing
+    // here replaces `isExploring` / `exploreProgress` — they still drive
+    // the pipeline; these three fields augment it.
+
+    /// Experience ids added by the current (or most recent) Explore run.
+    /// Cleared on `.idle`; drives the "dim non-new pins" treatment and
+    /// the live-feed's "+N places" counter. Set-typed for O(1) contains.
+    public var exploreSessionAddedIds: Set<String> = []
+
+    /// When set, the Explore run has finished with ≥1 result and the UI
+    /// should show the handoff card (result summary + 4 CTAs). Nil means
+    /// no pending handoff — either idle, still scanning, or dismissed.
+    public var pendingHandoff: ExploreSession.HandoffResult?
+
+    /// User tapped Cancel mid-Explore. Preserves already-added pins as
+    /// "kept" and drives a one-shot toast. Cleared on next Explore start.
+    public var lastCancelledKeptCount: Int?
+
+    /// Projected view-model of the current Explore session. Derives from
+    /// `isExploring`, `exploreProgress`, `exploreRadiusOverlay`,
+    /// `lastExploreCenter`, and the count fields above. UI reads this;
+    /// the pipeline sets the underlying fields.
+    public var exploreSession: ExploreSession {
+        // Handoff wins — a pending handoff card overrides any lingering
+        // exploreProgress that hasn't yet snapped back to .idle.
+        if let handoff = pendingHandoff {
+            return ExploreSession(state: .handoff(handoff))
+        }
+        if let kept = lastCancelledKeptCount {
+            return ExploreSession(state: .cancelled(kept: kept))
+        }
+        if isExploring || isExploringFreeMode {
+            let radius = exploreRadiusOverlay?.radiusMeters
+                ?? Double(progressiveScratchRadiusMeters)
+            let anchor = exploreRadiusOverlay?.center
+                ?? lastExploreCenter
+                ?? exploreAnchorCoordinate
+            let phase = Self.phase(from: exploreProgress)
+            return ExploreSession(state: .active(
+                phase: phase,
+                radiusMeters: max(radius, 500),
+                anchor: anchor,
+                addedCount: exploreSessionAddedIds.count,
+                verifiedCount: countVerifiedInSession()
+            ))
+        }
+        return ExploreSession(state: .idle)
+    }
+
+    /// Fold the fine-grained `ExploreProgress` enum into the coarser
+    /// `ExploreSession.Phase` the overlay pill cares about. Kept static
+    /// so tests can drive it without instantiating MapViewModel.
+    static func phase(from progress: ExploreProgress) -> ExploreSession.Phase {
+        switch progress {
+        case .idle:                    return .scanning   // just entered
+        case .multiRingScanning:       return .scanning
+        case .scanning:                return .scanning
+        case .expanding:               return .widening
+        case .synthesizing:            return .synthesizing
+        }
+    }
+
+    /// Count Experiences in the current session that carry ≥2 distinct
+    /// InformationSource types — the "verified across sources" signal
+    /// the live feed advertises. O(n) over the added set; fine because
+    /// n is bounded by explore batch size (~50).
+    private func countVerifiedInSession() -> Int {
+        guard !exploreSessionAddedIds.isEmpty else { return 0 }
+        var n = 0
+        for exp in visibleExperiences where exploreSessionAddedIds.contains(exp.id) {
+            if Set(exp.sources.map(\.type)).count >= 2 { n += 1 }
+        }
+        return n
+    }
+
+    /// User tapped Cancel on the Explore-Mode overlay. Preserves already
+    /// added pins (they're kept in visibleExperiences) and flips state
+    /// out of the scanning phase so the overlay clears. The next tick of
+    /// the pipeline will see isExploring flipped and stop appending; any
+    /// in-flight AI synthesis completes silently.
+    public func exploreCancel() {
+        let kept = exploreSessionAddedIds.count
+        isExploring = false
+        isExploringFreeMode = false
+        exploreProgress = .idle
+        exploreRadiusOverlay = nil
+        pendingHandoff = nil
+        lastCancelledKeptCount = kept
+        // Retire the toast/error banners left over from the scan so the
+        // cancel state reads cleanly.
+        lastExploreToast = nil
+        lastExploreError = nil
+    }
+
+    /// Called by the handoff card when the user picks a CTA or lets the
+    /// 10-second auto-dismiss fire. Snaps back to idle so the overlay
+    /// gets out of the user's way. Does NOT remove pins — the user might
+    /// want to keep them; use `exploreDiscardHandoff` for the destructive
+    /// "clear these" CTA.
+    public func exploreClearHandoff() {
+        pendingHandoff = nil
+        exploreSessionAddedIds.removeAll()
+    }
+
+    /// Handoff-card "Clear these" CTA. Removes the pins added this session
+    /// from the visible layer AND clears the session tracking. Existing
+    /// data in ExperienceService is not deleted — the user can still find
+    /// them via seed/filter — but they no longer clutter the current map.
+    public func exploreDiscardHandoff() {
+        let ids = exploreSessionAddedIds
+        pendingHandoff = nil
+        exploreSessionAddedIds.removeAll()
+        withAnimation(Self.markerSetAnimation) {
+            visibleExperiences.removeAll { ids.contains($0.id) }
+            nearbySoloCount = computeNearbySoloCount(in: visibleExperiences)
+        }
+    }
+
+    /// User dismissed the "kept N places" cancelled banner.
+    public func exploreClearCancelled() {
+        lastCancelledKeptCount = nil
+    }
+
+    /// Display-ready name of the selected city, or nil when custom /
+    /// unmatched. Used by the Explore-Mode overlay pill and the handoff
+    /// card so they never render `cmi` when the user sees `Chiang Mai`.
+    public var currentDisplayCityName: String? {
+        guard let code = selectedCity, !code.hasPrefix("custom_") else { return nil }
+        return availableCities.first(where: { $0.code == code })?.name
+    }
+
     // MARK: - Deep-dive re-compile (single card)
 
     /// The id of the experience currently being deep-dive re-compiled, or nil
@@ -1507,6 +1642,55 @@ public final class MapViewModel {
         updateBottomInfo()
     }
 
+    /// Rubric fix: zoom to fit the coordinate cluster (used at Explore
+    /// completion so the newly-added pins actually SEE the pin highlight
+    /// vs. dim treatment). With `recenter(on:)` at a wide default span
+    /// the pins collapse to indistinguishable dots and the whole
+    /// dim-modifier design pays no rent — the user just sees "6 dots
+    /// somewhere in a 5 km circle" and has to pinch in themselves.
+    ///
+    /// Falls back to `recenter(on: fallback)` if `coordinates` is empty
+    /// or degenerate. Padding factor keeps the pins off the edges so
+    /// they don't sit under the sheet.
+    public func zoomToFit(
+        _ coordinates: [CLLocationCoordinate2D],
+        fallback: CLLocationCoordinate2D,
+        paddingFactor: Double = 1.4
+    ) {
+        guard let first = coordinates.first else {
+            recenter(on: fallback)
+            return
+        }
+        var minLat = first.latitude
+        var maxLat = first.latitude
+        var minLon = first.longitude
+        var maxLon = first.longitude
+        for c in coordinates {
+            if c.latitude  < minLat { minLat = c.latitude }
+            if c.latitude  > maxLat { maxLat = c.latitude }
+            if c.longitude < minLon { minLon = c.longitude }
+            if c.longitude > maxLon { maxLon = c.longitude }
+        }
+        let latDelta = max((maxLat - minLat) * paddingFactor, 0.008)
+        let lonDelta = max((maxLon - minLon) * paddingFactor, 0.008)
+        guard latDelta.isFinite, lonDelta.isFinite else {
+            recenter(on: fallback)
+            return
+        }
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        withAnimation(Self.cameraAnimation) {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: center,
+                span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
+            ))
+        }
+        loadNearbyExperiences()
+        updateBottomInfo()
+    }
+
     /// Refresh visible experiences when the user pans/zooms the map. Does NOT
     /// touch `cameraPosition`, to avoid fighting the user's gesture.
     public func refreshForLocation(_ coordinate: CLLocationCoordinate2D) {
@@ -2076,6 +2260,11 @@ public final class MapViewModel {
         lastExploreAddedCount = 0
         lastQuotaInfo = nil
         lastExploreToast = nil
+        // Slice C: fresh Explore run resets the session-added ids so the
+        // dim-others treatment and live-feed counter start clean.
+        exploreSessionAddedIds.removeAll()
+        pendingHandoff = nil
+        lastCancelledKeptCount = nil
         // US-MR-05: stamp wall-clock start; emitted via durationMs.
         let exploreStart = Date()
         defer {
@@ -2155,6 +2344,12 @@ public final class MapViewModel {
                         if !novel.isEmpty {
                             let batchAdded = self.experienceService.appendGenerated(novel)
                             self.progressiveScratchAddedCount += batchAdded
+                            // Slice C: track this Explore's own new ids so
+                            // the map dim & the live-feed list can pick
+                            // them out from the pre-existing set.
+                            for exp in novel {
+                                self.exploreSessionAddedIds.insert(exp.id)
+                            }
                             withAnimation(Self.markerSetAnimation) {
                                 self.visibleExperiences.append(contentsOf: novel)
                                 self.nearbySoloCount = self.computeNearbySoloCount(in: self.visibleExperiences)
@@ -2251,6 +2446,11 @@ public final class MapViewModel {
             } else {
                 added = experienceService.appendGenerated(generated)
                 lastExploreAddedCount = added
+                // Slice C: legacy path — record every new id in the session
+                // tracker so the overlay + live-feed pick them up too.
+                for exp in generated {
+                    exploreSessionAddedIds.insert(exp.id)
+                }
             }
 
             // US-022: record a successful region so offline fallback can reuse it.
@@ -2305,7 +2505,17 @@ public final class MapViewModel {
                     || Self.cityCodeAliases.first(where: { $0.value == selectedCity })?.key == cityCode
                 if !userOwnsCity || discoveredMatchesSelected {
                     selectCity(cityCode)
-                    recenter(on: coordinate)
+                    // Rubric fix: fit the added cluster instead of snapping
+                    // to a fixed 4 km span. Falls back to plain recenter if
+                    // the batch is empty (added==0 branch handled above).
+                    let clusterCoords: [CLLocationCoordinate2D] = visibleExperiences
+                        .filter { exploreSessionAddedIds.contains($0.id) }
+                        .compactMap { $0.coordinate }
+                    if clusterCoords.count >= 2 {
+                        zoomToFit(clusterCoords, fallback: coordinate)
+                    } else {
+                        recenter(on: coordinate)
+                    }
                 }
                 let outerKm = effectiveRadius / 1000
                 if progressiveExpanded, let finalKm = progressiveFinalRadiusKm {
@@ -2342,6 +2552,24 @@ public final class MapViewModel {
                         : String(format: NSLocalizedString(key, comment: "%d places added near you"),
                                  added)
                 }
+                // Slice C: hand the result set off to the UI as a discrete
+                // artifact — the handoff card renders 4 CTAs (Ask Solo /
+                // Save as walk / Expand / Clear) over this payload. Set
+                // AFTER the toast + camera work so the card sees a stable
+                // scene. `finalKm` mirrors the toast source of truth so
+                // there's a single "we scanned this far" number.
+                let finalKm = progressiveFinalRadiusKm ?? (effectiveRadius / 1000)
+                let radii = EnrichmentAgent.progressiveRadii
+                let canExpand = progressiveScratchRadiusMeters < (radii.last ?? Int.max)
+                let verifiedInSession = countVerifiedInSession()
+                pendingHandoff = ExploreSession.HandoffResult(
+                    addedCount: added,
+                    verifiedCount: verifiedInSession,
+                    finalRadiusKm: max(finalKm, 1),
+                    cityName: resolved?.name,
+                    addedIds: Array(exploreSessionAddedIds),
+                    canExpand: canExpand
+                )
             }
         } catch {
             // US-022: on network failure, look for a recent nearby region and

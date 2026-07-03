@@ -29,9 +29,15 @@ public final class EnrichmentAgent {
     /// over breadth. Callers can widen it for a sparse area.
     public static let defaultRadiusMeters = 800
 
-    /// How many enriched POIs survive ranking and reach synthesis. Keeps the
-    /// AI call cheap and the result set curated rather than overwhelming.
-    public static let defaultTopN = 6
+    /// How many enriched POIs survive ranking and reach synthesis.
+    ///
+    /// Rubric fix: 6 was the old cap. In a dense Amap area (75 raw POIs in a
+    /// 5 km Futian query) that discarded 92% of the coverage before the user
+    /// ever saw anything — filter chip surfaced "All 6". 15 keeps the AI call
+    /// still cheap (well under `AIService.synthesisLimit=60`) while giving
+    /// the map cluster and the handoff summary "N places found" some room to
+    /// breathe. The AI cost delta is trivial vs the UX gain.
+    public static let defaultTopN = 15
 
     /// Progressive radius ladder in meters: start tight, expand when sparse.
     public static let progressiveRadii: [Int] = [5_000, 10_000, 25_000, 100_000]
@@ -289,7 +295,41 @@ public final class EnrichmentAgent {
         )
 
         // 4. Backfill a street-level address on survivors missing one.
-        let enriched = await backfillAddresses(ranked)
+        var enriched = await backfillAddresses(ranked)
+
+        // 4b. Rubric fix: fold the ephemeral Amap enrichment channel
+        //     (rating / opentimeToday / phone / address per ADR §3.2) into
+        //     each POI's tags map — read-once-and-discard via
+        //     `consumeEnrichments`. Without this, `AmapPOIService` populated
+        //     `transientEnrichments` for 75/75 POIs but nothing ever fed it
+        //     to the AI prompt, so `synthesizeExperiences` saw generic
+        //     tag-less inputs and defaulted to "9–21 · Solo ~7 · no signals"
+        //     for every Amap card. Map to the tag keys AIService already
+        //     reads at line 1656–1661 so the change is transparent to it.
+        if let amap = amapService {
+            let ids = enriched.map(\.osmId)
+            let bag = amap.consumeEnrichments(for: ids)
+            if !bag.isEmpty {
+                enriched = enriched.map { poi in
+                    guard let e = bag[poi.osmId] else { return poi }
+                    var tags = poi.tags
+                    if let r = e.rating,
+                       tags["fsq_rating"] == nil { tags["fsq_rating"] = r }
+                    if let h = e.opentimeToday,
+                       tags["opening_hours"] == nil { tags["opening_hours"] = h }
+                    if let p = e.phone,
+                       tags["phone"] == nil { tags["phone"] = p }
+                    if let a = e.address,
+                       tags["addr"] == nil { tags["addr"] = a }
+                    return OverpassService.POI(
+                        osmId: poi.osmId, name: poi.name, nameEn: poi.nameEn,
+                        lat: poi.lat, lon: poi.lon, tags: tags
+                    )
+                }
+                let consumed = bag.count
+                Self.logger.info("🔗 fed \(consumed, privacy: .public) transient amap enrichments into synthesis")
+            }
+        }
 
         // 5. Synthesize. The (already-relaxed) prompt cites the real signals.
         return try await aiService.synthesizeExperiences(
