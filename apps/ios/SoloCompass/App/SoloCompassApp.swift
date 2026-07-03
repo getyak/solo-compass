@@ -149,6 +149,16 @@ struct SoloCompassApp: App {
         if ProcessInfo.processInfo.arguments.contains("-forceOnboarding") {
             return .onboarding
         }
+        // Slice C rubric entry point: `-devSkipOnboarding` bypasses BOTH
+        // the terms cover AND the onboarding cover so a fresh sim install
+        // can go straight to CompassMapView for Explore-Mode e2e capture.
+        // Only usable in DEBUG builds; sets the underlying UserDefaults
+        // flags in-line so the app treats it as an ordinary "already
+        // consented" state rather than a special-cased shortcut.
+        if ProcessInfo.processInfo.arguments.contains("-devSkipOnboarding") {
+            UserDefaults.standard.set(true, forKey: "SoloCompass.hasAcceptedTerms")
+            return nil
+        }
         #endif
         return !TermsConsentSheet.hasAccepted ? .terms : nil
     }()
@@ -230,6 +240,21 @@ struct SoloCompassApp: App {
                     }
                 }
                 .onAppear {
+                    #if DEBUG
+                    // Slice C rubric: pair to the init-time skip above. Make
+                    // the preferences-side flags reflect "already consented"
+                    // so downstream gates (Explore consent, first-run cover)
+                    // don't re-fire. Idempotent — each setter no-ops if the
+                    // flag is already true.
+                    if ProcessInfo.processInfo.arguments.contains("-devSkipOnboarding") {
+                        if !preferences.hasCompletedOnboarding {
+                            preferences.completeOnboarding()
+                        }
+                        if !preferences.hasAcceptedExploreConsent {
+                            preferences.acceptExploreConsent()
+                        }
+                    }
+                    #endif
                     // If terms were accepted on a previous launch but the
                     // 4-step onboarding never completed (user killed the app
                     // mid-flow), surface onboarding now. The Terms-accept

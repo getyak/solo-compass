@@ -441,21 +441,12 @@ public struct ExperienceDetailView: View {
 
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            // Provenance tag — uppercase mono in sun-gold (styles.css .ai-tag).
-            if viewModel.experience.isFromOpenStreetMap {
-                let enriched = viewModel.experience.isAIEnriched
-                let badgeKey = enriched ? "explore.aiBadge" : "explore.osmBadge"
-                let badgeText = NSLocalizedString(badgeKey, comment: "Provenance badge")
-                HStack(spacing: 5) {
-                    Image(systemName: enriched ? "sparkles" : "mappin.and.ellipse")
-                        .font(.system(size: 10))
-                    Text(badgeText.uppercased())
-                        .font(CT.mono(10.5, .medium))
-                        .tracking(1.0)
-                }
-                .foregroundStyle(CT.sunGoldDeep)
-                .accessibilityLabel(Text(badgeText))
-            }
+            // Provenance chip — TrustBadge unifies the five source buckets
+            // (verified / amap / osm / user / curated). Replaced the
+            // isFromOpenStreetMap+isAIEnriched string-match dual-badge with a
+            // structured chip so AutoNavi is visibly distinct from OSM at a
+            // glance (slice A of the Explore-Mode redesign).
+            TrustBadge(level: viewModel.experience.trustBadgeLevel, size: .full)
 
             // Category row — colored disc + uppercase label + level/signals +
             // trust chip (verified / observing / questioned).

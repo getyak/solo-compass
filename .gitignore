@@ -99,3 +99,10 @@ docs/design/incoming/
 
 # Playwright MCP run artifacts (console logs, page snapshots) — transient.
 .playwright-mcp/
+
+# Rubric evidence: PNGs from the multi-agent scoring runs. Markdown reports
+# (EVIDENCE.md / O1_FIXES.md / O3_P1_FIXES.md) stay tracked so the fix
+# rationale survives; the ~3 MB-each screenshots do not need git history.
+apps/ios/rubric_evidence/*.png
+apps/ios/rubric_evidence/*.log
+apps/ios/rubric_evidence/*.txt

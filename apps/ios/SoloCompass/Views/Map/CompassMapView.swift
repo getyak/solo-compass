@@ -885,7 +885,20 @@ struct CompassMapContentView: View {
                     }
                 }
 
-                if viewModel.visibleExperiences.isEmpty && !isFilterActive {
+                // Slice C fix: an Explore session in flight already promises
+                // "we're scanning" via the top pill (`ExploreModeOverlay`) and
+                // a live radius ring — the "Quiet patch of map · try wider"
+                // empty state directly contradicts that promise if it renders
+                // in the same frame. Rubric evidence caught this at t=5 s
+                // and t=13 s (Scanning · 1 km / 5 km pill on top, "Showing
+                // within 8 km — Expand to 25 km" empty state on bottom).
+                // Suppress the empty state while the session is active; the
+                // pill already covers "we're working" and the ring shows
+                // reach. When the session ends and STILL yields zero, the
+                // real empty state re-appears — that's the honest fallback.
+                if viewModel.visibleExperiences.isEmpty
+                    && !isFilterActive
+                    && !viewModel.exploreSession.isActive {
                     EmptyStateOverlay(
                         viewModel: viewModel,
                         preferences: preferences,
@@ -1186,6 +1199,53 @@ struct CompassMapContentView: View {
                 .allowsHitTesting(agentBubbleQueue.items.isEmpty ? false : true)
                 .zIndex(12)
 
+            // Slice C: Explore-Mode overlay. Renders top pill + Cancel FAB
+            // only while an Explore session is in `.active`. Handoff card &
+            // cancelled banner sit on top (higher zIndex) so they can take
+            // over the stage when the scan finishes or the user bails.
+            if viewModel.exploreSession.isActive,
+               case .active = viewModel.exploreSession.state {
+                ExploreModeOverlay(
+                    session: viewModel.exploreSession,
+                    cityDisplayName: viewModel.currentDisplayCityName,
+                    onCancel: { viewModel.exploreCancel() }
+                )
+                .zIndex(20)
+                .transition(.opacity)
+            }
+
+            // Handoff card — the result-set surface that replaces the
+            // 3-second toast. Ranks: Ask Solo (primary) → Save as walk →
+            // Expand radius → Clear these. 10-second idle auto-minimize.
+            if let handoff = viewModel.exploreSession.handoffResult {
+                ExploreHandoffCard(
+                    result: handoff,
+                    onAskSolo: {
+                        viewModel.exploreClearHandoff()
+                        chatStartMode = .text
+                        ensureOrchestrator(viewModel: viewModel)
+                    },
+                    onSaveWalk: {
+                        // Freeze the batch into a route candidate set.
+                        // CreateRouteView pulls its candidates from
+                        // `viewModel.visibleExperiences`, which already
+                        // contains the added set at this point.
+                        viewModel.exploreClearHandoff()
+                        routeSheet = .create
+                    },
+                    onExpand: {
+                        viewModel.exploreClearHandoff()
+                        Task { _ = await viewModel.expandOneStage() }
+                    },
+                    onClear: {
+                        viewModel.exploreDiscardHandoff()
+                    },
+                    onDismiss: {
+                        viewModel.exploreClearHandoff()
+                    }
+                )
+                .zIndex(25)
+            }
         }
     }
 
@@ -1911,6 +1971,16 @@ struct CompassMapContentView: View {
                                         highlightActive: highlightActive,
                                         reduceMotion: reduceMotion,
                                         smartPickRank: smartPickRank
+                                    ))
+                                    // Slice C: dim non-session pins so the
+                                    // Explore-Mode overlay's live-feed reads
+                                    // against a hushed background of the pre-
+                                    // existing map. The `.active` check gates
+                                    // this so idle map is untouched.
+                                    .modifier(ExploreSessionDimModifier(
+                                        isNewInSession: viewModel.exploreSessionAddedIds.contains(exp.id),
+                                        sessionActive: viewModel.exploreSession.isActive,
+                                        reduceMotion: reduceMotion
                                     ))
                                     .transition(.scale.combined(with: .opacity))
                                 }

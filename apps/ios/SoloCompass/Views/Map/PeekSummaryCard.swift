@@ -131,12 +131,27 @@ struct PeekSummaryCard: View {
     }
 
     /// The reason copy to show. Friend voice in both languages — never bare facts.
-    /// Order: AI rationale → "best spot in view" warm-start line → empty.
+    /// Order: AI oneLiner (when non-empty and adds signal beyond the title) →
+    ///        AI whyItMatters (smart-pick framing) →
+    ///        warmStart template fallback → empty.
+    ///
+    /// Rubric fix: baseline only reached the AI signal when isSmartPick was
+    /// set, so every non-smart-pick peek card showed the hardcoded
+    /// "Strongest <category> pick · Solo N.N" copy. AI-enriched Amap POIs
+    /// had a real oneLiner (e.g. "深夜串烧配清酒") that never surfaced
+    /// until the user tapped through to the detail. Surface it here.
     private var reasonCopy: String {
+        // 1. AI oneLiner wins when it exists and adds signal beyond the title.
+        let oneLiner = experience.oneLiner.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !oneLiner.isEmpty
+            && oneLiner.lowercased() != experience.title.lowercased() {
+            return oneLiner
+        }
+        // 2. Smart-pick framing around whyItMatters — kept as an intermediate
+        //    rung so a smart-pick with an empty oneLiner still gets warm copy.
         if isSmartPick {
             let why = experience.whyItMatters.trimmingCharacters(in: .whitespacesAndNewlines)
             if !why.isEmpty {
-                // First sentence only, keeps the row to ≤ 2 lines.
                 let firstSentence = why
                     .split(whereSeparator: { ".。！？!?".contains($0) })
                     .first
@@ -148,14 +163,11 @@ struct PeekSummaryCard: View {
                 return String(format: format, firstSentence)
             }
         }
-        // Warm-start fallback: surface the score + category as a friend's nudge.
+        // 3. Warm-start fallback — for entries with no AI enrichment yet.
         let format = NSLocalizedString(
             "peek.reason.warmStart",
             comment: "Warm-start fallback reason, friend voice. %.1f = Solo score, %@ = category name."
         )
-        // %@ first (category name), %.1f second (Solo score) — order MUST match
-        // both en + zh-Hans strings entries. Reversing them crashes with EXC_BAD_ACCESS
-        // because %@ tries to message the Double as an NSObject.
         return String(format: format, experience.category.localizedTitle, experience.soloScore.overall)
     }
 

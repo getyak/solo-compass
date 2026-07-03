@@ -293,7 +293,13 @@ struct NearbyExperienceRow: View {
         }
     }
 
-    /// Horizontal chip row: walk-time · Solo score · (此刻最佳) · proximity word.
+    /// Horizontal chip row: walk-time · Solo score · (此刻最佳) · provenance.
+    /// Rubric fix: baseline squeezed the TrustBadge off narrow rows because
+    /// no chip carried a `layoutPriority` — SwiftUI collapsed the rightmost
+    /// child (TrustBadge) first. Elevate TrustBadge priority so the
+    /// provenance signal survives on 375 pt-wide devices, and a leading
+    /// Spacer(minLength: 4) lets the metadata chips left-align while the
+    /// provenance chip anchors right.
     private var chipRow: some View {
         HStack(spacing: 6) {
             if let meters = distanceMeters, meters < 1500 {
@@ -307,9 +313,9 @@ struct NearbyExperienceRow: View {
                             .scale(scale: 0.8).combined(with: .opacity)
                     )
             }
-            // The proximity word ("Far"/"Quiet") duplicated the precise distance
-            // already shown in `distanceColumn` and read as a negative signal for
-            // a solo traveler. The km figure on the right is clearer; drop the word.
+            Spacer(minLength: 4)
+            TrustBadge(level: experience.trustBadgeLevel, size: .compact)
+                .layoutPriority(1)
         }
         .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: isOpenNow)
     }
