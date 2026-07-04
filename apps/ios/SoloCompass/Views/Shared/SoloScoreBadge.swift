@@ -55,15 +55,18 @@ public struct SoloScoreBadge: View {
                 Text(NSLocalizedString("solo.label", comment: "Solo"))
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(1)
                 HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text(formatted(animatedScore))
                         .font(.caption.bold())
                         .foregroundStyle(.white)
                         .monospacedDigit()
+                        .lineLimit(1)
                         .contentTransition(.numericText(value: animatedScore))
                     Text("/10")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.white.opacity(0.7))
+                        .lineLimit(1)
                 }
             }
             .padding(.horizontal, 8)
@@ -71,6 +74,7 @@ public struct SoloScoreBadge: View {
             .background(
                 Capsule().fill(score.scoreColor.opacity(0.95))
             )
+            .fixedSize(horizontal: true, vertical: false)
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showBreakdown) {

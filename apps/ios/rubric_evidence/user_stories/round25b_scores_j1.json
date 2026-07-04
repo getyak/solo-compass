@@ -1,0 +1,204 @@
+{
+  "round": "25b",
+  "judge_id": "j1",
+  "stories": [
+    {
+      "story_id": "s01_chen_manqing_szx_latenight",
+      "scores": {
+        "visual_craft": 18,
+        "information_density": 18,
+        "ai_content_quality": 17,
+        "emotional_resonance": 17,
+        "solo_fit_signals": 18
+      },
+      "total": 88,
+      "positives": [
+        "Top card is 鹤松·居酒屋 福田灯光秀店 — real independent Fukuda izakaya, not a chain, with '到 02:00' explicitly shown",
+        "Warm-amber chips '暖光' and '单人吧台' visible together with Solo 9.5 and Best now on top card"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Replace the generic '暖光' chip with a verb-based one like '柜台角落坐到打烊不催' — the current chip is an atmosphere adjective that costs the ai_content_quality perfect"
+      ]
+    },
+    {
+      "story_id": "s02_lin_wei_szx_midnight_food",
+      "scores": {
+        "visual_craft": 10,
+        "information_density": 12,
+        "ai_content_quality": 15,
+        "emotional_resonance": 14,
+        "solo_fit_signals": 13
+      },
+      "total": 64,
+      "positives": [
+        "Home screen top card 鹤松·居酒屋 shows '到 02:00' which is the exact midnight-open signal Lin Wei needs",
+        "% Arabica card carries 单人吧台 chip — a specific solo-fit signal"
+      ],
+      "failure_modes_triggered": [
+        "ChatCard 缺营业时间字段 (the settled screenshot is a blank white frame — no midnight food cards render at hour=1)"
+      ],
+      "specific_fixes": [
+        "Fix the -scenarioHour=1 rendering path: settled screen shows only status bar, meaning the recommendation pipeline drops all cards at 01:00. Add a fallback so the Now filter still surfaces 24h 粥铺/大排档 rather than clearing the sheet"
+      ]
+    },
+    {
+      "story_id": "s03_aiko_nyc_solo_drink",
+      "scores": {
+        "visual_craft": 10,
+        "information_density": 17,
+        "ai_content_quality": 16,
+        "emotional_resonance": 15,
+        "solo_fit_signals": 18
+      },
+      "total": 76,
+      "positives": [
+        "Sake Bar Decibel (East 9th St basement) is a canonically correct East Village solo-drink pick with 'counter seat' chip visible",
+        "Top card Gammeeok is 24h Koreatown with $16 + counter seat chip — very specific info-density"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "MapKit tile rendering is failing on the NYC scenario — the map area is an empty grid. Investigate MKMapView region setup for -73.9857,40.7484 at hour=23. This tanks visual_craft even when the cards themselves are excellent"
+      ]
+    },
+    {
+      "story_id": "s04_marta_tokyo_grief_dawn",
+      "scores": {
+        "visual_craft": 17,
+        "information_density": 16,
+        "ai_content_quality": 17,
+        "emotional_resonance": 18,
+        "solo_fit_signals": 17
+      },
+      "total": 85,
+      "positives": [
+        "Meiji Jingu inner path, dawn walk carries 'flat walk' + 'benches' chips — restrained, verb-based, no grief-porn language",
+        "No Starbucks; top pick is a real kissaten-adjacent Aoyama Book Center Café corner with ¥550 concrete price"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Add a 'no-conversation-needed' or '静' chip to the top card — the rubric flags this as key for the grief persona and it is currently absent from all three visible cards"
+      ]
+    },
+    {
+      "story_id": "s05_kwame_sfo_rainy_indoor",
+      "scores": {
+        "visual_craft": 18,
+        "information_density": 18,
+        "ai_content_quality": 18,
+        "emotional_resonance": 17,
+        "solo_fit_signals": 17
+      },
+      "total": 88,
+      "positives": [
+        "Top card 'Ritual Coffee Roasters, Valencia St — rainy day back tables' names both the specific location AND the rainy-day seating (verb: 'back tables')",
+        "City Lights Bookstore + Vesuvio Café next door on second card matches the rubric's expected picks exactly; no Fisherman's Wharf trap"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Add explicit 'indoor-only' and 'power-outlet' chips — the story rubric names both as required solo-fit signals and only '$5/$8' price chips are visible on the top cards"
+      ]
+    },
+    {
+      "story_id": "s06_ren_sgn_golden_hour",
+      "scores": {
+        "visual_craft": 15,
+        "information_density": 14,
+        "ai_content_quality": 16,
+        "emotional_resonance": 15,
+        "solo_fit_signals": 13
+      },
+      "total": 73,
+      "positives": [
+        "'The Workshop Coffee rooftop — District 1/3 border' with 'no cover' chip is a defensible golden-hour photographer pick",
+        "Concrete prices ₫85k/₫89k on multiple cards — no vague budget ranges"
+      ],
+      "failure_modes_triggered": [
+        "BestTimeRibbon 未按实际日落校准 (no golden-hour ribbon or sunset gradient visible in the screenshots)"
+      ],
+      "specific_fixes": [
+        "Wire BestTimeRibbon into the top-card layout for photographer/golden-hour queries — currently the 17:00 sunset context has no visual signal, and no 'tripod-friendly' or 'west-facing' chip appears. This is Ren's entire reason for asking"
+      ]
+    },
+    {
+      "story_id": "s07_zhao_szx_lunch_45min",
+      "scores": {
+        "visual_craft": 14,
+        "information_density": 8,
+        "ai_content_quality": 12,
+        "emotional_resonance": 12,
+        "solo_fit_signals": 10
+      },
+      "total": 56,
+      "positives": [
+        "Now filter is correctly showing (Now 1) at 12:00 so the filter chip infra works",
+        "Card layout and typography remain clean and consistent with other stories"
+      ],
+      "failure_modes_triggered": [
+        "Route 总时长 >45min (top card is izakaya at 15.6km, no 45-min lunch loop route rendered at all)",
+        "没有 AC chip (in a 34°C outdoor lunch scenario, zero cards carry the '空调/AC' chip that the rubric demands)"
+      ],
+      "specific_fixes": [
+        "Generate a lunch-loop Route card in RoutesSection when -lunchQuick launch arg is set and hour=12 — currently no Route card renders and the top pick is a 15.6km izakaya open until 02:00, which is nonsensical for a 45-min midday break in 34°C weather"
+      ]
+    },
+    {
+      "story_id": "s08_sofia_lisbon_student_budget",
+      "scores": {
+        "visual_craft": 18,
+        "information_density": 18,
+        "ai_content_quality": 18,
+        "emotional_resonance": 17,
+        "solo_fit_signals": 17
+      },
+      "total": 88,
+      "positives": [
+        "Top card 'Tasca do Chico, Bairro Alto — small-room fado, no cover, no mi...' names the exact tasca AND puts 'no cover' + '€4' on the chips — perfect for student budget",
+        "'Tasca Zé dos Cornos, Alfama — grilled sardines, cash only' with counter seat chip is textbook Alfama local — no Time Out Market trap"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Add a 'local-frequent' chip to Tasca Zé dos Cornos — the story rubric names it as key differentiation vs tourist tascas and it is currently only implied by the 'cash only' text in the title"
+      ]
+    },
+    {
+      "story_id": "s09_robert_tokyo_senior_first_solo",
+      "scores": {
+        "visual_craft": 17,
+        "information_density": 18,
+        "ai_content_quality": 17,
+        "emotional_resonance": 17,
+        "solo_fit_signals": 18
+      },
+      "total": 87,
+      "positives": [
+        "Meiji Jingu inner path, dawn walk shows 'flat walk' + 'benches' chips — the two exact solo-fit signals the rubric names as 'soul' for the senior persona",
+        "Aoyama Book Center Café corner top card with ¥550 — concrete price, cultural-thickness, low physical load"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Add an 'english-signage' chip to Meiji Jingu — the story rubric names it explicitly and its absence is the main reason this can't hit 95+; the 'benches after 8 min' verb-phrase should replace 'benches' generic chip"
+      ]
+    },
+    {
+      "story_id": "s10_phuong_sgn_gap_month_night",
+      "scores": {
+        "visual_craft": 18,
+        "information_density": 19,
+        "ai_content_quality": 19,
+        "emotional_resonance": 18,
+        "solo_fit_signals": 19
+      },
+      "total": 93,
+      "positives": [
+        "The Explore-overlay Okkio Caffe card carries a full-sentence traveler-note: 'Well-lit café-bar on Vo Van Tan open to 23:00, Grab drops at door, solo women regulars.' — three concrete verbs (well-lit, drops at door, regulars) covering every failure mode the story names",
+        "Explore overlay is semi-transparent warm-amber and does NOT occlude the map's key downtown area — matches visual_craft rubric exactly"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Promote the traveler-note sentence structure to a chip row ('well-lit-street' / 'grab-easy-return' / 'women-solo-frequent') so the signals survive skimming without reading the full sentence — this is a 93 → 100 unlock"
+      ]
+    }
+  ],
+  "sum": 798
+}

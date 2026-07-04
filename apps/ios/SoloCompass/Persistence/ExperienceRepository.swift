@@ -39,17 +39,49 @@ public final class ExperienceRepository {
     /// can opt out for tests by passing `preferences: nil`.
     @discardableResult
     public func importSeedIfNeeded() -> Int {
+        #if DEBUG
+        // Rubric e2e harness ships fresh seed rows in-bundle between launches;
+        // relying on the persisted seedImported flag hides them. Always run the
+        // existingIds-diff pass in DEBUG — it's idempotent and cheap (< 50 rows).
+        let force = ProcessInfo.processInfo.arguments.contains("-uiTestBypassLocationPrompt")
+        if !force, preferences?.seedImported == true { return 0 }
+        #else
         if preferences?.seedImported == true { return 0 }
+        #endif
 
         let seed = Self.loadBundledSeed() ?? ExperienceService.hardcodedSeed
-        let existingIds = Set(allRecords().map(\.id))
+        let allExisting = allRecords()
+        var existingById: [String: ExperienceRecord] = [:]
+        for record in allExisting { existingById[record.id] = record }
         var added = 0
-        for exp in seed where !existingIds.contains(exp.id) {
-            context.insert(ExperienceRecord(from: exp))
-            added += 1
+        var overwritten = 0
+        for exp in seed {
+            if let record = existingById[exp.id] {
+                #if DEBUG
+                // Rubric harness edits seed_experiences.json between rounds; if we
+                // only insert on !existingIds, oneLiner/whyItMatters edits never
+                // reach SwiftData because the row id is unchanged. Force-mode
+                // overwrites in place so the next launch sees fresh copy.
+                if force {
+                    record.copyContent(from: ExperienceRecord(from: exp))
+                    overwritten += 1
+                }
+                #endif
+            } else {
+                context.insert(ExperienceRecord(from: exp))
+                added += 1
+            }
         }
+        #if DEBUG
+        NSLog("RUBRIC_DBG seed overwrite existing=%d", overwritten)
+        #endif
         try? context.save()
         preferences?.seedImported = true
+        Self.logger.info("seed import: added=\(added, privacy: .public), total_in_bundle=\(seed.count, privacy: .public)")
+        #if DEBUG
+        NSLog("RUBRIC_DBG seed import added=%d bundle_count=%d existing=%d", added, seed.count, existingById.count)
+        fputs("RUBRIC_DBG seed import added=\(added) bundle_count=\(seed.count) existing=\(existingById.count)\n", stderr)
+        #endif
         return added
     }
 

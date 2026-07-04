@@ -255,11 +255,13 @@ struct PeekSummaryCard: View {
                 .font(.system(size: 9.5, weight: .semibold))
             Text(label)
                 .font(.caption2.weight(.medium))
+                .lineLimit(1)
         }
         .foregroundStyle(CT.fgMuted)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(Capsule().fill(CT.surfaceSunken))
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityHidden(true)
     }
 
@@ -276,11 +278,13 @@ struct PeekSummaryCard: View {
                 .font(.system(size: 9.5, weight: .semibold))
             Text(label)
                 .font(.caption2.weight(.medium))
+                .lineLimit(1)
         }
         .foregroundStyle(CT.fgMuted)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(Capsule().fill(CT.surfaceSunken))
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityHidden(true)
     }
 
@@ -296,12 +300,14 @@ struct PeekSummaryCard: View {
             Text(state.label)
                 .font(.caption2.weight(.semibold))
                 .monospacedDigit()
+                .lineLimit(1)
                 .contentTransition(reduceMotion ? .identity : .numericText())
         }
         .foregroundStyle(state.foreground)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(Capsule().fill(state.background))
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityHidden(true)
     }
 

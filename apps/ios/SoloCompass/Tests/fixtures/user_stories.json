@@ -1,0 +1,457 @@
+[
+  {
+    "id": "s01_chen_manqing_szx_latenight",
+    "persona": {
+      "name": "陈曼青",
+      "age": 34,
+      "occupation": "深圳某互联网公司产品经理",
+      "life_stage": "刚从一段五年的关系抽身,独居福田",
+      "why_solo": "工作日晚 22:30 下班后不想直接回空房间,需要一段温柔的城市缓冲带"
+    },
+    "emotional_context": "轻度耗竭+失恋期,怕吵、怕被搭讪、怕店员盯着看;想要一杯热的、暖光、可以待到打烊也不被赶的地方",
+    "scenario": {
+      "city": "szx",
+      "coords": [
+        114.0579,
+        22.5431
+      ],
+      "hour": 23,
+      "weather": "夏夜 28°C 闷热无雨",
+      "energy": "low",
+      "budget": "¥60–120"
+    },
+    "launch_args": [
+      "-startCity",
+      "szx",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "23",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "顶张卡片是福田独立居酒屋或 late-night café(非连锁),Now 徽章含营业时间,trust chip 至少含「一人吧台」「无最低消费」「暖光」",
+    "aesthetic_rubric": {
+      "visual_craft": "暖琥珀 hero + heatmap 23:00 低峰绿带",
+      "information_density": "3s 内: 店名/距离/营业到几点/一人友好",
+      "ai_content_quality": "why-it-matters 命名真实 POI, sources 含高德+Claude",
+      "emotional_resonance": "不用「治愈」「温暖」营销词,用具体动作",
+      "solo_fit_signals": "staff-pressure-low 明确亮出"
+    },
+    "failure_modes": [
+      "顶张卡片是星巴克臻选或任何连锁",
+      "oneLiner 出现「一个温馨的小店」通用句",
+      "推荐 22:00 打烊的店"
+    ]
+  },
+  {
+    "id": "s02_lin_wei_szx_midnight_food",
+    "persona": {
+      "name": "林伟",
+      "age": 41,
+      "occupation": "深圳南山硬件供应链经理",
+      "life_stage": "已婚有娃,出差回程飞机延误",
+      "why_solo": "被生活节奏挤出的独处窗口"
+    },
+    "emotional_context": "饥饿+疲惫+微焦躁;不想吃便利店,想坐下来吃口热的",
+    "scenario": {
+      "city": "szx",
+      "coords": [
+        113.9345,
+        22.5279
+      ],
+      "hour": 1,
+      "weather": "夏夜微雨 26°C",
+      "energy": "very_low",
+      "budget": "¥40–80"
+    },
+    "launch_args": [
+      "-startCity",
+      "szx",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "1",
+      "-midnightFood",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "ChatSheet 三张卡: 粥铺/大排档/24h 面馆,每张明写「距离·步行分钟·营业到几点」;ReasoningStep 显示已过滤",
+    "aesthetic_rubric": {
+      "visual_craft": "深夜暗色暖琥珀不刺眼,卡片行距紧凑",
+      "information_density": "距离/步行/打烊时间同一行",
+      "ai_content_quality": "真实凌晨营业档口",
+      "emotional_resonance": "AI 一句话不啰嗦",
+      "solo_fit_signals": "「一人可点」「无最低消费」chip"
+    },
+    "failure_modes": [
+      "推荐里出现 7-Eleven 或全家",
+      "ChatCard 缺营业时间字段",
+      "AI 用「亲爱的旅人」类拟人腔"
+    ]
+  },
+  {
+    "id": "s03_aiko_nyc_solo_drink",
+    "persona": {
+      "name": "Aiko Tanaka",
+      "age": 29,
+      "occupation": "自由插画师",
+      "life_stage": "跨国分手后一年,第一次一个人跨年旅行",
+      "why_solo": "重新学习一个人吃饭喝酒的松弛感"
+    },
+    "emotional_context": "轻微社交焦虑,想喝一杯但害怕独自走进酒吧被 bartender 关注",
+    "scenario": {
+      "city": "nyc",
+      "coords": [
+        -73.9857,
+        40.7484
+      ],
+      "hour": 23,
+      "weather": "Summer clear 24°C",
+      "energy": "medium_low",
+      "budget": "$25–45"
+    },
+    "launch_args": [
+      "-startCity",
+      "nyc",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "23",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "Top card: East Village 小 wine/sake bar; trust chip: counter seat, no-pressure staff, women-solo-frequent",
+    "aesthetic_rubric": {
+      "visual_craft": "Hero 图片存在,非灰色占位",
+      "information_density": "3s 内: counter 有位/步行/营业时间",
+      "ai_content_quality": "why-it-matters 具体如「bartender speaks softly, won't upsell」",
+      "emotional_resonance": "「you can sit at the far end of the counter」动作而非情绪词",
+      "solo_fit_signals": "no-pressure staff + counter seat 双 chip"
+    },
+    "failure_modes": [
+      "顶张卡片是 rooftop bar 或需预订的餐厅",
+      "trust chip 缺 counter-seat",
+      "traveler note 是 AI 通用句"
+    ]
+  },
+  {
+    "id": "s04_marta_tokyo_grief_dawn",
+    "persona": {
+      "name": "Marta Silva",
+      "age": 52,
+      "occupation": "里斯本翻译",
+      "life_stage": "刚办完母亲葬礼",
+      "why_solo": "陌生城市的第一顿早餐重启"
+    },
+    "emotional_context": "深度悲伤+时差;需要看到窗外有生活迹象",
+    "scenario": {
+      "city": "tyo",
+      "coords": [
+        139.7708,
+        35.6817
+      ],
+      "hour": 5,
+      "weather": "梅雨末小雨 22°C",
+      "energy": "very_low",
+      "budget": "¥1500–3000"
+    },
+    "launch_args": [
+      "-startCity",
+      "tyo",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "5",
+      "-seniorPersona",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "Top card: 05:00-open 喫茶店; heatmap shows 05:00 quietest; oneLiner 具体; trust chip 'quiet', 'window seat'",
+    "aesthetic_rubric": {
+      "visual_craft": "凌晨蓝→暖琥珀过渡不突兀,hero 图暖光",
+      "information_density": "开门时间/是否需英语/步行距离",
+      "ai_content_quality": "真名 kissaten,不是「a lovely traditional cafe」",
+      "emotional_resonance": "文案克制不共情表演",
+      "solo_fit_signals": "「no-conversation-needed」是关键 chip"
+    },
+    "failure_modes": [
+      "推荐 Starbucks 或酒店早餐",
+      "AI 使用「治愈」「温暖你的心」",
+      "Traveler note 假装本地人但语气是 AI"
+    ]
+  },
+  {
+    "id": "s05_kwame_sfo_rainy_indoor",
+    "persona": {
+      "name": "Kwame Adeyemi",
+      "age": 38,
+      "occupation": "伦敦金融分析师",
+      "life_stage": "妻子怀孕在家,他一个人来 SF",
+      "why_solo": "夹在两个人生阶段中间的透气 24 小时"
+    },
+    "emotional_context": "轻度愉悦但雨天焦虑,想找有内容的室内空间",
+    "scenario": {
+      "city": "san-francisco",
+      "coords": [
+        -122.4194,
+        37.7749
+      ],
+      "hour": 14,
+      "weather": "雨 12°C",
+      "energy": "medium",
+      "budget": "$30–70"
+    },
+    "launch_args": [
+      "-startCity",
+      "san-francisco",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "14",
+      "-rainyIndoor",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "顶张卡片是 City Lights 或 Vesuvio 或地下爵士厅; hero 图存在, trust chip「indoor-only」「reading-friendly」「wifi」",
+    "aesthetic_rubric": {
+      "visual_craft": "雨天卡片色调不发灰,暖琥珀夺回温度",
+      "information_density": "室内/wifi/单人友好/步行",
+      "ai_content_quality": "具体到楼层和座位类型",
+      "emotional_resonance": "AI 语气像懂书店的朋友",
+      "solo_fit_signals": "reading-friendly + power-outlet chip"
+    },
+    "failure_modes": [
+      "推荐 Fisherman's Wharf 游客陷阱",
+      "trust chip 缺 indoor-only",
+      "hero 是灰色占位"
+    ]
+  },
+  {
+    "id": "s06_ren_sgn_golden_hour",
+    "persona": {
+      "name": "松岡怜",
+      "age": 27,
+      "occupation": "自由摄影师",
+      "life_stage": "杂志封面 assignment",
+      "why_solo": "工作型独行,追黄金时刻"
+    },
+    "emotional_context": "专注、时间紧、有创作兴奋感",
+    "scenario": {
+      "city": "sgn",
+      "coords": [
+        106.7009,
+        10.7769
+      ],
+      "hour": 17,
+      "weather": "干季云 30%",
+      "energy": "high",
+      "budget": "tool_type"
+    },
+    "launch_args": [
+      "-startCity",
+      "sgn",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "17",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "顶张卡片: Saigon Skydeck 或西贡河屋顶; hero 图黄昏; BestTimeRibbon 高亮; chip 「日落」「西向开阔」「人流中等」",
+    "aesthetic_rubric": {
+      "visual_craft": "BestTimeRibbon 视觉主角,颜色随日落 gradient",
+      "information_density": "日落时间/面向/到达/人流",
+      "ai_content_quality": "真实机位「西南角三张桌可拍河湾」",
+      "emotional_resonance": "语气高效不废话",
+      "solo_fit_signals": "「tripod-friendly」「no-cover-charge」chip"
+    },
+    "failure_modes": [
+      "推荐面朝东背对日落",
+      "BestTimeRibbon 未按实际日落校准",
+      "AI 加了「祝你拍得开心」"
+    ]
+  },
+  {
+    "id": "s07_zhao_szx_lunch_45min",
+    "persona": {
+      "name": "赵一鸣",
+      "age": 31,
+      "occupation": "深圳前海券商研究员",
+      "life_stage": "每天通勤 45min,午休 45min",
+      "why_solo": "工作日午休想去新地方回一趟血"
+    },
+    "emotional_context": "时间焦虑+决策疲劳",
+    "scenario": {
+      "city": "szx",
+      "coords": [
+        113.9067,
+        22.5313
+      ],
+      "hour": 12,
+      "weather": "夏正午 34°C 暴晒",
+      "energy": "medium",
+      "budget": "¥50–80"
+    },
+    "launch_args": [
+      "-startCity",
+      "szx",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "12",
+      "-lunchQuick",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "Now 栏目出现 45min 路线卡, loop route(写字楼→安静咖啡→回程);每 stop 卡带「AC ✓」「步行」「¥」",
+    "aesthetic_rubric": {
+      "visual_craft": "Route 卡片视觉主角,地图 pin 编号清晰",
+      "information_density": "总时长/每段/是否 AC 一次呈现",
+      "ai_content_quality": "真实前海办公楼下咖啡",
+      "emotional_resonance": "像懂通勤的同事",
+      "solo_fit_signals": "「AC 强」「快速出餐」chip"
+    },
+    "failure_modes": [
+      "Route 总时长 >45min",
+      "没有 AC chip",
+      "推荐需排队 20min 的网红店"
+    ]
+  },
+  {
+    "id": "s08_sofia_lisbon_student_budget",
+    "persona": {
+      "name": "Sofia Mendes",
+      "age": 20,
+      "occupation": "里斯本大学历史系学生",
+      "life_stage": "第一次一个人跨国旅行",
+      "why_solo": "证明自己可以独立完成一次旅行"
+    },
+    "emotional_context": "兴奋+小心翼翼;预算是 hard cap,怕踩游客陷阱",
+    "scenario": {
+      "city": "lis",
+      "coords": [
+        -9.1393,
+        38.7223
+      ],
+      "hour": 10,
+      "weather": "晴 24°C",
+      "energy": "high",
+      "budget": "€8–15/餐"
+    },
+    "launch_args": [
+      "-startCity",
+      "lis",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "10",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "顶张卡片: Alfama 本地 tasca 人均 €9; trust chip 「local-frequent」「no english menu」「cash-only」",
+    "aesthetic_rubric": {
+      "visual_craft": "价格 chip 显眼但不俗气",
+      "information_density": "人均/本地占比/是否需现金",
+      "ai_content_quality": "回答基于真实评论语言分布",
+      "emotional_resonance": "语气尊重学生不居高临下",
+      "solo_fit_signals": "「cash-only」「local-frequent」关键差异化"
+    },
+    "failure_modes": [
+      "推荐 Time Out Market 大众化",
+      "AI 说「所有店都很棒」拒绝判断",
+      "价格 chip 范围过宽无参考价值"
+    ]
+  },
+  {
+    "id": "s09_robert_tokyo_senior_first_solo",
+    "persona": {
+      "name": "Robert Klein",
+      "age": 68,
+      "occupation": "退休高中数学老师",
+      "life_stage": "妻子去世三年,第一次一个人出国",
+      "why_solo": "履行两人计划过的东京行"
+    },
+    "emotional_context": "紧张+尊重亡妻+小心眼力",
+    "scenario": {
+      "city": "tyo",
+      "coords": [
+        139.7016,
+        35.658
+      ],
+      "hour": 10,
+      "weather": "晴 26°C",
+      "energy": "medium",
+      "budget": "$40–80"
+    },
+    "launch_args": [
+      "-startCity",
+      "tyo",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-expandSheet",
+      "-scenarioHour",
+      "10",
+      "-seniorPersona",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "顶张卡片; 推荐 Meiji Jingu 或类似(低体力+文化厚度); trust chip 「flat-walk」「benches-available」「english-signage」",
+    "aesthetic_rubric": {
+      "visual_craft": "Dynamic Type 跟随系统,最大 xxxLarge 不断行",
+      "information_density": "步行难度/长椅/英文标识",
+      "ai_content_quality": "why-it-matters「入口后 8 分钟内有 3 处休息长椅」",
+      "emotional_resonance": "不叫「爷爷」不装年轻",
+      "solo_fit_signals": "「flat-walk」「benches-available」是灵魂"
+    },
+    "failure_modes": [
+      "字号未跟随 Dynamic Type",
+      "推荐需爬坡或换乘 3 次",
+      "trust chip 无「benches-available」"
+    ]
+  },
+  {
+    "id": "s10_phuong_sgn_gap_month_night",
+    "persona": {
+      "name": "阮氏芳",
+      "age": 24,
+      "occupation": "胡志明市初级 UI 设计师",
+      "life_stage": "刚辞职间隔月",
+      "why_solo": "在自己城市当一次「游客」"
+    },
+    "emotional_context": "创作充电+自我重启;怕晚上不安全",
+    "scenario": {
+      "city": "sgn",
+      "coords": [
+        106.6884,
+        10.7823
+      ],
+      "hour": 20,
+      "weather": "干季夜温 27°C",
+      "energy": "medium",
+      "budget": "₫150k–300k"
+    },
+    "launch_args": [
+      "-startCity",
+      "sgn",
+      "-devConsentAccepted",
+      "-devSkipOnboarding",
+      "-triggerExplore",
+      "-scenarioHour",
+      "20",
+      "-uiTestBypassLocationPrompt"
+    ],
+    "expected_screen": "顶张卡片: 第 3 郡本地咖啡屋顶或音乐咖啡; trust chip 「well-lit-street」「women-solo-frequent」「grab-easy-return」;Explore overlay",
+    "aesthetic_rubric": {
+      "visual_craft": "Explore overlay 不遮地图,半透暖琥珀",
+      "information_density": "步行/返程叫车/街道亮度/女性独行占比",
+      "ai_content_quality": "基于真实评论抽取的女性独行 comfort 信号",
+      "emotional_resonance": "不制造焦虑只给事实",
+      "solo_fit_signals": "「well-lit-street」「grab-easy-return」夜间独行 chip"
+    },
+    "failure_modes": [
+      "推荐偏僻小巷无 well-lit 校验",
+      "Explore overlay 遮挡地图关键区域",
+      "trust chip 只有通用「popular」"
+    ]
+  }
+]

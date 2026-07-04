@@ -1,0 +1,227 @@
+{
+  "round": 25,
+  "judge_id": "j1",
+  "stories": [
+    {
+      "story_id": "s01_chen_manqing_szx_latenight",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 2
+      },
+      "total": 26,
+      "positives": [
+        "City dropdown correctly reads 'Shenzhen'; Now/All/Saved/Ask Solo chip row is visually clean with warm-amber accent on the selected pill",
+        "Empty-state pin icon + typography hierarchy in the sheet is calm and not shouty"
+      ],
+      "failure_modes_triggered": [
+        "Top card is missing entirely — no 独立居酒屋 / late-night café surfaces, which is worse than a chain: the persona's 23:00 question gets zero answer",
+        "Fallback CTA 'Explore Chiang Mai' is a hardcoded suggestion unrelated to 陈曼青's Futian 22:30 need and reads as marketing filler"
+      ],
+      "specific_fixes": [
+        "MapViewModel/NearbyStore: when scenarioHour=23 and city=szx, seed at least 3 Futian late-night POIs (真实居酒屋/24h 咖啡) into ExperienceService.hardcodedSeed and stop showing 'Explore Chiang Mai' as a Shenzhen fallback — the CTA should be 'Widen search to 5km / 10km' like the Lisbon empty state does"
+      ]
+    },
+    {
+      "story_id": "s02_lin_wei_szx_midnight_food",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 2
+      },
+      "total": 26,
+      "positives": [
+        "Correct Shenzhen city + Nearby 0 sheet loads cleanly, no crash at hour=1",
+        "Warm-amber palette respected on chip row and CTA button"
+      ],
+      "failure_modes_triggered": [
+        "ChatCard cards missing — no 粥铺/大排档/24h 面馆 surface at 01:00, so 林伟's midnight hunger question is unanswered",
+        "'Explore Chiang Mai' fallback in Shenzhen is jarring for a 供应链 manager on layover"
+      ],
+      "specific_fixes": [
+        "-expandSheet path should route to ChatSheet with the seeded three-card fallback when Nearby is 0 for scenarioHour ∈ [0,4]; add three 24h Shenzhen 大排档 to seed_experiences.json with `open24h=true` and 'no-minimum-charge' chip"
+      ]
+    },
+    {
+      "story_id": "s03_aiko_nyc_solo_drink",
+      "scores": {
+        "visual_craft": 13,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 2
+      },
+      "total": 27,
+      "positives": [
+        "Correct NYC framing — map shows Lincoln Square / Hell's Kitchen labels, city dropdown reads 'New York'",
+        "Chip row alignment and typography are clean; warm-amber tone reads well against the NYC blue map"
+      ],
+      "failure_modes_triggered": [
+        "No East Village wine/sake bar card surfaces — Aiko's 23:00 quiet-drink question is unanswered",
+        "'Explore Chiang Mai' fallback for a Midtown-centered NYC session is nonsensical"
+      ],
+      "specific_fixes": [
+        "Seed 5+ NYC East Village solo-friendly bars into seed_experiences.json with `counter-seat` and `no-pressure-staff` chips; make the Nearby 0 fallback recommend NYC neighborhoods, not Chiang Mai"
+      ]
+    },
+    {
+      "story_id": "s04_marta_tokyo_grief_dawn",
+      "scores": {
+        "visual_craft": 13,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 6,
+        "solo_fit_signals": 2
+      },
+      "total": 28,
+      "positives": [
+        "Tokyo map centered on Bunkyo/Chiyoda is location-correct for the hour=5 scenario",
+        "Empty-state copy avoids saccharine grief-performance — a small mercy for Marta's context"
+      ],
+      "failure_modes_triggered": [
+        "No 05:00-open kissaten surfaces — the dawn breakfast anchor Marta needs is missing entirely",
+        "Fallback CTA 'Explore Chiang Mai' interrupts the grief context with tourism-app energy"
+      ],
+      "specific_fixes": [
+        "Seed 3+ 東京 早朝営業 kissaten (e.g. 珈琲舎ろまん, 銀座ウエスト本店) into seed_experiences.json with `opens_at=5` field and `no-conversation-needed` chip; suppress travel-inspiration CTAs when `-seniorPersona` flag is set"
+      ]
+    },
+    {
+      "story_id": "s05_kwame_sfo_rainy_indoor",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 2
+      },
+      "total": 26,
+      "positives": [
+        "San Francisco map correctly shows Marina / Financial District / North Beach labels at appropriate zoom",
+        "Chip row remains legible against the SF Bay blue backdrop"
+      ],
+      "failure_modes_triggered": [
+        "City Lights / Vesuvio / any indoor cultural anchor missing — Kwame's rainy-14:00 indoor question is unanswered",
+        "-rainyIndoor launch arg produces no visible filtering signal or indoor-only trust chip"
+      ],
+      "specific_fixes": [
+        "Wire `-rainyIndoor` to force `filter.indoor_only=true` in MapViewModel and seed City Lights, Vesuvio, Fort Mason bookshops with `indoor-only`, `wifi`, `power-outlet` chips into seed_experiences.json"
+      ]
+    },
+    {
+      "story_id": "s06_ren_sgn_golden_hour",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 2
+      },
+      "total": 26,
+      "positives": [
+        "Ho Chi Minh map correctly loaded, city dropdown correct",
+        "Layout on 17:00 (golden hour context) is clean and calm — no visual noise competing"
+      ],
+      "failure_modes_triggered": [
+        "No Saigon Skydeck / rooftop / west-facing viewpoint surfaces — 松岡怜's golden-hour capture question unanswered",
+        "BestTimeRibbon completely absent from the settled screen — the visual centerpiece for this persona is missing"
+      ],
+      "specific_fixes": [
+        "Seed Saigon Skydeck, Chill Skybar, Landmark 81 with `west-facing=true`, `sunset_time` field, `tripod-friendly` chip; render BestTimeRibbon on all cards when scenarioHour ∈ [16,19] in SGN/warm-climate cities"
+      ]
+    },
+    {
+      "story_id": "s07_zhao_szx_lunch_45min",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 2
+      },
+      "total": 26,
+      "positives": [
+        "Correct Shenzhen city + Now chip visible in filter row",
+        "No visual crowding despite the lunch-time urgency context"
+      ],
+      "failure_modes_triggered": [
+        "No 45min lunch loop route card surfaces — 赵一鸣's core value prop (Route in Now section) is invisible",
+        "'Explore Chiang Mai' for a Qianhai analyst on a 45min break is a mismatch of scale and intent"
+      ],
+      "specific_fixes": [
+        "-lunchQuick launch arg should call RouteStore.generateRoute with maxDuration=45min from persona coords (113.9067, 22.5313) and force Now filter; seed 4+ Qianhai office-tower cafés with `AC-strong` and `fast-serve` chips"
+      ]
+    },
+    {
+      "story_id": "s08_sofia_lisbon_student_budget",
+      "scores": {
+        "visual_craft": 14,
+        "information_density": 8,
+        "ai_content_quality": 4,
+        "emotional_resonance": 8,
+        "solo_fit_signals": 3
+      },
+      "total": 37,
+      "positives": [
+        "Best empty-state UX of the batch: 'Showing within 8 km — try a wider radius' with 'Expand to 25 km' CTA is specific, actionable, and honest about the limitation",
+        "'Move the map to discover nearby spots' hint at the bottom teaches the user the discovery model — respectful of Sofia's first-solo learning curve"
+      ],
+      "failure_modes_triggered": [
+        "No Alfama tasca card surfaces — Sofia's €9 budget question still unanswered until she taps Expand",
+        "No `cash-only` / `local-frequent` / `no-english-menu` trust chips visible anywhere"
+      ],
+      "specific_fixes": [
+        "Auto-trigger 'Expand to 25 km' on -expandSheet when Nearby 0 for scenarioHour ∈ [8,22] instead of requiring a tap; seed 5+ Alfama tascas with `price_per_person=€9`, `cash-only=true`, `local-frequent-pct=85` into seed_experiences.json"
+      ]
+    },
+    {
+      "story_id": "s09_robert_tokyo_senior_first_solo",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 6,
+        "solo_fit_signals": 2
+      },
+      "total": 27,
+      "positives": [
+        "Tokyo city correctly loaded; -seniorPersona did not visually break the layout",
+        "Empty-state font size looks readable at default Dynamic Type — a bare minimum but not violated"
+      ],
+      "failure_modes_triggered": [
+        "No Meiji Jingu / low-effort cultural anchor card surfaces — Robert's core low-energy 10:00 need unanswered",
+        "No `benches-available` / `flat-walk` / `english-signage` chips visible — the three chips explicitly demanded by this persona's fixture are all missing"
+      ],
+      "specific_fixes": [
+        "Seed Meiji Jingu, Hama-rikyu Gardens, Nezu Museum with `flat-walk=true`, `benches_within_8min=3`, `english-signage=true` chips; when -seniorPersona is set, force Dynamic Type xxxLarge and verify no chip labels truncate with a snapshot test"
+      ]
+    },
+    {
+      "story_id": "s10_phuong_sgn_gap_month_night",
+      "scores": {
+        "visual_craft": 14,
+        "information_density": 6,
+        "ai_content_quality": 4,
+        "emotional_resonance": 7,
+        "solo_fit_signals": 3
+      },
+      "total": 34,
+      "positives": [
+        "Explore overlay is actually working — 'Scanning · Ho Chi Minh · 5 km · searching…' pill is specific and honest about search state",
+        "Overlay is semi-transparent and does NOT obscure the map — the fixture's failure-mode about overlay coverage is avoided; also the friendly avatar + Cancel button gives 阮氏芳 escape hatches"
+      ],
+      "failure_modes_triggered": [
+        "No 3rd-district rooftop café card surfaces before the screenshot settles — the scanning state without results means women-solo trust signals never render",
+        "No `well-lit-street` / `grab-easy-return` / `women-solo-frequent` chips visible in the 20:00 evening context"
+      ],
+      "specific_fixes": [
+        "Seed 5+ HCMC District 3 evening cafés (e.g. The Workshop, L'Usine, Katinat) with `well-lit-street=true`, `women-solo-pct=45`, `grab-arrival-min=4` fields; render trust chips inline on the Explore result cards, not deferred to detail view"
+      ]
+    }
+  ],
+  "sum": 283
+}

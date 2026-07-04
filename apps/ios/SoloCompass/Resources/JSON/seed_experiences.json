@@ -6,19 +6,46 @@
     "whyItMatters": "Most travelers visit temples in midday glare. At sunset, the courtyard empties and the white stupas blaze gold against Doi Suthep behind them. The light shifts every minute. Bring nothing but yourself and time to sit on the stone steps.",
     "category": "culture",
     "location": {
-      "coordinates": [98.9692, 18.7892],
+      "coordinates": [
+        98.9692,
+        18.7892
+      ],
       "cityCode": "cmi",
       "addressHint": "Suthep, Mueang Chiang Mai",
       "placeNameLocal": "วัดสวนดอก",
-      "placeNameRomanized": "Wat Suan Dok"
+      "placeNameRomanized": "Wat Suan Dok",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
     },
-    "bestTimes": [{ "startHour": 17, "endHour": 19, "note": "30 min before sunset" }],
-    "durationMinutes": { "min": 30, "max": 60 },
+    "bestTimes": [
+      {
+        "startHour": 17,
+        "endHour": 19,
+        "note": "30 min before sunset"
+      }
+    ],
+    "durationMinutes": {
+      "min": 30,
+      "max": 60
+    },
     "howTo": [
-      { "order": 1, "text": "Arrive 30 minutes before local sunset." },
-      { "order": 2, "text": "Enter the chedi courtyard on the west side." },
-      { "order": 3, "text": "Sit on the steps facing Doi Suthep." },
-      { "order": 4, "text": "Stay through full dark — lights come on." }
+      {
+        "order": 1,
+        "text": "Arrive 30 minutes before local sunset."
+      },
+      {
+        "order": 2,
+        "text": "Enter the chedi courtyard on the west side."
+      },
+      {
+        "order": 3,
+        "text": "Sit on the steps facing Doi Suthep."
+      },
+      {
+        "order": 4,
+        "text": "Stay through full dark — lights come on."
+      }
     ],
     "realInconveniences": [
       {
@@ -62,8 +89,13 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": ["exp_cmi_nimman_coffee"],
-    "stats": { "completionCount": 47, "averageRating": 4.7 },
+    "nearbyExperienceIds": [
+      "exp_cmi_nimman_coffee"
+    ],
+    "stats": {
+      "completionCount": 47,
+      "averageRating": 4.7
+    },
     "status": "active",
     "createdAt": "2026-04-27T00:00:00Z",
     "updatedAt": "2026-04-27T00:00:00Z"
@@ -75,24 +107,51 @@
     "whyItMatters": "Nimmanhaemin's main strip is full of Instagram cafés. One soi over, in a converted shophouse with no English signage, beans are roasted three mornings a week. The owner pours one pour-over at a time. There's a single bar seat. You'll talk to him or watch the kettle in silence.",
     "category": "coffee",
     "location": {
-      "coordinates": [98.9683, 18.8019],
+      "coordinates": [
+        98.9683,
+        18.8019
+      ],
       "cityCode": "cmi",
       "addressHint": "Soi 7, Nimmanhaemin Rd",
-      "placeNameRomanized": "Nimman Roasters"
+      "placeNameRomanized": "Nimman Roasters",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+      ]
     },
-    "bestTimes": [{ "startHour": 8, "endHour": 11, "note": "Roasting mornings: Tue/Thu/Sat" }],
-    "durationMinutes": { "min": 30, "max": 60 },
+    "bestTimes": [
+      {
+        "startHour": 8,
+        "endHour": 11,
+        "note": "Roasting mornings: Tue/Thu/Sat"
+      }
+    ],
+    "durationMinutes": {
+      "min": 30,
+      "max": 60
+    },
     "howTo": [
-      { "order": 1, "text": "Enter Nimman Soi 7 from the east." },
-      { "order": 2, "text": "Look for the unmarked teak door, third on the right." },
-      { "order": 3, "text": "Order the single-origin pour-over." }
+      {
+        "order": 1,
+        "text": "Enter Nimman Soi 7 from the east."
+      },
+      {
+        "order": 2,
+        "text": "Look for the unmarked teak door, third on the right."
+      },
+      {
+        "order": 3,
+        "text": "Order the single-origin pour-over."
+      }
     ],
     "realInconveniences": [
       {
         "category": "logistics",
         "text": "Closed unpredictably. If the door's locked, come back tomorrow."
       },
-      { "category": "crowds", "text": "Only two seats. If both are taken, you wait." }
+      {
+        "category": "crowds",
+        "text": "Only two seats. If both are taken, you wait."
+      }
     ],
     "soloScore": {
       "overall": 9.5,
@@ -126,8 +185,14 @@
         "trustedVerifications": 0
       }
     },
-    "nearbyExperienceIds": ["exp_cmi_suan_dok_sunset", "exp_cmi_bookstore_work"],
-    "stats": { "completionCount": 22, "averageRating": 4.8 },
+    "nearbyExperienceIds": [
+      "exp_cmi_suan_dok_sunset",
+      "exp_cmi_bookstore_work"
+    ],
+    "stats": {
+      "completionCount": 22,
+      "averageRating": 4.8
+    },
     "status": "active",
     "createdAt": "2026-04-27T00:00:00Z",
     "updatedAt": "2026-04-27T00:00:00Z"
@@ -139,21 +204,50 @@
     "whyItMatters": "Most khao soi tourists visit Khao Soi Khun Yai. Two streets away, a family has been running the same recipe since 1974. The crispy noodle nest is fried to order. There's a single round table where solo diners share with strangers. The mother takes orders; her grandson runs them out.",
     "category": "food",
     "location": {
-      "coordinates": [98.9981, 18.7883],
+      "coordinates": [
+        98.9981,
+        18.7883
+      ],
       "cityCode": "cmi",
       "addressHint": "Old City east gate area",
-      "placeNameRomanized": "Khao Soi Mae 1974"
+      "placeNameRomanized": "Khao Soi Mae 1974",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
     },
-    "bestTimes": [{ "startHour": 11, "endHour": 14 }],
-    "durationMinutes": { "min": 20, "max": 40 },
+    "bestTimes": [
+      {
+        "startHour": 11,
+        "endHour": 14
+      }
+    ],
+    "durationMinutes": {
+      "min": 20,
+      "max": 40
+    },
     "howTo": [
-      { "order": 1, "text": "Arrive between 11:00 and 14:00 — they sell out." },
-      { "order": 2, "text": "Order khao soi gai (chicken). One bowl, 60 baht." },
-      { "order": 3, "text": "Add pickled mustard greens and shallots from the tray." }
+      {
+        "order": 1,
+        "text": "Arrive between 11:00 and 14:00 — they sell out."
+      },
+      {
+        "order": 2,
+        "text": "Order khao soi gai (chicken). One bowl, 60 baht."
+      },
+      {
+        "order": 3,
+        "text": "Add pickled mustard greens and shallots from the tray."
+      }
     ],
     "realInconveniences": [
-      { "category": "crowds", "text": "Lunch rush 12:00–13:00. Come early or late." },
-      { "category": "logistics", "text": "Cash only. Closed Sundays." }
+      {
+        "category": "crowds",
+        "text": "Lunch rush 12:00–13:00. Come early or late."
+      },
+      {
+        "category": "logistics",
+        "text": "Cash only. Closed Sundays."
+      }
     ],
     "soloScore": {
       "overall": 7.8,
@@ -169,7 +263,11 @@
       "basedOnCount": 31
     },
     "sources": [
-      { "type": "blog", "attribution": "EatingThaiFood", "verifiedAt": "2026-04-27T00:00:00Z" }
+      {
+        "type": "blog",
+        "attribution": "EatingThaiFood",
+        "verifiedAt": "2026-04-27T00:00:00Z"
+      }
     ],
     "confidence": {
       "level": 4,
@@ -183,7 +281,10 @@
       }
     },
     "nearbyExperienceIds": [],
-    "stats": { "completionCount": 89, "averageRating": 4.6 },
+    "stats": {
+      "completionCount": 89,
+      "averageRating": 4.6
+    },
     "status": "active",
     "createdAt": "2026-04-27T00:00:00Z",
     "updatedAt": "2026-04-27T00:00:00Z"
@@ -195,19 +296,46 @@
     "whyItMatters": "Doi Suthep is a tour-bus circus by 09:00. At dawn, the gold chedi is yours. Monks chant in the main hall. You can sit at the back, no one expects anything. The cable car isn't running yet — you climb the 309 naga steps with the locals coming up to make merit.",
     "category": "wellness",
     "location": {
-      "coordinates": [98.9216, 18.8048],
+      "coordinates": [
+        98.9216,
+        18.8048
+      ],
       "cityCode": "cmi",
       "addressHint": "Doi Suthep mountain",
       "placeNameLocal": "วัดพระธาตุดอยสุเทพ",
-      "placeNameRomanized": "Wat Phra That Doi Suthep"
+      "placeNameRomanized": "Wat Phra That Doi Suthep",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400"
+      ]
     },
-    "bestTimes": [{ "startHour": 5, "endHour": 7, "note": "Arrive before 06:00 chanting" }],
-    "durationMinutes": { "min": 60, "max": 120 },
+    "bestTimes": [
+      {
+        "startHour": 5,
+        "endHour": 7,
+        "note": "Arrive before 06:00 chanting"
+      }
+    ],
+    "durationMinutes": {
+      "min": 60,
+      "max": 120
+    },
     "howTo": [
-      { "order": 1, "text": "Take a red songthaew from the old city around 05:15." },
-      { "order": 2, "text": "Climb the 309 naga steps — cable car not yet running." },
-      { "order": 3, "text": "Sit at the back of the main viharn for 06:00 chanting." },
-      { "order": 4, "text": "Walk the chedi clockwise three times before leaving." }
+      {
+        "order": 1,
+        "text": "Take a red songthaew from the old city around 05:15."
+      },
+      {
+        "order": 2,
+        "text": "Climb the 309 naga steps — cable car not yet running."
+      },
+      {
+        "order": 3,
+        "text": "Sit at the back of the main viharn for 06:00 chanting."
+      },
+      {
+        "order": 4,
+        "text": "Walk the chedi clockwise three times before leaving."
+      }
     ],
     "realInconveniences": [
       {
@@ -218,7 +346,10 @@
         "category": "etiquette",
         "text": "Cover shoulders and knees. Sit feet-tucked, never pointed at the Buddha."
       },
-      { "category": "weather", "text": "Cold and damp before sunrise — bring a light layer." }
+      {
+        "category": "weather",
+        "text": "Cold and damp before sunrise — bring a light layer."
+      }
     ],
     "soloScore": {
       "overall": 7.5,
@@ -234,7 +365,11 @@
       "basedOnCount": 11
     },
     "sources": [
-      { "type": "wikivoyage", "attribution": "Wikivoyage", "verifiedAt": "2026-04-27T00:00:00Z" }
+      {
+        "type": "wikivoyage",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-04-27T00:00:00Z"
+      }
     ],
     "confidence": {
       "level": 3,
@@ -248,7 +383,10 @@
       }
     },
     "nearbyExperienceIds": [],
-    "stats": { "completionCount": 28, "averageRating": 4.9 },
+    "stats": {
+      "completionCount": 28,
+      "averageRating": 4.9
+    },
     "status": "active",
     "createdAt": "2026-04-27T00:00:00Z",
     "updatedAt": "2026-04-27T00:00:00Z"
@@ -260,24 +398,50 @@
     "whyItMatters": "Co-working spaces in Chiang Mai are crowded and loud. This bookstore — owned by a retired English professor — has a second floor with four desks, two armchairs, and a single rule: you must buy something. A pot of tea is 50 baht and lasts the afternoon. The wifi is fast. Nobody talks above a whisper.",
     "category": "work",
     "location": {
-      "coordinates": [98.9939, 18.7869],
+      "coordinates": [
+        98.9939,
+        18.7869
+      ],
       "cityCode": "cmi",
       "addressHint": "Old City near Tha Phae Gate",
-      "placeNameRomanized": "Backstreet Books"
+      "placeNameRomanized": "Backstreet Books",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400"
+      ]
     },
-    "bestTimes": [{ "startHour": 13, "endHour": 18 }],
-    "durationMinutes": { "min": 120, "max": 240 },
+    "bestTimes": [
+      {
+        "startHour": 13,
+        "endHour": 18
+      }
+    ],
+    "durationMinutes": {
+      "min": 120,
+      "max": 240
+    },
     "howTo": [
-      { "order": 1, "text": "Enter the shop, nod to the owner, climb the wooden stairs." },
-      { "order": 2, "text": "Pick a desk. Order a pot of jasmine tea downstairs (50 baht)." },
-      { "order": 3, "text": "Stay as long as you like. Browse books on your way out." }
+      {
+        "order": 1,
+        "text": "Enter the shop, nod to the owner, climb the wooden stairs."
+      },
+      {
+        "order": 2,
+        "text": "Pick a desk. Order a pot of jasmine tea downstairs (50 baht)."
+      },
+      {
+        "order": 3,
+        "text": "Stay as long as you like. Browse books on your way out."
+      }
     ],
     "realInconveniences": [
       {
         "category": "logistics",
         "text": "No power outlets at every desk. Charge before you arrive."
       },
-      { "category": "etiquette", "text": "Whisper-quiet rule. No phone calls upstairs." }
+      {
+        "category": "etiquette",
+        "text": "Whisper-quiet rule. No phone calls upstairs."
+      }
     ],
     "soloScore": {
       "overall": 9.4,
@@ -293,7 +457,11 @@
       "basedOnCount": 7
     },
     "sources": [
-      { "type": "user", "attribution": "@solomdg", "verifiedAt": "2026-04-27T00:00:00Z" }
+      {
+        "type": "user",
+        "attribution": "@solomdg",
+        "verifiedAt": "2026-04-27T00:00:00Z"
+      }
     ],
     "confidence": {
       "level": 3,
@@ -306,8 +474,13 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": ["exp_cmi_khao_soi_1974"],
-    "stats": { "completionCount": 12, "averageRating": 4.9 },
+    "nearbyExperienceIds": [
+      "exp_cmi_khao_soi_1974"
+    ],
+    "stats": {
+      "completionCount": 12,
+      "averageRating": 4.9
+    },
     "status": "active",
     "createdAt": "2026-04-27T00:00:00Z",
     "updatedAt": "2026-04-27T00:00:00Z"
@@ -319,26 +492,56 @@
     "whyItMatters": "The Mekong here is the border. The sun sets behind Thailand and the river turns the color of weak tea. Locals bring whole families; you bring a single chair. Vendors don't push. It is the most ordinary, most generous evening in Southeast Asia.",
     "category": "nature",
     "location": {
-      "coordinates": [102.6093, 17.9633],
+      "coordinates": [
+        102.6093,
+        17.9633
+      ],
       "cityCode": "VTE",
       "addressHint": "Chao Anouvong Park, Quai Fa Ngum",
       "placeNameLocal": "ແມ່ນ້ຳຂອງ",
-      "placeNameRomanized": "Mae Nam Khong"
+      "placeNameRomanized": "Mae Nam Khong",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"
+      ]
     },
-    "bestTimes": [{ "startHour": 17, "endHour": 19, "note": "Arrive 45 min before sunset" }],
-    "durationMinutes": { "min": 45, "max": 90 },
+    "bestTimes": [
+      {
+        "startHour": 17,
+        "endHour": 19,
+        "note": "Arrive 45 min before sunset"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 90
+    },
     "howTo": [
-      { "order": 1, "text": "Walk west on Quai Fa Ngum toward Chao Anouvong statue." },
-      { "order": 2, "text": "Pick any plastic chair facing the river." },
-      { "order": 3, "text": "Order a Beerlao; the vendor will not rush you." },
-      { "order": 4, "text": "Stay until the lamps along the promenade flick on." }
+      {
+        "order": 1,
+        "text": "Walk west on Quai Fa Ngum toward Chao Anouvong statue."
+      },
+      {
+        "order": 2,
+        "text": "Pick any plastic chair facing the river."
+      },
+      {
+        "order": 3,
+        "text": "Order a Beerlao; the vendor will not rush you."
+      },
+      {
+        "order": 4,
+        "text": "Stay until the lamps along the promenade flick on."
+      }
     ],
     "realInconveniences": [
       {
         "category": "weather",
         "text": "May–October: brief rain showers can flatten the sunset. Bring a thin layer."
       },
-      { "category": "crowds", "text": "Weekends after 6pm fill up fast; weekdays stay calm." }
+      {
+        "category": "crowds",
+        "text": "Weekends after 6pm fill up fast; weekdays stay calm."
+      }
     ],
     "soloScore": {
       "overall": 9.0,
@@ -372,8 +575,14 @@
         "trustedVerifications": 2
       }
     },
-    "nearbyExperienceIds": ["exp_vte_wat_si_saket_morning", "exp_vte_slow_coffee_dao"],
-    "stats": { "completionCount": 58, "averageRating": 4.8 },
+    "nearbyExperienceIds": [
+      "exp_vte_wat_si_saket_morning",
+      "exp_vte_slow_coffee_dao"
+    ],
+    "stats": {
+      "completionCount": 58,
+      "averageRating": 4.8
+    },
     "status": "active",
     "createdAt": "2026-05-01T00:00:00Z",
     "updatedAt": "2026-05-01T00:00:00Z"
@@ -385,26 +594,56 @@
     "whyItMatters": "Built in 1818 in Siamese style — which is why the Siamese army spared it when they razed everything else in 1828. Thousands of small Buddha niches line the cloister walls. At 8am the gravel is still cool and you may be the only foreigner inside.",
     "category": "culture",
     "location": {
-      "coordinates": [102.6125, 17.9626],
+      "coordinates": [
+        102.6125,
+        17.9626
+      ],
       "cityCode": "VTE",
       "addressHint": "Lan Xang Avenue at Setthathirath Rd",
       "placeNameLocal": "ວັດສີສະເກດ",
-      "placeNameRomanized": "Wat Si Saket"
+      "placeNameRomanized": "Wat Si Saket",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
     },
-    "bestTimes": [{ "startHour": 8, "endHour": 10, "note": "Opens 8am; tour buses arrive ~10:30" }],
-    "durationMinutes": { "min": 40, "max": 75 },
+    "bestTimes": [
+      {
+        "startHour": 8,
+        "endHour": 10,
+        "note": "Opens 8am; tour buses arrive ~10:30"
+      }
+    ],
+    "durationMinutes": {
+      "min": 40,
+      "max": 75
+    },
     "howTo": [
-      { "order": 1, "text": "Pay the 10,000 kip entry at the booth on Lan Xang Avenue." },
+      {
+        "order": 1,
+        "text": "Pay the 10,000 kip entry at the booth on Lan Xang Avenue."
+      },
       {
         "order": 2,
         "text": "Walk the cloister clockwise — the Buddha niches start small and grow."
       },
-      { "order": 3, "text": "Step into the sim (ordination hall); remove shoes, no photos." },
-      { "order": 4, "text": "Exit by the back gate to continue toward Patuxai." }
+      {
+        "order": 3,
+        "text": "Step into the sim (ordination hall); remove shoes, no photos."
+      },
+      {
+        "order": 4,
+        "text": "Exit by the back gate to continue toward Patuxai."
+      }
     ],
     "realInconveniences": [
-      { "category": "etiquette", "text": "Shoulders and knees covered. Hats off inside the sim." },
-      { "category": "logistics", "text": "Entry fee cash only; small kip notes preferred." }
+      {
+        "category": "etiquette",
+        "text": "Shoulders and knees covered. Hats off inside the sim."
+      },
+      {
+        "category": "logistics",
+        "text": "Entry fee cash only; small kip notes preferred."
+      }
     ],
     "soloScore": {
       "overall": 8.2,
@@ -438,8 +677,14 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": ["exp_vte_patuxai_view", "exp_vte_slow_coffee_dao"],
-    "stats": { "completionCount": 34, "averageRating": 4.6 },
+    "nearbyExperienceIds": [
+      "exp_vte_patuxai_view",
+      "exp_vte_slow_coffee_dao"
+    ],
+    "stats": {
+      "completionCount": 34,
+      "averageRating": 4.6
+    },
     "status": "active",
     "createdAt": "2026-05-01T00:00:00Z",
     "updatedAt": "2026-05-01T00:00:00Z"
@@ -451,11 +696,17 @@
     "whyItMatters": "The plaque inside calls itself a 'monster of concrete'. The Americans gifted the cement in 1957 for an airport runway; Laos built a victory arch instead. Climb seven floors past souvenir stalls and you get an unobstructed look at how flat, green and low-rise this capital still is.",
     "category": "culture",
     "location": {
-      "coordinates": [102.6311, 17.9686],
+      "coordinates": [
+        102.6311,
+        17.9686
+      ],
       "cityCode": "VTE",
       "addressHint": "Lan Xang Avenue, north end",
       "placeNameLocal": "ປະຕູໄຊ",
-      "placeNameRomanized": "Patuxai"
+      "placeNameRomanized": "Patuxai",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
     },
     "bestTimes": [
       {
@@ -464,10 +715,19 @@
         "note": "Cooler before midday; afternoon haze blurs the view"
       }
     ],
-    "durationMinutes": { "min": 30, "max": 60 },
+    "durationMinutes": {
+      "min": 30,
+      "max": 60
+    },
     "howTo": [
-      { "order": 1, "text": "Enter from the south side; pay 5,000 kip for the climb." },
-      { "order": 2, "text": "Ignore the souvenir stalls on floors 2–6 unless you need a fan." },
+      {
+        "order": 1,
+        "text": "Enter from the south side; pay 5,000 kip for the climb."
+      },
+      {
+        "order": 2,
+        "text": "Ignore the souvenir stalls on floors 2–6 unless you need a fan."
+      },
       {
         "order": 3,
         "text": "Top floor: 360° walk around the parapet. Northwest faces Pha That Luang."
@@ -515,8 +775,14 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": ["exp_vte_pha_that_luang_dawn", "exp_vte_wat_si_saket_morning"],
-    "stats": { "completionCount": 21, "averageRating": 4.3 },
+    "nearbyExperienceIds": [
+      "exp_vte_pha_that_luang_dawn",
+      "exp_vte_wat_si_saket_morning"
+    ],
+    "stats": {
+      "completionCount": 21,
+      "averageRating": 4.3
+    },
     "status": "active",
     "createdAt": "2026-05-01T00:00:00Z",
     "updatedAt": "2026-05-01T00:00:00Z"
@@ -528,24 +794,46 @@
     "whyItMatters": "Pha That Luang is on the seal of the republic. Daytime, it's a tour-bus stop; at dawn it's local monks, a handful of joggers on the surrounding plaza, and the gold leaf turning briefly pink. You don't need to enter the stupa — the plaza itself is the point.",
     "category": "culture",
     "location": {
-      "coordinates": [102.6486, 17.9756],
+      "coordinates": [
+        102.6486,
+        17.9756
+      ],
       "cityCode": "VTE",
       "addressHint": "Thanon That Luang, ~4km NE of city center",
       "placeNameLocal": "ພະທາດຫຼວງ",
-      "placeNameRomanized": "Pha That Luang"
+      "placeNameRomanized": "Pha That Luang",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
     },
     "bestTimes": [
-      { "startHour": 6, "endHour": 8, "note": "Dawn through 8am; tour buses arrive ~9:30" }
+      {
+        "startHour": 6,
+        "endHour": 8,
+        "note": "Dawn through 8am; tour buses arrive ~9:30"
+      }
     ],
-    "durationMinutes": { "min": 30, "max": 60 },
+    "durationMinutes": {
+      "min": 30,
+      "max": 60
+    },
     "howTo": [
-      { "order": 1, "text": "Tuk-tuk from city center (~30,000 kip); ask for ທາດຫຼວງ." },
+      {
+        "order": 1,
+        "text": "Tuk-tuk from city center (~30,000 kip); ask for ທາດຫຼວງ."
+      },
       {
         "order": 2,
         "text": "Enter the south gate; the plaza is free, the inner stupa costs 10,000 kip."
       },
-      { "order": 3, "text": "Walk the perimeter clockwise — east side catches the dawn first." },
-      { "order": 4, "text": "Stop on the way back for coffee on Setthathirath." }
+      {
+        "order": 3,
+        "text": "Walk the perimeter clockwise — east side catches the dawn first."
+      },
+      {
+        "order": 4,
+        "text": "Stop on the way back for coffee on Setthathirath."
+      }
     ],
     "realInconveniences": [
       {
@@ -589,8 +877,14 @@
         "trustedVerifications": 2
       }
     },
-    "nearbyExperienceIds": ["exp_vte_patuxai_view", "exp_vte_slow_coffee_dao"],
-    "stats": { "completionCount": 41, "averageRating": 4.8 },
+    "nearbyExperienceIds": [
+      "exp_vte_patuxai_view",
+      "exp_vte_slow_coffee_dao"
+    ],
+    "stats": {
+      "completionCount": 41,
+      "averageRating": 4.8
+    },
     "status": "active",
     "createdAt": "2026-05-01T00:00:00Z",
     "updatedAt": "2026-05-01T00:00:00Z"
@@ -602,31 +896,56 @@
     "whyItMatters": "Bolaven Plateau coffee is some of the best in Southeast Asia and almost all of it leaves Laos. A handful of tiny Vientiane roasters keep the good lots home. This one has two tables, a single grinder, and a barista who pours water like he's defusing something. Bring a book.",
     "category": "coffee",
     "location": {
-      "coordinates": [102.6111, 17.9646],
+      "coordinates": [
+        102.6111,
+        17.9646
+      ],
       "cityCode": "VTE",
       "addressHint": "Off Setthathirath Rd, behind Wat Inpeng",
       "placeNameLocal": "ກາເຟຊ້າ",
-      "placeNameRomanized": "Kafe Sao"
+      "placeNameRomanized": "Kafe Sao",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+      ]
     },
     "bestTimes": [
-      { "startHour": 8, "endHour": 11, "note": "Opens 7:30; second pour-over batch at 9" }
+      {
+        "startHour": 8,
+        "endHour": 11,
+        "note": "Opens 7:30; second pour-over batch at 9"
+      }
     ],
-    "durationMinutes": { "min": 60, "max": 120 },
+    "durationMinutes": {
+      "min": 60,
+      "max": 120
+    },
     "howTo": [
       {
         "order": 1,
         "text": "Look for the wooden door with the small hand-painted bean — no English sign."
       },
-      { "order": 2, "text": "Order the Bolaven natural; ask for the second pour." },
-      { "order": 3, "text": "Sit at the window table — outlets under the counter." },
+      {
+        "order": 2,
+        "text": "Order the Bolaven natural; ask for the second pour."
+      },
+      {
+        "order": 3,
+        "text": "Sit at the window table — outlets under the counter."
+      },
       {
         "order": 4,
         "text": "If both tables are full, the barista will offer you a beer crate outside; take it."
       }
     ],
     "realInconveniences": [
-      { "category": "logistics", "text": "Cash only; nearest ATM is two blocks east at BCEL." },
-      { "category": "crowds", "text": "Two tables. After 10am you may wait 20 minutes — worth it." }
+      {
+        "category": "logistics",
+        "text": "Cash only; nearest ATM is two blocks east at BCEL."
+      },
+      {
+        "category": "crowds",
+        "text": "Two tables. After 10am you may wait 20 minutes — worth it."
+      }
     ],
     "soloScore": {
       "overall": 9.2,
@@ -642,7 +961,11 @@
       "basedOnCount": 24
     },
     "sources": [
-      { "type": "user", "attribution": "@vientianeslow", "verifiedAt": "2026-05-01T00:00:00Z" }
+      {
+        "type": "user",
+        "attribution": "@vientianeslow",
+        "verifiedAt": "2026-05-01T00:00:00Z"
+      }
     ],
     "confidence": {
       "level": 4,
@@ -655,10 +978,2490 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": ["exp_vte_wat_si_saket_morning", "exp_vte_mekong_riverside_sunset"],
-    "stats": { "completionCount": 47, "averageRating": 4.9 },
+    "nearbyExperienceIds": [
+      "exp_vte_wat_si_saket_morning",
+      "exp_vte_mekong_riverside_sunset"
+    ],
+    "stats": {
+      "completionCount": 47,
+      "averageRating": 4.9
+    },
     "status": "active",
     "createdAt": "2026-05-01T00:00:00Z",
     "updatedAt": "2026-05-01T00:00:00Z"
+  },
+  {
+    "id": "exp_szx_futian_late_night_izakaya",
+    "title": "鹤松·居酒屋 福田灯光秀店",
+    "oneLiner": "三个高凳吧台,主理人不搭讪,营业到 02:00。",
+    "whyItMatters": "华强北金光华周边多数店 22:00 打烊。这家是福田少见的日式独立居酒屋,靠墙一排三个高凳,老板做菜时低头不看客人。工作日 22:30 后单人吧台几乎必有空位,无最低消费,暖琥珀色纸灯,菜单可指着图点。",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        114.0579,
+        22.5431
+      ],
+      "cityCode": "cn-深圳市",
+      "addressHint": "福田区华强北路,近金光华广场",
+      "placeNameLocal": "鹤松·居酒屋",
+      "placeNameRomanized": "Tsurumatsu Izakaya",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 21,
+        "endHour": 26,
+        "note": "22:30 后吧台稳有空位,营业到 02:00"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 120
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "从华强北地铁 A 口出,沿华强北路向北 6 分钟"
+      },
+      {
+        "order": 2,
+        "text": "推门直走坐吧台最里侧那个凳子"
+      },
+      {
+        "order": 3,
+        "text": "点当日 800 元套餐或指菜牌图片"
+      },
+      {
+        "order": 4,
+        "text": "现金或微信,离店无小费文化"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "只收微信/支付宝,不收 Apple Pay 境外卡"
+      },
+      {
+        "category": "logistics",
+        "text": "周五夜可能有 2 小时用餐上限,平日无限制"
+      },
+      {
+        "category": "etiquette",
+        "text": "菜单中日双语,老板普通话不流利"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.5,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 9,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 12
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=18/22.5431/114.0579",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 3 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 1,
+        "passiveGpsHits30d": 8,
+        "activeReports30d": 3,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 12,
+      "averageRating": 4.7
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_szx_qianhai_office_coffee_lunch",
+    "title": "% Arabica 前海嘉里中心店",
+    "oneLiner": "写字楼下,19 度冷气强 AC,单人吧台面窗,15 分钟出餐。",
+    "whyItMatters": "赵一鸣这类前海券商研究员午休只有 45 分钟。这家开在嘉里中心 L1,冷气常年 19 度,进门左手一排面窗高凳,店员点单后不再打扰,一杯冰澳白 3 分钟出,不排长队。可 12:45 走回办公楼。",
+    "category": "coffee",
+    "location": {
+      "coordinates": [
+        114.04,
+        22.54
+      ],
+      "cityCode": "cn-深圳市",
+      "addressHint": null,
+      "placeNameLocal": null,
+      "placeNameRomanized": "% Arabica Qianhai Kerry Centre",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 11,
+        "endHour": 14,
+        "note": "午休 12:00-13:00 单人吧台仍有空位"
+      }
+    ],
+    "durationMinutes": {
+      "min": 20,
+      "max": 45
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "前海湾地铁 D 口出,走天桥进嘉里中心 L1"
+      },
+      {
+        "order": 2,
+        "text": "点冰澳白或美式,吧台自取"
+      },
+      {
+        "order": 3,
+        "text": "坐面窗高凳,插座在凳下地脚线"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "澳白 42 元起,写字楼定价"
+      },
+      {
+        "category": "crowds",
+        "text": "13:00-13:15 排队 6-8 人,12:00 或 12:45 无队"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.3,
+      "breakdown": {
+        "seatingFriendly": 9,
+        "soloPatronRatio": 10,
+        "staffPressure": 9,
+        "soloPortioning": 10,
+        "ambianceFit": 8,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 18
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=18/22.5313/113.9067",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 4 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 2,
+        "passiveGpsHits30d": 22,
+        "activeReports30d": 4,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 26,
+      "averageRating": 4.5
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_szx_nanshan_24h_congee",
+    "title": "华强龙记肠粉王(南山科兴店)",
+    "oneLiner": "24 小时开门,冷气足空调 AC,单人座位面窗,一个人一碗 12 元 10 分钟出餐。",
+    "whyItMatters": "林伟这类出差回程半夜落地的场景需要一碗热的。科兴科学园地铁 A 出口对面这家 24h 粥面档,凌晨仍开三口锅,单人拼桌无压力,一碗艇仔粥 12 元加油条 4 元。店员喊单不喊客,吃完直接走。",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        113.9345,
+        22.5279
+      ],
+      "cityCode": "cn-深圳市",
+      "addressHint": "南山区科苑南路,科兴科学园地铁 A 口对面",
+      "placeNameLocal": "华强龙记肠粉王(24h)",
+      "placeNameRomanized": "Huaqiang Long Kee (24h)",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 0,
+        "endHour": 4,
+        "note": "凌晨 00-04 点档口稳开,拼桌不查身份"
+      },
+      {
+        "startHour": 23,
+        "endHour": 26,
+        "note": "深夜档最忙的 30 分钟避开 00:15-00:45"
+      },
+      {
+        "startHour": 11,
+        "endHour": 14,
+        "note": "午高峰 12-13 点单人座满员时看窗边空吧台"
+      }
+    ],
+    "durationMinutes": {
+      "min": 15,
+      "max": 30
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "科兴科学园地铁 A 口出,过斑马线右手第二间"
+      },
+      {
+        "order": 2,
+        "text": "柜台点单预付,拿号找座"
+      },
+      {
+        "order": 3,
+        "text": "艇仔粥+油条 16 元;肠粉 12 元起"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "只收微信/支付宝/现金"
+      },
+      {
+        "category": "crowds",
+        "text": "网约车司机换班时段 00:30 前后满座 15 分钟"
+      }
+    ],
+    "soloScore": {
+      "overall": 8.7,
+      "breakdown": {
+        "seatingFriendly": 8,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 7,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 22
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=18/22.5279/113.9345",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 5 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 1,
+        "passiveGpsHits30d": 31,
+        "activeReports30d": 5,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 34,
+      "averageRating": 4.4
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_szx_meilin_quiet_book_bar",
+    "title": "旧天堂书店·梅林听音室",
+    "oneLiner": "22:00 后灯降到读得下书的亮度,一杯手冲一张唱片一个人。",
+    "whyItMatters": "梅林关内老书店的地下听音室,晚上转成半吧半书房。22:00 后主厅灯降到 40 lux,吧台放黑胶,每人一张唱片一杯手冲,无最低消费但需登记一次。角落有单人沙发桌,插座齐,店员只在你抬手时过来。",
+    "category": "culture",
+    "location": {
+      "coordinates": [
+        114.0453,
+        22.5726
+      ],
+      "cityCode": "cn-深圳市",
+      "addressHint": "福田区梅林一村,近梅林关",
+      "placeNameLocal": "旧天堂书店·听音室",
+      "placeNameRomanized": "Old Heaven Books Listening Room",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 22,
+        "endHour": 25,
+        "note": "22:00 后灯降,可待到 01:00 打烊"
+      }
+    ],
+    "durationMinutes": {
+      "min": 60,
+      "max": 180
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "梅村地铁 A 口出,沿梅林一村内街 8 分钟"
+      },
+      {
+        "order": 2,
+        "text": "进门告诉店员'听音室'签名登记"
+      },
+      {
+        "order": 3,
+        "text": "点手冲 45 元或普洱 30 元,自选一张黑胶"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "etiquette",
+        "text": "不接手机通话,座位间距离 1.5 米不宜聊天"
+      },
+      {
+        "category": "logistics",
+        "text": "小雨天梅林一村巷道积水,穿防滑鞋"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.7,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 9,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 10,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 9
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=18/22.5726/114.0453",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 2 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 0,
+        "passiveGpsHits30d": 6,
+        "activeReports30d": 2,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 14,
+      "averageRating": 4.8
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_nyc_ev_sakagura_decibel",
+    "title": "Sake Bar Decibel (East 9th St basement)",
+    "oneLiner": "Basement sake bar, 10-seat counter, bartender pours and steps back.",
+    "whyItMatters": "Down a half flight of stairs on East 9th, this 30-year-old sake bar keeps the room at conversation-cover volume so a solo drinker at the counter blends in. Bartender pours, names the sake once, and doesn't hover. Ten seats total; four are counter singles. Open until 02:00 weekdays, 03:00 Fri/Sat. No reservations for solos.",
+    "category": "nightlife",
+    "location": {
+      "coordinates": [
+        -73.9854,
+        40.729
+      ],
+      "cityCode": "nyc",
+      "addressHint": "240 E 9th St, East Village, Manhattan",
+      "placeNameRomanized": "Sake Bar Decibel",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 21,
+        "endHour": 26,
+        "note": "22:30-01:30 solo counter usually one seat open weeknights"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 120
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Walk down the basement stairs at 240 E 9th"
+      },
+      {
+        "order": 2,
+        "text": "Ask hostess for 'counter, one'; wait time under 10 min after 22:30"
+      },
+      {
+        "order": 3,
+        "text": "Order a flight ($22) if unsure — three 1oz pours, they explain each"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "crowds",
+        "text": "Music at 68 dB; can read a menu, hard to hear a phone call"
+      },
+      {
+        "category": "logistics",
+        "text": "Card only, $25 minimum on cards; no cash tips expected"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.3,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 9,
+        "staffPressure": 9,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 16
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/40.7290/-73.9854",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 3 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 4,
+        "passiveGpsHits30d": 19,
+        "activeReports30d": 3,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 41,
+      "averageRating": 4.6
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_nyc_midtown_west_koreatown_24h",
+    "title": "Gammeeok — 24h Korean seolleongtang, Koreatown",
+    "oneLiner": "24-hour Korean ox-bone soup counter, four solo tables, no minimum.",
+    "whyItMatters": "Koreatown's 32nd St has three 24h Korean spots; Gammeeok is the quietest at 02:00-05:00. One bowl of seolleongtang ($16) refills of rice and kimchi free. Booth or single tables against the north wall — servers drop banchan and leave. English menu with photos.",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        -73.9856,
+        40.7476
+      ],
+      "cityCode": "nyc",
+      "addressHint": "43 W 32nd St, Koreatown, Manhattan",
+      "placeNameLocal": "감미옥",
+      "placeNameRomanized": "Gammeeok",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 0,
+        "endHour": 6,
+        "note": "02:00-05:00 near-empty, solo tables all open"
+      },
+      {
+        "startHour": 23,
+        "endHour": 26,
+        "note": "23:00-01:00 post-theater rush, expect 10-min wait"
+      }
+    ],
+    "durationMinutes": {
+      "min": 30,
+      "max": 60
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "34 St-Herald Sq subway, walk 1 block south to 32nd St"
+      },
+      {
+        "order": 2,
+        "text": "Ask host 'one, table'; solo tables against north wall"
+      },
+      {
+        "order": 3,
+        "text": "Order seolleongtang, salt and scallions on table for seasoning"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "crowds",
+        "text": "Weekend 23:00-01:30 loud from bar overflow next door"
+      },
+      {
+        "category": "etiquette",
+        "text": "Water is self-serve at the front cooler"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.0,
+      "breakdown": {
+        "seatingFriendly": 9,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 8,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 24
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/40.7476/-73.9856",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 6 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 3,
+        "passiveGpsHits30d": 34,
+        "activeReports30d": 6,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 58,
+      "averageRating": 4.5
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_nyc_nolita_housing_works_cafe",
+    "title": "Housing Works Bookstore Café, Crosby St",
+    "oneLiner": "Nonprofit used-book café: two solo tables in the back mezzanine, no timer.",
+    "whyItMatters": "Nolita/SoHo's Crosby St bookstore-café, staffed by volunteers, sells used books floor to ceiling. Two single tables sit on the back mezzanine above the reading room. Order a $4.50 drip and read for four hours; no one clears you. Free wifi, outlets at back tables, quiet weekday afternoons.",
+    "category": "culture",
+    "location": {
+      "coordinates": [
+        -73.9975,
+        40.7229
+      ],
+      "cityCode": "nyc",
+      "addressHint": "126 Crosby St, Nolita, Manhattan",
+      "placeNameRomanized": "Housing Works Bookstore Café",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 10,
+        "endHour": 17,
+        "note": "Weekday 10:00-16:00 fewest customers, mezzanine solo tables open"
+      }
+    ],
+    "durationMinutes": {
+      "min": 60,
+      "max": 240
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Enter under the green awning on Crosby St"
+      },
+      {
+        "order": 2,
+        "text": "Order at the café bar on your right"
+      },
+      {
+        "order": 3,
+        "text": "Take stairs up to the mezzanine, single tables in the back-left corner"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Closes 19:00 weeknights, 18:00 Sunday"
+      },
+      {
+        "category": "crowds",
+        "text": "Saturday afternoons the café floor is a book event; go weekday"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.8,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 10,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 22
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://www.housingworks.org/locations/bookstore-cafe"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/40.7229/-73.9975",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 3 trusted reporters, 4 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 5,
+        "passiveGpsHits30d": 27,
+        "activeReports30d": 4,
+        "trustedVerifications": 3
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 44,
+      "averageRating": 4.8
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_nyc_prospect_hts_jazz_bar",
+    "title": "Bar LunÀtico, Bedford-Stuyvesant/Prospect Heights edge",
+    "oneLiner": "Small live-jazz room, tip jar not cover, counter seats face the band.",
+    "whyItMatters": "Bar LunÀtico on Halsey St runs a nightly 21:00 jazz set with no cover — a tip jar circulates. Twelve counter seats face the trio directly, and a solo listener at the bar is standard. Order a $9 mezcal or $6 draft; no minimum. Sets end 23:30. Owner Arthur will nod once when you walk in and never again.",
+    "category": "nightlife",
+    "location": {
+      "coordinates": [
+        -73.9438,
+        40.6836
+      ],
+      "cityCode": "nyc",
+      "addressHint": "486 Halsey St, Bedford-Stuyvesant/Prospect Heights, Brooklyn",
+      "placeNameRomanized": "Bar LunÀtico",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 21,
+        "endHour": 24,
+        "note": "21:00 first set, 22:30 second set, both solo-friendly at counter"
+      }
+    ],
+    "durationMinutes": {
+      "min": 60,
+      "max": 150
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "A/C to Utica Ave, walk 4 blocks west on Halsey"
+      },
+      {
+        "order": 2,
+        "text": "Grab a counter seat facing the corner stage"
+      },
+      {
+        "order": 3,
+        "text": "Drop $10-20 in the tip jar when it passes"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "etiquette",
+        "text": "No talking during sets — bartender will hush politely"
+      },
+      {
+        "category": "logistics",
+        "text": "Cash tip for band is expected, small bills"
+      }
+    ],
+    "soloScore": {
+      "overall": 8.8,
+      "breakdown": {
+        "seatingFriendly": 9,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 8,
+        "ambianceFit": 10,
+        "safety": 8
+      },
+      "hint": "",
+      "basedOnCount": 11
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://www.barlunatico.com"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/40.6836/-73.9438",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 2 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 4,
+        "passiveGpsHits30d": 12,
+        "activeReports30d": 2,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 21,
+      "averageRating": 4.7
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_tyo_shibuya_kissaten_dawn",
+    "title": "喫茶ロン Coffee Ron, Shibuya west exit",
+    "oneLiner": "Opens 05:30 daily; window seats face the sakuragaoka slope; no conversation needed.",
+    "whyItMatters": "Coffee Ron behind Shibuya west exit opens at 05:30 every day including holidays. Six window counter seats face the sakuragaoka morning-walk slope, where you can watch the first office workers appear. Order by pointing at the menu photo — the master says 'hai' twice and never asks a question. Toast set ¥580.",
+    "category": "coffee",
+    "location": {
+      "coordinates": [
+        139.698,
+        35.658
+      ],
+      "cityCode": "tyo",
+      "addressHint": "Sakuragaoka-cho 22-14, Shibuya",
+      "placeNameLocal": "喫茶ロン",
+      "placeNameRomanized": "Coffee Ron",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 5,
+        "endHour": 8,
+        "note": "05:30 open, window counter empty until 07:00"
+      }
+    ],
+    "durationMinutes": {
+      "min": 30,
+      "max": 90
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Shibuya west exit, walk 4 min up sakuragaoka slope"
+      },
+      {
+        "order": 2,
+        "text": "Slide open the wooden door — bell rings once"
+      },
+      {
+        "order": 3,
+        "text": "Point at 'モーニングセット' on the wall menu, ¥580 cash"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Cash only, no Suica"
+      },
+      {
+        "category": "etiquette",
+        "text": "No English menu; photos on the wall are the menu"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.8,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 10,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 14
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/35.6580/139.6980",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 3 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 6,
+        "passiveGpsHits30d": 18,
+        "activeReports30d": 3,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 29,
+      "averageRating": 4.8
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_tyo_shibuya_ichiran_dogenzaka",
+    "title": "Ichiran Shibuya Dogenzaka (24h solo booth ramen)",
+    "oneLiner": "24-hour ticket-machine ramen; every seat is a solo booth with a curtain.",
+    "whyItMatters": "Ichiran's Dogenzaka branch is the closest 24h location to Shibuya station. You buy a ticket at the machine, walk to a numbered solo booth with side dividers and a curtain that lowers between you and the kitchen. Passes ticket through the curtain, bowl comes back, curtain drops. Zero conversation. ¥1,050 basic.",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        139.696,
+        35.657
+      ],
+      "cityCode": "tyo",
+      "addressHint": "Dogenzaka 2-9-1, Shibuya",
+      "placeNameLocal": "一蘭 渋谷道玄坂店",
+      "placeNameRomanized": "Ichiran Shibuya Dogenzaka",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 0,
+        "endHour": 6,
+        "note": "00:00-05:00 usually walk-in, no queue"
+      },
+      {
+        "startHour": 24,
+        "endHour": 26,
+        "note": "Post-midnight is quieter than 20:00-23:00"
+      }
+    ],
+    "durationMinutes": {
+      "min": 20,
+      "max": 45
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Shibuya scramble → up Dogenzaka slope 3 min"
+      },
+      {
+        "order": 2,
+        "text": "Buy ticket at machine (English toggle top-right)"
+      },
+      {
+        "order": 3,
+        "text": "Wait 2 min for seat card indicating booth number"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "crowds",
+        "text": "20:00-23:00 line 20-40 min; go after 00:30 for zero wait"
+      },
+      {
+        "category": "etiquette",
+        "text": "Broth first, don't slurp too loud in the booth"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.7,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 10,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 8,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 38
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://ichiran.com/shop/tokyo/dogenzaka/"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/35.6570/139.6960",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 8 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 3,
+        "passiveGpsHits30d": 47,
+        "activeReports30d": 8,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 92,
+      "averageRating": 4.4
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_tyo_aoyama_book_cafe_quiet",
+    "title": "青山ブックセンター本店 Café corner",
+    "oneLiner": "Book-store café at Aoyama HQ: single tables face the design section, no music.",
+    "whyItMatters": "Aoyama Book Center's flagship in Omotesando has a small café inside — six single tables set against the design/photography section shelves. No music, only page-turning sound. Order the ¥550 drip, sit for two hours, staff never approach. Open 10:00-22:00. Foreign-language books at arm's reach.",
+    "category": "culture",
+    "location": {
+      "coordinates": [
+        139.718,
+        35.662
+      ],
+      "cityCode": "tyo",
+      "addressHint": "Roppongi 6-1-20, Minato-ku (Aoyama Book Center HQ)",
+      "placeNameLocal": "青山ブックセンター本店",
+      "placeNameRomanized": "Aoyama Book Center Main Store",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 10,
+        "endHour": 22,
+        "note": "Weekday 10:00-13:00 and 15:00-18:00 near-empty single tables"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 180
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Omotesando exit B2 → walk 6 min south"
+      },
+      {
+        "order": 2,
+        "text": "Enter, walk to the back-right corner past art shelves"
+      },
+      {
+        "order": 3,
+        "text": "Café counter is left; order drip and take a single table"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Café closes 21:30, store closes 22:00"
+      },
+      {
+        "category": "etiquette",
+        "text": "Books from shelves must return before you leave the café"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.8,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 10,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 9
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://www.aoyamabc.jp/"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=18/35.6620/139.7180",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 1 trusted reporter, 2 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 5,
+        "passiveGpsHits30d": 8,
+        "activeReports30d": 2,
+        "trustedVerifications": 1
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 15,
+      "averageRating": 4.8
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_tyo_meiji_jingu_morning_walk",
+    "title": "Meiji Jingu inner path, dawn walk",
+    "oneLiner": "Gravel path, benches every 200m, flat walk, English signage; opens at sunrise; no ticket, no crowds.",
+    "whyItMatters": "Meiji Jingu's inner shrine forest opens at sunrise (04:40-06:40 depending on month), and for the first 45 minutes the gravel path holds mostly staff sweeping and one or two other solo walkers. Flat, wide, benches every 200 meters, English signage at every fork, and one water fountain near the treasure hall. Free.",
+    "category": "nature",
+    "location": {
+      "coordinates": [
+        139.6994,
+        35.6764
+      ],
+      "cityCode": "tyo",
+      "addressHint": "Yoyogi Kamizonocho 1-1, Shibuya",
+      "placeNameLocal": "明治神宮",
+      "placeNameRomanized": "Meiji Jingu",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 5,
+        "endHour": 8,
+        "note": "First 45 min after sunrise = quietest and softest light"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 120
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Harajuku station Omotesando exit → turn left at the wooden torii"
+      },
+      {
+        "order": 2,
+        "text": "Follow the gravel path clockwise past the sake barrels"
+      },
+      {
+        "order": 3,
+        "text": "Sit on the third bench past the second torii to watch morning shift change"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Opens with sunrise, closes with sunset; exact hours posted at gate"
+      },
+      {
+        "category": "etiquette",
+        "text": "Don't walk down the middle of the gravel path (reserved)"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.8,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 9,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 10,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 31
+    },
+    "sources": [
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/Tokyo/Shibuya",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=17/35.6764/139.6994",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 3 trusted reporters, 5 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 2,
+        "passiveGpsHits30d": 41,
+        "activeReports30d": 5,
+        "trustedVerifications": 3
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 76,
+      "averageRating": 4.9
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_sfo_city_lights_vesuvio",
+    "title": "City Lights Bookstore + Vesuvio Café next door",
+    "oneLiner": "Bookstore's poetry room upstairs, then Vesuvio's second-floor solo balcony for a beer.",
+    "whyItMatters": "City Lights on Columbus opens 10:00; the Poetry Room on the second floor has a bench under the window and a hand-written sign: 'sit down and read a book'. When done, cross Jack Kerouac Alley into Vesuvio: climb to the second-floor balcony, take the two-top overlooking Columbus. Whole ritual is 90 min, $8 pint, no one talks to you.",
+    "category": "culture",
+    "location": {
+      "coordinates": [
+        -122.4066,
+        37.7975
+      ],
+      "cityCode": "san-francisco",
+      "addressHint": "261 Columbus Ave, North Beach",
+      "placeNameRomanized": "City Lights Bookstore",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 11,
+        "endHour": 17,
+        "note": "Weekday 11:00-16:00 poetry room usually one bench free"
+      },
+      {
+        "startHour": 14,
+        "endHour": 19,
+        "note": "Vesuvio balcony after 15:00"
+      }
+    ],
+    "durationMinutes": {
+      "min": 60,
+      "max": 150
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Enter City Lights, take stairs to Poetry Room, sit at the window bench"
+      },
+      {
+        "order": 2,
+        "text": "Cross Jack Kerouac Alley, enter Vesuvio"
+      },
+      {
+        "order": 3,
+        "text": "Stairs on the right lead to the balcony solo two-top"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Vesuvio takes cash or card; tip $2/pint"
+      },
+      {
+        "category": "crowds",
+        "text": "Vesuvio 20:00+ gets loud, do this in daylight"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.3,
+      "breakdown": {
+        "seatingFriendly": 9,
+        "soloPatronRatio": 9,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 26
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://citylights.com"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=18/37.7975/-122.4066",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/San_Francisco/North_Beach",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 3 trusted reporters, 4 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 6,
+        "passiveGpsHits30d": 33,
+        "activeReports30d": 4,
+        "trustedVerifications": 3
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 68,
+      "averageRating": 4.8
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_sfo_ferry_building_hog_island",
+    "title": "Hog Island Oyster Co. — Ferry Building bar counter (weekday)",
+    "oneLiner": "Six oysters and a glass of Muscadet at the marble bar counter, bay view.",
+    "whyItMatters": "Hog Island's counter inside the Ferry Building has ten bar stools facing the shucker. Weekday 14:00-16:00 the lunch rush is gone; solo diners take the counter to eat one dozen Kumamotos ($36) with a glass of Muscadet ($14). Bay-facing window behind you. Shuckers name each oyster once and go back to work.",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        -122.3937,
+        37.7955
+      ],
+      "cityCode": "san-francisco",
+      "addressHint": "One Ferry Building, Shop 11-1, Embarcadero",
+      "placeNameRomanized": "Hog Island Oyster Co.",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 14,
+        "endHour": 16,
+        "note": "Weekday 14:00-16:00 counter always has at least 3 stools open"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 90
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Ferry Building main hall, back-right corner"
+      },
+      {
+        "order": 2,
+        "text": "Ask host for 'bar, one'; sit facing the shucker"
+      },
+      {
+        "order": 3,
+        "text": "Order six Kumamotos and a glass of Muscadet"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Half dozen $18-24 depending on variety"
+      },
+      {
+        "category": "crowds",
+        "text": "Weekend 12:00-14:00 forget the counter, go weekday"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.3,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 8,
+        "staffPressure": 9,
+        "soloPortioning": 10,
+        "ambianceFit": 9,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 19
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://hogislandoysters.com"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=18/37.7955/-122.3937",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 5 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 4,
+        "passiveGpsHits30d": 21,
+        "activeReports30d": 5,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 47,
+      "averageRating": 4.6
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_sfo_mission_ritual_valencia",
+    "title": "Ritual Coffee Roasters, Valencia St — rainy day back tables",
+    "oneLiner": "Long communal table at the back, outlets every 3 feet, staff never rush you.",
+    "whyItMatters": "Ritual on Valencia between 20th and 21st has one long communal table at the back with outlets built into the wood every three feet. On a rainy afternoon it's the driest, warmest solo laptop-and-book spot in the Mission — floor-to-ceiling windows dim to soft gray, espresso hisses over the rain. Order the $5 cortado; nobody checks how long you sit.",
+    "category": "coffee",
+    "location": {
+      "coordinates": [
+        -122.4213,
+        37.758
+      ],
+      "cityCode": "san-francisco",
+      "addressHint": "1026 Valencia St, Mission District",
+      "placeNameRomanized": "Ritual Coffee Roasters — Valencia",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 13,
+        "endHour": 18,
+        "note": "Rainy weekday 13:00-17:00 back communal table has open seats"
+      }
+    ],
+    "durationMinutes": {
+      "min": 60,
+      "max": 240
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "16th St Mission BART → walk 6 blocks south on Valencia"
+      },
+      {
+        "order": 2,
+        "text": "Order at the front bar, tell them you'll take the back table"
+      },
+      {
+        "order": 3,
+        "text": "Sit at the communal table; outlets on the wall side"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "crowds",
+        "text": "Weekend mornings back table is remote-work packed by 09:30"
+      },
+      {
+        "category": "logistics",
+        "text": "Closes 19:00 weekdays, 18:00 weekend"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.3,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 10,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 9,
+        "safety": 8
+      },
+      "hint": "",
+      "basedOnCount": 17
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://www.ritualcoffee.com"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/37.7580/-122.4213",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 4 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 3,
+        "passiveGpsHits30d": 24,
+        "activeReports30d": 4,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 39,
+      "averageRating": 4.7
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_sfo_ggp_stow_lake_walk",
+    "title": "Stow Lake loop, Golden Gate Park — flat 1-mile solo walk",
+    "oneLiner": "Paved loop around Strawberry Hill; benches every 100m; boat rentals at the boathouse.",
+    "whyItMatters": "Stow Lake sits in the middle of Golden Gate Park. The paved 1-mile loop is flat, mostly under Monterey pines, and quiet on weekday mornings. Benches every 100 meters face the water. The boathouse (10:00-17:00) rents a rowboat for $28/hour — one person allowed. Solo walkers are the majority on weekday 8:00-10:00.",
+    "category": "nature",
+    "location": {
+      "coordinates": [
+        -122.4756,
+        37.769
+      ],
+      "cityCode": "san-francisco",
+      "addressHint": "Stow Lake Dr, Golden Gate Park",
+      "placeNameRomanized": "Stow Lake",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 8,
+        "endHour": 11,
+        "note": "Weekday 08:00-10:00 quietest with soft morning fog"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 90
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Park at Stow Lake Boathouse lot ($5) or Muni 44 stops nearby"
+      },
+      {
+        "order": 2,
+        "text": "Walk clockwise around the loop starting at the boathouse"
+      },
+      {
+        "order": 3,
+        "text": "Sit on the west-side bench near the Chinese pavilion"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "No public restrooms on the trail; use the boathouse"
+      },
+      {
+        "category": "safety",
+        "text": "Solo after sunset not recommended; boathouse lot poorly lit"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.5,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 9,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 10,
+        "safety": 8
+      },
+      "hint": "",
+      "basedOnCount": 23
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=17/37.7690/-122.4756",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/San_Francisco/Golden_Gate_Park",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 3 trusted reporters, 3 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 1,
+        "passiveGpsHits30d": 28,
+        "activeReports30d": 3,
+        "trustedVerifications": 3
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 52,
+      "averageRating": 4.7
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_sgn_d3_rooftop_golden_hour",
+    "title": "The Workshop Coffee rooftop — District 1/3 border",
+    "oneLiner": "Third-floor open terrace faces west, sunset ~18:14, no cover charge, tripod OK.",
+    "whyItMatters": "The Workshop lives on the top floor of an old French colonial at 27 Ngo Duc Ke. A 15-seat open terrace on the west face catches full sunset — camera-friendly, no cover, no upsell. Order a Vietnamese pour-over (₫85k) and hold the corner table nearest the west rail; solo photographers occupy it 17:30-18:30 daily.",
+    "category": "coffee",
+    "location": {
+      "coordinates": [
+        106.7031,
+        10.7739
+      ],
+      "cityCode": "sgn",
+      "addressHint": "27 Ngo Duc Ke, District 1 (near District 3 border)",
+      "placeNameRomanized": "The Workshop Coffee",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 17,
+        "endHour": 20,
+        "note": "17:30 in for 18:14 sunset, terrace warm gold 25 min"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 120
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Enter 27 Ngo Duc Ke, take the wide stairs up 3 floors"
+      },
+      {
+        "order": 2,
+        "text": "Ask barista for terrace corner table facing the west rail"
+      },
+      {
+        "order": 3,
+        "text": "Order Vietnamese pour-over or drip; ₫85k"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Elevator broken often; three flights of stairs"
+      },
+      {
+        "category": "crowds",
+        "text": "Sunday sunset the terrace is fully camped"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.2,
+      "breakdown": {
+        "seatingFriendly": 9,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 18
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://www.the-workshop.vn"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/10.7739/106.7031",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 5 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 5,
+        "passiveGpsHits30d": 27,
+        "activeReports30d": 5,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 46,
+      "averageRating": 4.7
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_sgn_d3_okkio_night_women_solo",
+    "title": "Okkio Caffe (D3, Vo Van Tan) — women-solo-frequent evenings",
+    "oneLiner": "Well-lit café-bar on Vo Van Tan open to 23:00, Grab drops at door, solo women regulars.",
+    "whyItMatters": "Okkio's Vo Van Tan branch in District 3 stays open to 23:00 with strong LED street lighting all along the block. Solo women make up roughly 40% of evening customers based on staff count. Grab and Xanh SM pick up directly at the door (no side alley). ₫60k coffee, single tables lining the windows.",
+    "category": "coffee",
+    "location": {
+      "coordinates": [
+        106.6884,
+        10.7823
+      ],
+      "cityCode": "sgn",
+      "addressHint": "220 Vo Van Tan, District 3",
+      "placeNameRomanized": "Okkio Caffe — Vo Van Tan",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 18,
+        "endHour": 23,
+        "note": "19:00-22:00 solo women regulars, well-lit street"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 120
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Grab drops at the front door on Vo Van Tan"
+      },
+      {
+        "order": 2,
+        "text": "Ask staff for a window single table (facing street for visibility)"
+      },
+      {
+        "order": 3,
+        "text": "Order the Bac Xiu (₫60k) or coconut coffee (₫68k)"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Cash or ZaloPay; foreign cards work at counter but slow"
+      },
+      {
+        "category": "safety",
+        "text": "Return Grab ride from the front door, do not walk to side alleys after 22:00"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.3,
+      "breakdown": {
+        "seatingFriendly": 9,
+        "soloPatronRatio": 9,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 9,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 14
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://www.okkio.cafe"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=18/10.7823/106.6884",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 4 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 3,
+        "passiveGpsHits30d": 18,
+        "activeReports30d": 4,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 27,
+      "averageRating": 4.6
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_sgn_d1_pho_quynh_quick",
+    "title": "Pho Quynh, Pham Ngu Lao — 24h solo pho in 15 minutes",
+    "oneLiner": "24-hour pho counter, solo four-tops on the sidewalk, bowl arrives in 3 min.",
+    "whyItMatters": "Pho Quynh on Pham Ngu Lao runs 24h with a wide sidewalk of small solo four-tops. From order to bowl is 3 minutes. Bowl of pho bo tai ₫89k, no service charge, plate of herbs on the table free-refill. English photo menu. Even at 03:00 there are three or four other solo eaters.",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        106.6934,
+        10.7683
+      ],
+      "cityCode": "sgn",
+      "addressHint": "323 Pham Ngu Lao, District 1",
+      "placeNameRomanized": "Pho Quynh",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 0,
+        "endHour": 24,
+        "note": "Open 24 hours; 12:00 lunch rush 20-min wait, all other hours walk-in"
+      }
+    ],
+    "durationMinutes": {
+      "min": 15,
+      "max": 30
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Take any Grab to '323 Pham Ngu Lao'"
+      },
+      {
+        "order": 2,
+        "text": "Grab any sidewalk four-top; server comes in 30s"
+      },
+      {
+        "order": 3,
+        "text": "Order 'pho bo tai' + fresh lime; ₫89k cash or QR"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "crowds",
+        "text": "12:00-13:30 20-min wait; 15:00-17:00 nearly empty"
+      },
+      {
+        "category": "logistics",
+        "text": "Cash preferred; ZaloPay QR at counter"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.2,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 10,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 7,
+        "safety": 8
+      },
+      "hint": "",
+      "basedOnCount": 29
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/10.7683/106.6934",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/Ho_Chi_Minh_City",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 6 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 2,
+        "passiveGpsHits30d": 38,
+        "activeReports30d": 6,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 71,
+      "averageRating": 4.4
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_sgn_banh_mi_hong_hoa_24h",
+    "title": "Banh Mi Hong Hoa, District 5 — 24h stall",
+    "oneLiner": "Corner stall open 24h; ₫40k baguette in 90 seconds; sit on plastic stool or take away.",
+    "whyItMatters": "Hong Hoa's corner stall at Nguyen Trai in D5 runs 24/7. Aunt behind the grill knows two English words — 'yes' and 'spicy?'. A classic pork-liver-pate baguette is ₫40k, packed in 90 seconds. Three plastic solo stools on the corner or take away. Common 02:00 crowd is night-shift drivers eating quietly.",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        106.6797,
+        10.7546
+      ],
+      "cityCode": "sgn",
+      "addressHint": "62 Nguyen Trai, District 5",
+      "placeNameRomanized": "Banh Mi Hong Hoa",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 0,
+        "endHour": 24,
+        "note": "Open 24h; 02:00-05:00 zero queue"
+      }
+    ],
+    "durationMinutes": {
+      "min": 5,
+      "max": 15
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Point at menu or say 'thit nguoi' (mixed cold cuts)"
+      },
+      {
+        "order": 2,
+        "text": "Nod yes or no to 'spicy?'"
+      },
+      {
+        "order": 3,
+        "text": "Pay ₫40k cash; sit on a plastic stool or walk with it"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Cash only, small bills; no card"
+      },
+      {
+        "category": "etiquette",
+        "text": "Aunt doesn't do small talk; order, pay, eat"
+      }
+    ],
+    "soloScore": {
+      "overall": 8.8,
+      "breakdown": {
+        "seatingFriendly": 8,
+        "soloPatronRatio": 10,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 7,
+        "safety": 8
+      },
+      "hint": "",
+      "basedOnCount": 27
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/10.7546/106.6797",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 3 trusted reporters, 5 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 2,
+        "passiveGpsHits30d": 33,
+        "activeReports30d": 5,
+        "trustedVerifications": 3
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 62,
+      "averageRating": 4.5
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_lis_alfama_tasca_ze_dos_cornos",
+    "title": "Tasca Zé dos Cornos, Alfama — grilled sardines, cash only",
+    "oneLiner": "Working-class tasca: no reservations for solos, €10 grilled sardines, locals fill the room by 20:00.",
+    "whyItMatters": "Zé dos Cornos in the tight streets above Alfama serves grilled sardines, iscas (liver), and bacalhau á brás at €10-14 a plate. No English menu; owner points at the chalkboard. Locals fill the room by 20:00 — go 12:30 or 19:00 as a solo. One small counter seat by the door. Cash only. Water tap €0.50.",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        -9.1279,
+        38.7148
+      ],
+      "cityCode": "lis",
+      "addressHint": "Beco dos Surradores 5, Alfama",
+      "placeNameRomanized": "Tasca Zé dos Cornos",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 12,
+        "endHour": 14,
+        "note": "12:30 lunch counter seat still open"
+      },
+      {
+        "startHour": 18,
+        "endHour": 20,
+        "note": "19:00 evening before locals arrive"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 90
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Walk up from Rua dos Bacalhoeiros through Beco dos Surradores"
+      },
+      {
+        "order": 2,
+        "text": "Enter, ask 'só um?' (just one?) — owner nods to counter seat"
+      },
+      {
+        "order": 3,
+        "text": "Order 'sardinhas assadas' from the chalkboard; €10"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Cash only, small euro notes preferred"
+      },
+      {
+        "category": "etiquette",
+        "text": "No English menu, no English tourist adaptation"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.2,
+      "breakdown": {
+        "seatingFriendly": 9,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 16
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/38.7148/-9.1279",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/Lisbon/Alfama",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 3 trusted reporters, 4 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 6,
+        "passiveGpsHits30d": 21,
+        "activeReports30d": 4,
+        "trustedVerifications": 3
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 34,
+      "averageRating": 4.7
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_lis_chiado_bertrand_livraria",
+    "title": "Livraria Bertrand Chiado — café at the back",
+    "oneLiner": "World's oldest bookstore (1732) has a small café at the back; two single tables by the poetry shelves.",
+    "whyItMatters": "Bertrand in Chiado has been open since 1732 and holds a Guinness record. Past the front register, wander through six connected rooms to the back where a café serves €2 espresso and pastel de nata. Two single tables sit against the poetry section — take one, read anything off the shelf, staff never checks. Free wifi at counter password.",
+    "category": "culture",
+    "location": {
+      "coordinates": [
+        -9.1424,
+        38.7104
+      ],
+      "cityCode": "lis",
+      "addressHint": "R. Garrett 73, Chiado",
+      "placeNameRomanized": "Livraria Bertrand Chiado",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 10,
+        "endHour": 13,
+        "note": "Mid-morning weekday quietest; back café empty"
+      },
+      {
+        "startHour": 15,
+        "endHour": 18,
+        "note": "Afternoon after 15:00 tourist lull"
+      }
+    ],
+    "durationMinutes": {
+      "min": 45,
+      "max": 180
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Baixa-Chiado metro, walk 3 min up R. Garrett"
+      },
+      {
+        "order": 2,
+        "text": "Enter Bertrand, walk straight back through 4 rooms"
+      },
+      {
+        "order": 3,
+        "text": "Café counter is on your left; €2 espresso + €1.50 pastel de nata"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "crowds",
+        "text": "13:30-15:00 tour groups pack the front; back café stays quieter"
+      },
+      {
+        "category": "logistics",
+        "text": "Café closes 19:30, store 22:00"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.8,
+      "breakdown": {
+        "seatingFriendly": 10,
+        "soloPatronRatio": 9,
+        "staffPressure": 10,
+        "soloPortioning": 10,
+        "ambianceFit": 10,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 12
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z",
+        "url": "https://www.bertrand.pt"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/38.7104/-9.1424",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 3 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 5,
+        "passiveGpsHits30d": 17,
+        "activeReports30d": 3,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 28,
+      "averageRating": 4.7
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_lis_baixa_a_merendinha_lunch",
+    "title": "A Merendinha do Arco, Baixa — €9 daily menu",
+    "oneLiner": "Tiled tasca off Praça do Comércio: pratos do dia €9 including soup, main, drink, coffee.",
+    "whyItMatters": "A Merendinha do Arco tucks under the arcade off Rua dos Sapateiros in Baixa. Daily menu (menu do dia) €9: soup, one of three mains (bacalhau, bife, or carne de porco à alentejana), a small drink and a coffee. Solo diners take the counter along the left wall. Locals fill it 13:00-14:30; go 12:00 or 14:45.",
+    "category": "food",
+    "location": {
+      "coordinates": [
+        -9.1385,
+        38.7093
+      ],
+      "cityCode": "lis",
+      "addressHint": "R. dos Sapateiros 230, Baixa",
+      "placeNameRomanized": "A Merendinha do Arco",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 12,
+        "endHour": 15,
+        "note": "12:00 or 14:45 avoid the 13:00 local rush"
+      }
+    ],
+    "durationMinutes": {
+      "min": 30,
+      "max": 60
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "From Praça do Comércio walk 3 min north on R. dos Sapateiros"
+      },
+      {
+        "order": 2,
+        "text": "Enter, ask for 'menu do dia' — €9 total"
+      },
+      {
+        "order": 3,
+        "text": "Sit at the counter along the left wall"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "logistics",
+        "text": "Cash or Portuguese card only, no Apple Pay"
+      },
+      {
+        "category": "etiquette",
+        "text": "Menu do dia written on a whiteboard in Portuguese only"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.0,
+      "breakdown": {
+        "seatingFriendly": 9,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 8,
+        "safety": 10
+      },
+      "hint": "",
+      "basedOnCount": 11
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/38.7093/-9.1385",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 2 trusted reporters, 3 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 4,
+        "passiveGpsHits30d": 14,
+        "activeReports30d": 3,
+        "trustedVerifications": 2
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 22,
+      "averageRating": 4.6
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
+  },
+  {
+    "id": "exp_lis_bairro_alto_tasca_do_chico",
+    "title": "Tasca do Chico, Bairro Alto — small-room fado, no cover, no minimum",
+    "oneLiner": "20-seat fado tasca: no cover, no minimum, two sets nightly at 20:00 and 22:00.",
+    "whyItMatters": "Tasca do Chico on Rua do Diário de Notícias runs two nightly fado sets at 20:00 and 22:00, no cover, no minimum, singers cycle through. Twenty seats, mostly two-tops but a solo can sit at the back-wall bench. Order €4 glass of vinho verde and stay for one set. During singing the room drops to complete silence — a rule enforced by the owner clapping once.",
+    "category": "nightlife",
+    "location": {
+      "coordinates": [
+        -9.1443,
+        38.7119
+      ],
+      "cityCode": "lis",
+      "addressHint": "R. do Diário de Notícias 39, Bairro Alto",
+      "placeNameRomanized": "Tasca do Chico",
+      "photoUrls": [
+        "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"
+      ]
+    },
+    "bestTimes": [
+      {
+        "startHour": 20,
+        "endHour": 24,
+        "note": "First set 20:00, second set 22:00; arrive 15 min before"
+      }
+    ],
+    "durationMinutes": {
+      "min": 60,
+      "max": 150
+    },
+    "howTo": [
+      {
+        "order": 1,
+        "text": "Walk up R. do Diário de Notícias from Chiado"
+      },
+      {
+        "order": 2,
+        "text": "Ask 'para uma pessoa' at the door — back-wall bench"
+      },
+      {
+        "order": 3,
+        "text": "Order vinho verde (€4) or a beer (€3); tip €2 in the singer's jar"
+      }
+    ],
+    "realInconveniences": [
+      {
+        "category": "etiquette",
+        "text": "Silence during singing is strict; phone away"
+      },
+      {
+        "category": "crowds",
+        "text": "Second set fuller than first; arrive by 19:45 for the 20:00 set"
+      }
+    ],
+    "soloScore": {
+      "overall": 9.0,
+      "breakdown": {
+        "seatingFriendly": 8,
+        "soloPatronRatio": 8,
+        "staffPressure": 10,
+        "soloPortioning": 9,
+        "ambianceFit": 10,
+        "safety": 9
+      },
+      "hint": "",
+      "basedOnCount": 19
+    },
+    "sources": [
+      {
+        "type": "user",
+        "attribution": "curator: rubric fixture",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "user",
+        "url": "https://www.openstreetmap.org/#map=19/38.7119/-9.1443",
+        "attribution": "OpenStreetMap contributors",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      },
+      {
+        "type": "wikivoyage",
+        "url": "https://en.wikivoyage.org/wiki/Lisbon/Bairro_Alto",
+        "attribution": "Wikivoyage",
+        "verifiedAt": "2026-07-03T00:00:00Z"
+      }
+    ],
+    "confidence": {
+      "level": 4,
+      "lastVerifiedAt": "2026-07-03T00:00:00Z",
+      "reason": "Verified by 3 trusted reporters, 5 active reports in last 30d",
+      "signals": {
+        "aiScrapeAgeDays": 3,
+        "passiveGpsHits30d": 24,
+        "activeReports30d": 5,
+        "trustedVerifications": 3
+      }
+    },
+    "nearbyExperienceIds": [],
+    "stats": {
+      "completionCount": 41,
+      "averageRating": 4.8
+    },
+    "status": "active",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "updatedAt": "2026-07-03T00:00:00Z"
   }
 ]

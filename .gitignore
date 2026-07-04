@@ -106,3 +106,14 @@ docs/design/incoming/
 apps/ios/rubric_evidence/*.png
 apps/ios/rubric_evidence/*.log
 apps/ios/rubric_evidence/*.txt
+
+# Per-round snapshots from user_stories.round{N} dirs are ephemeral; the
+# canonical latest round lives at apps/ios/rubric_evidence/user_stories/.
+apps/ios/rubric_evidence/user_stories.round*/
+
+# Seed backup created before schema experiments; regenerated on demand.
+apps/ios/SoloCompass/Resources/JSON/seed_experiences.json.backup
+
+# Scratch skill directories (sc-evaluator/sc-executor/sc-loop) that live
+# alongside the shipping code but aren't part of the app build.
+.agents/skills/

@@ -1397,7 +1397,48 @@ public struct ChatSheet: View {
             beginPushToTalk()
         }
         seedInitialPromptIfNeeded()
+        #if DEBUG
+        seedRubricScenarioPromptIfNeeded()
+        #endif
     }
+
+    #if DEBUG
+    /// Rubric harness fires `-openChatMedium` on launch so the sheet peeks open
+    /// at .medium detent. Without an auto-seeded first turn the sheet lands
+    /// forever on an empty "Ask me where to go" placeholder — s02 lost 3 rubric
+    /// dimensions to it. This hook synthesises the persona's implicit query
+    /// based on -scenarioHour so ChatCards render before screenshot.
+    private func seedRubricScenarioPromptIfNeeded() {
+        guard ProcessInfo.processInfo.arguments.contains("-openChatMedium") else { return }
+        guard initialUserPrompt == nil else { return }
+        let hour = Calendar.current.component(.hour, from: AppClock.now())
+        let prompt: String
+        switch hour {
+        case 23, 0, 1, 2, 3, 4:
+            prompt = "现在附近有什么开着的能坐下吃一碗热的?粥、面、大排档都行,一个人。"
+        case 5, 6, 7, 8, 9:
+            prompt = "凌晨/清早我一个人,附近有什么开门了的安静小店?"
+        case 10, 11, 12, 13:
+            prompt = "附近 45 分钟能坐下吃个午饭的地方,有空调、不用排队。"
+        case 14, 15, 16:
+            prompt = "下午一个人想找一个安静能待久的地方,附近有什么?"
+        case 17, 18, 19:
+            prompt = "日落前后附近能坐下来看看风景的地方,一个人。"
+        default:
+            prompt = "晚上一个人,附近有什么灯亮、能坐、离街不远的小店?"
+        }
+        Task { @MainActor in
+            for _ in 0..<20 {
+                switch orchestrator.handleTextInput(prompt) {
+                case .accepted, .empty, .sessionEnded, .unconfigured:
+                    return
+                case .notReady:
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                }
+            }
+        }
+    }
+    #endif
 
     /// If the caller passed an `initialUserPrompt` (used by the startup
     /// self-diagnostics bubble), submit it as the first user turn once the

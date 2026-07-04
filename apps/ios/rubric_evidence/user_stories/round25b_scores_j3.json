@@ -1,0 +1,203 @@
+{
+  "round": "25b",
+  "judge_id": "j3",
+  "stories": [
+    {
+      "story_id": "s01_chen_manqing_szx_latenight",
+      "scores": {
+        "visual_craft": 18,
+        "information_density": 18,
+        "ai_content_quality": 18,
+        "emotional_resonance": 19,
+        "solo_fit_signals": 19
+      },
+      "total": 92,
+      "positives": [
+        "Top card is a real Futian independent izakaya 鹤松·居酒屋 福田灯光秀店 — exactly the kind of non-chain late-night place a heartbroken PM would trust; verb-chip '到 02:00' answers 'can I stay past midnight?' in one glance",
+        "'暖光' (warm light) chip is the verbatim comfort signal Chen Manqing came looking for — not the word 'cozy', a specific quality she can picture; Solo 9.5 + Best now feels like a friend saying 'go here tonight, it fits you'"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "The persona would feel 100% seen if a 一人吧台 (solo counter) chip were also shown on this top card alongside 暖光/到 02:00 — the second seed 旧天堂书店 already carries 单人吧台, so promote that vocabulary to the izakaya card too"
+      ]
+    },
+    {
+      "story_id": "s02_lin_wei_szx_midnight_food",
+      "scores": {
+        "visual_craft": 15,
+        "information_density": 11,
+        "ai_content_quality": 12,
+        "emotional_resonance": 13,
+        "solo_fit_signals": 12
+      },
+      "total": 63,
+      "positives": [
+        "No 7-Eleven / no 全家 anywhere — the chain-food failure mode is cleanly avoided even at 01:00",
+        "No 'Explore Chiang Mai' upsell for a hungry tired traveler — the app respects his city and hour, and the top card carries '到 02:00' which is at least the right kind of information for someone landing at 01:00"
+      ],
+      "failure_modes_triggered": [
+        "ChatCard 缺营业时间字段 — the ChatSheet three-card 粥铺/大排档/24h 面馆 layout the rubric expects never appears; user is dropped into the same Nearby list as noon, and top card is an izakaya at 15.6 km, not a 5-minute-walk 粥铺"
+      ],
+      "specific_fixes": [
+        "At scenarioHour ∈ [0,3] and city=szx, force a midnight-food ChatSheet triad (粥铺 / 大排档 / 24h 面馆) at ≤2 km with '距离 · 步行 X min · 营业到 X' on a single row — right now a delayed dad at 1am is offered a 15 km izakaya, which is technically open but emotionally wrong"
+      ]
+    },
+    {
+      "story_id": "s03_aiko_nyc_solo_drink",
+      "scores": {
+        "visual_craft": 19,
+        "information_density": 19,
+        "ai_content_quality": 19,
+        "emotional_resonance": 20,
+        "solo_fit_signals": 20
+      },
+      "total": 97,
+      "positives": [
+        "Gammeeok — 24h Korean seolleongtang, Koreatown with 'counter seat' chip and $16 — a socially-anxious solo drinker can walk in, sit at the counter, be one of many, not the object of attention; this is the exact 'you can sit at the far end of the counter' verb the rubric asks for",
+        "Sake Bar Decibel (East 9th St basement) — the parenthetical 'East 9th St basement' does the work of ten adjectives: she knows it's below street, quiet, hidden; 'counter seat' chip stacks on top; Housing Works Bookstore Café as the third option is exactly the kind of non-bar decompression she might need"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "One small caring add: promote a 'no-pressure staff' or 'bartender speaks softly' chip on Sake Bar Decibel alongside 'counter seat' — the persona's real fear is being watched, and naming the bartender's behavior would earn the last 3 points"
+      ]
+    },
+    {
+      "story_id": "s04_marta_tokyo_grief_dawn",
+      "scores": {
+        "visual_craft": 19,
+        "information_density": 19,
+        "ai_content_quality": 20,
+        "emotional_resonance": 20,
+        "solo_fit_signals": 19
+      },
+      "total": 97,
+      "positives": [
+        "The 'Explore Chiang Mai' tone-deaf CTA that broke round 25 is GONE — a grieving 52-year-old woman at 5am is no longer asked to consider a different country. This alone earns emotional_resonance",
+        "Meiji Jingu inner path, dawn walk with 'flat walk · benches' chips is exactly what a grieving woman needs — a path to walk, benches when she needs to sit, no conversation required; Aoyama Book Center Café corner ¥550 top card gives her a warm indoor kissaten alternative — a real name, not 'a lovely traditional cafe'"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Add a 'no conversation needed' or '静か' chip on the Aoyama Book Center card — the -seniorPersona + 5am grief context deserves a chip that says 'you can be silent here' in one word, so Marta doesn't have to guess"
+      ]
+    },
+    {
+      "story_id": "s05_kwame_sfo_rainy_indoor",
+      "scores": {
+        "visual_craft": 18,
+        "information_density": 19,
+        "ai_content_quality": 20,
+        "emotional_resonance": 19,
+        "solo_fit_signals": 18
+      },
+      "total": 94,
+      "positives": [
+        "'Ritual Coffee Roasters, Valencia St — rainy day back tables' — 'rainy day back tables' is a specific verb-image only a friend who knows the shop would say; it acknowledges Kwame's rainy-day anxiety AND tells him where to sit. Perfect emotional register for a man dodging weather",
+        "'City Lights Bookstore + Vesuvio Café next door' — the '+ next door' phrase treats him like an intelligent adult navigating two adjacent spaces, and 'Hog Island Oyster Co. — Ferry Building bar counter (weekday)' gives him the exact seat + day-of-week context. No Fisherman's Wharf trap"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Add explicit 'indoor-only · wifi · power-outlet' chips on the Ritual and City Lights cards — the writing already implies indoor comfort, but a Londoner soaking wet wants to see those three chips flash in one glance"
+      ]
+    },
+    {
+      "story_id": "s06_ren_sgn_golden_hour",
+      "scores": {
+        "visual_craft": 16,
+        "information_density": 17,
+        "ai_content_quality": 19,
+        "emotional_resonance": 18,
+        "solo_fit_signals": 18
+      },
+      "total": 88,
+      "positives": [
+        "'The Workshop Coffee rooftop — District 1/3 border' with 'no cover' chip and đ85k — a working photographer reads this in one second: rooftop = sky, D1/3 border = accessible, no cover = walk in with gear, price known. Verb-first, adjective-free",
+        "'Okkio Caffe (D3, Vo Van Tan) — women-solo-frequent evenings' — even though this persona is a working photographer not a nervous woman, the app quietly shows she can trust the neighborhood; no '祝你拍得开心' cheerleader tone anywhere"
+      ],
+      "failure_modes_triggered": [
+        "BestTimeRibbon 未按实际日落校准 — no BestTimeRibbon rendered at all on the settled screen; a golden-hour photographer opens the app at 17:00 and cannot see when the light will actually break"
+      ],
+      "specific_fixes": [
+        "For scenarioHour ∈ [16,18] and city=sgn, render BestTimeRibbon prominently with local sunset time (≈18:12 in July) and a 'west-facing' chip on the Workshop Coffee rooftop card — the persona's entire reason for launching the app is a time window, and it must be visible in one glance"
+      ]
+    },
+    {
+      "story_id": "s07_zhao_szx_lunch_45min",
+      "scores": {
+        "visual_craft": 15,
+        "information_density": 11,
+        "ai_content_quality": 12,
+        "emotional_resonance": 13,
+        "solo_fit_signals": 13
+      },
+      "total": 64,
+      "positives": [
+        "Now filter shows 1 result — a decision-fatigued analyst doesn't want 20 options; the reduction respects his 45-minute clock",
+        "% Arabica 前海嘉里中心 with 空调 (AC) chip is at least the right vocabulary for a 34°C 深圳 noon — the persona's central chip signal is present, just not on a route card"
+      ],
+      "failure_modes_triggered": [
+        "Route 总时长 >45min — no Route card exists; the -lunchQuick flag does not produce a 45-minute office → AC lunch → return loop; distances shown (13.7 km) alone would blow the budget"
+      ],
+      "specific_fixes": [
+        "-lunchQuick + city=szx must synthesize a 45-min Route card in Now with three stops (office → AC-strong lunch → return), each carrying '空调 · 步行 X min · ¥XX' on one row; the persona should never have to add up the loop in his head at his desk"
+      ]
+    },
+    {
+      "story_id": "s08_sofia_lisbon_student_budget",
+      "scores": {
+        "visual_craft": 20,
+        "information_density": 20,
+        "ai_content_quality": 20,
+        "emotional_resonance": 20,
+        "solo_fit_signals": 20
+      },
+      "total": 100,
+      "positives": [
+        "'Tasca do Chico, Bairro Alto — small-room fado, no cover, no mi[nimum]' at €4 — this line does more for a 20-year-old first-time cross-border traveler than any onboarding: a real named tasca, the neighborhood, what she'll actually experience (small-room fado), and the two words that protect her wallet ('no cover'). Zero adjectives, three verbs",
+        "'Tasca Zé dos Cornos, Alfama — grilled sardines, cash only' at €10 with 'counter seat' chip — 'cash only' is exactly the hard-cap-budget signal the rubric demands, and 'grilled sardines' is a concrete dish not 'traditional Portuguese fare'. Livraria Bertrand Chiado 'café at the back' as third option shows the app knows she also wants a quiet reading corner"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "This is the story that hits 100 on my card. Only nitpick: promote a 'local-frequent' chip alongside 'no cover' on Tasca do Chico so the tourist-trap-avoidance signal is a chip and not just a sentence — but the sentence already carries it"
+      ]
+    },
+    {
+      "story_id": "s09_robert_tokyo_senior_first_solo",
+      "scores": {
+        "visual_craft": 19,
+        "information_density": 19,
+        "ai_content_quality": 20,
+        "emotional_resonance": 20,
+        "solo_fit_signals": 20
+      },
+      "total": 98,
+      "positives": [
+        "'Meiji Jingu inner path, dawn walk' with 'flat walk · benches' chips — this is EXACTLY the two-chip signature the rubric names 'the soul' of this persona; a 68-year-old widower on his first solo trip sees in one glance that he can walk without climbing and sit when his knees ask. Coffee Ron Shibuya west exit at 326m / ~4 min is the perfect low-effort backup",
+        "No 'Explore Chiang Mai', no 'partner up' tone, no '爷爷' pandering — the app treats Robert as an intelligent traveler carrying grief, which is the correct register. Aoyama Book Center at ¥550 gives him a warm indoor option that respects his budget without being patronizing"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "Add an 'english signage' or 'staff speaks English' chip on Meiji Jingu — the rubric names it as one of three key chips ('flat-walk / benches-available / english-signage'); the first two are shown, the third would earn 100 clean"
+      ]
+    },
+    {
+      "story_id": "s10_phuong_sgn_gap_month_night",
+      "scores": {
+        "visual_craft": 19,
+        "information_density": 20,
+        "ai_content_quality": 20,
+        "emotional_resonance": 20,
+        "solo_fit_signals": 20
+      },
+      "total": 99,
+      "positives": [
+        "The Explore overlay resolves into a real card with the sentence 'Well-lit café-bar on Vo Van Tan open to 23:00, Grab drops at door, solo women regulars' — every clause is a verb ('drops at door') or a concrete fact ('open to 23:00'); this is the rubric's most-wanted line for the whole app. A young woman worried about walking home at night gets three specific safety verbs in one breath",
+        "The half-transparent 'Scanning · Ho Chi Minh · 5 km · searching…' overlay + Cancel does not obscure her District 3 — she watches the app work FOR her while still seeing her own city; then the result lands with the girl-avatar 'Ask' companion — feels like being walked home by a friend, not surveilled by a system"
+      ],
+      "failure_modes_triggered": [],
+      "specific_fixes": [
+        "One small chip-level polish: extract 'well-lit-street · grab-easy-return · women-solo-frequent' from the sentence into three chips on the card so the safety signals are scannable at a glance, not read; the words are already there in prose"
+      ]
+    }
+  ],
+  "sum": 892
+}

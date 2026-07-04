@@ -157,6 +157,46 @@ public final class ExperienceRecord {
         self.photoUrlsBlob = photoUrlsBlob
         self.categoryHighlightsBlob = categoryHighlightsBlob
     }
+
+    #if DEBUG
+    /// Overwrite every mutable field from another record. Rubric harness uses
+    /// this to hot-reload seed edits (oneLiner / whyItMatters keyword changes)
+    /// into SwiftData without deleting and re-inserting the row — deletion
+    /// leaves lingering ghosts under the same context flush in some Swift
+    /// versions, doubling the row count.
+    func copyContent(from other: ExperienceRecord) {
+        self.title = other.title
+        self.oneLiner = other.oneLiner
+        self.whyItMatters = other.whyItMatters
+        self.category = other.category
+        self.longitude = other.longitude
+        self.latitude = other.latitude
+        self.cityCode = other.cityCode
+        self.addressHint = other.addressHint
+        self.placeNameLocal = other.placeNameLocal
+        self.placeNameRomanized = other.placeNameRomanized
+        self.rating = other.rating
+        self.openingHours = other.openingHours
+        self.priceLevel = other.priceLevel
+        self.website = other.website
+        self.phone = other.phone
+        self.durationMin = other.durationMin
+        self.durationMax = other.durationMax
+        self.status = other.status
+        self.updatedAt = other.updatedAt
+        self.bestTimesBlob = other.bestTimesBlob
+        self.howToBlob = other.howToBlob
+        self.realInconveniencesBlob = other.realInconveniencesBlob
+        self.sourcesBlob = other.sourcesBlob
+        self.soloScoreBlob = other.soloScoreBlob
+        self.confidenceBlob = other.confidenceBlob
+        self.statsBlob = other.statsBlob
+        self.nearbyExperienceIdsBlob = other.nearbyExperienceIdsBlob
+        self.userTagsBlob = other.userTagsBlob
+        self.photoUrlsBlob = other.photoUrlsBlob
+        self.categoryHighlightsBlob = other.categoryHighlightsBlob
+    }
+    #endif
 }
 
 // MARK: - Two-way mapping

@@ -41,8 +41,12 @@ public final class BestNowClock {
 
     /// - Parameter startDate: the clock's initial `tick`. Injectable so tests can
     ///   pin a deterministic instant instead of reaching for `Date()`.
-    public init(startDate: Date = Date()) {
-        self.tick = startDate
+    ///
+    /// Passing `nil` triggers the `-scenarioHour` DEBUG launch-argument path via
+    /// `AppClock.now()` so the rubric harness can pin scenario hour without the
+    /// device wall clock leaking through.
+    public init(startDate: Date? = nil) {
+        self.tick = startDate ?? AppClock.now()
         start()
     }
 
