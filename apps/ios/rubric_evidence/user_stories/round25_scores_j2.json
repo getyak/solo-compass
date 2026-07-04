@@ -1,0 +1,234 @@
+{
+  "round": 25,
+  "judge_id": "j2",
+  "stories": [
+    {
+      "story_id": "s01_chen_manqing_szx_latenight",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 2,
+        "ai_content_quality": 0,
+        "emotional_resonance": 3,
+        "solo_fit_signals": 0
+      },
+      "total": 16,
+      "positives": [
+        "Warm amber filter chips (Now/All/Saved/Ask Solo) render with clean glassmorphism and consistent tone",
+        "Bottom sheet typography hierarchy is readable — headline / body / dual CTAs stack cleanly"
+      ],
+      "failure_modes_triggered": [
+        "顶张卡片是星巴克臻选或任何连锁 — no top card at all; Nearby 0",
+        "oneLiner 出现「一个温馨的小店」通用句 — no oneLiner exists to evaluate",
+        "推荐 22:00 打烊的店 — no recommendation surfaced for 23:00 low-energy scenario"
+      ],
+      "specific_fixes": [
+        "MapViewModel nearby query returns 0 in Shenzhen at 23:00; ensure bundled seed_experiences.json loads for szx before falling back to 'Explore Chiang Mai' — the empty state overrides every persona-specific slot"
+      ]
+    },
+    {
+      "story_id": "s02_lin_wei_szx_midnight_food",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 2,
+        "ai_content_quality": 0,
+        "emotional_resonance": 2,
+        "solo_fit_signals": 0
+      },
+      "total": 15,
+      "positives": [
+        "Filter bar and sheet layout remain visually intact at 1am scenario",
+        "Empty-state icon + copy hierarchy is legible"
+      ],
+      "failure_modes_triggered": [
+        "ChatCard 缺营业时间字段 — no ChatCard rendered; ChatSheet never opened",
+        "推荐里出现 7-Eleven 或全家 — no midnight food recommendation surfaced (worse than a bad rec: none)"
+      ],
+      "specific_fixes": [
+        "Story explicitly expects ChatSheet with 3 cards but launch_args -expandSheet only opens BottomInfoSheet in empty NEARBY state — wire a scenarioHour=1 trigger that pre-populates chat orchestrator with midnight-food query, not just the sheet"
+      ]
+    },
+    {
+      "story_id": "s03_aiko_nyc_solo_drink",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 2,
+        "ai_content_quality": 0,
+        "emotional_resonance": 2,
+        "solo_fit_signals": 0
+      },
+      "total": 16,
+      "positives": [
+        "NYC map renders correctly (Lincoln Square/Hell's Kitchen visible) — city routing works",
+        "Warm amber palette holds against light blue Hudson River background"
+      ],
+      "failure_modes_triggered": [
+        "trust chip 缺 counter-seat — no chips exist to inspect",
+        "traveler note 是 AI 通用句 — no card, so no note",
+        "顶张卡片是 rooftop bar 或需预订的餐厅 — no top card exists"
+      ],
+      "specific_fixes": [
+        "seed_experiences.json apparently has zero NYC entries within 8km radius of Times Square (40.7484,-73.9857); either seed the fixture with East Village wine/sake bars or invoke AI enrichment on cold start when nearby count == 0"
+      ]
+    },
+    {
+      "story_id": "s04_marta_tokyo_grief_dawn",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 2,
+        "ai_content_quality": 0,
+        "emotional_resonance": 1,
+        "solo_fit_signals": 0
+      },
+      "total": 15,
+      "positives": [
+        "Tokyo map and Chiyoda/Bunkyo labels centred correctly",
+        "Warm amber filter chrome consistent"
+      ],
+      "failure_modes_triggered": [
+        "AI 使用「治愈」「温暖你的心」 — cannot evaluate; no oneLiner rendered",
+        "推荐 Starbucks 或酒店早餐 — no recommendation at all for 05:00 kissaten expectation",
+        "Traveler note 假装本地人但语气是 AI — no note surfaced"
+      ],
+      "specific_fixes": [
+        "For grief persona, an empty state that reads 'Take me somewhere alive' is emotionally tone-deaf. Even in fallback, gate empty-state copy on seniorPersona flag and time-of-day (05:00 dawn = restraint, not exuberance)"
+      ]
+    },
+    {
+      "story_id": "s05_kwame_sfo_rainy_indoor",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 2,
+        "ai_content_quality": 0,
+        "emotional_resonance": 3,
+        "solo_fit_signals": 0
+      },
+      "total": 16,
+      "positives": [
+        "SF map with Marina/North Beach/Financial District labels loads correctly",
+        "Bottom sheet stays readable over pale blue map background"
+      ],
+      "failure_modes_triggered": [
+        "hero 是灰色占位 — no hero at all (worse: no card)",
+        "trust chip 缺 indoor-only — no chips rendered",
+        "推荐 Fisherman's Wharf 游客陷阱 — nothing recommended"
+      ],
+      "specific_fixes": [
+        "rainyIndoor launch arg should force an indoor-only filter with fallback pre-baked SF picks (City Lights, Vesuvio) even when live seed misses; current fallback CTA 'Explore Chiang Mai' is nonsensical for a SF rainy-day persona"
+      ]
+    },
+    {
+      "story_id": "s06_ren_sgn_golden_hour",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 2,
+        "ai_content_quality": 0,
+        "emotional_resonance": 3,
+        "solo_fit_signals": 0
+      },
+      "total": 16,
+      "positives": [
+        "HCM map + river geometry loads accurately at intended coords",
+        "Filter bar chrome consistent with system"
+      ],
+      "failure_modes_triggered": [
+        "BestTimeRibbon 未按实际日落校准 — ribbon never renders",
+        "AI 加了「祝你拍得开心」 — no AI copy visible to judge",
+        "推荐面朝东背对日落 — no recommendation at all"
+      ],
+      "specific_fixes": [
+        "Story's whole value prop is BestTimeRibbon + sunset gradient — nothing appears. Ensure scenarioHour=17 in sgn triggers at least a stub Saigon Skydeck card so the golden-hour ribbon renders"
+      ]
+    },
+    {
+      "story_id": "s07_zhao_szx_lunch_45min",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 2,
+        "ai_content_quality": 0,
+        "emotional_resonance": 2,
+        "solo_fit_signals": 0
+      },
+      "total": 15,
+      "positives": [
+        "Filter bar and sheet still render cleanly at midday scenario",
+        "'Now' pill remains visible and correctly styled"
+      ],
+      "failure_modes_triggered": [
+        "Route 总时长 >45min — no route card rendered at all",
+        "没有 AC chip — no chips rendered",
+        "推荐需排队 20min 的网红店 — nothing recommended"
+      ],
+      "specific_fixes": [
+        "-lunchQuick + isNowFilter should ALWAYS surface a Route card in Now section per project memory; RoutesSection appears not to trigger from empty NEARBY. Ensure route generation fallback fires when nearby.count==0 && isNowFilter && lunchQuick"
+      ]
+    },
+    {
+      "story_id": "s08_sofia_lisbon_student_budget",
+      "scores": {
+        "visual_craft": 13,
+        "information_density": 4,
+        "ai_content_quality": 0,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 0
+      },
+      "total": 22,
+      "positives": [
+        "Empty-state copy 'Showing within 8 km — try a wider radius' with 'Expand to 25 km' CTA is the only story that offers a real product action, not a wanderlust redirect",
+        "Lisbon map centred correctly; warm amber CTA holds against green map"
+      ],
+      "failure_modes_triggered": [
+        "推荐 Time Out Market 大众化 — no recommendation shown, expected Alfama tasca missing",
+        "价格 chip 范围过宽无参考价值 — no price chip visible"
+      ],
+      "specific_fixes": [
+        "This is the closest to acceptable empty-state UX. Extend it to all cities (currently only Lisbon shows radius-expand; others show 'Explore Chiang Mai' which loses persona thread). Then seed Alfama tascas with human-scale price chips (€9 avg)"
+      ]
+    },
+    {
+      "story_id": "s09_robert_tokyo_senior_first_solo",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 2,
+        "ai_content_quality": 0,
+        "emotional_resonance": 3,
+        "solo_fit_signals": 0
+      },
+      "total": 17,
+      "positives": [
+        "Tokyo map + Chiyoda/Bunkyo labels render correctly; -seniorPersona city routing works",
+        "Filter bar type is legible (though Dynamic Type xxxLarge behavior not verifiable in empty state)"
+      ],
+      "failure_modes_triggered": [
+        "字号未跟随 Dynamic Type — cannot verify but likely; text sizes appear default",
+        "推荐需爬坡或换乘 3 次 — no recommendation, so no verification",
+        "trust chip 无「benches-available」 — no chips"
+      ],
+      "specific_fixes": [
+        "-seniorPersona flag should at minimum enlarge empty-state title beyond current size and swap 'Explore Chiang Mai' + 'Take me somewhere alive' for restrained copy suited to a 68-year-old first-time solo traveler; also seed Meiji Jingu / Imperial East Gardens for tyo cold start"
+      ]
+    },
+    {
+      "story_id": "s10_phuong_sgn_gap_month_night",
+      "scores": {
+        "visual_craft": 13,
+        "information_density": 5,
+        "ai_content_quality": 2,
+        "emotional_resonance": 6,
+        "solo_fit_signals": 0
+      },
+      "total": 26,
+      "positives": [
+        "'Scanning · Ho Chi Minh · 5 km / searching…' pill actually shows work-in-progress — the only story where Explore overlay from -triggerExplore fired",
+        "Ask persona avatar + filter/cancel/loading controls give a coherent overlay that doesn't obscure the river geometry — half-transparent design brief satisfied"
+      ],
+      "failure_modes_triggered": [
+        "trust chip 只有通用「popular」 — no chips at all yet (scanning state)",
+        "推荐偏僻小巷无 well-lit 校验 — cannot verify; no results"
+      ],
+      "specific_fixes": [
+        "The scan state is the strongest evidence in the batch. Once results arrive, ensure they carry well-lit-street / grab-easy-return / women-solo-frequent chips as first-class fields, not just adjectives"
+      ]
+    }
+  ],
+  "sum": 174
+}

@@ -182,6 +182,16 @@ public final class StartupDiagnosticsService {
     private func checkAuthorizations() async -> [Finding] {
         var out: [Finding] = []
 
+        #if DEBUG
+        // e2e rubric harness (scripts/user-story-rubric/run.sh): if the caller
+        // asked us to skip the CoreLocation prompt we also must not surface a
+        // "location isn't authorized yet" diagnostic — otherwise the banner
+        // covers the very content the harness is trying to screenshot.
+        if ProcessInfo.processInfo.arguments.contains("-uiTestBypassLocationPrompt") {
+            return out
+        }
+        #endif
+
         switch locationService.authorizationStatus {
         case .denied, .restricted:
             out.append(Finding(

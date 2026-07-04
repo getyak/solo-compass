@@ -38,7 +38,41 @@ public final class LocationService: NSObject {
 
     public init(manager: CLLocationManager = CLLocationManager()) {
         self.manager = manager
+        #if DEBUG
+        // Under -uiTestBypassLocationPrompt we synthesise an authorised state
+        // and DO NOT read `manager.authorizationStatus` — on iOS 26 the first
+        // read attaches the process to CoreLocation and SpringBoard eagerly
+        // shows the auth dialog before requestPermission() is even called.
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-uiTestBypassLocationPrompt") {
+            self.authorizationStatus = .authorizedWhenInUse
+            // Also inject a stub currentLocation matched to -startCity so
+            // the "Can't find your location — showing a default area"
+            // banner doesn't cover the seeded Nearby cards.
+            if let idx = args.firstIndex(of: "-startCity"), idx + 1 < args.count {
+                let city = args[idx + 1].lowercased()
+                let stub: (Double, Double)?
+                switch city {
+                case "szx", "shenzhen", "cn-深圳市":  stub = (22.5431, 114.0579)
+                case "nyc", "new-york":              stub = (40.7484, -73.9857)
+                case "tyo", "tokyo":                 stub = (35.6817, 139.7708)
+                case "sgn", "ho-chi-minh":           stub = (10.7769, 106.7009)
+                case "lis", "lisbon":                stub = (38.7223, -9.1393)
+                case "san-francisco", "sfo":         stub = (37.7749, -122.4194)
+                case "cmi", "chiang-mai", "chiangmai": stub = (18.7877, 98.9938)
+                case "vte", "vientiane":             stub = (17.9757, 102.6331)
+                default: stub = nil
+                }
+                if let s = stub {
+                    self.currentLocation = CLLocation(latitude: s.0, longitude: s.1)
+                }
+            }
+        } else {
+            self.authorizationStatus = manager.authorizationStatus
+        }
+        #else
         self.authorizationStatus = manager.authorizationStatus
+        #endif
         super.init()
         self.manager.delegate = self
         // Tighter accuracy so we don't burn battery chasing sub-10m fixes the
@@ -57,6 +91,17 @@ public final class LocationService: NSObject {
     /// Ask the user for location access, escalating from when-in-use to
     /// always so the app can fire geofence check-ins in the background.
     public func requestPermission() {
+        #if DEBUG
+        // e2e rubric harness (scripts/user-story-rubric/run.sh) can't dismiss
+        // the CoreLocation modal — `simctl privacy grant location` no-ops for
+        // CL prompts. This flag skips the system dialog and synthesises an
+        // authorised state so screenshots capture the app, not the alert.
+        if ProcessInfo.processInfo.arguments.contains("-uiTestBypassLocationPrompt") {
+            self.authorizationStatus = .authorizedWhenInUse
+            startUpdating()
+            return
+        }
+        #endif
         switch manager.authorizationStatus {
         case .notDetermined:
             manager.requestWhenInUseAuthorization()

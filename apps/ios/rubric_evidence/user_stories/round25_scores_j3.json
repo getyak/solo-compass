@@ -1,0 +1,227 @@
+{
+  "round": 25,
+  "judge_id": "j3",
+  "stories": [
+    {
+      "story_id": "s01_chen_manqing_szx_latenight",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 4,
+        "ai_content_quality": 3,
+        "emotional_resonance": 4,
+        "solo_fit_signals": 2
+      },
+      "total": 25,
+      "positives": [
+        "Warm-amber filter bar with Now/All/Saved/Ask Solo capsule is legible and on-brand for a late-night mood",
+        "Shenzhen city chip correctly resolved from -startCity szx"
+      ],
+      "failure_modes_triggered": [
+        "顶张卡片是星巴克臻选或任何连锁 — no top card at all; Nearby 0 forces her to nothing (worse than a chain: it's a void)",
+        "oneLiner 出现「一个温馨的小店」通用句 — no oneLiner visible; the CTA text 'Take me somewhere alive' is generic marketing"
+      ],
+      "specific_fixes": [
+        "Wire late-night SZX seed POIs (蛇口独立居酒屋/福田 24h café) into ExperienceService so -scenarioHour 23 -startCity szx returns ≥3 real cards with 'open until' fields visible in the first card row"
+      ]
+    },
+    {
+      "story_id": "s02_lin_wei_szx_midnight_food",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 3,
+        "ai_content_quality": 3,
+        "emotional_resonance": 4,
+        "solo_fit_signals": 2
+      },
+      "total": 23,
+      "positives": [
+        "Filter bar remains readable at simulated 1am — no glaring light-mode flash for the tired traveler",
+        "City correctly locked to Shenzhen"
+      ],
+      "failure_modes_triggered": [
+        "ChatCard 缺营业时间字段 — there is no ChatCard at all; no 粥铺/大排档 shown; a hungry, delayed traveler is told the map is 'quiet'",
+        "'Explore Chiang Mai' button appears when he needs food NOW in Shenzhen — this is worse than a generic chain, it's an upsell to a different country"
+      ],
+      "specific_fixes": [
+        "Add a midnight-food category filter path: when scenarioHour ∈ [0,3] and city=szx, ExperienceService should surface 24h 粥铺/大排档 with '距离 · 步行 X min · 营业到 X' on a single line — not fall through to the empty state"
+      ]
+    },
+    {
+      "story_id": "s03_aiko_nyc_solo_drink",
+      "scores": {
+        "visual_craft": 12,
+        "information_density": 3,
+        "ai_content_quality": 3,
+        "emotional_resonance": 3,
+        "solo_fit_signals": 2
+      },
+      "total": 23,
+      "positives": [
+        "New York city chip correctly set; map centered on Hell's Kitchen / Central Park area",
+        "Warm-amber palette holds in a Western city context without going touristy"
+      ],
+      "failure_modes_triggered": [
+        "trust chip 缺 counter-seat — no chips visible at all",
+        "traveler note 是 AI 通用句 — 'Take me somewhere alive' is exactly the AI generic phrasing that would spook a socially-anxious solo drinker"
+      ],
+      "specific_fixes": [
+        "Seed East Village solo-friendly wine/sake bars with pre-authored `counter-seat` and `no-pressure-staff` trust chips visible on the top card; suppress the 'Take me somewhere alive' CTA when no real card is shown"
+      ]
+    },
+    {
+      "story_id": "s04_marta_tokyo_grief_dawn",
+      "scores": {
+        "visual_craft": 10,
+        "information_density": 2,
+        "ai_content_quality": 2,
+        "emotional_resonance": 1,
+        "solo_fit_signals": 2
+      },
+      "total": 17,
+      "positives": [
+        "Tokyo map correctly centered on Bunkyo/Chiyoda — a plausible early-morning district",
+        "No bright white flash at 5am — soft glass tone is at least kind to a grieving eye"
+      ],
+      "failure_modes_triggered": [
+        "推荐 Starbucks 或酒店早餐 — worse: a grieving woman at 5am gets an 'Explore Chiang Mai' airplane button. This is the single most emotionally tone-deaf failure across all 10 stories.",
+        "AI 使用「治愈」「温暖你的心」 — 'Take me somewhere alive' comes uncomfortably close to that same performative-comfort register"
+      ],
+      "specific_fixes": [
+        "Never suggest a different city when the user is grieving/senior/early-hour; when city=tyo AND hour=5 AND seniorPersona flag, ExperienceService MUST return a 5am kissaten with 'window seat · no conversation needed · opens 05:00' on the top card; kill the 'Explore Chiang Mai' CTA under -seniorPersona entirely"
+      ]
+    },
+    {
+      "story_id": "s05_kwame_sfo_rainy_indoor",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 3,
+        "ai_content_quality": 3,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 2
+      },
+      "total": 24,
+      "positives": [
+        "SF map centered on North Beach / Financial District — the right neighborhood for City Lights",
+        "-rainyIndoor launch arg is recognized (city is san-francisco), even if it produces no content differentiation"
+      ],
+      "failure_modes_triggered": [
+        "trust chip 缺 indoor-only — no chips shown at all",
+        "hero 是灰色占位 — worse than gray: no hero at all"
+      ],
+      "specific_fixes": [
+        "When -rainyIndoor is set, ExperienceService should hard-filter to `indoor_only=true` and surface City Lights / Vesuvio / a real jazz basement with chips 'indoor-only · reading-friendly · power-outlet' on the top card — right now the flag is a no-op"
+      ]
+    },
+    {
+      "story_id": "s06_ren_sgn_golden_hour",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 3,
+        "ai_content_quality": 3,
+        "emotional_resonance": 5,
+        "solo_fit_signals": 2
+      },
+      "total": 24,
+      "positives": [
+        "Ho Chi Minh city chip correct; map shows Saigon River bend — the actual golden-hour terrain",
+        "No 'Explore Chiang Mai' upsell here (city is already SGN), which quietly avoids one of the failure modes"
+      ],
+      "failure_modes_triggered": [
+        "BestTimeRibbon 未按实际日落校准 — no BestTimeRibbon rendered",
+        "AI 加了「祝你拍得开心」 — 'Take me somewhere alive' is that same non-professional cheerleader tone a working photographer would reject"
+      ],
+      "specific_fixes": [
+        "For golden-hour scenarioHour 17 in sgn, seed 2–3 west-facing rooftops (Saigon Skydeck, Chill Skybar, a river cafe rooftop) and always render BestTimeRibbon with the local sunset time — this is the persona's entire reason for opening the app"
+      ]
+    },
+    {
+      "story_id": "s07_zhao_szx_lunch_45min",
+      "scores": {
+        "visual_craft": 11,
+        "information_density": 3,
+        "ai_content_quality": 3,
+        "emotional_resonance": 4,
+        "solo_fit_signals": 2
+      },
+      "total": 23,
+      "positives": [
+        "Shenzhen locked; Now filter is visible in the capsule bar as the persona would expect",
+        "-lunchQuick flag is at least parsed (city correct)"
+      ],
+      "failure_modes_triggered": [
+        "Route 总时长 >45min — no Route card exists at all; a decision-fatigued analyst opens the app and gets 'Quiet patch of map'",
+        "没有 AC chip — no chips period"
+      ],
+      "specific_fixes": [
+        "Wire -lunchQuick to force a 45-minute loop route in Now: office → AC-strong lunch spot → return, rendered as a single Route card with 'AC ✓ · 步行 12 min · ¥45' visible in one glance; without this, the persona bounces in 3 seconds"
+      ]
+    },
+    {
+      "story_id": "s08_sofia_lisbon_student_budget",
+      "scores": {
+        "visual_craft": 13,
+        "information_density": 5,
+        "ai_content_quality": 3,
+        "emotional_resonance": 6,
+        "solo_fit_signals": 2
+      },
+      "total": 29,
+      "positives": [
+        "This is the ONLY story that shows a smarter empty state: 'Showing within 8 km — try a wider radius' with 'Expand to 25 km' CTA (respects a first-time cross-border traveler)",
+        "'Move the map to discover nearby spots' hint acknowledges her agency instead of shoving 'Explore Chiang Mai' at her"
+      ],
+      "failure_modes_triggered": [
+        "推荐 Time Out Market 大众化 — no recommendation of any kind; Alfama tasca is nowhere to be seen",
+        "价格 chip 范围过宽无参考价值 — no price chip at all; a hard-cap budget student is told nothing"
+      ],
+      "specific_fixes": [
+        "Seed 3–5 Alfama/Mouraria tascas with cash-only, local-frequent, and 'pastel de nata €1.30 / prato do dia €9' price chips into lis; the 8km→25km affordance is good UX but useless if 25km also returns zero"
+      ]
+    },
+    {
+      "story_id": "s09_robert_tokyo_senior_first_solo",
+      "scores": {
+        "visual_craft": 10,
+        "information_density": 2,
+        "ai_content_quality": 2,
+        "emotional_resonance": 3,
+        "solo_fit_signals": 2
+      },
+      "total": 19,
+      "positives": [
+        "Tokyo correctly selected; map on Bunkyo — near Yanaka which is actually a good senior-friendly area",
+        "Type at default size is readable enough for a 68-year-old (though Dynamic Type larger sizes cannot be verified from this shot)"
+      ],
+      "failure_modes_triggered": [
+        "推荐需爬坡或换乘 3 次 — no recommendation, worse: 'Explore Chiang Mai' asks a nervous 68-year-old widower on his first solo trip to instead consider a different country",
+        "trust chip 无「benches-available」 — no chips at all; this is the exact signal this persona would live or die by"
+      ],
+      "specific_fixes": [
+        "Under -seniorPersona in tyo, ExperienceService must surface flat, bench-rich, English-signage POIs (Meiji Jingu inner path, Rikugien Garden, National Museum) with the chips 'flat-walk · benches-every-8-min · english-signage' on the top card, and MUST NOT propose a different city"
+      ]
+    },
+    {
+      "story_id": "s10_phuong_sgn_gap_month_night",
+      "scores": {
+        "visual_craft": 13,
+        "information_density": 6,
+        "ai_content_quality": 4,
+        "emotional_resonance": 7,
+        "solo_fit_signals": 3
+      },
+      "total": 33,
+      "positives": [
+        "Explore overlay is actually alive: 'Scanning · Ho Chi Minh · 5 km · searching…' with a clear Cancel — the -triggerExplore path works and shows respect for the user's time",
+        "The half-transparent overlay does NOT block the map (rubric asked for this exactly) — she can see her District 3 while it scans"
+      ],
+      "failure_modes_triggered": [
+        "trust chip 只有通用「popular」 — no chips at all; a young woman worried about night safety gets zero signal",
+        "Explore overlay 遮挡地图关键区域 — mostly avoided; but 'Move the map to discover nearby spots' at the bottom implies scan will end empty like the other 9"
+      ],
+      "specific_fixes": [
+        "The Explore scan for sgn night must resolve to real District 3 rooftop cafes/music cafes with pre-authored `well-lit-street · grab-easy-return · women-solo-frequent` chips — right now the pipeline is a visible but empty promise, which erodes trust faster than a plain empty state"
+      ]
+    }
+  ],
+  "sum": 240
+}

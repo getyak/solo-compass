@@ -154,9 +154,11 @@ struct ExperiencePreviewCard: View {
                 Text(String(format: "Solo %.1f", experience.soloScore.overall))
                     .font(CT.mono(12, .medium))
                     .foregroundStyle(CT.verifiedGreen)
+                    .lineLimit(1)
             }
             .padding(.horizontal, 8).padding(.vertical, 4)
             .background(Capsule().fill(CT.verifiedGreen.opacity(0.1)))
+            .fixedSize(horizontal: true, vertical: false)
 
             if let mins = walkMinutes {
                 HStack(spacing: 4) {
@@ -166,9 +168,11 @@ struct ExperiencePreviewCard: View {
                     Text(String(format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 min'"), mins))
                         .font(CT.mono(12, .medium))
                         .foregroundStyle(CT.fgMuted)
+                        .lineLimit(1)
                 }
                 .padding(.horizontal, 8).padding(.vertical, 4)
                 .background(Capsule().fill(CT.surfaceSunken))
+                .fixedSize(horizontal: true, vertical: false)
             }
 
             Spacer(minLength: 0)
