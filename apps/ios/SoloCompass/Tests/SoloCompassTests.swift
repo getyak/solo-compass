@@ -586,6 +586,58 @@ final class SoloCompassTests: XCTestCase {
                        "Second bind on the same GPS fix must be a no-op (hasAutoCentered guard)")
     }
 
+    /// Regression for the "current location looks offset" report: a real user
+    /// far from every seeded city (Beijing here — >1 900 km from SZX, the
+    /// closest entry in `knownCityCenters`) used to have their cold-start
+    /// GPS fix silently dropped by the old Beta-P0-F 200 km guard, leaving
+    /// the map stuck on the Chiang Mai seed. The narrowed guard only
+    /// suppresses the Simulator SF default, so this real-world coordinate
+    /// must now flow into `autoExploreIfEmpty`. We observe the invocation
+    /// counter that V-007 already exposes (`autoExploreInvocationCount`)
+    /// instead of `isShowingExploreConsent`, because the downstream consent
+    /// gate lives in an async Task whose ordering is currently flaky in
+    /// baseline (see `testAutoExploreFiresInDataSparseArea`). The counter
+    /// is the crisp signal that the guard actually let the fix through.
+    #if DEBUG
+    @MainActor
+    func testBindToLocationAcceptsFixOutsideKnownCities() throws {
+        // The DEBUG-only `-startCity` launch arg lives on UserDefaults.standard
+        // and persists across test runs; if a prior UI test left a value there
+        // this VM would start with a preset selectedCity and the guard would
+        // (correctly) skip GPS-anchored auto-explore. Clear it first so the
+        // "no preset city, real GPS fix" scenario is faithfully reproduced.
+        UserDefaults.standard.removeObject(forKey: "startCity")
+        let locationService = LocationService()
+        let prefs = UserPreferences()
+        prefs.hasAcceptedExploreConsent = false
+        prefs.lastSelectedCity = nil
+        let viewModel = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        // Beijing — real city with no seed data anywhere near it. Distances
+        // to every knownCityCenters entry are well above 200 km (closest is
+        // SZX at ~1 900 km great-circle), so this coordinate is the crispest
+        // proof that the guard no longer rejects legitimate far-from-seed
+        // GPS fixes.
+        let beijing = CLLocationCoordinate2D(latitude: 39.9042, longitude: 116.4074)
+        locationService.simulate(location: CLLocation(
+            latitude: beijing.latitude,
+            longitude: beijing.longitude
+        ))
+
+        XCTAssertEqual(viewModel.autoExploreInvocationCount, 0,
+                       "Pre-bind: auto-explore must not have been invoked")
+        viewModel.bindToLocation()
+
+        XCTAssertEqual(viewModel.autoExploreInvocationCount, 1,
+                       "A real GPS fix outside every seeded city must still be handed to autoExploreIfEmpty, not dropped as 'out of region'")
+    }
+    #endif
+
     // MARK: - US-011 auto-explore on empty category
 
     /// Picking a category that yields zero visible experiences inside a
