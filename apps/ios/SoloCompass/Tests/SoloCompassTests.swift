@@ -6009,6 +6009,48 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
                        "global (nil) scope must not contain <experience_context>")
     }
 
+    /// The `<experience_context>` block must lead with a human display name so
+    /// the model can actually say *which* place it's talking about — the bare
+    /// id + descriptive title wasn't enough to answer "现在人多吗" about a
+    /// scoped restaurant.
+    @MainActor
+    func testRenderExperienceContextCarriesDisplayName() throws {
+        let exp = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let block = VoiceAgentOrchestrator.renderExperienceContext(exp)
+        XCTAssertTrue(block.contains("name: \(exp.shortName)"),
+                      "experience_context must surface the place's display name")
+        XCTAssertTrue(block.contains("<experience_context>"))
+        // Coordinates must still never leak (mirrors the system-prompt guard).
+        XCTAssertFalse(block.lowercased().contains("coord"),
+                       "experience_context must not mention coordinates")
+    }
+
+    /// Regression for the reported "AI doesn't know the selected restaurant"
+    /// bug: when the chat is scoped to a place, EVERY user turn must carry a
+    /// `<current_place>` anchor naming it, so a deictic question ("现在人多吗")
+    /// resolves to the anchored place even many turns deep. A global chat must
+    /// carry no such anchor.
+    func testPrependContextRefreshInjectsCurrentPlaceWhenScoped() throws {
+        let exp = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+
+        let scoped = VoiceAgentOrchestrator.prependContextRefresh(
+            to: "现在人多吗?",
+            scopedExperience: exp
+        )
+        XCTAssertTrue(scoped.contains("<current_place>"),
+                      "scoped turn must carry a <current_place> anchor")
+        XCTAssertTrue(scoped.contains(exp.shortName),
+                      "the anchor must name the scoped place")
+        XCTAssertTrue(scoped.contains("id: \(exp.id)"),
+                      "the anchor must carry the scoped place id for tool calls")
+        XCTAssertTrue(scoped.contains("现在人多吗?"),
+                      "the user's transcript must still be present")
+
+        let global = VoiceAgentOrchestrator.prependContextRefresh(to: "现在人多吗?")
+        XCTAssertFalse(global.contains("<current_place>"),
+                       "a global (unscoped) chat must not inject a place anchor")
+    }
+
     // MARK: - Share card system (visual card share)
 
     /// Every `ExperienceCategory` must produce a non-empty emoji and a distinct
