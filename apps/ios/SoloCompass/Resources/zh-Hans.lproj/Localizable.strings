@@ -429,7 +429,9 @@
 "location.error.banner" = "无法获取你的位置 — 已显示默认区域。请在「设置」中检查定位权限。";
 "location.banner.openSettings" = "打开设置";
 "explore.skeleton.oneLiner" = "一处来自 OpenStreetMap 的真实地点。";
+"explore.skeleton.oneLiner.amap" = "一处来自高德地图的真实地点。";
 "explore.skeleton.why" = "我们还没有这个地方的精选故事。去看看，然后告诉我们你发现了什么。";
+"explore.skeleton.why.amap" = "我们还没有这个地方的精选故事。去看看，然后告诉我们你发现了什么。";
 "explore.quota.dailyLimit" = "今日 AI 调用次数已达上限。明天恢复前会展示真实地点但不再增强。";
 "explore.toast.addedNamed" = "正在探索 %1$@ · 新增 %2$d 处地点";
 "explore.toast.added" = "附近新增 %d 处地点";

@@ -2023,6 +2023,7 @@ public final class AIService {
         let now = Date()
         let category = OverpassService.category(for: poi.tags)
         let displayName = poi.nameEn ?? poi.name
+        let isAmapPOI = poi.tags["source"] == "amap"
         let breakdown = SoloScore.Breakdown(
             seatingFriendly: 7, soloPatronRatio: 7, staffPressure: 7,
             soloPortioning: 7, ambianceFit: 7, safety: 7
@@ -2030,8 +2031,19 @@ public final class AIService {
         return Experience(
             id: "exp_osm_\(poi.osmId)",
             title: displayName,
-            oneLiner: NSLocalizedString("explore.skeleton.oneLiner", comment: "Generic OSM POI tagline"),
-            whyItMatters: NSLocalizedString("explore.skeleton.why", comment: "Generic OSM POI rationale"),
+            // Provenance-honest tagline: mainland-CN POIs come from AutoNavi/Amap,
+            // not OpenStreetMap. The attribution + TrustBadge branches on the
+            // same signal (poi.tags["source"] == "amap"); the tagline had been
+            // hard-coded to the OSM copy, so Amap cards read "一处来自
+            // OpenStreetMap 的真实地点" while their badge said AutoNavi.
+            oneLiner: NSLocalizedString(
+                isAmapPOI ? "explore.skeleton.oneLiner.amap" : "explore.skeleton.oneLiner",
+                comment: "Generic POI tagline"
+            ),
+            whyItMatters: NSLocalizedString(
+                isAmapPOI ? "explore.skeleton.why.amap" : "explore.skeleton.why",
+                comment: "Generic POI rationale"
+            ),
             category: category,
             location: enrichedLocation(from: poi, cityCode: cityCode),
             bestTimes: [TimeWindow(startHour: 9, endHour: 21)],
@@ -2042,24 +2054,21 @@ public final class AIService {
             sources: [
                 // Same provenance-honesty fix as the AI-enriched path — the
                 // skeleton fallback used to also mislabel Amap POIs as .user.
-                {
-                    let isAmap = poi.tags["source"] == "amap"
-                    return InformationSource(
-                        type: isAmap ? .amap : .user,
-                        url: isAmap
-                            ? nil
-                            : URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
-                        attribution: isAmap
-                            ? "© AutoNavi (Amap)"
-                            : "© OpenStreetMap contributors",
-                        verifiedAt: now
-                    )
-                }()
+                InformationSource(
+                    type: isAmapPOI ? .amap : .user,
+                    url: isAmapPOI
+                        ? nil
+                        : URL(string: "https://www.openstreetmap.org/node/\(poi.osmId)"),
+                    attribution: isAmapPOI
+                        ? "© AutoNavi (Amap)"
+                        : "© OpenStreetMap contributors",
+                    verifiedAt: now
+                )
             ],
             confidence: Confidence(
                 level: 1,
                 lastVerifiedAt: now,
-                reason: (poi.tags["source"] == "amap")
+                reason: isAmapPOI
                     ? "Amap entry, no AI enrichment"
                     : "OpenStreetMap entry, no AI enrichment",
                 signals: .init(aiScrapeAgeDays: 0, passiveGpsHits30d: 0, activeReports30d: 0, trustedVerifications: 0)
