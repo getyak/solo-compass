@@ -755,7 +755,9 @@
 "location.error.banner" = "Can't find your location — showing a default area. Check Location permissions in Settings.";
 "location.banner.openSettings" = "Open Settings";
 "explore.skeleton.oneLiner" = "A real spot pulled from OpenStreetMap.";
+"explore.skeleton.oneLiner.amap" = "A real spot pulled from AutoNavi (Amap).";
 "explore.skeleton.why" = "We don't have a curated story for this place yet. Visit, then add what you found.";
+"explore.skeleton.why.amap" = "We don't have a curated story for this place yet. Visit, then add what you found.";
 "explore.quota.dailyLimit" = "Daily AI limit reached. Showing real places without enrichment until tomorrow.";
 "explore.toast.addedNamed" = "Now exploring %1$@ · %2$d places added";
 "explore.toast.added" = "%d places added near you";
