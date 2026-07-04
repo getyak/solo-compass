@@ -399,15 +399,19 @@ public final class MapViewModel {
         // A user who picked a city wants that city; GPS-anchored auto-explore is
         // only appropriate when we're actually following GPS (no city selected).
         let cityOwnsCamera = (selectedCity.map { !$0.hasPrefix("custom_") }) ?? false
-        // Beta-P0-F: a first-launch user with no persisted city used to land
-        // on the simulator's San Francisco fix even when the GPS reading was
-        // clearly outside any seeded city. We additionally guard auto-recenter
-        // by checking that the fix sits within the radius of one of our
-        // known city centers; otherwise we keep the seed default (Chiang Mai)
-        // so the cold-start screen always shows real Experiences instead of
-        // an empty SF map.
-        let isWithinKnownCity = Self.coordinateIsNearKnownCityCenter(coordinate)
-        if !cityOwnsCamera && isWithinKnownCity {
+        // Beta-P0-F (narrowed): the original guard rejected any fix outside a
+        // ~200 km radius of our 8 seeded cities, but that silently threw away
+        // legitimate GPS on real devices anywhere else (Guangzhou, Beijing,
+        // London, ...) and left the map stuck on the Chiang Mai default —
+        // exactly the "current location looks offset" report we're fixing.
+        // The original bug was specifically the Simulator defaulting to
+        // Apple's San Francisco fix (37.7749, -122.4194), so restrict the
+        // suppression to that case: only when we're in the simulator AND the
+        // fix is on top of that default do we hold the seed camera. Real
+        // devices are always trusted.
+        let looksLikeSimulatorDefault = Self.isSimulatorDefaultSanFrancisco(coordinate)
+        let suppressGPS = looksLikeSimulatorDefault
+        if !cityOwnsCamera && !suppressGPS {
             recenter(on: coordinate)
             autoExploreIfEmpty(at: coordinate)
         }
@@ -417,27 +421,32 @@ public final class MapViewModel {
             context: [
                 "selectedCity": selectedCity ?? "nil",
                 "cityOwnsCamera": cityOwnsCamera,
-                "withinKnownCity": isWithinKnownCity,
+                "suppressGPS": suppressGPS,
+                "simulatorDefaultSF": looksLikeSimulatorDefault,
                 "lat": coordinate.latitude,
                 "lon": coordinate.longitude
             ]
         )
     }
 
-    /// Beta-P0-F: returns true when `coordinate` sits within ~200 km of any
-    /// city we ship seed Experiences for. Used to suppress auto-recenter on
-    /// a clearly out-of-region GPS fix (the typical simulator SF case for
-    /// users whose actual cold-start city is Chiang Mai or Vientiane).
-    private static func coordinateIsNearKnownCityCenter(_ coordinate: CLLocationCoordinate2D) -> Bool {
-        let user = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        let limitMeters: CLLocationDistance = 200_000
-        for (_, center) in Self.knownCityCenters {
-            let centerLoc = CLLocation(latitude: center.latitude, longitude: center.longitude)
-            if user.distance(from: centerLoc) <= limitMeters {
-                return true
-            }
-        }
+    /// Returns true only for the iOS Simulator default location (Apple HQ /
+    /// downtown SF, 37.7749, -122.4194) within a tight ~2 km radius. Used by
+    /// `bindToLocation` to hold the seed camera when the app is launched in
+    /// the Simulator with no location override — the previous broad "must be
+    /// near a seed city" guard misfired on real devices anywhere else in the
+    /// world. Real users at (37.7749, -122.4194) will still be treated as
+    /// simulator-default; the trade-off is fine because SF is also a seed
+    /// city (`san-francisco` in `knownCityCenters`) so the outcome is the
+    /// same regardless.
+    private static func isSimulatorDefaultSanFrancisco(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        #if targetEnvironment(simulator)
+        let sf = CLLocation(latitude: 37.7749, longitude: -122.4194)
+        let here = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        return here.distance(from: sf) <= 2_000
+        #else
+        _ = coordinate
         return false
+        #endif
     }
 
     /// Whether a GPS fix is available right now — drives the custom recenter
