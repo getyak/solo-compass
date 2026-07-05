@@ -292,9 +292,15 @@ struct CreateRouteView: View {
             orderedExperiences: orderedSelection,
             cityCode: cityCode,
             pace: pace,
-            source: aiSummary == nil ? .userCreated : .coCreated
+            source: aiSummary == nil ? .userCreated : .coCreated,
+            // A hand-built route is for *today*: anchor it to the current hour
+            // so the Now shelf's `isBestNow()` filter shows it immediately
+            // instead of silently hiding the route the user just made.
+            bestStartHour: Double(Calendar.current.component(.hour, from: Date()))
         )
         onSave(route)
-        dismiss()
+        // No dismiss() here: the presenting map swaps this sheet's content
+        // from .create to .detail in place, and dismissing would tear that
+        // detail view down before the user ever sees the saved route.
     }
 }

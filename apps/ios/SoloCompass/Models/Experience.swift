@@ -670,6 +670,16 @@ public struct Experience: Codable, Hashable, Identifiable {
         sources.contains { ($0.attribution ?? "").localizedCaseInsensitiveContains("AI") }
     }
 
+    /// True for hand-curated seed entries: not user-created, not discovered via
+    /// OSM/Amap, and without multi-source verification. Mirrors the `.curated`
+    /// fallback in `trustBadgeLevel`. These cards carry human-written copy and
+    /// scores, so the silent auto-upgrade path must never overwrite them.
+    public var isCuratedSeed: Bool {
+        guard !isUserCreated, !isFromOpenStreetMap else { return false }
+        let distinctTypes = Set(sources.map(\.type))
+        return distinctTypes.count < 2 && !distinctTypes.contains(.amap)
+    }
+
     /// Returns a new Experience with selected fields overridden. Use this when
     /// mutating tracked stats/status/location/etc. without rewriting all 18 init
     /// args. `location` lets callers swap in an enriched location (e.g. photos

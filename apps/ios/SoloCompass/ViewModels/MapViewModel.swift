@@ -294,8 +294,14 @@ public final class MapViewModel {
     /// True iff `experience` is a candidate for the on-demand auto-upgrade:
     /// it carries no AI-authored cross-source content yet and we haven't
     /// already upgraded it this session. Read by the detail view on appear.
+    /// Curated seed cards are excluded — they already carry human-written
+    /// copy and scores, and the silent path must never risk replacing them
+    /// with a nearby-POI mismatch. Manual re-compile stays available and is
+    /// protected by `EnrichmentAgent.shouldAdoptRecompiled`.
     public func shouldAutoUpgrade(_ experience: Experience) -> Bool {
-        !experience.isAIEnriched && !recompiledThisSession.contains(experience.id)
+        !experience.isAIEnriched
+            && !experience.isCuratedSeed
+            && !recompiledThisSession.contains(experience.id)
     }
 
     /// Manual deep cross-compile of a single experience (Approach A). Reuses

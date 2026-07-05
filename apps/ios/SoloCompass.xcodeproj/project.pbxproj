@@ -443,6 +443,7 @@
 		CF4221E2BFFB71F398C13EA6 /* AmapShenzhen5kmExperienceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F11E116B808FF8DFA0A179 /* AmapShenzhen5kmExperienceTests.swift */; };
 		CF5CF2D0A6C8DBDC4B552DF8 /* BestNowChipState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CD552D1AF526F0F468EE84F /* BestNowChipState.swift */; };
 		CF8B2BDE6D707CE2537C8688 /* ExperienceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5B8BA7FFBD93A01E54B7E4A /* ExperienceDetailView.swift */; };
+		D14D5D265523094962A53B44 /* JourneyAuditP0RegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBF97536F80B36291DB787 /* JourneyAuditP0RegressionTests.swift */; };
 		D16BF7975651516861B9771F /* MergedPOI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04A1C430911A739A1127CDC3 /* MergedPOI.swift */; };
 		D2BCD302B16BBC174B71F84A /* CityPillHitTargetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 308B7A34171C74B1CF2DE3F9 /* CityPillHitTargetTests.swift */; };
 		D2E9B20230FDE14CB1029DC3 /* RouteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 535B5FA4ADF216CEC74FE056 /* RouteTests.swift */; };
@@ -884,6 +885,7 @@
 		8D41862432A45DC023C96B8D /* FilterNowMapAnimationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterNowMapAnimationTest.swift; sourceTree = "<group>"; };
 		8D52416277C10558C0CD7096 /* SoloCompassActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloCompassActivityAttributes.swift; sourceTree = "<group>"; };
 		8E055BAC372B75F743428920 /* MyHostedRoutesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyHostedRoutesListView.swift; sourceTree = "<group>"; };
+		8EBBF97536F80B36291DB787 /* JourneyAuditP0RegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyAuditP0RegressionTests.swift; sourceTree = "<group>"; };
 		8F1F20B36F8441905A909DC2 /* ChatHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistoryStore.swift; sourceTree = "<group>"; };
 		8FDFA5F3503B8ABC4B5CB086 /* SoloCompassTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SoloCompassTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9055347887EF473171916120 /* AttachmentBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentBubble.swift; sourceTree = "<group>"; };
@@ -1354,6 +1356,7 @@
 				9BFF9ECB175F4D2219406952 /* IOS18AvailabilityGuardTest.swift */,
 				BBD7871A003B28A7C46AC8D7 /* ItineraryStoreTests.swift */,
 				1D951F9EC55C09A219D97D55 /* JoinRequestValidationTest.swift */,
+				8EBBF97536F80B36291DB787 /* JourneyAuditP0RegressionTests.swift */,
 				24C070BDAE248990A4E7909B /* LiveActivityServiceTests.swift */,
 				555AA83E46CA214D7F71D811 /* LocalizationCoverageTest.swift */,
 				855D26F5B252465BECA18981 /* LocationBannerActionTest.swift */,
@@ -2293,6 +2296,7 @@
 				FD8737CAF16433F4E205EDA8 /* InviteFriendsSheetTest.swift in Sources */,
 				9F8D8133FC74C4E206A11DB9 /* ItineraryStoreTests.swift in Sources */,
 				86DF801B6190A051C8B47712 /* JoinRequestValidationTest.swift in Sources */,
+				D14D5D265523094962A53B44 /* JourneyAuditP0RegressionTests.swift in Sources */,
 				3C79D606DA56C1251AD58BC3 /* LiveActivityServiceTests.swift in Sources */,
 				C48ABACD6775568202229577 /* LocalizationCoverageTest.swift in Sources */,
 				F23184AE3D476EB8DBF5E8BF /* LocationBannerActionTest.swift in Sources */,

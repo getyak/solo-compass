@@ -382,17 +382,67 @@ public final class EnrichmentAgent {
                 let d = origin.distance(from: CLLocation(latitude: c.latitude, longitude: c.longitude))
                 return (candidate, d)
             }
-            .min { $0.1 < $1.1 }?
-            .0
+            .min { $0.1 < $1.1 }
 
-        guard let enrichedMatch = best else { return nil }
+        guard let (enrichedMatch, matchDistance) = best else { return nil }
 
         // Only return an upgrade if it actually went through AI synthesis with
         // real cross-source signals. A skeleton fallback is not an upgrade.
         guard enrichedMatch.isAIEnriched else { return nil }
 
+        guard Self.shouldAdoptRecompiled(
+            original: experience,
+            candidate: enrichedMatch,
+            distanceMeters: matchDistance
+        ) else {
+            Self.logger.info("Re-compile match rejected for \(experience.id, privacy: .public): different venue or lower quality")
+            return nil
+        }
+
         return experience.adoptingContent(of: enrichedMatch)
     }
+
+    /// Whether a re-compiled candidate may replace the original card. Guards
+    /// the two failure modes a re-compile can introduce: identity drift (the
+    /// closest POI in the ring is a *different* venue, so adopting it would
+    /// silently turn the card into another place) and quality downgrades (the
+    /// synthesis produced a thinner card than what the user already has).
+    nonisolated static func shouldAdoptRecompiled(
+        original: Experience,
+        candidate: Experience,
+        distanceMeters: Double
+    ) -> Bool {
+        // Same venue: physically colocated, or names clearly refer to the
+        // same place (coordinates from different providers drift).
+        let sameVenue = distanceMeters <= Self.sameVenueMaxDistanceMeters
+            || namesLikelyMatch(original, candidate)
+        guard sameVenue else { return false }
+        // Never downgrade: a re-compile is an upgrade or a no-op. The small
+        // tolerance lets re-scored cards through while blocking the
+        // curated-9.7 → skeleton-7.0 collapse seen in the field audit.
+        return candidate.soloScore.overall >= original.soloScore.overall - Self.recompileScoreTolerance
+    }
+
+    /// Case/whitespace-insensitive containment across title and place names,
+    /// in either direction — "旧天堂书店" vs "旧天堂书店（华侨城店）" matches.
+    nonisolated private static func namesLikelyMatch(_ a: Experience, _ b: Experience) -> Bool {
+        func names(_ e: Experience) -> [String] {
+            [e.title, e.location.placeNameLocal, e.location.placeNameRomanized]
+                .compactMap { $0 }
+                .map { $0.lowercased().filter { !$0.isWhitespace } }
+                .filter { $0.count >= 2 }
+        }
+        let lhs = names(a), rhs = names(b)
+        return lhs.contains { l in rhs.contains { r in l.contains(r) || r.contains(l) } }
+    }
+
+    /// Max distance between the original coordinate and the best re-compile
+    /// candidate to still count as the same physical venue without a name match.
+    public static let sameVenueMaxDistanceMeters: Double = 60
+
+    /// How far a candidate's solo score may sit below the original before the
+    /// re-compile is treated as a downgrade and dropped.
+    public static let recompileScoreTolerance: Double = 0.5
 
     /// Tight radius for single-entry re-compile. Smaller than `enrich`'s
     /// default because we already know exactly where the place is.
