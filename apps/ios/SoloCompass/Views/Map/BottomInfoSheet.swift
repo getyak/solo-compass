@@ -221,6 +221,10 @@ public struct BottomInfoSheet<Content: View>: View {
     }
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
+    /// Latches true the first time the sheet leaves .peek. Drives content
+    /// pre-building: once the user has expanded, the list stays constructed
+    /// across collapses so re-expansion never pays the build cost again.
+    @State private var hasEverExpanded: Bool = BottomInfoSheet.initialDetent != .peek
     @State var sortMode: SortMode = .smart
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -271,39 +275,34 @@ public struct BottomInfoSheet<Content: View>: View {
         UITraitCollection(preferredContentSizeCategory: dynamicTypeSize.uiContentSizeCategory)
     }
 
-    private var detentBaseHeight: CGFloat {
-        currentDetent.scaledHeight(for: dynamicTypeTraits)
-    }
-
-    private var scaledMinHeight: CGFloat {
-        baseMinHeight * BottomSheetDetentScale.factor(for: dynamicTypeTraits)
-    }
-
-    private var scaledMaxHeight: CGFloat {
-        BottomSheetDetent.full.scaledHeight(for: dynamicTypeTraits) + detentMaxHeadroom
-    }
-
-    private var scaledPeekHeight: CGFloat {
-        BottomSheetDetent.peek.scaledHeight(for: dynamicTypeTraits)
-    }
-
-    private var scaledFullHeight: CGFloat {
-        BottomSheetDetent.full.scaledHeight(for: dynamicTypeTraits)
-    }
-
-    private var displayHeight: CGFloat {
-        let h = detentBaseHeight - dragOffset
-        return max(scaledMinHeight, min(scaledMaxHeight, h))
-    }
-
-    private var scrimOpacity: CGFloat {
-        let span = scaledFullHeight - scaledPeekHeight
-        guard span > 0 else { return 0 }
-        let fraction = (displayHeight - scaledPeekHeight) / span
-        return max(0, min(1, fraction)) * scrimMaxOpacity
-    }
-
     public var body: some View {
+        // Resolve the Dynamic Type scale ONCE per body evaluation. During a
+        // drag the body re-evaluates every frame; the previous shape rebuilt a
+        // UITraitCollection and ran a UIFontMetrics lookup for each of the six
+        // scaled heights it read — per frame. One resolution, plain arithmetic
+        // for everything derived from it.
+        let scale = BottomSheetDetentScale.factor(for: dynamicTypeTraits)
+        let minHeight = baseMinHeight * scale
+        let fullHeight = BottomSheetDetent.full.baseHeight * scale
+        let maxHeight = fullHeight + detentMaxHeadroom
+        let peekHeight = BottomSheetDetent.peek.baseHeight * scale
+        let detentHeight = currentDetent.baseHeight * scale
+        let displayHeight = max(minHeight, min(maxHeight, detentHeight - dragOffset))
+        let span = fullHeight - peekHeight
+        let scrimOpacity = span > 0
+            ? max(0, min(1, (displayHeight - peekHeight) / span)) * scrimMaxOpacity
+            : 0
+        // Pre-build the list content the moment an expansion BEGINS (drag
+        // start, or any earlier visit above peek) instead of at the settle
+        // frame. Previously the closure stayed empty until `currentDetent`
+        // flipped to .mid, so the entire Routes + Nearby tree was constructed
+        // on the exact frame the expansion spring started — construction and
+        // animation collided and the expansion visibly hitched. Once expanded,
+        // the content is kept alive across collapses so re-expansion is free
+        // and scroll position survives.
+        let contentDetent: BottomSheetDetent =
+            (currentDetent == .peek && (isDragging || hasEverExpanded)) ? .mid : currentDetent
+
         ZStack(alignment: .bottom) {
             // Map scrim overlay
             Color.black
@@ -311,9 +310,16 @@ public struct BottomInfoSheet<Content: View>: View {
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
 
-            // Sheet
+            // Sheet. The frame height is FIXED at the largest detent and the
+            // sheet is slid down by `.offset` instead of being resized every
+            // frame. A changing `.frame(height:)` forced a full layout pass of
+            // the header rows, the ScrollView viewport, and the material
+            // background on every drag/settle frame — the "expansion jank".
+            // `.offset` is a pure render-phase translation: the subtree is laid
+            // out once per detent scale and the spring only moves it, so the
+            // settle animates at compositor cost.
             VStack(spacing: 0) {
-                dragHandleArea
+                dragHandleArea(detentHeight: detentHeight, minHeight: minHeight, maxHeight: maxHeight)
                 peekContentArea
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
@@ -338,19 +344,25 @@ public struct BottomInfoSheet<Content: View>: View {
                 // expand to full. At .peek the closure is empty, so this is a cheap
                 // no-op.
                 ScrollView {
-                    content(currentDetent, $sortMode)
-                        // Pin content to the top so a changing viewport height
-                        // (mid→full during a drag) never re-centres the column —
-                        // without this the rows visibly jump frame-to-frame as the
-                        // sheet grows/shrinks, reading as a flicker.
+                    content(contentDetent, $sortMode)
+                        // Pin content to the top so the column never re-centres
+                        // against the viewport — without this the rows visibly
+                        // jump frame-to-frame, reading as a flicker.
                         .frame(maxWidth: .infinity, alignment: .top)
-                        .padding(.bottom, 28 * BottomSheetDetentScale.factor())
+                        .padding(.bottom, 28 * scale)
                 }
+                // With the fixed-height + offset layout, the bottom
+                // `maxHeight − detentHeight` points of the viewport sit below
+                // the screen edge at peek/mid. This margin extends the
+                // scrollable range by exactly that amount so the last row can
+                // still be scrolled up into the visible region. It changes only
+                // on a detent settle (never per drag frame).
+                .contentMargins(.bottom, max(0, maxHeight - detentHeight), for: .scrollContent)
                 // Freeze the ScrollView while the handle is being dragged. The
-                // sheet height animates every frame during a settle; an active
-                // ScrollView would re-clamp its contentOffset against that moving
-                // viewport and fight the drag, producing flicker. Re-enabled the
-                // instant the drag ends.
+                // sheet translates every frame during a settle; an active
+                // ScrollView would re-clamp its contentOffset against the
+                // moving sheet and fight the drag, producing flicker.
+                // Re-enabled the instant the drag ends.
                 .refreshable {
                     if let onRefresh { await onRefresh() }
                 }
@@ -364,7 +376,7 @@ public struct BottomInfoSheet<Content: View>: View {
                 .scrollBounceBehavior(.basedOnSize)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: displayHeight)
+            .frame(height: maxHeight)
             .background(
                 UnevenRoundedRectangle(
                     topLeadingRadius: sheetCornerRadius,
@@ -374,16 +386,22 @@ public struct BottomInfoSheet<Content: View>: View {
                 )
                 .fill(.ultraThinMaterial)
             )
+            // Slide instead of resize: the visible height is
+            // `maxHeight − offset`, i.e. exactly `displayHeight`.
+            .offset(y: maxHeight - displayHeight)
         }
         // Animate ONLY the discrete detent settle (which changes once, on
-        // release), never the continuously finger-driven `displayHeight`.
-        // Watching `displayHeight` meant every drag frame nudged a value an
-        // active spring was tracking, so the spring kept restarting-then-being-
+        // release), never the continuously finger-driven offset. Watching the
+        // per-frame value meant every drag frame nudged a value an active
+        // spring was tracking, so the spring kept restarting-then-being-
         // interrupted frame to frame — the sheet edge jittered larger/smaller
-        // (the "flicker"). Pinned to `currentDetent`, the drag is pure immediate
-        // finger-tracking (no animation) and only the release-to-nearest-detent
-        // gets the spring.
+        // (the "flicker"). Pinned to `currentDetent`, the drag is pure
+        // immediate finger-tracking (no animation) and only the
+        // release-to-nearest-detent gets the spring.
         .animation(.spring(response: 0.3, dampingFraction: 0.85), value: currentDetent)
+        .onChange(of: currentDetent) { _, newValue in
+            if newValue != .peek { hasEverExpanded = true }
+        }
     }
 
     // MARK: - Peek content
@@ -486,7 +504,11 @@ public struct BottomInfoSheet<Content: View>: View {
 
     // MARK: - Drag Handle
 
-    private var dragHandleArea: some View {
+    private func dragHandleArea(
+        detentHeight: CGFloat,
+        minHeight: CGFloat,
+        maxHeight: CGFloat
+    ) -> some View {
         // ≥44pt hit area (60×44) containing a 36×5 visible pill so VoiceOver /
         // Switch Control users can reliably grab the handle (Apple HIG).
         // Pill widened slightly (4→5pt) and opacity bumped (0.5→0.7) so the
@@ -511,8 +533,8 @@ public struct BottomInfoSheet<Content: View>: View {
                     dragOffset = value.translation.height
                 }
                 .onEnded { value in
-                    let projectedHeight = detentBaseHeight - value.predictedEndTranslation.height
-                    let clampedHeight = max(scaledMinHeight, min(scaledMaxHeight, projectedHeight))
+                    let projectedHeight = detentHeight - value.predictedEndTranslation.height
+                    let clampedHeight = max(minHeight, min(maxHeight, projectedHeight))
                     // Settle to the nearest detent with an EXPLICIT spring. Both
                     // `currentDetent` and `dragOffset` feed `displayHeight`, but the
                     // implicit `.animation(value: currentDetent)` only fires when the

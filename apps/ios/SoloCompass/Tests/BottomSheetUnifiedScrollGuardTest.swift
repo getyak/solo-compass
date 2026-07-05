@@ -32,6 +32,13 @@ final class BottomSheetUnifiedScrollGuardTest: XCTestCase {
         return try String(contentsOf: url, encoding: .utf8)
     }
 
+    /// `NearbySection` lives in its own file — the invariant-2 scan was
+    /// silently failing after the struct moved out of BottomInfoSheet.swift.
+    private func nearbySource() throws -> String {
+        let url = Self.sourceRoot().appendingPathComponent("Views/Map/NearbySectionView.swift")
+        return try String(contentsOf: url, encoding: .utf8)
+    }
+
     /// Invariant 1: the content closure is hosted inside a `ScrollView` in the
     /// sheet body, so Routes → Create-route → Nearby form one scroll stream.
     func testContentClosureIsWrappedInScrollView() throws {
@@ -39,17 +46,39 @@ final class BottomSheetUnifiedScrollGuardTest: XCTestCase {
 
         // The body must contain a `ScrollView {` whose body invokes the content
         // closure. We assert both tokens exist and that a `ScrollView` opens
-        // before the `content(currentDetent` call (the closure lives inside it).
+        // before the `content(contentDetent` call (the closure lives inside it).
+        // `contentDetent` is the drag-aware effective detent (pre-builds the
+        // list on drag start); the invariant is unchanged.
         guard let scrollRange = source.range(of: "ScrollView {"),
-              let contentRange = source.range(of: "content(currentDetent") else {
-            XCTFail("Expected a `ScrollView {` hosting `content(currentDetent…)` in the sheet body")
+              let contentRange = source.range(of: "content(contentDetent") else {
+            XCTFail("Expected a `ScrollView {` hosting `content(contentDetent…)` in the sheet body")
             return
         }
         XCTAssertLessThan(
             scrollRange.lowerBound, contentRange.lowerBound,
             "The content closure must be nested INSIDE the unified ScrollView "
-                + "(ScrollView must open before `content(currentDetent…)`). A bare "
+                + "(ScrollView must open before `content(contentDetent…)`). A bare "
                 + "`content + Spacer` makes the Routes/Create rows un-scrollable at mid."
+        )
+    }
+
+    /// Invariant 3: the sheet must be positioned with fixed-height + `.offset`
+    /// translation, NOT a per-frame `.frame(height: displayHeight)` resize.
+    /// The resize shape forced a full layout of the header rows, the
+    /// ScrollView viewport, and the material background on every drag/settle
+    /// frame — the expansion jank this refactor removed. If a future change
+    /// reverts to sizing the sheet by its display height, this fails loudly.
+    func testSheetUsesOffsetTranslationNotFrameResize() throws {
+        let source = try sheetSource()
+        XCTAssertTrue(
+            source.contains(".offset(y: maxHeight - displayHeight)"),
+            "The sheet must slide via .offset — a translation is a render-phase "
+                + "transform; resizing re-layouts the whole subtree every frame."
+        )
+        XCTAssertFalse(
+            source.contains(".frame(height: displayHeight)"),
+            "Per-frame .frame(height: displayHeight) resize re-introduces the "
+                + "expansion jank (full layout + material re-render every frame)."
         )
     }
 
@@ -57,7 +86,7 @@ final class BottomSheetUnifiedScrollGuardTest: XCTestCase {
     /// nested scroll island re-creates the two-viewport conflict that hid the
     /// list and froze the route cards at `mid`.
     func testNearbySectionHasNoNestedScrollView() throws {
-        let source = try sheetSource()
+        let source = try nearbySource()
 
         guard let structRange = source.range(of: "struct NearbySection: View {") else {
             XCTFail("Could not locate `struct NearbySection` to scan")

@@ -57,7 +57,7 @@ final class AmapPOIServiceTests: XCTestCase {
         XCTAssertEqual(items["key"], "TEST_KEY")
         XCTAssertEqual(items["radius"], "3000")
         XCTAssertEqual(items["page_size"], "25")
-        XCTAssertEqual(items["sortrule"], "distance")
+        XCTAssertEqual(items["sortrule"], "weight", "quality-weighted ranking, not nearest-junk-first")
         XCTAssertEqual(items["types"], "050500")
         // location must be "lon,lat" (GeoJSON order) at 6 decimals.
         let loc = try XCTUnwrap(items["location"] ?? nil)
@@ -79,7 +79,50 @@ final class AmapPOIServiceTests: XCTestCase {
             (URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []).map { ($0.name, $0.value) })
         XCTAssertEqual(items["radius"], "50000")
         XCTAssertEqual(items["page_size"], "25")
-        XCTAssertNil(items["types"] ?? nil, "nil category must omit the types filter")
+        // A broad (nil-category) search must NOT be an untyped everything-nearby
+        // query — it is constrained to the curated tourism whitelist so banks /
+        // offices / parking lots never enter the pipeline.
+        XCTAssertEqual(items["types"] ?? nil, AmapPOIService.broadTourismTypes)
+    }
+
+    func testBroadTourismTypesExcludeFastFoodAndUtility() {
+        let types = AmapPOIService.broadTourismTypes.split(separator: "|").map(String.init)
+        XCTAssertTrue(types.contains("110000"), "sights must be in the broad whitelist")
+        XCTAssertTrue(types.contains("140000"), "culture must be in the broad whitelist")
+        XCTAssertFalse(types.contains { $0.hasPrefix("0503") }, "fast food is not 精品")
+        XCTAssertFalse(types.contains { $0.hasPrefix("16") }, "no banks in a travel whitelist")
+    }
+
+    // MARK: - Quality gate
+
+    func testQualityGateBlocksUtilityTypecodes() {
+        // 建设银行(福田支行) under 金融保险 16 — classic near-CBD garbage.
+        XCTAssertFalse(AmapPOIService.isQualityPOI(name: "建设银行(福田支行)", typecode: "160100", rating: nil))
+        // 停车场 under 交通设施 15.
+        XCTAssertFalse(AmapPOIService.isQualityPOI(name: "购物公园地下停车场", typecode: "150900", rating: nil))
+        // 快餐厅 0503 — chain fast food.
+        XCTAssertFalse(AmapPOIService.isQualityPOI(name: "华莱士(某某店)", typecode: "050301", rating: "4.8"))
+        // 公司企业 17.
+        XCTAssertFalse(AmapPOIService.isQualityPOI(name: "某某科技有限公司", typecode: "170000", rating: nil))
+    }
+
+    func testQualityGateBlocksJunkNamesEvenWithAcceptableTypecode() {
+        // Amap tagging is messy in the wild: an ATM can carry a dining-ish code.
+        XCTAssertFalse(AmapPOIService.isQualityPOI(name: "工商银行ATM", typecode: "050100", rating: nil))
+        XCTAssertFalse(AmapPOIService.isQualityPOI(name: "美宜佳便利店", typecode: nil, rating: nil))
+    }
+
+    func testQualityGateScenicClassExemptFromNameFilter() {
+        // 银行博物馆 is scenic-class (11) — the "银行" pattern must not kill it.
+        XCTAssertTrue(AmapPOIService.isQualityPOI(name: "银行博物馆", typecode: "110000", rating: nil))
+    }
+
+    func testQualityGateRatingFloor() {
+        XCTAssertFalse(AmapPOIService.isQualityPOI(name: "某小吃店", typecode: "050100", rating: "2.4"),
+                       "rated-and-bad must be dropped")
+        XCTAssertTrue(AmapPOIService.isQualityPOI(name: "鹤松·居酒屋", typecode: "050200", rating: "4.6"))
+        XCTAssertTrue(AmapPOIService.isQualityPOI(name: "无评分小馆", typecode: "050100", rating: nil),
+                      "unrated places must pass — absence of rating is not evidence of badness")
     }
 
     // MARK: - typecode → OSM tag

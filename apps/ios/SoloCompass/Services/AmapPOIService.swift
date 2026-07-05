@@ -256,6 +256,15 @@ public final class AmapPOIService {
 
             for amap in (decoded.pois ?? []) {
                 guard let poi = Self.poi(from: amap) else { continue }
+                // Quality gate: drop utility/infrastructure junk (ATMs, parking,
+                // offices, clinics…) and clearly bad venues before they ever
+                // reach the merge — the whole point is 精品/旅游, not "whatever
+                // is physically nearest".
+                guard Self.isQualityPOI(
+                    name: poi.name,
+                    typecode: amap.typecode,
+                    rating: amap.business?.rating
+                ) else { continue }
                 if seenIds.contains(poi.osmId) { continue }
                 seenIds.insert(poi.osmId)
                 allPois.append(poi)
@@ -316,18 +325,32 @@ public final class AmapPOIService {
             URLQueryItem(name: "radius", value: String(radius)),
             URLQueryItem(name: "page_size", value: String(size)),
             URLQueryItem(name: "page_num", value: String(pageNum)),
-            // Sort by distance so the closest, most relevant POIs survive the cap.
-            URLQueryItem(name: "sortrule", value: "distance"),
+            // Sort by Amap's composite weight (popularity + quality) rather than
+            // raw distance. Under `distance` the nearest ATM/parking-lot/office
+            // beat the landmark two blocks away; `weight` lets Amap's own
+            // quality ranking decide which POIs survive the page cap.
+            URLQueryItem(name: "sortrule", value: "weight"),
             // Ask for the richer field set (business hours, rating, etc.) so
             // synthesis can cite real signals.
             URLQueryItem(name: "show_fields", value: "business,indoor")
         ]
-        if let types = category.flatMap(amapTypes(for:)) {
-            items.append(URLQueryItem(name: "types", value: types))
-        }
+        // A typed category maps to its own codes; a broad search (nil category,
+        // or `.hidden` which intentionally maps to nil) is constrained to the
+        // curated tourism whitelist instead of "everything nearby" — an untyped
+        // /around query returns banks, offices, and parking lots, which is
+        // exactly the garbage the explore pipeline used to synthesize.
+        let types = category.flatMap(amapTypes(for:)) ?? broadTourismTypes
+        items.append(URLQueryItem(name: "types", value: types))
         comps?.queryItems = items
         return comps?.url
     }
+
+    /// Curated typecode whitelist for broad (untyped) searches. Tourism-first:
+    /// sights (11), culture/museums (14), real dining (0501 中餐厅 / 0502 外国
+    /// 餐厅 — deliberately excluding 0503 快餐厅), coffee/tea/dessert
+    /// (0505/0506/0509), and entertainment venues (0803). Everything a solo
+    /// traveler might actually walk to; nothing they wouldn't.
+    static let broadTourismTypes = "110000|140000|050100|050200|050500|050600|050900|080300"
 
     /// Map an `ExperienceCategory` to Amap POI typecodes (pipe-separated). Codes
     /// are the published Amap classification: 05=餐饮, 0505=咖啡厅, 11=风景名胜,
@@ -344,6 +367,60 @@ public final class AmapPOIService {
         case .wellness:  return "080100|090000"   // 运动场馆 | 医疗保健(spa/wellness)
         case .hidden:    return nil               // broad search; let ranking surface gems
         }
+    }
+
+    // MARK: - Quality gate
+
+    /// Amap top-level classes that are never travel-relevant, regardless of
+    /// what the request asked for (a types-filtered query can still return
+    /// mixed classes for multi-typecode venues). 01–04 汽车/摩托, 07 生活服务,
+    /// 10 住宿, 12 商务住宅, 13 政府机构, 15 交通设施, 16 金融保险, 17 公司企业,
+    /// 18 道路附属, 19 地名地址, 20 公共设施 — plus 0503 快餐厅 (chain fast food
+    /// is not 精品 by definition).
+    static let blockedTypePrefixes: [String] = [
+        "01", "02", "03", "04", "07", "10", "12", "13",
+        "15", "16", "17", "18", "19", "20", "0503"
+    ]
+
+    /// Name substrings that mark a POI as utility/infrastructure noise even
+    /// when its typecode looks acceptable (Amap tagging in the wild is messy:
+    /// bank branches under 05, property offices under 14…). Skipped for
+    /// scenic-class POIs (11) so e.g. 银行博物馆 isn't false-positived away.
+    static let junkNamePatterns: [String] = [
+        "ATM", "自助银行", "停车场", "停车库", "公厕", "公共厕所", "洗手间",
+        "加油站", "加气站", "充电站", "充电桩", "营业厅", "售楼", "物业",
+        "快递", "驿站", "菜鸟", "彩票", "药店", "药房", "大药房", "银行",
+        "信用社", "证券", "保险", "诊所", "医院", "门诊", "口腔", "体检",
+        "理发", "美发", "洗车", "汽修", "4S店", "幼儿园", "小学", "中学",
+        "培训", "驾校", "便利店", "超市", "有限公司", "事务所", "殡仪",
+        "公墓", "墓园", "派出所", "警务", "税务局", "工商局", "居委会", "村委会"
+    ]
+
+    /// Minimum acceptable Amap rating when one is present. Unrated POIs pass
+    /// (plenty of genuinely good places have no rating yet); a place that HAS
+    /// been rated and sits below this is a confirmed dud.
+    static let minAcceptableRating: Double = 3.0
+
+    /// The 精品/旅游 gate applied to every fetched POI before caching/merging.
+    /// Three checks, cheapest first: typecode blocklist → junk-name patterns
+    /// (scenic class 11 exempt) → rated-and-bad floor.
+    static func isQualityPOI(name: String, typecode: String?, rating: String?) -> Bool {
+        if let code = typecode {
+            for prefix in blockedTypePrefixes where code.hasPrefix(prefix) {
+                return false
+            }
+        }
+        let isScenic = typecode?.hasPrefix("11") == true
+        if !isScenic {
+            for pattern in junkNamePatterns where name.localizedCaseInsensitiveContains(pattern) {
+                return false
+            }
+        }
+        if let ratingStr = rating, let value = Double(ratingStr),
+           value > 0, value < minAcceptableRating {
+            return false
+        }
+        return true
     }
 
     // MARK: - Mapping

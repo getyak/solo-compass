@@ -289,49 +289,24 @@ public final class EnrichmentAgent {
             }
         }
 
-        // 3. Rank by signal richness, keep the deepest N.
+        // 3. Fold the ephemeral Amap enrichment channel (rating / hours /
+        //    phone / address per ADR §3.2) into each POI's tags map BEFORE
+        //    ranking — read-once-and-discard via `consumeEnrichments`. This
+        //    used to happen after step 4 (post-ranking), which meant the
+        //    rating signal existed but never influenced which POIs survived
+        //    the topN cut: Amap POIs were ranked essentially blind, so a
+        //    rated-4.8 izakaya and a nameless snack stall scored the same.
+        pois = foldAmapEnrichments(into: pois)
+
+        // 4. Rank by signal richness (now rating-aware), keep the deepest N.
         let ranked = Array(
             pois.sorted { Self.signalScore($0) > Self.signalScore($1) }.prefix(topN)
         )
 
-        // 4. Backfill a street-level address on survivors missing one.
-        var enriched = await backfillAddresses(ranked)
+        // 5. Backfill a street-level address on survivors missing one.
+        let enriched = await backfillAddresses(ranked)
 
-        // 4b. Rubric fix: fold the ephemeral Amap enrichment channel
-        //     (rating / opentimeToday / phone / address per ADR §3.2) into
-        //     each POI's tags map — read-once-and-discard via
-        //     `consumeEnrichments`. Without this, `AmapPOIService` populated
-        //     `transientEnrichments` for 75/75 POIs but nothing ever fed it
-        //     to the AI prompt, so `synthesizeExperiences` saw generic
-        //     tag-less inputs and defaulted to "9–21 · Solo ~7 · no signals"
-        //     for every Amap card. Map to the tag keys AIService already
-        //     reads at line 1656–1661 so the change is transparent to it.
-        if let amap = amapService {
-            let ids = enriched.map(\.osmId)
-            let bag = amap.consumeEnrichments(for: ids)
-            if !bag.isEmpty {
-                enriched = enriched.map { poi in
-                    guard let e = bag[poi.osmId] else { return poi }
-                    var tags = poi.tags
-                    if let r = e.rating,
-                       tags["fsq_rating"] == nil { tags["fsq_rating"] = r }
-                    if let h = e.opentimeToday,
-                       tags["opening_hours"] == nil { tags["opening_hours"] = h }
-                    if let p = e.phone,
-                       tags["phone"] == nil { tags["phone"] = p }
-                    if let a = e.address,
-                       tags["addr"] == nil { tags["addr"] = a }
-                    return OverpassService.POI(
-                        osmId: poi.osmId, name: poi.name, nameEn: poi.nameEn,
-                        lat: poi.lat, lon: poi.lon, tags: tags
-                    )
-                }
-                let consumed = bag.count
-                Self.logger.info("🔗 fed \(consumed, privacy: .public) transient amap enrichments into synthesis")
-            }
-        }
-
-        // 5. Synthesize. The (already-relaxed) prompt cites the real signals.
+        // 6. Synthesize. The (already-relaxed) prompt cites the real signals.
         return try await aiService.synthesizeExperiences(
             from: enriched, cityCode: cityCode, locale: locale
         )
@@ -552,9 +527,15 @@ public final class EnrichmentAgent {
 
             guard !novel.isEmpty else { continue }
 
+            // Fold Amap's transient rating/hours signals in BEFORE ranking —
+            // the progressive path previously never consumed them at all, so
+            // every mainland-China explore card was ranked and synthesized
+            // signal-blind (the root of the "乱七八糟" garbage cards).
+            let signalled = foldAmapEnrichments(into: novel)
+
             // Rank and synthesize only the novel POIs for this ring.
             let ranked = Array(
-                novel.sorted { Self.signalScore($0) > Self.signalScore($1) }.prefix(Self.defaultTopN)
+                signalled.sorted { Self.signalScore($0) > Self.signalScore($1) }.prefix(Self.defaultTopN)
             )
             let enriched = await backfillAddresses(ranked)
 
@@ -583,6 +564,37 @@ public final class EnrichmentAgent {
     }
 
     // MARK: - Helpers
+
+    /// Fold the transient Amap enrichment bag (rating / opentimeToday / phone /
+    /// address — ADR §3.2: in-memory only, read-once-and-discard) into the POI
+    /// tags map, keyed to the tag names AIService and `signalScore` already
+    /// read (`fsq_rating`, `opening_hours`, `phone`, `addr`). Must run BEFORE
+    /// ranking so a real rating influences which POIs survive the topN cut.
+    /// No-op when the Amap service is absent or holds nothing for these ids.
+    private func foldAmapEnrichments(
+        into pois: [OverpassService.POI]
+    ) -> [OverpassService.POI] {
+        guard let amap = amapService else { return pois }
+        let bag = amap.consumeEnrichments(for: pois.map(\.osmId))
+        guard !bag.isEmpty else { return pois }
+        Self.logger.info("🔗 fed \(bag.count, privacy: .public) transient amap enrichments into ranking + synthesis")
+        return pois.map { poi in
+            guard let e = bag[poi.osmId] else { return poi }
+            var tags = poi.tags
+            if let r = e.rating,
+               tags["fsq_rating"] == nil { tags["fsq_rating"] = r }
+            if let h = e.opentimeToday,
+               tags["opening_hours"] == nil { tags["opening_hours"] = h }
+            if let p = e.phone,
+               tags["phone"] == nil { tags["phone"] = p }
+            if let a = e.address,
+               tags["addr"] == nil { tags["addr"] = a }
+            return OverpassService.POI(
+                osmId: poi.osmId, name: poi.name, nameEn: poi.nameEn,
+                lat: poi.lat, lon: poi.lon, tags: tags
+            )
+        }
+    }
 
     private func mapKitPOIsBestEffort(
         near coordinate: CLLocationCoordinate2D,
@@ -626,9 +638,19 @@ public final class EnrichmentAgent {
 
     /// Heuristic richness score: each real hard signal is worth more than a
     /// raw OSM tag, so signal-bearing POIs float to the top of the ranking.
+    /// The rating contribution is value-aware: a 4.5+ place outranks a 3.5
+    /// place, instead of "any rating = +4" treating a confirmed-mediocre spot
+    /// the same as a beloved one. 精品 means the score must read the score.
     static func signalScore(_ poi: OverpassService.POI) -> Int {
         var score = 0
-        if poi.tags["fsq_rating"] != nil { score += 4 }
+        if let ratingStr = poi.tags["fsq_rating"], let rating = Double(ratingStr) {
+            switch rating {
+            case 4.5...:        score += 8
+            case 4.0..<4.5:     score += 6
+            case 3.5..<4.0:     score += 4
+            default:            score += 1  // rated but mediocre: barely above unrated
+            }
+        } else if poi.tags["fsq_rating"] != nil { score += 4 }
         if poi.tags["opening_hours"] != nil { score += 3 }
         if poi.tags["fsq_price"] != nil { score += 2 }
         if poi.tags["fsq_popularity"] != nil { score += 2 }
