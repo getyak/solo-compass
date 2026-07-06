@@ -109,6 +109,70 @@ if (userA.data.user && userB.data.user) {
   await serviceClient.from("synthesized_experiences").delete().eq("id", probeId);
 }
 
+// --- 5. city-brief tables: anon reads kits/events, cannot write, runs hidden ---
+
+{
+  const { error: kitErr } = await anonClient.from("city_kits").select("section").limit(1);
+  assert(!kitErr, `anon select on city_kits succeeds: ${kitErr?.message ?? "ok"}`);
+
+  const { error: evErr } = await anonClient.from("city_events").select("id").limit(1);
+  assert(!evErr, `anon select on city_events succeeds: ${evErr?.message ?? "ok"}`);
+
+  // anon INSERT must be denied by RLS (no public write policy).
+  const { error: kitInsertErr } = await anonClient.from("city_kits").insert({
+    city_code: "test-rls",
+    section: "net",
+    name: "x",
+    body: "x",
+  });
+  assert(!!kitInsertErr, "anon insert on city_kits is denied (no write policy)");
+
+  const { error: evInsertErr } = await anonClient.from("city_events").insert({
+    id: `evt_test_rls_${Date.now()}`,
+    city_code: "test-rls",
+    name: "x",
+    category: "market",
+    when_label: "x",
+    ends_at: new Date(Date.now() + 86_400_000).toISOString(),
+    source_url: "https://example.com",
+  });
+  assert(!!evInsertErr, "anon insert on city_events is denied (no write policy)");
+
+  // city_brief_runs has RLS enabled with NO policies → anon reads see 0 rows.
+  const { data: runsData, error: runsErr } = await anonClient
+    .from("city_brief_runs")
+    .select("id")
+    .limit(1);
+  assert(
+    !runsErr && Array.isArray(runsData) && runsData.length === 0,
+    "anon select on city_brief_runs returns 0 rows (RLS, no policy)",
+  );
+
+  // service-role CAN write the content tables (write boundary).
+  const { error: svcCityErr } = await serviceClient.from("sc_cities").upsert({
+    city_code: "test-rls",
+    name_local: "x",
+    name_zh: "x",
+    name_en: "Test RLS",
+    country_code: "LA",
+    lat: 0,
+    lon: 0,
+    timezone: "Asia/Vientiane",
+  });
+  assert(!svcCityErr, `service-role upsert sc_cities succeeds: ${svcCityErr?.message ?? "ok"}`);
+
+  const { error: svcKitErr } = await serviceClient.from("city_kits").upsert({
+    city_code: "test-rls",
+    section: "net",
+    name: "probe",
+    body: "probe",
+  });
+  assert(!svcKitErr, `service-role upsert city_kits succeeds: ${svcKitErr?.message ?? "ok"}`);
+
+  // Cleanup (city_kits/city_events cascade on city delete).
+  await serviceClient.from("sc_cities").delete().eq("city_code", "test-rls");
+}
+
 // --- Result ----------------------------------------------------------------
 
 if (failures.length > 0) {
