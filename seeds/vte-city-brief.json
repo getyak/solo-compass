@@ -1,0 +1,143 @@
+{
+  "city": {
+    "city_code": "vte",
+    "name_local": "ວຽງຈັນ",
+    "name_zh": "万象",
+    "name_en": "Vientiane",
+    "country_code": "LA",
+    "lat": 17.9757,
+    "lon": 102.6331,
+    "timezone": "Asia/Vientiane",
+    "brief_enabled": true
+  },
+  "kits": [
+    {
+      "section": "net",
+      "name": "Airalo 老挝 eSIM · 或 Unitel 门店",
+      "body": "落地即用 Airalo 老挝 eSIM（₭ 计价），或到市区 Unitel 门店办本地卡。机场覆盖良好，市区 4G 稳定。",
+      "lens_line": "机场到市区先用 eSIM，别机场柜台换卡",
+      "health": "green",
+      "last_verified_at": "2026-07-05T00:00:00Z",
+      "link_url": "https://www.airalo.com/laos-esim",
+      "link_label": "打开 Airalo",
+      "action": null,
+      "sources": [
+        { "type": "official", "url": "https://www.airalo.com/laos-esim", "attribution": "Airalo 官方" }
+      ],
+      "model_name": null,
+      "seen_label": "人工策展 · 7月5日"
+    },
+    {
+      "section": "money",
+      "name": "Wise 汇率最优 · ATM 手续费高",
+      "body": "Wise 汇率通常最优；本地 ATM 每笔手续费较高，建议一次多取。多数咖啡馆只收现金。",
+      "lens_line": "多数咖啡馆只收现金；BCEL One 本地扫码",
+      "health": "yellow",
+      "last_verified_at": "2026-07-05T00:00:00Z",
+      "link_url": "https://wise.com",
+      "link_label": "打开 Wise",
+      "action": null,
+      "sources": [
+        { "type": "official", "url": "https://wise.com/currency-converter/lak-rate", "attribution": "Wise 汇率" }
+      ],
+      "model_name": null,
+      "seen_label": "人工策展 · 7月5日"
+    },
+    {
+      "section": "visa",
+      "name": "落地签 30 天",
+      "body": "多数国籍可落地签停留 30 天，也可申请电子签。入境记录你的入境日，183 天税务线本地自算。",
+      "lens_line": "记好入境日，长住盯紧 183 天税务线",
+      "health": "green",
+      "last_verified_at": "2026-07-05T00:00:00Z",
+      "link_url": "https://laoevisa.gov.la",
+      "link_label": "老挝电子签",
+      "action": {
+        "type": "visa_reminder",
+        "visa_days": 30,
+        "tax_line_days": 183
+      },
+      "sources": [
+        { "type": "official", "url": "https://laoevisa.gov.la", "attribution": "老挝电子签官方" }
+      ],
+      "model_name": null,
+      "seen_label": "人工策展 · 7月5日"
+    },
+    {
+      "section": "safety",
+      "name": "市中心 / 湄公河岸独自较稳",
+      "body": "市中心与湄公河岸白天独自活动较稳；夜间避开偏僻河堤。急救号码离线可用。",
+      "lens_line": "🆘 191 警察 · 1195 旅游警察 · 夜间避开偏僻河堤",
+      "health": "green",
+      "last_verified_at": "2026-07-05T00:00:00Z",
+      "link_url": "https://geosureglobal.com",
+      "link_label": "GeoSure 安全评分",
+      "action": {
+        "type": "emergency_numbers",
+        "numbers": [
+          { "label": "警察", "number": "191" },
+          { "label": "旅游警察", "number": "1195" }
+        ]
+      },
+      "sources": [
+        { "type": "official", "url": "https://geosureglobal.com", "attribution": "GeoSure" },
+        { "type": "official", "url": "https://www.tourismlaos.org", "attribution": "老挝旅游局" }
+      ],
+      "model_name": null,
+      "seen_label": "人工策展 · 7月5日"
+    }
+  ],
+  "events": [
+    {
+      "name": "那伽火球节前导市集",
+      "category": "market",
+      "when_label": "本周五 傍晚",
+      "starts_at": "2026-07-10T10:00:00Z",
+      "ends_at": "2026-07-10T14:00:00Z",
+      "solo_score": 8.5,
+      "solo_note": "一个人逛正好，傍晚人最舒服",
+      "health": "green",
+      "seen_label": "人工策展 · 7月5日",
+      "lat": 17.9560,
+      "lng": 102.6130,
+      "limited_label": "仅本周五",
+      "source_url": "https://www.tourismlaos.org/events/naga-fireball-market",
+      "verified_at": "2026-07-05T00:00:00Z",
+      "model_name": null
+    },
+    {
+      "name": "塔銮周边夜市",
+      "category": "market",
+      "when_label": "本周每晚",
+      "starts_at": null,
+      "ends_at": "2026-07-12T15:00:00Z",
+      "solo_score": 8.0,
+      "solo_note": "小吃摊多，独自吃走都自在",
+      "health": "green",
+      "seen_label": "人工策展 · 7月5日",
+      "lat": 17.9700,
+      "lng": 102.6480,
+      "limited_label": "本周每晚",
+      "source_url": "https://www.tourismlaos.org/events/that-luang-night-market",
+      "verified_at": "2026-07-05T00:00:00Z",
+      "model_name": null
+    },
+    {
+      "name": "湄公河岸步道段整修封闭",
+      "category": "notice",
+      "when_label": "本周",
+      "starts_at": null,
+      "ends_at": "2026-07-12T16:59:00Z",
+      "solo_score": null,
+      "solo_note": "傍晚散步改走 Chao Anouvong 公园一侧",
+      "health": "yellow",
+      "seen_label": "人工策展 · 7月5日",
+      "lat": 17.9615,
+      "lng": 102.6075,
+      "limited_label": "本周封闭",
+      "source_url": "https://www.tourismlaos.org/notices/mekong-riverside-maintenance",
+      "verified_at": "2026-07-05T00:00:00Z",
+      "model_name": null
+    }
+  ]
+}

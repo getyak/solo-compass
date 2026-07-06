@@ -2,8 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "declaration": true
   },
+  // `rootDir` is intentionally omitted: city-brief-core.test.ts imports the
+  // shared pure core from ../../infra/supabase/functions/_shared (single source
+  // of truth lives there, deployed to Deno), which sits outside src/. This
+  // package is consumed as source (main → src/index.ts) and never emitted to
+  // dist, so relaxing rootDir has no build-output impact.
   "include": ["src/**/*"]
 }

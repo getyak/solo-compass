@@ -1,0 +1,23 @@
+{
+  "query": "Vientiane events festivals things to do this week",
+  "results": [
+    {
+      "title": "That Luang Night Market — nightly food stalls",
+      "url": "https://www.tourismlaos.org/events/that-luang-night-market",
+      "content": "The night market around Pha That Luang runs every evening this week with food stalls and local crafts. Busiest just after sunset; quiet and easy to browse alone.",
+      "score": 0.91
+    },
+    {
+      "title": "Naga fireball pre-festival market this Friday",
+      "url": "https://www.tourismlaos.org/events/naga-fireball-market",
+      "content": "A pre-festival market ahead of the Naga fireball celebration takes place this Friday evening along the riverfront. Stalls open around 17:00 and wind down by 21:00 local time.",
+      "score": 0.88
+    },
+    {
+      "title": "Mekong riverside walkway maintenance closure",
+      "url": "https://www.tourismlaos.org/notices/mekong-riverside-maintenance",
+      "content": "A section of the Mekong riverside walkway is closed this week for maintenance. Pedestrians should use the Chao Anouvong park side instead.",
+      "score": 0.79
+    }
+  ]
+}
