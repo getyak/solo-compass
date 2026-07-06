@@ -139,11 +139,57 @@ final class PeekSummarySelectionTests: XCTestCase {
         XCTAssertEqual(result?.id, "a", "with no reference coordinate, the first experience is the fallback")
     }
 
+    // MARK: - Shuffle rotation ("换一个")
+
+    func testExcludingShuffledSmartPickDealsNextRankedPick() {
+        let a = makeExperience(id: "a", lon: 98.9940, lat: 18.7880)
+        let b = makeExperience(id: "b", lon: 98.9942, lat: 18.7882)
+        // "b" was shuffled away — the next smart pick in rank order deals.
+        let result = PeekPickResolver.resolve(
+            experiences: [a, b],
+            smartPickIds: ["b", "a"],
+            referenceCoordinate: cmiCenter,
+            excluding: ["b"]
+        )
+        XCTAssertEqual(result?.id, "a", "shuffling away the top smart pick deals the next ranked one")
+    }
+
+    func testExcludingAllSmartPicksFallsBackToWarmStart() {
+        let smart = makeExperience(id: "smart", lon: 98.9940, lat: 18.7880)
+        let plain = makeExperience(id: "plain", lon: 98.9939, lat: 18.7878)
+        let result = PeekPickResolver.resolve(
+            experiences: [smart, plain],
+            smartPickIds: ["smart"],
+            referenceCoordinate: cmiCenter,
+            excluding: ["smart"]
+        )
+        XCTAssertEqual(result?.id, "plain", "with every smart pick shuffled away, the warm-start fallback deals")
+    }
+
+    func testExclusionCoveringEverythingWrapsToFullSet() {
+        let a = makeExperience(id: "a", lon: 98.9940, lat: 18.7880)
+        let b = makeExperience(id: "b", lon: 98.9942, lat: 18.7882)
+        // The rotation has cycled through everything visible — the resolver
+        // wraps to the full set so "换一个" never comes back empty-handed.
+        let result = PeekPickResolver.resolve(
+            experiences: [a, b],
+            smartPickIds: ["b", "a"],
+            referenceCoordinate: cmiCenter,
+            excluding: ["a", "b"]
+        )
+        XCTAssertEqual(result?.id, "b", "a fully-covered exclusion wraps the rotation back to the top pick")
+    }
+
     // MARK: - Localization key presence (both shipped locales)
 
     /// The peek-card keys this feature introduces. Both shipped `.lproj` tables
     /// must define every one (the QA brief checks bilingual coverage).
-    private static let peekKeys = ["peek.pick.header", "peek.empty.hint", "sheet.handle.hint"]
+    private static let peekKeys = [
+        "peek.pick.header", "peek.empty.hint", "sheet.handle.hint",
+        // North-star card rows + actions (PRD solo-city-os-v2 §5.1).
+        "peek.now.goodTime", "peek.confidence.basedOn", "peek.confidence.basedOn.one",
+        "peek.confidence.aiEstimate", "peek.action.go", "peek.action.shuffle"
+    ]
 
     func testPeekLocalizationKeysResolveInEnglish() throws {
         let defined = try definedKeys(localeID: "en")

@@ -23,17 +23,25 @@ enum PeekPickResolver {
     ///   - smartPickIds: AI-ranked top pick ids (highest priority first).
     ///   - referenceCoordinate: user location or map center; used to break
     ///     Solo-Score ties in the warm-start fallback.
+    ///   - excludedIds: ids the traveler shuffled away via "换一个". The
+    ///     resolver skips them — unless the exclusion covers every visible
+    ///     experience, in which case the rotation wraps around to the full set
+    ///     so the shuffle never comes back empty-handed.
     /// - Returns: the experience to feature in the peek card, or `nil` if none.
     static func resolve(
         experiences: [Experience],
         smartPickIds: [String],
-        referenceCoordinate: CLLocationCoordinate2D?
+        referenceCoordinate: CLLocationCoordinate2D?,
+        excluding excludedIds: Set<String> = []
     ) -> Experience? {
         guard !experiences.isEmpty else { return nil }
 
+        let remaining = experiences.filter { !excludedIds.contains($0.id) }
+        let pool = remaining.isEmpty ? experiences : remaining
+
         // 1. Prefer the first smart pick that is actually visible.
         for id in smartPickIds {
-            if let match = experiences.first(where: { $0.id == id }) {
+            if let match = pool.first(where: { $0.id == id }) {
                 return match
             }
         }
@@ -43,7 +51,7 @@ enum PeekPickResolver {
         let refLocation = referenceCoordinate.map {
             CLLocation(latitude: $0.latitude, longitude: $0.longitude)
         }
-        return experiences.max(by: { lhs, rhs in
+        return pool.max(by: { lhs, rhs in
             let scoreGap = rhs.soloScore.overall - lhs.soloScore.overall
             if abs(scoreGap) < 0.05, let ref = refLocation {
                 // Effectively tied → prefer closer.

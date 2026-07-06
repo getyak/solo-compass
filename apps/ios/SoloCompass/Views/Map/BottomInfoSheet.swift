@@ -48,7 +48,10 @@ public enum SortMode: String, CaseIterable, Identifiable {
 /// heights are derived from these via `BottomSheetDetent.scaledHeight` so that
 /// at large Dynamic Type sizes (up to AX5) the sheet grows enough to show its
 /// content without clipping.
-private let basePeekHeight: CGFloat = 240
+// 240 → 272 (north-star peek card): the peek card gained its NowScore line
+// and the confidence-facts + action row (带我去 / 换一个), so the resting
+// sheet needs the extra 32pt to show the full decision card without clipping.
+private let basePeekHeight: CGFloat = 272
 private let baseMidHeight: CGFloat = 500
 private let baseFullHeight: CGFloat = 800
 private let baseMinHeight: CGFloat = 120
@@ -239,11 +242,17 @@ public struct BottomInfoSheet<Content: View>: View {
     /// Reference coordinate (user location or map center) for the peek card's
     /// distance + compass bearing.
     private let referenceCoordinate: CLLocationCoordinate2D?
+    /// Whether `referenceCoordinate` is a real GPS fix (gates the peek card's
+    /// "就快到了" presence cue — see `PeekSummaryCard.referenceIsUserLocation`).
+    private let referenceIsUserLocation: Bool
     /// True while the floating preview card is up for a user-selected
     /// experience. The peek summary card ("此刻最值得去") fades out and yields
     /// to a lightweight hint so two competing "best pick" cards never stack —
     /// the user's active selection owns the focus.
     private let isPreviewActive: Bool
+    /// Rotates the peek pick to the next candidate ("换一个"). Threaded down to
+    /// the peek summary card; the pill is hidden when nil.
+    private let onShuffle: (() -> Void)?
     private let onRefresh: (() async -> Void)?
     private let content: (BottomSheetDetent, Binding<SortMode>) -> Content
 
@@ -254,7 +263,9 @@ public struct BottomInfoSheet<Content: View>: View {
         peekExperience: Experience? = nil,
         isSmartPick: Bool = false,
         referenceCoordinate: CLLocationCoordinate2D? = nil,
+        referenceIsUserLocation: Bool = false,
         isPreviewActive: Bool = false,
+        onShuffle: (() -> Void)? = nil,
         onRefresh: (() async -> Void)? = nil,
         @ViewBuilder content: @escaping (BottomSheetDetent, Binding<SortMode>) -> Content
     ) {
@@ -264,7 +275,9 @@ public struct BottomInfoSheet<Content: View>: View {
         self.peekExperience = peekExperience
         self.isSmartPick = isSmartPick
         self.referenceCoordinate = referenceCoordinate
+        self.referenceIsUserLocation = referenceIsUserLocation
         self.isPreviewActive = isPreviewActive
+        self.onShuffle = onShuffle
         self.onRefresh = onRefresh
         self.content = content
     }
@@ -438,18 +451,29 @@ public struct BottomInfoSheet<Content: View>: View {
                     experience: experience,
                     isSmartPick: isSmartPick,
                     referenceCoordinate: referenceCoordinate,
+                    referenceIsUserLocation: referenceIsUserLocation,
                     onTap: {
                         currentDetent = .mid
                         #if canImport(UIKit)
                         Haptics.selection()
                         #endif
-                    }
+                    },
+                    onShuffle: onShuffle
                 )
+                // "换一个" reads as dealing the next card: identity swap +
+                // trailing→leading slide. `.id` makes the pick change a
+                // remove/insert pair so the transition actually runs.
+                .id(experience.id)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
             } else {
                 PeekEmptyCard()
             }
         }
         .animation(.easeInOut(duration: 0.25), value: isPreviewActive)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: peekExperience?.id)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {

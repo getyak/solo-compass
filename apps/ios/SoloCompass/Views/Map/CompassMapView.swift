@@ -352,9 +352,18 @@ struct CompassMapContentView: View {
             experiences: viewModel.visibleExperiences,
             smartPickIds: viewModel.aiSmartPickIds,
             referenceCoordinate: locationService.currentLocation?.coordinate
-                ?? viewModel.defaultCenterForSelectedCity
+                ?? viewModel.defaultCenterForSelectedCity,
+            excluding: Set(peekShuffledIds)
         )
     }
+
+    /// Ids the traveler shuffled away via the peek card's "换一个" pill, in
+    /// order. The resolver skips them so each shuffle deals the next-best
+    /// pick; when the rotation has cycled through everything visible the
+    /// handler clears the list and the deck starts again from the top pick.
+    /// Stale ids from a previous city/filter are harmless — they simply no
+    /// longer match anything visible.
+    @State private var peekShuffledIds: [String] = []
 
     /// Whether `peekExperience` is the AI smart pick — drives the peek card's
     /// gold gradient and "AI Pick" tag.
@@ -957,11 +966,22 @@ struct CompassMapContentView: View {
                         isSmartPick: peekExperienceIsSmartPick,
                         referenceCoordinate: locationService.currentLocation?.coordinate
                             ?? viewModel.defaultCenterForSelectedCity,
+                        referenceIsUserLocation: locationService.currentLocation != nil,
                         // D 双卡片冲突: while the floating preview card is up for
                         // a user-selected experience, the peek summary card
                         // yields so only one "best pick" card is on screen.
                         isPreviewActive: viewModel.selectedExperience != nil
                             && !viewModel.isShowingDetail,
+                        onShuffle: {
+                            guard let current = peekExperience else { return }
+                            let shuffled = peekShuffledIds + [current.id]
+                            let visibleIds = Set(viewModel.visibleExperiences.map(\.id))
+                            // Cycled through everything visible → restart the
+                            // rotation so "换一个" never comes back empty-handed.
+                            peekShuffledIds = visibleIds.subtracting(shuffled).isEmpty
+                                ? []
+                                : shuffled
+                        },
                         onRefresh: {
                             viewModel.loadNearbyExperiences()
                         }

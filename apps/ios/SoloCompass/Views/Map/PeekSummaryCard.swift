@@ -24,17 +24,25 @@ struct PeekSummaryCard: View {
     let isSmartPick: Bool
     /// Reference coordinate (user location or map center) for distance + bearing.
     let referenceCoordinate: CLLocationCoordinate2D?
+    /// True when `referenceCoordinate` is a real GPS fix. The "就快到了"
+    /// proximity cue claims *presence* — without a fix the reference is just
+    /// the city's default center, and announcing "almost there" would be a
+    /// lie. Walk/drive estimates still show (they read as "from where you're
+    /// looking"), only the presence claim is gated.
+    var referenceIsUserLocation: Bool = false
     /// Fired when the card is tapped — the caller expands the sheet to `.mid`.
     let onTap: () -> Void
+    /// Fired by the "换一个" pill — the caller rotates to the next pick. The
+    /// pill is hidden when nil (previews / contexts without a rotation source).
+    var onShuffle: (() -> Void)? = nil
 
     @State private var pressed = false
-    @State private var pulsing = false
+    @State private var isShowingNavPicker = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(LocationService.self) private var locationService
     @Environment(BestNowClock.self) private var clock
 
     private var isNearby: Bool {
-        guard let meters = distanceMeters else { return false }
+        guard referenceIsUserLocation, let meters = distanceMeters else { return false }
         return meters < ProximityConfig.nearbyThreshold(for: experience.location.cityCode)
     }
 
@@ -49,7 +57,50 @@ struct PeekSummaryCard: View {
     }()
 
     var body: some View {
-        Button {
+        // North-star card ("此刻卡片", PRD solo-city-os-v2 §5.1): three answer
+        // rows — Now (gold) / Solo (amber) / Confidence (mono) — plus the two
+        // actions the decision deserves, CityMapper-style: decide on the card,
+        // act on the card. The container is a tap-gesture view rather than a
+        // Button so the inner 带我去 / 换一个 pills get clean hit-testing.
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .top, spacing: 12) {
+                categoryDisc
+                VStack(alignment: .leading, spacing: 7) {
+                    titleStack
+                    chipRow
+                }
+                Spacer(minLength: 0)
+            }
+            // Row 1 — is right now a good moment? (NowScore percent + reason)
+            nowScoreLine
+            // Row 2 — solo insight: one line of friend-voice copy. The map
+            // opens and Solo already has a *reason* to suggest this spot —
+            // not just a name.
+            warmReasonLine
+            // Row 3 — falsifiable facts (mono) + the two actions.
+            confidenceActionFooter
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .background(cardBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(isSmartPick ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
+        )
+        .overlay(alignment: .leading) {
+            // 3pt left color bar: gold for the smart pick, else the category tint.
+            UnevenRoundedRectangle(
+                topLeadingRadius: 14, bottomLeadingRadius: 14,
+                bottomTrailingRadius: 0, topTrailingRadius: 0,
+                style: .continuous
+            )
+            .fill(isSmartPick ? CT.sunGold : experience.category.color)
+            .frame(width: 3)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
+        .contentShape(Rectangle())
+        .onTapGesture {
             #if canImport(UIKit)
             Haptics.selection()
             if !reduceMotion {
@@ -60,69 +111,229 @@ struct PeekSummaryCard: View {
             }
             #endif
             onTap()
-        } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 12) {
-                    categoryDisc
-                    VStack(alignment: .leading, spacing: 7) {
-                        titleStack
-                        chipRow
-                    }
-                    Spacer(minLength: 4)
-                    distanceColumn
-                }
-                // Warm-start reason: one line of friend-voice copy under the
-                // card. The map opens and Solo already has a *reason* to
-                // suggest this spot — not just a name.
-                warmReasonLine
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(cardBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(isSmartPick ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
-            )
-            .overlay(alignment: .leading) {
-                // 3pt left color bar: gold for the smart pick, else the category tint.
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 14, bottomLeadingRadius: 14,
-                    bottomTrailingRadius: 0, topTrailingRadius: 0,
-                    style: .continuous
-                )
-                .fill(isSmartPick ? CT.sunGold : experience.category.color)
-                .frame(width: 3)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
         }
-        .buttonStyle(.plain)
         .scaleEffect(pressed ? 0.97 : 1.0)
+        .confirmationDialog(
+            NSLocalizedString("location.navigate", comment: "Navigate"),
+            isPresented: $isShowingNavPicker,
+            titleVisibility: .hidden
+        ) {
+            ForEach(NavigationLauncher.availableApps()) { app in
+                Button(app.displayName) {
+                    if let coord = experience.coordinate {
+                        NavigationLauncher.open(app: app, coordinate: coord, name: experience.shortName)
+                    }
+                }
+            }
+        }
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(Text(NSLocalizedString("peek.card.hint", comment: "Double tap to expand the nearby list")))
+        .accessibilityAction(named: Text(NSLocalizedString("peek.action.go", comment: "Take me there"))) {
+            launchNavigation()
+        }
+        .accessibilityAction(named: Text(NSLocalizedString("peek.action.shuffle", comment: "Show another pick"))) {
+            onShuffle?()
+        }
     }
 
     // MARK: - Sub-views
 
-    /// One-line warm-amber rationale shown under the chip row. Friend voice —
+    /// North-star row 1 — "is right now a good moment?". Gold percent (the
+    /// hero number, Apple-Weather style); when the active window is winding
+    /// down, the live closing countdown follows in amber (the chip's own
+    /// localized copy, so the urgency voice matches the rest of the app).
+    /// Hidden below 0.55 so the card never celebrates a mediocre moment —
+    /// honesty first. `NowScore.reason` is deliberately NOT shown: today's
+    /// signal reasons are developer strings ("in bestTimes window"), not
+    /// traveler copy.
+    @ViewBuilder
+    private var nowScoreLine: some View {
+        if let percent = nowPercent {
+            let state = bestNowChipState
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(CT.sunGold)
+                    .frame(width: 6, height: 6)
+                Text(String(
+                    format: NSLocalizedString("peek.now.goodTime", comment: "Now-score line, e.g. '现在 87% 好时机'"),
+                    percent
+                ))
+                .font(CT.display(12, .bold))
+                .monospacedDigit()
+                .foregroundStyle(CT.sunGoldDeep)
+                if state.isClosingSoon {
+                    Text(state.label)
+                        .font(.caption.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(state.foreground)
+                        .lineLimit(1)
+                        .contentTransition(reduceMotion ? .identity : .numericText())
+                }
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// The current NowScore as a display percent, or nil when it isn't worth
+    /// announcing. Recomputed on each `BestNowClock` tick so it tracks real time.
+    private var nowPercent: Int? {
+        let score = experience.nowScore(at: clock.tick)
+        guard score.value >= 0.55 else { return nil }
+        return Int((score.value * 100).rounded())
+    }
+
+    /// North-star row 3 + CTA: the falsifiable-facts line (health dot + trust
+    /// state + signal count + based-on, all mono — Flighty-style honest data)
+    /// with the two actions the decision deserves: 换一个 rotates the pick,
+    /// 带我去 launches walking directions.
+    private var confidenceActionFooter: some View {
+        HStack(spacing: 8) {
+            confidenceLine
+            Spacer(minLength: 6)
+            if onShuffle != nil {
+                shufflePill
+            }
+            goPill
+        }
+    }
+
+    private var confidenceLine: some View {
+        let facts = confidenceFacts
+        return HStack(spacing: 5) {
+            Circle()
+                .fill(facts.dotColor)
+                .frame(width: 6, height: 6)
+            Text(facts.text)
+                .font(CT.mono(10))
+                .foregroundStyle(CT.fgMuted)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(facts.a11y))
+    }
+
+    /// Health-dot color + mono facts. The visible line keeps only the fact a
+    /// solo traveler weighs most — how many solos this is based on (or that
+    /// it's an unverified AI estimate); the colored dot carries the trust
+    /// state, so the line survives next to the two action pills without
+    /// truncating. VoiceOver gets the full story: trust state (the detail
+    /// hero's vocabulary) + signal count + based-on.
+    private var confidenceFacts: (dotColor: Color, text: String, a11y: String) {
+        let confidence = experience.confidence
+        let state: (key: String, dot: Color) = {
+            switch confidence.health {
+            case .healthy:
+                return ("trust.verified", CT.verifiedGreenDot)
+            case .fading:
+                return ("trust.observing", CT.sunGoldDeep)
+            case .questioned, .mayBeGone:
+                return ("trust.questioned", CT.warningText)
+            }
+        }()
+        let basedOn = experience.soloScore.basedOnCount
+        let text: String = switch basedOn {
+        case 0:
+            NSLocalizedString("peek.confidence.aiEstimate", comment: "AI estimate · unverified")
+        case 1:
+            NSLocalizedString("peek.confidence.basedOn.one", comment: "e.g. '基于 1 位独行者'")
+        default:
+            String(
+                format: NSLocalizedString("peek.confidence.basedOn", comment: "e.g. '基于 3 位独行者'"),
+                basedOn
+            )
+        }
+        let a11y = [
+            NSLocalizedString(state.key, comment: "Trust state label"),
+            "\(confidence.signals.totalCount) " + NSLocalizedString("notes.signals", comment: "signals unit"),
+            text
+        ].joined(separator: " · ")
+        return (state.dot, text, a11y)
+    }
+
+    /// Primary amber pill — walking directions in one tap, matching the detail
+    /// dock's navigate treatment so the CTA reads identically across surfaces.
+    private var goPill: some View {
+        Button {
+            launchNavigation()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
+                    .font(.system(size: 11, weight: .bold))
+                Text(NSLocalizedString("peek.action.go", comment: "Take me there"))
+                    .font(CT.body(12, .semibold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(CT.accent))
+        }
+        .buttonStyle(.plain)
+        .disabled(experience.coordinate == nil)
+        .accessibilityLabel(Text(NSLocalizedString("peek.action.go", comment: "Take me there")))
+    }
+
+    /// Ghost pill — rotate to the next pick. Never empty-handed: the resolver
+    /// wraps around when every visible experience has been shuffled away.
+    private var shufflePill: some View {
+        Button {
+            #if canImport(UIKit)
+            Haptics.selection()
+            #endif
+            onShuffle?()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.2.circlepath")
+                    .font(.system(size: 10, weight: .semibold))
+                Text(NSLocalizedString("peek.action.shuffle", comment: "Show another pick"))
+                    .font(CT.body(12, .medium))
+            }
+            .foregroundStyle(CT.fgMuted)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(CT.surfaceSunken))
+            .overlay(Capsule().strokeBorder(CT.borderSubtle, lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(NSLocalizedString("peek.action.shuffle", comment: "Show another pick")))
+    }
+
+    /// Detail-dock parity: a sole installed maps app launches directly; more
+    /// than one presents the picker dialog.
+    private func launchNavigation() {
+        guard let coord = experience.coordinate else { return }
+        #if canImport(UIKit)
+        Haptics.impact(.light)
+        #endif
+        if let only = NavigationLauncher.soleApp() {
+            NavigationLauncher.open(app: only, coordinate: coord, name: experience.shortName)
+        } else {
+            isShowingNavPicker = true
+        }
+    }
+
+    /// One-line warm rationale shown under the chip row. Friend voice —
     /// "I'd take you here right now because…". Empty when there's nothing
-    /// honest to say so the card stays clean.
+    /// honest to say so the card stays clean. When the copy is the Solo hint
+    /// it wears the amber solo-lens treatment (figure + accent).
     @ViewBuilder
     private var warmReasonLine: some View {
         let copy = reasonCopy
         if !copy.isEmpty {
+            let isSoloHint = hasSoloHint
             HStack(alignment: .top, spacing: 6) {
-                Image(systemName: isSmartPick ? "sparkles" : "heart.fill")
+                Image(systemName: isSoloHint ? "figure.stand" : (isSmartPick ? "sparkles" : "heart.fill"))
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(CT.sunGoldDeep)
+                    .foregroundStyle(isSoloHint ? CT.accent : CT.sunGoldDeep)
                     .padding(.top, 2)
                 Text(copy)
                     .font(.footnote)
-                    .foregroundStyle(CT.sunGoldDeep)
-                    .lineLimit(2)
+                    .foregroundStyle(isSoloHint ? CT.accent : CT.sunGoldDeep)
+                    .lineLimit(1)
                     .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
@@ -130,8 +341,16 @@ struct PeekSummaryCard: View {
         }
     }
 
+    /// Whether the Solo-Score hint is present — it owns row 2 when it exists.
+    private var hasSoloHint: Bool {
+        !(experience.soloScore.hint ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
+    }
+
     /// The reason copy to show. Friend voice in both languages — never bare facts.
-    /// Order: AI oneLiner (when non-empty and adds signal beyond the title) →
+    /// Order: Solo hint (the one line a solo traveler most wants, PRD v2 §5.1) →
+    ///        AI oneLiner (when non-empty and adds signal beyond the title) →
     ///        AI whyItMatters (smart-pick framing) →
     ///        warmStart template fallback → empty.
     ///
@@ -141,6 +360,13 @@ struct PeekSummaryCard: View {
     /// had a real oneLiner (e.g. "深夜串烧配清酒") that never surfaced
     /// until the user tapped through to the detail. Surface it here.
     private var reasonCopy: String {
+        // 0. The Solo hint owns this row when it exists — it is the solo-lens
+        //    voice ("Order at the bar, sit upstairs") the north-star card
+        //    promises. Amap POIs rarely carry one, so the oneLiner rung below
+        //    still surfaces their enrichment unchanged.
+        if hasSoloHint, let hint = experience.soloScore.hint {
+            return hint.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
         // 1. AI oneLiner wins when it exists and adds signal beyond the title.
         let oneLiner = experience.oneLiner.trimmingCharacters(in: .whitespacesAndNewlines)
         if !oneLiner.isEmpty
@@ -221,7 +447,10 @@ struct PeekSummaryCard: View {
         .accessibilityHidden(true)
     }
 
-    /// Chip row: travel-time + Solo-Score badge + (optional) 此刻最佳 chip.
+    /// Chip row: travel-time + Solo-Score badge. The old 此刻最佳 chip folded
+    /// into the now-score line (row 1) and the old trailing distance column
+    /// folded into the walk chip — three fixed-size chips plus a distance
+    /// column starved each other of width; two chips always fit.
     ///
     /// Within walking range (< 1.5 km) we show estimated walk minutes; for
     /// mid-range picks (1.5–15 km) — too far to walk but still in-city — we
@@ -237,30 +466,31 @@ struct PeekSummaryCard: View {
                 }
             }
             SoloScoreBadge(score: experience.soloScore, style: .compact)
-            if isOpenNow {
-                bestNowChip
-            }
         }
     }
 
-    /// Neutral chip: estimated walk minutes (≈ 80 m/min) for nearby experiences.
+    /// Walk chip: estimated walk minutes (≈ 80 m/min). Within ~150m it turns
+    /// gold and reads "就快到了" — the proximity cue the removed distance
+    /// column used to carry.
     private func walkTimeChip(meters: Double) -> some View {
         let minutes = max(1, Int((meters / 80).rounded()))
-        let label = String(
-            format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 分钟'"),
-            minutes
-        )
+        let label = isNearby
+            ? NSLocalizedString("peek.card.almostThere", comment: "Almost there micro-label shown when < 150m")
+            : String(
+                format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 分钟'"),
+                minutes
+            )
         return HStack(spacing: 3) {
             Image(systemName: "figure.walk")
                 .font(.system(size: 9.5, weight: .semibold))
             Text(label)
-                .font(.caption2.weight(.medium))
+                .font(.caption2.weight(isNearby ? .semibold : .medium))
                 .lineLimit(1)
         }
-        .foregroundStyle(CT.fgMuted)
+        .foregroundStyle(isNearby ? AnyShapeStyle(CT.sunGoldDeep) : AnyShapeStyle(CT.fgMuted))
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
-        .background(Capsule().fill(CT.surfaceSunken))
+        .background(Capsule().fill(isNearby ? AnyShapeStyle(CT.sunGoldSoft) : AnyShapeStyle(CT.surfaceSunken)))
         .fixedSize(horizontal: true, vertical: false)
         .accessibilityHidden(true)
     }
@@ -286,75 +516,6 @@ struct PeekSummaryCard: View {
         .background(Capsule().fill(CT.surfaceSunken))
         .fixedSize(horizontal: true, vertical: false)
         .accessibilityHidden(true)
-    }
-
-    /// Golden chip: 此刻最佳 — shown when the experience is at its best right now.
-    /// Flips to an amber "Closing · Nm" countdown when the active window has
-    /// ≤ 45 minutes left, matching the detail card and Saved list so the peek
-    /// pick carries the same urgency cue the rest of the app already shows.
-    private var bestNowChip: some View {
-        let state = bestNowChipState
-        return HStack(spacing: 3) {
-            Image(systemName: state.symbol)
-                .font(.system(size: 9, weight: .semibold))
-            Text(state.label)
-                .font(.caption2.weight(.semibold))
-                .monospacedDigit()
-                .lineLimit(1)
-                .contentTransition(reduceMotion ? .identity : .numericText())
-        }
-        .foregroundStyle(state.foreground)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .background(Capsule().fill(state.background))
-        .fixedSize(horizontal: true, vertical: false)
-        .accessibilityHidden(true)
-    }
-
-    /// Trailing column: compass arrow over the formatted distance, right-aligned.
-    private var distanceColumn: some View {
-        let bearing = relativeBearing
-        let hasLiveBearing = bearing != nil
-        let arrowColor: AnyShapeStyle = isNearby
-            ? AnyShapeStyle(CT.sunGoldDeep)
-            : (hasLiveBearing ? AnyShapeStyle(CT.fgMuted) : AnyShapeStyle(CT.fgSubtle))
-        return VStack(alignment: .trailing, spacing: 4) {
-            Image(systemName: "location.north.line.fill")
-                .font(.caption2)
-                .foregroundStyle(arrowColor)
-                .rotationEffect(.degrees(bearing ?? 0))
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: bearing)
-                .scaleEffect(pulsing ? 1.18 : 1.0)
-            if let meters = distanceMeters {
-                Text(formattedDistance(meters))
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(isNearby ? AnyShapeStyle(CT.sunGoldDeep) : AnyShapeStyle(CT.fgSubtle))
-                if isNearby {
-                    Text(NSLocalizedString("peek.card.almostThere", comment: "Almost there micro-label shown when < 150m"))
-                        .font(.caption2)
-                        .foregroundStyle(CT.sunGoldDeep)
-                }
-            }
-        }
-        .accessibilityHidden(true)
-        .onAppear { startNearbyPulseIfNeeded() }
-        .onChange(of: isNearby) { _, nearby in
-            if nearby {
-                startNearbyPulseIfNeeded()
-            } else {
-                withAnimation(.default) { pulsing = false }
-            }
-        }
-    }
-
-    private func startNearbyPulseIfNeeded() {
-        guard isNearby, !reduceMotion else {
-            pulsing = false
-            return
-        }
-        withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
-            pulsing = true
-        }
     }
 
     private var cardBackground: some View {
@@ -404,11 +565,6 @@ struct PeekSummaryCard: View {
         bestNowChipState.minutesLeft != nil
     }
 
-    private var relativeBearing: Double? {
-        guard let coord = experience.coordinate else { return nil }
-        return locationService.relativeBearing(to: coord)
-    }
-
     /// Distance (m) from the reference coordinate to the experience.
     private var distanceMeters: Double? {
         guard let ref = referenceCoordinate,
@@ -449,6 +605,15 @@ struct PeekSummaryCard: View {
         if isNearby {
             label += ", " + NSLocalizedString("peek.card.almostThere.a11y", comment: "VoiceOver: almost there proximity cue")
         }
+        // North-star rows: the now-percent and the full confidence facts (the
+        // visible line abbreviates; VoiceOver gets the complete story).
+        if let percent = nowPercent {
+            label += ", " + String(
+                format: NSLocalizedString("peek.now.goodTime", comment: "Now-score line, e.g. '现在 87% 好时机'"),
+                percent
+            )
+        }
+        label += ", " + confidenceFacts.a11y
         return Text(label)
     }
 }

@@ -1796,6 +1796,12 @@
 "peek.preview.active.hint" = "Viewing your pick · pull up for all nearby";
 "peek.reason.aiPick" = "Right now I'd take you here — %@.";
 "peek.reason.warmStart" = "Strongest %@ pick in view right now · Solo %.1f";
+"peek.now.goodTime" = "%d%% good time now";
+"peek.confidence.basedOn" = "from %d solo travelers";
+"peek.confidence.aiEstimate" = "AI estimate · unverified";
+"peek.confidence.basedOn.one" = "from 1 solo traveler";
+"peek.action.go" = "Take me";
+"peek.action.shuffle" = "Next";
 "sheet.handle.hint" = "Tap to expand, drag to resize";
 
 /* NowScore weather signal (US-005) — %d is the temperature in whole °C. */
