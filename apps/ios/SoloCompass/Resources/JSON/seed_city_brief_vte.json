@@ -1,0 +1,111 @@
+{
+  "kit": [
+    {
+      "city_code": "vte",
+      "section": "net",
+      "name": "联网",
+      "body": "Airalo 老挝 eSIM · 或 Unitel 门店",
+      "lens_line": "机场到市区先用 eSIM，别机场柜台换卡",
+      "health": "green",
+      "last_verified_at": "2026-07-01T00:00:00Z",
+      "link_url": "https://www.airalo.com/laos-esim",
+      "link_label": "Airalo",
+      "action": null
+    },
+    {
+      "city_code": "vte",
+      "section": "money",
+      "name": "钱",
+      "body": "Wise 汇率最优 · ATM 每笔手续费高，建议一次多取",
+      "lens_line": "多数咖啡馆只收现金；本地扫码用 BCEL One",
+      "health": "yellow",
+      "last_verified_at": "2026-06-20T00:00:00Z",
+      "link_url": "https://wise.com/currency-converter/usd-to-lak-rate",
+      "link_label": "Wise",
+      "action": null
+    },
+    {
+      "city_code": "vte",
+      "section": "visa",
+      "name": "签证 / 税务",
+      "body": "落地签 30 天 · 入境日只记在本机 · 183 天税务线自算",
+      "lens_line": "落地签窗口备好现金与照片；计时离线可用",
+      "health": "green",
+      "last_verified_at": "2026-07-01T00:00:00Z",
+      "link_url": null,
+      "link_label": null,
+      "action": { "type": "visa_reminder", "visa_days": 30, "tax_line_days": 183 }
+    },
+    {
+      "city_code": "vte",
+      "section": "safety",
+      "name": "安全",
+      "body": "市中心 / 湄公河岸独自较稳 · 夜间避开偏僻河堤",
+      "lens_line": "急救号码离线常驻，一键可拨",
+      "health": "green",
+      "last_verified_at": "2026-07-01T00:00:00Z",
+      "link_url": "https://www.geosureglobal.com",
+      "link_label": "GeoSure",
+      "action": {
+        "type": "emergency_numbers",
+        "numbers": [
+          { "label": "警察", "number": "191" },
+          { "label": "旅游警察", "number": "1195" }
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_vte_naga_fireball_market_20260710",
+      "city_code": "vte",
+      "name": "那伽火球节前导市集",
+      "category": "market",
+      "when_label": "周五 17:00–21:00",
+      "starts_at": "2026-07-10T10:00:00Z",
+      "ends_at": "2026-07-10T14:00:00Z",
+      "solo_score": 8.5,
+      "solo_note": "适合一个人逛，摊位间距大，不会被裹挟",
+      "health": "green",
+      "seen_label": "人工策展 · 7月5日",
+      "lat": 17.9648,
+      "lng": 102.6108,
+      "limited_label": "本周五限时",
+      "source_url": "https://www.tourismlaos.org/events"
+    },
+    {
+      "id": "evt_vte_thatluang_night_market_20260706",
+      "city_code": "vte",
+      "name": "塔銮周边夜市",
+      "category": "market",
+      "when_label": "本周每晚",
+      "starts_at": "2026-07-06T11:00:00Z",
+      "ends_at": "2026-07-12T15:30:00Z",
+      "solo_score": 8.0,
+      "solo_note": "摊贩不推销，独自吃一圈无压力",
+      "health": "yellow",
+      "seen_label": "人工策展 · 7月5日",
+      "lat": 17.9764,
+      "lng": 102.6350,
+      "limited_label": null,
+      "source_url": "https://www.tourismlaos.org/vientiane"
+    },
+    {
+      "id": "evt_vte_riverside_road_notice_20260708",
+      "city_code": "vte",
+      "name": "湄公河岸步道段整修封闭",
+      "category": "notice",
+      "when_label": "周三起 · 全天",
+      "starts_at": "2026-07-07T17:00:00Z",
+      "ends_at": "2026-07-13T17:00:00Z",
+      "solo_score": null,
+      "solo_note": "傍晚散步改走 Chao Anouvong 公园一侧",
+      "health": "green",
+      "seen_label": "本地新闻 · 7月4日",
+      "lat": 17.9614,
+      "lng": 102.6070,
+      "limited_label": "临时",
+      "source_url": "https://www.vientianetimes.org.la"
+    }
+  ]
+}

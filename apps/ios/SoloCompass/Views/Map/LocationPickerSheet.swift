@@ -8,6 +8,10 @@ import CoreLocation
 /// (drag-a-pin or type coordinates + save-as-city flow).
 struct LocationPickerSheet: View {
     @Bindable var viewModel: MapViewModel
+    /// City OS v2: when provided (flag on), the selected city gains a
+    /// Live/Plan/Recall mode control + rows carry a small mode tag. nil keeps
+    /// the sheet exactly as it shipped.
+    let cityOSStore: CityOSStore?
     let onDismiss: () -> Void
 
     @State private var state: LocationPickerState
@@ -17,8 +21,9 @@ struct LocationPickerSheet: View {
     @State private var customCityStore = CustomCityStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(viewModel: MapViewModel, onDismiss: @escaping () -> Void) {
+    init(viewModel: MapViewModel, cityOSStore: CityOSStore? = nil, onDismiss: @escaping () -> Void) {
         self.viewModel = viewModel
+        self.cityOSStore = cityOSStore
         self.onDismiss = onDismiss
         let initial = viewModel.customCoordinates ?? viewModel.defaultCenterForSelectedCity
         self._state = State(initialValue: LocationPickerState(initialCoordinate: initial))
@@ -118,6 +123,20 @@ struct LocationPickerSheet: View {
     @ViewBuilder
     private func citiesContent(bs: Bindable<LocationPickerState>) -> some View {
         List {
+            // City OS v2: mode control for the currently selected city, so the
+            // traveler can flip Live / Plan / Recall (the aggregation context).
+            if let store = cityOSStore, let selected = viewModel.selectedCity {
+                Section(NSLocalizedString("cityos.picker.mode.section", comment: "City mode section title")) {
+                    CityModePicker(
+                        mode: store.mode(for: selected),
+                        onSelect: { newMode in
+                            commitHaptic()
+                            store.setMode(newMode, for: selected)
+                        }
+                    )
+                }
+            }
+
             // "All Cities" row
             Button {
                 commitHaptic()
@@ -690,6 +709,55 @@ private struct CoordinateField: View {
                 .keyboardType(.decimalPad)
                 .monospacedDigit()
                 .autocorrectionDisabled()
+        }
+    }
+}
+
+// MARK: - CityModePicker (City OS v2)
+
+/// A compact Live / Plan / Recall segmented control for the selected city.
+/// Live = 在此城 (warm), Plan = 计划 (cool blue), Recall = 回顾 (muted). Mode is
+/// the aggregation context, not a filter — switching it re-frames the whole
+/// city surface (PRD §4.1).
+private struct CityModePicker: View {
+    let mode: CityMode
+    let onSelect: (CityMode) -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(CityMode.allCases, id: \.self) { candidate in
+                Button {
+                    onSelect(candidate)
+                } label: {
+                    Text(Self.label(for: candidate))
+                        .font(CT.body(13, mode == candidate ? .semibold : .regular))
+                        .foregroundStyle(mode == candidate ? .white : Self.tint(for: candidate))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule().fill(mode == candidate ? Self.tint(for: candidate) : Self.tint(for: candidate).opacity(0.12))
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(mode == candidate ? [.isButton, .isSelected] : .isButton)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private static func label(for mode: CityMode) -> String {
+        switch mode {
+        case .live:   return NSLocalizedString("cityos.mode.live.tag", comment: "在此城")
+        case .plan:   return NSLocalizedString("cityos.mode.plan.tag", comment: "计划")
+        case .recall: return NSLocalizedString("cityos.mode.recall.tag", comment: "回顾")
+        }
+    }
+
+    private static func tint(for mode: CityMode) -> Color {
+        switch mode {
+        case .live:   return CT.sunGoldDeep
+        case .plan:   return CT.modePlanBlue
+        case .recall: return CT.fgMuted
         }
     }
 }

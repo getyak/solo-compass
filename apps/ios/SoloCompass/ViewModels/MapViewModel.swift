@@ -1030,6 +1030,10 @@ public final class MapViewModel {
     private var emptyStateExpandTried: Bool = false
 
     public var selectedExperience: Experience?
+    /// City OS v2: the id of the 在地 event whose map marker is highlighted (set
+    /// when the user taps "在地图上看" in the live sheet or a chat event card).
+    /// Purely a render cue for `EventMarkerView.isHighlighted`; nil = none.
+    public var highlightedEventId: String?
     public var isShowingDetail: Bool = false
     /// True when the current detail sheet was opened *directly* by a tap (map
     /// pin / Nearby row) with no floating preview card behind it. Backing out

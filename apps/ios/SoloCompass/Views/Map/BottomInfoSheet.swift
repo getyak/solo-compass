@@ -254,6 +254,10 @@ public struct BottomInfoSheet<Content: View>: View {
     /// the peek summary card; the pill is hidden when nil.
     private let onShuffle: (() -> Void)?
     private let onRefresh: (() async -> Void)?
+    /// City OS v2: mirrors the current detent out to the host so it can gate
+    /// peek-only floating overlays (drawer tabs / mode cards). Optional with a
+    /// nil default so every existing call site is byte-identical.
+    private let onDetentChange: ((BottomSheetDetent) -> Void)?
     private let content: (BottomSheetDetent, Binding<SortMode>) -> Content
 
     public init(
@@ -267,6 +271,7 @@ public struct BottomInfoSheet<Content: View>: View {
         isPreviewActive: Bool = false,
         onShuffle: (() -> Void)? = nil,
         onRefresh: (() async -> Void)? = nil,
+        onDetentChange: ((BottomSheetDetent) -> Void)? = nil,
         @ViewBuilder content: @escaping (BottomSheetDetent, Binding<SortMode>) -> Content
     ) {
         self.aiHint = aiHint
@@ -279,6 +284,7 @@ public struct BottomInfoSheet<Content: View>: View {
         self.isPreviewActive = isPreviewActive
         self.onShuffle = onShuffle
         self.onRefresh = onRefresh
+        self.onDetentChange = onDetentChange
         self.content = content
     }
 
@@ -414,7 +420,9 @@ public struct BottomInfoSheet<Content: View>: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.85), value: currentDetent)
         .onChange(of: currentDetent) { _, newValue in
             if newValue != .peek { hasEverExpanded = true }
+            onDetentChange?(newValue)
         }
+        .onAppear { onDetentChange?(currentDetent) }
     }
 
     // MARK: - Peek content

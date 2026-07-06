@@ -896,6 +896,7 @@
 /* Reasoning trace (elegant "thinking" panel) */
 "agent.trace.foundPlaces" = "Found %d place(s) that fit";
 "agent.trace.builtRoute" = "Strung %d stops into a walk";
+"agent.trace.foundEvents" = "Found %d local event(s)";
 "chat.thinking.title" = "Thinking it through";
 "chat.thinking.a11y" = "Solo Compass is thinking";
 
@@ -2187,6 +2188,58 @@
 "dev.flag.companion.subtitle" = "Friends, DMs, and companion discovery.";
 "dev.flag.companionLayer.title" = "Companion map layer";
 "dev.flag.companionLayer.subtitle" = "In-map toggle for nearby presence cells.";
+"dev.flag.cityOS.title" = "City OS";
+"dev.flag.cityOS.subtitle" = "Landing kit, local events, compliance banner, and city modes.";
+
+/* City OS v2: visa-expiry local reminder (PRD §5.2) */
+"cityos.visa.reminder.title" = "Visa reminder";
+"cityos.visa.reminder.body" = "%d days left on your visa — time to decide: extend, or book the next leg.";
+
+/* City OS v2: landing kit (落地包) */
+"cityos.kit.title" = "Landing Kit";
+"cityos.kit.link.open" = "Open";
+"cityos.kit.link.open.a11y" = "Open %@";
+"cityos.kit.link.toast" = "Opened %@ · come back to continue";
+"cityos.kit.call.a11y" = "Call %1$@ at %2$@";
+"cityos.health.unverified" = "unverified";
+
+/* City OS v2: visa / 183-day compliance */
+"cityos.visa.daysLeft" = "days of visa left";
+"cityos.visa.taxLine" = "days to the 183-day tax line";
+"cityos.visa.reminder.toggle" = "Expiry reminder";
+"cityos.visa.entryDate" = "Entry date";
+"cityos.visa.length" = "Visa %d days";
+"cityos.compliance.prefix" = "Visa: ";
+"cityos.compliance.suffix" = " days left";
+"cityos.compliance.overstay" = "Overstayed by %d days";
+"cityos.compliance.handle" = "Handle";
+"cityos.compliance.a11y" = "Visa: %d days remaining";
+
+/* City OS v2: local events (在地 · 本周) */
+"cityos.live.title" = "Local · This Week";
+"cityos.live.solo" = "Solo %@";
+"cityos.live.showOnMap" = "Show on map";
+"cityos.live.showOnMap.a11y" = "Show %@ on the map";
+"cityos.live.empty.title" = "Nothing on this week";
+"cityos.live.empty.hint" = "Check back — the city brief refreshes twice a week.";
+"cityos.event.marker.a11y" = "Event: %1$@, %2$@";
+
+/* City OS v2: drawer tabs + modes */
+"cityos.tab.kit" = "Landing Kit";
+"cityos.tab.live" = "Local · This Week";
+"cityos.mode.thisCity" = "This city";
+"cityos.picker.mode.section" = "City mode";
+"cityos.mode.live.tag" = "Here now";
+"cityos.mode.plan.tag" = "Plan";
+"cityos.mode.plan.title" = "%@ · Planning";
+"cityos.mode.plan.body" = "Pre-trip checklist, visa timing, and what to line up before you land — coming soon.";
+"cityos.mode.plan.cta" = "See the landing kit";
+"cityos.mode.recall.tag" = "Recall";
+"cityos.mode.recall.title" = "%@ · Looking back";
+"cityos.mode.recall.body" = "Your walks, moments, and what this city was like for you — coming soon.";
+
+/* City OS v2: today's city omen (今日城市签) */
+"cityos.omen.line" = "Today's city omen · %@";
 
 "dev.tools.header" = "Debug Tools";
 "dev.tools.entitlement" = "Force entitlement";

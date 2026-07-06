@@ -218,6 +218,34 @@ public final class NotificationService {
         await deliver(content, id: "ai-now-\(deepLinkExperienceId ?? UUID().uuidString)", after: 2)
     }
 
+    // MARK: - City OS v2: visa-expiry reminder (PRD §5.2)
+
+    /// Schedules the local visa-expiry reminder. Fires when the stay enters
+    /// its last 7 days (or within seconds if it already has). Fixed identifier
+    /// so re-scheduling replaces the pending request instead of stacking —
+    /// call `cancelVisaExpiryReminder()` when the user turns the toggle off.
+    public func scheduleVisaExpiryReminder(daysRemaining: Int) async {
+        guard isAuthorized else { return }
+        let content = UNMutableNotificationContent()
+        content.title = NSLocalizedString("cityos.visa.reminder.title", comment: "Visa expiry reminder title")
+        let daysAtFire = min(daysRemaining, 7)
+        content.body = String(
+            format: NSLocalizedString("cityos.visa.reminder.body", comment: "Visa expiry reminder body with day count"),
+            daysAtFire
+        )
+        content.sound = .default
+        content.userInfo = ["kind": "visa-expiry"]
+        // Fire at the 7-days-left mark; already inside the window → fire shortly.
+        let seconds = daysRemaining > 7 ? TimeInterval(daysRemaining - 7) * 86_400 : 5
+        await deliver(content, id: "visa-expiry", after: seconds)
+    }
+
+    /// Removes any pending visa-expiry reminder (user disabled the toggle or
+    /// cleared their entry date).
+    public func cancelVisaExpiryReminder() async {
+        await center.removePendingNotificationRequests(withIdentifiers: ["visa-expiry"])
+    }
+
     /// ② 出发提醒 (time-sensitive) — "30 分钟后集合" with "我已出发 / 查看路线"
     /// quick actions. Time-sensitive so it can break through Focus when the
     /// group is about to set off. Fires at `fireDate` (e.g. 30 min before the

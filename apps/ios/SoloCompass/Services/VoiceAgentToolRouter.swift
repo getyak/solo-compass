@@ -83,17 +83,32 @@ public final class VoiceAgentToolRouter {
     public enum ToolEffect: Equatable {
         case experiences([Experience])
         case route(RouteProposal)
+        /// City OS v2: 在地 events surfaced by `find_local_events`, rendered as
+        /// `ChatEventCard`s the user can tap to jump to on the map.
+        case events([CityEvent])
     }
     public private(set) var lastEffect: ToolEffect?
+
+    /// City OS v2 content plane — resolves `get_city_kit` / `find_local_events`.
+    /// Weak so the router can't outlive the view's services; a nil service
+    /// yields the standard dependency-unavailable envelope.
+    private weak var cityBriefService: CityBriefService?
+    /// City OS v2 visa math — `get_city_kit`'s visa numbers come from here, so
+    /// the model never invents day counts.
+    private weak var complianceService: ComplianceService?
 
     public init(
         mapViewModel: MapViewModel,
         preferences: UserPreferences,
-        aiService: AIService? = nil
+        aiService: AIService? = nil,
+        cityBriefService: CityBriefService? = nil,
+        complianceService: ComplianceService? = nil
     ) {
         self.mapViewModel = mapViewModel
         self.preferences = preferences
         self.aiService = aiService
+        self.cityBriefService = cityBriefService
+        self.complianceService = complianceService
     }
 
     // MARK: - Tool catalog
@@ -369,6 +384,39 @@ public final class VoiceAgentToolRouter {
             }
             """#
         ),
+
+        // City OS v2 (PRD solo-city-os-v2 §5.2–5.3): the landing kit + local
+        // events for the current city. Content is city-shared and pre-compiled
+        // server-side; these tools READ it and return compact facts — the model
+        // never invents kit copy, visa numbers, or events.
+        .init(
+            name: "get_city_kit",
+            description: "Return the 落地包 landing-kit essentials for the current city — connectivity (net), money, visa/tax, and safety. Use when the user asks how to get online, get cash, visa rules, days left, emergency numbers, or 'what do I need to know landing here'. Visa day counts come from the user's own stored entry date; if none is set, the visa numbers are omitted and you should tell them to set their entry date in the 落地包.",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "city_code": {"type": "string", "description": "Optional; defaults to the current map city."},
+                "kinds": {"type": "array", "items": {"type": "string", "enum": ["net","money","visa","safety"]}, "description": "Optional subset of kit sections to return; omit for all four."}
+              }
+            }
+            """#
+        ),
+        .init(
+            name: "find_local_events",
+            description: "Find 在地 local happenings this week for the current city — festivals, markets, and travel notices — each with a solo-friendliness score and a one-line 'is it good to go alone' note. Use when the user asks what's on, what to do this weekend, or wants something happening nearby. Results appear as tappable cards the user can jump to on the map. Notices (road closures, strikes) are included but have no solo score.",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "properties": {
+                "city_code": {"type": "string", "description": "Optional; defaults to the current map city."},
+                "within_days": {"type": "integer", "minimum": 1, "maximum": 30, "default": 7, "description": "Only include events starting within this many days."},
+                "solo_score_min": {"type": "number", "minimum": 0, "maximum": 10, "description": "Optional minimum solo-friendliness score (notices are always kept)."},
+                "query": {"type": "string", "description": "Optional keyword to match against event name + solo note."}
+              }
+            }
+            """#
+        ),
     ]
 
     // MARK: - Execution
@@ -422,6 +470,12 @@ public final class VoiceAgentToolRouter {
                 return try executeRecallLocalScene(args: call.argumentsJSON)
             case "recall_memory":
                 return try executeRecallMemory(args: call.argumentsJSON)
+
+            // City OS v2 kit / events.
+            case "get_city_kit":
+                return try await executeGetCityKit(args: call.argumentsJSON)
+            case "find_local_events":
+                return try await executeFindLocalEvents(args: call.argumentsJSON)
 
             default:
                 throw RouterError.unknownTool(call.name)
@@ -1164,5 +1218,144 @@ public final class VoiceAgentToolRouter {
             hint: "Cite the surfaced episodes with a natural aside — 'you mentioned X last time' — before your recommendation. Don't dump the full body verbatim."
         )
         return outcome.encodeForModel()
+    }
+
+    // MARK: - City OS v2 (get_city_kit / find_local_events)
+
+    private struct GetCityKitArgs: Decodable {
+        let city_code: String?
+        let kinds: [String]?
+    }
+
+    /// Resolve the current city (arg or map selection), load the brief, and
+    /// return the requested kit sections as compact facts. Visa day counts come
+    /// ONLY from `ComplianceService` (never invented by the model); when the
+    /// user hasn't set an entry date, the visa row carries a `visa_setup_needed`
+    /// flag instead of numbers.
+    private func executeGetCityKit(args: String) async throws -> String {
+        let parsed: GetCityKitArgs = try Self.decode(args, tool: "get_city_kit")
+        let service = try requireCityBrief(tool: "get_city_kit")
+        let code = try resolveCityCode(param: parsed.city_code, tool: "get_city_kit")
+        await service.load(cityCode: code)
+
+        let wanted: Set<String>? = parsed.kinds.map(Set.init)
+        let rows = service.kit.filter { wanted?.contains($0.kind.rawValue) ?? true }
+        guard !rows.isEmpty else {
+            return Self.successJSON([
+                "city_code": code,
+                "sections": [String](),
+                "note": "no_kit_for_city",
+            ])
+        }
+
+        let sections: [[String: Any]] = rows.map { item in
+            var dict: [String: Any] = [
+                "section": item.kind.rawValue,
+                "name": item.name,
+                "body": item.main,
+            ]
+            if let lens = item.lens { dict["lens"] = lens }
+            if let label = item.linkLabel { dict["link_label"] = label }
+            if item.kind == .visa {
+                if let state = complianceService?.state() {
+                    dict["visa_days_remaining"] = state.visaDaysRemaining
+                    dict["tax_days_remaining"] = state.taxDaysRemaining
+                    dict["days_stayed"] = state.daysStayed
+                } else {
+                    dict["visa_setup_needed"] = true
+                }
+            }
+            if item.kind == .safety, let numbers = item.action?.numbers {
+                dict["emergency_numbers"] = numbers.map { ["label": $0.label, "number": $0.number] }
+            }
+            return dict
+        }
+        return Self.successJSON(["city_code": code, "sections": sections])
+    }
+
+    private struct FindLocalEventsArgs: Decodable {
+        let city_code: String?
+        let within_days: Int?
+        let solo_score_min: Double?
+        let query: String?
+    }
+
+    /// Filter the city's active events by window / solo score / keyword and set
+    /// a `.events` effect so the chat surface renders tappable event cards.
+    /// Notices are always kept (a road closure isn't scored but matters).
+    private func executeFindLocalEvents(args: String) async throws -> String {
+        let parsed: FindLocalEventsArgs = try Self.decode(args, tool: "find_local_events")
+        let service = try requireCityBrief(tool: "find_local_events")
+        let code = try resolveCityCode(param: parsed.city_code, tool: "find_local_events")
+        await service.load(cityCode: code)
+
+        let now = Date()
+        let withinDays = max(1, min(30, parsed.within_days ?? 7))
+        let horizon = Calendar.current.date(byAdding: .day, value: withinDays, to: now) ?? now
+        let queryLower = parsed.query?.lowercased()
+
+        let matches = service.activeEvents(now: now).filter { event in
+            // Window: keep events with no start date, or starting before horizon.
+            if let starts = event.startsAt, starts > horizon { return false }
+            // Notices bypass the solo-score floor.
+            if !event.isNotice, let floor = parsed.solo_score_min {
+                guard let score = event.soloScore, score >= floor else { return false }
+            }
+            if let q = queryLower, !q.isEmpty {
+                let haystack = (event.name + " " + (event.soloNote ?? "")).lowercased()
+                guard haystack.contains(q) else { return false }
+            }
+            return true
+        }
+
+        if !matches.isEmpty {
+            lastEffect = .events(matches)
+        }
+
+        let payload: [[String: Any]] = matches.map { event in
+            var dict: [String: Any] = [
+                "id": event.id,
+                "name": event.name,
+                "when": event.whenLabel,
+                "is_notice": event.isNotice,
+            ]
+            if let score = event.soloScore { dict["solo_score"] = score }
+            if let note = event.soloNote { dict["solo_note"] = note }
+            if event.lat != nil && event.lng != nil { dict["has_map_location"] = true }
+            return dict
+        }
+        return Self.successJSON([
+            "city_code": code,
+            "count": matches.count,
+            "within_days": withinDays,
+            "events": payload,
+        ])
+    }
+
+    /// City OS content plane or the standard dependency-unavailable envelope.
+    private func requireCityBrief(tool: String) throws -> CityBriefService {
+        guard let service = cityBriefService else {
+            throw RouterError.dependencyUnavailable(
+                tool: tool,
+                dependency: "cityBriefService",
+                hint: "City OS content isn't available this session. Answer from general knowledge and suggest the user open the 落地包 / 在地 tabs on the map."
+            )
+        }
+        return service
+    }
+
+    /// Resolve a lowercase city code from the tool arg or the map's selected
+    /// city. Throws when neither is available so the model asks the user.
+    private func resolveCityCode(param: String?, tool: String) throws -> String {
+        if let param, !param.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return CityOSStore.normalizedCityKey(param)
+        }
+        if let selected = mapViewModel?.selectedCity, !selected.isEmpty {
+            return CityOSStore.normalizedCityKey(selected)
+        }
+        throw RouterError.invalidArguments(
+            tool: tool,
+            reason: "no city_code given and no city is selected on the map — ask the user which city they mean"
+        )
     }
 }

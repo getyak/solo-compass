@@ -172,6 +172,25 @@ struct CompassMapContentView: View {
     @State private var isShowingCityPicker: Bool = false
     @State private var surveyExperience: Experience? = nil
     @State private var isShowingFavorites: Bool = false
+
+    // MARK: - City OS v2 (PRD solo-city-os-v2 §4–5), all gated by FeatureFlags.cityOS
+    /// Per-city mode (Live/Plan/Recall) + kit auto-surface bookkeeping.
+    @State private var cityOSStore: CityOSStore
+    /// Landing-kit + local-events content plane (cache-first, seed fallback).
+    @State private var cityBriefService: CityBriefService
+    /// Visa / 183-day self-computation (pure-local).
+    @State private var complianceService: ComplianceService
+    @State private var isShowingKitSheet: Bool = false
+    /// When set, the kit sheet opens focused on this row (e.g. the visa row from
+    /// the compliance banner). Cleared on dismiss.
+    @State private var kitSheetFocus: CityKitItem.Kind? = nil
+    @State private var isShowingLiveSheet: Bool = false
+    /// Session-scoped dismissal of the compliance banner — it reappears next day
+    /// (a fresh interruption-budget day), never again this session.
+    @State private var complianceBannerDismissed: Bool = false
+    /// Mirror of the BottomInfoSheet's current detent, so the drawer tabs only
+    /// show at `.peek`. Threaded via `onDetentChange`.
+    @State private var sheetDetent: BottomSheetDetent = .peek
     @State private var voiceOrchestrator: VoiceAgentOrchestrator? = nil
     /// Selected detent for the chat sheet. Bound into `presentationDetents` so
     /// the sheet can auto-expand to `.large` while the agent is working (see
@@ -309,6 +328,13 @@ struct CompassMapContentView: View {
         )
         vm.attachSubscriptionService(subscriptionService)
         _viewModel = State(initialValue: vm)
+
+        // City OS v2: these three own the (city, mode) + brief content + visa
+        // math. Built here (not lazily) because they need `preferences` and,
+        // like `vm`, must be live for any write between launch and `onAppear`.
+        _cityOSStore = State(initialValue: CityOSStore(preferences: preferences))
+        _cityBriefService = State(initialValue: CityBriefService())
+        _complianceService = State(initialValue: ComplianceService(preferences: preferences))
     }
 
     /// Bottom inset for the floating selected-experience card so it rests
@@ -331,6 +357,133 @@ struct CompassMapContentView: View {
     private var controlBarBottomInset: CGFloat {
         let controlSheetGap: CGFloat = 8
         return sheetPeekClearance + controlSheetGap
+    }
+
+    // MARK: - City OS v2 helpers
+
+    /// Bottom inset for the City-OS drawer tabs so they float just above the
+    /// peek sheet. Slightly more gap than the control bar so the two glass
+    /// pills read as their own row, not stacked on the FAB.
+    private var drawerTabsBottomInset: CGFloat {
+        sheetPeekClearance + 8
+    }
+
+    /// The current city's mode (Live/Plan/Recall). Live is the default.
+    private var currentCityMode: CityMode {
+        cityOSStore.mode(for: viewModel.selectedCity)
+    }
+
+    /// Display name for the current city (for the mode placeholder cards),
+    /// falling back to the raw code, then a generic label.
+    private var currentCityDisplayName: String {
+        guard let code = viewModel.selectedCity else {
+            return NSLocalizedString("cityos.mode.thisCity", comment: "This city (unknown)")
+        }
+        return viewModel.availableCities.first { $0.code == code }?.name ?? code
+    }
+
+    /// Pure banner-arbitration ladder: offline > POI loading > compliance. The
+    /// compliance banner shows only when City OS is on, the visa is critical,
+    /// the banner hasn't been dismissed this session, and the city is in Live
+    /// mode. Extracted so `ComplianceBannerArbitrationTests` can pin every rung.
+    /// `nonisolated` (pure) so tests can call it off the main actor.
+    nonisolated static func showsComplianceBanner(
+        offline: Bool,
+        fetching: Bool,
+        cityOSEnabled: Bool,
+        critical: Bool,
+        dismissed: Bool,
+        isLive: Bool
+    ) -> Bool {
+        guard cityOSEnabled, !offline, !fetching else { return false }
+        return critical && !dismissed && isLive
+    }
+
+    /// Whether the compliance banner should render right now, consulting live
+    /// state. `showsComplianceBanner` holds the pure logic.
+    private var shouldShowComplianceBanner: Bool {
+        Self.showsComplianceBanner(
+            offline: !networkMonitor.isConnected,
+            fetching: viewModel.isFetchingPOIs,
+            cityOSEnabled: FeatureFlags.cityOS,
+            critical: complianceService.state()?.isCritical == true,
+            dismissed: complianceBannerDismissed,
+            isLive: currentCityMode == .live
+        )
+    }
+
+    /// Whether the City-OS drawer tabs should show: flag on, resting at peek,
+    /// Live mode, no experience selected, and kit content exists.
+    private var shouldShowDrawerTabs: Bool {
+        FeatureFlags.cityOS
+            && sheetDetent == .peek
+            && viewModel.selectedExperience == nil
+            && currentCityMode == .live
+            && !cityBriefService.kit.isEmpty
+    }
+
+    /// Load the landing kit + local events for a city and, when `autoSurface`
+    /// is true and the city is unseen + in Live mode + has kit content + the
+    /// interruption budget allows + no other sheet is up, push the kit sheet
+    /// once. Also fires the 今日城市签 daily omen (its own 1/day budget). Always
+    /// reloads content regardless of the auto-surface decision.
+    private func loadCityBrief(for cityCode: String?, autoSurface: Bool) {
+        guard FeatureFlags.cityOS, let cityCode, !cityCode.isEmpty else { return }
+        Task {
+            await cityBriefService.load(cityCode: cityCode)
+            guard currentCityMode == .live else { return }
+            startDailyOmenIfAvailable()
+            guard autoSurface,
+                  !cityOSStore.hasSeenKit(cityCode),
+                  cityBriefService.hasKit(for: cityCode),
+                  !anyCityOSSheetIsUp,
+                  CityOSInterruptionBudget.consumeProactive()
+            else { return }
+            cityOSStore.markKitSeen(cityCode)
+            kitSheetFocus = nil
+            isShowingKitSheet = true
+        }
+    }
+
+    /// True when any sheet that would collide with an auto-surfacing kit is
+    /// already presented — the kit must never shove itself in front of one.
+    private var anyCityOSSheetIsUp: Bool {
+        isShowingCityPicker || isShowingKitSheet || isShowingLiveSheet
+            || isShowingFavorites || isShowingMe || viewModel.isShowingDetail
+            || voiceOrchestrator != nil
+    }
+
+    /// Present today's 今日城市签 Live Activity for the loaded city's daily pick.
+    /// `startDailyOmen` owns the 1/day budget, so repeat calls are no-ops.
+    private func startDailyOmenIfAvailable() {
+        guard let pick = cityBriefService.dailyPick() else { return }
+        let line = String(
+            format: NSLocalizedString("cityos.omen.line", comment: "今日城市签 · %@"),
+            pick.name
+        )
+        LiveActivityService.shared.startDailyOmen(
+            line: line,
+            microTask: pick.soloNote ?? pick.whenLabel
+        )
+    }
+
+    /// Consume one interruption-budget unit the FIRST time the compliance banner
+    /// renders on a given local day — a per-day UserDefaults stamp ensures a
+    /// re-render within the same day doesn't double-charge. When the budget is
+    /// already spent, dismiss the banner for this session so it stays silent.
+    private func consumeComplianceBudgetOncePerDay() {
+        let key = Self.complianceBudgetStampKey(for: Date())
+        guard UserDefaults.standard.string(forKey: "cityos.compliance.banner.day") != key else { return }
+        UserDefaults.standard.set(key, forKey: "cityos.compliance.banner.day")
+        if !CityOSInterruptionBudget.consumeProactive() {
+            complianceBannerDismissed = true
+        }
+    }
+
+    /// Per-day stamp key (yyyy-MM-dd) for the compliance-banner budget guard.
+    private static func complianceBudgetStampKey(for date: Date) -> String {
+        let comps = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", comps.year ?? 0, comps.month ?? 0, comps.day ?? 0)
     }
 
     /// The `BottomInfoSheet` peek height at the current Dynamic Type size — the
@@ -550,6 +703,10 @@ struct CompassMapContentView: View {
                     // lands directly on a city with seeded routes shows an empty
                     // Routes section, and 开始路线 is unreachable from the map.
                     refreshNearbyRoutes(cityCode: viewModel.selectedCity)
+                    // City OS v2: load the landing kit + local events for the
+                    // initial city and, on first cold start in a Live city, let
+                    // the kit auto-surface once (budget-gated).
+                    loadCityBrief(for: viewModel.selectedCity, autoSurface: true)
                     // #80: Cold-start resume. If RouteStore has an active route
                     // persisted from a previous session, rebuild the in-memory
                     // ActiveRoute @State so the polyline, numbered pins, and
@@ -578,6 +735,22 @@ struct CompassMapContentView: View {
                     if ProcessInfo.processInfo.arguments.contains("-triggerExplore") {
                         let center = viewModel.defaultCenterForSelectedCity
                         Task { await viewModel.exploreNearby(at: center) }
+                    }
+                    // City OS v2 screenshot-harness hooks: force-open the landing
+                    // kit or live sheet unconditionally, bypassing the "seen kit"
+                    // budget so an automated verification run always sees the same
+                    // surface. Small delay lets the picker resolve and the sheet
+                    // detent settle first.
+                    if ProcessInfo.processInfo.arguments.contains("-openKitSheet") {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            kitSheetFocus = nil
+                            isShowingKitSheet = true
+                        }
+                    }
+                    if ProcessInfo.processInfo.arguments.contains("-openLiveSheet") {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            isShowingLiveSheet = true
+                        }
                     }
                     // ④ Self-eval Rubric e2e hook: on cold start simulate one
                     // completed turn matching the "happy path" fixture and
@@ -709,6 +882,13 @@ struct CompassMapContentView: View {
                 if let active = activeRoute, active.route.cityCode != cityCode {
                     activeRoute = nil
                 }
+                // City OS v2: switching city always reloads the brief (content
+                // refresh); the kit may auto-surface once for a Live city not
+                // yet seen. Reset the highlight + banner dismissal for the new
+                // city so a stale marker glow / dismissed banner don't carry over.
+                viewModel.highlightedEventId = nil
+                complianceBannerDismissed = false
+                loadCityBrief(for: cityCode, autoSurface: true)
             }
             .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { _ in
                 refreshNearbyRoutes(cityCode: viewModel.selectedCity)
@@ -731,6 +911,12 @@ struct CompassMapContentView: View {
             .sheet(isPresented: recordExperienceSheetBinding) { recordExperienceSheetContent }
             .sheet(isPresented: detailSheetBinding) { detailSheetContent }
             .sheet(isPresented: $isShowingCityPicker) { cityPickerSheetContent }
+            // City OS v2: KitSheet / LiveSheet presenters live on the OUTER
+            // mapContent chain (never the inner ZStack) — SwiftUI silently drops
+            // deeply-nested presenters when the outer chain already carries many
+            // sheets (see the L1180-ish stacked-sheets note).
+            .sheet(isPresented: $isShowingKitSheet, onDismiss: { kitSheetFocus = nil }) { kitSheetContent }
+            .sheet(isPresented: $isShowingLiveSheet) { liveSheetContent }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
             // Bind the chat sheet to the orchestrator itself instead of a
             // separate Bool. With `.sheet(isPresented:)` the content closure
@@ -831,6 +1017,16 @@ struct CompassMapContentView: View {
             // collides with the status bar.
             mapLayer(viewModel: viewModel)
                 .ignoresSafeArea()
+
+                // City OS v2: in Plan mode the whole map cools to a considered,
+                // "you're not here yet" register — a soft blue-white wash that
+                // crossfades in over 350ms and never blocks touches.
+                if FeatureFlags.cityOS && currentCityMode == .plan {
+                    CT.modePlanBlue.opacity(0.06)
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
 
                 MapOverlayView(
                     viewModel: viewModel,
@@ -951,6 +1147,27 @@ struct CompassMapContentView: View {
                         Spacer()
                     }
                     .animation(.easeInOut, value: viewModel.isFetchingPOIs)
+                } else if shouldShowComplianceBanner {
+                    // City OS v2 compliance banner (§4.3): the lowest rung of the
+                    // top-banner ladder (offline > POI loading > compliance) so it
+                    // never stacks with either. Its first appearance of the day
+                    // consumes the interruption budget in `.onAppear` below.
+                    VStack {
+                        ComplianceBanner(
+                            daysRemaining: complianceService.state()?.visaDaysRemaining ?? 0,
+                            onHandle: {
+                                kitSheetFocus = .visa
+                                isShowingKitSheet = true
+                            },
+                            onDismiss: {
+                                withAnimation(.easeInOut) { complianceBannerDismissed = true }
+                            }
+                        )
+                        .padding(.top, 8)
+                        .onAppear { consumeComplianceBudgetOncePerDay() }
+                        Spacer()
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 ZStack(alignment: .bottom) {
@@ -984,6 +1201,9 @@ struct CompassMapContentView: View {
                         },
                         onRefresh: {
                             viewModel.loadNearbyExperiences()
+                        },
+                        onDetentChange: { detent in
+                            if sheetDetent != detent { sheetDetent = detent }
                         }
                     ) { detent, sortMode in
                         if detent != .peek {
@@ -1156,6 +1376,46 @@ struct CompassMapContentView: View {
                     }
                 }
 
+                // City OS v2: the floating slot above the peek sheet holds either
+                // the two drawer tabs (Live mode) or a Plan/Recall placeholder
+                // card (other modes). Both sit clear of the peek sheet via the
+                // Dynamic-Type-aware inset and never coexist with a selection card
+                // (their guards are mutually exclusive with `selectedExperience`).
+                if FeatureFlags.cityOS {
+                    if shouldShowDrawerTabs {
+                        VStack {
+                            Spacer()
+                            CityDrawerTabs(
+                                kitCount: cityBriefService.kit.count,
+                                eventCount: cityBriefService.activeEvents().count,
+                                onOpenKit: {
+                                    kitSheetFocus = nil
+                                    isShowingKitSheet = true
+                                },
+                                onOpenLive: { isShowingLiveSheet = true }
+                            )
+                            .padding(.bottom, drawerTabsBottomInset)
+                        }
+                        .transition(.opacity)
+                    } else if currentCityMode != .live
+                        && sheetDetent == .peek
+                        && viewModel.selectedExperience == nil {
+                        VStack {
+                            Spacer()
+                            Group {
+                                if currentCityMode == .plan {
+                                    PlanCard(cityName: currentCityDisplayName, onOpenKit: { isShowingKitSheet = true })
+                                } else {
+                                    RecallCard(cityName: currentCityDisplayName, onOpenKit: { isShowingKitSheet = true })
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, drawerTabsBottomInset)
+                        }
+                        .transition(.opacity)
+                    }
+                }
+
                 // Active-route banner: a pill naming the walk with an end button.
                 // Floats above the map; tapping ⨯ clears the polyline. It sits
                 // BELOW the city pill + filter bar (offset by the filter bar's
@@ -1267,6 +1527,9 @@ struct CompassMapContentView: View {
                 .zIndex(25)
             }
         }
+        // City OS v2: crossfade the Plan wash + the mode-dependent floating slot
+        // (drawer tabs ⇄ placeholder cards) when the traveler flips city mode.
+        .animation(.easeInOut(duration: 0.35), value: currentCityMode)
     }
 
     // MARK: - Sheet Bindings
@@ -1474,9 +1737,50 @@ struct CompassMapContentView: View {
 
     @ViewBuilder
     private var cityPickerSheetContent: some View {
-        LocationPickerSheet(viewModel: viewModel) {
+        LocationPickerSheet(
+            viewModel: viewModel,
+            cityOSStore: FeatureFlags.cityOS ? cityOSStore : nil
+        ) {
             isShowingCityPicker = false
         }
+    }
+
+    // MARK: - City OS v2 sheet content
+
+    @ViewBuilder
+    private var kitSheetContent: some View {
+        KitSheet(
+            kit: cityBriefService.kit,
+            preferences: preferences,
+            complianceService: complianceService,
+            focusKind: kitSheetFocus,
+            onDismiss: { isShowingKitSheet = false }
+        )
+    }
+
+    @ViewBuilder
+    private var liveSheetContent: some View {
+        LiveSheet(
+            events: cityBriefService.activeEvents(),
+            onShowOnMap: { event in
+                isShowingLiveSheet = false
+                focusEventOnMap(event)
+            },
+            onDismiss: { isShowingLiveSheet = false }
+        )
+    }
+
+    /// Recenter the camera on an event and highlight its marker (shared by the
+    /// live sheet and the chat event card).
+    private func focusEventOnMap(_ event: CityEvent) {
+        guard let lat = event.lat, let lng = event.lng else { return }
+        withAnimation(.easeInOut(duration: 0.4)) {
+            viewModel.cameraPosition = .region(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            ))
+        }
+        viewModel.highlightedEventId = event.id
     }
 
     @ViewBuilder
@@ -1857,7 +2161,11 @@ struct CompassMapContentView: View {
             // P2.0 #201/#202: hand the shared MemoryDigestService so the
             // agent injects the AgentMemorySnapshot into its system prompt
             // and refreshes the digest after each completed turn.
-            memoryDigest: MemoryDigestService.shared
+            memoryDigest: MemoryDigestService.shared,
+            // City OS v2: wire the content plane + visa math so the get_city_kit
+            // / find_local_events tools resolve real facts (gated by the flag).
+            cityBriefService: FeatureFlags.cityOS ? cityBriefService : nil,
+            complianceService: FeatureFlags.cityOS ? complianceService : nil
         )
         orch.start()
         voiceOrchestrator = orch
@@ -1905,6 +2213,11 @@ struct CompassMapContentView: View {
                 routeStore.save(proposal.route)
                 refreshNearbyRoutes(cityCode: viewModel.selectedCity)
                 routeSheet = .detail(proposal.route)
+            },
+            // City OS v2: tapping "在地图上看" on a chat event card recenters the
+            // map on the event and highlights its marker (chat already dismissed).
+            onShowEventOnMap: { event in
+                focusEventOnMap(event)
             },
             // Bound detent lets the sheet auto-expand to full height while the
             // agent is thinking, then the user can still drag it back down.
@@ -2069,6 +2382,26 @@ struct CompassMapContentView: View {
                                 format: NSLocalizedString("map.candidate.label", comment: "Candidate experience: %@"),
                                 cand.title
                             )))
+                        }
+                    }
+                }
+                // City OS v2: 在地 event回流 markers on their OWN Annotation
+                // layer — deliberately outside the clustered POI pipeline so the
+                // marker-count perf tests stay honest. Live mode only; each event
+                // with a coordinate gets a breathing (reduce-motion static) ring.
+                if FeatureFlags.cityOS && currentCityMode == .live {
+                    ForEach(cityBriefService.activeEvents()) { event in
+                        if let lat = event.lat, let lng = event.lng {
+                            Annotation("", coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)) {
+                                EventMarkerView(
+                                    event: event,
+                                    isHighlighted: viewModel.highlightedEventId == event.id,
+                                    onTap: {
+                                        viewModel.highlightedEventId = event.id
+                                        isShowingLiveSheet = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }

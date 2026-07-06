@@ -104,6 +104,32 @@ public enum FeatureFlags {
         #endif
     }
 
+    /// City OS v2 master gate (PRD solo-city-os-v2 §4–5): the 落地包 landing
+    /// kit, 在地 local-events module, compliance banner, city modes
+    /// (Live/Plan/Recall), event map markers, the two chat tools
+    /// (get_city_kit / find_local_events) and the 今日城市签 daily omen feed.
+    /// Content still requires `backendSync` for network refresh — with it off,
+    /// the bundled Vientiane seed keeps every surface functional offline.
+    ///
+    /// DEBUG builds default ON so the whole Live-mode loop is exercisable in
+    /// the Simulator; Release reads plist/env (`FF_CITY_OS`) and defaults OFF
+    /// for a staged rollout. Override in DEBUG without rebuilding:
+    ///
+    ///     defaults write <app-bundle-id> FF_CITY_OS -bool NO
+    public static var cityOS: Bool {
+        #if DEBUG
+        if UserDefaults.standard.object(forKey: "FF_CITY_OS") != nil {
+            return UserDefaults.standard.bool(forKey: "FF_CITY_OS")
+        }
+        if let env = ProcessInfo.processInfo.environment["FF_CITY_OS"] {
+            return env == "1" || env.lowercased() == "true"
+        }
+        return true
+        #else
+        return readBool("FF_CITY_OS", default: false)
+        #endif
+    }
+
     /// US-009: Master gate for the in-map Companion *layer* toggle (the
     /// floating control that overlays nearby blurred presence cells). The
     /// underlying discovery still returns nil today, so the toggle is a dead
@@ -164,6 +190,8 @@ public enum FeatureFlags {
                       subtitleKey: "dev.flag.companion.subtitle", defaultValue: false),
         DeveloperFlag(key: "FF_COMPANION_LAYER_ENABLED", titleKey: "dev.flag.companionLayer.title",
                       subtitleKey: "dev.flag.companionLayer.subtitle", defaultValue: false),
+        DeveloperFlag(key: "FF_CITY_OS", titleKey: "dev.flag.cityOS.title",
+                      subtitleKey: "dev.flag.cityOS.subtitle", defaultValue: false),
     ]
 
     /// The developer override currently stored for `key`, or nil when the
