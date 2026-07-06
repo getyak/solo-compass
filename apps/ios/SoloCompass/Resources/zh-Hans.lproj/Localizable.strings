@@ -1636,6 +1636,12 @@
 "peek.preview.active.hint" = "正在查看你选中的 · 上拉看全部";
 "peek.reason.aiPick" = "现在我最想带你去这里——%@。";
 "peek.reason.warmStart" = "此刻视野里最值得去的%@ · Solo %.1f";
+"peek.now.goodTime" = "现在 %d%% 好时机";
+"peek.confidence.basedOn" = "基于 %d 位独行者";
+"peek.confidence.aiEstimate" = "AI 估算 · 待验证";
+"peek.confidence.basedOn.one" = "基于 1 位独行者";
+"peek.action.go" = "带我去";
+"peek.action.shuffle" = "换一个";
 "sheet.handle.hint" = "点击展开，拖动调整";
 
 /* NowScore 天气信号 (US-005) — %d 为整数温度（°C）。 */
