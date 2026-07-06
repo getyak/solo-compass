@@ -15,6 +15,9 @@ struct ChatCardStack: View {
     let cards: [ChatCard]
     let onSelectExperience: (Experience) -> Void
     let onAdoptRoute: (RouteProposal) -> Void
+    /// City OS v2: user tapped "在地图上看" on an event card. nil (default) drops
+    /// the affordance for callers that don't support map jumps.
+    var onShowEventOnMap: ((CityEvent) -> Void)? = nil
 
     /// Slice B: parallel projection with per-card `.provisional/.committed`
     /// state so the pill can render its countdown. Must be aligned to
@@ -50,6 +53,8 @@ struct ChatCardStack: View {
                     onAdopt: { onAdoptRoute(proposal) },
                     onTapStop: onSelectExperience
                 )
+            case let .events(_, list):
+                eventResults(list)
             }
         }
         // Slice B: overlay the undo pill only while the entry is
@@ -89,6 +94,18 @@ struct ChatCardStack: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(list) { exp in
                 ChatExperienceCard(experience: exp) { onSelectExperience(exp) }
+            }
+        }
+    }
+
+    /// City OS v2: vertical stack of 在地 event cards from `find_local_events`.
+    @ViewBuilder
+    private func eventResults(_ list: [CityEvent]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(list) { event in
+                ChatEventCard(event: event) { tapped in
+                    onShowEventOnMap?(tapped)
+                }
             }
         }
     }

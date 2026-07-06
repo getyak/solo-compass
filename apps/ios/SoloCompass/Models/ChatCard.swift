@@ -21,11 +21,16 @@ public enum ChatCard: Identifiable, Equatable {
     /// A proposed walk the agent strung together. NOT yet saved — the user taps
     /// "采用这条路线" on the card to persist it and open its detail.
     case route(id: UUID, RouteProposal)
+    /// City OS v2: 在地 events the agent found (via `find_local_events`).
+    /// Rendered as a stack of `ChatEventCard`s; tapping "在地图上看" jumps to
+    /// the event on the map.
+    case events(id: UUID, [CityEvent])
 
     public var id: UUID {
         switch self {
         case let .experiences(id, _): return id
         case let .route(id, _): return id
+        case let .events(id, _): return id
         }
     }
 

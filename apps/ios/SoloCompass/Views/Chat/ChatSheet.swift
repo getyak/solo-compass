@@ -25,6 +25,9 @@ public struct ChatSheet: View {
     public let onSelectExperience: (Experience) -> Void
     /// User tapped "采用这条路线" on a proposed-route card — persist + open it.
     public let onAdoptRoute: (RouteProposal) -> Void
+    /// City OS v2: user tapped "在地图上看" on an event card — dismiss the chat,
+    /// recenter the map on the event, and highlight its marker.
+    public let onShowEventOnMap: (CityEvent) -> Void
 
     /// Optional binding to the host sheet's selected detent. When provided, the
     /// sheet auto-expands to `.large` as soon as the agent starts working so the
@@ -91,6 +94,7 @@ public struct ChatSheet: View {
         onDismiss: @escaping () -> Void,
         onSelectExperience: @escaping (Experience) -> Void = { _ in },
         onAdoptRoute: @escaping (RouteProposal) -> Void = { _ in },
+        onShowEventOnMap: @escaping (CityEvent) -> Void = { _ in },
         detent: Binding<PresentationDetent> = .constant(.large),
         historyStore: ChatHistoryStore? = nil,
         initialUserPrompt: String? = nil
@@ -101,6 +105,7 @@ public struct ChatSheet: View {
         self.onDismiss = onDismiss
         self.onSelectExperience = onSelectExperience
         self.onAdoptRoute = onAdoptRoute
+        self.onShowEventOnMap = onShowEventOnMap
         self._detent = detent
         self.historyStore = historyStore
         self.initialUserPrompt = initialUserPrompt
@@ -390,6 +395,7 @@ public struct ChatSheet: View {
                                     cards: cards,
                                     onSelectExperience: handleSelectExperience,
                                     onAdoptRoute: handleAdoptRoute,
+                                    onShowEventOnMap: handleShowEventOnMap,
                                     // Slice B: hand the ledger-state
                                     // projection down so each provisional
                                     // card gets a countdown + undo pill.
@@ -1389,6 +1395,15 @@ public struct ChatSheet: View {
         teardownVoiceStream()
         onDismiss()
         onAdoptRoute(proposal)
+    }
+
+    /// City OS v2: user tapped "在地图上看" on an event card → dismiss the chat
+    /// so the map is visible, then hand the event up to recenter + highlight it.
+    private func handleShowEventOnMap(_ event: CityEvent) {
+        Haptics.impact(.light)
+        teardownVoiceStream()
+        onDismiss()
+        onShowEventOnMap(event)
     }
 
     // MARK: - Voice handling

@@ -339,6 +339,28 @@ struct ChatRouteProposalCard: View {
     }
 }
 
+// MARK: - ChatEventCard (City OS v2)
+
+/// In-chat card for a 在地 event the agent surfaced via `find_local_events`.
+/// Reuses `LiveEventCard` so the chat + live-sheet event surfaces are visually
+/// identical; the "在地图上看" button dismisses the chat and jumps to the
+/// event on the map (the agent never seizes the map on its own).
+@MainActor
+struct ChatEventCard: View {
+    let event: CityEvent
+    /// User tapped "在地图上看" — hand the event up to recenter + highlight.
+    let onShowOnMap: (CityEvent) -> Void
+
+    var body: some View {
+        LiveEventCard(
+            event: event,
+            onShowOnMap: event.lat != nil && event.lng != nil
+                ? { onShowOnMap(event) }
+                : nil
+        )
+    }
+}
+
 private extension Optional where Wrapped == String {
     var isNilOrEmpty: Bool {
         switch self {
