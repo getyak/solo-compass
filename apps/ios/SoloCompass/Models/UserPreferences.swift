@@ -88,6 +88,14 @@ public final class UserPreferences {
         // stored so an A/B test can set it without a code change.
         var companionModuleStrengthRaw: String = ModuleStrength.restrained.rawValue
 
+        // City OS v2 (PRD solo-city-os-v2 §4–5): visa self-computation inputs,
+        // once-per-city kit auto-surface bookkeeping, and per-city mode.
+        var visaEntryDate: Date?
+        var visaLengthDays: Int?
+        var visaReminderEnabled: Bool = false
+        var kitSeenCities: Set<String> = []
+        var cityModesRaw: [String: String] = [:]
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -104,6 +112,8 @@ public final class UserPreferences {
             case hasAcceptedCompanionConsent, companionConsentGivenAt
             case companionEnabled
             case companionModuleStrengthRaw
+            case visaEntryDate, visaLengthDays, visaReminderEnabled
+            case kitSeenCities, cityModesRaw
         }
 
         init() {}
@@ -146,7 +156,12 @@ public final class UserPreferences {
             hasAcceptedCompanionConsent: Bool = false,
             companionConsentGivenAt: Date? = nil,
             companionEnabled: Bool = false,
-            companionModuleStrengthRaw: String = ModuleStrength.restrained.rawValue
+            companionModuleStrengthRaw: String = ModuleStrength.restrained.rawValue,
+            visaEntryDate: Date? = nil,
+            visaLengthDays: Int? = nil,
+            visaReminderEnabled: Bool = false,
+            kitSeenCities: Set<String> = [],
+            cityModesRaw: [String: String] = [:]
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -186,6 +201,11 @@ public final class UserPreferences {
             self.companionConsentGivenAt = companionConsentGivenAt
             self.companionEnabled = companionEnabled
             self.companionModuleStrengthRaw = companionModuleStrengthRaw
+            self.visaEntryDate = visaEntryDate
+            self.visaLengthDays = visaLengthDays
+            self.visaReminderEnabled = visaReminderEnabled
+            self.kitSeenCities = kitSeenCities
+            self.cityModesRaw = cityModesRaw
         }
 
         init(from decoder: Decoder) throws {
@@ -229,6 +249,11 @@ public final class UserPreferences {
             self.companionConsentGivenAt = try container.decodeIfPresent(Date.self, forKey: .companionConsentGivenAt)
             self.companionEnabled = try container.decodeIfPresent(Bool.self, forKey: .companionEnabled) ?? false
             self.companionModuleStrengthRaw = try container.decodeIfPresent(String.self, forKey: .companionModuleStrengthRaw) ?? ModuleStrength.restrained.rawValue
+            self.visaEntryDate = try container.decodeIfPresent(Date.self, forKey: .visaEntryDate)
+            self.visaLengthDays = try container.decodeIfPresent(Int.self, forKey: .visaLengthDays)
+            self.visaReminderEnabled = try container.decodeIfPresent(Bool.self, forKey: .visaReminderEnabled) ?? false
+            self.kitSeenCities = try container.decodeIfPresent(Set<String>.self, forKey: .kitSeenCities) ?? []
+            self.cityModesRaw = try container.decodeIfPresent([String: String].self, forKey: .cityModesRaw) ?? [:]
         }
     }
 
@@ -349,6 +374,23 @@ public final class UserPreferences {
         set { companionModuleStrengthRaw = newValue.rawValue }
     }
 
+    // City OS v2 (PRD solo-city-os-v2 §4–5)
+
+    /// The day the traveler entered the current country — the sole input to
+    /// the visa / 183-day self-computation (`ComplianceMath`). Local-only;
+    /// nil until the user fills the kit's visa row.
+    public var visaEntryDate: Date? { didSet { persist() } }
+    /// Visa validity in days (e.g. 30 for 落地签). Nil until the user sets it.
+    public var visaLengthDays: Int? { didSet { persist() } }
+    /// Whether the local visa-expiry reminder notification is enabled.
+    public var visaReminderEnabled: Bool { didSet { persist() } }
+    /// Lowercase city codes whose landing kit has already auto-surfaced once —
+    /// the kit only ever pushes itself on first arrival (PRD §4.3).
+    public var kitSeenCities: Set<String> { didSet { persist() } }
+    /// Per-city mode (`CityMode.rawValue`) keyed by lowercase city code.
+    /// Read/written through `CityOSStore`; default is `live`.
+    public var cityModesRaw: [String: String] { didSet { persist() } }
+
     /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
     public var aiProvider: AIProvider {
         get { AIProvider(rawValue: aiProviderRaw) ?? .deepseek }
@@ -405,6 +447,11 @@ public final class UserPreferences {
         self.companionConsentGivenAt = snapshot.companionConsentGivenAt
         self.companionEnabled = snapshot.companionEnabled
         self.companionModuleStrengthRaw = snapshot.companionModuleStrengthRaw
+        self.visaEntryDate = snapshot.visaEntryDate
+        self.visaLengthDays = snapshot.visaLengthDays
+        self.visaReminderEnabled = snapshot.visaReminderEnabled
+        self.kitSeenCities = snapshot.kitSeenCities
+        self.cityModesRaw = snapshot.cityModesRaw
 
         // One-time migration: bump the historical 5 km default to the new 8 km
         // cold-start default for users who never touched the distance slider.
@@ -471,7 +518,12 @@ public final class UserPreferences {
             hasAcceptedCompanionConsent: hasAcceptedCompanionConsent,
             companionConsentGivenAt: companionConsentGivenAt,
             companionEnabled: companionEnabled,
-            companionModuleStrengthRaw: companionModuleStrengthRaw
+            companionModuleStrengthRaw: companionModuleStrengthRaw,
+            visaEntryDate: visaEntryDate,
+            visaLengthDays: visaLengthDays,
+            visaReminderEnabled: visaReminderEnabled,
+            kitSeenCities: kitSeenCities,
+            cityModesRaw: cityModesRaw
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

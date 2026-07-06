@@ -2187,6 +2187,12 @@
 "dev.flag.companion.subtitle" = "Friends, DMs, and companion discovery.";
 "dev.flag.companionLayer.title" = "Companion map layer";
 "dev.flag.companionLayer.subtitle" = "In-map toggle for nearby presence cells.";
+"dev.flag.cityOS.title" = "City OS";
+"dev.flag.cityOS.subtitle" = "Landing kit, local events, compliance banner, and city modes.";
+
+/* City OS v2: visa-expiry local reminder (PRD §5.2) */
+"cityos.visa.reminder.title" = "Visa reminder";
+"cityos.visa.reminder.body" = "%d days left on your visa — time to decide: extend, or book the next leg.";
 
 "dev.tools.header" = "Debug Tools";
 "dev.tools.entitlement" = "Force entitlement";

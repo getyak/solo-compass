@@ -236,7 +236,19 @@ public enum SoloCompassSchemaV1_9: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → … → v1.9. Each change is additive (an
+/// v1.10 — City OS v2 (PRD solo-city-os-v2): per-city cached 落地包 kit rows +
+/// 在地 events. Additive table only — lightweight.
+public enum SoloCompassSchemaV1_10: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 10, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_9.models + [
+            CityBriefCacheRecord.self,
+        ]
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → … → v1.10. Each change is additive (an
 /// optional `Data?` column, new @Model tables) or a NOT NULL relaxation, so every
 /// hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
@@ -252,6 +264,7 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             SoloCompassSchemaV1_7.self,
             SoloCompassSchemaV1_8.self,
             SoloCompassSchemaV1_9.self,
+            SoloCompassSchemaV1_10.self,
         ]
     }
 
@@ -292,6 +305,10 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_8.self,
                 toVersion: SoloCompassSchemaV1_9.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_9.self,
+                toVersion: SoloCompassSchemaV1_10.self
             ),
         ]
     }
@@ -361,6 +378,8 @@ public enum SoloCompassModelContainer {
                 TasteProfile.self,
                 TimeCapsule.self,
                 AgentMemorySnapshot.self,
+                // v1.10 — City OS v2 city-brief cache.
+                CityBriefCacheRecord.self,
                 configurations: config
             )
             // Tag the SQLite store + WAL/SHM siblings with
@@ -424,6 +443,8 @@ public enum SoloCompassModelContainer {
                 TasteProfile.self,
                 TimeCapsule.self,
                 AgentMemorySnapshot.self,
+                // v1.10 — City OS v2 city-brief cache.
+                CityBriefCacheRecord.self,
                 configurations: config
             )
         } catch {

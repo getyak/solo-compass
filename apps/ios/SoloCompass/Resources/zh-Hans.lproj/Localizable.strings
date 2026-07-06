@@ -2197,6 +2197,12 @@
 "dev.flag.companion.subtitle" = "好友、私信与同行发现。";
 "dev.flag.companionLayer.title" = "同行地图图层";
 "dev.flag.companionLayer.subtitle" = "地图内的附近在场单元开关。";
+"dev.flag.cityOS.title" = "城市 OS";
+"dev.flag.cityOS.subtitle" = "落地包、在地活动、合规横幅与城市模式。";
+
+/* City OS v2: visa-expiry local reminder (PRD §5.2) */
+"cityos.visa.reminder.title" = "签证提醒";
+"cityos.visa.reminder.body" = "签证还剩 %d 天 —— 该决定续签，还是订下一程了。";
 
 "dev.tools.header" = "调试工具";
 "dev.tools.entitlement" = "强制会员权益";
