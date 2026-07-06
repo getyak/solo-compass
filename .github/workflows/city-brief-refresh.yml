@@ -1,0 +1,118 @@
+name: City Brief Refresh
+
+# Refreshes the server-curated landing kit (落地包) and live/在地 events by
+# invoking the compile-city-brief Edge Function. Content is city-level and
+# shared, so this runs on a schedule rather than on user action:
+#   - events: Mondays & Thursdays 05:00 Asia/Vientiane (UTC+7) → 22:00 UTC prior day
+#   - kit:    weekly on Monday 06:00 Asia/Vientiane           → 23:00 UTC Sunday
+# The function enforces its own cooldown, so an extra manual run is harmless.
+#
+# The job only holds CITY_BRIEF_CRON_SECRET (sent as x-cron-secret); it never
+# needs the Supabase service-role key. Configure repo secrets:
+#   SUPABASE_PROJECT_REF, CITY_BRIEF_CRON_SECRET.
+on:
+  schedule:
+    # events — Mon & Thu 05:00 Asia/Vientiane (22:00 UTC the previous day).
+    - cron: "0 22 * * 0,3"
+    # kit — weekly, Monday 06:00 Asia/Vientiane (23:00 UTC Sunday).
+    - cron: "0 23 * * 0"
+  workflow_dispatch:
+    inputs:
+      city_code:
+        description: "City code (lowercase)"
+        required: true
+        default: "vte"
+        type: string
+      target:
+        description: "What to compile"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - events
+          - kit
+      force:
+        description: "Bypass the cooldown"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    name: Invoke compile-city-brief
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Guard — required secrets present
+        env:
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          CRON_SECRET: ${{ secrets.CITY_BRIEF_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PROJECT_REF//[[:space:]]/}" ]; then
+            echo "::error::SUPABASE_PROJECT_REF secret is empty."
+            exit 1
+          fi
+          if [ -z "${CRON_SECRET//[[:space:]]/}" ]; then
+            echo "::error::CITY_BRIEF_CRON_SECRET secret is empty."
+            exit 1
+          fi
+
+      # Decide (city, target, force) from either the manual inputs or, on a
+      # schedule, from which cron expression fired: the 23:00-UTC Sunday tick
+      # refreshes the weekly kit; every other tick refreshes events.
+      - name: Resolve parameters
+        id: params
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          IN_CITY: ${{ github.event.inputs.city_code }}
+          IN_TARGET: ${{ github.event.inputs.target }}
+          IN_FORCE: ${{ github.event.inputs.force }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            CITY="${IN_CITY:-vte}"
+            TARGET="${IN_TARGET:-both}"
+            FORCE="${IN_FORCE:-false}"
+          else
+            CITY="vte"
+            FORCE="false"
+            if [ "$SCHEDULE" = "0 23 * * 0" ]; then
+              TARGET="kit"
+            else
+              TARGET="events"
+            fi
+          fi
+          echo "city=$CITY"     >> "$GITHUB_OUTPUT"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "force=$FORCE"   >> "$GITHUB_OUTPUT"
+          echo "Resolved → city=$CITY target=$TARGET force=$FORCE"
+
+      - name: Invoke compile-city-brief
+        env:
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          CRON_SECRET: ${{ secrets.CITY_BRIEF_CRON_SECRET }}
+          CITY: ${{ steps.params.outputs.city }}
+          TARGET: ${{ steps.params.outputs.target }}
+          FORCE: ${{ steps.params.outputs.force }}
+        run: |
+          set -euo pipefail
+          URL="https://${PROJECT_REF}.functions.supabase.co/compile-city-brief"
+          echo "→ POST $URL  (city=$CITY target=$TARGET force=$FORCE)"
+          HTTP_CODE=$(curl -sS -o /tmp/city-brief-resp.json -w "%{http_code}" \
+            -X POST "$URL" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --data "{\"city_code\":\"${CITY}\",\"target\":\"${TARGET}\",\"force\":${FORCE}}")
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/city-brief-resp.json
+          echo
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "::error::compile-city-brief returned HTTP $HTTP_CODE"
+            exit 1
+          fi
