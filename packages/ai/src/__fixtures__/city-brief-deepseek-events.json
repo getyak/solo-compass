@@ -1,0 +1,64 @@
+{
+  "events": [
+    {
+      "name": "塔銮周边夜市",
+      "category": "market",
+      "when_label": "本周每晚",
+      "starts_at": null,
+      "ends_at": "2026-07-12T15:00:00Z",
+      "solo_score": 8.0,
+      "solo_note": "小吃摊多，独自吃走都自在",
+      "seen_label": "官方 · 7月",
+      "limited_label": "本周每晚",
+      "source_url": "https://www.tourismlaos.org/events/that-luang-night-market"
+    },
+    {
+      "name": "那伽火球节前导市集",
+      "category": "market",
+      "when_label": "本周五 傍晚",
+      "starts_at": "2026-07-10T10:00:00Z",
+      "ends_at": "2026-07-10T14:00:00Z",
+      "solo_score": 12.5,
+      "solo_note": "一个人逛正好，傍晚人最舒服",
+      "seen_label": "官方 · 7月",
+      "limited_label": "仅本周五",
+      "source_url": "https://www.tourismlaos.org/events/naga-fireball-market"
+    },
+    {
+      "name": "湄公河岸步道段整修封闭",
+      "category": "notice",
+      "when_label": "本周",
+      "starts_at": null,
+      "ends_at": "2026-07-12T16:59:00Z",
+      "solo_score": 5.0,
+      "solo_note": "傍晚散步改走 Chao Anouvong 公园一侧",
+      "seen_label": "官方 · 7月",
+      "limited_label": "本周封闭",
+      "source_url": "https://www.tourismlaos.org/notices/mekong-riverside-maintenance"
+    },
+    {
+      "name": "神秘河边酒吧一生一次派对",
+      "category": "music",
+      "when_label": "本周六",
+      "starts_at": "2026-07-11T13:00:00Z",
+      "ends_at": "2026-07-11T18:00:00Z",
+      "solo_score": 7.0,
+      "solo_note": "一生一次的绝对必去派对",
+      "seen_label": "博客",
+      "limited_label": "仅一晚",
+      "source_url": "https://www.tourismlaos.org/events/naga-fireball-market"
+    },
+    {
+      "name": "查无来源的幽灵集市",
+      "category": "market",
+      "when_label": "本周日",
+      "starts_at": null,
+      "ends_at": "2026-07-12T12:00:00Z",
+      "solo_score": 6.5,
+      "solo_note": "来源不在候选清单里",
+      "seen_label": "未知",
+      "limited_label": null,
+      "source_url": "https://random-travel-blog.example.com/ghost-market"
+    }
+  ]
+}
