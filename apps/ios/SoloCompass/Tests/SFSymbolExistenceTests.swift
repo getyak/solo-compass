@@ -24,6 +24,14 @@ final class SFSymbolExistenceTests: XCTestCase {
         "Views/Map/CompassMapView.swift",
         "Views/Map/BottomInfoSheet.swift",
         "Views/Experience/LocationCard.swift",
+        // City OS v2 surfaces — catch a ghost SF Symbol before it ships blank.
+        "Views/CityOS/EventMarkerView.swift",
+        "Views/CityOS/KitSheet.swift",
+        "Views/CityOS/LiveSheet.swift",
+        "Views/CityOS/CityDrawerTabs.swift",
+        "Views/CityOS/ComplianceBanner.swift",
+        "Views/CityOS/ModePlaceholderCards.swift",
+        "Views/CityOS/CityOSComponents.swift",
     ]
 
     func testNoGhostSFSymbolsInScannedViews() throws {

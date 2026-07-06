@@ -94,6 +94,29 @@ public enum CT {
     public static let heatmapLow    = rgb(0xE6, 0xD9, 0xC3)
     public static let heatmapEmpty  = rgb(0xF0, 0xEB, 0xE3)
 
+    // MARK: - City OS v2 · sanctioned exceptions (PRD solo-city-os-v2 §2)
+    //
+    // The first color axiom is "don't invent new color semantics". These three
+    // are the ONLY exception, and they come from the claude.ai/design handoff
+    // bundle — not from an ad-hoc choice here:
+    //   • Limited-time events read as a distinct register from the warm map
+    //     (they expire — the timer ring on the回流 marker + the "仅本周" chip).
+    //     A burnt-orange, warmer and more urgent than sunGold, carries that
+    //     without leaving the amber family.
+    //   • Plan mode is a *different city context*, not a filter; its wash and
+    //     mode tag use a cool blue so the traveler feels the register flip from
+    //     Live (warm/amber) to Plan (cool/considered).
+    // Keep these disciplined: eventLimited* only on limited-time event surfaces;
+    // modePlanBlue only on Plan-mode chrome.
+
+    /// Limited-time event accent — #B5541A burnt orange, for the 回流 map
+    /// marker's breathing ring stroke and the "仅本周" limited chip text.
+    public static let eventLimited     = rgb(0xB5, 0x54, 0x1A)
+    /// Soft fill behind limited-event chips / notice bands — #FFEEDD.
+    public static let eventLimitedSoft = rgb(0xFF, 0xEE, 0xDD)
+    /// Plan-mode blue — #2F7DD1, for the Plan wash tint and mode tag.
+    public static let modePlanBlue     = rgb(0x2F, 0x7D, 0xD1)
+
     // MARK: - Scrims & overlays (audit H10)
     //
     // Use these tokens when the dim / wash / shadow is applied *over a

@@ -1018,6 +1018,7 @@
 "agent.step.buildRoute" = "🧭 正在为你串联路线…";
 "agent.trace.foundPlaces" = "找到 %d 个合适的地方";
 "agent.trace.builtRoute" = "把 %d 个站点串成了一条路线";
+"agent.trace.foundEvents" = "找到 %d 场在地活动";
 "chat.thinking.title" = "正在思考";
 "chat.thinking.a11y" = "Solo Compass 正在思考";
 "agent.trace.summary.steps" = "推理了 %d 步";
@@ -2203,6 +2204,52 @@
 /* City OS v2: visa-expiry local reminder (PRD §5.2) */
 "cityos.visa.reminder.title" = "签证提醒";
 "cityos.visa.reminder.body" = "签证还剩 %d 天 —— 该决定续签，还是订下一程了。";
+
+/* City OS v2: 落地包 landing kit */
+"cityos.kit.title" = "落地包";
+"cityos.kit.link.open" = "打开";
+"cityos.kit.link.open.a11y" = "打开 %@";
+"cityos.kit.link.toast" = "已为你打开 %@ · 回来继续";
+"cityos.kit.call.a11y" = "拨打 %1$@ %2$@";
+"cityos.health.unverified" = "未核实";
+
+/* City OS v2: 签证 / 183 天税务 */
+"cityos.visa.daysLeft" = "剩 N 天签证";
+"cityos.visa.taxLine" = "距 183 天税务线";
+"cityos.visa.reminder.toggle" = "到期提醒";
+"cityos.visa.entryDate" = "入境日期";
+"cityos.visa.length" = "签证 %d 天";
+"cityos.compliance.prefix" = "签证还剩 ";
+"cityos.compliance.suffix" = " 天";
+"cityos.compliance.overstay" = "已逾期 %d 天";
+"cityos.compliance.handle" = "处理";
+"cityos.compliance.a11y" = "签证还剩 %d 天";
+
+/* City OS v2: 在地 · 本周 local events */
+"cityos.live.title" = "在地 · 本周";
+"cityos.live.solo" = "Solo %@";
+"cityos.live.showOnMap" = "在地图上看";
+"cityos.live.showOnMap.a11y" = "在地图上查看 %@";
+"cityos.live.empty.title" = "本周暂无在地活动";
+"cityos.live.empty.hint" = "过些天再来看看 —— 城市简报每周更新两次。";
+"cityos.event.marker.a11y" = "活动：%1$@，%2$@";
+
+/* City OS v2: 抽屉药丸与城市模式 */
+"cityos.tab.kit" = "落地包";
+"cityos.tab.live" = "在地 · 本周";
+"cityos.mode.thisCity" = "这座城市";
+"cityos.picker.mode.section" = "城市模式";
+"cityos.mode.live.tag" = "在此城";
+"cityos.mode.plan.tag" = "计划";
+"cityos.mode.plan.title" = "%@ · 计划中";
+"cityos.mode.plan.body" = "行前清单、签证时点、落地前该安排好的事 —— 即将上线。";
+"cityos.mode.plan.cta" = "先看落地包";
+"cityos.mode.recall.tag" = "回顾";
+"cityos.mode.recall.title" = "%@ · 回顾";
+"cityos.mode.recall.body" = "你走过的路、停留的瞬间、这座城市于你的样子 —— 即将上线。";
+
+/* City OS v2: 今日城市签 daily omen */
+"cityos.omen.line" = "今日城市签 · %@";
 
 "dev.tools.header" = "调试工具";
 "dev.tools.entitlement" = "强制会员权益";
