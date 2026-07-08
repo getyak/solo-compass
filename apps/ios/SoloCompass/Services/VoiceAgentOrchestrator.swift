@@ -625,6 +625,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     session.finishSpeakingTurn()
                     thinkingStep = ""
                     shouldContinue = false
+                    // Cards attach to the assistant message that requested the
+                    // tool. When the model calls tools silently (empty-content
+                    // turn) that message renders no bubble and its cards never
+                    // surface — re-key them onto the final visible reply.
+                    rebindOrphanCards()
                     // Distill this turn's live reasoning into one collapsed,
                     // expandable chip pinned beneath the assistant bubble, then
                     // clear the live trace so the in-flight status line is the
@@ -789,6 +794,30 @@ public final class VoiceAgentOrchestrator: Identifiable {
         }
         provisionalCards.append(card: card, to: messageId, at: Date())
         syncCardsSnapshot()
+    }
+
+    /// Move any ledger entries anchored to a *silent* assistant message (tool
+    /// calls but empty text — the chat renders no bubble for it, so its cards
+    /// never surface) onto the turn's final visible assistant reply. Runs at
+    /// the end of every completed turn; no-op when nothing is orphaned.
+    private func rebindOrphanCards() {
+        guard let finalId = session.messages.last(where: { $0.role == .assistant })?.id else { return }
+        let orphanIds = Set(
+            session.messages
+                .filter {
+                    $0.role == .assistant
+                        && $0.id != finalId
+                        && ($0.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                }
+                .map(\.id)
+        )
+        guard !orphanIds.isEmpty else { return }
+        var moved = false
+        for oldId in orphanIds where provisionalCards.entries.contains(where: { $0.messageId == oldId }) {
+            provisionalCards.rebind(from: oldId, to: finalId)
+            moved = true
+        }
+        if moved { syncCardsSnapshot() }
     }
 
     /// Recompute the `cardsByMessageId` snapshot from the ledger at the

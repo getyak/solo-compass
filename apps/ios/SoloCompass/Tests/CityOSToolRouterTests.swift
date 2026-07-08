@@ -136,6 +136,18 @@ final class CityOSToolRouterTests: XCTestCase {
         XCTAssertEqual(obj["count"] as? Int, 1)
     }
 
+    /// The keyword pass is soft: event content is local-language while the
+    /// model's keyword is often English ("weekend"), so a miss must fall back
+    /// to the window-filtered list (flagged `query_relaxed`) instead of a
+    /// false "nothing on".
+    func testFindLocalEventsUnmatchedQueryRelaxesInsteadOfStarving() async throws {
+        let fx = makeFixture(withVisaEntry: false)
+        let json = await call(fx.router, "find_local_events", "{\"query\":\"weekend\"}")
+        let obj = try XCTUnwrap(parse(json))
+        XCTAssertEqual(obj["count"] as? Int, 3)
+        XCTAssertEqual(obj["query_relaxed"] as? Bool, true)
+    }
+
     // MARK: - dependency unavailable
 
     func testMissingCityBriefServiceYieldsDependencyEnvelope() async throws {

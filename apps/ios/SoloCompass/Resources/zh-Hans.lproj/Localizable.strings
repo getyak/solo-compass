@@ -1107,6 +1107,7 @@
 "chat.bubble.copy" = "复制";
 "chat.empty.prompt.nearby" = "附近有什么好玩的？";
 "chat.empty.prompt.coffee" = "找一家安静的咖啡馆";
+"chat.empty.prompt.events" = "这周有什么活动？";
 "chat.empty.prompt.evening" = "帮我计划今晚的行程";
 
 /* Half-detent empty state — a minimal "companion is waiting" entry */

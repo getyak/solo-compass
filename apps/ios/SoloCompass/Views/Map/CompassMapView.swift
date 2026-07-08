@@ -422,6 +422,17 @@ struct CompassMapContentView: View {
             && !cityBriefService.kit.isEmpty
     }
 
+    /// Whether the City-OS floating bottom slot (drawer tabs in Live mode, the
+    /// Plan/Recall placeholder otherwise) is occupied. Centered empty-state
+    /// cards consult this to shift up clear of the slot — without it the
+    /// quiet-hours card's CTA renders underneath the drawer tabs.
+    private var cityOSBottomSlotOccupied: Bool {
+        FeatureFlags.cityOS
+            && sheetDetent == .peek
+            && viewModel.selectedExperience == nil
+            && (currentCityMode != .live || !cityBriefService.kit.isEmpty)
+    }
+
     /// Load the landing kit + local events for a city and, when `autoSurface`
     /// is true and the city is unseen + in Live mode + has kit content + the
     /// interruption budget allows + no other sheet is up, push the kit sheet
@@ -1111,18 +1122,24 @@ struct CompassMapContentView: View {
                     )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
-                } else if viewModel.visibleExperiences.isEmpty && isFilterActive && viewModel.selectedExperience == nil {
+                } else if viewModel.visibleExperiences.isEmpty && isFilterActive && viewModel.selectedExperience == nil
+                    && viewModel.highlightedEventId == nil {
                     // The "Now" filter is a *time* filter, not a place filter — its
                     // empty state means "nothing's at its best this hour", for which
                     // "clear all filters" is the wrong recovery. Route it to a
                     // dedicated overlay that points at the next worthwhile window
                     // instead. Every other filter keeps the generic clear-filters card.
+                    // Suppressed entirely while an event marker is focused
+                    // ("Show on map") — the user asked to look at the map, and
+                    // this card would sit exactly over the marker.
                     if viewModel.isNowFilter {
                         NowEmptyOverlay(viewModel: viewModel)
+                            .padding(.bottom, cityOSBottomSlotOccupied ? 112 : 0)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                             .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
                     } else {
                         FilteredEmptyOverlay(viewModel: viewModel)
+                            .padding(.bottom, cityOSBottomSlotOccupied ? 112 : 0)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                             .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
                     }
@@ -1776,11 +1793,26 @@ struct CompassMapContentView: View {
         guard let lat = event.lat, let lng = event.lng else { return }
         withAnimation(.easeInOut(duration: 0.4)) {
             viewModel.cameraPosition = .region(MKCoordinateRegion(
-                center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                // Bias the centre south of the pin so it settles in the upper
+                // third of the screen — the lower half is owned by the peek
+                // sheet + floating chrome, which would otherwise cover the
+                // very marker the user asked to see.
+                center: CLLocationCoordinate2D(latitude: lat - 0.002, longitude: lng),
                 span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             ))
         }
         viewModel.highlightedEventId = event.id
+        // The glow (and the empty-card quieting it triggers) is a transient
+        // "look here" cue, not a mode — release it after a beat so the Now
+        // card comes back without requiring a city switch.
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(18))
+            if viewModel.highlightedEventId == event.id {
+                withAnimation(.easeInOut(duration: 0.35)) {
+                    viewModel.highlightedEventId = nil
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -3470,12 +3502,15 @@ private struct PlusActionButton: View {
                 .scaleEffect(isPressed ? 1.08 : 1.0)
                 .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isPressed)
 
-            // Replace the generic "+" glyph with the Solo mascot — the cartoon
-            // girl who IS Solo. She greets the traveler from the homepage and
-            // is the entry-point to Solo Chat. The amber circle + shadow +
-            // press-ring above stay byte-identical, so hit-target and FAB
-            // layout are unchanged. `isPressed` drives her cheek sparkle.
-            SoloMascotView(isPressed: isPressed)
+            // FAB glyph: a clean SF Symbol plus in the warm amber accent. The
+            // previous kawaii mascot competed for visual weight against the
+            // event bloom markers + peek card and diluted the module's design
+            // register. This is discreet and reads as a proper "add" affordance.
+            Image(systemName: "plus")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .scaleEffect(isPressed ? 0.88 : 1.0)
+                .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isPressed)
         }
         .contentShape(Circle())
         .onLongPressGesture(

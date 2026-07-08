@@ -968,6 +968,7 @@
 /* Chat starter prompts */
 "chat.empty.prompt.nearby" = "What's good around me?";
 "chat.empty.prompt.coffee" = "Find me a quiet café";
+"chat.empty.prompt.events" = "What's on this week?";
 "chat.empty.prompt.evening" = "Plan my evening";
 
 /* Half-detent empty state — a minimal "companion is waiting" entry */

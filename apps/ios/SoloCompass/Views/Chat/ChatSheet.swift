@@ -84,6 +84,7 @@ public struct ChatSheet: View {
     private static let starterPrompts: [String] = [
         NSLocalizedString("chat.empty.prompt.nearby",  comment: "Starter chip — what's good around me"),
         NSLocalizedString("chat.empty.prompt.coffee",  comment: "Starter chip — find a quiet café"),
+        NSLocalizedString("chat.empty.prompt.events",  comment: "Starter chip — what's on this week"),
         NSLocalizedString("chat.empty.prompt.evening", comment: "Starter chip — plan my evening"),
     ]
 
@@ -1074,17 +1075,21 @@ public struct ChatSheet: View {
         switch index {
         case 0:  return "mappin.and.ellipse"
         case 1:  return "cup.and.saucer.fill"
+        case 2:  return "calendar"
         default: return "moon.stars.fill"
         }
     }
 
-    /// Warm-family icon tints for the three starter cards. Deep-amber accent →
-    /// sun-gold → a dusk plum that still lives next to the amber palette (not a
-    /// cold `.indigo` that fights the warm sheet). All three read as one family.
+    /// Warm-family icon tints for the starter cards. Deep-amber accent →
+    /// sun-gold → verified green (the events card borrows the Live sheet's
+    /// solo-chip green so "what's on" reads as the same City-OS surface) →
+    /// a dusk plum that still lives next to the amber palette (not a cold
+    /// `.indigo` that fights the warm sheet). All four read as one family.
     private func promptIconColor(for index: Int) -> Color {
         switch index {
         case 0:  return CT.accent
         case 1:  return CT.sunGoldDeep
+        case 2:  return CT.verifiedGreenDot
         default: return Color(.sRGB, red: 0x6B / 255, green: 0x4E / 255, blue: 0x7D / 255, opacity: 1) // dusk plum #6B4E7D
         }
     }

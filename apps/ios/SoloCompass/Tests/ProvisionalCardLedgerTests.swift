@@ -237,4 +237,20 @@ final class ProvisionalCardLedgerTests: XCTestCase {
         XCTAssertTrue(ledger.entries.isEmpty)
         XCTAssertTrue(ledger.cardsByMessageId(at: t0).isEmpty)
     }
+
+    // MARK: - Rebind
+
+    /// Orphan-card recovery: entries re-keyed from a silent tool-request
+    /// message onto the final visible reply keep their id/card/state — only
+    /// the anchor moves.
+    func testRebindMovesEntriesToNewMessageId() {
+        let ledger = ProvisionalCardLedger()
+        let silent = UUID(), visible = UUID()
+        let entryId = ledger.append(card: makeCard(), to: silent, at: t0)
+        ledger.rebind(from: silent, to: visible)
+        XCTAssertNil(ledger.cardsByMessageId(at: t0)[silent])
+        XCTAssertEqual(ledger.cardsByMessageId(at: t0)[visible]?.count, 1)
+        XCTAssertEqual(ledger.entries.first?.id, entryId,
+                       "rebinding must not mint a new entry identity")
+    }
 }
