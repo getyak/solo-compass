@@ -532,7 +532,7 @@ public final class MapViewModel {
         if selectedCity?.hasPrefix("custom_") == true { return }
         cameraPosition = .region(MKCoordinateRegion(
             center: defaultCenterForSelectedCity,
-            span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+            span: MKCoordinateSpan(latitudeDelta: 0.09, longitudeDelta: 0.09)
         ))
     }
 
@@ -562,7 +562,7 @@ public final class MapViewModel {
         preferences.lastSelectedCity = nil  // don't persist custom pins across restarts
         cameraPosition = .region(MKCoordinateRegion(
             center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+            span: MKCoordinateSpan(latitudeDelta: 0.09, longitudeDelta: 0.09)
         ))
         loadNearbyExperiences()
         updateBottomInfo()
@@ -772,7 +772,7 @@ public final class MapViewModel {
         let center = defaultCenterForSelectedCity
         cameraPosition = .region(MKCoordinateRegion(
             center: center,
-            span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+            span: MKCoordinateSpan(latitudeDelta: 0.09, longitudeDelta: 0.09)
         ))
         loadNearbyExperiences()
         updateBottomInfo()
@@ -1235,7 +1235,7 @@ public final class MapViewModel {
         }
         self._cameraPosition = .region(MKCoordinateRegion(
             center: initialCenter,
-            span: MKCoordinateSpan(latitudeDelta: 0.06, longitudeDelta: 0.06)
+            span: MKCoordinateSpan(latitudeDelta: 0.09, longitudeDelta: 0.09)
         ))
         // V-002: `didSet` does not fire for the `selectedCity` set above
         // (initializer semantics), so apply the same camera↔city sync here so

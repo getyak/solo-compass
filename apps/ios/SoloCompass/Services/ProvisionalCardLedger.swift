@@ -164,6 +164,24 @@ public final class ProvisionalCardLedger {
         entries.removeAll(keepingCapacity: true)
     }
 
+    /// Re-key every entry attached to `oldId` onto `newId`, preserving id,
+    /// card, timing, and state — only the anchor moves. Used at turn end to
+    /// move cards off a silent (empty-content) tool-request assistant message
+    /// onto the final visible reply, where the chat actually renders them.
+    public func rebind(from oldId: UUID, to newId: UUID) {
+        guard oldId != newId else { return }
+        for i in entries.indices where entries[i].messageId == oldId {
+            let e = entries[i]
+            entries[i] = Entry(
+                id: e.id,
+                messageId: newId,
+                card: e.card,
+                appearedAt: e.appearedAt,
+                state: e.state
+            )
+        }
+    }
+
     // MARK: - Projections
 
     /// Every entry that is currently visible in the UI at `now`, in

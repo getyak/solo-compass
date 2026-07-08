@@ -269,7 +269,16 @@ public struct FilterBarView: View {
                 // intrinsic height keeps the bar one pill-row tall.
                 .fixedSize(horizontal: false, vertical: true)
                 .onAppear {
-                    proxy.scrollTo(selectionID, anchor: .center)
+                    // Cold-launch alignment: always start with the bar's leading
+                    // edge visible so `Now` / `All` sit at the left of the screen
+                    // instead of being pushed off by `scrollTo(_:.center)` when a
+                    // deeper selection (Saved, a category tag) was restored.
+                    // Selection changes still center as before.
+                    if selectionID == "all" || selectionID == "now" {
+                        proxy.scrollTo(selectionID, anchor: .leading)
+                    } else {
+                        proxy.scrollTo(selectionID, anchor: .center)
+                    }
                 }
                 .onChange(of: selectionID) { _, id in
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {

@@ -412,7 +412,7 @@ public final class VoiceAgentToolRouter {
                 "city_code": {"type": "string", "description": "Optional; defaults to the current map city."},
                 "within_days": {"type": "integer", "minimum": 1, "maximum": 30, "default": 7, "description": "Only include events starting within this many days."},
                 "solo_score_min": {"type": "number", "minimum": 0, "maximum": 10, "description": "Optional minimum solo-friendliness score (notices are always kept)."},
-                "query": {"type": "string", "description": "Optional keyword to match against event name + solo note."}
+                "query": {"type": "string", "description": "Optional keyword matched against event names/notes. Content is often local-language, so omit this for broad questions like 'what's on this weekend' — the time window already handles those. If nothing matches the keyword, the full week's list is returned with query_relaxed=true."}
               }
             }
             """#
@@ -1294,18 +1294,33 @@ public final class VoiceAgentToolRouter {
         let horizon = Calendar.current.date(byAdding: .day, value: withinDays, to: now) ?? now
         let queryLower = parsed.query?.lowercased()
 
-        let matches = service.activeEvents(now: now).filter { event in
+        let windowed = service.activeEvents(now: now).filter { event in
             // Window: keep events with no start date, or starting before horizon.
             if let starts = event.startsAt, starts > horizon { return false }
             // Notices bypass the solo-score floor.
             if !event.isNotice, let floor = parsed.solo_score_min {
                 guard let score = event.soloScore, score >= floor else { return false }
             }
-            if let q = queryLower, !q.isEmpty {
-                let haystack = (event.name + " " + (event.soloNote ?? "")).lowercased()
-                guard haystack.contains(q) else { return false }
-            }
             return true
+        }
+
+        // The keyword pass is soft: event content is usually local-language
+        // (中文 names/notes) while the model's keyword tends to be English
+        // ("weekend"), so a hard filter starves valid results into a false
+        // "nothing on". When the keyword matches nothing, fall back to the
+        // window-filtered list and flag it so the model can phrase honestly.
+        var matches = windowed
+        var queryRelaxed = false
+        if let q = queryLower, !q.isEmpty {
+            let keyworded = windowed.filter { event in
+                let haystack = (event.name + " " + (event.soloNote ?? "") + " " + event.whenLabel).lowercased()
+                return haystack.contains(q)
+            }
+            if keyworded.isEmpty {
+                queryRelaxed = !windowed.isEmpty
+            } else {
+                matches = keyworded
+            }
         }
 
         if !matches.isEmpty {
@@ -1324,12 +1339,14 @@ public final class VoiceAgentToolRouter {
             if event.lat != nil && event.lng != nil { dict["has_map_location"] = true }
             return dict
         }
-        return Self.successJSON([
+        var envelope: [String: Any] = [
             "city_code": code,
             "count": matches.count,
             "within_days": withinDays,
             "events": payload,
-        ])
+        ]
+        if queryRelaxed { envelope["query_relaxed"] = true }
+        return Self.successJSON(envelope)
     }
 
     /// City OS content plane or the standard dependency-unavailable envelope.
