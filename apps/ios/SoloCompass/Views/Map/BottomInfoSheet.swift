@@ -230,6 +230,7 @@ public struct BottomInfoSheet<Content: View>: View {
     @State private var hasEverExpanded: Bool = BottomInfoSheet.initialDetent != .peek
     @State var sortMode: SortMode = .smart
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.colorScheme) private var colorScheme
 
     private let aiHint: String
     private let count: Int
@@ -396,6 +397,12 @@ public struct BottomInfoSheet<Content: View>: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: maxHeight)
+            // Opaque warm-neutral instead of `.ultraThinMaterial`: iOS 26's
+            // vibrancy pass on the ultra-thin blur samples what's underneath
+            // and remaps the sunGold event-bloom markers into purple/cyan
+            // fringes — visible as a rainbow halo above the peek card. A
+            // solid fill blocks that sampling entirely and keeps the amber
+            // identity crisp against the map.
             .background(
                 UnevenRoundedRectangle(
                     topLeadingRadius: sheetCornerRadius,
@@ -403,7 +410,7 @@ public struct BottomInfoSheet<Content: View>: View {
                     bottomTrailingRadius: 0,
                     topTrailingRadius: sheetCornerRadius
                 )
-                .fill(.ultraThinMaterial)
+                .fill(colorScheme == .dark ? CT.warmSheetDark : CT.bgWarm)
             )
             // Slide instead of resize: the visible height is
             // `maxHeight − offset`, i.e. exactly `displayHeight`.
