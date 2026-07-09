@@ -163,7 +163,7 @@ public struct HeartBurstView: View {
                             Text("#\(t)")
                                 .font(.caption2)
                                 .padding(4)
-                                .background(Capsule().fill(Color.red.opacity(0.15)))
+                                .background(Capsule().fill(CT.savedRedSoft))
                         }
                     }
                 }

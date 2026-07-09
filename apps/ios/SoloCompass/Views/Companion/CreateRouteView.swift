@@ -8,6 +8,11 @@ import CoreLocation
 /// `CreateRouteView`. Mirrors the reference design's create-route affordance.
 struct CreateRouteEntryCard: View {
     let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var cardBg: Color { colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite }
+    private var titleColor: Color { colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary }
+    private var subtitleColor: Color { colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted }
 
     var body: some View {
         Button(action: onTap) {
@@ -23,21 +28,21 @@ struct CreateRouteEntryCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(NSLocalizedString("route.create.entry.title", comment: "Create your own route"))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(CT.fgPrimary)
+                        .foregroundStyle(titleColor)
                     Text(NSLocalizedString("route.create.entry.subtitle", comment: "Link a few stops · optionally recruit companions"))
                         .font(.caption)
-                        .foregroundStyle(CT.fgMuted)
+                        .foregroundStyle(subtitleColor)
                         .lineLimit(2)
                 }
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(CT.fgSubtle)
+                    .foregroundStyle(subtitleColor)
             }
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(CT.surfaceWhite)
+                    .fill(cardBg)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)

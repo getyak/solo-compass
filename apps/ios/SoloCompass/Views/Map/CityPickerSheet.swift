@@ -11,6 +11,7 @@ public struct CityPickerSheet: View {
     @State private var justSelectedCode: String? = nil
     @State private var citySearchText = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     private func selectCity(_ code: String?) {
         Haptics.impact(.light)
@@ -67,7 +68,7 @@ public struct CityPickerSheet: View {
                                         Spacer()
                                         if viewModel.selectedCity == nil {
                                             Image(systemName: "checkmark")
-                                                .foregroundStyle(.tint)
+                                                .foregroundStyle(colorScheme == .dark ? CT.sunGold : CT.accent)
                                                 .font(.body.weight(.semibold))
                                                 .scaleEffect(reduceMotion ? 1.0 : (justSelectedCode == "all" ? 1.3 : 1.0))
                                                 .symbolEffect(.bounce, value: reduceMotion ? nil : justSelectedCode)
@@ -100,7 +101,7 @@ public struct CityPickerSheet: View {
                                         VStack(alignment: .trailing, spacing: 2) {
                                             if viewModel.selectedCity == city.code {
                                                 Image(systemName: "checkmark")
-                                                    .foregroundStyle(.tint)
+                                                    .foregroundStyle(colorScheme == .dark ? CT.sunGold : CT.accent)
                                                     .font(.body.weight(.semibold))
                                                     .scaleEffect(reduceMotion ? 1.0 : (justSelectedCode == city.code ? 1.3 : 1.0))
                                                     .symbolEffect(.bounce, value: reduceMotion ? nil : justSelectedCode)
@@ -197,7 +198,7 @@ public struct CityPickerSheet: View {
 
         var color: Color {
             switch self {
-            case .near: return .green
+            case .near: return CT.verifiedGreen
             case .mid: return .orange
             case .far: return Color(.tertiaryLabel)
             }
@@ -331,16 +332,17 @@ private struct CityPickerHeader: View {
 private struct CityEmptyStateView: View {
     @State private var isBreathing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color.accentColor.opacity(0.12))
+                    .fill((colorScheme == .dark ? CT.sunGold : CT.accent).opacity(0.12))
                     .frame(width: 80, height: 80)
                 Image(systemName: "map.circle")
                     .font(.system(size: 48))
-                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                    .foregroundStyle((colorScheme == .dark ? CT.sunGold : CT.accent).opacity(0.7))
                     .scaleEffect(isBreathing ? 1.08 : 0.94)
                     .opacity(isBreathing ? 1.0 : 0.7)
                     // Guard on the modifier itself, not just in onAppear — otherwise

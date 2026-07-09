@@ -86,6 +86,10 @@ public enum CT {
     /// (0x5D3000) to avoid competing with the primary accent CTA.
     public static let blindboxAmber  = rgb(0x8A, 0x4A, 0x14)
 
+    // Saved/favourite warm red — used on the Saved filter pill and heart icons.
+    public static let savedRed      = rgb(0xE0, 0x3A, 0x3A)
+    public static let savedRedSoft  = Color(.sRGB, red: 0xE0 / 255, green: 0x3A / 255, blue: 0x3A / 255, opacity: 0.12)
+
     // Heatmap scale — Solo-Score dimension bars (styles.css .sc-solo-card .dim .fill).
     // hi=deep amber accent · mid=sun-gold · lo=pale amber · empty=track. An amber
     // ramp replaces red/green so the breakdown stays in the warm system.

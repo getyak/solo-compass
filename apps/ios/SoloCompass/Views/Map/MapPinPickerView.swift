@@ -33,7 +33,7 @@ struct MapPinPickerView: View {
                 ) {
                     Image(systemName: "mappin.circle.fill")
                         .font(.title)
-                        .foregroundStyle(.red, .white)
+                        .foregroundStyle(CT.savedRed, .white)
                         .shadow(radius: 4)
                 }
             }

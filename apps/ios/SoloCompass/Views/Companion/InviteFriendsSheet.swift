@@ -142,7 +142,7 @@ public struct InviteFriendsSheet: View {
                 Spacer()
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(isSelected ? CT.accent : Color.secondary)
                     .accessibilityHidden(true)
             }
         }

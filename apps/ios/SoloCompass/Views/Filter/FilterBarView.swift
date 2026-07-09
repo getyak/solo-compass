@@ -269,13 +269,8 @@ public struct FilterBarView: View {
                 // intrinsic height keeps the bar one pill-row tall.
                 .fixedSize(horizontal: false, vertical: true)
                 .onAppear {
-                    // Cold-launch alignment: always start with the bar's leading
-                    // edge visible so `Now` / `All` sit at the left of the screen
-                    // instead of being pushed off by `scrollTo(_:.center)` when a
-                    // deeper selection (Saved, a category tag) was restored.
-                    // Selection changes still center as before.
                     if selectionID == "all" || selectionID == "now" {
-                        proxy.scrollTo(selectionID, anchor: .leading)
+                        proxy.scrollTo("now", anchor: .leading)
                     } else {
                         proxy.scrollTo(selectionID, anchor: .center)
                     }
@@ -522,7 +517,7 @@ public struct FilterBarView: View {
     /// the app; the inline count mirrors the All/Now chips' visual language.
     private func favoritePill(isSelected: Bool, action: @escaping () -> Void) -> some View {
         let label = NSLocalizedString("filter.saved", comment: "Saved (favourites filter)")
-        let tint = Color(red: 0xE0/255, green: 0x3A/255, blue: 0x3A/255)
+        let tint = CT.savedRed
         return Button {
             if !isSelected && resultCount > 0 {
                 if !didCelebrateSaved {
@@ -583,7 +578,7 @@ public struct FilterBarView: View {
             // bar (Now/All/Saved/category) so the row reads as one component
             // instead of a parade of red/orange/green outlines. The category
             // identity color survives as the inline glyph tint (heart icon).
-            .foregroundStyle(isSelected ? .white : CT.fgPrimary)
+            .foregroundStyle(isSelected ? .white : .primary)
             .background {
                 if isSelected {
                     Capsule()
@@ -653,7 +648,7 @@ public struct FilterBarView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .foregroundStyle(isOn ? .white : CT.fgPrimary)
+            .foregroundStyle(isOn ? .white : .primary)
             .background {
                 if isOn {
                     Capsule()
@@ -705,7 +700,7 @@ public struct FilterBarView: View {
             // neutral border. Category identity color stays as the inline glyph
             // tint (the `category.symbol` Image keeps its colored stroke via the
             // base foregroundStyle, but text and border read as one system.
-            .foregroundStyle(isSelected ? .white : CT.fgPrimary)
+            .foregroundStyle(isSelected ? .white : .primary)
             .background {
                 if isSelected {
                     Capsule()
@@ -735,20 +730,20 @@ public struct FilterBarView: View {
             Image(systemName: "tag.fill")
                 .font(.body.weight(.semibold))
                 .frame(width: 36, height: 36)
-                .foregroundStyle(isSelected ? .white : Color.accentColor)
+                .foregroundStyle(isSelected ? .white : CT.accent)
                 .background {
                     if isSelected {
                         Circle()
-                            .fill(Color.accentColor)
+                            .fill(CT.accent)
                             .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
                     }
                 }
                 .overlay(
-                    Circle().stroke(isSelected ? Color.clear : Color.accentColor.opacity(0.4), lineWidth: 1)
+                    Circle().stroke(isSelected ? Color.clear : CT.accent.opacity(0.4), lineWidth: 1)
                 )
                 .overlay(alignment: .topTrailing) {
                     if isSelected && resultCount > 0 {
-                        countBadge(count: resultCount, tint: .accentColor)
+                        countBadge(count: resultCount, tint: CT.accent)
                             .offset(x: 6, y: -6)
                             .opacity(countBadgeOpacity)
                             .transition(.scale.combined(with: .opacity))
@@ -845,7 +840,7 @@ private struct FilterViewportWidthKey: PreferenceKey {
         )
     }
     .padding(.vertical)
-    .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+    .background(CT.surfaceSunken)
     .environment(UserPreferences())
 }
 
@@ -876,7 +871,7 @@ private struct FilterViewportWidthKey: PreferenceKey {
                 .buttonStyle(.bordered)
             }
             .padding()
-            .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+            .background(CT.surfaceSunken)
             .environment(UserPreferences())
         }
     }
@@ -904,7 +899,7 @@ private struct FilterViewportWidthKey: PreferenceKey {
                     .font(.caption.monospacedDigit())
             }
             .padding()
-            .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+            .background(CT.surfaceSunken)
             .environment(UserPreferences())
         }
     }

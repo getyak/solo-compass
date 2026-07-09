@@ -58,7 +58,7 @@ public struct DiscoverListView: View {
                         .font(.subheadline)
                         .lineLimit(2)
                 }
-                .foregroundStyle(.red)
+                .foregroundStyle(CT.savedRed)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(.regularMaterial, in: Capsule())
@@ -76,7 +76,7 @@ public struct DiscoverListView: View {
                         .font(.subheadline)
                         .lineLimit(2)
                 }
-                .foregroundStyle(.green)
+                .foregroundStyle(CT.verifiedGreen)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(.regularMaterial, in: Capsule())
@@ -236,13 +236,13 @@ private struct EmptyCompanionState: View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(Color.accentColor.opacity(pulse ? 0.6 : 0.35))
+                    .fill(CT.accent.opacity(pulse ? 0.6 : 0.35))
                     .frame(width: 80, height: 80)
                     .scaleEffect(pulse ? 1.08 : 0.9)
 
                 Image(systemName: "person.2.slash")
                     .font(.system(size: 36, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(CT.accent)
             }
             .onAppear {
                 if reduceMotion {
@@ -389,9 +389,9 @@ private struct DiscoverPostRow: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(
-                            Capsule().fill(Color.accentColor.opacity(0.12))
+                            Capsule().fill(CT.accent.opacity(0.12))
                         )
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(CT.accent)
                 }
             }
         }
@@ -412,7 +412,7 @@ private struct DiscoverPostRow: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
-        .tint(hasSentRequest ? .green : .accentColor)
+        .tint(hasSentRequest ? .green : CT.accent)
         .disabled(hasSentRequest)
         .scaleEffect(pressed ? 0.96 : 1)
         .simultaneousGesture(
@@ -442,7 +442,7 @@ private struct DiscoverPostRow: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
-        .tint(.accentColor)
+        .tint(CT.accent)
     }
 
     private func formattedDateRange(from: String, to: String) -> String {

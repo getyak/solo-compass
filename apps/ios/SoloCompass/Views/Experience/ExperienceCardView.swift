@@ -29,6 +29,7 @@ public struct ExperienceCardView: View {
     /// word per line. Read at render so a user who slides the slider mid-
     /// session sees the new layout immediately.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.colorScheme) private var colorScheme
     @State private var heartBounce = 0
     @State private var heartBurst = false
     @State private var arrivedPulse = false
@@ -79,7 +80,7 @@ public struct ExperienceCardView: View {
             switch sourceStrength {
             case .verified: return ("checkmark.seal.fill", NSLocalizedString("card.source.verified", comment: "Cross-verified across multiple sources"), CT.accent)
             case .multi:    return ("link", NSLocalizedString("card.source.multi", comment: "Multiple sources agreeing"), CT.accent.opacity(0.7))
-            case .single:   return ("link.circle", NSLocalizedString("card.source.single", comment: "One source"), CT.fgMuted)
+            case .single:   return ("link.circle", NSLocalizedString("card.source.single", comment: "One source"), .secondary)
             case .none:     return ("", "", .clear)
             }
         }()
@@ -169,7 +170,7 @@ public struct ExperienceCardView: View {
 
         var color: Color {
             switch self {
-            case .near: return .green
+            case .near: return CT.verifiedGreen
             case .mid: return Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
             case .far: return Color.secondary
             }
@@ -300,13 +301,13 @@ public struct ExperienceCardView: View {
                     let favorited = preferences.isFavorited(experience.id)
                     ZStack {
                         Circle()
-                            .stroke(Color.red.opacity(0.5), lineWidth: 2)
+                            .stroke(CT.savedRed.opacity(0.5), lineWidth: 2)
                             .scaleEffect(heartBurst ? 1.8 : 0.4)
                             .opacity(heartBurst ? 0 : 0.8)
                             .animation(.easeOut(duration: 0.45), value: heartBurst)
                             .allowsHitTesting(false)
                         Image(systemName: favorited ? "heart.fill" : "heart")
-                            .foregroundStyle(favorited ? Color.red : Color.secondary)
+                            .foregroundStyle(favorited ? CT.savedRed : Color.secondary)
                             .scaleEffect(favorited ? 1.15 : 1.0)
                             .symbolEffect(.bounce, value: heartBounce)
                     }
@@ -383,7 +384,7 @@ public struct ExperienceCardView: View {
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.green.opacity(arrivalGlow ? 0 : 0.7), lineWidth: 3)
+                    .stroke(CT.verifiedGreen.opacity(arrivalGlow ? 0 : 0.7), lineWidth: 3)
                     .scaleEffect(arrivalGlow ? 1.25 : 1.0)
                     .animation(.easeOut(duration: 0.8), value: arrivalGlow)
                     .allowsHitTesting(false)
@@ -545,7 +546,7 @@ public struct ExperienceCardView: View {
     private func distancePill(_ label: String, symbol: String) -> some View {
         let relBearing = relativeBearingDegrees
         let proximityColor = distanceMeters.map { proximityTint(for: $0) } ?? Color.secondary
-        let arrowTint = isOnCourse ? Color.green : proximityColor
+        let arrowTint = isOnCourse ? CT.verifiedGreen : proximityColor
         HStack(spacing: 4) {
             if let relBearing {
                 Image(systemName: "location.north.fill")
@@ -640,8 +641,8 @@ public struct ExperienceCardView: View {
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .foregroundStyle(Color.green)
-            .background(Capsule().fill(Color.green.opacity(0.12)))
+            .foregroundStyle(CT.verifiedGreen)
+            .background(Capsule().fill(CT.successSoft))
             .contentTransition(reduceMotion ? .identity : .numericText())
             .accessibilityLabel(a11y)
     }
@@ -687,8 +688,8 @@ public struct ExperienceCardView: View {
         .font(.caption)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .foregroundStyle(Color.green)
-        .background(Capsule().fill(Color.green.opacity(0.15)))
+        .foregroundStyle(CT.verifiedGreen)
+        .background(Capsule().fill(CT.successSoft))
         .scaleEffect(arrivedPulse ? 1.0 : 0.85)
         .onAppear {
             if reduceMotion {
@@ -713,8 +714,8 @@ public struct ExperienceCardView: View {
             .font(.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .foregroundStyle(Color.accentColor)
-            .background(Capsule().fill(Color.accentColor.opacity(0.12)))
+            .foregroundStyle(CT.accent)
+            .background(Capsule().fill(CT.accent.opacity(0.12)))
 
             if apps.count == 1, let app = apps.first {
                 Button {
@@ -859,7 +860,7 @@ public struct ExperienceCardView: View {
     private var inconveniencePill: some View {
         if let category = mostSevereInconvenience {
             let isHighSeverity = category == .safety || category == .scam
-            let tint = isHighSeverity ? Color.red : Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
+            let tint = isHighSeverity ? CT.savedRed : Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
             let count = experience.realInconveniences.count
             let a11yFormat = isHighSeverity
                 ? NSLocalizedString("inconvenience.card.count.a11y.high", comment: "High-severity inconvenience pill accessibility label")
@@ -960,12 +961,13 @@ struct BestNowBadge: View {
     /// drives recomputation of `minutesLeftInBestWindow()` once a minute.
     var experience: Experience
 
-    private static let gold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+    private static let gold = CT.sunGold
     private static let amber = Color(red: 0xF5/255, green: 0x9E/255, blue: 0x0B/255)
     private static let closingSoonThresholdMinutes = 45
 
     @State private var pulse = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     /// Single 60s clock shared across every badge (US-023). Replaces the
     /// per-badge `TimelineView(.periodic(by: 60))` so 20+ badges no longer spin
     /// up 20+ concurrent timelines.
@@ -1045,7 +1047,7 @@ struct BestNowBadge: View {
         if score.value >= 0.7 {
             Text(Self.reasonSubtitle(for: score))
                 .font(CT.body(11, .medium))
-                .foregroundStyle(CT.fgMuted)
+                .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
                 .lineLimit(1)
                 .accessibilityHidden(true)
         }
@@ -1083,7 +1085,7 @@ struct BestNowBadge: View {
                 onDismiss: {}
             )
         }
-        .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+        .background(CT.surfaceSunken)
         .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview")!))
         .environment(locationService)
         .environment(BestNowClock())
@@ -1103,7 +1105,7 @@ struct BestNowBadge: View {
                 onDismiss: {}
             )
         }
-        .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+        .background(CT.surfaceSunken)
         .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview-grabber")!))
         .environment(LocationService())
         .environment(BestNowClock())
@@ -1128,7 +1130,7 @@ struct BestNowBadge: View {
                 onDismiss: {}
             )
         }
-        .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+        .background(CT.surfaceSunken)
         .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview-a11y")!))
         .environment(locationService)
         .environment(AIService())

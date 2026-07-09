@@ -52,12 +52,15 @@ public struct ConfidenceBadge: View {
                     }
                 }
                 if !compact {
-                    // Show the human-readable health label (Verified / Fading /
-                    // …) instead of the opaque internal "L2" level code, which
-                    // means nothing to a traveler.
-                    Text("\(confidence.health.localizedDescription) · \(confidence.signals.totalCount) \(NSLocalizedString("confidence.signals", comment: "signals"))")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    if confidence.signals.totalCount == 0 {
+                        Text(NSLocalizedString("confidence.aiEstimate", comment: "AI estimate for zero-signal cold start"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("\(confidence.health.localizedDescription) · \(confidence.signals.totalCount) \(NSLocalizedString("confidence.signals", comment: "signals"))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .contentShape(Rectangle())

@@ -36,7 +36,7 @@ struct HalfExpandedEmptyState: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var appeared = false
+    @State private var appeared = true
 
     var body: some View {
         // Editorial half-sheet — "B. Minimal Voice":
@@ -49,7 +49,7 @@ struct HalfExpandedEmptyState: View {
         // suppressed by `ChatSheet` when `detent == .medium`, so this view IS
         // the whole half-sheet surface.
         VStack(spacing: 0) {
-            Spacer(minLength: 20)
+            Spacer(minLength: 12)
 
             momentTag
                 .padding(.bottom, 14)
@@ -71,7 +71,7 @@ struct HalfExpandedEmptyState: View {
 
             micHandle
 
-            Spacer(minLength: 20)
+            Spacer(minLength: 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .opacity(appeared ? 1 : 0)

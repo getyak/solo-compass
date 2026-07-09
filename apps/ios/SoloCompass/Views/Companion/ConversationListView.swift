@@ -256,7 +256,7 @@ private struct ConversationRow: View {
 
             if summary.hasUnread {
                 Circle()
-                    .fill(Color.accentColor)
+                    .fill(CT.accent)
                     .frame(width: 10, height: 10)
                     .accessibilityLabel(
                         Text(NSLocalizedString("messages.unread.a11y", comment: "Unread"))

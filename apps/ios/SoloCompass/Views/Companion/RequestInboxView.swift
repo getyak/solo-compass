@@ -55,10 +55,10 @@ public struct RequestInboxView: View {
                             .contentTransition(.numericText())
                     }
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(CT.warningText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(Color.orange.opacity(0.15), in: Capsule())
+                    .background(CT.warningSoft, in: Capsule())
                     .opacity(!reduceMotion ? (pulse ? 1.0 : 0.65) : 1.0)
                     .animation(
                         !reduceMotion ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true) : .none,
@@ -98,7 +98,7 @@ public struct RequestInboxView: View {
                         .font(.subheadline)
                         .lineLimit(2)
                 }
-                .foregroundStyle(.red)
+                .foregroundStyle(CT.savedRed)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(.regularMaterial, in: Capsule())
@@ -270,11 +270,11 @@ private struct EmptyInboxView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color.accentColor.opacity(0.12))
+                    .fill(CT.accent.opacity(0.12))
                     .frame(width: 80, height: 80)
                 Image(systemName: "tray")
                     .font(.system(size: 40))
-                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                    .foregroundStyle(CT.accent.opacity(0.7))
                     .scaleEffect(isBreathing ? 1.08 : 0.94)
                     .opacity(isBreathing ? 1.0 : 0.7)
                     .animation(

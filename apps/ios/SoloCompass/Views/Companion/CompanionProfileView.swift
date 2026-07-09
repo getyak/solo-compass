@@ -97,7 +97,7 @@ public struct MyProfileEditView: View {
                         .font(.system(size: 64))
                         .frame(width: 96, height: 96)
                         .background(
-                            Circle().fill(Color.accentColor.opacity(0.1))
+                            Circle().fill(CT.accent.opacity(0.1))
                         )
                 }
                 .accessibilityLabel(NSLocalizedString("companion.profile.avatar.a11y", comment: "Change avatar emoji"))
@@ -118,7 +118,7 @@ public struct MyProfileEditView: View {
                                 .background(
                                     RoundedRectangle(cornerRadius: 10)
                                         .fill(preferences.companionAvatarEmoji == emoji
-                                              ? Color.accentColor.opacity(0.2)
+                                              ? CT.accent.opacity(0.2)
                                               : Color(.systemBackground))
                                 )
                         }
@@ -183,7 +183,7 @@ public struct MyProfileEditView: View {
                     format: NSLocalizedString("profile.handle.invalid", comment: "Handle length validation message"),
                     Self.handleMinLength, Self.handleMaxLength
                 ))
-                .foregroundStyle(.red)
+                .foregroundStyle(CT.savedRed)
             } else {
                 Text(String(
                     format: NSLocalizedString("profile.handle.footer", comment: "Handle section footer"),
@@ -235,7 +235,7 @@ public struct MyProfileEditView: View {
                         Spacer()
                         if currentCodes.contains(lang.code) {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(Color.accentColor)
+                                .foregroundStyle(CT.accent)
                                 .font(.footnote.weight(.semibold))
                         }
                     }
@@ -272,12 +272,12 @@ public struct MyProfileEditView: View {
                             } label: {
                                 Text(NSLocalizedString("profile.walkedRoutes.viewAll", comment: "View all walked routes chip"))
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Color.accentColor)
+                                    .foregroundStyle(CT.accent)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 8)
-                                            .fill(Color.accentColor.opacity(0.1))
+                                            .fill(CT.accent.opacity(0.1))
                                     )
                             }
                             .buttonStyle(.plain)
@@ -306,7 +306,7 @@ public struct MyProfileEditView: View {
                             .frame(width: 24)
                             .foregroundStyle(
                                 preferences.companionVisibility == option
-                                ? Color.accentColor : .secondary
+                                ? CT.accent : .secondary
                             )
                         VStack(alignment: .leading, spacing: 2) {
                             Text(visibilityTitle(option))
@@ -319,7 +319,7 @@ public struct MyProfileEditView: View {
                         Spacer()
                         if preferences.companionVisibility == option {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(Color.accentColor)
+                                .foregroundStyle(CT.accent)
                         }
                     }
                     .padding(.vertical, 2)
@@ -383,7 +383,7 @@ private struct WalkedRouteCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.accentColor.opacity(0.15))
+                .fill(CT.accent.opacity(0.15))
                 .frame(width: 140, height: 76)
                 .overlay(
                     Text(route.title.prefix(1))

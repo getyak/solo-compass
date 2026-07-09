@@ -91,7 +91,7 @@ public struct MyRequestsListView: View {
                                         systemImage: "arrow.uturn.backward"
                                     )
                                 }
-                                .tint(.orange)
+                                .tint(CT.warningText)
                             }
                         }
                 }
@@ -203,13 +203,13 @@ public struct MyRequestsListView: View {
         case .pending:
             return (
                 NSLocalizedString("my.requests.status.pending", comment: "Pending status chip"),
-                Color.orange,
+                CT.warningText,
                 "clock.fill"
             )
         case .accepted:
             return (
                 NSLocalizedString("my.requests.status.accepted", comment: "Accepted status chip"),
-                Color.green,
+                CT.verifiedGreen,
                 "checkmark.circle.fill"
             )
         case .declined:
@@ -280,11 +280,11 @@ private struct EmptyMyRequestsView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color.accentColor.opacity(0.12))
+                    .fill(CT.accent.opacity(0.12))
                     .frame(width: 80, height: 80)
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 36))
-                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                    .foregroundStyle(CT.accent.opacity(0.7))
                     .scaleEffect(isBreathing ? 1.08 : 0.94)
                     .opacity(isBreathing ? 1.0 : 0.7)
                     .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)

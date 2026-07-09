@@ -14,7 +14,7 @@ private struct HeroTitleOffsetKey: PreferenceKey {
 /// the user might want before going. Real Inconveniences are surfaced as
 /// prominently as the recommendation — that is the product's brand.
 public struct ExperienceDetailView: View {
-    @State var viewModel: ExperienceDetailViewModel
+    @State internal var viewModel: ExperienceDetailViewModel
     var onClose: () -> Void
     var onMarkDone: ((_ experience: Experience) -> Void)?
     /// US-004: When non-nil, render the "Ask Solo about this" button (subject
@@ -66,20 +66,20 @@ public struct ExperienceDetailView: View {
     // MARK: - Traveler co-build UI state
     /// Loaded notes/corrections for this place (refreshed from the store on
     /// appear + after every mutation).
-    @State var notes: [TravelerNote] = []
-    @State var corrections: [PlaceCorrection] = []
+    @State internal var notes: [TravelerNote] = []
+    @State internal var corrections: [PlaceCorrection] = []
     /// Notes the current user has tapped "我也确认" on this session.
-    @State var confirmedNoteIds: Set<String> = []
-    @State var notesFilter: NoteFilter = .all
-    @State var notesExpanded = false
+    @State internal var confirmedNoteIds: Set<String> = []
+    @State internal var notesFilter: NoteFilter = .all
+    @State internal var notesExpanded = false
     /// Picked mood chips + free-text in the quick-add row.
-    @State var pickedMoods: Set<String> = []
-    @State var noteDraft: String = ""
+    @State internal var pickedMoods: Set<String> = []
+    @State internal var noteDraft: String = ""
     /// Whether the current user has contributed anything this session — bumps
     /// the hero "L{n} · {n} 信号" line and shows a one-shot toast.
-    @State var userContributed = false
-    @State var levelToast: String? = nil
-    @State var levelToastTask: Task<Void, Never>? = nil
+    @State internal var userContributed = false
+    @State internal var levelToast: String? = nil
+    @State internal var levelToastTask: Task<Void, Never>? = nil
     @State private var barsAppeared = false
 
     /// Notes feed filter segments.
@@ -501,7 +501,7 @@ public struct ExperienceDetailView: View {
                 if let romanized, !romanized.isEmpty {
                     Text(romanized)
                         .font(CT.mono(12.5))
-                        .foregroundStyle(CT.fgSubtle)
+                        .foregroundStyle(CT.fgMuted)
                     Text(local)
                         .font(CT.body(13))
                         .foregroundStyle(CT.fgMuted)
@@ -520,6 +520,9 @@ public struct ExperienceDetailView: View {
     private var levelSignalText: String {
         let level = 1 + (userContributed ? 1 : 0)
         let signals = notes.count + (userContributed ? 1 : 0)
+        if signals == 0 {
+            return NSLocalizedString("notes.signals.aiEstimate", comment: "AI estimate label for cold-start")
+        }
         return "L\(level) · \(signals) " + NSLocalizedString("notes.signals", comment: "signals unit")
     }
 
@@ -544,8 +547,10 @@ public struct ExperienceDetailView: View {
                 .font(.system(size: 9))
             Text(NSLocalizedString(labelKey, comment: "Trust state label"))
                 .font(CT.mono(10))
-            Text("· \(signals)")
-                .font(CT.mono(10))
+            if signals > 0 {
+                Text("· \(signals)")
+                    .font(CT.mono(10))
+            }
         }
         .foregroundStyle(fg)
         .padding(.horizontal, 8)
@@ -866,7 +871,7 @@ public struct ExperienceDetailView: View {
                             .lineLimit(1)
                         Text(String(format: "%.4f, %.4f", coord.latitude, coord.longitude))
                             .font(CT.mono(10.5))
-                            .foregroundStyle(CT.fgSubtle)
+                            .foregroundStyle(CT.fgMuted)
                     }
                     Spacer(minLength: 0)
                     Button {
@@ -943,21 +948,21 @@ public struct ExperienceDetailView: View {
                     mins
                 )
                 symbol = "clock.badge.exclamationmark"
-                background = Color.orange.opacity(0.15)
-                tint = Color.orange
+                background = CT.warningSoft
+                tint = CT.warningText
             } else if let minutesLeft {
                 label = String(
                     format: NSLocalizedString("bestTimes.now.pill.left", comment: "Good now with minutes left pill"),
                     minutesLeft
                 )
                 symbol = "clock.badge.checkmark"
-                background = Color.green.opacity(0.15)
-                tint = Color.green
+                background = CT.successSoft
+                tint = CT.successText
             } else {
                 label = NSLocalizedString("bestTimes.now.pill", comment: "Good time now pill")
                 symbol = "clock.badge.checkmark"
-                background = Color.green.opacity(0.15)
-                tint = Color.green
+                background = CT.successSoft
+                tint = CT.successText
             }
         } else if let hint {
             label = String(format: NSLocalizedString("bestTimes.next.pill", comment: "Better at time pill"), hint)
@@ -1327,14 +1332,14 @@ public struct ExperienceDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.caption2)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(CT.verifiedGreen)
                 Text(NSLocalizedString("detail.multiSource.indicator", comment: "Verified by multiple sources indicator"))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Capsule().fill(Color.green.opacity(0.08)))
+            .background(Capsule().fill(CT.successSoft))
             .accessibilityElement(children: .combine)
             .accessibilityLabel(Text(NSLocalizedString("detail.multiSource.indicator.a11y", comment: "Verified by multiple sources accessibility label")))
         }
@@ -1490,6 +1495,7 @@ public struct ExperienceDetailView: View {
                 }
                 Text(exp.title)
                     .font(.caption.bold())
+                    .foregroundStyle(CT.fgPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1498,7 +1504,7 @@ public struct ExperienceDetailView: View {
             .frame(width: 180, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.08))
+                    .fill(CT.surfaceSunken)
             )
         }
 
@@ -1566,7 +1572,7 @@ public struct ExperienceDetailView: View {
             } label: {
                 Text(NSLocalizedString("itinerary.toast.viewAction", comment: "View itinerary button in success toast"))
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(CT.accent)
             }
         }
         .padding(.horizontal, 16)
@@ -1774,7 +1780,7 @@ private struct CompassDirectionView: View {
                 // Arrow pointing toward the experience
                 Image(systemName: "location.north.fill")
                     .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(CT.accent)
                     .rotationEffect(.degrees(relBearing))
                     .animation(
                         reduceMotion ? nil : .easeInOut(duration: 0.25),

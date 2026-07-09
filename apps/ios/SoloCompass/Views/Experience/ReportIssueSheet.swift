@@ -80,7 +80,7 @@ public struct ReportIssueSheet: View {
 
     private var counterColor: Color {
         let ratio = Double(detail.count) / Double(detailLimit)
-        if detail.count >= detailLimit { return .red }
+        if detail.count >= detailLimit { return CT.savedRed }
         if ratio >= 0.8 { return .orange }
         return .secondary
     }
@@ -93,12 +93,12 @@ public struct ReportIssueSheet: View {
                 HStack(spacing: 12) {
                     Image(systemName: reason.symbol)
                         .frame(width: 24)
-                        .foregroundStyle(reason == selectedReason ? .red : .secondary)
+                        .foregroundStyle(reason == selectedReason ? CT.savedRed : .secondary)
                         .accessibilityHidden(true)
                     Text(reason.label)
                     Spacer()
                     if reason == selectedReason {
-                        Image(systemName: "checkmark").foregroundStyle(.red).fontWeight(.semibold)
+                        Image(systemName: "checkmark").foregroundStyle(CT.savedRed).fontWeight(.semibold)
                             .accessibilityHidden(true)
                     }
                 }
@@ -111,7 +111,7 @@ public struct ReportIssueSheet: View {
                 .accessibilityAddTraits(reason == selectedReason ? [.isButton, .isSelected] : .isButton)
                 .accessibilityHint(NSLocalizedString("report.reason.hint", comment: "Describes that selecting a reason reveals an optional details field"))
                 .listRowBackground(reason == selectedReason
-                    ? Color.red.opacity(0.06)
+                    ? CT.savedRedSoft
                     : Color(.secondarySystemGroupedBackground))
             }
         } header: {

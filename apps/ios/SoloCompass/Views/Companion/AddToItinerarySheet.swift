@@ -94,11 +94,11 @@ public struct AddToItinerarySheet: View {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.accentColor.opacity(0.1))
+                        .fill(CT.accent.opacity(0.1))
                         .frame(width: 36, height: 36)
                     Image(systemName: alreadyAdded ? "checkmark" : "plus")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(alreadyAdded ? .green : Color.accentColor)
+                        .foregroundStyle(alreadyAdded ? CT.verifiedGreen : CT.accent)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(itin.title)
@@ -111,7 +111,7 @@ public struct AddToItinerarySheet: View {
                 Spacer()
                 if wasJustAdded {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(CT.verifiedGreen)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -149,7 +149,7 @@ public struct AddToItinerarySheet: View {
         VStack(spacing: 16) {
             Image(systemName: "map")
                 .font(.system(size: 40))
-                .foregroundStyle(Color.accentColor.opacity(0.6))
+                .foregroundStyle(CT.accent.opacity(0.6))
             Text(NSLocalizedString("itinerary.addTo.noItineraries", comment: "No itineraries empty state"))
                 .font(.headline)
             Text(NSLocalizedString("itinerary.addTo.noItineraries.hint", comment: "Create one hint"))
@@ -163,7 +163,7 @@ public struct AddToItinerarySheet: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
-                    .background(Capsule().fill(Color.accentColor))
+                    .background(Capsule().fill(CT.accent))
                     .foregroundStyle(.white)
             }
         }

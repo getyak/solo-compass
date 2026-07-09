@@ -60,7 +60,7 @@ public struct CompanionSafetyConsentSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: "shield.lefthalf.filled")
                 .font(.system(size: 44))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(CT.accent)
                 .padding(.top, 8)
 
             Text(NSLocalizedString("companion.safety.heading", comment: "Safety heading"))
@@ -109,7 +109,7 @@ public struct CompanionSafetyConsentSheet: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .frame(width: 20)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(CT.accent)
             Text(text)
                 .font(.subheadline)
                 .foregroundStyle(.primary)
@@ -137,11 +137,11 @@ public struct CompanionSafetyConsentSheet: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.orange.opacity(0.1))
+                .fill(CT.warningSoft)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                .stroke(CT.warningText.opacity(0.3), lineWidth: 1)
         )
     }
 
@@ -194,7 +194,7 @@ private struct CheckmarkToggleStyle: ToggleStyle {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
                     .font(.title3)
-                    .foregroundStyle(configuration.isOn ? Color.accentColor : .secondary)
+                    .foregroundStyle(configuration.isOn ? CT.accent : .secondary)
                 configuration.label
             }
         }

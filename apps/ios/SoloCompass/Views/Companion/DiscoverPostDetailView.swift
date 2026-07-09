@@ -44,7 +44,7 @@ struct DiscoverPostDetailView: View {
                     if let msg = errorMessage {
                         Label(msg, systemImage: "exclamationmark.triangle")
                             .font(.subheadline)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(CT.savedRed)
                             .accessibilityLabel(msg)
                     }
                 }
@@ -88,8 +88,8 @@ struct DiscoverPostDetailView: View {
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Capsule().fill(Color.accentColor.opacity(0.12)))
-                        .foregroundStyle(Color.accentColor)
+                        .background(Capsule().fill(CT.accent.opacity(0.12)))
+                        .foregroundStyle(CT.accent)
                 }
             }
         }

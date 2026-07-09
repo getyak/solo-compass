@@ -191,7 +191,7 @@ struct JoinRouteRequestSheet: View {
 
             Text("\(message.count) / 10+")
                 .font(.caption)
-                .foregroundStyle(message.count < 10 ? Color(.secondaryLabel) : Color.green)
+                .foregroundStyle(message.count < 10 ? Color(.secondaryLabel) : CT.verifiedGreen)
 
             if showsMessageError {
                 inlineError(JoinRequestField.message.missingHint)
@@ -205,7 +205,7 @@ struct JoinRouteRequestSheet: View {
     private func inlineError(_ text: String) -> some View {
         Text(text)
             .font(.caption)
-            .foregroundStyle(Color.red)
+            .foregroundStyle(CT.savedRed)
             .accessibilityAddTraits(.isStaticText)
             .transition(.opacity)
     }
@@ -230,7 +230,7 @@ struct JoinRouteRequestSheet: View {
     private var submitBackground: some View {
         if isSubmitEnabled {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.accentColor)
+                .fill(CT.accent)
         } else {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color(.systemGray4))

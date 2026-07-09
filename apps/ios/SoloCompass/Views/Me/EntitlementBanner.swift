@@ -70,9 +70,6 @@ struct EntitlementBanner: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
             }
             // Progress bar — full at trial start, drains to zero on the
             // last day. tint=amber for trial, intentionally not red so we
@@ -99,9 +96,6 @@ struct EntitlementBanner: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -122,9 +116,6 @@ struct EntitlementBanner: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -184,9 +175,7 @@ struct EntitlementBanner: View {
 
     // MARK: - Styling
 
-    private var amber: Color {
-        Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
-    }
+    private var amber: Color { CT.sunGold }
 
     private var backgroundFill: Color {
         switch subscription.entitlement {

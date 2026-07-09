@@ -284,7 +284,7 @@ private struct SoloScorePopoverContent: View {
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill")
                         .font(.caption2)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(CT.verifiedGreen)
                         .accessibilityHidden(true)
                     Text(String(format: NSLocalizedString("solo.strongest", comment: ""), strongestLabel))
                         .font(.caption2)
@@ -298,7 +298,7 @@ private struct SoloScorePopoverContent: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.caption2)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(CT.warningText)
                         .accessibilityHidden(true)
                     Text(String(format: NSLocalizedString("solo.weakest", comment: ""), weakestLabel))
                         .font(.caption2)
@@ -312,16 +312,16 @@ private struct SoloScorePopoverContent: View {
                 HStack(spacing: 6) {
                     Image(systemName: "shield.lefthalf.filled.slash")
                         .font(.caption2)
-                        .foregroundStyle(Color(red: 0.85, green: 0.38, blue: 0.1))
+                        .foregroundStyle(CT.warningText)
                         .accessibilityHidden(true)
                     Text(NSLocalizedString("solo.safety.caution", comment: ""))
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(Color(red: 0.65, green: 0.3, blue: 0.05))
+                        .foregroundStyle(CT.warningText)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.14), in: Capsule())
+                .background(CT.warningSoft, in: Capsule())
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(Text(NSLocalizedString("solo.safety.caution.a11y", comment: "")))
                 .scaleEffect(appeared && !reduceMotion ? 1 : (reduceMotion ? 1 : 0.92))
@@ -347,10 +347,10 @@ private struct SoloScorePopoverContent: View {
                 HStack(spacing: 6) {
                     Image(systemName: "person.2.fill")
                         .font(.caption2)
-                        .foregroundStyle(isEarlyEstimate ? Color.orange.opacity(0.9) : .secondary)
+                        .foregroundStyle(isEarlyEstimate ? CT.warningText : .secondary)
                     Text(String(format: NSLocalizedString("solo.basedOn", comment: "Based on N solo travelers"), score.basedOnCount))
                         .font(.caption)
-                        .foregroundStyle(isEarlyEstimate ? Color.orange.opacity(0.9) : .secondary)
+                        .foregroundStyle(isEarlyEstimate ? CT.warningText : .secondary)
                     if isEarlyEstimate {
                         HStack(spacing: 3) {
                             Image(systemName: "hourglass")
@@ -359,10 +359,10 @@ private struct SoloScorePopoverContent: View {
                             Text(NSLocalizedString("solo.earlyEstimate", comment: "Early estimate"))
                                 .font(.caption2.weight(.medium))
                         }
-                        .foregroundStyle(Color.orange.opacity(0.9))
+                        .foregroundStyle(CT.warningText)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.orange.opacity(0.12), in: Capsule())
+                        .background(CT.warningSoft, in: Capsule())
                         .scaleEffect(appeared && !reduceMotion ? 1 : (reduceMotion ? 1 : 0.85))
                         .opacity(appeared ? 1 : 0)
                     }
@@ -404,7 +404,7 @@ private struct SoloScorePopoverContent: View {
 
     private func dimensionRow(label: String, desc: String, value: Double, index: Int, isWeakest: Bool, isStrongest: Bool = false) -> some View {
         let clamped = max(0, min(10, value))
-        let barColor: Color = isWeakest ? .orange.opacity(0.8) : isStrongest ? .green.opacity(0.8) : score.scoreColor.opacity(0.8)
+        let barColor: Color = isWeakest ? CT.warningText.opacity(0.8) : isStrongest ? CT.verifiedGreen.opacity(0.8) : score.scoreColor.opacity(0.8)
         let isExpanded = expandedIndex == index
         return Button {
             withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) {
@@ -417,12 +417,12 @@ private struct SoloScorePopoverContent: View {
                     if isWeakest {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 9))
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(CT.warningText)
                             .accessibilityHidden(true)
                     } else if isStrongest {
                         Image(systemName: "star.fill")
                             .font(.system(size: 9))
-                            .foregroundStyle(.green)
+                            .foregroundStyle(CT.verifiedGreen)
                             .accessibilityHidden(true)
                     }
                     Text(label)

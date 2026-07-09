@@ -355,13 +355,15 @@ private struct NearbyRowSkeleton: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(uiColor: .systemGray6))
+                .fill(colorScheme == .dark ? CT.warmSunkenDark : CT.surfaceSunken)
         )
     }
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private var shimmerFill: some ShapeStyle {
-        let base = Color(uiColor: .systemGray5)
-        let highlight = Color.white.opacity(0.6)
+        let base = colorScheme == .dark ? CT.warmSunkenDark : CT.surfaceSunken
+        let highlight = colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite
         let center = (shimmerPhase + 1) / 2
         return LinearGradient(
             stops: [
@@ -399,6 +401,7 @@ struct EmptySheetListView: View {
     var onSwitchToSuggestedCity: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @State private var breathing = false
 
     var localizedEmptyText: String {
@@ -432,11 +435,11 @@ struct EmptySheetListView: View {
                         .opacity(breathing ? 0.7 : 1.0)
                     Text(NSLocalizedString("empty.now.latenight.headline", comment: "Late night Now empty headline"))
                         .font(.headline)
-                        .foregroundStyle(CT.fgPrimary)
+                        .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
                         .multilineTextAlignment(.center)
                     Text(NSLocalizedString("empty.now.latenight.subtitle", comment: "Late night Now empty subtitle"))
                         .font(.subheadline)
-                        .foregroundStyle(CT.fgMuted)
+                        .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
                         .multilineTextAlignment(.center)
                 } else if isNowFilter {
                     Image(systemName: "clock.badge.questionmark")
@@ -446,11 +449,11 @@ struct EmptySheetListView: View {
                         .opacity(breathing ? 0.7 : 1.0)
                     Text(NSLocalizedString("empty.now.headline", comment: "Now filter empty headline"))
                         .font(.headline)
-                        .foregroundStyle(CT.fgPrimary)
+                        .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
                         .multilineTextAlignment(.center)
                     Text(NSLocalizedString("empty.now.subtitle", comment: "Now filter empty subtitle"))
                         .font(.subheadline)
-                        .foregroundStyle(CT.fgMuted)
+                        .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
                         .multilineTextAlignment(.center)
                 } else {
                     Image(systemName: "mappin.slash")
@@ -460,17 +463,17 @@ struct EmptySheetListView: View {
                         .opacity(breathing ? 0.7 : 1.0)
                     Text(NSLocalizedString("empty.nearby.headline", comment: "Empty Nearby headline"))
                         .font(.headline)
-                        .foregroundStyle(CT.fgPrimary)
+                        .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
                         .multilineTextAlignment(.center)
                     if hasSuggestedCity {
                         Text(NSLocalizedString("empty.nearby.subtitle.nocity", comment: "Empty Nearby subtitle when city has no data"))
                             .font(.subheadline)
-                            .foregroundStyle(CT.fgMuted)
+                            .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
                             .multilineTextAlignment(.center)
                     } else {
                         Text(NSLocalizedString("empty.nearby.subtitle", comment: "Empty Nearby supporting subline"))
                             .font(.subheadline)
-                            .foregroundStyle(CT.fgMuted)
+                            .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
                             .multilineTextAlignment(.center)
                     }
                 }

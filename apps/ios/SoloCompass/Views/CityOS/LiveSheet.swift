@@ -147,7 +147,7 @@ struct LiveEventCard: View {
 
     private func limitedChip(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
             .foregroundStyle(CT.eventLimited)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -187,8 +187,8 @@ struct LiveEventCard: View {
             HealthDot(status: health)
             if let seen = event.seenLabel, !seen.isEmpty {
                 Text(seen)
-                    .font(CT.mono(9.5))
-                    .foregroundStyle(CT.fgSubtle)
+                    .font(CT.mono(10))
+                    .foregroundStyle(CT.fgMuted)
                     .lineLimit(1)
             }
             Spacer(minLength: 0)

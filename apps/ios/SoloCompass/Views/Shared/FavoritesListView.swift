@@ -50,7 +50,7 @@ public struct FavoritesListView: View {
 
         var color: Color {
             switch self {
-            case .near: return .green
+            case .near: return CT.verifiedGreen
             case .mid: return .orange
             case .far: return Color(.tertiaryLabel)
             }
@@ -177,10 +177,10 @@ public struct FavoritesListView: View {
             Text(String(format: NSLocalizedString("favorites.nearby.walkBudget", comment: "Walk budget chip: ~Xm on foot"), mins))
         }
         .font(.caption2)
-        .foregroundStyle(Color.green)
+        .foregroundStyle(CT.verifiedGreen)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(Color.green.opacity(0.12), in: Capsule())
+        .background(CT.successSoft, in: Capsule())
         .animation(.easeInOut, value: nearbyWalkMinutesTotal)
         .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
     }
@@ -321,7 +321,7 @@ public struct FavoritesListView: View {
                                                 .padding(.vertical, showRemainingOnly ? 4 : 0)
                                                 .background(
                                                     showRemainingOnly
-                                                        ? Color.green.opacity(0.12)
+                                                        ? CT.successSoft
                                                         : Color.clear,
                                                     in: Capsule()
                                                 )
@@ -347,16 +347,16 @@ public struct FavoritesListView: View {
                                     } label: {
                                         HStack(spacing: 4) {
                                             Circle()
-                                                .fill(Color.green)
+                                                .fill(CT.verifiedGreen)
                                                 .frame(width: 7, height: 7)
                                                 .accessibilityHidden(true)
                                             Text(String(format: NSLocalizedString("favorites.nearby.count", comment: "N nearby chip"), nearbyCount))
                                                 .font(.caption2)
-                                                .foregroundStyle(Color.green)
+                                                .foregroundStyle(CT.verifiedGreen)
                                         }
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 5)
-                                        .background(Color.green.opacity(0.12), in: Capsule())
+                                        .background(CT.successSoft, in: Capsule())
                                     }
                                     .buttonStyle(.plain)
                                     .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.count.a11y", comment: "N nearby chip accessibility label"), nearbyCount))
@@ -397,10 +397,10 @@ public struct FavoritesListView: View {
                                                 Text(NSLocalizedString("favorites.nearby.go", comment: "Go button: launch directions to nearest favorite"))
                                             }
                                             .font(.caption2)
-                                            .foregroundStyle(Color.green)
+                                            .foregroundStyle(CT.verifiedGreen)
                                             .padding(.horizontal, 10)
                                             .padding(.vertical, 5)
-                                            .background(Color.green.opacity(0.12), in: Capsule())
+                                            .background(CT.successSoft, in: Capsule())
                                         }
                                         .buttonStyle(.plain)
                                         .accessibilityLabel(String(format: NSLocalizedString("favorites.nearby.go.a11y", comment: "Directions to nearest favorite accessibility label"), nearest.title))
@@ -577,21 +577,21 @@ private struct FavoritesJourneyHeader: View {
             let pillContent = HStack(spacing: 4) {
                 Image(systemName: "clock.badge.checkmark")
                     .font(.caption2)
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(CT.verifiedGreen)
                     .accessibilityHidden(true)
                 Text(label)
                     .font(.caption2)
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(CT.verifiedGreen)
                 if onTapGoodNow != nil {
                     Image(systemName: "chevron.right.circle.fill")
                         .font(.caption2)
-                        .foregroundStyle(Color.green)
+                        .foregroundStyle(CT.verifiedGreen)
                         .accessibilityHidden(true)
                 }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.green.opacity(0.12), in: Capsule())
+            .background(CT.successSoft, in: Capsule())
             .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
 
             if let onTap = onTapGoodNow {
@@ -618,17 +618,17 @@ private struct FavoritesJourneyHeader: View {
             let nudgeContent = HStack(spacing: 4) {
                 Text(label)
                     .font(.caption2)
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(CT.verifiedGreen)
                 if onTapNearby != nil {
                     Image(systemName: "chevron.right.circle.fill")
                         .font(.caption2)
-                        .foregroundStyle(Color.green)
+                        .foregroundStyle(CT.verifiedGreen)
                         .accessibilityHidden(true)
                 }
             }
             .padding(.horizontal, onTapNearby != nil ? 8 : 0)
             .padding(.vertical, onTapNearby != nil ? 4 : 0)
-            .background(onTapNearby != nil ? Color.green.opacity(0.12) : Color.clear, in: Capsule())
+            .background(onTapNearby != nil ? CT.successSoft : Color.clear, in: Capsule())
             .transition(reduceMotion ? .opacity : .scale(scale: 0.9).combined(with: .opacity))
 
             if let onTap = onTapNearby {
@@ -821,14 +821,14 @@ private struct JourneyProgressBar: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.green.opacity(0.15))
+                    .fill(CT.successSoft)
                     .frame(height: 4)
                 if total >= 2 {
                     Capsule()
                         .fill(
                             isPastHalfway
-                                ? Color.green
-                                : Color.green.opacity(0.25)
+                                ? CT.verifiedGreen
+                                : CT.verifiedGreen.opacity(0.25)
                         )
                         .frame(width: 2, height: 8)
                         .offset(x: geo.size.width * 0.5 - 1)
@@ -839,11 +839,11 @@ private struct JourneyProgressBar: View {
                         .accessibilityHidden(true)
                 }
                 Capsule()
-                    .fill(isAllDone ? Color.green : Color.green.opacity(0.75))
+                    .fill(isAllDone ? CT.verifiedGreen : CT.verifiedGreen.opacity(0.75))
                     .frame(width: geo.size.width * animatedFraction, height: 4)
                     .scaleEffect(x: 1, y: fillScaleY, anchor: .center)
                     .shadow(
-                        color: isAllDone ? Color.green.opacity(0.4) : Color.clear,
+                        color: isAllDone ? CT.verifiedGreen.opacity(0.4) : Color.clear,
                         radius: 3
                     )
                     .overlay(alignment: .leading) {
@@ -866,7 +866,7 @@ private struct JourneyProgressBar: View {
                     .clipShape(Capsule())
                 if glowOpacity > 0 {
                     Capsule()
-                        .fill(Color.green.opacity(glowOpacity))
+                        .fill(CT.verifiedGreen.opacity(glowOpacity))
                         .frame(width: geo.size.width * animatedFraction, height: 4)
                         .blur(radius: 3)
                         .allowsHitTesting(false)
@@ -960,20 +960,20 @@ private struct CompletionRing: View {
         ZStack {
             HeartBurstView(trigger: celebrationBurst)
             Circle()
-                .stroke(Color.green.opacity(0.15), lineWidth: 2.5)
+                .stroke(CT.successSoft, lineWidth: 2.5)
             Circle()
                 .trim(from: 0, to: animatedFraction)
-                .stroke(Color.green, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .stroke(CT.verifiedGreen, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             if isAllDone {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(CT.verifiedGreen)
                     .scaleEffect(bloomScale)
             } else {
                 Text(pctLabel)
                     .font(.system(size: 7, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(CT.verifiedGreen)
                     .contentTransition(.numericText())
                     .animation(reduceMotion ? nil : .easeInOut, value: done)
             }
@@ -1143,7 +1143,7 @@ private struct AllRemainingDoneView: View {
         VStack(spacing: 12) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(Color.green)
+                .foregroundStyle(CT.verifiedGreen)
                 .accessibilityHidden(true)
             Text(NSLocalizedString("favorites.remaining.allDone.title", comment: "All remaining favorites done title"))
                 .font(.headline)
@@ -1289,7 +1289,7 @@ private extension FavoritesListView {
                     Spacer()
                     Text(NSLocalizedString("action.undo", comment: "Undo action"))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(CT.accent)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -1358,11 +1358,11 @@ private extension FavoritesListView {
     }
 
     private var countdownLineColor: Color {
-        guard !reduceMotion else { return .accentColor }
+        guard !reduceMotion else { return CT.accent }
         if #available(iOS 18, *) {
-            return Color.accentColor.mix(with: .orange, by: 1 - undoProgress)
+            return CT.accent.mix(with: .orange, by: 1 - undoProgress)
         } else {
-            return .accentColor
+            return CT.accent
         }
     }
 
@@ -1408,7 +1408,7 @@ private extension FavoritesListView {
                     if isDone {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Color.green)
+                            .foregroundStyle(CT.verifiedGreen)
                             .background(Circle().fill(Color.white).padding(2))
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                             .accessibilityHidden(true)
@@ -1447,10 +1447,10 @@ private extension FavoritesListView {
                                 Text(String(format: NSLocalizedString("favorites.row.closingSoon", comment: "Closing soon pill in favorites row"), mins))
                             }
                             .font(.caption2)
-                            .foregroundStyle(Color.orange)
+                            .foregroundStyle(CT.warningText)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
-                            .background(Color.orange.opacity(0.12), in: Capsule())
+                            .background(CT.warningSoft, in: Capsule())
                             .padding(.top, 2)
                             .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                             .accessibilityHidden(true)
@@ -1601,7 +1601,7 @@ private extension FavoritesListView {
                     systemImage: isDone ? "arrow.uturn.backward" : "checkmark.circle"
                 )
             }
-            .tint(.green)
+            .tint(CT.verifiedGreen)
         }
         .modifier(DirectionsSwipeModifier(exp: exp))
         .accessibilityAction(named: Text(isDone
@@ -1667,7 +1667,7 @@ private struct RowCompletionFlourish: View {
                     LinearGradient(
                         stops: [
                             .init(color: .clear, location: 0),
-                            .init(color: Color.green.opacity(0.18), location: 0.5),
+                            .init(color: CT.verifiedGreen.opacity(0.18), location: 0.5),
                             .init(color: .clear, location: 1),
                         ],
                         startPoint: .leading,
@@ -1681,7 +1681,7 @@ private struct RowCompletionFlourish: View {
                     // Bloom checkmark centred over the 44-pt icon circle (leading inset ~22pt)
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(Color.green)
+                        .foregroundStyle(CT.verifiedGreen)
                         .scaleEffect(bloomScale)
                         .frame(width: 44, height: 44)
                         .offset(x: 0, y: 0)
@@ -1747,7 +1747,7 @@ private struct DirectionsSwipeModifier: ViewModifier {
                         systemImage: "arrow.triangle.turn.up.right.diamond.fill"
                     )
                 }
-                .tint(.accentColor)
+                .tint(CT.accent)
             }
         } else {
             content

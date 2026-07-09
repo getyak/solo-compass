@@ -186,6 +186,10 @@ public struct ChatSheet: View {
     private var mainContent: some View {
         if showVoiceSurface {
             voiceSurface
+        } else if detent == .medium && visibleMessages.isEmpty && orchestrator.streamingContent.isEmpty && orchestrator.scopedExperience == nil {
+            halfExpandedGenericEmptyState
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(emptyStateBackground)
         } else {
             messageList
             // Half-detent hides the textInputBar entirely — the mic in
@@ -359,9 +363,12 @@ public struct ChatSheet: View {
     @ViewBuilder
     private var messageList: some View {
         if visibleMessages.isEmpty && orchestrator.streamingContent.isEmpty {
-            emptyState
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(emptyStateBackground)
+            ScrollView {
+                emptyState
+                    .frame(maxWidth: .infinity)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .background(emptyStateBackground)
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -548,14 +555,14 @@ public struct ChatSheet: View {
             Button(action: switchToTextMode) {
                 Text(NSLocalizedString("chat.voice.tap.toType", comment: "Switch to typing"))
                     .font(.footnote.weight(.medium))
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(CT.accent)
             }
             .padding(.bottom, 24)
 
             if let err = orchestrator.errorMessage {
                 Text(err)
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(CT.savedRed)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 12)

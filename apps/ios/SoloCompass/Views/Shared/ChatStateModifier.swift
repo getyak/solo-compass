@@ -48,7 +48,7 @@ private struct ListeningModifier: ViewModifier {
         content
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.accentColor, lineWidth: 2)
+                    .stroke(CT.accent, lineWidth: 2)
                     .scaleEffect(pulse)
                     .opacity(reduceMotion ? 1 : 2 - pulse)
             )
@@ -66,7 +66,7 @@ private struct ProcessingModifier: ViewModifier {
         content
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.accentColor.opacity(0.5), lineWidth: 1.5)
+                    .stroke(CT.accent.opacity(0.5), lineWidth: 1.5)
             )
             .overlay(alignment: .topTrailing) {
                 ProgressView()
@@ -83,7 +83,7 @@ private struct RespondingModifier: ViewModifier {
         content
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.green.opacity(0.5), lineWidth: 1.5)
+                    .stroke(CT.verifiedGreen.opacity(0.5), lineWidth: 1.5)
             )
     }
 }
@@ -95,7 +95,7 @@ private struct ErrorModifier: ViewModifier {
         content
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.red, lineWidth: 2)
+                    .stroke(CT.savedRed, lineWidth: 2)
             )
     }
 }
@@ -105,9 +105,9 @@ private struct UnconfiguredModifier: ViewModifier {
         content
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.orange.opacity(0.6), lineWidth: 1.5)
+                    .stroke(CT.warningText.opacity(0.6), lineWidth: 1.5)
             )
-            .tint(.orange)
+            .tint(CT.warningText)
     }
 }
 

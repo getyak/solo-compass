@@ -73,7 +73,7 @@ public struct MarkerIconView: View {
     private var bestNowTint: Color {
         showsClosingSoon
             ? Self.closingSoonAmber
-            : Color(red: 0xD4 / 255, green: 0xA8 / 255, blue: 0x43 / 255)
+            : CT.sunGold
     }
 
     /// US-035: a `bestNow` marker should show the extra "Now" sync ring only
@@ -284,12 +284,12 @@ public struct MarkerIconView: View {
         case .completed:
             Image(systemName: "checkmark.circle.fill")
                 .font(.title3.bold())
-                .foregroundStyle(.white, .green)
+                .foregroundStyle(.white, CT.verifiedGreen)
                 .offset(x: 12, y: 12)
         case .favorited:
             Image(systemName: "heart.fill")
                 .font(.caption)
-                .foregroundStyle(.red)
+                .foregroundStyle(CT.savedRed)
                 .padding(3)
                 .background(Circle().fill(.white))
                 .offset(x: 12, y: -12)
@@ -310,7 +310,7 @@ public struct MarkerIconView: View {
                 .font(.caption2)
                 .foregroundStyle(.white)
                 .padding(3)
-                .background(Circle().fill(Color.gray))
+                .background(Circle().fill(CT.fgMuted))
                 .offset(x: 12, y: 12)
         case .bestNow:
             // US-049: a small alarm-clock badge marks a best-now window that's
@@ -339,7 +339,7 @@ public struct MarkerIconView: View {
 
     private func upcomingTint(minutes: Int) -> Color {
         switch minutes {
-        case ...15: return .red
+        case ...15: return CT.savedRed
         case ...45: return .orange
         default:    return Color.black.opacity(0.85)
         }
@@ -481,5 +481,5 @@ private struct ObsidianDotGridMarker: View {
         }
         .padding()
     }
-    .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+    .background(CT.surfaceSunken)
 }

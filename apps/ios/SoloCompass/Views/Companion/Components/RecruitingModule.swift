@@ -95,7 +95,7 @@ public struct RecruitingModule: View {
             statusCapsule(status: companion.status)
             Text(companion.departureLabel)
                 .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CT.fgMuted)
                 .lineLimit(1)
             Spacer(minLength: 0)
         }
@@ -130,13 +130,13 @@ public struct RecruitingModule: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("@\(hostId)")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(CT.fgPrimary)
                     .lineLimit(1)
 
                 if let user = UserDirectory.shared.user(handle: hostId), !user.blurb.isEmpty {
                     Text(user.blurb)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(CT.fgMuted)
                         .lineLimit(1)
                 }
             }
@@ -151,7 +151,7 @@ public struct RecruitingModule: View {
         HStack(spacing: 6) {
             Text(NSLocalizedString("recruiting.slots.label", comment: "Slots label"))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CT.fgMuted)
 
             HStack(spacing: 4) {
                 ForEach(0..<companion.maxMembers, id: \.self) { index in
@@ -172,7 +172,7 @@ public struct RecruitingModule: View {
                 companion.maxMembers
             ))
             .font(.system(size: 11, design: .monospaced))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(CT.fgMuted)
         }
     }
 

@@ -31,7 +31,7 @@ struct RouteShareSheet: View {
                 if let status = statusMessage {
                     Text(status)
                         .font(.caption)
-                        .foregroundStyle(statusIsError ? Color.red : Color.green)
+                        .foregroundStyle(statusIsError ? CT.savedRed : CT.verifiedGreen)
                         .multilineTextAlignment(.center)
                         .transition(.opacity)
                 }
@@ -69,7 +69,7 @@ struct RouteShareSheet: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(
-                            Capsule().fill(selectedStyle == style ? Color.accentColor : Color(.secondarySystemBackground))
+                            Capsule().fill(selectedStyle == style ? CT.accent : Color(.secondarySystemBackground))
                         )
                         .foregroundStyle(selectedStyle == style ? .white : .primary)
                 }

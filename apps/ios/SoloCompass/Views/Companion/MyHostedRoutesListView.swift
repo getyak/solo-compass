@@ -98,7 +98,7 @@ public struct MyHostedRoutesListView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
-                    .background(Color.orange, in: Capsule())
+                    .background(CT.warningText, in: Capsule())
             }
         }
     }

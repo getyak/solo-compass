@@ -215,6 +215,9 @@ struct MeSheet: View {
                 if ProcessInfo.processInfo.arguments.contains("-openArchive") {
                     topTab = .archive
                 }
+                if ProcessInfo.processInfo.arguments.contains("-openSettings") {
+                    showingSettings = true
+                }
                 #endif
             }
         }
@@ -487,11 +490,8 @@ private struct MeRow: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.red))
+                    .background(Capsule().fill(CT.savedRed))
             }
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgSubtle)
         }
         .padding(.vertical, 6)
     }
@@ -507,7 +507,7 @@ private struct MeEmptyStateCard: View {
         VStack(spacing: 12) {
             Image(systemName: "map.fill")
                 .font(.system(size: 36))
-                .foregroundStyle(.tint)
+                .foregroundStyle(CT.accent)
 
             Text(NSLocalizedString("me.empty.title", comment: "Empty state title"))
                 .font(.headline)
@@ -515,7 +515,7 @@ private struct MeEmptyStateCard: View {
 
             Text(NSLocalizedString("me.empty.subtitle", comment: "Empty state subtitle"))
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
                 .multilineTextAlignment(.center)
 
             Button {
@@ -525,7 +525,7 @@ private struct MeEmptyStateCard: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
-                    .background(Color.accentColor, in: Capsule())
+                    .background(CT.accent, in: Capsule())
                     .foregroundStyle(.white)
             }
             .padding(.top, 4)
@@ -565,7 +565,7 @@ struct MapAvatarBubble: View {
 
                 if hasPendingRequests {
                     Circle()
-                        .fill(Color.red)
+                        .fill(CT.savedRed)
                         .frame(width: 12, height: 12)
                         .overlay(Circle().stroke(Color.white, lineWidth: 2))
                         .offset(x: 2, y: -2)
