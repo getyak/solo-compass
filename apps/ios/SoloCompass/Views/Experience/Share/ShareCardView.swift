@@ -330,21 +330,21 @@ private func makePreviewPayload() -> ShareCardPayload {
 
 #Preview("Xiaohongshu 9:16") {
     ShareCardView(payload: makePreviewPayload(), style: .xiaohongshuPortrait)
-        .border(Color.gray.opacity(0.3))
+        .border(CT.borderSubtle)
 }
 
 #Preview("Twitter 1.91:1") {
     ShareCardView(payload: makePreviewPayload(), style: .twitterLandscape)
-        .border(Color.gray.opacity(0.3))
+        .border(CT.borderSubtle)
 }
 
 #Preview("Instagram 1:1") {
     ShareCardView(payload: makePreviewPayload(), style: .instagramSquare)
-        .border(Color.gray.opacity(0.3))
+        .border(CT.borderSubtle)
 }
 
 #Preview("Minimal Text") {
     ShareCardView(payload: makePreviewPayload(), style: .minimalText)
-        .border(Color.gray.opacity(0.3))
+        .border(CT.borderSubtle)
 }
 #endif

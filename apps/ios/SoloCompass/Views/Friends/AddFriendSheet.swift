@@ -100,7 +100,7 @@ public struct AddFriendSheet: View {
             if let errorMessage {
                 Text(errorMessage)
                     .font(.subheadline)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(CT.savedRed)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .background(.regularMaterial, in: Capsule())
@@ -172,7 +172,7 @@ public struct AddFriendSheet: View {
                             : NSLocalizedString("friends.add.copy.hint", comment: "Long-press to copy hint")
                     )
                     .font(.caption)
-                    .foregroundStyle(didCopy ? Color.green : .secondary)
+                    .foregroundStyle(didCopy ? CT.verifiedGreen : .secondary)
                     .contentTransition(.opacity)
                 }
                 .accessibilityElement(children: .combine)
@@ -290,7 +290,7 @@ public struct AddFriendSheet: View {
                 if let redeemError {
                     Text(redeemError)
                         .font(.subheadline)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(CT.savedRed)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
                         .transition(.opacity)
@@ -355,7 +355,7 @@ public struct AddFriendSheet: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(Color.green, in: Capsule())
+                        .background(CT.verifiedGreen, in: Capsule())
                         .padding(.bottom, 24)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }

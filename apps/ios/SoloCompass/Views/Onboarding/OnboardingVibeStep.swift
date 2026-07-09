@@ -49,7 +49,7 @@ public struct OnboardingVibeStep: View {
             if let lastError = lastError {
                 Text(lastError)
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(CT.savedRed)
             }
         }
         .padding(.horizontal, 24)
@@ -83,7 +83,7 @@ public struct OnboardingVibeStep: View {
     private func photoSlot(at idx: Int) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(white: 0.95))
+                .fill(Color(.tertiarySystemFill))
             if idx < pickedImages.count {
                 Image(uiImage: pickedImages[idx])
                     .resizable()
@@ -98,7 +98,7 @@ public struct OnboardingVibeStep: View {
         .frame(width: 96, height: 96)
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color(white: 0.85), lineWidth: 1)
+                .stroke(Color(.separator), lineWidth: 1)
         )
         .overlay(alignment: .bottomTrailing) {
             if idx == 0 {
@@ -109,8 +109,8 @@ public struct OnboardingVibeStep: View {
                 ) {
                     Image(systemName: "plus.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(.tint)
-                        .background(Color.white, in: Circle())
+                        .foregroundStyle(CT.accent)
+                        .background(Color(.systemBackground), in: Circle())
                 }
                 .padding(4)
             }

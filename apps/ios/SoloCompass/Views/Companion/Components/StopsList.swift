@@ -119,18 +119,18 @@ private struct StopRow: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(experience.title)
                 .font(CT.body(14.5, .semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(CT.fgPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let romanized = experience.location.placeNameRomanized {
                 Text(romanized)
                     .font(CT.body(11.5))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(CT.fgMuted)
             }
 
             Text(distanceText)
                 .font(.system(size: 12).monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CT.fgMuted)
                 .padding(.top, 2)
         }
     }

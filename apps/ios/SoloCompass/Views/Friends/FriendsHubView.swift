@@ -32,6 +32,8 @@ struct FriendsHubView: View {
     @State private var isLoadingMyCode = false
     @State private var didCopy = false
 
+    @Environment(\.colorScheme) private var colorScheme
+
     init(service: FriendService = .shared) {
         _service = State(initialValue: service)
     }
@@ -60,7 +62,7 @@ struct FriendsHubView: View {
             .padding(.top, 12)
             .padding(.bottom, 32)
         }
-        .background(CT.bgWarm)
+        .background(pageBg)
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(NSLocalizedString("me.friends", comment: "Friends"))
         .navigationBarTitleDisplayMode(.inline)
@@ -71,6 +73,14 @@ struct FriendsHubView: View {
         .sheet(item: $resolvedProfile) { profile in previewSheet(profile: profile) }
     }
 
+    // MARK: - Dark mode adaptive colors
+
+    private var pageBg: Color { colorScheme == .dark ? CT.warmSheetDark : CT.bgWarm }
+    private var cardBg: Color { colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite }
+    private var cardBorder: Color { colorScheme == .dark ? CT.warmBorderDark : CT.borderSubtle }
+    private var titleColor: Color { colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary }
+    private var subtleColor: Color { colorScheme == .dark ? CT.fgMutedDark : CT.fgSubtle }
+
     // MARK: - Inline search bar (friend code + scan)
 
     private var searchBar: some View {
@@ -78,7 +88,7 @@ struct FriendsHubView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(CT.fgSubtle)
+                    .foregroundStyle(subtleColor)
 
                 TextField(
                     NSLocalizedString("friends.inline.search.placeholder", comment: "Friend code search placeholder"),
@@ -113,10 +123,10 @@ struct FriendsHubView: View {
             .frame(height: 48)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(CT.surfaceWhite)
+                    .fill(cardBg)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(CT.borderSubtle, lineWidth: 1)
+                            .stroke(cardBorder, lineWidth: 1)
                     )
             )
 
@@ -130,7 +140,7 @@ struct FriendsHubView: View {
                     .frame(width: 48, height: 48)
                     .background(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(CT.accentSoft)
+                            .fill(colorScheme == .dark ? CT.warmSunkenDark : CT.accentSoft)
                     )
             }
             .accessibilityLabel(Text(NSLocalizedString("friends.inline.scan.a11y", comment: "Scan friend QR")))
@@ -168,16 +178,16 @@ struct FriendsHubView: View {
                             : NSLocalizedString("friends.inline.myCode.show", comment: "Show my code")
                     )
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(CT.fgPrimary)
+                    .foregroundStyle(titleColor)
                     Spacer()
                     if let myCode, !showMyCode {
                         Text(myCode.rawValue)
                             .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(CT.fgSubtle)
+                            .foregroundStyle(subtleColor)
                     }
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(CT.fgSubtle)
+                        .foregroundStyle(subtleColor)
                         .rotationEffect(.degrees(showMyCode ? 180 : 0))
                 }
                 .padding(.horizontal, 14)
@@ -186,17 +196,17 @@ struct FriendsHubView: View {
             .buttonStyle(.plain)
 
             if showMyCode {
-                Divider().overlay(CT.borderSubtle)
+                Divider().overlay(cardBorder)
                 myCodeExpanded
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(CT.surfaceWhite)
+                .fill(cardBg)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(CT.borderSubtle, lineWidth: 1)
+                        .stroke(cardBorder, lineWidth: 1)
                 )
         )
     }
@@ -216,7 +226,7 @@ struct FriendsHubView: View {
                     .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
-                            .stroke(CT.borderSubtle, lineWidth: 1)
+                            .stroke(cardBorder, lineWidth: 1)
                     )
                     .accessibilityLabel(NSLocalizedString("friends.add.qr.a11y", comment: "QR a11y"))
 
@@ -224,7 +234,7 @@ struct FriendsHubView: View {
                     Text(myCode.rawValue)
                         .font(.system(.title3, design: .monospaced).weight(.bold))
                         .tracking(2)
-                        .foregroundStyle(CT.fgPrimary)
+                        .foregroundStyle(titleColor)
                         .textSelection(.enabled)
                     Text(
                         didCopy
@@ -232,7 +242,7 @@ struct FriendsHubView: View {
                             : NSLocalizedString("friends.add.copy.hint", comment: "Copy hint")
                     )
                     .font(.caption)
-                    .foregroundStyle(didCopy ? CT.verifiedGreen : CT.fgSubtle)
+                    .foregroundStyle(didCopy ? CT.verifiedGreen : subtleColor)
                     .contentTransition(.opacity)
                 }
 
@@ -294,16 +304,16 @@ struct FriendsHubView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(CT.fgSubtle)
+                .foregroundStyle(subtleColor)
                 .textCase(.uppercase)
                 .padding(.leading, 4)
             VStack(spacing: 0) { content() }
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(CT.surfaceWhite)
+                        .fill(cardBg)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(CT.borderSubtle, lineWidth: 1)
+                                .stroke(cardBorder, lineWidth: 1)
                         )
                 )
         }
@@ -317,7 +327,7 @@ struct FriendsHubView: View {
                 .background(Circle().fill(CT.accentSoft))
             Text(label)
                 .font(.subheadline)
-                .foregroundStyle(CT.fgPrimary)
+                .foregroundStyle(titleColor)
                 .lineLimit(1)
             Spacer()
         }
@@ -329,13 +339,13 @@ struct FriendsHubView: View {
         VStack(spacing: 8) {
             Image(systemName: "person.2")
                 .font(.system(size: 32, weight: .light))
-                .foregroundStyle(CT.fgSubtle)
+                .foregroundStyle(subtleColor)
             Text(NSLocalizedString("me.friends.empty.title", comment: "Empty title"))
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(CT.fgPrimary)
+                .foregroundStyle(titleColor)
             Text(NSLocalizedString("me.friends.empty.description", comment: "Empty description"))
                 .font(.caption)
-                .foregroundStyle(CT.fgSubtle)
+                .foregroundStyle(subtleColor)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -388,7 +398,7 @@ struct FriendsHubView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(Color.green, in: Capsule())
+                        .background(CT.verifiedGreen, in: Capsule())
                         .padding(.bottom, 24)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }

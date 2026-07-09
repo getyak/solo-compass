@@ -150,7 +150,7 @@ struct LocationPickerSheet: View {
                     Spacer()
                     if viewModel.selectedCity == nil {
                         Image(systemName: "checkmark")
-                            .foregroundStyle(.tint)
+                            .foregroundStyle(CT.accent)
                             .font(.body.weight(.semibold))
                     }
                 }
@@ -285,10 +285,10 @@ struct LocationPickerSheet: View {
             if state.searchSaveConfirmed {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(CT.verifiedGreen)
                     Text(NSLocalizedString("locationPicker.search.saveCity.confirmed", comment: "City saved!"))
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(CT.verifiedGreen)
                 }
                 .padding(.vertical, 6)
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -386,18 +386,18 @@ struct LocationPickerSheet: View {
                     } else if state.mapSaveConfirmed {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(CT.verifiedGreen)
                                 .font(.title3)
                                 .symbolEffect(.bounce, value: reduceMotion ? false : state.mapSaveConfirmed)
                             Text(NSLocalizedString("locationPicker.map.saveCity.confirmed", comment: "Location saved!"))
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.green)
+                                .foregroundStyle(CT.verifiedGreen)
                         }
                         .transition(.scale.combined(with: .opacity))
                     } else if let name = state.resolvedCityName {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(CT.verifiedGreen)
                                 .font(.caption)
                             Text(String(
                                 format: NSLocalizedString("locationPicker.map.resolved", comment: "Resolved city: %@"),
@@ -630,7 +630,7 @@ private struct CityRow: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundStyle(experienceCount != nil ? Color.accentColor : Color.indigo)
+                .foregroundStyle(experienceCount != nil ? CT.accent : Color.indigo)
                 .frame(width: 18)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -654,7 +654,7 @@ private struct CityRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(CT.accent)
                         .font(.body.weight(.semibold))
                 }
                 Text(distanceLabel)

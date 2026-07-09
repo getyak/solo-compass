@@ -102,7 +102,7 @@ public struct PendingCheckInBanner: View {
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Capsule().fill(confirmed ? Color.green : (isExpiringSoon ? Color.orange : Color.blue)))
+                        .background(Capsule().fill(confirmed ? CT.verifiedGreen : (isExpiringSoon ? CT.warningText : Color.accentColor)))
                         .foregroundStyle(.white)
                         .scaleEffect(reduceMotion ? 1.0 : (confirmed ? 1.0 : (pulse ? 1.04 : 1.0)))
                         .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6), value: confirmed)
@@ -134,7 +134,7 @@ public struct PendingCheckInBanner: View {
             if !reduceMotion {
                 GeometryReader { geo in
                     Capsule()
-                        .fill(isInteracting ? Color.gray : (isExpiringSoon ? Color.orange : Color.blue))
+                        .fill(isInteracting ? CT.fgMuted : (isExpiringSoon ? CT.warningText : Color.accentColor))
                         .frame(width: geo.size.width * countdownProgress, height: 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .opacity(isInteracting ? 0.4 : 1.0)

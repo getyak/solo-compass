@@ -31,7 +31,7 @@ struct RouteStopBadge: View {
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(.white)
             .frame(width: 26, height: 26)
-            .background(Circle().fill(Color.accentColor))
+            .background(Circle().fill(CT.accent))
             .overlay(Circle().strokeBorder(.white, lineWidth: 2))
             .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
             .accessibilityLabel(Text(String(
@@ -57,7 +57,7 @@ struct ActiveRouteBanner: View {
         HStack(spacing: 10) {
             Image(systemName: "figure.walk")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(CT.accent)
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))

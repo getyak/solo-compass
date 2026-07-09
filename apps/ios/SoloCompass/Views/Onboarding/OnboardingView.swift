@@ -142,7 +142,7 @@ public struct OnboardingView: View {
         HStack(spacing: 6) {
             ForEach(0..<Self.totalSteps, id: \.self) { index in
                 Capsule()
-                    .fill(index == step ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .fill(index == step ? CT.accent : Color.secondary.opacity(0.3))
                     .frame(width: index == step ? 20 : 6, height: 6)
                     .animation(.spring(response: 0.4, dampingFraction: 0.7), value: step)
             }
@@ -164,7 +164,7 @@ public struct OnboardingView: View {
             VStack(spacing: 24) {
                 Image(systemName: "map.fill")
                     .font(.system(size: 64))
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(CT.accent)
                     .accessibilityHidden(true)
 
                 VStack(spacing: 8) {
@@ -194,7 +194,7 @@ public struct OnboardingView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+                        .background(CT.accent, in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(.white)
                 }
                 .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
@@ -226,7 +226,7 @@ public struct OnboardingView: View {
             VStack(spacing: 24) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 56))
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(CT.accent)
                     .accessibilityHidden(true)
 
                 VStack(spacing: 8) {
@@ -270,7 +270,7 @@ public struct OnboardingView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+                    .background(CT.accent, in: RoundedRectangle(cornerRadius: 14))
                     .foregroundStyle(.white)
             }
             .padding(.horizontal, 24)
@@ -292,7 +292,7 @@ public struct OnboardingView: View {
             VStack(spacing: 24) {
                 Image(systemName: "gauge.open.with.lines.needle.33percent.and.arrowtriangle")
                     .font(.system(size: 56))
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(CT.accent)
                     .accessibilityHidden(true)
 
                 VStack(spacing: 8) {
@@ -336,7 +336,7 @@ public struct OnboardingView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+                    .background(CT.accent, in: RoundedRectangle(cornerRadius: 14))
                     .foregroundStyle(.white)
             }
             .padding(.horizontal, 24)
@@ -352,9 +352,9 @@ public struct OnboardingView: View {
         HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(.tint)
+                .foregroundStyle(CT.accent)
                 .frame(width: 36, height: 36)
-                .background(Color.accentColor.opacity(0.12), in: Circle())
+                .background(CT.accent.opacity(0.12), in: Circle())
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -422,7 +422,7 @@ public struct OnboardingView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 14))
+                        .background(CT.accent, in: RoundedRectangle(cornerRadius: 14))
                         .foregroundStyle(.white)
                 }
                 .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
@@ -517,7 +517,7 @@ public struct OnboardingView: View {
                 // the user sees one visual identity for "Pro" across surfaces.
                 Image(systemName: "sparkles")
                     .font(.system(size: 44, weight: .regular))
-                    .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                    .foregroundStyle(CT.sunGold)
                     .accessibilityHidden(true)
 
                 Text(NSLocalizedString("onboarding.paywall.title", comment: "Trial step title"))
@@ -557,7 +557,7 @@ public struct OnboardingView: View {
                         if paywallPurchaseInFlight {
                             ProgressView()
                                 .progressViewStyle(.circular)
-                                .tint(Color(red: 0x3A/255, green: 0x2A/255, blue: 0x05/255))
+                                .tint(CT.accent)
                         }
                         Text(NSLocalizedString("onboarding.paywall.cta", comment: "Start free month CTA"))
                             .font(.headline)
@@ -565,10 +565,10 @@ public struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(
-                        Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255),
+                        CT.sunGold,
                         in: RoundedRectangle(cornerRadius: 14)
                     )
-                    .foregroundStyle(Color(red: 0x3A/255, green: 0x2A/255, blue: 0x05/255))
+                    .foregroundStyle(CT.accent)
                 }
                 .disabled(paywallPurchaseInFlight)
                 .accessibilitySortPriority(OnboardingA11ySortPriority.primaryCTA)
@@ -613,7 +613,7 @@ public struct OnboardingView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.body)
-                .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                .foregroundStyle(CT.sunGold)
                 .frame(width: 24)
             Text(NSLocalizedString(key, comment: ""))
                 .font(.subheadline)
@@ -670,10 +670,10 @@ public struct OnboardingView: View {
             HStack(spacing: 14) {
                 Image(systemName: styleIcon(style))
                     .font(.title3)
-                    .foregroundStyle(selected ? Color.white : Color.accentColor)
+                    .foregroundStyle(selected ? Color.white : CT.accent)
                     .frame(width: 36, height: 36)
                     .background(
-                        Circle().fill(selected ? Color.accentColor : Color.accentColor.opacity(0.12))
+                        Circle().fill(selected ? CT.accent : CT.accent.opacity(0.12))
                     )
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -689,16 +689,16 @@ public struct OnboardingView: View {
 
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(CT.accent)
                 }
             }
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(selected ? Color.accentColor.opacity(0.08) : Color(.secondarySystemBackground))
+                    .fill(selected ? CT.accent.opacity(0.08) : Color(.secondarySystemBackground))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(selected ? Color.accentColor : Color.clear, lineWidth: 1.5)
+                            .stroke(selected ? CT.accent : Color.clear, lineWidth: 1.5)
                     )
             )
         }

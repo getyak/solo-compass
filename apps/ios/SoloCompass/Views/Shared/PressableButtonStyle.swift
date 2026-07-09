@@ -40,7 +40,7 @@ public struct PressableButtonStyle: ButtonStyle {
             .buttonStyle(PressableButtonStyle())
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+            .background(Capsule().fill(CT.accent.opacity(0.15)))
 
         Button("No Haptic") {}
             .buttonStyle(PressableButtonStyle(haptic: false))

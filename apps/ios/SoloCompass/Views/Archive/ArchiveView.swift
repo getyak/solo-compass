@@ -18,6 +18,7 @@ public struct ArchiveView: View {
     @State private var viewModel: ArchiveViewModel
     @State private var ritualsSheet: RitualsSheet? = nil
     private let ritualsModelContainer: ModelContainer
+    @Environment(\.colorScheme) private var colorScheme
 
     public init(modelContainer: ModelContainer, activeCityCode: String? = nil) {
         self.ritualsModelContainer = modelContainer
@@ -77,7 +78,7 @@ public struct ArchiveView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
         }
-        .background(Color(white: 0.98))
+        .background(colorScheme == .dark ? Color(.systemBackground) : Color(white: 0.98))
         .navigationTitle(NSLocalizedString("archive.title", comment: "Travel archive title"))
         .onAppear {
             viewModel.refresh()
@@ -102,7 +103,7 @@ public struct ArchiveView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Rituals")
                 .font(.system(.headline, design: .rounded))
-                .foregroundStyle(CT.fgPrimary.opacity(0.85))
+                .foregroundStyle((colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary).opacity(0.85))
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 108), spacing: 10)],
                 spacing: 10
@@ -119,7 +120,7 @@ public struct ArchiveView: View {
                            accent: CT.capsuleGlow, tap: .capsuleOpen)
                 ritualTile("Live Activity",  "bell.badge.fill",
                            accent: CT.sunGoldDeep, tap: .liveActivity)
-                ritualTile("Tool Router",    "wrench.and.screwdriver.fill",
+                ritualTile("Voice Tools",    "waveform.circle.fill",
                            accent: CT.accent, tap: .toolContract)
                 ritualTile("Travel Book",    "book.pages.fill",
                            accent: CT.capsuleGlow, tap: .bookManifest)
@@ -140,14 +141,14 @@ public struct ArchiveView: View {
                     .foregroundStyle(accent)
                 Text(label)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(CT.fgPrimary)
+                    .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, minHeight: 84)
             .padding(10)
-            .background(Color.white)
+            .background(colorScheme == .dark ? CT.warmCardDark : Color.white)
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(accent.opacity(0.28), lineWidth: 1)
@@ -279,7 +280,7 @@ public struct ArchiveView: View {
             }
             .padding(20)
         }
-        .background(Color(white: 0.98))
+        .background(colorScheme == .dark ? Color(.systemBackground) : Color(white: 0.98))
         .navigationTitle("Travel Book")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -580,20 +581,22 @@ public struct ArchiveView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "map")
-                .font(.system(size: 40))
-                .foregroundStyle(CT.fgPrimary.opacity(0.3))
+        let fg = colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary
+        return VStack(spacing: 16) {
+            Image(systemName: "map.fill")
+                .font(.system(size: 48, weight: .light))
+                .foregroundStyle(CT.sunGold.opacity(0.45))
+                .padding(.bottom, 4)
             Text(NSLocalizedString("archive.empty.title", comment: "Empty archive title"))
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(CT.fgPrimary.opacity(0.75))
+                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .foregroundStyle(fg.opacity(0.8))
             Text(NSLocalizedString("archive.empty.subtitle", comment: "Empty archive subtitle"))
-                .font(.caption)
-                .foregroundStyle(CT.fgPrimary.opacity(0.5))
+                .font(.subheadline)
+                .foregroundStyle(fg.opacity(0.5))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
+        .padding(.vertical, 56)
     }
 }

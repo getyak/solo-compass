@@ -28,6 +28,7 @@
 
 /* Confidence */
 "confidence.signals" = "信号";
+"confidence.aiEstimate" = "AI 估算 · 待验证";
 "confidence.aiScrape" = "AI 抓取时间";
 "confidence.gps" = "GPS 命中（30 天）";
 "confidence.reports" = "用户反馈（30 天）";
@@ -1786,16 +1787,16 @@
 "moderation.reason.fakeProfile" = "虚假资料";
 "moderation.reason.other" = "其他";
 "me.profile.name" = "独行旅人";
-"me.profile.subtitle" = "你的罗盘，你的旅程";
+"me.profile.subtitle" = "每一次独行，都有信心";
 "me.profile.progress.a11y" = "已探索 %d / %d 个收藏地点";
 "me.friends.incoming" = "好友申请";
 "me.friends.list" = "好友";
 "me.friends.empty" = "还没有好友";
 "me.stats.saved" = "收藏";
 "me.stats.explored" = "探索";
-"me.empty.title" = "旅程从这里开始";
-"me.empty.subtitle" = "探索地图，收藏喜欢的地点，记录你去过的每一处。";
-"me.empty.cta" = "回到地图";
+"me.empty.title" = "你的独行地图";
+"me.empty.subtitle" = "收藏适合一个人去的地方，看信心如何成长。";
+"me.empty.cta" = "探索地图";
 "me.avatar.a11y" = "打开个人中心";
 "me.avatar.a11y.pending" = "你有待处理的好友申请";
 
@@ -1856,11 +1857,12 @@
 /* 信任徽章（由 confidence health 映射） */
 "trust.verified" = "已验证";
 "trust.observing" = "观察中";
-"trust.questioned" = "存疑";
+"trust.questioned" = "待确认";
 
 /* ── 旅人共建层 ── */
 "notes.title" = "旅人笔记";
 "notes.signals" = "信号";
+"notes.signals.aiEstimate" = "AI 估算";
 "notes.signal.plus" = "+1 信号";
 "notes.author.you" = "你";
 "notes.author.traveler" = "旅人 %@";

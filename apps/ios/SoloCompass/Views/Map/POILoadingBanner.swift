@@ -53,7 +53,7 @@ struct POILoadingBanner: View {
                     if bannerState == .succeeded {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.green)
+                            .foregroundStyle(CT.verifiedGreen)
                             .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
                     } else {
                         ProgressView()
@@ -69,7 +69,7 @@ struct POILoadingBanner: View {
                     if bannerState == .succeeded {
                         Text(String(format: NSLocalizedString("map.loadingPOIs.done", comment: "Shown for ~1.2 s after the Overpass fetch completes — %d = number of POIs found"), loadedCount))
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.green)
+                            .foregroundStyle(CT.verifiedGreen)
                     } else {
                         Text(isSlow
                              ? NSLocalizedString("map.loadingPOIs.slow", comment: "Reassurance shown when POI fetch exceeds ~6 s")

@@ -30,9 +30,9 @@ public struct MicroSurveySheet: View {
         }
         var color: Color {
             switch self {
-            case .yes:     return .green
-            case .depends: return .orange
-            case .no:      return .red
+            case .yes:     return CT.verifiedGreen
+            case .depends: return CT.warningText
+            case .no:      return CT.savedRed
             }
         }
     }
@@ -272,7 +272,7 @@ private struct StarRatingRow: View {
 
     private func starColor(_ star: Int) -> Color {
         guard star <= value else { return Color(.systemGray4) }
-        return value <= 2 ? .red : value == 3 ? .orange : .green
+        return value <= 2 ? CT.savedRed : value == 3 ? CT.warningText : CT.verifiedGreen
     }
 }
 

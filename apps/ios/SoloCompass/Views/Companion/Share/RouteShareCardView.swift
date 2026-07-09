@@ -158,7 +158,7 @@ private struct RoutePolylineOverlay: View {
                     RoutePolylineShape(coordinates: coordinates)
                         .stroke(.white, style: StrokeStyle(lineWidth: haloWidth, lineCap: .round, lineJoin: .round))
                     RoutePolylineShape(coordinates: coordinates)
-                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+                        .stroke(CT.accent, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
                 }
                 ForEach(Array(stops.enumerated()), id: \.offset) { index, point in
                     StopBadge(number: index + 1, isFirst: index == 0, isLast: index == stops.count - 1)
@@ -178,7 +178,7 @@ private struct StopBadge: View {
     var body: some View {
         Text("\(number)")
             .font(.system(size: 16, weight: .bold))
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(CT.accent)
             .frame(width: 32, height: 32)
             .background(Circle().fill(.white))
             .overlay(

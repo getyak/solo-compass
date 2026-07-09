@@ -125,11 +125,11 @@ public struct ItineraryListView: View {
     }
 
     private var countdownLineColor: Color {
-        guard !reduceMotion else { return .accentColor }
+        guard !reduceMotion else { return CT.accent }
         if #available(iOS 18, *) {
-            return Color.accentColor.mix(with: .orange, by: 1 - undoProgress)
+            return CT.accent.mix(with: .orange, by: 1 - undoProgress)
         } else {
-            return .accentColor
+            return CT.accent
         }
     }
 
@@ -150,7 +150,7 @@ public struct ItineraryListView: View {
                     Spacer()
                     Text(NSLocalizedString("action.undo", comment: "Undo action"))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(CT.accent)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
@@ -270,7 +270,7 @@ private enum TripStatus {
     var color: Color {
         switch self {
         case .active, .today: return .green
-        case .soon: return .accentColor
+        case .soon: return CT.accent
         case .upcoming, .past: return Color(.tertiaryLabel)
         }
     }
@@ -304,11 +304,11 @@ private struct ItineraryRow: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.accentColor.opacity(0.12))
+                    .fill(CT.accent.opacity(0.12))
                     .frame(width: 44, height: 44)
                 Image(systemName: "map")
                     .font(.body)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(CT.accent)
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -367,11 +367,11 @@ private struct EmptyItineraryView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color.accentColor.opacity(0.12))
+                    .fill(CT.accent.opacity(0.12))
                     .frame(width: 80, height: 80)
                 Image(systemName: "map.fill")
                     .font(.system(size: 40))
-                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                    .foregroundStyle(CT.accent.opacity(0.7))
                     .scaleEffect(isBreathing ? 1.08 : 0.94)
                     .opacity(isBreathing ? 1.0 : 0.7)
                     .animation(

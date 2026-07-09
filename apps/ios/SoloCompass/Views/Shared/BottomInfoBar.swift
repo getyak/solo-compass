@@ -80,7 +80,7 @@ public struct BottomInfoBar: View {
             nearbySoloCount: 12
         )
     }
-    .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+    .background(CT.surfaceSunken)
 }
 
 #Preview("No nearby solos") {
@@ -91,5 +91,5 @@ public struct BottomInfoBar: View {
             nearbySoloCount: 0
         )
     }
-    .background(Color(red: 0xF5/255, green: 0xF0/255, blue: 0xE8/255))
+    .background(CT.surfaceSunken)
 }

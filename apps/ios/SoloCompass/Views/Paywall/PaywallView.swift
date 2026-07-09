@@ -102,7 +102,7 @@ public struct PaywallView: View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: "sparkles")
                 .font(.system(size: 36))
-                .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                .foregroundStyle(CT.sunGold)
             Text(NSLocalizedString("paywall.hero.title", comment: "Unlock Solo Compass Pro"))
                 .font(.title.bold())
             Text(NSLocalizedString("paywall.hero.subtitle", comment: "Subtitle"))
@@ -115,7 +115,7 @@ public struct PaywallView: View {
     /// Pulls live monthly displayPrice so the price disclosure satisfies
     /// App Store 3.1.2 without us hard-coding currency-localized strings.
     private var trialBanner: some View {
-        let amber = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+        let amber = CT.sunGold
         let monthly = subscription.products.first(where: { $0.id == SubscriptionService.monthlyProductID })
         let priceCopy: String = {
             if let monthly {
@@ -157,7 +157,7 @@ public struct PaywallView: View {
     /// Status banner for users already inside the trial period — replaces
     /// the "Get 1 month free" pitch with renewal context and a manage link.
     private var midTrialBanner: some View {
-        let amber = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+        let amber = CT.sunGold
         let days = subscription.trialDaysRemaining ?? 0
         let headline: String = {
             let fmt = NSLocalizedString("paywall.midTrial.headline.format",
@@ -212,7 +212,7 @@ public struct PaywallView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .frame(width: 24)
-                .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                .foregroundStyle(CT.sunGold)
             Text(NSLocalizedString(key, comment: ""))
                 .font(.subheadline)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -240,7 +240,7 @@ public struct PaywallView: View {
         let showTrialBadge = isMonthly && introOfferEligible && subscription.entitlement != .proTrial
         // Dark brown for badge text — same WCAG-AA-clear pairing the CTA uses
         // on the amber fill.
-        let badgeText = Color(red: 0x3A/255, green: 0x2A/255, blue: 0x05/255)
+        let badgeText = CT.accent
         return Button {
             selectedProductID = product.id
         } label: {
@@ -255,14 +255,14 @@ public struct PaywallView: View {
                                 .font(.caption2.weight(.bold))
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Capsule().fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)))
+                                .background(Capsule().fill(CT.sunGold))
                                 .foregroundStyle(badgeText)
                         } else if isYearly {
                             Text(NSLocalizedString("paywall.bestValue", comment: "Best value badge"))
                                 .font(.caption2.weight(.bold))
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Capsule().fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)))
+                                .background(Capsule().fill(CT.sunGold))
                                 .foregroundStyle(badgeText)
                         }
                     }
@@ -282,13 +282,13 @@ public struct PaywallView: View {
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255).opacity(0.12) : Color(.secondarySystemBackground))
+                    .fill(isSelected ? CT.sunGold.opacity(0.12) : Color(.secondarySystemBackground))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(
                         isSelected
-                            ? Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
+                            ? CT.sunGold
                             : Color.clear,
                         lineWidth: 2
                     )
@@ -336,7 +336,7 @@ public struct PaywallView: View {
         // White text on the gold fill (#D4A843) only reaches ~2.2:1 contrast,
         // below WCAG AA (4.5:1). Use a dark brown that's harmonious with the
         // gold and clears AA comfortably (~6.4:1) for low-vision legibility.
-        let ctaText = Color(red: 0x3A/255, green: 0x2A/255, blue: 0x05/255)
+        let ctaText = CT.accent
         return Button {
             Task { await runPurchase() }
         } label: {
@@ -350,7 +350,7 @@ public struct PaywallView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+            .background(CT.sunGold)
             .foregroundStyle(ctaText)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }

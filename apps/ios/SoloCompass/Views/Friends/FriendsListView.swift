@@ -72,10 +72,10 @@ public struct FriendsListView: View {
                             .contentTransition(.numericText())
                     }
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(CT.warningText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(Color.orange.opacity(0.15), in: Capsule())
+                    .background(CT.warningSoft, in: Capsule())
                     .animation(.easeInOut, value: pendingCount)
                     .accessibilityLabel(String(format: NSLocalizedString("friends.list.pending.count.a11y", comment: "VoiceOver: pending requests count"), pendingCount))
                 }
@@ -119,7 +119,7 @@ public struct FriendsListView: View {
                         .font(.subheadline)
                         .lineLimit(2)
                 }
-                .foregroundStyle(.red)
+                .foregroundStyle(CT.savedRed)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(.regularMaterial, in: Capsule())
@@ -257,7 +257,7 @@ public struct FriendsListView: View {
                             Text(AvatarEmoji.emoji(for: otherId))
                                 .font(.system(size: 32))
                                 .frame(width: 56, height: 56)
-                                .background(Circle().fill(Color.accentColor.opacity(0.12)))
+                                .background(Circle().fill(CT.accent.opacity(0.12)))
                             Text(otherId)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
@@ -465,7 +465,7 @@ private struct ConnectedBadge: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+                .foregroundStyle(CT.verifiedGreen)
             Text(NSLocalizedString("friends.connected.label", comment: "Connected badge label"))
                 .font(.subheadline.weight(.semibold))
         }
@@ -508,7 +508,7 @@ private struct IncomingRequestRow: View {
                 Text(AvatarEmoji.emoji(for: request.requesterId))
                     .font(.system(size: 24))
                     .frame(width: 40, height: 40)
-                    .background(Circle().fill(Color.accentColor.opacity(0.12)))
+                    .background(Circle().fill(CT.accent.opacity(0.12)))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(NSLocalizedString("friends.list.request.from", comment: "Request from label"))
@@ -570,7 +570,7 @@ private struct FriendRow: View {
             Text(AvatarEmoji.emoji(for: userId))
                 .font(.system(size: 22))
                 .frame(width: 36, height: 36)
-                .background(Circle().fill(Color.accentColor.opacity(0.12)))
+                .background(Circle().fill(CT.accent.opacity(0.12)))
                 .accessibilityHidden(true)
             Text(userId)
                 .font(.body)
@@ -595,11 +595,11 @@ private struct EmptyFriendsView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color.accentColor.opacity(0.12))
+                    .fill(CT.accent.opacity(0.12))
                     .frame(width: 80, height: 80)
                 Image(systemName: "person.2")
                     .font(.system(size: 36))
-                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                    .foregroundStyle(CT.accent.opacity(0.7))
                     .scaleEffect(isBreathing ? 1.08 : 0.94)
                     .opacity(isBreathing ? 1.0 : 0.7)
                     .animation(

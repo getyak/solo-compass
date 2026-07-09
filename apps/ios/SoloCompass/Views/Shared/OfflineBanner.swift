@@ -122,9 +122,9 @@ struct OfflineBanner: View {
 
     private var bannerColor: Color {
         switch bannerState {
-        case .offline: return retryFailed ? .red : .orange
-        case .retrying: return .orange
-        case .recovered: return .green
+        case .offline: return retryFailed ? CT.savedRed : CT.warningText
+        case .retrying: return CT.warningText
+        case .recovered: return CT.verifiedGreen
         }
     }
 
@@ -137,7 +137,7 @@ struct OfflineBanner: View {
                     if isRetrying {
                         ProgressView()
                             .controlSize(.mini)
-                            .tint(Color.orange)
+                            .tint(CT.warningText)
                     } else if bannerState == .recovered {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.caption.weight(.semibold))

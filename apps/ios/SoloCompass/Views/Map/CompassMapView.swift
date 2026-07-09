@@ -356,7 +356,8 @@ struct CompassMapContentView: View {
     /// controls hug the sheet without crowding it.
     private var controlBarBottomInset: CGFloat {
         let controlSheetGap: CGFloat = 8
-        return sheetPeekClearance + controlSheetGap
+        let base = sheetPeekClearance + controlSheetGap
+        return cityOSBottomSlotOccupied ? base + 60 : base
     }
 
     // MARK: - City OS v2 helpers
@@ -571,7 +572,9 @@ struct CompassMapContentView: View {
                 // (MeSheet) on launch so its layout can be screenshotted without an
                 // avatar-bubble tap (idb/simctl tapping is unreliable on Xcode 26).
                 if ProcessInfo.processInfo.arguments.contains("-openMe") {
-                    isShowingMe = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        isShowingMe = true
+                    }
                 }
                 // Visual-verification entry point: `-openExperience` opens the
                 // richest available experience's detail sheet directly, so the
@@ -607,6 +610,16 @@ struct CompassMapContentView: View {
                     chatStartMode = .text
                     chatDetent = .medium
                     ensureOrchestrator(viewModel: viewModel)
+                }
+                if ProcessInfo.processInfo.arguments.contains("-openCityPicker") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        isShowingCityPicker = true
+                    }
+                }
+                if ProcessInfo.processInfo.arguments.contains("-openSettings") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        viewModel.isShowingSettings = true
+                    }
                 }
                 // Visual-verification entry point: `-forceDiagnosticsChat`
                 // seeds a synthetic diagnostics finding and immediately
@@ -1115,33 +1128,35 @@ struct CompassMapContentView: View {
                 if viewModel.visibleExperiences.isEmpty
                     && !isFilterActive
                     && !viewModel.exploreSession.isActive {
-                    EmptyStateOverlay(
-                        viewModel: viewModel,
-                        preferences: preferences,
-                        locationService: locationService
-                    )
+                    VStack {
+                        Spacer()
+                        EmptyStateOverlay(
+                            viewModel: viewModel,
+                            preferences: preferences,
+                            locationService: locationService
+                        )
+                        .padding(.bottom, sheetPeekClearance + 16)
+                    }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
                 } else if viewModel.visibleExperiences.isEmpty && isFilterActive && viewModel.selectedExperience == nil
                     && viewModel.highlightedEventId == nil {
-                    // The "Now" filter is a *time* filter, not a place filter — its
-                    // empty state means "nothing's at its best this hour", for which
-                    // "clear all filters" is the wrong recovery. Route it to a
-                    // dedicated overlay that points at the next worthwhile window
-                    // instead. Every other filter keeps the generic clear-filters card.
-                    // Suppressed entirely while an event marker is focused
-                    // ("Show on map") — the user asked to look at the map, and
-                    // this card would sit exactly over the marker.
                     if viewModel.isNowFilter {
-                        NowEmptyOverlay(viewModel: viewModel)
-                            .padding(.bottom, cityOSBottomSlotOccupied ? 112 : 0)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                            .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
+                        VStack {
+                            Spacer()
+                            NowEmptyOverlay(viewModel: viewModel)
+                                .padding(.bottom, sheetPeekClearance + 16 + (cityOSBottomSlotOccupied ? 52 : 0))
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
                     } else {
-                        FilteredEmptyOverlay(viewModel: viewModel)
-                            .padding(.bottom, cityOSBottomSlotOccupied ? 112 : 0)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                            .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
+                        VStack {
+                            Spacer()
+                            FilteredEmptyOverlay(viewModel: viewModel)
+                                .padding(.bottom, sheetPeekClearance + 16 + (cityOSBottomSlotOccupied ? 52 : 0))
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
                     }
                 }
 
@@ -2328,7 +2343,7 @@ struct CompassMapContentView: View {
                                                 .foregroundStyle(.white)
                                                 .padding(.horizontal, 4)
                                                 .padding(.vertical, 1)
-                                                .background(Capsule().fill(Color.gray.opacity(0.85)))
+                                                .background(Capsule().fill(CT.fgMuted))
                                         }
                                     }
                                     .modifier(SmartPickHighlightModifier(
@@ -2755,6 +2770,7 @@ private struct MapOverlayView: View {
             }
 
             let showEmptyFilterBanner = isFilterActive && viewModel.visibleExperiences.isEmpty
+                && !viewModel.isNowFilter
             if showEmptyFilterBanner {
                 EmptyFilterBanner(
                     filterName: activeFilterName,
@@ -2788,7 +2804,7 @@ private struct MapOverlayView: View {
                 DismissibleBanner(
                     systemImage: "exclamationmark.triangle.fill",
                     text: errorText,
-                    color: .orange,
+                    color: CT.warningText,
                     onDismiss: { dismissedAIError = errorText }
                 )
             }
@@ -2799,7 +2815,7 @@ private struct MapOverlayView: View {
                     // match the sibling error banners' warning glyph.
                     systemImage: "exclamationmark.triangle.fill",
                     text: exploreError,
-                    color: .orange,
+                    color: CT.warningText,
                     onDismiss: { dismissedExploreError = exploreError }
                 )
                 .accessibilityIdentifier("exploreErrorBanner")
@@ -2809,7 +2825,7 @@ private struct MapOverlayView: View {
                 DismissibleBanner(
                     systemImage: "clock.badge.exclamationmark",
                     text: quotaInfo,
-                    color: Color(red: 0.8, green: 0.6, blue: 0),
+                    color: CT.warningText,
                     onDismiss: { dismissedQuotaInfo = quotaInfo }
                 )
                 .accessibilityIdentifier("quotaBanner")
@@ -2820,7 +2836,7 @@ private struct MapOverlayView: View {
                 DismissibleBanner(
                     systemImage: "location.slash.fill",
                     text: locationError,
-                    color: .orange,
+                    color: CT.warningText,
                     actionLabel: NSLocalizedString("location.banner.openSettings", comment: "Open Settings"),
                     onAction: {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -2879,7 +2895,7 @@ private struct MapOverlayView: View {
                         ? "magnifyingglass" : "checkmark.circle.fill")
                         .font(.caption)
                         .foregroundStyle(toast == NSLocalizedString("voice.result.none", comment: "No matching places found nearby")
-                            ? Color.secondary : Color.green)
+                            ? Color.secondary : CT.verifiedGreen)
                     Text(toast)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.primary)
@@ -2937,11 +2953,10 @@ private struct MapOverlayView: View {
     @ViewBuilder
     private var filterResultBadge: some View {
         let count = viewModel.visibleExperiences.count
-        let accentGold = Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255)
         let dotColor: Color = {
             if let cat = viewModel.selectedCategory { return cat.color }
-            if viewModel.isNowFilter { return accentGold }
-            return Color.accentColor
+            if viewModel.isNowFilter { return CT.sunGold }
+            return CT.accent
         }()
 
         if count == 0 {
@@ -2973,14 +2988,14 @@ private struct MapOverlayView: View {
                         HStack(spacing: 6) {
                             ZStack {
                                 Circle()
-                                    .stroke(accentGold.opacity(0.25), lineWidth: 2)
+                                    .stroke(CT.sunGold.opacity(0.25), lineWidth: 2)
                                 Circle()
                                     .trim(from: 0, to: progress)
-                                    .stroke(accentGold, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                                    .stroke(CT.sunGold, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                                     .rotationEffect(.degrees(-90))
                                     .animation(reduceMotion ? nil : .easeInOut, value: progress)
                                 Circle()
-                                    .fill(accentGold)
+                                    .fill(CT.sunGold)
                                     .frame(width: 8, height: 8)
                             }
                             .frame(width: 14, height: 14)
@@ -2992,7 +3007,7 @@ private struct MapOverlayView: View {
                                 .foregroundStyle(.secondary)
                             Text(upcomingText)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(accentGold)
+                                .foregroundStyle(CT.sunGold)
                                 .contentTransition(.numericText())
                                 .animation(reduceMotion ? nil : .easeInOut, value: minutesUntil)
                         }
@@ -3118,6 +3133,11 @@ private struct MapOverlayView: View {
             if let code = viewModel.selectedCity,
                let city = viewModel.availableCities.first(where: { $0.code == code }) {
                 return city.name
+            }
+            // Resolve via alias table (e.g. CNX → cmi → "Chiang Mai")
+            if let code = viewModel.selectedCity,
+               let resolved = viewModel.resolvedCityName(for: code) {
+                return resolved
             }
             if let code = viewModel.nearestSeededCity(to: viewModel.defaultCenterForSelectedCity),
                let city = viewModel.availableCities.first(where: { $0.code == code }) {
@@ -3290,7 +3310,7 @@ private struct EmptyFilterBanner: View {
                 } label: {
                     Text(NSLocalizedString("filter.empty.showAll", comment: "Show all experiences button"))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(CT.accent)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(NSLocalizedString("filter.empty.showAll.a11y", comment: "Show all experiences")))
@@ -3479,7 +3499,7 @@ private struct PlusActionButton: View {
         ZStack {
             // Ring that grows during the hold to telegraph "almost there".
             Circle()
-                .stroke(Color.accentColor.opacity(isPressed ? 0.5 : 0.0), lineWidth: 3)
+                .stroke(CT.accent.opacity(isPressed ? 0.5 : 0.0), lineWidth: 3)
                 .frame(width: 64, height: 64)
                 .scaleEffect(ringPulse ? 1.18 : 1.0)
                 .opacity(ringPulse ? 0.0 : 1.0)
@@ -3547,6 +3567,7 @@ private struct EmptyStateOverlay: View {
     var preferences: UserPreferences
     var locationService: LocationService
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isVisible = false
 
     private var nearestCityName: String? {
@@ -3559,67 +3580,59 @@ private struct EmptyStateOverlay: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "mappin.slash")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-            Text(NSLocalizedString("map.empty.title", comment: "No experiences nearby"))
-                .font(.subheadline.weight(.medium))
-            Text(String(
-                format: NSLocalizedString("map.empty.radius", comment: "No experiences within radius"),
-                preferences.maxDistanceKm
-            ))
-            .font(.caption)
-            .foregroundStyle(.secondary)
+        let cardBg = colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite
+
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(CT.surfaceSunken)
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "mappin.slash")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(CT.fgMuted)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(NSLocalizedString("map.empty.title", comment: "No experiences nearby"))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
+                    Text(String(
+                        format: NSLocalizedString("map.empty.radius", comment: "No experiences within radius"),
+                        preferences.maxDistanceKm
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(CT.fgMuted)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
+
+            Divider()
+                .padding(.horizontal, 14)
 
             VStack(spacing: 8) {
-                // US-012: a single stage-driven primary action replaces the old
-                // static button stack. The view model picks which stage we're
-                // in based on consecutive empty renders + whether the user
-                // already tried Expand.
                 switch viewModel.emptyStateStage {
                 case .tryExpand:
-                    Button {
-                        viewModel.emptyStateActionTryExpand()
-                    } label: {
-                        Text(NSLocalizedString(
-                            "map.empty.stage.tryExpand",
-                            comment: "Stage 1: expand search radius to 25km"
-                        ))
-                        .font(.subheadline.weight(.medium))
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.regular)
+                    stageButton(
+                        title: NSLocalizedString("map.empty.stage.tryExpand", comment: "Stage 1: expand search radius to 25km"),
+                        action: { viewModel.emptyStateActionTryExpand() }
+                    )
                 case .tryExplore:
-                    Button {
-                        viewModel.emptyStateActionTryExplore()
-                    } label: {
-                        Text(NSLocalizedString(
-                            "map.empty.stage.tryExplore",
-                            comment: "Stage 2: widen Overpass explore to 12km"
-                        ))
-                        .font(.subheadline.weight(.medium))
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.regular)
+                    stageButton(
+                        title: NSLocalizedString("map.empty.stage.tryExplore", comment: "Stage 2: widen Overpass explore to 12km"),
+                        action: { viewModel.emptyStateActionTryExplore() }
+                    )
                 case .browseCity:
-                    Button {
-                        viewModel.emptyStateActionBrowseCity()
-                    } label: {
-                        Text(String(
-                            format: NSLocalizedString(
-                                "map.empty.stage.browseCity",
-                                comment: "Stage 3: jump to nearest seeded city"
-                            ),
+                    stageButton(
+                        title: String(
+                            format: NSLocalizedString("map.empty.stage.browseCity", comment: "Stage 3: jump to nearest seeded city"),
                             nearestCityName ?? ""
-                        ))
-                        .font(.subheadline.weight(.medium))
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.regular)
+                        ),
+                        action: { viewModel.emptyStateActionBrowseCity() }
+                    )
                 }
 
                 Button {
@@ -3627,25 +3640,58 @@ private struct EmptyStateOverlay: View {
                 } label: {
                     Text(NSLocalizedString("map.empty.clearFilters", comment: "Clear all filters"))
                         .font(.subheadline)
+                        .foregroundStyle(CT.fgMuted)
                         .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(colorScheme == .dark ? CT.warmBorderDark : CT.borderDefault, lineWidth: 1)
+                        )
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
+                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
         }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal, 32)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(cardBg)
+                .shadow(color: CT.scrimShadow, radius: 12, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(colorScheme == .dark ? CT.warmBorderDark : CT.borderSubtle, lineWidth: 0.5)
+        )
+        .padding(.horizontal, 24)
         .opacity(isVisible ? 1 : 0)
-        .offset(y: isVisible ? 0 : 16)
+        .offset(y: isVisible ? 0 : 12)
         .accessibilityElement(children: .combine)
         .onAppear {
             viewModel.recordEmptyStateRender()
-            withAnimation(.easeOut(duration: 0.35)) { isVisible = true }
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { isVisible = true }
         }
         .onChange(of: viewModel.visibleExperiences.count) { _, _ in
             viewModel.recordEmptyStateRender()
         }
+    }
+
+    private func stageButton(title: String, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.selection()
+            action()
+        } label: {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(CT.accent)
+                )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -3653,6 +3699,7 @@ private struct FilteredEmptyOverlay: View {
     var viewModel: MapViewModel
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @State private var appeared = false
     @State private var iconPulse = false
 
@@ -3668,40 +3715,67 @@ private struct FilteredEmptyOverlay: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-                .scaleEffect(reduceMotion ? 1.0 : (appeared ? (iconPulse ? 1.06 : 0.97) : 0.4))
-                .opacity(appeared ? 1 : 0)
-            Text(NSLocalizedString("map.filtered.empty.title", comment: "Nothing matches this filter"))
-                .font(.subheadline.weight(.medium))
-            Text(String(
-                format: NSLocalizedString("map.filtered.empty.subtitle", comment: "Filter name subtitle"),
-                activeFilterName
-            ))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
+        let cardBg = colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite
+
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(CT.surfaceSunken)
+                    .frame(width: 36, height: 36)
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(CT.fgMuted)
+                    .scaleEffect(reduceMotion ? 1.0 : (iconPulse ? 1.05 : 0.95))
+            }
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(NSLocalizedString("map.filtered.empty.title", comment: "Nothing matches this filter"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
+                Text(String(
+                    format: NSLocalizedString("map.filtered.empty.subtitle", comment: "Filter name subtitle"),
+                    activeFilterName
+                ))
+                .font(.caption)
+                .foregroundStyle(CT.fgMuted)
+            }
+            Spacer(minLength: 0)
+
             Button {
                 Haptics.selection()
                 viewModel.clearFilters()
             } label: {
                 Text(NSLocalizedString("map.empty.clearFilters", comment: "Clear all filters"))
-                    .font(.subheadline.weight(.medium))
-                    .frame(maxWidth: .infinity)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(CT.accent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(
+                        Capsule().fill(CT.accentSoft)
+                    )
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
+            .buttonStyle(.plain)
         }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal, 32)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(cardBg)
+                .shadow(color: CT.scrimShadow, radius: 12, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(colorScheme == .dark ? CT.warmBorderDark : CT.borderSubtle, lineWidth: 0.5)
+        )
+        .padding(.horizontal, 24)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 12)
         .accessibilityElement(children: .combine)
         .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) { appeared = true }
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { appeared = true }
             if !reduceMotion {
-                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
                     iconPulse = true
                 }
             }
@@ -3710,7 +3784,7 @@ private struct FilteredEmptyOverlay: View {
             if reduced {
                 withAnimation(nil) { iconPulse = false }
             } else {
-                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
                     iconPulse = true
                 }
             }
@@ -3748,13 +3822,10 @@ private struct NowEmptyOverlay: View {
     var viewModel: MapViewModel
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @State private var appeared = false
     @State private var iconPulse = false
 
-    private static let accentGold = Color(red: 0xD4 / 255, green: 0xA8 / 255, blue: 0x43 / 255)
-
-    /// Compact "Nm" / "~Nh" tail mirroring the map marker's `upcomingLabel`
-    /// convention so the same duration reads identically across surfaces.
     private static func relativeOpensIn(minutes: Int) -> String {
         let m = max(1, minutes)
         if m < 60 {
@@ -3764,10 +3835,6 @@ private struct NowEmptyOverlay: View {
     }
 
     var body: some View {
-        // Re-tick every minute so "~2h" decays and, when a window crosses the
-        // 180-minute line into "imminent", control hands back to the filter-bar
-        // countdown capsule (this overlay collapses to nothing) without any user
-        // action — the gate below is re-evaluated on the same clock.
         TimelineView(.periodic(from: .now, by: 60)) { context in
             content(now: context.date)
         }
@@ -3775,8 +3842,6 @@ private struct NowEmptyOverlay: View {
 
     @ViewBuilder
     private func content(now: Date) -> some View {
-        // When something is imminent the filter-bar capsule already guides the
-        // user; suppress this overlay so the two surfaces never double up.
         if viewModel.nextBestExperience(now: now) != nil {
             EmptyView()
         } else {
@@ -3787,63 +3852,68 @@ private struct NowEmptyOverlay: View {
     @ViewBuilder
     private func quietHours(now: Date) -> some View {
         let soonest = viewModel.soonestUpcomingExperience(now: now)
+        let cardBg = colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite
 
-        VStack(spacing: 12) {
-            Image(systemName: "moon.stars")
-                .font(.title2)
-                .foregroundStyle(Self.accentGold)
-                .scaleEffect(reduceMotion ? 1.0 : (appeared ? (iconPulse ? 1.06 : 0.97) : 0.4))
-                .opacity(appeared ? 1 : 0)
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(CT.sunGoldSoft)
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "moon.stars")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(CT.sunGoldDeep)
+                        .scaleEffect(reduceMotion ? 1.0 : (iconPulse ? 1.05 : 0.95))
+                }
                 .accessibilityHidden(true)
 
-            Text(NSLocalizedString("filter.now.empty.title", comment: "Quiet hours right now — nothing at its best"))
-                .font(.subheadline.weight(.medium))
-                .multilineTextAlignment(.center)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(NSLocalizedString("filter.now.empty.title", comment: "Quiet hours right now — nothing at its best"))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
+                    Text(NSLocalizedString("filter.now.empty.later.subtitle", comment: "Best times pick back up later today"))
+                        .font(.caption)
+                        .foregroundStyle(CT.fgMuted)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, soonest != nil ? 10 : 12)
 
             if let soonest {
-                // Case 2: a worthwhile window opens later today.
                 let title = soonest.experience.title
                 let timeHint = soonest.experience.bestTimeHint(at: now)
                 let relative = Self.relativeOpensIn(minutes: soonest.minutesUntil)
 
-                Text(NSLocalizedString("filter.now.empty.later.subtitle", comment: "Best times pick back up later today"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                Divider()
+                    .padding(.horizontal, 14)
 
                 Button {
                     Haptics.impact(.light)
                     viewModel.openExperienceDetail(soonest.experience)
                 } label: {
-                    HStack(spacing: 8) {
-                        VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(NSLocalizedString("filter.now.empty.nextBest", comment: "Next best label"))
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(Self.accentGold)
+                                .font(CT.mono(10, .semibold))
+                                .foregroundStyle(CT.sunGoldDeep)
                                 .textCase(.uppercase)
                             Text(title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
                                 .lineLimit(1)
-                            if let timeHint {
-                                Text(timeHint + "  ·  " + relative)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Text(relative)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            Text((timeHint.map { $0 + "  ·  " } ?? "") + relative)
+                                .font(.caption)
+                                .foregroundStyle(CT.fgMuted)
                         }
                         Spacer(minLength: 4)
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(CT.fgSubtle)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(Self.accentGold.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
                 }
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .ignore)
@@ -3852,23 +3922,27 @@ private struct NowEmptyOverlay: View {
                     format: NSLocalizedString("filter.now.empty.nextBest.a11y", comment: "Next best %@ %@; tap to view"),
                     title, timeHint ?? relative
                 )))
-
-                browseAllButton(prominent: false)
-            } else {
-                // Case 3: nothing opens again today.
-                Text(NSLocalizedString("filter.now.empty.done.subtitle", comment: "Best times resume tomorrow"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                browseAllButton(prominent: true)
             }
+
+            browseAllButton
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
+                .padding(.top, 8)
         }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal, 32)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(cardBg)
+                .shadow(color: CT.scrimShadow, radius: 12, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(colorScheme == .dark ? CT.warmBorderDark : CT.borderSubtle, lineWidth: 0.5)
+        )
+        .padding(.horizontal, 24)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 12)
         .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) { appeared = true }
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { appeared = true }
             startIconPulseIfNeeded()
         }
         .onChange(of: reduceMotion) { _, reduced in
@@ -3880,26 +3954,27 @@ private struct NowEmptyOverlay: View {
         }
     }
 
-    @ViewBuilder
-    private func browseAllButton(prominent: Bool) -> some View {
+    private var browseAllButton: some View {
         Button {
             Haptics.selection()
-            // Filters are mutually exclusive, so with only "Now" active this
-            // simply drops back to every nearby experience.
             viewModel.clearFilters()
         } label: {
             Text(NSLocalizedString("filter.now.empty.browseAll", comment: "Browse all nearby experiences"))
                 .font(.subheadline.weight(.medium))
+                .foregroundStyle(CT.accent)
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(CT.accentSoft)
+                )
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.regular)
-        .opacity(prominent ? 1 : 0.9)
+        .buttonStyle(.plain)
     }
 
     private func startIconPulseIfNeeded() {
         guard !reduceMotion else { return }
-        withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+        withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
             iconPulse = true
         }
     }

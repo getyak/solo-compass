@@ -143,7 +143,7 @@ public struct ItineraryFormView: View {
                             "itinerary.form.validation.endBeforeStart",
                             comment: "End before start validation error"
                         ))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(CT.savedRed)
                         .font(.caption)
                     }
                 }
@@ -234,7 +234,7 @@ private struct ItineraryCityPickerSheet: View {
                         Spacer()
                         if selectedCode == city.code {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.tint)
+                                .foregroundStyle(CT.accent)
                                 .font(.body.weight(.semibold))
                         }
                     }

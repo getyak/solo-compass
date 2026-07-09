@@ -604,11 +604,12 @@ public final class MapViewModel {
         }
         let nameMap = cityNameMap
         var byCode: [String: (code: String, name: String, center: CLLocationCoordinate2D)] = [:] // swiftlint:disable:this large_tuple
+        let nearbyLabel = NSLocalizedString("city.nearby", comment: "Fallback city label for synthetic osm_ codes")
         // Seed-derived rows first.
         for (code, coords) in cityExperiences where !coords.isEmpty {
             let avgLat = coords.map(\.latitude).reduce(0, +) / Double(coords.count)
             let avgLon = coords.map(\.longitude).reduce(0, +) / Double(coords.count)
-            let name = nameMap[code] ?? code
+            let name = nameMap[code] ?? (code.hasPrefix("osm_") ? nearbyLabel : code)
             byCode[code] = (code, name, CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon))
         }
 
@@ -644,6 +645,7 @@ public final class MapViewModel {
     /// `DiscoveredCityRecord` via `availableCities`.
     private let cityNameMap: [String: String] = [
         "cmi": "Chiang Mai",
+        "CNX": "Chiang Mai",
         "VTE": "Vientiane",
         "cn-深圳市": "Shenzhen",
         // SZX/szx/shenzhen 三种冷启动/launch-arg 形式都要能反查到显示名,
@@ -663,6 +665,8 @@ public final class MapViewModel {
         "ho-chi-minh": "Ho Chi Minh",
         "lis": "Lisbon",
         "lisbon": "Lisbon",
+        "san-francisco": "San Francisco",
+        "sfo": "San Francisco",
     ]
 
     /// Well-known city centers keyed by both their seed/discovered codes and
@@ -674,6 +678,7 @@ public final class MapViewModel {
         "cmi": CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
         "chiang-mai": CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938),
         "san-francisco": CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+        "sfo": CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
         // V-006: Vientiane (VTE) seeds existed (5 experiences + 4 routes) but the
         // city had no authoritative center, so a cold start on VTE fell through to
         // the live centroid — unstable, and empty if `availableCities` hasn't
@@ -713,9 +718,11 @@ public final class MapViewModel {
         // these the alias lookup falls through to `Self.defaultCenter` and the
         // cold-start map silently lands on SF.
         "chiangmai": "cmi",
+        "cnx": "cmi",
         "vientiane": "VTE",
         "shenzhen": "cn-深圳市",
         "szx": "cn-深圳市",
+        "sfo": "san-francisco",
     ]
 
     /// True when `seedCityCode` (an experience's `location.cityCode`) belongs to
@@ -794,6 +801,16 @@ public final class MapViewModel {
     public var suggestedCityCode: String? {
         guard visibleExperiences.isEmpty else { return nil }
         return firstAvailableCityCode
+    }
+
+    /// Resolve a human-readable city name for a city code, consulting the
+    /// static name map and alias table. Used by the city pill when
+    /// `availableCities` doesn't contain the code directly.
+    public func resolvedCityName(for code: String) -> String? {
+        if let name = cityNameMap[code] { return name }
+        if let canonical = Self.cityCodeAliases[code.lowercased()],
+           let name = cityNameMap[canonical] { return name }
+        return nil
     }
 
     /// Derive the first city code that has seed data, bypassing the memoized

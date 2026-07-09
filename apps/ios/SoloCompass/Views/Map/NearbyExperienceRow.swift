@@ -146,7 +146,12 @@ struct NearbyExperienceRow: View {
             .background(cardBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(isSmartPick ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
+                    .strokeBorder(
+                        colorScheme == .dark
+                            ? CT.warmBorderDark
+                            : (isSmartPick ? CT.accentBorder : CT.borderSubtle),
+                        lineWidth: 0.5
+                    )
             )
             .overlay(alignment: .leading) {
                 // Left color-bar: golden for smart picks, else the category tint.
@@ -343,6 +348,7 @@ struct NearbyExperienceRow: View {
                         )
                 }
                 Spacer(minLength: 4)
+                ConfidenceBadge(confidence: experience.confidence, compact: true)
                 TrustBadge(level: experience.trustBadgeLevel, size: .compact)
                     .layoutPriority(1)
             }
@@ -585,10 +591,15 @@ struct NearbyExperienceRow: View {
     }
 
     private var subtitleText: String {
+        let title = experience.title
         let parts = [
             experience.location.placeNameRomanized,
             experience.location.placeNameLocal
-        ].compactMap { $0?.isEmpty == false ? $0 : nil }
+        ].compactMap { name -> String? in
+            guard let name, !name.isEmpty else { return nil }
+            // Hide name parts that duplicate the title verbatim
+            return name.caseInsensitiveCompare(title) == .orderedSame ? nil : name
+        }
         if parts.isEmpty {
             return experience.location.addressHint ?? ""
         }

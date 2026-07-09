@@ -61,8 +61,8 @@ public struct SoloScoreRadarChart: View {
     }
 
     // Amber accent matching the app's accentGold
-    private static let amberAccent = Color(red: 0xD4 / 255, green: 0xA8 / 255, blue: 0x43 / 255)
-    private static let greenAccent = Color.green
+    private static let amberAccent = CT.sunGold
+    private static let greenAccent = CT.verifiedGreen
 
     public init(score: SoloScore) {
         self.score = score
@@ -435,7 +435,7 @@ public struct SoloScoreRadarChart: View {
                         .accessibilityHidden(true)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.gray.opacity(0.15))
+                            Capsule().fill(CT.surfaceSunken)
                                 .accessibilityHidden(true)
                             Capsule()
                                 .fill(score.scoreColor)

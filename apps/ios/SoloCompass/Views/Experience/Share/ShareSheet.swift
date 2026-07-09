@@ -66,7 +66,7 @@ struct ShareSheet: View {
                 if let status = statusMessage {
                     Text(status)
                         .font(.caption)
-                        .foregroundStyle(statusIsError ? Color.red : Color.green)
+                        .foregroundStyle(statusIsError ? CT.savedRed : CT.verifiedGreen)
                         .transition(.opacity)
                 }
                 actionButtons
@@ -105,7 +105,7 @@ struct ShareSheet: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .background(
-                                Capsule().fill(selectedMode == mode ? Color.accentColor : Color(.secondarySystemBackground))
+                                Capsule().fill(selectedMode == mode ? CT.accent : Color(.secondarySystemBackground))
                             )
                             .foregroundStyle(selectedMode == mode ? .white : .primary)
                     }

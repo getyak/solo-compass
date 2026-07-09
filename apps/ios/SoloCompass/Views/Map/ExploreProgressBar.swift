@@ -35,7 +35,7 @@ struct ExploreProgressBar: View {
 
 #Preview("Scanning ring 2 of 4") {
     ZStack {
-        Color.gray.opacity(0.2).ignoresSafeArea()
+        CT.surfaceSunken.ignoresSafeArea()
         VStack {
             Spacer()
             ExploreProgressBar(progress: .multiRingScanning(ringsDone: 2, totalRings: 4))
@@ -46,7 +46,7 @@ struct ExploreProgressBar: View {
 
 #Preview("Synthesizing 47 places") {
     ZStack {
-        Color.gray.opacity(0.2).ignoresSafeArea()
+        CT.surfaceSunken.ignoresSafeArea()
         VStack {
             Spacer()
             ExploreProgressBar(progress: .synthesizing(poiCount: 47))
@@ -57,7 +57,7 @@ struct ExploreProgressBar: View {
 
 #Preview("Idle — hidden") {
     ZStack {
-        Color.gray.opacity(0.2).ignoresSafeArea()
+        CT.surfaceSunken.ignoresSafeArea()
         VStack {
             Spacer()
             ExploreProgressBar(progress: .idle)

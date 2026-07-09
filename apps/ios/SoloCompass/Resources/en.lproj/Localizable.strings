@@ -45,6 +45,7 @@
 
 /* Confidence */
 "confidence.signals" = "signals";
+"confidence.aiEstimate" = "AI estimate · unverified";
 "confidence.aiScrape" = "AI scrape age";
 "confidence.gps" = "GPS hits (30d)";
 "confidence.reports" = "User reports (30d)";
@@ -301,7 +302,7 @@
 "moderation.reason.fakeProfile" = "Fake profile";
 "moderation.reason.other" = "Other";
 "me.profile.name" = "Solo Traveler";
-"me.profile.subtitle" = "Your compass, your journey";
+"me.profile.subtitle" = "Confidence in every solo moment";
 "me.friends.incoming" = "Friend Requests";
 "me.friends.list" = "Friends";
 "me.friends.empty" = "No friends yet";
@@ -313,9 +314,9 @@
 "me.stats.saved" = "Saved";
 "me.stats.explored" = "Explored";
 "me.profile.progress.a11y" = "%d of %d saved places explored";
-"me.empty.title" = "Your journey starts here";
-"me.empty.subtitle" = "Explore the map, save your favorite spots, and track which ones you've visited.";
-"me.empty.cta" = "Back to the map";
+"me.empty.title" = "Your solo map awaits";
+"me.empty.subtitle" = "Save places that feel right for one, then see how your confidence grows.";
+"me.empty.cta" = "Explore the map";
 
 /* Map empty / loading */
 "map.empty.title" = "Quiet patch of map.";
@@ -752,7 +753,7 @@
 "exploreMode.cancelled.kept" = "Kept %d places · Explore stopped";
 "exploreMode.cancelled.dismiss" = "OK";
 "explore.error.nothingFound" = "No public places found nearby. Try moving the map.";
-"location.error.banner" = "Can't find your location — showing a default area. Check Location permissions in Settings.";
+"location.error.banner" = "Can't find your location — showing a default area.";
 "location.banner.openSettings" = "Open Settings";
 "explore.skeleton.oneLiner" = "A real spot pulled from OpenStreetMap.";
 "explore.skeleton.oneLiner.amap" = "A real spot pulled from AutoNavi (Amap).";
@@ -1494,7 +1495,7 @@
 "settings.companion.requests.empty" = "No recruitment requests yet.";
 "settings.companion.conversations" = "Joined group chats";
 "settings.companion.conversations.empty" = "You haven't joined any group chats yet.";
-"settings.companion.discover.routes" = "发现招募路线";
+"settings.companion.discover.routes" = "Discover recruiting routes";
 
 /* US-018 — BottomInfoSheet peek toolbar */
 "ai.now.hint" = "Good spots for right now";
@@ -1511,7 +1512,7 @@
 "sheet.handle" = "Sheet handle, swipe up or down to adjust";
 
 /* US-019 — BottomInfoSheet nearby section */
-"sheet.nearby.section.title" = "附近";
+"sheet.nearby.section.title" = "NEARBY";
 "sheet.nearby.smartPick.a11y" = "AI recommended";
 "sheet.nearby.openNow" = "Open now";
 "sheet.nearby.openNow.a11y" = "Open now";
@@ -1553,36 +1554,36 @@
 "sort.subtitle.now" = "Good right now";
 
 /* US-022 — VerifiedBadge */
-"verified.title.verified" = "已验证路线";
-"verified.title.watching" = "社群观察中";
-"verified.subtitle" = "与 %d 位旅人走过";
-"verified.short.verified" = "已验证";
-"verified.short.watching" = "观察中";
-"verified.inline" = "%1$@ · %2$d 人走过";
+"verified.title.verified" = "Verified route";
+"verified.title.watching" = "Community watching";
+"verified.subtitle" = "Walked by %d travelers";
+"verified.short.verified" = "Verified";
+"verified.short.watching" = "Watching";
+"verified.inline" = "%1$@ · walked by %2$d";
 
 /* US-023 — StopsList */
 "stops.start" = "Start";
 
 /* US-025 — RouteCard / RoutesSection */
-"sheet.routes.section.title" = "路线";
-"route.card.verified" = "已验证";
-"route.card.tag" = "路线 · %1$d 站 · %2$@";
-"route.card.now" = "此刻";
+"sheet.routes.section.title" = "ROUTES";
+"route.card.verified" = "Verified";
+"route.card.tag" = "Route · %1$d stops · %2$@";
+"route.card.now" = "Now";
 
 /* US-024 — RouteDetailView */
-"route.detail.save" = "保存到我的行程";
-"route.detail.favorite" = "加入收藏";
-"route.detail.bestNow.yes" = "此刻最佳";
-"route.detail.bestNow.no" = "非此刻";
-"route.detail.aiInsight.title" = "AI 洞察";
-"route.detail.aiInsight.locked" = "订阅 Pro 解锁路线分析 · 结合当前天气、人流、季节";
-"route.detail.aiInsight.unlock" = "解锁 →";
-"route.detail.tags.title" = "路线标签";
-"route.detail.start" = "开始路线";
-"route.detail.cta.requestJoin" = "申请加入";
-"route.detail.cta.review" = "审批 %d 个申请";
-"route.detail.cta.waiting" = "等待主理人确认";
-"route.detail.cta.groupChat" = "进入群聊";
+"route.detail.save" = "Save to my itinerary";
+"route.detail.favorite" = "Add to favorites";
+"route.detail.bestNow.yes" = "Best right now";
+"route.detail.bestNow.no" = "Not now";
+"route.detail.aiInsight.title" = "AI Insight";
+"route.detail.aiInsight.locked" = "Subscribe to Pro for route analysis · weather, crowds, seasons";
+"route.detail.aiInsight.unlock" = "Unlock →";
+"route.detail.tags.title" = "Route tags";
+"route.detail.start" = "Start route";
+"route.detail.cta.requestJoin" = "Request to join";
+"route.detail.cta.review" = "Review %d requests";
+"route.detail.cta.waiting" = "Waiting for host confirmation";
+"route.detail.cta.groupChat" = "Open group chat";
 "route.detail.pace.relaxed" = "Relaxed";
 "route.detail.pace.standard" = "Standard";
 "route.detail.pace.packed" = "Packed";
@@ -1592,24 +1593,24 @@
 "itinerary.toast.viewAction" = "View itinerary";
 
 /* US-027 — RecruitingModule */
-"recruiting.status.open" = "招募中";
-"recruiting.status.forming" = "组队中";
-"recruiting.status.closed" = "已关闭";
-"recruiting.status.completed" = "已完成";
-"recruiting.slots.label" = "成员";
+"recruiting.status.open" = "Recruiting";
+"recruiting.status.forming" = "Forming";
+"recruiting.status.closed" = "Closed";
+"recruiting.status.completed" = "Completed";
+"recruiting.slots.label" = "Members";
 "recruiting.slots.count" = "%d/%d";
-"recruiting.cta.viewRequests" = "查看申请(%d)";
-"recruiting.cta.applied" = "已申请 · 等待确认";
-"recruiting.cta.viewChat" = "查看群聊";
-"recruiting.cta.requestJoin" = "申请加入";
-"recruiting.cta.requestJoinForming" = "申请加入(最后 %d 位)";
+"recruiting.cta.viewRequests" = "View requests (%d)";
+"recruiting.cta.applied" = "Applied · waiting for confirmation";
+"recruiting.cta.viewChat" = "View group chat";
+"recruiting.cta.requestJoin" = "Request to join";
+"recruiting.cta.requestJoinForming" = "Request to join (%d spots left)";
 
 /* US-057 — RouteCard recruit-mini inline state (CompareCanvas A-002) */
-"route.card.recruit.recruiting" = "%1$@ 招募 · %2$d/%3$d 已確認 · %4$@";
-"route.card.recruit.closed" = "已成团 · %d 人 · 出发中";
-"route.card.recruit.completed" = "已完成 · 路线升级";
+"route.card.recruit.recruiting" = "%1$@ recruiting · %2$d/%3$d confirmed · %4$@";
+"route.card.recruit.closed" = "Group formed · %d members · departing";
+"route.card.recruit.completed" = "Completed · route upgraded";
 /* Trailing affordance on a joinable recruit strip */
-"route.card.recruit.view" = "查看";
+"route.card.recruit.view" = "View";
 
 /* AI route generation — fallback copy when the model is unavailable */
 "route.generate.fallback.summary" = "A short solo walk linking nearby spots.";
@@ -1617,8 +1618,8 @@
 "route.generate.fallback.titleFormat" = "%1$@ → %2$@";
 
 /* Create-route entry card + flow */
-"route.create.entry.title" = "創建你自己的路線";
-"route.create.entry.subtitle" = "串聯幾個地點 · 可選擇招募同伴一起走";
+"route.create.entry.title" = "Create your own route";
+"route.create.entry.subtitle" = "String a few stops together · optionally invite a companion";
 
 /* Direction 3 — warm cold-start placeholder for the Now routes section */
 "routes.now.empty.title" = "Today’s walk · let Solo string one together";
@@ -1626,7 +1627,7 @@
 "route.duration.hours" = "%dh";
 "route.duration.hoursMinutes" = "%dh %dmin";
 "route.duration.minutes" = "%dmin";
-"route.create.title" = "創建路線";
+"route.create.title" = "Create Route";
 "route.create.ai" = "✨ 讓 AI 幫我串成路線";
 "route.create.titleLabel" = "路線名稱";
 "route.create.titlePlaceholder" = "例如：湄公河日落散步";
@@ -1944,11 +1945,12 @@
 /* Trust chip (mapped from confidence health) */
 "trust.verified" = "Verified";
 "trust.observing" = "Observing";
-"trust.questioned" = "Questioned";
+"trust.questioned" = "Unconfirmed";
 
 /* ── Traveler co-build layer ── */
 "notes.title" = "Traveler Notes";
 "notes.signals" = "signals";
+"notes.signals.aiEstimate" = "AI estimate";
 "notes.signal.plus" = "+1 signal";
 "notes.author.you" = "You";
 "notes.author.traveler" = "Traveler %@";

@@ -42,7 +42,7 @@ public struct VoiceButton: View {
         ZStack {
             if isRecording {
                 Circle()
-                    .stroke(Color.red.opacity(0.5), lineWidth: 4)
+                    .stroke(CT.savedRed.opacity(0.5), lineWidth: 4)
                     .frame(width: 72, height: 72)
                     .scaleEffect(reduceMotion ? 1.0 : (pulse ? 1.2 : 0.95))
                     .opacity(reduceMotion ? 0.7 : (pulse ? 0.0 : 0.8))
@@ -56,7 +56,7 @@ public struct VoiceButton: View {
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        nearEnd ? Color.orange : Color.red.opacity(0.6),
+                        nearEnd ? CT.warningText : CT.savedRed.opacity(0.6),
                         style: StrokeStyle(lineWidth: 3, lineCap: .round)
                     )
                     .frame(width: 64, height: 64)
@@ -72,7 +72,7 @@ public struct VoiceButton: View {
             }
 
             Circle()
-                .fill(isRecording ? Color.red : Color.black.opacity(0.85))
+                .fill(isRecording ? CT.savedRed : Color.black.opacity(0.85))
                 .frame(width: 56, height: 56)
                 .shadow(radius: isRecording ? 10 : 4)
 
@@ -127,7 +127,7 @@ public struct VoiceButton: View {
                     if let hint = emptyHint {
                         Text(hint)
                             .font(.caption)
-                            .foregroundStyle(AnyShapeStyle(Color.orange))
+                            .foregroundStyle(AnyShapeStyle(CT.warningText))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(.thinMaterial, in: Capsule())
@@ -137,12 +137,12 @@ public struct VoiceButton: View {
                     } else if let message = autoStopMessage {
                         Text(message)
                             .font(.caption.monospacedDigit())
-                            .foregroundStyle(AnyShapeStyle(Color.orange))
+                            .foregroundStyle(AnyShapeStyle(CT.warningText))
                             .accessibilityHidden(true)
                     } else if inCountdown {
                         Text(String(format: NSLocalizedString("voice.recording.secondsLeft", comment: "%ds left countdown"), secondsRemaining))
                             .font(.caption.monospacedDigit())
-                            .foregroundStyle(AnyShapeStyle(Color.orange))
+                            .foregroundStyle(AnyShapeStyle(CT.warningText))
                             .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: secondsRemaining)
                             .accessibilityHidden(true)
                     } else {

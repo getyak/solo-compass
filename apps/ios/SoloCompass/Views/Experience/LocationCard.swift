@@ -76,7 +76,7 @@ struct LocationCard: View {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "mappin.circle.fill")
                     .font(.title3)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(CT.savedRed)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(displayName)
                         .font(.subheadline.weight(.semibold))
@@ -95,7 +95,7 @@ struct LocationCard: View {
                                     .fixedSize(horizontal: false, vertical: true)
                                 Image(systemName: didCopy ? "checkmark.circle.fill" : "doc.on.doc")
                                     .font(.caption2)
-                                    .foregroundStyle(didCopy ? Color.green : Color.secondary.opacity(0.6))
+                                    .foregroundStyle(didCopy ? CT.verifiedGreen : Color.secondary.opacity(0.6))
                                     .contentTransition(.symbolEffect(.replace))
                                     .accessibilityHidden(true)
                             }
@@ -146,7 +146,7 @@ struct LocationCard: View {
                     .frame(minHeight: 44)
                     .background(
                         LinearGradient(
-                            colors: [Color.accentColor, Color.accentColor.opacity(0.85)],
+                            colors: [CT.accent, CT.accent.opacity(0.85)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -166,14 +166,14 @@ struct LocationCard: View {
                     VStack(spacing: 2) {
                         Image(systemName: didCopy ? "checkmark.circle.fill" : "doc.on.doc")
                             .contentTransition(.symbolEffect(.replace))
-                            .foregroundStyle(didCopy ? Color.green : Color.secondary)
+                            .foregroundStyle(didCopy ? CT.verifiedGreen : Color.secondary)
                         if didCopy {
                             Text(copyPayload.isAddress
                                 ? NSLocalizedString("location.copiedAddress", comment: "Address copied confirmation")
                                 : NSLocalizedString("location.copied", comment: "Coordinates copied confirmation")
                             )
                             .font(.caption2)
-                            .foregroundStyle(Color.green)
+                            .foregroundStyle(CT.verifiedGreen)
                         }
                     }
                     .frame(width: 44, height: 44)

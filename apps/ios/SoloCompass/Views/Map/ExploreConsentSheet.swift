@@ -29,7 +29,7 @@ struct ExploreConsentSheet: View {
                 // optical bounds below the grabber on every device class.
                 Image(systemName: "sparkle.magnifyingglass")
                     .font(.system(size: 36, weight: .light))
-                    .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                    .foregroundStyle(CT.sunGold)
                     .frame(width: 56, height: 56)
                     .padding(.top, 28)
                     .accessibilityHidden(true)
@@ -74,7 +74,7 @@ struct ExploreConsentSheet: View {
                         .frame(height: 52)
                         .background(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                                .fill(CT.sunGold)
                         )
                 }
                 .buttonStyle(.plain)
@@ -100,7 +100,7 @@ struct ExploreConsentSheet: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 18))
-                .foregroundStyle(Color(red: 0xD4/255, green: 0xA8/255, blue: 0x43/255))
+                .foregroundStyle(CT.sunGold)
                 .frame(width: 24, alignment: .center)
             Text(text)
                 .font(.callout)

@@ -99,7 +99,7 @@ public struct ReportBlockSheet: View {
                     Spacer()
                     if selectedReason == reason {
                         Image(systemName: "checkmark")
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(CT.accent)
                     }
                 }
                 .contentShape(Rectangle())

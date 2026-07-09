@@ -111,7 +111,7 @@ public struct ItineraryDetailView: View {
                         } label: {
                             Text(NSLocalizedString("itinerary.detail.importFavorites", comment: "Import from favorites button"))
                                 .font(.caption.weight(.medium))
-                                .foregroundStyle(Color.accentColor)
+                                .foregroundStyle(CT.accent)
                         }
                         .buttonStyle(.plain)
                     }
@@ -221,7 +221,7 @@ public struct ItineraryDetailView: View {
                 NSLocalizedString("companion.post.openToCompanions", comment: "Open to companions toggle"),
                 isOn: openToCompanionsBinding
             )
-            .tint(.accentColor)
+            .tint(CT.accent)
 
             // Show post blurb when active
             if let post = activePost {
@@ -247,7 +247,7 @@ public struct ItineraryDetailView: View {
                         "openForCompanions.button",
                         comment: "Button to open itinerary as a recruiting route"
                     ))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(CT.accent)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
@@ -454,7 +454,7 @@ private struct CompanionPostCreationSheet: View {
                                 Spacer()
                                 if selectedCategories.contains(cat) {
                                     Image(systemName: "checkmark")
-                                        .foregroundStyle(Color.accentColor)
+                                        .foregroundStyle(CT.accent)
                                         .font(.footnote.weight(.semibold))
                                 }
                             }

@@ -228,7 +228,7 @@ public struct BottomInfoSheet<Content: View>: View {
     /// pre-building: once the user has expanded, the list stays constructed
     /// across collapses so re-expansion never pays the build cost again.
     @State private var hasEverExpanded: Bool = BottomInfoSheet.initialDetent != .peek
-    @State var sortMode: SortMode = .smart
+    @State private var sortMode: SortMode = .smart
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorScheme) private var colorScheme
 
@@ -665,7 +665,7 @@ struct NowHintRow: View {
         HStack(spacing: 6) {
             Image(systemName: "sunset.fill")
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(CT.sunGold)
             Text(hint)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -812,7 +812,7 @@ struct SortModeSheet: View {
                         if sortMode == mode {
                             Image(systemName: "checkmark")
                                 .font(.body.weight(.semibold))
-                                .foregroundStyle(Color.accentColor)
+                                .foregroundStyle(CT.accent)
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }
@@ -822,7 +822,7 @@ struct SortModeSheet: View {
                         Group {
                             if sortMode == mode {
                                 RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.accentColor.opacity(0.10))
+                                    .fill(CT.accentSoft)
                                     .padding(.horizontal, 8)
                             }
                         }

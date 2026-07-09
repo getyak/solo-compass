@@ -74,6 +74,12 @@ public final class LocationService: NSObject {
         self.authorizationStatus = manager.authorizationStatus
         #endif
         super.init()
+        #if DEBUG
+        // On iOS 26, setting CLLocationManager.delegate alone triggers the
+        // system authorization dialog. When bypassing the prompt for UI
+        // testing / screenshots, skip the entire CLLocationManager setup.
+        if args.contains("-uiTestBypassLocationPrompt") { return }
+        #endif
         self.manager.delegate = self
         // Tighter accuracy so we don't burn battery chasing sub-10m fixes the
         // map never needs. The distance filter is deliberately *small* (5m) —
