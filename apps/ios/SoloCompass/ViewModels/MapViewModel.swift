@@ -381,58 +381,141 @@ public final class MapViewModel {
     /// subsequent user pan/zoom gestures.
     private var hasAutoCentered = false
 
-    /// Recenter the camera to the user's current location ONCE, on the first
-    /// non-nil GPS fix. Subsequent calls are no-ops so the user's manual
-    /// pan/zoom is preserved.
+    /// True once the user has explicitly chosen a city *in this session* —
+    /// via the city picker (`selectCity`), a custom pin
+    /// (`selectCustomLocation`), or the DEBUG `-startCity` launch argument
+    /// (e2e harnesses rely on the forced city holding the camera). Only an
+    /// explicit in-session pick survives the first GPS fix; a city merely
+    /// persisted from a previous session does NOT own the camera anymore —
+    /// entering the app should land the traveler where they physically are.
+    @ObservationIgnored private(set) var cityPickedExplicitlyThisSession = false
+
+    /// Align camera + city selection to the user's current location ONCE, on
+    /// the first non-nil GPS fix. Subsequent calls are no-ops so the user's
+    /// manual pan/zoom is preserved.
     public func bindToLocation() {
         guard !hasAutoCentered,
               let coordinate = locationService.currentLocation?.coordinate else { return }
         hasAutoCentered = true
-        // V-004 (C2): a *preset* city selection owns the camera — the cold-start
-        // city (persisted or `-startCity`) must not be yanked to the first GPS
-        // fix. In the simulator that fix defaults to San Francisco, so without
-        // this guard a `cmi` cold start shows the "Chiang Mai" header over a San
-        // Francisco map with an empty nearby list. The user can still pull to
-        // their real location via the explicit recenter button
-        // (`recenterOnUser`), which bypasses `hasAutoCentered`.
-        //
-        // Bugfix (V-007): when a preset city owns the camera we must ALSO skip
-        // `autoExploreIfEmpty`, not just the recenter. The auto-explore runs at
-        // the *GPS* coordinate, and on success `exploreNearby` ends with both
-        // `selectCity(discoveredCity)` and `recenter(gpsCoord)` — which silently
-        // overrode the user's explicit city pick (e.g. picking a China city
-        // while physically in Laos snapped the map + nearby list back to Laos).
-        // A user who picked a city wants that city; GPS-anchored auto-explore is
-        // only appropriate when we're actually following GPS (no city selected).
-        let cityOwnsCamera = (selectedCity.map { !$0.hasPrefix("custom_") }) ?? false
-        // Beta-P0-F (narrowed): the original guard rejected any fix outside a
-        // ~200 km radius of our 8 seeded cities, but that silently threw away
-        // legitimate GPS on real devices anywhere else (Guangzhou, Beijing,
-        // London, ...) and left the map stuck on the Chiang Mai default —
-        // exactly the "current location looks offset" report we're fixing.
-        // The original bug was specifically the Simulator defaulting to
-        // Apple's San Francisco fix (37.7749, -122.4194), so restrict the
-        // suppression to that case: only when we're in the simulator AND the
-        // fix is on top of that default do we hold the seed camera. Real
-        // devices are always trusted.
+        // Cold-start rule (supersedes V-004/V-007's "preset city owns the
+        // camera"): entering the app follows GPS — the camera centers on the
+        // fix and `selectedCity` (the top-left pill) adopts the city the
+        // traveler is physically in. A city persisted from a *previous*
+        // session is just a pre-GPS placeholder now, not a pick. What still
+        // holds the camera:
+        //   1. An explicit in-session pick (picker / custom pin / -startCity)
+        //      made before the first fix landed — V-007's actual scenario
+        //      (picking a China city while physically in Laos) stays fixed.
+        //   2. The Simulator's default San Francisco fix (Beta-P0-F,
+        //      narrowed) — otherwise every seeded-city cold start in the sim
+        //      snaps to SF.
         let looksLikeSimulatorDefault = Self.isSimulatorDefaultSanFrancisco(coordinate)
         let suppressGPS = looksLikeSimulatorDefault
-        if !cityOwnsCamera && !suppressGPS {
-            recenter(on: coordinate)
-            autoExploreIfEmpty(at: coordinate)
+        if !cityPickedExplicitlyThisSession && !suppressGPS {
+            followUserLocation(coordinate, runAutoExplore: true)
         }
         SentryService.capture(
             message: "map.coldStart.cameraResolution",
             level: .info,
             context: [
                 "selectedCity": selectedCity ?? "nil",
-                "cityOwnsCamera": cityOwnsCamera,
+                "explicitSessionPick": cityPickedExplicitlyThisSession,
                 "suppressGPS": suppressGPS,
                 "simulatorDefaultSF": looksLikeSimulatorDefault,
                 "lat": coordinate.latitude,
                 "lon": coordinate.longitude
             ]
         )
+    }
+
+    // MARK: - GPS city follow
+
+    /// How far (metres) a GPS fix may sit from a city's center and still adopt
+    /// that city as the selection. Beyond this the app drops to pure
+    /// GPS-follow (no city pill lock) and lets auto-explore discover the city.
+    static let cityFollowMaxDistanceMeters: CLLocationDistance = 75_000
+
+    /// Align the whole aggregation context to where the traveler physically
+    /// is: adopt the nearest known city (so the city pill and the nearby list
+    /// agree with the GPS fix) and center the camera on the fix itself — NOT
+    /// on the city's catalog center, so the map opens on the user's block.
+    public func followUserLocation(
+        _ coordinate: CLLocationCoordinate2D,
+        runAutoExplore: Bool = false
+    ) {
+        if let city = nearestKnownCity(to: coordinate) {
+            let alreadySelected = selectedCity.map { Self.cityCodeMatches(city, selected: $0) } ?? false
+            if !alreadySelected {
+                customCoordinates = nil
+                customLocationLabel = nil
+                selectedCity = city
+                preferences.lastSelectedCity = city
+                didAutoRecoverEmpty = false
+            }
+        } else if selectedCity != nil {
+            // Far from every known city: a stale selection would keep the
+            // nearby query anchored thousands of km away, so drop to pure
+            // GPS-follow and let auto-explore discover + name the city.
+            customCoordinates = nil
+            customLocationLabel = nil
+            selectedCity = nil
+            preferences.lastSelectedCity = nil
+        }
+        recenter(on: coordinate)
+        if runAutoExplore { autoExploreIfEmpty(at: coordinate) }
+    }
+
+    /// Foreground return ("entering the app" with the process still alive —
+    /// e.g. reopening after a flight): if the GPS fix now resolves to a
+    /// DIFFERENT city than the current selection, re-follow it. Same-city app
+    /// switches leave the user's pan/zoom untouched, and an explicit
+    /// in-session pick is never fought — the locate button remains the
+    /// manual override.
+    public func refollowUserCityIfMoved() {
+        guard hasAutoCentered,
+              !cityPickedExplicitlyThisSession,
+              let coordinate = locationService.currentLocation?.coordinate,
+              !Self.isSimulatorDefaultSanFrancisco(coordinate) else { return }
+        let stillInSelectedCity: Bool
+        if let resolved = nearestKnownCity(to: coordinate) {
+            stillInSelectedCity = selectedCity.map { Self.cityCodeMatches(resolved, selected: $0) } ?? false
+        } else if selectedCity != nil {
+            // No known city near the fix: the selection is stale only when
+            // the fix has left its follow radius.
+            let center = defaultCenterForSelectedCity
+            let dist = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                .distance(from: CLLocation(latitude: center.latitude, longitude: center.longitude))
+            stillInSelectedCity = dist <= Self.cityFollowMaxDistanceMeters
+        } else {
+            stillInSelectedCity = true // already in pure GPS-follow
+        }
+        guard !stillInSelectedCity else { return }
+        followUserLocation(coordinate, runAutoExplore: true)
+    }
+
+    /// Nearest city (authoritative catalog + seed/discovered centroids) within
+    /// `cityFollowMaxDistanceMeters` of the coordinate, or nil when the fix is
+    /// beyond every known city. Ties prefer `availableCities` entries (they
+    /// carry real experiences) because they are scanned last with `<=`.
+    private func nearestKnownCity(to coordinate: CLLocationCoordinate2D) -> String? {
+        let here = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        var bestCode: String?
+        var bestDistance = Self.cityFollowMaxDistanceMeters
+        for (code, center) in Self.knownCityCenters {
+            let dist = here.distance(from: CLLocation(latitude: center.latitude, longitude: center.longitude))
+            if dist <= bestDistance {
+                bestDistance = dist
+                bestCode = code
+            }
+        }
+        for city in availableCities where !city.code.hasPrefix("custom_") {
+            let dist = here.distance(from: CLLocation(latitude: city.center.latitude, longitude: city.center.longitude))
+            if dist <= bestDistance {
+                bestDistance = dist
+                bestCode = city.code
+            }
+        }
+        return bestCode
     }
 
     /// Returns true only for the iOS Simulator default location (Apple HQ /
@@ -461,13 +544,16 @@ public final class MapViewModel {
         locationService.currentLocation != nil
     }
 
-    /// Recenter the camera on the user's current location on demand (the custom
+    /// Recenter on the user's current location on demand (the custom
     /// "locate me" button). Unlike `bindToLocation` this ignores the
-    /// `hasAutoCentered` guard, so the user can re-center any time after panning
-    /// away. No-op when there is no GPS fix yet.
+    /// `hasAutoCentered` guard, so the user can re-center any time after
+    /// panning away. Beyond moving the camera it also adopts the GPS city as
+    /// the selection, so the top-left city pill and the nearby list follow
+    /// the tap — "locate me" means "put me back in MY city", not just "slide
+    /// the map". No-op when there is no GPS fix yet.
     public func recenterOnUser() {
         guard let coordinate = locationService.currentLocation?.coordinate else { return }
-        recenter(on: coordinate)
+        followUserLocation(coordinate)
     }
 
     #if DEBUG
@@ -556,6 +642,7 @@ public final class MapViewModel {
         label: String,
         cityCode: String
     ) {
+        cityPickedExplicitlyThisSession = true
         customCoordinates = coordinate
         customLocationLabel = label
         selectedCity = cityCode
@@ -766,8 +853,14 @@ public final class MapViewModel {
     }
 
     /// Selects a preset city, recenters the map, and reloads experiences.
-    /// Clears any active custom-coordinate pin.
-    public func selectCity(_ cityCode: String?) {
+    /// Clears any active custom-coordinate pin. `explicit` marks the jump as
+    /// a deliberate user pick (picker, empty-state redirect) that the first
+    /// GPS fix / foreground re-follow must not fight (V-007); explore's
+    /// programmatic discovery passes `false` so GPS city-follow stays armed.
+    public func selectCity(_ cityCode: String?, explicit: Bool = true) {
+        if explicit {
+            cityPickedExplicitlyThisSession = true
+        }
         customCoordinates = nil
         customLocationLabel = nil
         selectedCity = cityCode
@@ -1215,8 +1308,12 @@ public final class MapViewModel {
         // a seeded city without persisting through the picker. Release builds and
         // launches without the flag fall back to the persisted last-selected city.
         #if DEBUG
-        let resolvedStartCity = UserDefaults.standard.string(forKey: "startCity")
-            ?? preferences.lastSelectedCity
+        let forcedStartCity = UserDefaults.standard.string(forKey: "startCity")
+        let resolvedStartCity = forcedStartCity ?? preferences.lastSelectedCity
+        // A `-startCity` launch argument is an explicit pick: e2e harnesses
+        // and demo recipes depend on the forced city holding the camera, so
+        // the first GPS fix must not re-follow it to the fix's city.
+        self.cityPickedExplicitlyThisSession = forcedStartCity != nil
         #else
         let resolvedStartCity = preferences.lastSelectedCity
         #endif
@@ -1279,8 +1376,10 @@ public final class MapViewModel {
 
     /// Internal load that lets the cold-start auto-recovery widen the radius
     /// in-memory (without persisting the change to `preferences.maxDistanceKm`).
-    /// Pass `nil` for the normal preference-driven path.
-    private func loadNearbyExperiences(overrideRadiusKm: Double?) {
+    /// Pass `nil` for the normal preference-driven path. `fitCamera: false`
+    /// skips the pin auto-fit for callers that just pinned the camera on a
+    /// deliberate coordinate (see `recenter(on:)`).
+    private func loadNearbyExperiences(overrideRadiusKm: Double?, fitCamera: Bool = true) {
         // US-017: the experience set (and thus discovered cities) may have
         // changed since the last load — e.g. after an Explore added pins.
         // Drop the city cache so the next `availableCities` read recomputes.
@@ -1295,7 +1394,9 @@ public final class MapViewModel {
         aiSmartPickIds = []
         recomputeNowCount()
         updateBottomInfo()
-        fitCameraToPinsIfNeeded(nearby)
+        if fitCamera {
+            fitCameraToPinsIfNeeded(nearby)
+        }
         scheduleColdStartEmptyWatchdog()
     }
 
@@ -1749,7 +1850,11 @@ public final class MapViewModel {
                 span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
             ))
         }
-        loadNearbyExperiences()
+        // The camera was just deliberately pinned on `coordinate`; the pin
+        // auto-fit inside the reload would immediately drag it back toward
+        // the nearest experience cluster — the user saw their location circle
+        // glide to screen center and then slide away again on every recenter.
+        loadNearbyExperiences(overrideRadiusKm: nil, fitCamera: false)
         updateBottomInfo()
     }
 
@@ -1798,7 +1903,10 @@ public final class MapViewModel {
                 span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
             ))
         }
-        loadNearbyExperiences()
+        // This method IS the deliberate camera fit — the reload's own pin
+        // auto-fit would re-fit against a stale settled span and tug the
+        // camera a second time.
+        loadNearbyExperiences(overrideRadiusKm: nil, fitCamera: false)
         updateBottomInfo()
     }
 
@@ -2618,7 +2726,7 @@ public final class MapViewModel {
                     || Self.cityCodeAliases[cityCode] == selectedCity
                     || Self.cityCodeAliases.first(where: { $0.value == selectedCity })?.key == cityCode
                 if !userOwnsCity || discoveredMatchesSelected {
-                    selectCity(cityCode)
+                    selectCity(cityCode, explicit: false)
                     // Rubric fix: fit the added cluster instead of snapping
                     // to a fixed 4 km span. Falls back to plain recenter if
                     // the batch is empty (added==0 branch handled above).
@@ -2931,7 +3039,7 @@ public final class MapViewModel {
             let added = experienceService.appendGenerated(generated)
             lastExploreAddedCount = added
             if added > 0 {
-                selectCity(cityCode)
+                selectCity(cityCode, explicit: false)
                 if let resolved {
                     lastExploreToast = String(
                         format: NSLocalizedString("explore.toast.addedNamed", comment: "Now exploring %@ · %d places added"),

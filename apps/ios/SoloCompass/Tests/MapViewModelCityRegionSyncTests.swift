@@ -109,50 +109,39 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
         )
     }
 
-    // MARK: - V-007: a GPS fix must not override an explicit city pick
+    // MARK: - GPS city follow (cold start + locate button)
 
-    /// Regression (V-007): when the user has picked a preset city, the first GPS
-    /// fix at a far-away real location (e.g. picking a SF/China city while
-    /// physically in Laos) must NOT snap the camera back to the GPS location.
-    ///
-    /// Before the fix, `bindToLocation` skipped the camera recenter for a preset
-    /// city but still ran `autoExploreIfEmpty(at: gps)`, whose `exploreNearby`
-    /// tail called `selectCity(discoveredCity)` + `recenter(gps)` — silently
-    /// overriding the pick. The fix moves `autoExploreIfEmpty` inside the
-    /// "no city selected" branch so a preset city is left untouched.
-    func testGPSFixDoesNotOverridePresetCity() throws {
+    /// V-007 (narrowed to its actual scenario): a city picked explicitly *in
+    /// this session* — the user tapped it in the picker while GPS was still
+    /// warming up — must survive the first GPS fix. Picking a SF/China city
+    /// while physically in Laos must not snap the camera back to Laos.
+    func testExplicitSessionPickSurvivesFirstGPSFix() throws {
+        UserDefaults.standard.removeObject(forKey: "startCity")
         let locationService = LocationService()
         let prefs = UserPreferences(defaults: makeIsolatedDefaults())
-        prefs.lastSelectedCity = "san-francisco"
         let vm = MapViewModel(
             locationService: locationService,
             experienceService: ExperienceService(),
             aiService: AIService(),
             preferences: prefs
         )
-        XCTAssertEqual(vm.selectedCity, "san-francisco")
+        // The user picks San Francisco through the picker BEFORE any fix lands.
+        vm.selectCity("san-francisco")
         let sf = try XCTUnwrap(MapViewModel.knownCityCenters["san-francisco"])
 
         // Simulate the traveler being physically in Vientiane, Laos — ~12,000 km
         // from the picked San Francisco.
         let laos = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
         locationService.simulate(location: CLLocation(latitude: laos.latitude, longitude: laos.longitude))
-
-        // The first GPS fix fires bindToLocation (CompassMapView's onChange).
         vm.bindToLocation()
 
-        // Core regression assertion: a preset city must NOT trigger GPS-anchored
-        // auto-explore at all. (`exploreNearby`'s tail — selectCity + recenter —
-        // is async, so asserting on the count is the deterministic way to prove
-        // the override path is never entered; reverting the fix makes this fail.)
         XCTAssertEqual(
             vm.autoExploreInvocationCount, 0,
-            "A preset-city GPS fix must not run GPS-anchored auto-explore"
+            "An in-session pick's GPS fix must not run GPS-anchored auto-explore"
         )
-        // The pick must survive: city unchanged, camera still on SF.
         XCTAssertEqual(
             vm.selectedCity, "san-francisco",
-            "A GPS fix must not change an explicit preset-city pick"
+            "A GPS fix must not change an explicit in-session city pick"
         )
         let region = try XCTUnwrap(vm.cameraPosition.region)
         XCTAssertLessThan(
@@ -163,6 +152,186 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
             distanceKm(region.center, laos), 1000.0,
             "Camera must NOT be anywhere near the real GPS location"
         )
+    }
+
+    /// The new cold-start rule: a city merely *persisted from a previous
+    /// session* does NOT own the camera. Entering the app with the first GPS
+    /// fix in Vientiane must land the map on the fix and flip the selection
+    /// (the top-left pill) to Vientiane — where the traveler physically is.
+    func testColdStartFollowsGPSCityOverPersistedCity() throws {
+        UserDefaults.standard.removeObject(forKey: "startCity")
+        let locationService = LocationService()
+        let prefs = UserPreferences(defaults: makeIsolatedDefaults())
+        prefs.lastSelectedCity = "san-francisco"
+        let vm = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+        XCTAssertEqual(vm.selectedCity, "san-francisco")
+
+        let laos = CLLocationCoordinate2D(latitude: 17.9757, longitude: 102.6331)
+        locationService.simulate(location: CLLocation(latitude: laos.latitude, longitude: laos.longitude))
+        vm.bindToLocation()
+
+        let selected = try XCTUnwrap(vm.selectedCity, "Cold start must adopt the GPS city")
+        XCTAssertTrue(
+            MapViewModel.cityCodeMatches("VTE", selected: selected),
+            "Selection must flip to the GPS city (Vientiane), got \(selected)"
+        )
+        XCTAssertEqual(
+            prefs.lastSelectedCity, selected,
+            "The adopted GPS city must persist for the next cold start"
+        )
+        let region = try XCTUnwrap(vm.cameraPosition.region)
+        XCTAssertLessThan(
+            distanceKm(region.center, laos), 5.0,
+            "Camera must center on the GPS fix, not the persisted city"
+        )
+    }
+
+    /// The locate button (`recenterOnUser`) also adopts the GPS city: tapping
+    /// it after wandering to another city must move the camera to the fix AND
+    /// flip the pill/selection to the fix's city.
+    func testRecenterOnUserAdoptsGPSCity() throws {
+        UserDefaults.standard.removeObject(forKey: "startCity")
+        let locationService = LocationService()
+        let prefs = UserPreferences(defaults: makeIsolatedDefaults())
+        prefs.lastSelectedCity = "chiang-mai"
+        let vm = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        let shenzhen = CLLocationCoordinate2D(latitude: 22.5431, longitude: 114.0579)
+        locationService.simulate(location: CLLocation(latitude: shenzhen.latitude, longitude: shenzhen.longitude))
+        vm.recenterOnUser()
+
+        let selected = try XCTUnwrap(vm.selectedCity, "Locate must adopt the GPS city")
+        let selectedCenter = try XCTUnwrap(
+            MapViewModel.knownCityCenters[selected],
+            "Adopted city must resolve in the catalog, got \(selected)"
+        )
+        XCTAssertLessThan(
+            distanceKm(selectedCenter, shenzhen), 5.0,
+            "Adopted city must be Shenzhen, got \(selected)"
+        )
+        let region = try XCTUnwrap(vm.cameraPosition.region)
+        XCTAssertLessThan(
+            distanceKm(region.center, shenzhen), 1.0,
+            "Camera must center on the GPS fix after tapping locate"
+        )
+    }
+
+    /// A fix far from every known city (Beijing) drops to pure GPS-follow:
+    /// selection cleared so the nearby query anchors on the fix, camera on the
+    /// fix, and auto-explore left to discover + name the city.
+    func testColdStartFarFromKnownCitiesDropsToGPSFollow() throws {
+        UserDefaults.standard.removeObject(forKey: "startCity")
+        let locationService = LocationService()
+        let prefs = UserPreferences(defaults: makeIsolatedDefaults())
+        prefs.lastSelectedCity = "chiang-mai"
+        let vm = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+
+        let beijing = CLLocationCoordinate2D(latitude: 39.9042, longitude: 116.4074)
+        locationService.simulate(location: CLLocation(latitude: beijing.latitude, longitude: beijing.longitude))
+        vm.bindToLocation()
+
+        XCTAssertNil(
+            vm.selectedCity,
+            "Far from every known city, the stale persisted selection must clear"
+        )
+        let region = try XCTUnwrap(vm.cameraPosition.region)
+        XCTAssertLessThan(
+            distanceKm(region.center, beijing), 5.0,
+            "Camera must still center on the GPS fix"
+        )
+        XCTAssertEqual(
+            vm.autoExploreInvocationCount, 1,
+            "GPS-follow must hand the fix to auto-explore to discover the city"
+        )
+    }
+
+    /// Foreground return with the process alive across a flight: the fix now
+    /// resolves to another city → re-follow. Same city → leave pan/zoom alone.
+    func testRefollowOnForegroundOnlyWhenCityChanged() throws {
+        UserDefaults.standard.removeObject(forKey: "startCity")
+        let locationService = LocationService()
+        let prefs = UserPreferences(defaults: makeIsolatedDefaults())
+        let vm = MapViewModel(
+            locationService: locationService,
+            experienceService: ExperienceService(),
+            aiService: AIService(),
+            preferences: prefs
+        )
+        // Cold start in Chiang Mai.
+        let chiangMai = CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938)
+        locationService.simulate(location: CLLocation(latitude: chiangMai.latitude, longitude: chiangMai.longitude))
+        vm.bindToLocation()
+        let selectedAfterBind = try XCTUnwrap(vm.selectedCity)
+        XCTAssertTrue(MapViewModel.cityCodeMatches("cmi", selected: selectedAfterBind))
+
+        // Same-city foreground return: the user's pan must survive.
+        let panTarget = CLLocationCoordinate2D(latitude: 18.9, longitude: 99.1)
+        vm.cameraPosition = .region(MKCoordinateRegion(
+            center: panTarget,
+            span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+        ))
+        vm.refollowUserCityIfMoved()
+        let sameCityRegion = try XCTUnwrap(vm.cameraPosition.region)
+        XCTAssertLessThan(
+            distanceKm(sameCityRegion.center, panTarget), 1.0,
+            "Foreground return in the same city must not move the camera"
+        )
+
+        // Flight to Shenzhen, then foreground return: must re-follow.
+        let shenzhen = CLLocationCoordinate2D(latitude: 22.5431, longitude: 114.0579)
+        locationService.simulate(location: CLLocation(latitude: shenzhen.latitude, longitude: shenzhen.longitude))
+        vm.refollowUserCityIfMoved()
+        let movedRegion = try XCTUnwrap(vm.cameraPosition.region)
+        XCTAssertLessThan(
+            distanceKm(movedRegion.center, shenzhen), 1.0,
+            "Foreground return in a new city must recenter on the fix"
+        )
+        let selected = try XCTUnwrap(vm.selectedCity)
+        let selectedCenter = try XCTUnwrap(MapViewModel.knownCityCenters[selected])
+        XCTAssertLessThan(
+            distanceKm(selectedCenter, shenzhen), 5.0,
+            "Selection must flip to the new GPS city, got \(selected)"
+        )
+    }
+
+    /// `recenter(on:)` must pin the camera exactly on the requested coordinate.
+    /// Regression: the reload inside it used to run the pin auto-fit, which
+    /// immediately dragged the camera back toward the nearest experience
+    /// cluster — the user saw their location circle glide to screen center and
+    /// slide away again on every locate tap.
+    func testRecenterPinsCameraOnCoordinate() throws {
+        let vm = makeViewModel(startingCity: "chiang-mai")
+        // A wide settled span makes the Chiang Mai seed cluster "much tighter
+        // than the camera", which is exactly the condition that used to
+        // trigger the auto-fit yank.
+        vm.currentSpanLatitudeDelta = 1.0
+
+        // Recenter on a spot deliberately offset from the seed cluster.
+        let target = CLLocationCoordinate2D(latitude: 18.75, longitude: 99.05)
+        vm.recenter(on: target)
+
+        let region = try XCTUnwrap(vm.cameraPosition.region)
+        XCTAssertEqual(region.center.latitude, target.latitude, accuracy: 0.0001,
+                       "Camera must stay pinned on the recenter coordinate")
+        XCTAssertEqual(region.center.longitude, target.longitude, accuracy: 0.0001,
+                       "Camera must stay pinned on the recenter coordinate")
+        XCTAssertEqual(region.span.latitudeDelta, 0.04, accuracy: 0.0001,
+                       "Recenter must keep its own span, not the auto-fit's")
     }
 
     /// Complement to the above: with NO city selected (pure GPS-follow mode), the
