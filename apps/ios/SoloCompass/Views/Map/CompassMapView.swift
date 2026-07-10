@@ -3522,15 +3522,18 @@ private struct PlusActionButton: View {
                 .scaleEffect(isPressed ? 1.08 : 1.0)
                 .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isPressed)
 
-            // FAB glyph: a clean SF Symbol plus in the warm amber accent. The
-            // previous kawaii mascot competed for visual weight against the
-            // event bloom markers + peek card and diluted the module's design
-            // register. This is discreet and reads as a proper "add" affordance.
-            Image(systemName: "plus")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
-                .scaleEffect(isPressed ? 0.88 : 1.0)
-                .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isPressed)
+            // FAB glyph: the Solo mascot — the cartoon girl who IS Solo. She
+            // greets the traveler and is the entry-point to Solo Chat, giving
+            // the FAB brand identity + warmth that a bare "+" lacks. Scaled
+            // down slightly + a touch of transparency so she reads as a
+            // friendly companion without out-shouting the event bloom markers
+            // + peek card the way the full-weight mascot once did. The amber
+            // circle + shadow + press-ring above stay byte-identical, so
+            // hit-target and FAB layout are unchanged. `isPressed` drives her
+            // cheek sparkle.
+            SoloMascotView(isPressed: isPressed)
+                .scaleEffect(0.88)
+                .opacity(0.95)
         }
         .contentShape(Circle())
         .onLongPressGesture(

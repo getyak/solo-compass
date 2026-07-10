@@ -348,7 +348,13 @@ struct NearbyExperienceRow: View {
                         )
                 }
                 Spacer(minLength: 4)
-                ConfidenceBadge(confidence: experience.confidence, compact: true)
+                // Provenance signal for the row is carried solely by TrustBadge
+                // (it has a legible text label — OSM / 高德 / verified). The
+                // former compact ConfidenceBadge rendered here as a lone,
+                // label-less grey dot + tiny health glyph that read as a broken
+                // "⊗" placeholder and duplicated TrustBadge's trust role. Its
+                // full signal breakdown still lives in the detail sheet, so the
+                // compact row loses nothing legible by dropping it.
                 TrustBadge(level: experience.trustBadgeLevel, size: .compact)
                     .layoutPriority(1)
             }
@@ -740,5 +746,48 @@ struct NearbyExperienceRow: View {
             )
         }
         return Self.distanceFormatter.string(from: Measurement(value: meters, unit: UnitLength.meters))
+    }
+}
+
+// MARK: - Previews
+
+#Preview("Nearby row — nearby / open now") {
+    if let exp = ExperienceService.hardcodedSeed.first {
+        return AnyView(
+            NearbyExperienceRow(
+                experience: exp,
+                isSmartPick: true,
+                distanceMeters: 120,
+                isOpenNow: true,
+                bestNowChipState: BestNowChipState(isClosingSoon: false, minutesLeft: nil),
+                onTap: {}
+            )
+            .padding()
+            .background(CT.surfaceSunken)
+            .environment(LocationService())
+            .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview-nearby-row")!))
+        )
+    } else {
+        return AnyView(Text("No seed data"))
+    }
+}
+
+#Preview("Nearby row — far / plain") {
+    if let exp = ExperienceService.hardcodedSeed.first {
+        return AnyView(
+            NearbyExperienceRow(
+                experience: exp,
+                isSmartPick: false,
+                distanceMeters: 4200,
+                isOpenNow: false,
+                onTap: {}
+            )
+            .padding()
+            .background(CT.surfaceSunken)
+            .environment(LocationService())
+            .environment(UserPreferences(defaults: UserDefaults(suiteName: "preview-nearby-row-far")!))
+        )
+    } else {
+        return AnyView(Text("No seed data"))
     }
 }
