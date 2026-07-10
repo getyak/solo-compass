@@ -56,4 +56,58 @@ public final class CityOSStore {
         seen.insert(Self.normalizedCityKey(cityCode))
         preferences.kitSeenCities = seen
     }
+
+    // MARK: - Plan mode · pre-trip checklist (City OS v3)
+
+    /// Whether a kit item is ticked on this city's pre-trip checklist.
+    public func isKitTodoDone(_ kind: CityKitItem.Kind, cityCode: String) -> Bool {
+        preferences.kitTodosDoneRaw[Self.normalizedCityKey(cityCode)]?
+            .contains(kind.rawValue) ?? false
+    }
+
+    /// Toggles a pre-trip checklist tick (persists via the preferences blob).
+    public func toggleKitTodo(_ kind: CityKitItem.Kind, cityCode: String) {
+        let key = Self.normalizedCityKey(cityCode)
+        var all = preferences.kitTodosDoneRaw
+        var done = Set(all[key] ?? [])
+        if done.contains(kind.rawValue) {
+            done.remove(kind.rawValue)
+        } else {
+            done.insert(kind.rawValue)
+        }
+        // Sorted for a stable blob — Set order would churn the persisted JSON.
+        all[key] = done.sorted()
+        preferences.kitTodosDoneRaw = all
+    }
+
+    /// How many of the given kit's items are ticked for this city. Counts only
+    /// kinds present in `kit`, so stale ticks from a changed kit don't inflate
+    /// the Plan card's progress.
+    public func kitTodoDoneCount(cityCode: String, kit: [CityKitItem]) -> Int {
+        kit.filter { isKitTodoDone($0.kind, cityCode: cityCode) }.count
+    }
+
+    // MARK: - Recall mode · 印证 (City OS v3)
+
+    /// Whether the traveler has personally verified this experience.
+    public func isVerified(_ experienceId: String) -> Bool {
+        preferences.verifiedExperiences.contains(experienceId)
+    }
+
+    /// Records a personal verification — the Recall contribution loop's write
+    /// path. Idempotent.
+    public func markVerified(_ experienceId: String) {
+        var verified = preferences.verifiedExperiences
+        verified.insert(experienceId)
+        preferences.verifiedExperiences = verified
+    }
+
+    // MARK: - Lifecycle stage (City OS v3)
+
+    /// The lifecycle stage for a city: mode + days stayed → land/settle/live/
+    /// leave (`CityStage.inferred`). Pass `ComplianceMath.daysStayed` for the
+    /// current city, nil when no entry date is set.
+    public func stage(for cityCode: String?, daysStayed: Int?) -> CityStage? {
+        CityStage.inferred(mode: mode(for: cityCode), daysStayed: daysStayed)
+    }
 }

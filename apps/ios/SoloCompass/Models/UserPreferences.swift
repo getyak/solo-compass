@@ -96,6 +96,12 @@ public final class UserPreferences {
         var kitSeenCities: Set<String> = []
         var cityModesRaw: [String: String] = [:]
 
+        // City OS v3: per-city pre-trip checklist ticks (Plan mode) keyed by
+        // lowercase city code → done kit-item kinds; and the set of experience
+        // ids the traveler has personally verified (Recall 印证).
+        var kitTodosDoneRaw: [String: [String]] = [:]
+        var verifiedExperiences: Set<String> = []
+
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
             case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
@@ -114,6 +120,7 @@ public final class UserPreferences {
             case companionModuleStrengthRaw
             case visaEntryDate, visaLengthDays, visaReminderEnabled
             case kitSeenCities, cityModesRaw
+            case kitTodosDoneRaw, verifiedExperiences
         }
 
         init() {}
@@ -161,7 +168,9 @@ public final class UserPreferences {
             visaLengthDays: Int? = nil,
             visaReminderEnabled: Bool = false,
             kitSeenCities: Set<String> = [],
-            cityModesRaw: [String: String] = [:]
+            cityModesRaw: [String: String] = [:],
+            kitTodosDoneRaw: [String: [String]] = [:],
+            verifiedExperiences: Set<String> = []
         ) {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
@@ -206,6 +215,8 @@ public final class UserPreferences {
             self.visaReminderEnabled = visaReminderEnabled
             self.kitSeenCities = kitSeenCities
             self.cityModesRaw = cityModesRaw
+            self.kitTodosDoneRaw = kitTodosDoneRaw
+            self.verifiedExperiences = verifiedExperiences
         }
 
         init(from decoder: Decoder) throws {
@@ -254,6 +265,8 @@ public final class UserPreferences {
             self.visaReminderEnabled = try container.decodeIfPresent(Bool.self, forKey: .visaReminderEnabled) ?? false
             self.kitSeenCities = try container.decodeIfPresent(Set<String>.self, forKey: .kitSeenCities) ?? []
             self.cityModesRaw = try container.decodeIfPresent([String: String].self, forKey: .cityModesRaw) ?? [:]
+            self.kitTodosDoneRaw = try container.decodeIfPresent([String: [String]].self, forKey: .kitTodosDoneRaw) ?? [:]
+            self.verifiedExperiences = try container.decodeIfPresent(Set<String>.self, forKey: .verifiedExperiences) ?? []
         }
     }
 
@@ -390,6 +403,13 @@ public final class UserPreferences {
     /// Per-city mode (`CityMode.rawValue`) keyed by lowercase city code.
     /// Read/written through `CityOSStore`; default is `live`.
     public var cityModesRaw: [String: String] { didSet { persist() } }
+    /// City OS v3 · Plan mode's pre-trip checklist: lowercase city code →
+    /// ticked kit-item kinds (`CityKitItem.Kind.rawValue`). Read/written
+    /// through `CityOSStore`.
+    public var kitTodosDoneRaw: [String: [String]] { didSet { persist() } }
+    /// City OS v3 · Recall 印证: experience ids the traveler has personally
+    /// verified. Local-only; feeds the Recall contribution loop.
+    public var verifiedExperiences: Set<String> { didSet { persist() } }
 
     /// Typed access to the selected AI provider. Reads/writes `aiProviderRaw`.
     public var aiProvider: AIProvider {
@@ -452,6 +472,8 @@ public final class UserPreferences {
         self.visaReminderEnabled = snapshot.visaReminderEnabled
         self.kitSeenCities = snapshot.kitSeenCities
         self.cityModesRaw = snapshot.cityModesRaw
+        self.kitTodosDoneRaw = snapshot.kitTodosDoneRaw
+        self.verifiedExperiences = snapshot.verifiedExperiences
 
         // One-time migration: bump the historical 5 km default to the new 8 km
         // cold-start default for users who never touched the distance slider.
@@ -523,7 +545,9 @@ public final class UserPreferences {
             visaLengthDays: visaLengthDays,
             visaReminderEnabled: visaReminderEnabled,
             kitSeenCities: kitSeenCities,
-            cityModesRaw: cityModesRaw
+            cityModesRaw: cityModesRaw,
+            kitTodosDoneRaw: kitTodosDoneRaw,
+            verifiedExperiences: verifiedExperiences
         )
         do {
             let data = try JSONEncoder.iso8601Encoder.encode(snapshot)

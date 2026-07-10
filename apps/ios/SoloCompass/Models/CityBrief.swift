@@ -16,6 +16,50 @@ public enum CityMode: String, Codable, Sendable, CaseIterable {
     case recall
 }
 
+/// Lifecycle stage within a stay: 抵达 → 立足 → 生活 → 离开 (PRD §4.1). Inferred
+/// purely from days stayed (the visa entry date the traveler already gave the
+/// kit) — it only drives presentation (city-pill stage dots, shelf ordering)
+/// and never gates content.
+public enum CityStage: String, Codable, Sendable, CaseIterable {
+    case land
+    case settle
+    case live
+    case leave
+
+    /// Stage from mode + 1-based days stayed (`ComplianceMath.daysStayed`).
+    /// Recall is always `leave`; Plan has no stage (the stay hasn't started);
+    /// Live maps day 1 → land, days 2–3 → settle, day 4+ → live. A Live city
+    /// with no entry date set rests at `live` — the steady-state default.
+    public static func inferred(mode: CityMode, daysStayed: Int?) -> CityStage? {
+        switch mode {
+        case .recall: return .leave
+        case .plan: return nil
+        case .live:
+            guard let daysStayed, daysStayed >= 1 else { return .live }
+            switch daysStayed {
+            case 1: return .land
+            case 2...3: return .settle
+            default: return .live
+            }
+        }
+    }
+
+    /// Position along the land → settle → live → leave rail, for stage dots.
+    public var index: Int {
+        Self.allCases.firstIndex(of: self) ?? 0
+    }
+
+    /// Localized short label ("抵达" / "立足" / "生活" / "回顾").
+    public var localizedLabel: String {
+        switch self {
+        case .land:   return NSLocalizedString("cityos.stage.land", comment: "抵达")
+        case .settle: return NSLocalizedString("cityos.stage.settle", comment: "立足")
+        case .live:   return NSLocalizedString("cityos.stage.live", comment: "生活")
+        case .leave:  return NSLocalizedString("cityos.stage.leave", comment: "回顾")
+        }
+    }
+}
+
 /// A structured action attached to a landing-kit row, interpreted by the
 /// client (e.g. schedule a visa-expiry reminder, render tappable emergency
 /// numbers). Mirrors the `action` jsonb column of `city_kits`.

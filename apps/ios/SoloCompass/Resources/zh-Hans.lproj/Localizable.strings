@@ -2245,11 +2245,53 @@
 "cityos.mode.live.tag" = "在此城";
 "cityos.mode.plan.tag" = "计划";
 "cityos.mode.plan.title" = "%@ · 计划中";
-"cityos.mode.plan.body" = "行前清单、签证时点、落地前该安排好的事 —— 即将上线。";
+"cityos.mode.plan.body" = "出发前备好这几件事，落地那一刻就能直接开始生活。";
 "cityos.mode.plan.cta" = "先看落地包";
+"cityos.mode.plan.cta.checklist" = "查看行前清单";
+"cityos.mode.plan.progress" = "行前 %1$d/%2$d 已备";
 "cityos.mode.recall.tag" = "回顾";
 "cityos.mode.recall.title" = "%@ · 回顾";
-"cityos.mode.recall.body" = "你走过的路、停留的瞬间、这座城市于你的样子 —— 即将上线。";
+"cityos.mode.recall.body" = "你在这座城完成过的点会出现在这里等你印证 —— 你的 30 秒，是下一个独行者的底气。";
+"cityos.mode.recall.pending.body" = "你去过 %1$d 个点，还有 %2$d 个没印证 —— 它们的健康度正在衰减。你的 30 秒，是下一个独行者的底气。";
+"cityos.mode.recall.alldone.body" = "你去过 %d 个点，全部已印证。这座城因为你，对下一个独行者更诚实了。";
+"cityos.mode.recall.verify.cta" = "印证「%@」";
+"cityos.mode.recall.verify.cta.generic" = "印证一个去过的点";
+
+/* City OS v3: 生命周期阶段 + 城市 pill */
+"cityos.stage.land" = "抵达";
+"cityos.stage.settle" = "立足";
+"cityos.stage.live" = "生活";
+"cityos.stage.leave" = "回顾";
+"cityos.pill.plan" = "未到 · 计划";
+"cityos.pill.recall" = "已离 · 回顾";
+"cityos.pill.live" = "第 %1$d 天 · %2$@";
+
+/* City OS v3: 行前清单（Plan 模式落地包） */
+"cityos.kit.title.plan" = "行前清单";
+"cityos.kit.todo.done.a11y" = "已备，点按取消";
+"cityos.kit.todo.pending.a11y" = "标记已备";
+
+/* City OS v3: 印证 sheet（Recall） */
+"cityos.verify.title" = "30 秒，帮下一个独行者";
+"cityos.verify.subtitle" = "%@ —— 三下点完，你的印证会直接进入这个点的信心分。";
+"cityos.verify.q.exists" = "它还在、还开着吗？";
+"cityos.verify.q.exists.yes" = "还在 ✓";
+"cityos.verify.q.exists.no" = "变了 / 关了";
+"cityos.verify.q.solo" = "一个人去，自在吗？";
+"cityos.verify.q.solo.yes" = "很自在";
+"cityos.verify.q.solo.no" = "有点尴尬";
+"cityos.verify.q.crowd" = "你去的时候人多吗？";
+"cityos.verify.q.crowd.few" = "人少";
+"cityos.verify.q.crowd.many" = "挺挤";
+"cityos.verify.submit" = "提交印证";
+"cityos.verify.toast" = "已印证 · 这个点的信心 +1，谢谢你";
+"cityos.verify.note.prefix" = "印证：";
+"cityos.verify.note.exists" = "还在营业";
+"cityos.verify.note.changed" = "已变动/关闭";
+"cityos.verify.note.solo" = "一个人很自在";
+"cityos.verify.note.awkward" = "一个人有点尴尬";
+"cityos.verify.note.few" = "人少";
+"cityos.verify.note.crowded" = "挺挤";
 
 /* City OS v2: 今日城市签 daily omen */
 "cityos.omen.line" = "今日城市签 · %@";

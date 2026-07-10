@@ -185,6 +185,10 @@ struct CompassMapContentView: View {
     /// the compliance banner). Cleared on dismiss.
     @State private var kitSheetFocus: CityKitItem.Kind? = nil
     @State private var isShowingLiveSheet: Bool = false
+    /// City OS v3 · Recall 印证 target — non-nil presents the VerifySheet.
+    @State private var verifyTarget: Experience?
+    /// Transient City-OS toast ("已印证 · 信心 +1") floating above the dock slot.
+    @State private var cityOSToast: String?
     /// Session-scoped dismissal of the compliance banner — it reappears next day
     /// (a fresh interruption-budget day), never again this session.
     @State private var complianceBannerDismissed: Bool = false
@@ -372,6 +376,95 @@ struct CompassMapContentView: View {
     /// The current city's mode (Live/Plan/Recall). Live is the default.
     private var currentCityMode: CityMode {
         cityOSStore.mode(for: viewModel.selectedCity)
+    }
+
+    /// City OS v3 · lifecycle stage for the city pill's rail dots. Days stayed
+    /// come from the visa entry date the traveler already gave the kit.
+    private var currentCityStage: CityStage? {
+        cityOSStore.stage(
+            for: viewModel.selectedCity,
+            daysStayed: complianceService.state()?.daysStayed
+        )
+    }
+
+    /// City OS v3 · the city pill's second line ("第 3 天 · 生活" / "未到 · 计划"
+    /// / "已离 · 回顾"). Nil keeps the pill single-line: Live with no entry date
+    /// has nothing honest to say, so it says nothing.
+    private var cityPillModeLine: String? {
+        guard FeatureFlags.cityOS, viewModel.selectedCity != nil else { return nil }
+        switch currentCityMode {
+        case .plan:
+            return NSLocalizedString("cityos.pill.plan", comment: "未到 · 计划")
+        case .recall:
+            return NSLocalizedString("cityos.pill.recall", comment: "已离 · 回顾")
+        case .live:
+            guard let days = complianceService.state()?.daysStayed, days >= 1,
+                  let stage = currentCityStage else { return nil }
+            return String(
+                format: NSLocalizedString("cityos.pill.live", comment: "第 %1$d 天 · %2$@"),
+                days, stage.localizedLabel
+            )
+        }
+    }
+
+    /// Stage-dot rail index for the pill (Live mode only; nil hides the rail).
+    private var cityPillStageIndex: Int? {
+        guard FeatureFlags.cityOS, currentCityMode == .live,
+              complianceService.state() != nil else { return nil }
+        return currentCityStage?.index
+    }
+
+    /// Recall mode · experiences in the current city the traveler completed
+    /// (去过). Source of truth is `preferences.completedExperiences`.
+    private var recallVisited: [Experience] {
+        guard let city = viewModel.selectedCity else { return [] }
+        let key = CityOSStore.normalizedCityKey(city)
+        return experienceService.allExperiences.filter {
+            CityOSStore.normalizedCityKey($0.location.cityCode) == key
+                && preferences.completedExperiences.contains($0.id)
+        }
+    }
+
+    /// Visited experiences the traveler hasn't personally verified yet — the
+    /// Recall card's contribution queue.
+    private var recallPending: [Experience] {
+        recallVisited.filter { !cityOSStore.isVerified($0.id) }
+    }
+
+    /// VerifySheet submit: record the verification (idempotent), feed the
+    /// answers into the co-build layer as a note authored by "你", and confirm
+    /// with a toast — the 消费者→贡献者 loop closing in one tap.
+    private func submitVerification(_ answers: VerifySheet.Answers, for experience: Experience) {
+        cityOSStore.markVerified(experience.id)
+        let parts = [
+            answers.stillThere == 0
+                ? NSLocalizedString("cityos.verify.note.exists", comment: "还在营业")
+                : NSLocalizedString("cityos.verify.note.changed", comment: "已变动/关闭"),
+            answers.soloComfort == 0
+                ? NSLocalizedString("cityos.verify.note.solo", comment: "一个人很自在")
+                : NSLocalizedString("cityos.verify.note.awkward", comment: "一个人有点尴尬"),
+            answers.crowd == 0
+                ? NSLocalizedString("cityos.verify.note.few", comment: "人少")
+                : NSLocalizedString("cityos.verify.note.crowded", comment: "挺挤"),
+        ]
+        let prefix = NSLocalizedString("cityos.verify.note.prefix", comment: "印证：")
+        TravelerNoteStore().addNote(
+            experienceId: experience.id,
+            text: prefix + parts.joined(separator: " · ")
+        )
+        showCityOSToast(NSLocalizedString(
+            "cityos.verify.toast",
+            comment: "已印证 · 这个点的信心 +1，谢谢你"
+        ))
+    }
+
+    /// Show the transient City-OS toast for ~2.4s.
+    private func showCityOSToast(_ text: String) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { cityOSToast = text }
+        Task {
+            try? await Task.sleep(for: .seconds(2.4))
+            withAnimation(.easeInOut(duration: 0.3)) { cityOSToast = nil }
+        }
     }
 
     /// Display name for the current city (for the mode placeholder cards),
@@ -912,6 +1005,9 @@ struct CompassMapContentView: View {
                 // city so a stale marker glow / dismissed banner don't carry over.
                 viewModel.highlightedEventId = nil
                 complianceBannerDismissed = false
+                // City OS v3: 切城 = 切换整个聚合上下文 — active filters belong
+                // to the city they were set in, so they never carry over.
+                viewModel.clearFilters()
                 loadCityBrief(for: cityCode, autoSurface: true)
             }
             .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { _ in
@@ -941,6 +1037,13 @@ struct CompassMapContentView: View {
             // sheets (see the L1180-ish stacked-sheets note).
             .sheet(isPresented: $isShowingKitSheet, onDismiss: { kitSheetFocus = nil }) { kitSheetContent }
             .sheet(isPresented: $isShowingLiveSheet) { liveSheetContent }
+            .sheet(item: $verifyTarget) { experience in
+                VerifySheet(
+                    placeName: experience.shortName,
+                    onSubmit: { answers in submitVerification(answers, for: experience) },
+                    onDismiss: { verifyTarget = nil }
+                )
+            }
             .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
             // Bind the chat sheet to the orchestrator itself instead of a
             // separate Bool. With `.sheet(isPresented:)` the content closure
@@ -1055,6 +1158,8 @@ struct CompassMapContentView: View {
                 MapOverlayView(
                     viewModel: viewModel,
                     isAIProcessing: aiService.isProcessing,
+                    cityModeLine: cityPillModeLine,
+                    cityStageIndex: cityPillStageIndex,
                     isShowingCityPicker: $isShowingCityPicker,
                     dismissedAIError: $dismissedAIError,
                     dismissedExploreError: $dismissedExploreError,
@@ -1436,9 +1541,23 @@ struct CompassMapContentView: View {
                             Spacer()
                             Group {
                                 if currentCityMode == .plan {
-                                    PlanCard(cityName: currentCityDisplayName, onOpenKit: { isShowingKitSheet = true })
+                                    PlanCard(
+                                        cityName: currentCityDisplayName,
+                                        doneCount: viewModel.selectedCity.map {
+                                            cityOSStore.kitTodoDoneCount(cityCode: $0, kit: cityBriefService.kit)
+                                        } ?? 0,
+                                        totalCount: cityBriefService.kit.count,
+                                        onOpenKit: { isShowingKitSheet = true }
+                                    )
                                 } else {
-                                    RecallCard(cityName: currentCityDisplayName, onOpenKit: { isShowingKitSheet = true })
+                                    RecallCard(
+                                        cityName: currentCityDisplayName,
+                                        visitedCount: recallVisited.count,
+                                        pendingCount: recallPending.count,
+                                        nextPendingName: recallPending.first?.shortName,
+                                        onVerifyNext: { verifyTarget = recallPending.first },
+                                        onOpenKit: { isShowingKitSheet = true }
+                                    )
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -1446,6 +1565,24 @@ struct CompassMapContentView: View {
                         }
                         .transition(.opacity)
                     }
+                }
+
+                // City OS v3 toast (印证 confirmation). Floats above the dock
+                // slot; purely informational, never intercepts touches.
+                if let cityOSToast {
+                    VStack {
+                        Spacer()
+                        Text(cityOSToast)
+                            .font(CT.body(13, .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(Capsule().fill(CT.accent))
+                            .padding(.bottom, drawerTabsBottomInset + 62)
+                    }
+                    .allowsHitTesting(false)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .accessibilityAddTraits(.updatesFrequently)
                 }
 
                 // Active-route banner: a pill naming the walk with an end button.
@@ -1786,6 +1923,15 @@ struct CompassMapContentView: View {
             preferences: preferences,
             complianceService: complianceService,
             focusKind: kitSheetFocus,
+            planMode: currentCityMode == .plan,
+            isTodoDone: { kind in
+                guard let city = viewModel.selectedCity else { return false }
+                return cityOSStore.isKitTodoDone(kind, cityCode: city)
+            },
+            onToggleTodo: { kind in
+                guard let city = viewModel.selectedCity else { return }
+                cityOSStore.toggleKitTodo(kind, cityCode: city)
+            },
             onDismiss: { isShowingKitSheet = false }
         )
     }
@@ -2669,6 +2815,10 @@ enum MapOverlayMetrics {
 private struct MapOverlayView: View {
     var viewModel: MapViewModel
     var isAIProcessing: Bool
+    /// City OS v3 · optional second pill line ("第 3 天 · 生活"). Nil = one line.
+    var cityModeLine: String?
+    /// City OS v3 · lifecycle rail position (0–3) for the stage dots; nil hides.
+    var cityStageIndex: Int?
     @Binding var isShowingCityPicker: Bool
     @Binding var dismissedAIError: String?
     @Binding var dismissedExploreError: String?
@@ -3149,15 +3299,36 @@ private struct MapOverlayView: View {
         Button {
             isShowingCityPicker = true
         } label: {
-            HStack(spacing: 4) {
-                Text(cityName)
-                    .font(.subheadline.weight(.medium))
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(cityName)
+                        .font(.subheadline.weight(.medium))
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                }
+                .foregroundStyle(CT.accent)
+                // City OS v3 · lifecycle line: mode + day + stage dots. The
+                // pill stays one-line whenever there is nothing honest to add.
+                if let cityModeLine {
+                    HStack(spacing: 4) {
+                        Text(cityModeLine)
+                            .font(CT.mono(9, .medium))
+                            .foregroundStyle(CT.sunGoldDeep)
+                        if let cityStageIndex {
+                            HStack(spacing: 2.5) {
+                                ForEach(0..<4, id: \.self) { dot in
+                                    Circle()
+                                        .fill(dot <= cityStageIndex ? CT.sunGoldDeep : CT.borderSubtle)
+                                        .frame(width: 3.5, height: 3.5)
+                                }
+                            }
+                            .accessibilityHidden(true)
+                        }
+                    }
+                }
             }
-            .foregroundStyle(CT.accent)
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.vertical, cityModeLine == nil ? 6 : 4)
             .background(CT.surfaceWhite.opacity(0.78), in: Capsule())
             .frame(
                 minWidth: MapOverlayMetrics.cityPillHitTarget,
@@ -3165,7 +3336,7 @@ private struct MapOverlayView: View {
             )
             .contentShape(Rectangle())
         }
-        .accessibilityLabel(Text(cityName))
+        .accessibilityLabel(Text(cityModeLine.map { "\(cityName), \($0)" } ?? cityName))
         .accessibilityHint(Text(NSLocalizedString("city.picker.title", comment: "City picker sheet title")))
     }
 

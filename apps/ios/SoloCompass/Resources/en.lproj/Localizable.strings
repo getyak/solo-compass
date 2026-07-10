@@ -2235,11 +2235,53 @@
 "cityos.mode.live.tag" = "Here now";
 "cityos.mode.plan.tag" = "Plan";
 "cityos.mode.plan.title" = "%@ · Planning";
-"cityos.mode.plan.body" = "Pre-trip checklist, visa timing, and what to line up before you land — coming soon.";
+"cityos.mode.plan.body" = "Line these up before you go — the moment you land, you can just start living.";
 "cityos.mode.plan.cta" = "See the landing kit";
+"cityos.mode.plan.cta.checklist" = "Open pre-trip checklist";
+"cityos.mode.plan.progress" = "%1$d/%2$d ready";
 "cityos.mode.recall.tag" = "Recall";
 "cityos.mode.recall.title" = "%@ · Looking back";
-"cityos.mode.recall.body" = "Your walks, moments, and what this city was like for you — coming soon.";
+"cityos.mode.recall.body" = "Places you complete here will show up for a quick verify — your 30 seconds backs the next solo traveler.";
+"cityos.mode.recall.pending.body" = "You visited %1$d places and %2$d still await your verify — their freshness is decaying. Your 30 seconds is the next solo traveler's confidence.";
+"cityos.mode.recall.alldone.body" = "You visited %d places, all verified. This city is more honest for the next solo traveler because of you.";
+"cityos.mode.recall.verify.cta" = "Verify “%@”";
+"cityos.mode.recall.verify.cta.generic" = "Verify a place you visited";
+
+/* City OS v3: lifecycle stage + city pill */
+"cityos.stage.land" = "Landing";
+"cityos.stage.settle" = "Settling";
+"cityos.stage.live" = "Living";
+"cityos.stage.leave" = "Looking back";
+"cityos.pill.plan" = "Not yet · Plan";
+"cityos.pill.recall" = "Left · Recall";
+"cityos.pill.live" = "Day %1$d · %2$@";
+
+/* City OS v3: pre-trip checklist (Plan mode kit) */
+"cityos.kit.title.plan" = "Pre-trip checklist";
+"cityos.kit.todo.done.a11y" = "Ready, tap to untick";
+"cityos.kit.todo.pending.a11y" = "Mark as ready";
+
+/* City OS v3: verify sheet (Recall 印证) */
+"cityos.verify.title" = "30 seconds for the next solo traveler";
+"cityos.verify.subtitle" = "%@ — three taps, and your verify feeds straight into this place's confidence.";
+"cityos.verify.q.exists" = "Is it still there, still open?";
+"cityos.verify.q.exists.yes" = "Still there ✓";
+"cityos.verify.q.exists.no" = "Changed / closed";
+"cityos.verify.q.solo" = "Comfortable going alone?";
+"cityos.verify.q.solo.yes" = "Very comfortable";
+"cityos.verify.q.solo.no" = "A bit awkward";
+"cityos.verify.q.crowd" = "How crowded was it?";
+"cityos.verify.q.crowd.few" = "Quiet";
+"cityos.verify.q.crowd.many" = "Pretty packed";
+"cityos.verify.submit" = "Submit verify";
+"cityos.verify.toast" = "Verified · this place's confidence +1, thank you";
+"cityos.verify.note.prefix" = "Verified: ";
+"cityos.verify.note.exists" = "still open";
+"cityos.verify.note.changed" = "changed / closed";
+"cityos.verify.note.solo" = "comfortable solo";
+"cityos.verify.note.awkward" = "a bit awkward solo";
+"cityos.verify.note.few" = "quiet";
+"cityos.verify.note.crowded" = "crowded";
 
 /* City OS v2: today's city omen (今日城市签) */
 "cityos.omen.line" = "Today's city omen · %@";
