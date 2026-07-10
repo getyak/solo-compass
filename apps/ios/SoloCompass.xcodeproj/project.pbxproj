@@ -94,6 +94,7 @@
 		2C15829741157EA5A2EC8A5C /* AddFriendButtonRenderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CB51F8355673EA0628510F0 /* AddFriendButtonRenderTest.swift */; };
 		2C5A15DE0FCF30A3BCF1EB20 /* RouteItineraryBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B08F2AB2779C31E0870 /* RouteItineraryBridgeTests.swift */; };
 		2D379EAE0BCD339DB670EB5C /* CompanionPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 431DC31A80132F719AFEE471 /* CompanionPost.swift */; };
+		2E48BDB5332F76C0F9A6CD3F /* VerifySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D3D546D951B0C1DDE95610 /* VerifySheet.swift */; };
 		2EC741296992D9D0A4F3077D /* RouteCardNowReasonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D31F422914779D9228B0278 /* RouteCardNowReasonTests.swift */; };
 		2ED16C7027DB2250262F5D3F /* ProactiveNudgeSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5780606CA08F571BF04ACE /* ProactiveNudgeSchedulerTests.swift */; };
 		2F00F874A1B50C113AC8CA55 /* ChatRedesignVisualTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB511F86191D72DBCBCB5A01 /* ChatRedesignVisualTest.swift */; };
@@ -896,6 +897,7 @@
 		86AEAFC3C13D4A82B3C55154 /* ExperienceRepositoryExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperienceRepositoryExportTests.swift; sourceTree = "<group>"; };
 		87002BB6D344B384A3FDFBFD /* LanguageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageService.swift; sourceTree = "<group>"; };
 		873ACB737A9B43254C17B238 /* CityPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityPickerSheet.swift; sourceTree = "<group>"; };
+		87D3D546D951B0C1DDE95610 /* VerifySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifySheet.swift; sourceTree = "<group>"; };
 		884AFD2A4ADF051FA9643166 /* RouteItineraryBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteItineraryBridge.swift; sourceTree = "<group>"; };
 		884C97C686E2AFC3C534381A /* TasteUpdateServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasteUpdateServiceTests.swift; sourceTree = "<group>"; };
 		88553B5578C07FA890183A0D /* BottomInfoSheetHandleHitTargetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomInfoSheetHandleHitTargetTests.swift; sourceTree = "<group>"; };
@@ -2074,6 +2076,7 @@
 				294D570FD35987EDF2DA50FB /* KitSheet.swift */,
 				4ABE29FC4F9EBBBF8C3C61C4 /* LiveSheet.swift */,
 				112AE9791A5032033EEDC882 /* ModePlaceholderCards.swift */,
+				87D3D546D951B0C1DDE95610 /* VerifySheet.swift */,
 			);
 			path = CityOS;
 			sourceTree = "<group>";
@@ -2825,6 +2828,7 @@
 				2ADAE5305CE2984A5F4EF36C /* UserLocationMarker.swift in Sources */,
 				C2C0AF72D709EDC17C6ED874 /* UserPreferences.swift in Sources */,
 				321C062B9C6CA3558BC88C91 /* VerifiedBadge.swift in Sources */,
+				2E48BDB5332F76C0F9A6CD3F /* VerifySheet.swift in Sources */,
 				F001C2FCA4105020BC221A3D /* VisitRecord.swift in Sources */,
 				A068F103E60F3CD258FA4EE0 /* VisitTrackingService.swift in Sources */,
 				BB0BC19A9BE687E947C48034 /* VoiceAgentOrchestrator.swift in Sources */,

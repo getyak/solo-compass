@@ -59,4 +59,78 @@ final class CityOSStoreTests: XCTestCase {
         XCTAssertTrue(store.hasSeenKit("vte"))
         XCTAssertFalse(store.hasSeenKit("cmi"), "别的城市不受影响")
     }
+
+    // MARK: - City OS v3 · pre-trip checklist (Plan mode)
+
+    func testKitTodoToggleRoundTripsAndPersists() {
+        let (store, _) = makeStore()
+        XCTAssertFalse(store.isKitTodoDone(.net, cityCode: "CMI"))
+        store.toggleKitTodo(.net, cityCode: "CMI")
+        XCTAssertTrue(store.isKitTodoDone(.net, cityCode: "cmi"), "城市码大小写互通")
+        // Persists across a fresh store over the same defaults.
+        let (reloaded, _) = makeStore()
+        XCTAssertTrue(reloaded.isKitTodoDone(.net, cityCode: "cmi"))
+        // Toggle back off.
+        reloaded.toggleKitTodo(.net, cityCode: "cmi")
+        XCTAssertFalse(reloaded.isKitTodoDone(.net, cityCode: "cmi"))
+    }
+
+    func testKitTodoDoneCountOnlyCountsKindsInKit() {
+        let (store, _) = makeStore()
+        store.toggleKitTodo(.net, cityCode: "cmi")
+        store.toggleKitTodo(.visa, cityCode: "cmi")
+        // Kit without the visa row: the stale visa tick must not inflate progress.
+        let kit = [makeKitItem(kind: .net), makeKitItem(kind: .money)]
+        XCTAssertEqual(store.kitTodoDoneCount(cityCode: "cmi", kit: kit), 1)
+    }
+
+    func testKitTodosAreScopedPerCity() {
+        let (store, _) = makeStore()
+        store.toggleKitTodo(.money, cityCode: "cmi")
+        XCTAssertFalse(store.isKitTodoDone(.money, cityCode: "vte"), "别的城市不受影响")
+    }
+
+    // MARK: - City OS v3 · Recall 印证
+
+    func testMarkVerifiedIsIdempotentAndPersists() {
+        let (store, prefs) = makeStore()
+        XCTAssertFalse(store.isVerified("x10kup"))
+        store.markVerified("x10kup")
+        store.markVerified("x10kup")
+        XCTAssertTrue(store.isVerified("x10kup"))
+        XCTAssertEqual(prefs.verifiedExperiences.count, 1)
+        let (reloaded, _) = makeStore()
+        XCTAssertTrue(reloaded.isVerified("x10kup"))
+    }
+
+    // MARK: - City OS v3 · lifecycle stage
+
+    func testStageInference() {
+        XCTAssertEqual(CityStage.inferred(mode: .live, daysStayed: 1), .land)
+        XCTAssertEqual(CityStage.inferred(mode: .live, daysStayed: 2), .settle)
+        XCTAssertEqual(CityStage.inferred(mode: .live, daysStayed: 3), .settle)
+        XCTAssertEqual(CityStage.inferred(mode: .live, daysStayed: 4), .live)
+        XCTAssertEqual(CityStage.inferred(mode: .live, daysStayed: nil), .live,
+                       "没有入境日的 Live 城市停在稳态,不装知道")
+        XCTAssertEqual(CityStage.inferred(mode: .live, daysStayed: 0), .live,
+                       "入境日在未来 → daysStayed 0 → 稳态")
+        XCTAssertEqual(CityStage.inferred(mode: .recall, daysStayed: 10), .leave)
+        XCTAssertNil(CityStage.inferred(mode: .plan, daysStayed: nil),
+                     "Plan 的停留还没开始,没有阶段")
+    }
+
+    func testStoreStageFollowsCityMode() {
+        let (store, _) = makeStore()
+        store.setMode(.recall, for: "lpq")
+        XCTAssertEqual(store.stage(for: "lpq", daysStayed: nil), .leave)
+        store.setMode(.plan, for: "cmi")
+        XCTAssertNil(store.stage(for: "cmi", daysStayed: nil))
+        XCTAssertEqual(store.stage(for: "vte", daysStayed: 1), .land)
+    }
+
+    // MARK: - Helpers
+
+    private func makeKitItem(kind: CityKitItem.Kind) -> CityKitItem {
+        CityKitItem(cityCode: "cmi", kind: kind, name: kind.rawValue, main: "main")
+    }
 }

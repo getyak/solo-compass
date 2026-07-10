@@ -15,6 +15,13 @@ struct KitSheet: View {
     /// When set (e.g. opened from the compliance banner), the visa row is
     /// highlighted and scrolled to on appear.
     var focusKind: CityKitItem.Kind?
+    /// City OS v3 · Plan mode turns the kit into a pre-trip checklist: the
+    /// title flips to 「行前清单」 and every row grows a tick circle. The tick
+    /// state lives in `CityOSStore` (per city); the closures keep this view
+    /// decoupled from the store.
+    var planMode: Bool = false
+    var isTodoDone: (CityKitItem.Kind) -> Bool = { _ in false }
+    var onToggleTodo: (CityKitItem.Kind) -> Void = { _ in }
     let onDismiss: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -39,6 +46,8 @@ struct KitSheet: View {
                                 preferences: preferences,
                                 complianceService: complianceService,
                                 isFocused: item.kind == focusKind,
+                                planTick: planMode ? isTodoDone(item.kind) : nil,
+                                onToggleTick: { onToggleTodo(item.kind) },
                                 onOpenLink: openLink
                             )
                             .id(item.kind)
@@ -54,7 +63,9 @@ struct KitSheet: View {
                     }
                 }
             }
-            .navigationTitle(NSLocalizedString("cityos.kit.title", comment: "落地包 sheet title"))
+            .navigationTitle(planMode
+                ? NSLocalizedString("cityos.kit.title.plan", comment: "行前清单 sheet title")
+                : NSLocalizedString("cityos.kit.title", comment: "落地包 sheet title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -114,6 +125,9 @@ private struct KitRowCard: View {
     @Bindable var preferences: UserPreferences
     let complianceService: ComplianceService
     let isFocused: Bool
+    /// Non-nil in Plan mode: the row's pre-trip tick state (v3 行前清单).
+    var planTick: Bool?
+    var onToggleTick: () -> Void = {}
     let onOpenLink: (URL, String) -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -162,7 +176,39 @@ private struct KitRowCard: View {
                 .font(CT.display(15, .bold))
                 .foregroundStyle(primaryText)
             Spacer(minLength: 0)
+            if let planTick {
+                tickCircle(on: planTick)
+            }
         }
+    }
+
+    /// Plan-mode pre-trip tick: empty circle → verifiedGreen filled check.
+    private func tickCircle(on: Bool) -> some View {
+        Button {
+            Haptics.impact(.light)
+            onToggleTick()
+        } label: {
+            Image(systemName: "checkmark")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(on ? Color.white : Color.clear)
+                .frame(width: 26, height: 26)
+                .background(
+                    Circle().fill(on ? CT.verifiedGreen : Color.clear)
+                )
+                .overlay(
+                    Circle().strokeBorder(
+                        on ? CT.verifiedGreen : borderColor,
+                        lineWidth: 1.5
+                    )
+                )
+                .contentShape(Circle())
+        }
+        .buttonStyle(PressableButtonStyle(pressedScale: 0.92))
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: on)
+        .accessibilityLabel(Text(on
+            ? NSLocalizedString("cityos.kit.todo.done.a11y", comment: "已备")
+            : NSLocalizedString("cityos.kit.todo.pending.a11y", comment: "标记已备")))
+        .accessibilityAddTraits(on ? [.isSelected] : [])
     }
 
     /// The existing hint idiom: sparkle prefix + accentSoft capsule + accent text.
