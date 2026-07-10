@@ -154,6 +154,9 @@ struct CompassMapContentView: View {
     /// Honored by the preview-card pop animation on long-press: motion-sensitive
     /// users get an instant, spring-free selection instead of the scale+rise.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Drives the foreground-return re-follow: reopening the app in a new
+    /// city (process still alive across a flight) re-aligns map + city pill.
+    @Environment(\.scenePhase) private var scenePhase
     /// US-049: the shared 60s clock. Reading `tick` inside `mapLayer` re-evaluates
     /// the marker layer every minute, so a best-now pin flips to its amber
     /// "closing soon" treatment live as its window crosses the 45-min threshold —
@@ -905,6 +908,14 @@ struct CompassMapContentView: View {
             }
             .onChange(of: locationService.currentLocation) { _, _ in
                 viewModel.bindToLocation()
+            }
+            // "Entering the app" isn't only a cold launch: when the process
+            // survives a trip to another city, returning to the foreground
+            // must re-align the map + city pill to where the traveler now is.
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    viewModel.refollowUserCityIfMoved()
+                }
             }
             // P1.1 #112: keep the halo set in sync as new VisitRecords land
             // (the SwiftData @Query auto-refreshes; we re-publish to the vm).
@@ -3288,6 +3299,13 @@ private struct MapOverlayView: View {
             if let code = viewModel.selectedCity,
                let resolved = viewModel.resolvedCityName(for: code) {
                 return resolved
+            }
+            // Pure GPS-follow (no city selected but we do have a fix): say
+            // "Nearby" honestly instead of falling through to the nearest
+            // *seeded* city, which far from any seed resolves to the global
+            // default and puts a wrong city name over the user's real map.
+            if viewModel.selectedCity == nil, viewModel.hasUserLocation {
+                return NSLocalizedString("city.nearby", comment: "Fallback city label for synthetic osm_ codes")
             }
             if let code = viewModel.nearestSeededCity(to: viewModel.defaultCenterForSelectedCity),
                let city = viewModel.availableCities.first(where: { $0.code == code }) {
