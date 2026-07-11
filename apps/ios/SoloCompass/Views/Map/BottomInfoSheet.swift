@@ -209,6 +209,11 @@ public enum BottomSheetDetent: CaseIterable {
 // on how to preserve the R0 first-frame value elsewhere.
 
 public struct BottomInfoSheet<Content: View>: View {
+    /// Named coordinate space for sampling the sheet's live (animation-aware)
+    /// vertical position, so a re-grab mid-settle picks up from where the sheet
+    /// visually is rather than its target detent.
+    private static var sheetSpace: String { "bottomInfoSheet.slab" }
+
     @State private var currentDetent: BottomSheetDetent = BottomInfoSheet.initialDetent
 
     /// Resting detent on appear. DEBUG-only `-expandSheet` launch argument forces
@@ -224,6 +229,18 @@ public struct BottomInfoSheet<Content: View>: View {
     }
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
+    /// Sheet height captured at the instant a drag begins — the origin the
+    /// finger tracks from. Seeded to the live rendered height so re-grabbing
+    /// mid-settle is seamless.
+    @State private var dragStartHeight: CGFloat = 0
+    /// The sheet's *actually rendered* height, sampled every frame via
+    /// `onGeometryChange`. While a settle spring is flying, `currentDetent` has
+    /// already jumped to its target but the view is still interpolating toward
+    /// it — so this trails the target. On a fresh grab we rebase `dragOffset`
+    /// against this live value so the finger picks the sheet up exactly where it
+    /// visually is, instead of snapping to the target detent's baseline first
+    /// (the "jump then follow" glitch when you re-grab mid-animation).
+    @State private var renderedHeight: CGFloat = 0
     /// Latches true the first time the sheet leaves .peek. Drives content
     /// pre-building: once the user has expanded, the list stays constructed
     /// across collapses so re-expansion never pays the build cost again.
@@ -415,7 +432,18 @@ public struct BottomInfoSheet<Content: View>: View {
             // Slide instead of resize: the visible height is
             // `maxHeight − offset`, i.e. exactly `displayHeight`.
             .offset(y: maxHeight - displayHeight)
+            // Sample the *interpolated* offset every frame — during a settle
+            // spring this reports the in-flight position, not the target. The
+            // visible height is `maxHeight − (rendered vertical offset)`, and
+            // `frame.minY` inside the ZStack IS that offset (the ZStack pins the
+            // slab to `maxHeight`, so an unoffset slab sits at minY 0).
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                maxHeight - proxy.frame(in: .named(Self.sheetSpace)).minY
+            } action: { liveHeight in
+                renderedHeight = liveHeight
+            }
         }
+        .coordinateSpace(name: Self.sheetSpace)
         // Animate ONLY the discrete detent settle (which changes once, on
         // release), never the continuously finger-driven offset. Watching the
         // per-frame value meant every drag frame nudged a value an active
@@ -568,11 +596,32 @@ public struct BottomInfoSheet<Content: View>: View {
         .gesture(
             DragGesture(minimumDistance: 4)
                 .onChanged { value in
-                    isDragging = true
-                    dragOffset = value.translation.height
+                    if !isDragging {
+                        // First frame of a fresh grab. If a settle spring is
+                        // still flying, `renderedHeight` trails the target
+                        // detent; capture the live rendered height as the drag's
+                        // origin so the finger picks the sheet up exactly where
+                        // it visually sits (no jump-to-target). Before the first
+                        // geometry sample (renderedHeight == 0) fall back to the
+                        // resting detent height.
+                        dragStartHeight = renderedHeight > 0 ? renderedHeight : detentHeight
+                        // Freeze the in-flight spring at this instant so seeding
+                        // the offset doesn't itself animate.
+                        var tx = Transaction()
+                        tx.disablesAnimations = true
+                        withTransaction(tx) { isDragging = true }
+                    }
+                    // 1:1 finger tracking from the captured origin. Dragging up
+                    // (negative translation) grows the sheet; `displayHeight`
+                    // clamps the extremes, so map back through `detentHeight`.
+                    let targetHeight = dragStartHeight - value.translation.height
+                    dragOffset = detentHeight - targetHeight
                 }
                 .onEnded { value in
-                    let projectedHeight = detentHeight - value.predictedEndTranslation.height
+                    // Project from the same origin the drag tracked
+                    // (`dragStartHeight`), not the resting detent — otherwise a
+                    // flick begun mid-settle picks the wrong target detent.
+                    let projectedHeight = dragStartHeight - value.predictedEndTranslation.height
                     let clampedHeight = max(minHeight, min(maxHeight, projectedHeight))
                     // Settle to the nearest detent with an EXPLICIT spring. Both
                     // `currentDetent` and `dragOffset` feed `displayHeight`, but the

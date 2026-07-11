@@ -118,7 +118,7 @@ struct AttachmentInputBar: View {
             allowedContentTypes: [.item],
             allowsMultipleSelection: true
         ) { result in
-            ingest(fileResult: result)
+            Task { await ingest(fileResult: result) }
         }
     }
 
@@ -199,22 +199,24 @@ struct AttachmentInputBar: View {
     // MARK: - Attachment ingestion
 
     /// Decode picked photo-library items into image drafts.
+    ///
+    /// A full-resolution `UIImage(data:)` decode of a modern phone photo (often
+    /// 10–50 MB) can block for tens to hundreds of ms. Running it on the main
+    /// actor froze the picker's dismiss animation the instant you tapped "add".
+    /// We now decode + pre-render off the main actor and only hop back to append
+    /// the finished, immutable draft — the UI stays live while the bytes land.
     private func ingest(photoItems: [PhotosPickerItem]) async {
         var picked: [LocalAttachment] = []
         for item in photoItems {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-            let image = UIImage(data: data)
             let ext = item.supportedContentTypes.first?.preferredFilenameExtension ?? "jpg"
             let mime = item.supportedContentTypes.first?.preferredMIMEType ?? "image/jpeg"
-            picked.append(
-                LocalAttachment(
-                    kind: .image,
-                    fileName: "image-\(UUID().uuidString.prefix(8)).\(ext)",
-                    mimeType: mime,
-                    data: data,
-                    image: image
-                )
+            let draft = await ChatAttachmentDecoder.imageDraft(
+                data: data,
+                fileName: "image-\(UUID().uuidString.prefix(8)).\(ext)",
+                mimeType: mime
             )
+            picked.append(draft)
         }
         if !picked.isEmpty {
             attachments.append(contentsOf: picked)
@@ -237,25 +239,19 @@ struct AttachmentInputBar: View {
     }
 
     /// Read security-scoped files chosen via the document picker into drafts.
-    private func ingest(fileResult: Result<[URL], Error>) {
+    ///
+    /// `Data(contentsOf:)` and image decode both block, and picked files can be
+    /// large (a PDF, a video). Read + decode each off the main actor and hop
+    /// back only to append; the picker dismiss stays smooth. The security scope
+    /// must be opened/closed on the same actor that reads, so the whole
+    /// per-URL read runs inside one detached task.
+    private func ingest(fileResult: Result<[URL], Error>) async {
         guard case let .success(urls) = fileResult else { return }
         var picked: [LocalAttachment] = []
         for url in urls {
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            guard let data = try? Data(contentsOf: url) else { continue }
-            let type = UTType(filenameExtension: url.pathExtension)
-            let isImage = type?.conforms(to: .image) ?? false
-            let mime = type?.preferredMIMEType ?? "application/octet-stream"
-            picked.append(
-                LocalAttachment(
-                    kind: isImage ? .image : .file,
-                    fileName: url.lastPathComponent,
-                    mimeType: mime,
-                    data: data,
-                    image: isImage ? UIImage(data: data) : nil
-                )
-            )
+            if let draft = await ChatAttachmentDecoder.fileDraft(url) {
+                picked.append(draft)
+            }
         }
         if !picked.isEmpty {
             attachments.append(contentsOf: picked)
@@ -291,8 +287,8 @@ struct AttachmentInputBar: View {
 
 /// Small helper so the previews can mutate `draftText` like the real parent.
 private struct StatefulAttachmentBarPreview: View {
-    @State var text: String
-    @State var attachments: [LocalAttachment]
+    @State private var text: String
+    @State private var attachments: [LocalAttachment]
 
     init(initial: String, attachments: [LocalAttachment] = []) {
         self._text = State(initialValue: initial)

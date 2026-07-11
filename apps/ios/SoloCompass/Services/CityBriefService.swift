@@ -128,8 +128,15 @@ public final class CityBriefService {
             return
         }
 
-        guard let freshKit = try? Self.decoder.decode([CityKitItem].self, from: kitData),
-              let freshEvents = try? Self.decoder.decode([CityEvent].self, from: eventsData) else {
+        // Decode off the main actor. `CityBriefService` is `@MainActor`, so a
+        // plain `Self.decoder.decode(...)` here ran on the main thread — and
+        // `refresh` fires on every city switch, a high-frequency interaction.
+        // Both result types are `Sendable` and `Self.decoder` is an immutable
+        // static, so the decode is safe to hop to a detached task.
+        async let kitDecode = Self.decode([CityKitItem].self, from: kitData)
+        async let eventsDecode = Self.decode([CityEvent].self, from: eventsData)
+        guard let freshKit = await kitDecode,
+              let freshEvents = await eventsDecode else {
             Self.logger.error("city-brief decode failed for \(code, privacy: .public) — keeping cache")
             return
         }
@@ -204,4 +211,16 @@ public final class CityBriefService {
         }
         return decoder
     }()
+
+    /// Decode `Data` into a `Sendable` array off the main actor using the shared
+    /// fractional-seconds-tolerant `decoder`. Returns nil on failure so callers
+    /// keep whatever the cache already published.
+    nonisolated static func decode<T: Decodable & Sendable>(
+        _ type: [T].Type,
+        from data: Data
+    ) async -> [T]? {
+        await Task.detached(priority: .userInitiated) {
+            try? decoder.decode(type, from: data)
+        }.value
+    }
 }

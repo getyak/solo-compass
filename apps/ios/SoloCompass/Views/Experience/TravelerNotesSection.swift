@@ -1,5 +1,19 @@
 import SwiftUI
 
+/// Shared formatters for the traveler-notes feed. `ISO8601DateFormatter` and
+/// `RelativeDateTimeFormatter` are expensive to build (each spins up ICU), and
+/// `relativeTime(_:)` runs inside the notes `ForEach` body — a fresh pair per
+/// row per frame was measurable scroll jank. Hoisted here so the whole section
+/// reuses one of each. Both types are read-only after setup and safe to share.
+private enum TravelerNotesFormatters {
+    static let isoParser = ISO8601DateFormatter()
+    static let relative: RelativeDateTimeFormatter = {
+        let fmt = RelativeDateTimeFormatter()
+        fmt.unitsStyle = .short
+        return fmt
+    }()
+}
+
 // MARK: - Traveler co-build sections (extension on ExperienceDetailView)
 
 /// The "AI + travelers co-write" layer rendered inside the detail page: pending
@@ -414,10 +428,8 @@ extension ExperienceDetailView {
 
     /// Relative-time label ("3 天前") from an ISO 8601 string.
     func relativeTime(_ iso: String) -> String {
-        guard let date = ISO8601DateFormatter().date(from: iso) else { return "" }
-        let fmt = RelativeDateTimeFormatter()
-        fmt.unitsStyle = .short
-        return fmt.localizedString(for: date, relativeTo: Date())
+        guard let date = TravelerNotesFormatters.isoParser.date(from: iso) else { return "" }
+        return TravelerNotesFormatters.relative.localizedString(for: date, relativeTo: Date())
     }
 
     // MARK: Mood presets (category-specific)
