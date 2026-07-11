@@ -22,13 +22,6 @@ struct KitSheet: View {
     var planMode: Bool = false
     var isTodoDone: (CityKitItem.Kind) -> Bool = { _ in false }
     var onToggleTodo: (CityKitItem.Kind) -> Void = { _ in }
-    /// City OS v3 · the traveler's current lifecycle stage in this city
-    /// (抵达 → 立足 → 生活 → 回顾). When set (Live mode with an entry date), the
-    /// sheet grows a stage banner up top and floats the stage's most relevant
-    /// row (SIM on 抵达, visa on 立足/生活) to the front — the same "生存 OS"
-    /// framing a digital nomad thinks in. Nil (Plan / no entry date) keeps the
-    /// static net → money → visa → safety order and hides the banner.
-    var stage: CityStage? = nil
     let onDismiss: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -36,33 +29,10 @@ struct KitSheet: View {
     @State private var toast: String?
 
     /// Kit rows ordered net → money → visa → safety regardless of server order,
-    /// so the sheet's shape is stable. When a lifecycle `stage` is set, the
-    /// stage's most relevant row (see `Self.priorityKind`) is floated to the
-    /// front so the nomad sees "what matters now" first — the rest keep their
-    /// canonical relative order.
+    /// so the sheet's shape is stable.
     private var orderedKit: [CityKitItem] {
-        let baseRank: [CityKitItem.Kind: Int] = [.net: 0, .money: 1, .visa: 2, .safety: 3]
-        let priority = stage.flatMap(Self.priorityKind)
-        return kit.sorted { lhs, rhs in
-            // Stage-priority row wins outright; ties fall back to canonical order.
-            if let priority {
-                if lhs.kind == priority && rhs.kind != priority { return true }
-                if rhs.kind == priority && lhs.kind != priority { return false }
-            }
-            return (baseRank[lhs.kind] ?? 9) < (baseRank[rhs.kind] ?? 9)
-        }
-    }
-
-    /// The kit row a given lifecycle stage most wants front-and-centre. 抵达 →
-    /// connectivity (get a SIM, get online); 立足 & 生活 → visa (days left, the
-    /// 183-day tax line, renew-or-move decision — the nomad's steady anxiety);
-    /// 回顾 has no operational priority, so the static order stands.
-    static func priorityKind(for stage: CityStage) -> CityKitItem.Kind? {
-        switch stage {
-        case .land:            return .net
-        case .settle, .live:   return .visa
-        case .leave:           return nil
-        }
+        let rank: [CityKitItem.Kind: Int] = [.net: 0, .money: 1, .visa: 2, .safety: 3]
+        return kit.sorted { (rank[$0.kind] ?? 9) < (rank[$1.kind] ?? 9) }
     }
 
     var body: some View {
@@ -70,9 +40,6 @@ struct KitSheet: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 12) {
-                        if let stage, !planMode, let line = Self.stagePrompt(for: stage) {
-                            stageBanner(stage: stage, prompt: line)
-                        }
                         ForEach(orderedKit) { item in
                             KitRowCard(
                                 item: item,
@@ -113,57 +80,6 @@ struct KitSheet: View {
 
     private var groupBackground: Color {
         colorScheme == .dark ? CT.warmSheetDark : CT.surfaceSunken
-    }
-
-    // MARK: - Stage banner (v3 · 生存 OS framing)
-
-    /// One localized, action-first line per stage — what a nomad should do *now*.
-    /// 回顾 returns nil (no operational nudge once you're leaving).
-    static func stagePrompt(for stage: CityStage) -> String? {
-        switch stage {
-        case .land:
-            return NSLocalizedString("cityos.kit.stage.land.prompt", comment: "抵达 stage nudge — get connected")
-        case .settle:
-            return NSLocalizedString("cityos.kit.stage.settle.prompt", comment: "立足 stage nudge — visa + base")
-        case .live:
-            return NSLocalizedString("cityos.kit.stage.live.prompt", comment: "生活 stage nudge — tax line + rhythm")
-        case .leave:
-            return nil
-        }
-    }
-
-    /// The stage banner: a warm accent strip carrying the stage label + its
-    /// action line. Mirrors the lens-line idiom (sparkle + accentSoft) so it
-    /// reads as part of the sheet, not a foreign alert.
-    private func stageBanner(stage: CityStage, prompt: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "location.north.line.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(CT.accent)
-                .frame(width: 30, height: 30)
-                .background(
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(colorScheme == .dark ? CT.warmSunkenDark : CT.accentSoft)
-                )
-            VStack(alignment: .leading, spacing: 3) {
-                Text(stage.localizedLabel)
-                    .font(CT.display(14, .bold))
-                    .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
-                Text(prompt)
-                    .font(CT.body(12.5, .medium))
-                    .foregroundStyle(CT.accent)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(colorScheme == .dark ? CT.warmSunkenDark : CT.accentSoft)
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(stage.localizedLabel): \(prompt)"))
     }
 
     // MARK: - Deep link + toast
