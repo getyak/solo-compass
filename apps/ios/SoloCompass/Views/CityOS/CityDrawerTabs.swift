@@ -10,11 +10,21 @@ struct CityDrawerTabs: View {
     let eventCount: Int
     let onOpenKit: () -> Void
     let onOpenLive: () -> Void
+    /// 游民基地 entry (nil keeps the two-tab v2 layout so previews/tests are
+    /// untouched). `baseDaysRemaining`/`baseDaysStayed` feed the mini countdown
+    /// ring; both nil renders the compass glyph instead — the entry itself
+    /// never disappears with missing data.
+    var baseDaysRemaining: Int? = nil
+    var baseDaysStayed: Int? = nil
+    var onOpenBase: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 10) {
+            if let onOpenBase {
+                basePill(action: onOpenBase)
+            }
             tab(
                 title: NSLocalizedString("cityos.tab.kit", comment: "落地包"),
                 symbol: "shippingbox.fill",
@@ -28,6 +38,45 @@ struct CityDrawerTabs: View {
                 action: onOpenLive
             )
         }
+    }
+
+    /// The Live-mode Base entry: a compact capsule with the visa countdown
+    /// ring (or the base glyph before the entry date is confirmed).
+    private func basePill(action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.impact(.light)
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                if let baseDaysRemaining, let baseDaysStayed {
+                    BaseCountdownRing(
+                        remaining: baseDaysRemaining,
+                        total: max(baseDaysRemaining + baseDaysStayed, 1),
+                        size: 22
+                    )
+                } else {
+                    Image(systemName: "location.north.circle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(CT.accent)
+                }
+                Text(NSLocalizedString("cityos.tab.base", comment: "基地"))
+                    .font(CT.body(13, .semibold))
+            }
+            .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(pillBg)
+                    .overlay(Capsule().strokeBorder(
+                        colorScheme == .dark ? CT.warmBorderDark : CT.borderSubtle,
+                        lineWidth: 0.5
+                    ))
+            )
+            .shadow(color: CT.scrimShadow, radius: 8, y: 3)
+        }
+        .buttonStyle(PressableButtonStyle(pressedScale: 0.96))
+        .accessibilityLabel(Text(NSLocalizedString("cityos.tab.base", comment: "基地")))
     }
 
     private var pillBg: Color {

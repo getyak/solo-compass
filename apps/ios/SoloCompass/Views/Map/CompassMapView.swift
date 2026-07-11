@@ -57,6 +57,21 @@ enum RouteSheet: Identifiable {
     }
 }
 
+/// Deeper surface queued while the 游民基地 panel dismisses. The panel never
+/// presents siblings itself — it asks the map to hop, the map waits for
+/// `onDismiss`, then presents the follow-up (single-presenter rule; see the
+/// RouteSheet note above for why stacked presenters collapse).
+enum BaseFollowUp {
+    /// Open the landing kit, optionally focused on one row (e.g. `.visa`).
+    case kit(CityKitItem.Kind?)
+    /// Open the live-events sheet.
+    case live
+    /// Open the verify flow for a visited experience.
+    case verify(Experience)
+    /// Select a work spot's pin on the map.
+    case pin(Experience)
+}
+
 /// THE root view. Map-first means: this is what the app *is*. No tabs. No
 /// drawer. Filters and the bottom info bar overlay it; an experience card
 /// floats up when a marker is tapped.
@@ -188,6 +203,10 @@ struct CompassMapContentView: View {
     /// the compliance banner). Cleared on dismiss.
     @State private var kitSheetFocus: CityKitItem.Kind? = nil
     @State private var isShowingLiveSheet: Bool = false
+    /// 游民基地 panel presenter. The panel itself never presents siblings;
+    /// hops queue in `baseFollowUp` and fire from the sheet's `onDismiss`.
+    @State private var isShowingBaseSheet: Bool = false
+    @State private var baseFollowUp: BaseFollowUp? = nil
     /// City OS v3 · Recall 印证 target — non-nil presents the VerifySheet.
     @State private var verifyTarget: Experience?
     /// Transient City-OS toast ("已印证 · 信心 +1") floating above the dock slot.
@@ -557,8 +576,15 @@ struct CompassMapContentView: View {
     /// already presented — the kit must never shove itself in front of one.
     private var anyCityOSSheetIsUp: Bool {
         isShowingCityPicker || isShowingKitSheet || isShowingLiveSheet
+            || isShowingBaseSheet
             || isShowingFavorites || isShowingMe || viewModel.isShowingDetail
             || voiceOrchestrator != nil
+    }
+
+    /// Which face the 游民基地 card/panel shows — pure derivation from the
+    /// existing mode + stage, so the entry needs no state of its own.
+    private var currentBaseFace: BaseFace {
+        BaseFace.derive(mode: currentCityMode, stage: currentCityStage)
     }
 
     /// Present today's 今日城市签 Live Activity for the loaded city's daily pick.
@@ -872,6 +898,11 @@ struct CompassMapContentView: View {
                             isShowingLiveSheet = true
                         }
                     }
+                    if ProcessInfo.processInfo.arguments.contains("-openBaseSheet") {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            isShowingBaseSheet = true
+                        }
+                    }
                     // ④ Self-eval Rubric e2e hook: on cold start simulate one
                     // completed turn matching the "happy path" fixture and
                     // NSLog the resulting overall score. The e2e watcher greps
@@ -1048,6 +1079,7 @@ struct CompassMapContentView: View {
             // sheets (see the L1180-ish stacked-sheets note).
             .sheet(isPresented: $isShowingKitSheet, onDismiss: { kitSheetFocus = nil }) { kitSheetContent }
             .sheet(isPresented: $isShowingLiveSheet) { liveSheetContent }
+            .sheet(isPresented: $isShowingBaseSheet, onDismiss: handleBaseFollowUp) { baseSheetContent }
             .sheet(item: $verifyTarget) { experience in
                 VerifySheet(
                     placeName: experience.shortName,
@@ -1540,7 +1572,10 @@ struct CompassMapContentView: View {
                                     kitSheetFocus = nil
                                     isShowingKitSheet = true
                                 },
-                                onOpenLive: { isShowingLiveSheet = true }
+                                onOpenLive: { isShowingLiveSheet = true },
+                                baseDaysRemaining: complianceService.state()?.visaDaysRemaining,
+                                baseDaysStayed: complianceService.state()?.daysStayed,
+                                onOpenBase: { isShowingBaseSheet = true }
                             )
                             .padding(.bottom, drawerTabsBottomInset)
                         }
@@ -1550,27 +1585,27 @@ struct CompassMapContentView: View {
                         && viewModel.selectedExperience == nil {
                         VStack {
                             Spacer()
-                            Group {
-                                if currentCityMode == .plan {
-                                    PlanCard(
-                                        cityName: currentCityDisplayName,
-                                        doneCount: viewModel.selectedCity.map {
-                                            cityOSStore.kitTodoDoneCount(cityCode: $0, kit: cityBriefService.kit)
-                                        } ?? 0,
-                                        totalCount: cityBriefService.kit.count,
-                                        onOpenKit: { isShowingKitSheet = true }
-                                    )
-                                } else {
-                                    RecallCard(
-                                        cityName: currentCityDisplayName,
-                                        visitedCount: recallVisited.count,
-                                        pendingCount: recallPending.count,
-                                        nextPendingName: recallPending.first?.shortName,
-                                        onVerifyNext: { verifyTarget = recallPending.first },
-                                        onOpenKit: { isShowingKitSheet = true }
-                                    )
-                                }
-                            }
+                            // 游民基地卡 — the one face-driven entry replacing
+                            // the v3 Plan/Recall placeholder cards. Same object
+                            // across the lifecycle; only the face content
+                            // changes (BaseFace matrix).
+                            BaseCard(
+                                face: currentBaseFace,
+                                cityName: currentCityDisplayName,
+                                daysStayed: complianceService.state()?.daysStayed,
+                                visaDaysRemaining: complianceService.state()?.visaDaysRemaining,
+                                visaPolicyDays: cityBriefService.kit
+                                    .first(where: { $0.kind == .visa })?.action?.visaDays,
+                                workReadyCount: viewModel.workReadySpots(limit: 99).count,
+                                eventCount: cityBriefService.activeEvents().count,
+                                kitDone: viewModel.selectedCity.map {
+                                    cityOSStore.kitTodoDoneCount(cityCode: $0, kit: cityBriefService.kit)
+                                } ?? 0,
+                                kitTotal: cityBriefService.kit.count,
+                                recallVisited: recallVisited.count,
+                                recallPending: recallPending.count,
+                                onOpen: { isShowingBaseSheet = true }
+                            )
                             .padding(.horizontal, 20)
                             .padding(.bottom, drawerTabsBottomInset)
                         }
@@ -1957,6 +1992,69 @@ struct CompassMapContentView: View {
             },
             onDismiss: { isShowingLiveSheet = false }
         )
+    }
+
+    /// 游民基地 panel — the page behind `BaseCard`. Every hop closes this
+    /// sheet first and queues the follow-up in `baseFollowUp`; the presenter's
+    /// `onDismiss` fires it (single-presenter rule).
+    private var baseSheetContent: some View {
+        BasePanelSheet(
+            face: currentBaseFace,
+            cityName: currentCityDisplayName,
+            cityCenter: viewModel.selectedCity.flatMap { MapViewModel.knownCityCenters[$0] },
+            daysStayed: complianceService.state()?.daysStayed,
+            visaDaysRemaining: complianceService.state()?.visaDaysRemaining,
+            taxDaysRemaining: complianceService.state()?.taxDaysRemaining,
+            kit: cityBriefService.kit,
+            events: cityBriefService.activeEvents(),
+            workSpots: viewModel.workReadySpots(limit: 3),
+            kitDone: viewModel.selectedCity.map {
+                cityOSStore.kitTodoDoneCount(cityCode: $0, kit: cityBriefService.kit)
+            } ?? 0,
+            recallVisited: recallVisited.count,
+            recallPending: recallPending.count,
+            nextPendingName: recallPending.first?.shortName,
+            onOpenKit: { kind in
+                baseFollowUp = .kit(kind)
+                isShowingBaseSheet = false
+            },
+            onOpenLive: {
+                baseFollowUp = .live
+                isShowingBaseSheet = false
+            },
+            onSelectExperience: { spot in
+                baseFollowUp = .pin(spot)
+                isShowingBaseSheet = false
+            },
+            onVerifyNext: {
+                if let next = recallPending.first {
+                    baseFollowUp = .verify(next)
+                }
+                isShowingBaseSheet = false
+            },
+            onDismiss: { isShowingBaseSheet = false }
+        )
+    }
+
+    /// Fire the surface queued by a Base-panel hop once its sheet has fully
+    /// dismissed — presenting during dismissal is the classic way a follow-up
+    /// sheet gets silently dropped.
+    private func handleBaseFollowUp() {
+        guard let followUp = baseFollowUp else { return }
+        baseFollowUp = nil
+        switch followUp {
+        case .kit(let kind):
+            kitSheetFocus = kind
+            isShowingKitSheet = true
+        case .live:
+            isShowingLiveSheet = true
+        case .verify(let experience):
+            verifyTarget = experience
+        case .pin(let experience):
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                viewModel.selectExperience(experience)
+            }
+        }
     }
 
     /// Recenter the camera on an event and highlight its marker (shared by the

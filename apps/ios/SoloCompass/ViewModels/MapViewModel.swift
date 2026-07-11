@@ -1579,6 +1579,37 @@ public final class MapViewModel {
         return nearby
     }
 
+    /// Whether an experience is somewhere a digital nomad can actually work.
+    /// True for explicit `.work` spots (coworking, libraries) and for cafés that
+    /// already advertise a wifi *or* power `CategoryHighlight` — the two signals
+    /// the enrichment pipeline emits for "can I sit here with a laptop". Kept
+    /// `static` and pure so it's cheap in hot loops and unit testable without a
+    /// live view model.
+    static func isWorkReady(_ experience: Experience) -> Bool {
+        if experience.category == .work { return true }
+        guard experience.category == .coffee else { return false }
+        return experience.highlights.contains { $0.kind == .wifi || $0.kind == .power }
+    }
+
+    /// Work-ready spots for the selected city, best first, for the Base panel's
+    /// 「办公点」section. Ranking is soloScore-first (a stored, honest number)
+    /// with title as a stable tiebreak — NowScore is per-moment and would need
+    /// an async weather pass, which a glanceable panel row doesn't justify.
+    public func workReadySpots(limit: Int = 3) -> [Experience] {
+        guard let city = selectedCity else { return [] }
+        return allExperiences
+            .filter { Self.cityCodeMatches($0.location.cityCode, selected: city) }
+            .filter { Self.isWorkReady($0) }
+            .sorted {
+                if $0.soloScore.overall != $1.soloScore.overall {
+                    return $0.soloScore.overall > $1.soloScore.overall
+                }
+                return $0.title < $1.title
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     #if DEBUG
     /// Score used by the round-18 `-seniorPersona` boost. Shrines / parks
     /// / historic culture score highest because Meiji Jingu, Aoyama Book
