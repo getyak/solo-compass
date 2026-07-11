@@ -39,6 +39,16 @@ final class BaseFaceTests: XCTestCase {
         XCTAssertEqual(BaseFace.derive(mode: .live, stage: nil), .live)
     }
 
+    func testCountdownRingOnlyOnInStayFaces() {
+        // Information must exit with the lifecycle: a Plan face has no stay
+        // to count, and a Recall face's stay is over — a ring there would
+        // keep counting a visa that no longer binds the traveler.
+        XCTAssertFalse(BaseFace.plan.showsCountdown)
+        XCTAssertTrue(BaseFace.arrive.showsCountdown)
+        XCTAssertTrue(BaseFace.live.showsCountdown)
+        XCTAssertFalse(BaseFace.recall.showsCountdown)
+    }
+
     // MARK: - Fixtures
 
     private func makeIsolatedDefaults() -> UserDefaults {

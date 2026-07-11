@@ -2266,7 +2266,7 @@
 "cityos.base.tag.arrive" = "抵达";
 "cityos.base.tag.live" = "在地";
 "cityos.base.tag.recall" = "回顾";
-"cityos.base.subtitle.plan" = "行前视图 · 签证、天气、能不能办公";
+"cityos.base.subtitle.plan" = "出发前，先看一眼";
 "cityos.base.subtitle.arrive" = "刚落地 · 先把生存项搞定";
 "cityos.base.subtitle.live" = "住下了 · 今天去哪办公";
 "cityos.base.subtitle.recall" = "回顾视图 · 把去过的印证下来";
@@ -2282,6 +2282,11 @@
 "cityos.base.kit.count" = "落地包 %d 项";
 "cityos.base.kit.progress" = "行前 %1$d/%2$d 已备";
 "cityos.base.recall.stats" = "去过 %1$d · 待印证 %2$d";
+"cityos.base.recall.empty" = "回顾这段旅程";
+"cityos.base.section.ask" = "还想知道什么";
+"cityos.base.ask.title" = "签证、天气、值不值得去";
+"cityos.base.ask.hint" = "问 Solo，即刻回答";
+"cityos.base.ask.prompt" = "我计划去%@远程办公一段时间，签证有哪些选择？最近天气怎么样？适不适合远程办公？";
 "cityos.base.section.visa" = "签证";
 "cityos.base.section.weather" = "天气";
 "cityos.base.section.work" = "办公";

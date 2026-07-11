@@ -34,6 +34,10 @@ struct BasePanelSheet: View {
     let onSelectExperience: (Experience) -> Void
     let onVerifyNext: () -> Void
     let onDismiss: () -> Void
+    /// Plan face: opens the chat with a prefilled research question, so the
+    /// pre-trip page never dead-ends even when the server kit / weather have
+    /// nothing for this city yet. nil hides the row (old call sites, tests).
+    var onAskSolo: ((String) -> Void)? = nil
 
     /// Previews / snapshot tests only: bypasses the network fetch so the
     /// weather row renders deterministically. nil (production) fetches live.
@@ -55,6 +59,7 @@ struct BasePanelSheet: View {
                         weatherSection
                         workSection
                         kitSection
+                        askSoloSection
                     case .arrive:
                         entrySection
                         kitSection
@@ -112,7 +117,9 @@ struct BasePanelSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
-            if let visaDaysRemaining, let daysStayed {
+            // Ring only on the two in-stay faces — a Recall hero counting
+            // down a visa the traveler already left behind is stale noise.
+            if face.showsCountdown, let visaDaysRemaining, let daysStayed {
                 BaseCountdownRing(
                     remaining: visaDaysRemaining,
                     total: max(visaDaysRemaining + daysStayed, 1),
@@ -149,6 +156,33 @@ struct BasePanelSheet: View {
                         String(format: NSLocalizedString("cityos.base.visa.policy", comment: "签证 %d 天"), $0)
                     },
                     action: { hop { onOpenKit(.visa) } }
+                )
+            }
+        }
+    }
+
+    /// Plan face: the always-there doorway. The visa-policy and weather rows
+    /// are data-gated (they hide rather than stub), so a city the server
+    /// doesn't know yet could leave the pre-trip page nearly empty — this row
+    /// hands the research question to the agent instead of dead-ending.
+    @ViewBuilder
+    private var askSoloSection: some View {
+        if let onAskSolo {
+            SectionCard(title: NSLocalizedString("cityos.base.section.ask", comment: "还想知道什么")) {
+                PanelRow(
+                    symbol: "sparkles",
+                    tint: CT.accent,
+                    title: NSLocalizedString("cityos.base.ask.title", comment: "签证、天气、值不值得去"),
+                    subtitle: NSLocalizedString("cityos.base.ask.hint", comment: "问 Solo，即刻回答"),
+                    badge: nil,
+                    action: {
+                        hop {
+                            onAskSolo(String(
+                                format: NSLocalizedString("cityos.base.ask.prompt", comment: "prefilled research question, %@ = city"),
+                                cityName
+                            ))
+                        }
+                    }
                 )
             }
         }

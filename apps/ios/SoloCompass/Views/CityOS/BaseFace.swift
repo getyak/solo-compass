@@ -62,4 +62,12 @@ enum BaseFace: String, CaseIterable {
         case .recall: return "eye"
         }
     }
+
+    /// Whether this face carries the visa countdown ring. Information must
+    /// exit with the lifecycle, not just enter: a Plan face has no stay to
+    /// count and a Recall face's stay is over — a stale ring there counts
+    /// down a visa that no longer binds the traveler.
+    var showsCountdown: Bool {
+        self == .arrive || self == .live
+    }
 }

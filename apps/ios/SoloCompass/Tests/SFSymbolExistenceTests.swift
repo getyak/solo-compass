@@ -28,7 +28,6 @@ final class SFSymbolExistenceTests: XCTestCase {
         "Views/CityOS/EventMarkerView.swift",
         "Views/CityOS/KitSheet.swift",
         "Views/CityOS/LiveSheet.swift",
-        "Views/CityOS/CityDrawerTabs.swift",
         "Views/CityOS/ComplianceBanner.swift",
         "Views/CityOS/CityOSComponents.swift",
         // 游民基地 Base card/panel — replaced ModePlaceholderCards.

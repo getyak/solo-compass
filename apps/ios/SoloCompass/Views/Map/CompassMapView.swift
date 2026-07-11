@@ -70,6 +70,8 @@ enum BaseFollowUp {
     case verify(Experience)
     /// Select a work spot's pin on the map.
     case pin(Experience)
+    /// Open the chat seeded with a pre-trip research question.
+    case askSolo(String)
 }
 
 /// THE root view. Map-first means: this is what the app *is*. No tabs. No
@@ -388,10 +390,10 @@ struct CompassMapContentView: View {
 
     // MARK: - City OS v2 helpers
 
-    /// Bottom inset for the City-OS drawer tabs so they float just above the
-    /// peek sheet. Slightly more gap than the control bar so the two glass
-    /// pills read as their own row, not stacked on the FAB.
-    private var drawerTabsBottomInset: CGFloat {
+    /// Bottom inset for the City-OS Base card so it floats just above the
+    /// peek sheet. Slightly more gap than the control bar so the card reads
+    /// as its own row, not stacked on the FAB.
+    private var baseSlotBottomInset: CGFloat {
         sheetPeekClearance + 8
     }
 
@@ -530,23 +532,14 @@ struct CompassMapContentView: View {
 
     /// Whether the City-OS drawer tabs should show: flag on, resting at peek,
     /// Live mode, no experience selected, and kit content exists.
-    private var shouldShowDrawerTabs: Bool {
-        FeatureFlags.cityOS
-            && sheetDetent == .peek
-            && viewModel.selectedExperience == nil
-            && currentCityMode == .live
-            && !cityBriefService.kit.isEmpty
-    }
-
-    /// Whether the City-OS floating bottom slot (drawer tabs in Live mode, the
-    /// Plan/Recall placeholder otherwise) is occupied. Centered empty-state
-    /// cards consult this to shift up clear of the slot — without it the
-    /// quiet-hours card's CTA renders underneath the drawer tabs.
+    /// Whether the City-OS floating bottom slot (the always-on Base card) is
+    /// occupied. Centered empty-state cards consult this to shift up clear of
+    /// the slot — without it the quiet-hours card's CTA renders underneath
+    /// the Base card.
     private var cityOSBottomSlotOccupied: Bool {
         FeatureFlags.cityOS
             && sheetDetent == .peek
             && viewModel.selectedExperience == nil
-            && (currentCityMode != .live || !cityBriefService.kit.isEmpty)
     }
 
     /// Load the landing kit + local events for a city and, when `autoSurface`
@@ -896,6 +889,33 @@ struct CompassMapContentView: View {
                     if ProcessInfo.processInfo.arguments.contains("-openLiveSheet") {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                             isShowingLiveSheet = true
+                        }
+                    }
+                    // 游民基地 demo-state hooks: shape the (mode, visa) state so a
+                    // screenshot harness can reach every Base face without driving
+                    // the city-picker UI. `-cityMode plan|live|recall` sets the
+                    // selected city's mode; `-visaDaysAgo N` confirms an entry date
+                    // N days back (pair with `-visaLength M`, default 30) so
+                    // daysStayed / the countdown ring render from real math.
+                    let debugArgs = ProcessInfo.processInfo.arguments
+                    if let modeIdx = debugArgs.firstIndex(of: "-cityMode"),
+                       modeIdx + 1 < debugArgs.count,
+                       let forcedMode = CityMode(rawValue: debugArgs[modeIdx + 1]),
+                       let forcedCity = viewModel.selectedCity {
+                        cityOSStore.setMode(forcedMode, for: forcedCity)
+                    }
+                    if let visaIdx = debugArgs.firstIndex(of: "-visaDaysAgo"),
+                       visaIdx + 1 < debugArgs.count,
+                       let daysAgo = Int(debugArgs[visaIdx + 1]) {
+                        preferences.visaEntryDate = Calendar.current.date(
+                            byAdding: .day, value: -daysAgo, to: Date()
+                        )
+                        if let lenIdx = debugArgs.firstIndex(of: "-visaLength"),
+                           lenIdx + 1 < debugArgs.count,
+                           let length = Int(debugArgs[lenIdx + 1]) {
+                            preferences.visaLengthDays = length
+                        } else if preferences.visaLengthDays == nil {
+                            preferences.visaLengthDays = 30
                         }
                     }
                     if ProcessInfo.processInfo.arguments.contains("-openBaseSheet") {
@@ -1336,8 +1356,12 @@ struct CompassMapContentView: View {
                         ComplianceBanner(
                             daysRemaining: complianceService.state()?.visaDaysRemaining ?? 0,
                             onHandle: {
-                                kitSheetFocus = .visa
-                                isShowingKitSheet = true
+                                // The Base panel is the visa's home surface —
+                                // its countdown section renders from the
+                                // traveler's own confirmed entry date, so it
+                                // works even when the server kit is empty
+                                // (the kit sheet's visa row would be blank).
+                                isShowingBaseSheet = true
                             },
                             onDismiss: {
                                 withAnimation(.easeInOut) { complianceBannerDismissed = true }
@@ -1556,39 +1580,18 @@ struct CompassMapContentView: View {
                     }
                 }
 
-                // City OS v2: the floating slot above the peek sheet holds either
-                // the two drawer tabs (Live mode) or a Plan/Recall placeholder
-                // card (other modes). Both sit clear of the peek sheet via the
-                // Dynamic-Type-aware inset and never coexist with a selection card
-                // (their guards are mutually exclusive with `selectedExperience`).
+                // City OS: the floating slot above the peek sheet holds the one
+                // 游民基地 Base card — every mode, every stage, no data gate.
+                // Live mode used to swap in CityDrawerTabs here, but that pair
+                // was guarded by `!kit.isEmpty`, so the traveler actually IN the
+                // city lost the entry whenever the server kit hadn't loaded —
+                // the exact entry-existence-gated-by-data mistake that got v1
+                // reverted. One card, always present; the panel carries the
+                // kit / live hops the tabs used to provide (BaseFollowUp).
                 if FeatureFlags.cityOS {
-                    if shouldShowDrawerTabs {
+                    if sheetDetent == .peek && viewModel.selectedExperience == nil {
                         VStack {
                             Spacer()
-                            CityDrawerTabs(
-                                kitCount: cityBriefService.kit.count,
-                                eventCount: cityBriefService.activeEvents().count,
-                                onOpenKit: {
-                                    kitSheetFocus = nil
-                                    isShowingKitSheet = true
-                                },
-                                onOpenLive: { isShowingLiveSheet = true },
-                                baseDaysRemaining: complianceService.state()?.visaDaysRemaining,
-                                baseDaysStayed: complianceService.state()?.daysStayed,
-                                onOpenBase: { isShowingBaseSheet = true }
-                            )
-                            .padding(.bottom, drawerTabsBottomInset)
-                        }
-                        .transition(.opacity)
-                    } else if currentCityMode != .live
-                        && sheetDetent == .peek
-                        && viewModel.selectedExperience == nil {
-                        VStack {
-                            Spacer()
-                            // 游民基地卡 — the one face-driven entry replacing
-                            // the v3 Plan/Recall placeholder cards. Same object
-                            // across the lifecycle; only the face content
-                            // changes (BaseFace matrix).
                             BaseCard(
                                 face: currentBaseFace,
                                 cityName: currentCityDisplayName,
@@ -1607,7 +1610,7 @@ struct CompassMapContentView: View {
                                 onOpen: { isShowingBaseSheet = true }
                             )
                             .padding(.horizontal, 20)
-                            .padding(.bottom, drawerTabsBottomInset)
+                            .padding(.bottom, baseSlotBottomInset)
                         }
                         .transition(.opacity)
                     }
@@ -1624,7 +1627,7 @@ struct CompassMapContentView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(Capsule().fill(CT.accent))
-                            .padding(.bottom, drawerTabsBottomInset + 62)
+                            .padding(.bottom, baseSlotBottomInset + 62)
                     }
                     .allowsHitTesting(false)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -2032,7 +2035,11 @@ struct CompassMapContentView: View {
                 }
                 isShowingBaseSheet = false
             },
-            onDismiss: { isShowingBaseSheet = false }
+            onDismiss: { isShowingBaseSheet = false },
+            onAskSolo: { prompt in
+                baseFollowUp = .askSolo(prompt)
+                isShowingBaseSheet = false
+            }
         )
     }
 
@@ -2054,6 +2061,13 @@ struct CompassMapContentView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 viewModel.selectExperience(experience)
             }
+        case .askSolo(let prompt):
+            // Same seed path as the diagnostics bubble: the prompt lands in
+            // the composer via `initialUserPrompt`, the traveler still sends.
+            pendingDiagnosticsPrompt = prompt
+            chatStartMode = .text
+            chatDetent = .large
+            ensureOrchestrator(viewModel: viewModel)
         }
     }
 

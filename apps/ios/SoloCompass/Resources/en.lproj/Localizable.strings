@@ -2256,7 +2256,7 @@
 "cityos.base.tag.arrive" = "Arriving";
 "cityos.base.tag.live" = "Living here";
 "cityos.base.tag.recall" = "Recall";
-"cityos.base.subtitle.plan" = "Pre-trip view · visa, weather, and whether you can work there";
+"cityos.base.subtitle.plan" = "Scout it before you land";
 "cityos.base.subtitle.arrive" = "Just landed · essentials first";
 "cityos.base.subtitle.live" = "Living here · where to work today";
 "cityos.base.subtitle.recall" = "Looking back · verify what you visited";
@@ -2272,6 +2272,11 @@
 "cityos.base.kit.count" = "%d kit items";
 "cityos.base.kit.progress" = "Prep %1$d/%2$d";
 "cityos.base.recall.stats" = "Visited %1$d · %2$d to verify";
+"cityos.base.recall.empty" = "Look back at this stay";
+"cityos.base.section.ask" = "Still wondering";
+"cityos.base.ask.title" = "Visa, weather, is it worth it";
+"cityos.base.ask.hint" = "Ask Solo — instant answer";
+"cityos.base.ask.prompt" = "I'm planning a remote-work stay in %@. What are the visa options, what's the weather like right now, and how good is it for working remotely?";
 "cityos.base.section.visa" = "Visa";
 "cityos.base.section.weather" = "Weather";
 "cityos.base.section.work" = "Work";

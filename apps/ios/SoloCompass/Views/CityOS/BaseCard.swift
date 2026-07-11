@@ -58,7 +58,7 @@ struct BaseCard: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: 0.5)
+                    .strokeBorder(borderColor, lineWidth: borderWidth)
             )
             .shadow(color: CT.scrimShadow, radius: 10, y: 3)
         }
@@ -169,10 +169,18 @@ struct BaseCard: View {
                 )))
             }
         case .recall:
-            result.append(Stat(symbol: "eye", text: String(
-                format: NSLocalizedString("cityos.base.recall.stats", comment: "去过 %1$d · 待印证 %2$d"),
-                recallVisited, recallPending
-            )))
+            if recallVisited > 0 || recallPending > 0 {
+                result.append(Stat(symbol: "eye", text: String(
+                    format: NSLocalizedString("cityos.base.recall.stats", comment: "去过 %1$d · 待印证 %2$d"),
+                    recallVisited, recallPending
+                )))
+            } else {
+                // Nothing checked in yet — an all-zero stat line reads as a
+                // bug, not an invitation. Say what the face is for instead.
+                result.append(Stat(symbol: "eye", text:
+                    NSLocalizedString("cityos.base.recall.empty", comment: "回顾这段旅程")
+                ))
+            }
         }
         return result
     }
@@ -182,7 +190,7 @@ struct BaseCard: View {
     /// otherwise the face's symbol in a soft tile.
     @ViewBuilder
     private var trailing: some View {
-        if let visaDaysRemaining, let daysStayed {
+        if face.showsCountdown, let visaDaysRemaining, let daysStayed {
             BaseCountdownRing(
                 remaining: visaDaysRemaining,
                 total: max(visaDaysRemaining + daysStayed, 1),
@@ -197,8 +205,21 @@ struct BaseCard: View {
         }
     }
 
+    /// Visa inside a week pushes the whole card into a visible warning state —
+    /// the ring alone is easy to scan past, and the top banner is dismissable.
+    private var urgencyTone: Color? {
+        guard face.showsCountdown, let visaDaysRemaining, daysStayed != nil else { return nil }
+        if visaDaysRemaining <= 3 { return CT.bannerError }
+        if visaDaysRemaining <= 7 { return CT.warningText }
+        return nil
+    }
+
     private var cardFill: Color { colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite }
-    private var borderColor: Color { colorScheme == .dark ? CT.warmBorderDark : CT.borderSubtle }
+    private var borderColor: Color {
+        if let urgencyTone { return urgencyTone.opacity(0.55) }
+        return colorScheme == .dark ? CT.warmBorderDark : CT.borderSubtle
+    }
+    private var borderWidth: CGFloat { urgencyTone == nil ? 0.5 : 1.5 }
     private var primaryText: Color { colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary }
 }
 
