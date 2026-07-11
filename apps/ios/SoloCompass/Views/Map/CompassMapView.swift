@@ -1943,6 +1943,7 @@ struct CompassMapContentView: View {
                 guard let city = viewModel.selectedCity else { return }
                 cityOSStore.toggleKitTodo(kind, cityCode: city)
             },
+            stage: currentCityStage,
             onDismiss: { isShowingKitSheet = false }
         )
     }
@@ -2906,10 +2907,12 @@ private struct MapOverlayView: View {
                 isNowSelected: viewModel.isNowFilter,
                 selectedCustomTag: viewModel.selectedCustomTag,
                 isFavoriteSelected: viewModel.isFavoriteFilter,
+                isWorkSelected: viewModel.isWorkFilter,
                 nowCount: viewModel.nowCount,
                 onSelectNow: { viewModel.selectNowFilter() },
                 onSelectAll: { viewModel.clearFilters() },
                 onSelectFavorite: { viewModel.selectFavoriteFilter() },
+                onSelectWork: { viewModel.selectWorkFilter() },
                 onClear: { viewModel.clearFilters() },
                 onSelectCategory: { viewModel.selectCategory($0) },
                 onSelectCustomTag: { viewModel.selectCustomTag($0) },

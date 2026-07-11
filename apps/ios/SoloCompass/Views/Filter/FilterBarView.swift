@@ -14,10 +14,17 @@ public struct FilterBarView: View {
     let selectedCustomTag: String?
     /// True when the "Saved" filter is active (mirrors `MapViewModel.isFavoriteFilter`).
     let isFavoriteSelected: Bool
+    /// True when the "可办公 / Work-ready" filter is active (mirrors
+    /// `MapViewModel.isWorkFilter`). The digital-nomad entry point — keeps only
+    /// places you can actually work from.
+    let isWorkSelected: Bool
     let onSelectNow: () -> Void
     let onSelectAll: () -> Void
     /// Tap handler for the "Saved" pill — shows only favourited experiences.
     let onSelectFavorite: () -> Void
+    /// Tap handler for the "可办公" pill. Optional so existing callers/tests/previews
+    /// that predate the nomad filter keep compiling; when nil the pill is hidden.
+    let onSelectWork: (() -> Void)?
     /// Called when the user re-taps an already-active pill to deselect it back to 'All'.
     let onClear: () -> Void
     let onSelectCategory: (ExperienceCategory) -> Void
@@ -118,10 +125,12 @@ public struct FilterBarView: View {
         isNowSelected: Bool,
         selectedCustomTag: String? = nil,
         isFavoriteSelected: Bool = false,
+        isWorkSelected: Bool = false,
         nowCount: Int = 0,
         onSelectNow: @escaping () -> Void,
         onSelectAll: @escaping () -> Void,
         onSelectFavorite: @escaping () -> Void = {},
+        onSelectWork: (() -> Void)? = nil,
         onClear: @escaping () -> Void = {},
         onSelectCategory: @escaping (ExperienceCategory) -> Void,
         onSelectCustomTag: @escaping (String) -> Void = { _ in },
@@ -136,10 +145,12 @@ public struct FilterBarView: View {
         self.isNowSelected = isNowSelected
         self.selectedCustomTag = selectedCustomTag
         self.isFavoriteSelected = isFavoriteSelected
+        self.isWorkSelected = isWorkSelected
         self.nowCount = nowCount
         self.onSelectNow = onSelectNow
         self.onSelectAll = onSelectAll
         self.onSelectFavorite = onSelectFavorite
+        self.onSelectWork = onSelectWork
         self.onClear = onClear
         self.onSelectCategory = onSelectCategory
         self.onSelectCustomTag = onSelectCustomTag
@@ -153,6 +164,7 @@ public struct FilterBarView: View {
     /// Stable string ID for the currently selected pill — drives matchedGeometryEffect.
     private var selectionID: String {
         if isNowSelected { return "now" }
+        if isWorkSelected { return "work" }
         if isFavoriteSelected { return "saved" }
         if let tag = selectedCustomTag { return "tag-\(tag)" }
         if let cat = selectedCategory { return cat.rawValue }
@@ -221,6 +233,15 @@ public struct FilterBarView: View {
                             action: onSelectAll
                         )
                         .id("all")
+                        // 可办公 / Work-ready — the digital-nomad entry point.
+                        // Placed right after All so "where can I work" is a
+                        // first-class filter, not the `.work` category buried at
+                        // the far end of the horizontal strip. Hidden until a
+                        // caller wires `onSelectWork` (previews/tests stay lean).
+                        if let onWork = onSelectWork {
+                            workPill(isSelected: isWorkSelected, action: onWork)
+                                .id("work")
+                        }
                         favoritePill(isSelected: isFavoriteSelected, action: onSelectFavorite)
                             .id("saved")
                         // P2.5 #250: Solo Agent chip — shortcut to
@@ -578,6 +599,59 @@ public struct FilterBarView: View {
             // bar (Now/All/Saved/category) so the row reads as one component
             // instead of a parade of red/orange/green outlines. The category
             // identity color survives as the inline glyph tint (heart icon).
+            .foregroundStyle(isSelected ? .white : .primary)
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(tint)
+                        .matchedGeometryEffect(id: "filterHighlight", in: pillHighlight)
+                }
+            }
+            .overlay(
+                Capsule().stroke(isSelected ? Color.clear : CT.borderDefault, lineWidth: 1)
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.65), value: resultCount)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(Text(label))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityValue(isSelected && resultCount > 0 ? Text("\(resultCount) results") : Text(""))
+    }
+
+    /// 可办公 / Work-ready pill — the digital-nomad entry point. A laptop glyph +
+    /// localized label that filters the map to places you can actually work from
+    /// (coworking, libraries, wifi/power cafés — see `MapViewModel.isWorkReady`).
+    /// Toggles like the Saved pill: taps always route to `action`, which flips
+    /// `isWorkFilter`. Selected state uses `systemBlue` — the same blue as the
+    /// `.work` category marker on the map, so the filter and the pins read as one
+    /// system.
+    private func workPill(isSelected: Bool, action: @escaping () -> Void) -> some View {
+        let label = NSLocalizedString("filter.work", comment: "Work-ready (可办公) filter")
+        let tint = Color(.systemBlue)
+        return Button {
+            #if canImport(UIKit)
+            Haptics.impact(isSelected ? .light : .medium)
+            #endif
+            action()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "laptopcomputer")
+                    .font(.caption.weight(.semibold))
+                Text(label)
+                    .font(.subheadline.weight(.medium))
+                if isSelected && resultCount > 0 {
+                    Text(Self.compactCount(resultCount))
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .contentTransition(reduceMotion ? .identity : .numericText(value: Double(resultCount)))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.28)))
+                        .opacity(countBadgeOpacity)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
             .foregroundStyle(isSelected ? .white : .primary)
             .background {
                 if isSelected {
