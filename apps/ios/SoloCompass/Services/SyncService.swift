@@ -285,7 +285,7 @@ public final class SyncService {
         _ table: String,
         context: ModelContext,
         deviceID: String,
-        merge: @escaping (Data, ModelContext, String) -> Void
+        merge: (Data, ModelContext, String) async -> Void
     ) async {
         let since = Self.lastPulledAt(for: table)
         var query = [URLQueryItem(name: "select", value: "*")]
@@ -298,90 +298,105 @@ public final class SyncService {
         let result = await supabaseClient.get(table: table, query: query)
         guard case .success(let data) = result, !data.isEmpty else { return }
 
-        merge(data, context, deviceID)
+        await merge(data, context, deviceID)
 
         // Advance the cursor to now so next pull only fetches deltas.
         Self.setLastPulledAt(Date(), for: table)
     }
 
-    // MARK: - LWW merge helpers
-
-    private func mergeCompletion(_ data: Data, _ context: ModelContext, _ myDeviceID: String) {
-        struct RemoteCompletion: Decodable {
-            let experience_id: String
-            let completed_at: String      // ISO8601
-            let updated_at: String        // ISO8601
-            let device_id: String?
-        }
-
-        let rows: [RemoteCompletion]
-        do {
-            rows = try JSONDecoder().decode([RemoteCompletion].self, from: data)
-        } catch {
-            reporter.capture(error, context: "SyncService.mergeCompletion", payload: "user_completions")
-            return
-        }
-        let formatter = ISO8601DateFormatter()
-
-        for row in rows {
-            guard let completedAt = formatter.date(from: row.completed_at),
-                  let updatedAt = formatter.date(from: row.updated_at) else { continue }
-
-            // Check if a local completion for this experience + completedAt exists.
-            let expId = row.experience_id
-            let completedAtRef = completedAt
-            let descriptor = FetchDescriptor<UserCompletionRecord>(
-                predicate: #Predicate {
-                    $0.experienceId == expId && $0.completedAt == completedAtRef
-                }
-            )
-            let existing = (try? context.fetch(descriptor)) ?? []
-
-            if existing.isEmpty {
-                // No local record — remote wins by default (LWW: remote is newer
-                // than lastPulledAt by definition of the query filter).
-                context.insert(
-                    UserCompletionRecord(experienceId: row.experience_id, completedAt: completedAt)
-                )
-            }
-            // If a local record already exists with the same (experienceId, completedAt)
-            // key, we keep the local row — it's already on-device and the data is
-            // identical (completions are immutable once written).
-            _ = updatedAt  // used for cursor advancement, not per-row LWW here
-            _ = myDeviceID
-        }
-        saveOrReport(context, op: "mergeCompletion")
+    /// Decode a `Decodable` array off the main actor. `SyncService` is
+    /// `@MainActor`, so a plain `JSONDecoder().decode(...)` in a merge helper ran
+    /// on the main thread; a large pull (hundreds of rows) then decoded on the
+    /// same thread that drives the UI, right as the app returned to foreground.
+    /// The decoded rows are value types (`Sendable`), so the decode has no
+    /// business touching the main actor — hop it to a detached task.
+    nonisolated static func decodeRows<T: Decodable & Sendable>(
+        _ type: [T].Type,
+        from data: Data
+    ) async -> [T]? {
+        await Task.detached(priority: .userInitiated) {
+            try? JSONDecoder().decode(type, from: data)
+        }.value
     }
 
-    private func mergeFavorite(_ data: Data, _ context: ModelContext, _ myDeviceID: String) {
-        struct RemoteFavorite: Decodable {
-            let experience_id: String
-            let favorited_at: String?     // nil means unfavorited (tombstone)
-            let updated_at: String        // ISO8601
-            let device_id: String?
-        }
+    // MARK: - LWW merge helpers
 
-        let rows: [RemoteFavorite]
-        do {
-            rows = try JSONDecoder().decode([RemoteFavorite].self, from: data)
-        } catch {
-            reporter.capture(error, context: "SyncService.mergeFavorite", payload: "user_favorites")
+    private func mergeCompletion(_ data: Data, _ context: ModelContext, _ myDeviceID: String) async {
+        guard let rows = await Self.decodeRows([RemoteCompletion].self, from: data) else {
+            reporter.capture(
+                SyncDecodeError.completions,
+                context: "SyncService.mergeCompletion",
+                payload: "user_completions"
+            )
             return
         }
         let formatter = ISO8601DateFormatter()
+
+        // Batch-fetch every local completion ONCE, key it by (experienceId,
+        // completedAt), and diff the remote rows against that set in memory.
+        // The previous code ran a `#Predicate` fetch per row — a SQLite round
+        // trip on the main thread for each of potentially hundreds of pulled
+        // rows. Completions are immutable once written, so "does this key
+        // already exist?" is the only question, and one fetch answers it for
+        // the whole batch.
+        let allLocal = (try? context.fetch(FetchDescriptor<UserCompletionRecord>())) ?? []
+        var seen = Set(allLocal.map { CompletionKey(experienceId: $0.experienceId, completedAt: $0.completedAt) })
+
+        var didInsert = false
+        for row in rows {
+            guard let completedAt = formatter.date(from: row.completed_at) else { continue }
+            let key = CompletionKey(experienceId: row.experience_id, completedAt: completedAt)
+            // De-dupe against both existing rows AND earlier rows in this same
+            // batch, so a remote payload with duplicates inserts at most once.
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            // No local record — remote wins by default (LWW: remote is newer
+            // than lastPulledAt by definition of the query filter).
+            context.insert(
+                UserCompletionRecord(experienceId: row.experience_id, completedAt: completedAt)
+            )
+            didInsert = true
+        }
+        _ = myDeviceID  // completions are immutable; no per-row LWW / device tiebreak.
+        if didInsert {
+            saveOrReport(context, op: "mergeCompletion")
+        }
+    }
+
+    /// Identity key for a completion row — completions are unique by
+    /// (experienceId, completedAt), so this is the natural de-dupe key.
+    private struct CompletionKey: Hashable {
+        let experienceId: String
+        let completedAt: Date
+    }
+
+    private func mergeFavorite(_ data: Data, _ context: ModelContext, _ myDeviceID: String) async {
+        guard let rows = await Self.decodeRows([RemoteFavorite].self, from: data) else {
+            reporter.capture(
+                SyncDecodeError.favorites,
+                context: "SyncService.mergeFavorite",
+                payload: "user_favorites"
+            )
+            return
+        }
+        let formatter = ISO8601DateFormatter()
+
+        // Batch-fetch every local favorite ONCE and index it by experienceId
+        // so the per-row LWW below is a dictionary lookup, not a `#Predicate`
+        // SQLite round trip per remote row (the old cost, on the main thread).
+        let allLocal = (try? context.fetch(FetchDescriptor<UserFavoriteRecord>())) ?? []
+        var localByExp = Dictionary(
+            allLocal.map { ($0.experienceId, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
 
         for row in rows {
             guard let updatedAt = formatter.date(from: row.updated_at) else { continue }
-            let expId = row.experience_id
-            let descriptor = FetchDescriptor<UserFavoriteRecord>(
-                predicate: #Predicate { $0.experienceId == expId }
-            )
-            let existing = (try? context.fetch(descriptor)) ?? []
 
             let remoteIsFavorited = row.favorited_at != nil
             let remoteDeviceID = row.device_id ?? ""
 
-            if let local = existing.first {
+            if let local = localByExp[row.experience_id] {
                 // LWW: compare updated_at. On tie, lex device_id decides.
                 let localUpdatedAt = local.favoritedAt  // best proxy for local write time
                 let remoteWins: Bool
@@ -400,14 +415,17 @@ public final class SyncService {
                         }
                     } else {
                         context.delete(local)
+                        localByExp[row.experience_id] = nil
                     }
                 }
             } else if remoteIsFavorited {
                 // No local record and remote says it's favorited — insert.
                 let favoritedAt = row.favorited_at.flatMap { formatter.date(from: $0) } ?? updatedAt
-                context.insert(
-                    UserFavoriteRecord(experienceId: row.experience_id, favoritedAt: favoritedAt)
-                )
+                let record = UserFavoriteRecord(experienceId: row.experience_id, favoritedAt: favoritedAt)
+                context.insert(record)
+                // Keep the index consistent so a later remote row for the same
+                // experience in this batch hits the LWW branch, not re-insert.
+                localByExp[row.experience_id] = record
             }
             // Remote says unfavorited and we have no local row — already in sync.
         }
@@ -416,42 +434,31 @@ public final class SyncService {
 
     // MARK: - Itinerary LWW merge (US-007)
 
-    private func mergeItinerary(_ data: Data, _ context: ModelContext, _ myDeviceID: String) {
-        struct RemoteItinerary: Decodable {
-            let id: String
-            let owner_id: String
-            let title: String
-            let city_code: String
-            let start_date: String
-            let end_date: String
-            let experience_ids: [String]
-            let note: String?
-            let open_to_companions: Bool
-            let is_deleted: Bool
-            let device_id: String?
-            let created_at: String
-            let updated_at: String
-        }
-
-        let rows: [RemoteItinerary]
-        do {
-            rows = try JSONDecoder().decode([RemoteItinerary].self, from: data)
-        } catch {
-            reporter.capture(error, context: "SyncService.mergeItinerary", payload: "itineraries")
+    private func mergeItinerary(_ data: Data, _ context: ModelContext, _ myDeviceID: String) async {
+        guard let rows = await Self.decodeRows([RemoteItinerary].self, from: data) else {
+            reporter.capture(
+                SyncDecodeError.itineraries,
+                context: "SyncService.mergeItinerary",
+                payload: "itineraries"
+            )
             return
         }
         let formatter = ISO8601DateFormatter()
 
+        // Batch-fetch every local itinerary ONCE, keyed by id, so the per-row
+        // LWW below is a dictionary lookup instead of a `#Predicate` SQLite
+        // round trip per remote row on the main thread.
+        let allLocal = (try? context.fetch(FetchDescriptor<ItineraryRecord>())) ?? []
+        var localById = Dictionary(
+            allLocal.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
         for row in rows {
             guard let remoteUpdatedAt = formatter.date(from: row.updated_at) else { continue }
-            let rowId = row.id
-            let descriptor = FetchDescriptor<ItineraryRecord>(
-                predicate: #Predicate { $0.id == rowId }
-            )
-            let existing = (try? context.fetch(descriptor)) ?? []
             let remoteDeviceID = row.device_id ?? ""
 
-            if let local = existing.first {
+            if let local = localById[row.id] {
                 // LWW: compare updated_at. On tie, lex device_id decides.
                 guard let localUpdatedAt = formatter.date(from: local.updatedAt) else { continue }
                 let remoteWins: Bool
@@ -466,6 +473,7 @@ public final class SyncService {
                 if remoteWins {
                     if row.is_deleted {
                         context.delete(local)
+                        localById[row.id] = nil
                     } else {
                         local.title = row.title
                         local.cityCode = row.city_code
@@ -481,7 +489,7 @@ public final class SyncService {
             } else if !row.is_deleted {
                 // No local record and remote is not a tombstone — insert.
                 let blob = encodeExperienceIDs(row.experience_ids) ?? Data()
-                context.insert(ItineraryRecord(
+                let record = ItineraryRecord(
                     id: row.id,
                     ownerId: row.owner_id,
                     title: row.title,
@@ -493,7 +501,9 @@ public final class SyncService {
                     openToCompanions: row.open_to_companions,
                     createdAt: row.created_at,
                     updatedAt: row.updated_at
-                ))
+                )
+                context.insert(record)
+                localById[row.id] = record
             }
         }
         saveOrReport(context, op: "mergeItinerary")
@@ -570,4 +580,46 @@ private struct AnyEncodable: Encodable {
     let value: any Encodable
     init(_ value: any Encodable) { self.value = value }
     func encode(to encoder: Encoder) throws { try value.encode(to: encoder) }
+}
+
+// MARK: - Remote row shapes (file-scope so they're Sendable across the
+// off-actor decode). Field names mirror the PostgREST snake_case columns.
+
+struct RemoteCompletion: Decodable, Sendable {
+    let experience_id: String
+    let completed_at: String      // ISO8601
+    let updated_at: String        // ISO8601
+    let device_id: String?
+}
+
+struct RemoteFavorite: Decodable, Sendable {
+    let experience_id: String
+    let favorited_at: String?     // nil means unfavorited (tombstone)
+    let updated_at: String        // ISO8601
+    let device_id: String?
+}
+
+struct RemoteItinerary: Decodable, Sendable {
+    let id: String
+    let owner_id: String
+    let title: String
+    let city_code: String
+    let start_date: String
+    let end_date: String
+    let experience_ids: [String]
+    let note: String?
+    let open_to_companions: Bool
+    let is_deleted: Bool
+    let device_id: String?
+    let created_at: String
+    let updated_at: String
+}
+
+/// The off-actor decode helper returns nil on failure (it can't carry the
+/// thrown error across the actor hop cheaply), so we report a typed marker
+/// instead — enough for Sentry to see *which* table's payload failed to decode.
+enum SyncDecodeError: Error {
+    case completions
+    case favorites
+    case itineraries
 }

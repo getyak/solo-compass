@@ -13,6 +13,7 @@
 "filter.all" = "全部";
 "filter.saved" = "收藏";
 "filter.saved.a11y" = "收藏，%d 个已收藏的体验";
+"filter.work" = "可办公";
 "filter.solo.agent" = "问 Solo";
 "filter.solo.agent.a11y" = "让 Solo 给一个附近的建议";
 "filter.taste.rank" = "我的菜";
@@ -2210,6 +2211,9 @@
 
 /* City OS v2: 落地包 landing kit */
 "cityos.kit.title" = "落地包";
+"cityos.kit.stage.land.prompt" = "刚落地 —— 先搞定 SIM 卡，联上网。";
+"cityos.kit.stage.settle.prompt" = "正在立足 —— 看看签证还剩几天，找个落脚的据点。";
+"cityos.kit.stage.live.prompt" = "在这生活 —— 留意 183 天税务线，想好续签还是启程。";
 "cityos.kit.link.open" = "打开";
 "cityos.kit.link.open.a11y" = "打开 %@";
 "cityos.kit.link.toast" = "已为你打开 %@ · 回来继续";

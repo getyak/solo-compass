@@ -13,6 +13,7 @@
 "filter.all" = "All";
 "filter.saved" = "Saved";
 "filter.saved.a11y" = "Saved, %d favourited experiences";
+"filter.work" = "Work-ready";
 "filter.solo.agent" = "Ask Solo";
 "filter.solo.agent.a11y" = "Ask Solo Agent for a nearby suggestion";
 "filter.taste.rank" = "My taste";
@@ -2200,6 +2201,9 @@
 
 /* City OS v2: landing kit (落地包) */
 "cityos.kit.title" = "Landing Kit";
+"cityos.kit.stage.land.prompt" = "Just landed — get a SIM and get online first.";
+"cityos.kit.stage.settle.prompt" = "Settling in — check your visa days left and lock down a base.";
+"cityos.kit.stage.live.prompt" = "Living here — mind the 183-day tax line and your renew-or-move call.";
 "cityos.kit.link.open" = "Open";
 "cityos.kit.link.open.a11y" = "Open %@";
 "cityos.kit.link.toast" = "Opened %@ · come back to continue";

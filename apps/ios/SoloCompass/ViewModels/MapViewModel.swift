@@ -1166,6 +1166,16 @@ public final class MapViewModel {
     /// (`preferences.favoritedExperiences`); this is the map filter entry point.
     public var isFavoriteFilter: Bool = false
 
+    /// True when the "可办公 / Work-ready" filter is active — keeps only places a
+    /// digital nomad can actually work from. Mutually exclusive with the other
+    /// filter modes. A place qualifies when it's an explicit `.work` category
+    /// spot OR a café that already advertises a wifi/power highlight — reusing
+    /// the `CategoryHighlight` signals the enrichment pipeline already emits, so
+    /// no new schema is needed. This is the map entry point nomads were missing:
+    /// "where can I get things done right now" instead of hunting the `.work`
+    /// pill buried in the horizontal category strip.
+    public var isWorkFilter: Bool = false
+
     // MARK: - Location error surfacing (US-026)
 
     /// Tracks the most recent `LocationService.lastError` we already reported to
@@ -1555,6 +1565,9 @@ public final class MapViewModel {
             let favorites = preferences.favoritedExperiences
             nearby = nearby.filter { favorites.contains($0.id) }
         }
+        if isWorkFilter {
+            nearby = nearby.filter { Self.isWorkReady($0) }
+        }
         if !preferences.dislikedCategories.isEmpty {
             let disliked = Set(preferences.dislikedCategories)
             nearby = nearby.filter { !disliked.contains($0.category) }
@@ -1577,6 +1590,18 @@ public final class MapViewModel {
         }
         #endif
         return nearby
+    }
+
+    /// Whether an experience is somewhere a digital nomad can actually work.
+    /// True for explicit `.work` spots (coworking, libraries) and for cafés that
+    /// already advertise a wifi *or* power `CategoryHighlight` — the two signals
+    /// the enrichment pipeline emits for "can I sit here with a laptop". Kept
+    /// `static` and pure so it's cheap in the `applyFilters` hot loop and unit
+    /// testable without a live view model.
+    static func isWorkReady(_ experience: Experience) -> Bool {
+        if experience.category == .work { return true }
+        guard experience.category == .coffee else { return false }
+        return experience.highlights.contains { $0.kind == .wifi || $0.kind == .power }
     }
 
     #if DEBUG
@@ -1608,6 +1633,7 @@ public final class MapViewModel {
         selectedCustomTag = nil
         isNowFilter = false
         isFavoriteFilter = false
+        isWorkFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
         // US-011: empty category inside a seeded city → debounced auto-Explore.
@@ -1621,6 +1647,7 @@ public final class MapViewModel {
         selectedCategory = nil
         selectedCustomTag = nil
         isFavoriteFilter = false
+        isWorkFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
     }
@@ -1637,6 +1664,24 @@ public final class MapViewModel {
             selectedCategory = nil
             selectedCustomTag = nil
             isNowFilter = false
+            isWorkFilter = false
+        }
+        loadNearbyExperiences()
+        updateBottomInfo()
+    }
+
+    /// Toggle the "可办公 / Work-ready" filter. Tapping again clears it (back to
+    /// All), matching the other pills. Activating it clears every other filter so
+    /// the filter modes stay mutually exclusive.
+    public func selectWorkFilter() {
+        if isWorkFilter {
+            isWorkFilter = false
+        } else {
+            isWorkFilter = true
+            selectedCategory = nil
+            selectedCustomTag = nil
+            isNowFilter = false
+            isFavoriteFilter = false
         }
         loadNearbyExperiences()
         updateBottomInfo()
@@ -1648,6 +1693,7 @@ public final class MapViewModel {
         selectedCustomTag = nil
         isNowFilter = false
         isFavoriteFilter = false
+        isWorkFilter = false
         loadNearbyExperiences()
         updateBottomInfo()
     }
