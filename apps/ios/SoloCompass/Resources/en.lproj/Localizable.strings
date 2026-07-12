@@ -2247,6 +2247,53 @@
 "cityos.mode.recall.verify.cta" = "Verify “%@”";
 "cityos.mode.recall.verify.cta.generic" = "Verify a place you visited";
 
+/* 游民基地 Base card + panel (nomad base, face-driven entry) */
+"cityos.tab.base" = "Base";
+"cityos.base.title" = "%@ · Base";
+"cityos.base.panel.title" = "Base";
+"cityos.base.cta" = "Open base";
+"cityos.base.tag.plan" = "Plan";
+"cityos.base.tag.arrive" = "Arriving";
+"cityos.base.tag.live" = "Living here";
+"cityos.base.tag.recall" = "Recall";
+"cityos.base.subtitle.plan" = "Scout it before you land";
+"cityos.base.subtitle.arrive" = "Just landed · essentials first";
+"cityos.base.subtitle.live" = "Living here · where to work today";
+"cityos.base.subtitle.recall" = "Looking back · verify what you visited";
+"cityos.base.day" = "Day %d";
+"cityos.base.ring.unit" = "d";
+"cityos.base.visa.remaining" = "%d visa days left";
+"cityos.base.visa.policy" = "%d-day visa";
+"cityos.base.visa.setEntry" = "Set entry date";
+"cityos.base.visa.setEntry.hint" = "Confirm your entry date to start the countdown";
+"cityos.base.tax" = "%d days to the 183-day tax line";
+"cityos.base.work.count" = "%d work-ready";
+"cityos.base.events.count" = "%d events";
+"cityos.base.kit.count" = "%d kit items";
+"cityos.base.kit.progress" = "Prep %1$d/%2$d";
+"cityos.base.recall.stats" = "Visited %1$d · %2$d to verify";
+"cityos.base.recall.empty" = "Look back at this stay";
+"cityos.base.section.ask" = "Still wondering";
+"cityos.base.ask.title" = "Visa, weather, is it worth it";
+"cityos.base.ask.hint" = "Ask Solo — instant answer";
+"cityos.base.ask.prompt" = "I'm planning a remote-work stay in %@. What are the visa options, what's the weather like right now, and how good is it for working remotely?";
+"cityos.base.section.visa" = "Visa";
+"cityos.base.section.weather" = "Weather";
+"cityos.base.section.work" = "Work";
+"cityos.base.section.events" = "This week";
+"cityos.base.section.kit" = "Landing kit";
+"cityos.base.section.recall" = "Recall";
+"cityos.base.events.more" = "All events";
+"cityos.base.weather.temp" = "%1$d°C · %2$@";
+"cityos.base.weather.precip" = "%d%% chance of rain";
+"weather.condition.clear" = "Clear";
+"weather.condition.partlyCloudy" = "Partly cloudy";
+"weather.condition.cloudy" = "Cloudy";
+"weather.condition.rain" = "Rain";
+"weather.condition.storm" = "Storms";
+"weather.condition.snow" = "Snow";
+"weather.condition.fog" = "Fog";
+
 /* City OS v3: lifecycle stage + city pill */
 "cityos.stage.land" = "Landing";
 "cityos.stage.settle" = "Settling";

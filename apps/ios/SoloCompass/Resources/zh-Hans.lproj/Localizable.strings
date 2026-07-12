@@ -2257,6 +2257,53 @@
 "cityos.mode.recall.verify.cta" = "印证「%@」";
 "cityos.mode.recall.verify.cta.generic" = "印证一个去过的点";
 
+/* 游民基地卡 + 面板（数字游民入口，随生命周期变脸） */
+"cityos.tab.base" = "基地";
+"cityos.base.title" = "%@ · 基地";
+"cityos.base.panel.title" = "基地";
+"cityos.base.cta" = "进入基地";
+"cityos.base.tag.plan" = "计划";
+"cityos.base.tag.arrive" = "抵达";
+"cityos.base.tag.live" = "在地";
+"cityos.base.tag.recall" = "回顾";
+"cityos.base.subtitle.plan" = "出发前，先看一眼";
+"cityos.base.subtitle.arrive" = "刚落地 · 先把生存项搞定";
+"cityos.base.subtitle.live" = "住下了 · 今天去哪办公";
+"cityos.base.subtitle.recall" = "回顾视图 · 把去过的印证下来";
+"cityos.base.day" = "第 %d 天";
+"cityos.base.ring.unit" = "天";
+"cityos.base.visa.remaining" = "签证剩 %d 天";
+"cityos.base.visa.policy" = "签证 %d 天";
+"cityos.base.visa.setEntry" = "设置入境日期";
+"cityos.base.visa.setEntry.hint" = "确认入境日期后开始倒数";
+"cityos.base.tax" = "距 183 天税务线还有 %d 天";
+"cityos.base.work.count" = "可办公 %d 处";
+"cityos.base.events.count" = "活动 %d 场";
+"cityos.base.kit.count" = "落地包 %d 项";
+"cityos.base.kit.progress" = "行前 %1$d/%2$d 已备";
+"cityos.base.recall.stats" = "去过 %1$d · 待印证 %2$d";
+"cityos.base.recall.empty" = "回顾这段旅程";
+"cityos.base.section.ask" = "还想知道什么";
+"cityos.base.ask.title" = "签证、天气、值不值得去";
+"cityos.base.ask.hint" = "问 Solo，即刻回答";
+"cityos.base.ask.prompt" = "我计划去%@远程办公一段时间，签证有哪些选择？最近天气怎么样？适不适合远程办公？";
+"cityos.base.section.visa" = "签证";
+"cityos.base.section.weather" = "天气";
+"cityos.base.section.work" = "办公";
+"cityos.base.section.events" = "本周活动";
+"cityos.base.section.kit" = "落地包";
+"cityos.base.section.recall" = "回顾";
+"cityos.base.events.more" = "查看全部";
+"cityos.base.weather.temp" = "%1$d°C · %2$@";
+"cityos.base.weather.precip" = "降水概率 %d%%";
+"weather.condition.clear" = "晴";
+"weather.condition.partlyCloudy" = "多云";
+"weather.condition.cloudy" = "阴";
+"weather.condition.rain" = "雨";
+"weather.condition.storm" = "雷雨";
+"weather.condition.snow" = "雪";
+"weather.condition.fog" = "雾";
+
 /* City OS v3: 生命周期阶段 + 城市 pill */
 "cityos.stage.land" = "抵达";
 "cityos.stage.settle" = "立足";
