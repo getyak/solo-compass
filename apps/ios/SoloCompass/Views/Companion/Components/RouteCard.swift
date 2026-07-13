@@ -348,11 +348,13 @@ public struct RouteCard: View {
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 9)
+        // Inner tile nested in the md (12pt) route card → sm (8pt) keeps concentric
+        // corners (inner < outer); md here equalled the parent radius (HIG smell).
         .background(
-            RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(bg)
+            RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(bg)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.sm, style: .continuous)
                 .strokeBorder(border, lineWidth: 0.5)
         )
         .accessibilityElement(children: .ignore)

@@ -175,10 +175,14 @@ public struct FriendProfileView: View {
         VStack(spacing: 4) {
             Text("\(value)")
                 .font(.title3.weight(.bold))
-                .foregroundStyle(CT.textPrimaryAdaptive)
+                // Fixed near-black: this row lives inside `fixedCard` (CT.surfaceWhite,
+                // white in both themes), so text must stay fixed-dark — adaptive tokens
+                // here would render near-white on white in dark mode. See sibling
+                // languageChip/bioCard, which correctly keep fixed foregrounds.
+                .foregroundStyle(CT.fgPrimary)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(CT.textMutedAdaptive)
+                .foregroundStyle(CT.fgMuted)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

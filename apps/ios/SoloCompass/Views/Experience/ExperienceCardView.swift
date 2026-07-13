@@ -412,8 +412,12 @@ public struct ExperienceCardView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 26, height: 26)
-                    // Small control → thin glass tier (was regular = too heavy).
-                    .glassSurface(.control, in: Circle())
+                    // Plain thin material, NOT glassSurface: this card floats directly
+                    // over the map (its own bg is .regularMaterial), so a glass layer
+                    // here would stack glass-on-glass inside the sunGold-marker vibrancy
+                    // zone — a forbidden glass surface. Thin material was the goal
+                    // (regular was too heavy) without entering the glass path.
+                    .background(.thinMaterial, in: Circle())
                     .frame(
                         minWidth: HitTargetMetrics.minimum,
                         minHeight: HitTargetMetrics.minimum

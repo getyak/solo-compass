@@ -63,6 +63,10 @@ public enum CT {
     /// Use for warning/caveat text under ~18.66px non-bold so it passes WCAG AA
     /// (audit color-05). Keep `warningText` only where the label is genuinely
     /// large (≥18.66px) or true-bold ≥14pt.
+    /// ⚠️ LIGHT-SURFACE ONLY: this fixed dark-amber passes AA on the light warning
+    /// fills (warningSoft / white). It FAILS AA on the warm dark surfaces
+    /// (warmCardDark 3.19:1, warmSheetDark 3.58:1) — never pair it with an adaptive
+    /// or dark background. All current adopters sit on fixed-light `warningSoft`.
     public static let warningTextStrong = rgb(0x9E, 0x5F, 0x00)
     public static let successSoft   = Color(.sRGB, red: 0x2F / 255, green: 0xA4 / 255, blue: 0x6A / 255, opacity: 0.12)
     public static let successText   = rgb(0x1F, 0x7B, 0x4D) // = verifiedGreen
