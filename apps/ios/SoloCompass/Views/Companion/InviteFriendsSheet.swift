@@ -165,17 +165,14 @@ public struct InviteFriendsSheet: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label(
-                NSLocalizedString("invite.friends.empty.title", comment: "No invitable friends title"),
-                systemImage: "person.2.slash"
-            )
-        } description: {
-            Text(NSLocalizedString(
+        SoloEmptyState(
+            systemImage: "person.2.slash",
+            title: NSLocalizedString("invite.friends.empty.title", comment: "No invitable friends title"),
+            message: NSLocalizedString(
                 "invite.friends.empty.description",
                 comment: "No invitable friends description"
-            ))
-        }
+            )
+        )
     }
 
     // MARK: - Invite (direct → confirmedMembers, no approval)

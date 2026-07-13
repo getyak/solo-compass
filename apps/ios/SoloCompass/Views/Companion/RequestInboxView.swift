@@ -263,37 +263,12 @@ public struct RequestInboxView: View {
 // MARK: - EmptyInboxView
 
 private struct EmptyInboxView: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isBreathing = false
-
     var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(CT.accent.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "tray")
-                    .font(.system(size: 40))
-                    .foregroundStyle(CT.accent.opacity(0.7))
-                    .scaleEffect(isBreathing ? 1.08 : 0.94)
-                    .opacity(isBreathing ? 1.0 : 0.7)
-                    .animation(
-                        reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
-                        value: isBreathing
-                    )
-            }
-            Text(NSLocalizedString("companion.inbox.empty.title", comment: "Empty inbox title"))
-                .font(.headline)
-            Text(NSLocalizedString("companion.inbox.empty.description", comment: "Empty inbox description"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(32)
-        .onAppear {
-            guard !isBreathing, !reduceMotion else { return }
-            isBreathing = true
-        }
+        SoloEmptyState(
+            systemImage: "tray",
+            title: NSLocalizedString("companion.inbox.empty.title", comment: "Empty inbox title"),
+            message: NSLocalizedString("companion.inbox.empty.description", comment: "Empty inbox description")
+        )
     }
 }
 

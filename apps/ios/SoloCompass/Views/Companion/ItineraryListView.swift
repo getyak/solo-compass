@@ -360,49 +360,22 @@ private struct ItineraryRow: View {
 private struct EmptyItineraryView: View {
     var onCreate: (() -> Void)? = nil
 
-    @State private var isBreathing = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(CT.accent.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "map.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(CT.accent.opacity(0.7))
-                    .scaleEffect(isBreathing ? 1.08 : 0.94)
-                    .opacity(isBreathing ? 1.0 : 0.7)
-                    .animation(
-                        reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
-                        value: isBreathing
-                    )
-            }
-            Text(NSLocalizedString("itinerary.empty.title", comment: "No itineraries yet"))
-                .font(.headline)
-            Text(NSLocalizedString("itinerary.empty.hint", comment: "Tap + to plan your first trip"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            if let onCreate {
-                Button {
+        SoloEmptyState(
+            systemImage: "map.fill",
+            title: NSLocalizedString("itinerary.empty.title", comment: "No itineraries yet"),
+            message: NSLocalizedString("itinerary.empty.hint", comment: "Tap + to plan your first trip"),
+            actionTitle: onCreate == nil
+                ? nil
+                : NSLocalizedString("itinerary.empty.cta", comment: "Plan a trip button in empty itinerary state"),
+            action: onCreate.map { create in
+                {
                     Haptics.selection()
-                    onCreate()
-                } label: {
-                    Label(NSLocalizedString("itinerary.empty.cta", comment: "Plan a trip button in empty itinerary state"), systemImage: "plus")
+                    create()
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .padding(.top, 4)
             }
-        }
-        .padding(32)
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            guard !isBreathing, !reduceMotion else { return }
-            isBreathing = true
-        }
     }
 }
 

@@ -83,21 +83,12 @@ public struct ChatHistoryListView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "clock.arrow.circlepath")
-                .font(.title2.weight(.medium))
-                .foregroundStyle(.secondary)
-            Text(NSLocalizedString("chat.history.empty.title", comment: "No conversations yet"))
-                .font(.headline)
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.center)
-            Text(NSLocalizedString("chat.history.empty", comment: "Hint to start a conversation"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
+        SoloEmptyState(
+            systemImage: "clock.arrow.circlepath",
+            title: NSLocalizedString("chat.history.empty.title", comment: "No conversations yet"),
+            message: NSLocalizedString("chat.history.empty", comment: "Hint to start a conversation")
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(32)
     }
 
     // MARK: - Actions
