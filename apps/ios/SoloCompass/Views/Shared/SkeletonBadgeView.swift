@@ -10,7 +10,7 @@ public struct SkeletonBadgeView: View {
 
     public var body: some View {
         Text(Self.label)
-            .font(CT.body(10, .medium))
+            .ctBody(10, .medium)
             .foregroundStyle(CT.fgMuted)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)

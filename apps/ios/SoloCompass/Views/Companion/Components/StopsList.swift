@@ -108,7 +108,7 @@ private struct StopRow: View {
                 .fill(experience.category.color)
                 .frame(width: discSize, height: discSize)
             Text(String(format: "%02d", index + 1))
-                .font(CT.mono(11, .semibold))
+                .ctMono(11, .semibold)
                 .foregroundStyle(.white)
         }
     }
@@ -118,13 +118,13 @@ private struct StopRow: View {
     private var textColumn: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(experience.title)
-                .font(CT.body(14.5, .semibold))
+                .ctBody(14.5, .semibold)
                 .foregroundStyle(CT.fgPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let romanized = experience.location.placeNameRomanized {
                 Text(romanized)
-                    .font(CT.body(11.5))
+                    .ctBody(11.5)
                     .foregroundStyle(CT.fgMuted)
             }
 

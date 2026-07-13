@@ -101,7 +101,7 @@ struct ExperiencePreviewCard: View {
             Image(systemName: experience.category.symbol)
                 .font(.system(size: 10, weight: .bold))
             Text(experience.category.localizedTitle)
-                .font(CT.body(11, .semibold))
+                .ctBody(11, .semibold)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 8).padding(.vertical, 4)
@@ -111,7 +111,7 @@ struct ExperiencePreviewCard: View {
     private func bestNowChip(_ chip: BestNowChipState) -> some View {
         HStack(spacing: 4) {
             Image(systemName: chip.symbol).font(.system(size: 9, weight: .bold))
-            Text(chip.label).font(CT.body(10.5, .semibold))
+            Text(chip.label).ctBody(10.5, .semibold)
         }
         .foregroundStyle(chip.foreground)
         .padding(.horizontal, 7).padding(.vertical, 3)
@@ -126,13 +126,13 @@ struct ExperiencePreviewCard: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(placeName)
-                .font(CT.displayRounded(17, .semibold))
+                .ctDisplay(17, .semibold)
                 .foregroundStyle(CT.fgPrimary)
                 .lineLimit(1)
 
             if !experience.oneLiner.isEmpty {
                 Text(experience.oneLiner)
-                    .font(CT.body(13))
+                    .ctBody(13)
                     .foregroundStyle(CT.fgMuted)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -152,7 +152,7 @@ struct ExperiencePreviewCard: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(CT.verifiedGreen)
                 Text(String(format: "Solo %.1f", experience.soloScore.overall))
-                    .font(CT.mono(12, .medium))
+                    .ctMono(12, .medium)
                     .foregroundStyle(CT.verifiedGreen)
                     .lineLimit(1)
             }
@@ -166,7 +166,7 @@ struct ExperiencePreviewCard: View {
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(CT.fgMuted)
                     Text(String(format: NSLocalizedString("nearby.chip.walkMin", comment: "Walk minutes chip, e.g. '4 min'"), mins))
-                        .font(CT.mono(12, .medium))
+                        .ctMono(12, .medium)
                         .foregroundStyle(CT.fgMuted)
                         .lineLimit(1)
                 }

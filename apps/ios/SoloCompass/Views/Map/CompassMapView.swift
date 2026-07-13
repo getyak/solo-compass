@@ -1622,7 +1622,7 @@ struct CompassMapContentView: View {
                     VStack {
                         Spacer()
                         Text(cityOSToast)
-                            .font(CT.body(13, .medium))
+                            .ctBody(13, .medium)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
@@ -3442,7 +3442,7 @@ private struct MapOverlayView: View {
                 if let cityModeLine {
                     HStack(spacing: 4) {
                         Text(cityModeLine)
-                            .font(CT.mono(9, .medium))
+                            .ctMono(9, .medium)
                             .foregroundStyle(CT.sunGoldDeep)
                         if let cityStageIndex {
                             HStack(spacing: 2.5) {
@@ -4200,7 +4200,7 @@ private struct NowEmptyOverlay: View {
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(NSLocalizedString("filter.now.empty.nextBest", comment: "Next best label"))
-                                .font(CT.mono(10, .semibold))
+                                .ctMono(10, .semibold)
                                 .foregroundStyle(CT.sunGoldDeep)
                                 .textCase(.uppercase)
                             Text(title)

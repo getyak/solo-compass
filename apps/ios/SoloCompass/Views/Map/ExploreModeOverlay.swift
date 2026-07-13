@@ -97,13 +97,13 @@ struct ExploreModeOverlay: View {
                 .frame(width: 22, height: 12)
             VStack(alignment: .leading, spacing: 1) {
                 Text("\(verb) · \(locale) · \(km) km")
-                    .font(CT.displayRounded(13.5, .semibold))
+                    .ctDisplay(13.5, .semibold)
                     .foregroundStyle(CT.fgPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                 if !countFragment.isEmpty {
                     Text(countFragment)
-                        .font(CT.mono(10.5, .medium))
+                        .ctMono(10.5, .medium)
                         .foregroundStyle(CT.sunGoldDeep)
                         .lineLimit(1)
                         .transition(.opacity)
@@ -145,7 +145,7 @@ struct ExploreModeOverlay: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .semibold))
                     Text(NSLocalizedString("exploreMode.cancel", comment: "Cancel Explore"))
-                        .font(CT.displayRounded(13, .semibold))
+                        .ctDisplay(13, .semibold)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)

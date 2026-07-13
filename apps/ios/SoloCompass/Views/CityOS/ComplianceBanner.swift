@@ -24,7 +24,7 @@ struct ComplianceBanner: View {
 
             Button(action: onHandle) {
                 Text(NSLocalizedString("cityos.compliance.handle", comment: "处理"))
-                    .font(CT.body(13, .semibold))
+                    .ctBody(13, .semibold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -65,9 +65,13 @@ struct ComplianceBanner: View {
                     format: NSLocalizedString("cityos.compliance.overstay", comment: "已逾期 N 天"),
                     abs(daysRemaining)
                 ))
-                .font(CT.body(13, .semibold))
+                .ctBody(13, .semibold)
                 .foregroundStyle(CT.warningText)
             } else {
+                // Text(+)-concatenation requires each operand stay a `Text`, so
+                // these keep the fixed-size CT.* Font factory — the `.ct*` view
+                // modifiers return `some View` and can't be `+`-joined. Dynamic
+                // Type is partially honored via `.minimumScaleFactor` below.
                 (
                     Text(NSLocalizedString("cityos.compliance.prefix", comment: "签证还剩 "))
                         .font(CT.body(13, .medium))

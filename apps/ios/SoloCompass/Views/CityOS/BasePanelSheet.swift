@@ -107,12 +107,12 @@ struct BasePanelSheet: View {
                     .padding(.vertical, 3.5)
                     .background(Capsule().fill(face.tagColor.opacity(0.12)))
                 Text(cityName)
-                    .font(CT.displayRounded(26, .bold))
+                    .ctDisplay(26, .bold)
                     .foregroundStyle(primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Text(NSLocalizedString("cityos.base.subtitle.\(face.rawValue)", comment: "Base face subtitle"))
-                    .font(CT.body(13))
+                    .ctBody(13)
                     .foregroundStyle(CT.fgMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -453,7 +453,7 @@ private struct SectionCard<Content: View>: View {
                         trailing.1()
                     } label: {
                         Text(trailing.0)
-                            .font(CT.body(12.5, .semibold))
+                            .ctBody(12.5, .semibold)
                             .foregroundStyle(CT.accent)
                     }
                     .buttonStyle(.plain)
@@ -509,13 +509,13 @@ private struct PanelRow: View {
                 .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(tint.opacity(0.10)))
             VStack(alignment: .leading, spacing: 2.5) {
                 Text(title)
-                    .font(CT.body(14.5, .semibold))
+                    .ctBody(14.5, .semibold)
                     .foregroundStyle(primaryText)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 if let subtitle {
                     Text(subtitle)
-                        .font(CT.body(12.5))
+                        .ctBody(12.5)
                         .foregroundStyle(CT.fgMuted)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -524,7 +524,7 @@ private struct PanelRow: View {
             Spacer(minLength: 0)
             if let badge {
                 Text(badge)
-                    .font(CT.mono(12, .semibold))
+                    .ctMono(12, .semibold)
                     .foregroundStyle(CT.accent)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2.5)

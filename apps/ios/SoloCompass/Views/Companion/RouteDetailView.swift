@@ -134,7 +134,7 @@ public struct RouteDetailView: View {
                     .font(.system(size: 40))
 
                 Text(liveRoute.title)
-                    .font(CT.displayRounded(26, .bold))
+                    .ctDisplay(26, .bold)
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -223,7 +223,7 @@ public struct RouteDetailView: View {
     private var metaRow: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(monoBaseline)
-                .font(CT.mono(12))
+                .ctMono(12)
                 .foregroundStyle(CT.fgMuted)
                 .padding(.vertical, 14)
             Rectangle()
@@ -239,7 +239,7 @@ public struct RouteDetailView: View {
     private var aiInsightLocked: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(NSLocalizedString("route.detail.aiInsight.title", comment: "AI insight section title"))
-                .font(CT.display(12, .bold))
+                .ctDisplay(12, .bold)
                 .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(CT.fgMuted)
@@ -254,12 +254,12 @@ public struct RouteDetailView: View {
                         .foregroundStyle(CT.fgMuted)
                 }
                 Text(NSLocalizedString("route.detail.aiInsight.locked", comment: "AI insight unlock copy"))
-                    .font(CT.body(12))
+                    .ctBody(12)
                     .foregroundStyle(CT.fgMuted)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 4)
                 Text(NSLocalizedString("route.detail.aiInsight.unlock", comment: "Unlock CTA"))
-                    .font(CT.body(12, .semibold))
+                    .ctBody(12, .semibold)
                     .foregroundStyle(CT.accent)
             }
             .padding(.horizontal, 16)
@@ -284,7 +284,7 @@ public struct RouteDetailView: View {
     private var tagRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(NSLocalizedString("route.detail.tags.title", comment: "Route tags section title"))
-                .font(CT.display(12, .bold))
+                .ctDisplay(12, .bold)
                 .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(CT.fgMuted)
@@ -292,7 +292,7 @@ public struct RouteDetailView: View {
             FlowLayout(spacing: 6) {
                 ForEach(liveRoute.tags, id: \.self) { tag in
                     Text(tag)
-                        .font(CT.body(12))
+                        .ctBody(12)
                         .foregroundStyle(CT.accent)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -435,7 +435,7 @@ public struct RouteDetailView: View {
                         Image(systemName: cta.systemImage)
                             .font(.system(size: 15, weight: .semibold))
                         Text(cta.label)
-                            .font(CT.body(15, .semibold))
+                            .ctBody(15, .semibold)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)

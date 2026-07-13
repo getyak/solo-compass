@@ -361,11 +361,11 @@ public struct ExperienceDetailView: View {
             HStack(spacing: 4) {
                 Image(systemName: "sparkles").font(.system(size: 10))
                 Text(text.contains("L2") ? "L1 → L2" : NSLocalizedString("notes.signal.plus", comment: "+1 signal"))
-                    .font(CT.mono(11, .semibold))
+                    .ctMono(11, .semibold)
             }
             .foregroundStyle(CT.accent)
             Text(text)
-                .font(CT.body(12.5, .medium))
+                .ctBody(12.5, .medium)
                 .foregroundStyle(CT.fgPrimary)
         }
         .padding(.horizontal, 14).padding(.vertical, 9)
@@ -457,13 +457,13 @@ public struct ExperienceDetailView: View {
                     .frame(width: 18, height: 18)
                     .background(Circle().fill(viewModel.experience.category.color))
                 Text(viewModel.experience.category.localizedTitle.uppercased())
-                    .font(CT.displayRounded(11.5, .bold))
+                    .ctDisplay(11.5, .bold)
                     .tracking(1.4)
                     .foregroundStyle(CT.fgMuted)
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
                 Text(levelSignalText)
-                    .font(CT.mono(10.5, userContributed ? .semibold : .regular))
+                    .ctMono(10.5, userContributed ? .semibold : .regular)
                     .tracking(0.5)
                     .foregroundStyle(userContributed ? CT.accent : CT.fgMuted)
                     .contentTransition(.numericText())
@@ -473,7 +473,7 @@ public struct ExperienceDetailView: View {
             .fixedSize(horizontal: false, vertical: true)
 
             Text(viewModel.experience.title)
-                .font(CT.displayRounded(27, .bold))
+                .ctDisplay(27, .bold)
                 .foregroundStyle(CT.fgPrimary)
                 .lineLimit(nil)
                 .minimumScaleFactor(0.8)
@@ -491,7 +491,7 @@ public struct ExperienceDetailView: View {
                 .accessibilityHidden(!heroTitleVisible)
 
             Text(viewModel.experience.oneLiner)
-                .font(CT.body(15))
+                .ctBody(15)
                 .foregroundStyle(CT.fgMuted)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -500,14 +500,14 @@ public struct ExperienceDetailView: View {
                 let romanized = viewModel.experience.location.placeNameRomanized
                 if let romanized, !romanized.isEmpty {
                     Text(romanized)
-                        .font(CT.mono(12.5))
+                        .ctMono(12.5)
                         .foregroundStyle(CT.fgMuted)
                     Text(local)
-                        .font(CT.body(13))
+                        .ctBody(13)
                         .foregroundStyle(CT.fgMuted)
                 } else {
                     Text(local)
-                        .font(CT.body(13))
+                        .ctBody(13)
                         .foregroundStyle(CT.fgMuted)
                 }
             }
@@ -546,10 +546,10 @@ public struct ExperienceDetailView: View {
             Image(systemName: symbol)
                 .font(.system(size: 9))
             Text(NSLocalizedString(labelKey, comment: "Trust state label"))
-                .font(CT.mono(10))
+                .ctMono(10)
             if signals > 0 {
                 Text("· \(signals)")
-                    .font(CT.mono(10))
+                    .ctMono(10)
             }
         }
         .foregroundStyle(fg)
@@ -606,7 +606,7 @@ public struct ExperienceDetailView: View {
             }
             Spacer(minLength: 0)
         }
-        .font(CT.mono(12))
+        .ctMono(12)
         .foregroundStyle(CT.fgMuted)
         .padding(.bottom, 16)
         .overlay(alignment: .bottom) {
@@ -793,7 +793,7 @@ public struct ExperienceDetailView: View {
                         .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
                 } else {
                     Text(content)
-                        .font(CT.body(14.5))
+                        .ctBody(14.5)
                         .foregroundStyle(CT.fgPrimary)
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -803,7 +803,7 @@ public struct ExperienceDetailView: View {
                         FlowLayout(spacing: 6) {
                             ForEach(tags, id: \.self) { tag in
                                 Text(tag)
-                                    .font(CT.body(12))
+                                    .ctBody(12)
                                     .foregroundStyle(CT.accent)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 4)
@@ -828,14 +828,14 @@ public struct ExperienceDetailView: View {
                     HStack(spacing: 8) {
                         ProgressView().tint(CT.accent)
                         Text(NSLocalizedString("ai.explanation.loading", comment: "AI insight loading indicator"))
-                            .font(CT.body(14))
+                            .ctBody(14)
                             .foregroundStyle(CT.fgMuted)
                     }
                     .id("aiInsight-skeleton")
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
                 } else if let explanation = viewModel.aiExplanation {
                     Text(explanation)
-                        .font(CT.body(14.5))
+                        .ctBody(14.5)
                         .foregroundStyle(CT.fgPrimary)
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -866,11 +866,11 @@ public struct ExperienceDetailView: View {
                         .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(CT.accentSoft))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(name)
-                            .font(CT.body(13, .medium))
+                            .ctBody(13, .medium)
                             .foregroundStyle(CT.fgPrimary)
                             .lineLimit(1)
                         Text(String(format: "%.4f, %.4f", coord.latitude, coord.longitude))
-                            .font(CT.mono(10.5))
+                            .ctMono(10.5)
                             .foregroundStyle(CT.fgMuted)
                     }
                     Spacer(minLength: 0)
@@ -886,7 +886,7 @@ public struct ExperienceDetailView: View {
                             Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
                                 .font(.system(size: 12, weight: .bold))
                             Text(NSLocalizedString("location.navigate", comment: "Navigate"))
-                                .font(CT.body(12.5, .semibold))
+                                .ctBody(12.5, .semibold)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 13)
@@ -916,7 +916,7 @@ public struct ExperienceDetailView: View {
                             .font(.system(size: 13))
                             .foregroundStyle(CT.fgMuted)
                         Text(hours)
-                            .font(CT.mono(12.5))
+                            .ctMono(12.5)
                             .foregroundStyle(CT.fgMuted)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
@@ -1038,7 +1038,7 @@ public struct ExperienceDetailView: View {
                     HStack {
                         let range = viewModel.experience.durationMinutes
                         Text(String(format: NSLocalizedString("section.duration", comment: ""), range.min, range.max))
-                            .font(CT.mono(11))
+                            .ctMono(11)
                             .foregroundStyle(CT.fgMuted)
                         Spacer()
                         bestTimeStatusPill
@@ -1058,12 +1058,12 @@ public struct ExperienceDetailView: View {
                     }
                     HStack(alignment: .top, spacing: 12) {
                         Text("\(step.order)")
-                            .font(CT.mono(11.5, .semibold))
+                            .ctMono(11.5, .semibold)
                             .foregroundStyle(CT.accent)
                             .frame(width: 24, height: 24)
                             .background(Circle().fill(CT.accentSoft))
                         Text(step.text)
-                            .font(CT.body(14))
+                            .ctBody(14)
                             .foregroundStyle(CT.fgPrimary)
                             .lineSpacing(2)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1093,13 +1093,13 @@ public struct ExperienceDetailView: View {
                                 .font(.system(size: 12))
                                 .accessibilityHidden(true)
                             Text(inconvenienceCategoryName(item.category).uppercased())
-                                .font(CT.displayRounded(10, .bold))
+                                .ctDisplay(10, .bold)
                                 .tracking(1.2)
                                 .accessibilityHidden(true)
                         }
                         .foregroundStyle(CT.warningTextStrong)
                         Text(item.text)
-                            .font(CT.body(13.5))
+                            .ctBody(13.5)
                             .foregroundStyle(CT.fgPrimary)
                             .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
@@ -1162,12 +1162,12 @@ public struct ExperienceDetailView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text(NSLocalizedString(titleKey, comment: "").uppercased())
-                    .font(CT.displayRounded(11, .bold))
+                    .ctDisplay(11, .bold)
                     .tracking(1.6)
                     .foregroundStyle(CT.fgMuted)
                 Spacer()
                 Text(String(format: "%.1f", score.overall))
-                    .font(CT.displayRounded(34, .bold))
+                    .ctDisplay(34, .bold)
                     .foregroundStyle(isEstimate ? CT.accent.opacity(0.55) : CT.accent)
                     .monospacedDigit()
                     .accessibilityLabel(Text(String(
@@ -1188,7 +1188,7 @@ public struct ExperienceDetailView: View {
         return VStack(alignment: .leading, spacing: 0) {
             if let hint = score.hint, !hint.isEmpty {
                 Text(hint)
-                    .font(CT.body(14.5))
+                    .ctBody(14.5)
                     .foregroundStyle(CT.fgPrimary)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1196,7 +1196,7 @@ public struct ExperienceDetailView: View {
             }
             if let subtitle {
                 Text(isEstimate ? NSLocalizedString("solo.estimate.pill", comment: "AI estimate pill") : subtitle)
-                    .font(CT.mono(10.5))
+                    .ctMono(10.5)
                     .foregroundStyle(CT.fgMuted)
                     .padding(.bottom, 14)
             }
@@ -1218,7 +1218,7 @@ public struct ExperienceDetailView: View {
                     Image(systemName: showingRadarTooltip ? "chevron.up" : "chevron.down")
                         .font(.system(size: 11, weight: .semibold))
                 }
-                .font(CT.body(12))
+                .ctBody(12)
                 .foregroundStyle(CT.fgMuted)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 10)
@@ -1231,7 +1231,7 @@ public struct ExperienceDetailView: View {
                     Image(systemName: "sparkles").font(.system(size: 11))
                     Text(String(format: NSLocalizedString("solo.bestCall", comment: "Best solo dimension callout"), strongest.label))
                 }
-                .font(CT.body(12.5))
+                .ctBody(12.5)
                 .foregroundStyle(CT.accent)
                 .padding(.top, 8)
                 .overlay(alignment: .top) {
@@ -1273,7 +1273,7 @@ public struct ExperienceDetailView: View {
         let isTop = clamped >= 10
         return HStack(spacing: 10) {
             Text(dim.label)
-                .font(CT.body(12))
+                .ctBody(12)
                 .foregroundStyle(CT.fgMuted)
                 .frame(width: 52, alignment: .leading)
             GeometryReader { geo in
@@ -1285,7 +1285,7 @@ public struct ExperienceDetailView: View {
             }
             .frame(height: 6)
             Text(String(format: "%.0f", clamped))
-                .font(CT.mono(11.5, isTop ? .semibold : .regular))
+                .ctMono(11.5, isTop ? .semibold : .regular)
                 .foregroundStyle(isTop ? CT.accent : CT.fgMuted)
                 .frame(width: 20, alignment: .trailing)
         }
@@ -1433,11 +1433,11 @@ public struct ExperienceDetailView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(CT.fgMuted)
             Text(label)
-                .font(CT.body(12.5))
+                .ctBody(12.5)
                 .foregroundStyle(CT.fgMuted)
             Spacer(minLength: 8)
             Text(date, style: .date)
-                .font(CT.mono(10.5))
+                .ctMono(10.5)
                 .foregroundStyle(CT.fgMuted)
             if isLink {
                 Image(systemName: "arrow.up.right")
@@ -1671,7 +1671,7 @@ public struct ExperienceDetailView: View {
                     Text(viewModel.isCompleted
                         ? NSLocalizedString("action.completed", comment: "")
                         : NSLocalizedString("action.markDone", comment: ""))
-                        .font(CT.body(14.5, .semibold))
+                        .ctBody(14.5, .semibold)
                 }
                 .foregroundStyle(viewModel.isCompleted ? CT.successText : .white)
                 .frame(maxWidth: .infinity)
@@ -1736,7 +1736,7 @@ public struct ExperienceDetailView: View {
     private func sectionContainer<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title.uppercased())
-                .font(CT.displayRounded(11, .bold))
+                .ctDisplay(11, .bold)
                 .tracking(1.6)
                 .foregroundStyle(CT.fgMuted)
                 .minimumScaleFactor(0.85)

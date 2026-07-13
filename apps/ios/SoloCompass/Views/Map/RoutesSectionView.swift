@@ -165,14 +165,14 @@ struct RouteNowSectionHeader: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(CT.sunGoldDeep)
                 Text(NSLocalizedString("sheet.section.routes.now", comment: "路線 · 此刻適合 section header"))
-                    .font(CT.display(11, .bold))
+                    .ctDisplay(11, .bold)
                     .tracking(1.3)
                     .textCase(.uppercase)
                     .foregroundStyle(CT.sunGoldDeep)
             }
             Spacer(minLength: 8)
             Text(verbatim: "AI · NOW")
-                .font(CT.mono(11, .regular))
+                .ctMono(11, .regular)
                 .tracking(0.4)
                 .foregroundStyle(CT.fgSubtle)
         }

@@ -57,14 +57,14 @@ public struct VerifiedBadge: View {
                 Text(isVerified
                     ? NSLocalizedString("verified.title.verified", comment: "")
                     : NSLocalizedString("verified.title.watching", comment: ""))
-                    .font(CT.display(13, .semibold))
+                    .ctDisplay(13, .semibold)
                     .foregroundStyle(isVerified ? CT.verifiedGreen : CT.fgPrimary)
 
                 Text(String(
                     format: NSLocalizedString("verified.subtitle", comment: ""),
                     walkedByCount
                 ))
-                    .font(CT.body(12))
+                    .ctBody(12)
                     .foregroundStyle(CT.fgMuted)
             }
 
@@ -107,7 +107,7 @@ public struct VerifiedBadge: View {
             Text(isVerified
                 ? NSLocalizedString("verified.title.verified", comment: "")
                 : NSLocalizedString("verified.title.watching", comment: ""))
-                .font(CT.display(12, .semibold))
+                .ctDisplay(12, .semibold)
                 .foregroundStyle(isVerified ? CT.verifiedGreen : CT.fgMuted)
 
             Spacer(minLength: 4)
@@ -119,7 +119,7 @@ public struct VerifiedBadge: View {
                 format: NSLocalizedString("verified.subtitle", comment: ""),
                 walkedByCount
             ))
-                .font(CT.mono(10, .medium))
+                .ctMono(10, .medium)
                 .foregroundStyle((isVerified ? CT.verifiedGreen : CT.fgMuted).opacity(0.85))
         }
         .padding(.horizontal, 14)
@@ -142,7 +142,7 @@ public struct VerifiedBadge: View {
                     : NSLocalizedString("verified.short.watching", comment: ""),
                 walkedByCount
             ))
-                .font(CT.body(11, .medium))
+                .ctBody(11, .medium)
         }
         .foregroundStyle(isVerified ? CT.verifiedGreen : CT.fgMuted)
         .padding(.horizontal, 8)

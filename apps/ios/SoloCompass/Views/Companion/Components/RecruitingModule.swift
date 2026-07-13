@@ -103,7 +103,7 @@ public struct RecruitingModule: View {
 
     private func statusCapsule(status: CompanionStatus) -> some View {
         Text(status.localizedLabel)
-            .font(CT.display(10, .bold))
+            .ctDisplay(10, .bold)
             .tracking(0.1)
             .textCase(.uppercase)
             .foregroundStyle(status.toneColor)
@@ -123,7 +123,7 @@ public struct RecruitingModule: View {
                 .frame(width: 36, height: 36)
                 .overlay(
                     Text(String(hostId.prefix(1)).uppercased())
-                        .font(CT.display(15, .bold))
+                        .ctDisplay(15, .bold)
                         .foregroundStyle(.white)
                 )
 
@@ -203,7 +203,7 @@ public struct RecruitingModule: View {
 
     private func hostMessageView(_ message: String) -> some View {
         Text("\u{201C}\(message)\u{201D}")
-            .font(CT.body(12.5).italic())
+            .ctBody(12.5).italic()
             .foregroundStyle(CT.fgPrimary)
             .lineLimit(3)
             .fixedSize(horizontal: false, vertical: true)
