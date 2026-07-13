@@ -535,7 +535,7 @@ public struct BottomInfoSheet<Content: View>: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(CT.sunGoldDeep)
             Text(NSLocalizedString("peek.pick.header", comment: "此刻最值得去 peek section header"))
-                .font(CT.display(11, .bold))
+                .ctDisplay(11, .bold)
                 .tracking(1.3)
                 .textCase(.uppercase)
                 .foregroundStyle(CT.sunGoldDeep)

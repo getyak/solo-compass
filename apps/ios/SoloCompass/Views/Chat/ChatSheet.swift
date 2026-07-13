@@ -702,7 +702,7 @@ public struct ChatSheet: View {
                 .padding(.bottom, 20)
 
             Text(NSLocalizedString("chat.empty.title", comment: "Ask me anything about places near you"))
-                .font(CT.displayRounded(22, .bold))
+                .ctDisplay(22, .bold)
                 .foregroundStyle(emptyTitleColor)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -852,7 +852,7 @@ public struct ChatSheet: View {
                     .tracking(1.6)
                     .foregroundStyle(CT.accent.opacity(0.65))
                 Text(Self.shortName(place))
-                    .font(CT.displayRounded(20, .bold))
+                    .ctDisplay(20, .bold)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

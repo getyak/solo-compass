@@ -160,7 +160,7 @@ struct PeekSummaryCard: View {
                     format: NSLocalizedString("peek.now.goodTime", comment: "Now-score line, e.g. '现在 87% 好时机'"),
                     percent
                 ))
-                .font(CT.display(12, .bold))
+                .ctDisplay(12, .bold)
                 .monospacedDigit()
                 .foregroundStyle(CT.sunGoldDeep)
                 if state.isClosingSoon {
@@ -207,7 +207,7 @@ struct PeekSummaryCard: View {
                 .fill(facts.dotColor)
                 .frame(width: 6, height: 6)
             Text(facts.text)
-                .font(CT.mono(10))
+                .ctMono(10)
                 .foregroundStyle(CT.fgMuted)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -264,7 +264,7 @@ struct PeekSummaryCard: View {
                 Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
                     .font(.system(size: 11, weight: .bold))
                 Text(NSLocalizedString("peek.action.go", comment: "Take me there"))
-                    .font(CT.body(12, .semibold))
+                    .ctBody(12, .semibold)
             }
             .foregroundStyle(.white)
             .padding(.horizontal, 12)
@@ -289,7 +289,7 @@ struct PeekSummaryCard: View {
                 Image(systemName: "arrow.2.circlepath")
                     .font(.system(size: 10, weight: .semibold))
                 Text(NSLocalizedString("peek.action.shuffle", comment: "Show another pick"))
-                    .font(CT.body(12, .medium))
+                    .ctBody(12, .medium)
             }
             .foregroundStyle(CT.fgMuted)
             .padding(.horizontal, 11)

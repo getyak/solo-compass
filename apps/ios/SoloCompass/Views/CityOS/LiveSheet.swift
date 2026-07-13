@@ -65,10 +65,10 @@ struct LiveSheet: View {
                 .font(.system(size: 40))
                 .foregroundStyle(CT.fgSubtle)
             Text(NSLocalizedString("cityos.live.empty.title", comment: "No local events this week"))
-                .font(CT.display(16, .semibold))
+                .ctDisplay(16, .semibold)
                 .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
             Text(NSLocalizedString("cityos.live.empty.hint", comment: "Check back — the city brief refreshes twice a week."))
-                .font(CT.body(13))
+                .ctBody(13)
                 .foregroundStyle(CT.fgMuted)
                 .multilineTextAlignment(.center)
         }
@@ -108,7 +108,7 @@ struct LiveEventCard: View {
             metaRow
             if let note = event.soloNote, !note.isEmpty {
                 Text(note)
-                    .font(CT.body(13))
+                    .ctBody(13)
                     .foregroundStyle(event.isNotice ? CT.warningText : primaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -135,7 +135,7 @@ struct LiveEventCard: View {
                     .foregroundStyle(CT.warningText)
             }
             Text(event.name)
-                .font(CT.displayRounded(15, .semibold))
+                .ctDisplay(15, .semibold)
                 .foregroundStyle(event.isNotice ? CT.warningText : primaryText)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -157,7 +157,7 @@ struct LiveEventCard: View {
     private var metaRow: some View {
         HStack(spacing: 8) {
             Text(event.whenLabel)
-                .font(CT.mono(11))
+                .ctMono(11)
                 .foregroundStyle(CT.fgMuted)
             if !event.isNotice, let score = event.soloScore {
                 soloChip(score)
@@ -187,7 +187,7 @@ struct LiveEventCard: View {
             HealthDot(status: health)
             if let seen = event.seenLabel, !seen.isEmpty {
                 Text(seen)
-                    .font(CT.mono(10))
+                    .ctMono(10)
                     .foregroundStyle(CT.fgMuted)
                     .lineLimit(1)
             }
@@ -201,7 +201,7 @@ struct LiveEventCard: View {
                         Image(systemName: "mappin.and.ellipse")
                             .font(.system(size: 10, weight: .semibold))
                         Text(NSLocalizedString("cityos.live.showOnMap", comment: "在地图上看"))
-                            .font(CT.body(12, .semibold))
+                            .ctBody(12, .semibold)
                     }
                     .foregroundStyle(CT.accent)
                     .padding(.horizontal, 10)

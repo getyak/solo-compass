@@ -42,7 +42,7 @@ struct BaseCard: View {
                         format: NSLocalizedString("cityos.base.title", comment: "%@ · 基地"),
                         cityName
                     ))
-                    .font(CT.displayRounded(17, .semibold))
+                    .ctDisplay(17, .semibold)
                     .foregroundStyle(primaryText)
                     .lineLimit(1)
                     signalLine
@@ -89,7 +89,7 @@ struct BaseCard: View {
             ForEach(Array(stats.prefix(2).enumerated()), id: \.offset) { index, stat in
                 if index > 0 {
                     Text("·")
-                        .font(CT.body(12))
+                        .ctBody(12)
                         .foregroundStyle(CT.fgSubtle)
                 }
                 HStack(spacing: 3.5) {
@@ -97,7 +97,7 @@ struct BaseCard: View {
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(face.tagColor)
                     Text(stat.text)
-                        .font(CT.body(12, .medium))
+                        .ctBody(12, .medium)
                         .foregroundStyle(CT.fgMuted)
                         .lineLimit(1)
                 }
@@ -257,11 +257,11 @@ struct BaseCountdownRing: View {
                 .animation(.easeInOut(duration: 0.4), value: fraction)
             VStack(spacing: -1) {
                 Text("\(max(remaining, 0))")
-                    .font(CT.mono(size * 0.30, .semibold))
+                    .ctMono(size * 0.30, .semibold)
                     .foregroundStyle(tone)
                     .contentTransition(.numericText())
                 Text(NSLocalizedString("cityos.base.ring.unit", comment: "天"))
-                    .font(CT.mono(size * 0.16, .medium))
+                    .ctMono(size * 0.16, .medium)
                     .foregroundStyle(CT.fgSubtle)
             }
         }

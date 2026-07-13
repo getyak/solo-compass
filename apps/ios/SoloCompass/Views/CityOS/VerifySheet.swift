@@ -62,7 +62,7 @@ struct VerifySheet: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(NSLocalizedString("cityos.verify.title", comment: "30 秒，帮下一个独行者"))
-                .font(CT.displayRounded(18, .bold))
+                .ctDisplay(18, .bold)
                 .foregroundStyle(primaryText)
             Text(String(
                 format: NSLocalizedString(
@@ -71,7 +71,7 @@ struct VerifySheet: View {
                 ),
                 placeName
             ))
-            .font(CT.body(12.5))
+            .ctBody(12.5)
             .foregroundStyle(CT.fgMuted)
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -80,7 +80,7 @@ struct VerifySheet: View {
     private func question(text: String, options: [String], selection: Binding<Int?>) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(text)
-                .font(CT.body(13.5, .semibold))
+                .ctBody(13.5, .semibold)
                 .foregroundStyle(primaryText)
             HStack(spacing: 8) {
                 ForEach(options.indices, id: \.self) { index in
@@ -99,7 +99,7 @@ struct VerifySheet: View {
     private func optionPill(label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(CT.body(13, .medium))
+                .ctBody(13, .medium)
                 .foregroundStyle(isSelected ? CT.accent : CT.fgMuted)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 9)
@@ -124,7 +124,7 @@ struct VerifySheet: View {
             onDismiss()
         } label: {
             Text(NSLocalizedString("cityos.verify.submit", comment: "提交印证"))
-                .font(CT.body(14.5, .semibold))
+                .ctBody(14.5, .semibold)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)

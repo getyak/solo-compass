@@ -51,7 +51,7 @@ struct RelativeTimeText: View {
 
     var body: some View {
         Text(label)
-            .font(CT.mono(10.5))
+            .ctMono(10.5)
             .foregroundStyle(CT.fgSubtle)
     }
 }

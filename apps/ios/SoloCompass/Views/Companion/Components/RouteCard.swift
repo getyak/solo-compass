@@ -87,7 +87,7 @@ public struct RouteCard: View {
             headRow
 
             Text(route.title)
-                .font(CT.body(16, .semibold))
+                .ctBody(16, .semibold)
                 .foregroundStyle(CT.fgPrimary)
                 .lineLimit(2)
                 .padding(.bottom, 10)
@@ -145,7 +145,7 @@ public struct RouteCard: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 11, weight: .semibold))
             Text(reason)
-                .font(CT.body(11.5, .semibold))
+                .ctBody(11.5, .semibold)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -171,7 +171,7 @@ public struct RouteCard: View {
                     .frame(width: 6, height: 6)
 
                 Text(tagLabel)
-                    .font(CT.display(10, .bold))
+                    .ctDisplay(10, .bold)
                     .tracking(1.2)
                     .textCase(.uppercase)
                     .foregroundStyle(CT.fgMuted)
@@ -197,7 +197,7 @@ public struct RouteCard: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 9.5, weight: .semibold))
             Text(NSLocalizedString("route.card.verified", comment: "Verified pill"))
-                .font(CT.mono(9.5, .semibold))
+                .ctMono(9.5, .semibold)
         }
         .foregroundStyle(CT.verifiedGreen)
         .padding(.horizontal, 6)
@@ -211,7 +211,7 @@ public struct RouteCard: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 10, weight: .bold))
             Text(NSLocalizedString("route.card.now", comment: "此刻 now pill"))
-                .font(CT.display(10, .bold))
+                .ctDisplay(10, .bold)
                 .tracking(0.6)
         }
         .foregroundStyle(CT.sunGoldDeep)
@@ -331,14 +331,14 @@ public struct RouteCard: View {
         return HStack(spacing: 8) {
             statusDot(dotColor, pulsing: !isCompleted)
             Text(mini.text)
-                .font(CT.body(11.5, .regular))
+                .ctBody(11.5, .regular)
                 .foregroundStyle(mini.tone)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if showsChevron {
                 HStack(spacing: 2) {
                     Text(NSLocalizedString("route.card.recruit.view", comment: "查看 — open recruit detail"))
-                        .font(CT.mono(10.5, .semibold))
+                        .ctMono(10.5, .semibold)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 9, weight: .semibold))
                 }
@@ -415,7 +415,7 @@ public struct RouteCard: View {
         HStack(spacing: 8) {
             AvatarStack(ids: walkedByIds, maxVisible: 4, size: 18, ring: CT.surfaceWhite)
             Text(walkedByLabel)
-                .font(CT.mono(11, .regular))
+                .ctMono(11, .regular)
                 .foregroundStyle(CT.fgMuted)
                 .lineLimit(1)
             Spacer(minLength: 4)

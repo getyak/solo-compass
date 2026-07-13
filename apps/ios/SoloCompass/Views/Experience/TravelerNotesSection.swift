@@ -68,29 +68,29 @@ extension ExperienceDetailView {
                     .frame(width: 18, height: 18)
                     .background(Circle().fill(CT.warningText.opacity(0.16)))
                 Text(NSLocalizedString("correction.heading", comment: "Info may need updating").uppercased())
-                    .font(CT.displayRounded(10.5, .bold))
+                    .ctDisplay(10.5, .bold)
                     .tracking(1.2)
                     .foregroundStyle(CT.warningText)
             }
             VStack(alignment: .leading, spacing: 5) {
                 Text(c.field)
-                    .font(CT.body(13.5, .medium))
+                    .ctBody(13.5, .medium)
                     .foregroundStyle(CT.fgPrimary)
                 HStack(spacing: 6) {
                     Text(c.oldVal)
-                        .font(CT.mono(12.5))
+                        .ctMono(12.5)
                         .strikethrough()
                         .foregroundStyle(CT.fgSubtle)
                     Image(systemName: "arrow.right").font(.system(size: 10)).foregroundStyle(CT.fgSubtle)
                     Text(c.newVal)
-                        .font(CT.mono(12.5, .semibold))
+                        .ctMono(12.5, .semibold)
                         .foregroundStyle(CT.successText)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(RoundedRectangle(cornerRadius: 4).fill(CT.successSoft))
                 }
                 Text(c.sourceNote)
-                    .font(CT.mono(10.5))
+                    .ctMono(10.5)
                     .foregroundStyle(CT.fgSubtle)
             }
             HStack(spacing: 7) {
@@ -106,7 +106,7 @@ extension ExperienceDetailView {
                         Image(systemName: "checkmark").font(.system(size: 10, weight: .bold))
                         Text(NSLocalizedString("correction.confirm", comment: "Confirm"))
                     }
-                    .font(CT.body(12, .semibold))
+                    .ctBody(12, .semibold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 13).padding(.vertical, 6)
                     .background(Capsule().fill(CT.accent))
@@ -118,7 +118,7 @@ extension ExperienceDetailView {
                     reloadCoBuild()
                 } label: {
                     Text(NSLocalizedString("correction.dismiss", comment: "Inaccurate"))
-                        .font(CT.body(12, .semibold))
+                        .ctBody(12, .semibold)
                         .foregroundStyle(CT.fgPrimary)
                         .padding(.horizontal, 13).padding(.vertical, 6)
                         .background(Capsule().fill(Color.black.opacity(0.04)))
@@ -142,7 +142,7 @@ extension ExperienceDetailView {
                 let filtered = filteredNotes
                 if filtered.isEmpty {
                     Text(NSLocalizedString("notes.empty", comment: "No notes of this kind"))
-                        .font(CT.body(13))
+                        .ctBody(13)
                         .foregroundStyle(CT.fgSubtle)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
@@ -165,7 +165,7 @@ extension ExperienceDetailView {
                             Text(notesExpanded
                                 ? NSLocalizedString("notes.collapse", comment: "Collapse notes")
                                 : String(format: NSLocalizedString("notes.expandAll", comment: "Expand all N notes"), filtered.count))
-                                .font(CT.body(12, .medium))
+                                .ctBody(12, .medium)
                                 .foregroundStyle(CT.accent)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.vertical, 9)
@@ -185,11 +185,11 @@ extension ExperienceDetailView {
         HStack(alignment: .firstTextBaseline) {
             HStack(spacing: 6) {
                 Text(NSLocalizedString("notes.title", comment: "Traveler notes").uppercased())
-                    .font(CT.displayRounded(11, .bold))
+                    .ctDisplay(11, .bold)
                     .tracking(1.6)
                     .foregroundStyle(CT.fgMuted)
                 Text("\(notes.count)")
-                    .font(CT.mono(10))
+                    .ctMono(10)
                     .foregroundStyle(CT.fgSubtle)
             }
             Spacer()
@@ -201,7 +201,7 @@ extension ExperienceDetailView {
                         notesFilter = filter
                     } label: {
                         Text(noteFilterLabel(filter))
-                            .font(CT.body(11, notesFilter == filter ? .semibold : .regular))
+                            .ctBody(11, notesFilter == filter ? .semibold : .regular)
                             .foregroundStyle(notesFilter == filter ? CT.fgPrimary : CT.fgMuted)
                             .padding(.horizontal, 9).padding(.vertical, 3)
                             .background {
@@ -238,7 +238,7 @@ extension ExperienceDetailView {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 8) {
                 Text(note.authorInitial)
-                    .font(CT.displayRounded(11, .bold))
+                    .ctDisplay(11, .bold)
                     .foregroundStyle(.white)
                     .frame(width: 22, height: 22)
                     .background(Circle().fill(noteAvatarColor(note)))
@@ -246,22 +246,22 @@ extension ExperienceDetailView {
                     Text(note.isMine
                         ? NSLocalizedString("notes.author.you", comment: "You")
                         : String(format: NSLocalizedString("notes.author.traveler", comment: "Traveler X"), note.authorInitial))
-                        .font(CT.body(12.5, .medium))
+                        .ctBody(12.5, .medium)
                         .foregroundStyle(CT.fgPrimary)
                     Text((note.kind == .correction
                         ? NSLocalizedString("notes.tag.correction", comment: "Correction")
                         : NSLocalizedString("notes.tag.experience", comment: "Experience")).uppercased())
-                        .font(CT.displayRounded(9.5, .bold))
+                        .ctDisplay(9.5, .bold)
                         .tracking(1.0)
                         .foregroundStyle(note.kind == .correction ? CT.warningText : CT.sunGoldDeep)
                 }
                 Spacer(minLength: 6)
                 Text(relativeTime(note.createdAt))
-                    .font(CT.mono(10.5))
+                    .ctMono(10.5)
                     .foregroundStyle(CT.fgSubtle)
             }
             Text(note.text)
-                .font(CT.body(13.5))
+                .ctBody(13.5)
                 .foregroundStyle(CT.fgPrimary)
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -284,7 +284,7 @@ extension ExperienceDetailView {
                                 ? NSLocalizedString("notes.confirmed", comment: "Confirmed")
                                 : NSLocalizedString("notes.confirm", comment: "Confirm too"))
                         }
-                        .font(CT.mono(11))
+                        .ctMono(11)
                         .foregroundStyle(confirmed ? CT.successText : CT.fgMuted)
                         .padding(.horizontal, 9).padding(.vertical, 4)
                         .background(Capsule().fill(confirmed ? CT.successSoft : .clear))
@@ -319,7 +319,7 @@ extension ExperienceDetailView {
     private func noteBadge(icon: String, text: String, fg: Color, bg: Color, border: Color) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.system(size: 9))
-            Text(text).font(CT.mono(10.5))
+            Text(text).ctMono(10.5)
         }
         .foregroundStyle(fg)
         .padding(.horizontal, 8).padding(.vertical, 3)
@@ -334,11 +334,11 @@ extension ExperienceDetailView {
             HStack(spacing: 6) {
                 Image(systemName: "pencil").font(.system(size: 11))
                 Text(NSLocalizedString("notes.addPrompt", comment: "Leave a note for others").uppercased())
-                    .font(CT.displayRounded(10.5, .bold))
+                    .ctDisplay(10.5, .bold)
                     .tracking(1.2)
                 Spacer(minLength: 0)
                 Text(NSLocalizedString("notes.addHint", comment: "AI cross-verifies"))
-                    .font(CT.mono(9.5))
+                    .ctMono(9.5)
                     .foregroundStyle(CT.fgSubtle)
                     .textCase(nil)
             }
@@ -353,7 +353,7 @@ extension ExperienceDetailView {
                         if picked { pickedMoods.remove(mood) } else { pickedMoods.insert(mood) }
                     } label: {
                         Text(mood)
-                            .font(CT.body(12))
+                            .ctBody(12)
                             .foregroundStyle(picked ? .white : CT.fgPrimary)
                             .padding(.horizontal, 11).padding(.vertical, 5)
                             .background(Capsule().fill(picked ? CT.accent : CT.surfaceSunken))
@@ -369,7 +369,7 @@ extension ExperienceDetailView {
                         : NSLocalizedString("notes.input.placeholderWithMood", comment: "Add a line (optional)"),
                     text: $noteDraft
                 )
-                .font(CT.body(13))
+                .ctBody(13)
                 .textFieldStyle(.plain)
                 .submitLabel(.send)
                 .onSubmit(submitNote)
@@ -478,7 +478,7 @@ struct BestTimeRibbon: View {
             // 0 / 6 / 12 / 18 / 24 scale
             HStack {
                 ForEach([0, 6, 12, 18, 24], id: \.self) { h in
-                    Text("\(h)").font(CT.mono(9.5)).foregroundStyle(CT.fgSubtle)
+                    Text("\(h)").ctMono(9.5).foregroundStyle(CT.fgSubtle)
                     if h != 24 { Spacer() }
                 }
             }

@@ -103,7 +103,7 @@ struct KitSheet: View {
     private var toastOverlay: some View {
         if let toast {
             Text(toast)
-                .font(CT.body(13, .medium))
+                .ctBody(13, .medium)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
@@ -140,7 +140,7 @@ private struct KitRowCard: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             Text(item.main)
-                .font(CT.body(14))
+                .ctBody(14)
                 .foregroundStyle(primaryText)
                 .fixedSize(horizontal: false, vertical: true)
             if let lens = item.lens, !lens.isEmpty {
@@ -173,7 +173,7 @@ private struct KitRowCard: View {
                         .fill(iconTileFill)
                 )
             Text(item.name)
-                .font(CT.display(15, .bold))
+                .ctDisplay(15, .bold)
                 .foregroundStyle(primaryText)
             Spacer(minLength: 0)
             if let planTick {
@@ -217,7 +217,7 @@ private struct KitRowCard: View {
             Image(systemName: "sparkle")
                 .font(.system(size: 10, weight: .semibold))
             Text(lens)
-                .font(CT.body(12.5, .medium))
+                .ctBody(12.5, .medium)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(CT.accent)
@@ -257,7 +257,7 @@ private struct KitRowCard: View {
                     Image(systemName: "arrow.up.forward.app")
                         .font(.system(size: 11, weight: .semibold))
                     Text(label)
-                        .font(CT.body(12.5, .semibold))
+                        .ctBody(12.5, .semibold)
                 }
                 .foregroundStyle(CT.accent)
                 .padding(.horizontal, 11)
@@ -282,10 +282,10 @@ private struct KitRowCard: View {
                             Image(systemName: "phone.fill")
                                 .font(.system(size: 12, weight: .semibold))
                             Text(entry.label)
-                                .font(CT.body(13, .medium))
+                                .ctBody(13, .medium)
                             Spacer(minLength: 0)
                             Text(entry.number)
-                                .font(CT.mono(14, .semibold))
+                                .ctMono(14, .semibold)
                         }
                         .foregroundStyle(CT.accent)
                         .padding(.horizontal, 12)
@@ -351,7 +351,7 @@ private struct VisaComplianceControl: View {
             }
             Toggle(isOn: $preferences.visaReminderEnabled) {
                 Text(NSLocalizedString("cityos.visa.reminder.toggle", comment: "到期提醒"))
-                    .font(CT.body(13, .medium))
+                    .ctBody(13, .medium)
                     .foregroundStyle(primaryText)
             }
             .tint(CT.accent)
@@ -364,11 +364,11 @@ private struct VisaComplianceControl: View {
     private func counter(value: Int, label: String, isCritical: Bool) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("\(value)")
-                .font(CT.mono(26, .bold))
+                .ctMono(26, .bold)
                 .foregroundStyle(isCritical ? CT.warningText : CT.accent)
                 .contentTransition(.numericText())
             Text(label)
-                .font(CT.body(10.5))
+                .ctBody(10.5)
                 .foregroundStyle(CT.fgMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -384,7 +384,7 @@ private struct VisaComplianceControl: View {
                 selection: entryDateBinding,
                 displayedComponents: .date
             )
-            .font(CT.body(13, .medium))
+            .ctBody(13, .medium)
             Stepper(
                 value: visaLengthBinding,
                 in: 1...365
@@ -393,7 +393,7 @@ private struct VisaComplianceControl: View {
                     format: NSLocalizedString("cityos.visa.length", comment: "签证 N 天"),
                     visaLengthBinding.wrappedValue
                 ))
-                .font(CT.body(13, .medium))
+                .ctBody(13, .medium)
                 .foregroundStyle(primaryText)
             }
         }

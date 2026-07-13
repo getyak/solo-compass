@@ -89,7 +89,7 @@ public struct ExperienceCardView: View {
                 Image(systemName: symbol)
                     .font(.system(size: 10, weight: .semibold))
                 Text(label)
-                    .font(CT.body(10, .medium))
+                    .ctBody(10, .medium)
             }
             .foregroundStyle(tint)
             .padding(.horizontal, 6)
@@ -1051,7 +1051,7 @@ struct BestNowBadge: View {
         let score = experience.nowScore(at: date)
         if score.value >= 0.7 {
             Text(Self.reasonSubtitle(for: score))
-                .font(CT.body(11, .medium))
+                .ctBody(11, .medium)
                 .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
                 .lineLimit(1)
                 .accessibilityHidden(true)

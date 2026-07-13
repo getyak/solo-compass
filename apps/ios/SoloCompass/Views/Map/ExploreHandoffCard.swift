@@ -87,7 +87,7 @@ struct ExploreHandoffCard: View {
                     .foregroundStyle(CT.sunGoldDeep)
                     .font(.system(size: 15, weight: .semibold))
                 Text(mainText)
-                    .font(CT.displayRounded(15, .semibold))
+                    .ctDisplay(15, .semibold)
                     .foregroundStyle(CT.fgPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
@@ -112,7 +112,7 @@ struct ExploreHandoffCard: View {
                     ),
                     result.verifiedCount
                 ))
-                .font(CT.mono(11, .medium))
+                .ctMono(11, .medium)
                 .foregroundStyle(CT.verifiedGreen)
             }
         }
@@ -155,7 +155,7 @@ struct ExploreHandoffCard: View {
                 onClear()
             }) {
                 Text(NSLocalizedString("exploreMode.handoff.clear", comment: "Clear these"))
-                    .font(CT.displayRounded(12.5, .medium))
+                    .ctDisplay(12.5, .medium)
                     .foregroundStyle(CT.fgMuted)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
@@ -180,7 +180,7 @@ struct ExploreHandoffCard: View {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .semibold))
                 Text(title)
-                    .font(CT.displayRounded(13, .semibold))
+                    .ctDisplay(13, .semibold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }

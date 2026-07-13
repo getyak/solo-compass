@@ -730,7 +730,7 @@ private struct CityModePicker: View {
                     onSelect(candidate)
                 } label: {
                     Text(Self.label(for: candidate))
-                        .font(CT.body(13, mode == candidate ? .semibold : .regular))
+                        .ctBody(13, mode == candidate ? .semibold : .regular)
                         .foregroundStyle(mode == candidate ? .white : Self.tint(for: candidate))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
