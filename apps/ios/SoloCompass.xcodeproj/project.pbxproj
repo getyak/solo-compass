@@ -100,6 +100,7 @@
 		2ED16C7027DB2250262F5D3F /* ProactiveNudgeSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5780606CA08F571BF04ACE /* ProactiveNudgeSchedulerTests.swift */; };
 		2F00F874A1B50C113AC8CA55 /* ChatRedesignVisualTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB511F86191D72DBCBCB5A01 /* ChatRedesignVisualTest.swift */; };
 		2F532734CA53A554106DC739 /* SeedRoutesParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A644911E7B2824A7ABBA4D6F /* SeedRoutesParityTests.swift */; };
+		2FB5706AA8E19C86F7D0EE6D /* SoloEmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5B74DD3B2E73DD0BC6BAEB /* SoloEmptyState.swift */; };
 		2FCF0785691C23EC3D6824C2 /* AmapPOIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06EEB9F3424112BC6141406F /* AmapPOIService.swift */; };
 		2FDE17BACDABCE85552A022B /* NotificationServiceHandleURLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49F36F9AC9ED0AE7E3F0E5EA /* NotificationServiceHandleURLTests.swift */; };
 		2FFDD120FE87D1EE121EAB40 /* SkeletonBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659B2C7C4B36A086968A28EF /* SkeletonBadgeView.swift */; };
@@ -1008,6 +1009,7 @@
 		AEFAE8B83CF381DAF5FF64E0 /* RecallMemoryToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecallMemoryToolTests.swift; sourceTree = "<group>"; };
 		AF007DB5F72E30021CADA555 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		AF58E512BB0C51F4C5887108 /* CityOSInterruptionBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityOSInterruptionBudget.swift; sourceTree = "<group>"; };
+		AF5B74DD3B2E73DD0BC6BAEB /* SoloEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloEmptyState.swift; sourceTree = "<group>"; };
 		B05F48898F445A18234B6979 /* CityBrief.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityBrief.swift; sourceTree = "<group>"; };
 		B07765108DFDB705B49FAD8D /* CityOSInterruptionBudgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityOSInterruptionBudgetTests.swift; sourceTree = "<group>"; };
 		B129B3B50E3C3ABE05717FDF /* DataSourceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSourceSettings.swift; sourceTree = "<group>"; };
@@ -1214,6 +1216,7 @@
 				659B2C7C4B36A086968A28EF /* SkeletonBadgeView.swift */,
 				BEDD4F6238B484BB7C20904B /* SkeletonView.swift */,
 				98EFEBC6789178136BCFDC39 /* SoloCompassTips.swift */,
+				AF5B74DD3B2E73DD0BC6BAEB /* SoloEmptyState.swift */,
 				B93F1CB6D9C18B38957CAF1D /* SoloMascotView.swift */,
 				EB579F3F4EBBA014AA306DD1 /* SoloScoreBadge.swift */,
 				4D557D1D0D224C725834A08D /* SoloScoreRadarChart.swift */,
@@ -2805,6 +2808,7 @@
 				E5F463CE3CE822F7F96CA82C /* SoloCompassApp.swift in Sources */,
 				13E5AEAEE5194DDB79AE92AC /* SoloCompassModelContainer.swift in Sources */,
 				0B77739CFA29BF6CE2A12F45 /* SoloCompassTips.swift in Sources */,
+				2FB5706AA8E19C86F7D0EE6D /* SoloEmptyState.swift in Sources */,
 				647C7A31BABBA01C49C7E463 /* SoloMascotView.swift in Sources */,
 				9A4260E9DE8D58FBE83DE16F /* SoloOrb.swift in Sources */,
 				86F4628473C2D520D4C2FFFB /* SoloScoreBadge.swift in Sources */,
