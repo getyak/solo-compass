@@ -336,6 +336,13 @@ extension LocationService: CLLocationManagerDelegate {
     /// (large error circles) can't freeze the marker while the traveler is
     /// genuinely moving.
     static let maxJitterRadius: CLLocationDistance = 40
+    /// If the published fix is older than this (seconds), accept the next valid
+    /// candidate unconditionally. Without this floor a traveler moving in small
+    /// steps (each below `noiseRadius`) can have every fix rejected as drift, so
+    /// the marker stays planted at the departure point while the real position
+    /// walks away — the pin visibly lags hundreds of metres behind. Re-anchoring
+    /// to a fresh fix after a stale spell keeps the dot honest.
+    static let staleCurrentAge: TimeInterval = 30
 
     /// Pure decision: should `candidate` replace `current` as the published
     /// location, or be suppressed as noise? Kept static and side-effect-free so
@@ -347,7 +354,10 @@ extension LocationService: CLLocationManagerDelegate {
     ///   2. Always accept the first fix — there's nothing to compare against.
     ///   3. Accept a meaningfully tighter fix even if it barely moved, so the
     ///      pin can converge onto a better reading.
-    ///   4. Otherwise accept only when the traveler moved beyond the noise
+    ///   4. Re-anchor when the published fix has gone stale (`staleCurrentAge`),
+    ///      so a series of sub-noise-floor steps can't strand the marker at the
+    ///      departure point while the real position walks away.
+    ///   5. Otherwise accept only when the traveler moved beyond the noise
     ///      floor: the two fixes' error circles must have pulled apart
     ///      (`distance > combined accuracy`) by at least `jitterFloor`, capped
     ///      at `maxJitterRadius`. Movement inside that radius is
@@ -364,6 +374,13 @@ extension LocationService: CLLocationManagerDelegate {
         guard let current else { return true }
 
         if candidate.horizontalAccuracy + accuracyImprovementThreshold < current.horizontalAccuracy {
+            return true
+        }
+
+        // The published fix has aged out — the traveler may have walked away in
+        // small steps that each read as drift. Accept this fresh, valid fix to
+        // re-anchor rather than letting the marker lag behind reality.
+        if now.timeIntervalSince(current.timestamp) > staleCurrentAge {
             return true
         }
 

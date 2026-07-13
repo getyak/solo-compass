@@ -2572,7 +2572,12 @@ struct CompassMapContentView: View {
                     MapCircle(center: here.coordinate, radius: Self.userRadiusMeters)
                         .foregroundStyle(Color.accentColor.opacity(0.12))
                         .stroke(Color.accentColor.opacity(0.4), lineWidth: 1.5)
-                    Annotation("", coordinate: here.coordinate) {
+                    // `anchor: .center` is stated explicitly (not left to the
+                    // default) so the marker is pinned by its geometric center
+                    // to the GPS coordinate. Combined with UserLocationMarker's
+                    // fixed layout bounds, this keeps the dot planted instead of
+                    // drifting as its breathing halo pulses.
+                    Annotation("", coordinate: here.coordinate, anchor: .center) {
                         UserLocationMarker()
                     }
                 }

@@ -209,6 +209,24 @@ final class LocationServiceTests: XCTestCase {
         ))
     }
 
+    func test_shouldPublish_staleCurrent_reAnchorsEvenWithinNoiseFloor() {
+        // The published fix is 40s old (> staleCurrentAge 30s). A candidate that
+        // only "moved" 12m — normally suppressed as drift — is accepted to
+        // re-anchor, so a series of small steps can't strand the marker behind
+        // the traveler's real position.
+        let current = fix(accuracy: 10, ageSeconds: 40)
+        let smallStep = fix(metresNorth: 12, accuracy: 10, ageSeconds: 0)
+        XCTAssertTrue(LocationService.shouldPublish(candidate: smallStep, over: current, now: ref))
+    }
+
+    func test_shouldPublish_freshCurrent_stillSuppressesDrift() {
+        // Guard the boundary the other direction: when the published fix is
+        // recent (well under staleCurrentAge), the drift suppression still holds.
+        let current = fix(accuracy: 10, ageSeconds: 5)
+        let drift = fix(metresNorth: 12, accuracy: 10, ageSeconds: 0)
+        XCTAssertFalse(LocationService.shouldPublish(candidate: drift, over: current, now: ref))
+    }
+
     func test_shouldPublish_poorAccuracy_radiusIsCapped() {
         // Both fixes ±100m → combined 200m, but the radius caps at 40m so a
         // real 45m walk isn't frozen out, while a 35m wobble still is.

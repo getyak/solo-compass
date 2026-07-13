@@ -27,42 +27,52 @@ struct UserLocationMarker: View {
     private let haloScale: CGFloat = 2.4
 
     var body: some View {
-        ZStack {
+        // The white ring backing defines the marker's *layout bounds* — a fixed
+        // `coreDiameter + 6`. Everything that animates (the breathing halo) lives
+        // in a layout-neutral `.background`, so the reported size never changes.
+        //
+        // This matters because a SwiftUI `Annotation` re-resolves its anchor
+        // point against the content's bounds every frame. If the pulsing halo
+        // sat in a `ZStack` (participating in layout), the ZStack would breathe
+        // between 22pt and 52.8pt, MapKit would recompute the `.center` anchor
+        // against that changing frame, and the whole marker would drift back and
+        // forth on screen — decoupled from the real GPS coordinate. Keeping the
+        // animated layer out of layout pins the anchor to a constant size.
+        Circle()
+            .fill(.white)
+            .frame(width: coreDiameter + 6, height: coreDiameter + 6)
+            .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
             // Breathing halo — a soft accent ring that expands and fades. Pure
-            // decoration, so it carries no hit target and is hidden from
-            // VoiceOver (the dot below owns the accessibility label).
-            if !reduceMotion {
+            // decoration in a layout-neutral background, so it carries no hit
+            // target, doesn't grow the marker's measured bounds, and is hidden
+            // from VoiceOver (the core dot owns the accessibility label).
+            .background {
+                if !reduceMotion {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.25))
+                        .frame(width: coreDiameter, height: coreDiameter)
+                        .scaleEffect(pulse ? haloScale : 1.0, anchor: .center)
+                        .opacity(pulse ? 0.0 : 0.6)
+                        .accessibilityHidden(true)
+                }
+            }
+            // Solid accent core, centered over the white ring.
+            .overlay {
                 Circle()
-                    .fill(Color.accentColor.opacity(0.25))
+                    .fill(Color.accentColor)
                     .frame(width: coreDiameter, height: coreDiameter)
-                    .scaleEffect(pulse ? haloScale : 1.0)
-                    .opacity(pulse ? 0.0 : 0.6)
-                    .accessibilityHidden(true)
             }
-
-            // White ring backing — lifts the dot off dark map tiles so it stays
-            // legible in both light and dark map styles.
-            Circle()
-                .fill(.white)
-                .frame(width: coreDiameter + 6, height: coreDiameter + 6)
-                .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
-
-            // Solid accent core.
-            Circle()
-                .fill(Color.accentColor)
-                .frame(width: coreDiameter, height: coreDiameter)
-        }
-        .accessibilityElement()
-        .accessibilityLabel(Text(NSLocalizedString(
-            "map.userLocation.label",
-            comment: "Accessibility label for the traveler's own location marker on the map"
-        )))
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) {
-                pulse = true
+            .accessibilityElement()
+            .accessibilityLabel(Text(NSLocalizedString(
+                "map.userLocation.label",
+                comment: "Accessibility label for the traveler's own location marker on the map"
+            )))
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) {
+                    pulse = true
+                }
             }
-        }
     }
 }
 
