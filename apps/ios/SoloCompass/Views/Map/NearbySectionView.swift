@@ -339,7 +339,7 @@ private struct NearbyRowSkeleton: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(shimmerFill)
                 .frame(width: 44, height: 44)
             VStack(alignment: .leading, spacing: 6) {
@@ -354,7 +354,7 @@ private struct NearbyRowSkeleton: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(colorScheme == .dark ? CT.warmSunkenDark : CT.surfaceSunken)
         )
     }
@@ -580,7 +580,7 @@ private struct ExperienceSearchBar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(Color(uiColor: .tertiarySystemFill))
         )
         .accessibilityElement(children: .contain)

@@ -863,7 +863,7 @@ public struct ExperienceDetailView: View {
                         .font(.system(size: 16))
                         .foregroundStyle(CT.accent)
                         .frame(width: 36, height: 36)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(CT.accentSoft))
+                        .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(CT.accentSoft))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(name)
                             .font(CT.body(13, .medium))
@@ -897,8 +897,8 @@ public struct ExperienceDetailView: View {
                     .accessibilityLabel(Text(NSLocalizedString("action.directions", comment: "")))
                 }
                 .padding(12)
-                .background(RoundedRectangle(cornerRadius: 14).fill(CT.surfaceWhite))
-                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(CT.borderSubtle, lineWidth: 0.5))
+                .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(CT.surfaceWhite))
+                .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(CT.borderSubtle, lineWidth: 0.5))
             }
         }
     }
@@ -1108,11 +1108,11 @@ public struct ExperienceDetailView: View {
                     .padding(.vertical, 11)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 14)
+                        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                             .fill(CT.warningSoft)
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14)
+                        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                             .strokeBorder(CT.warningText.opacity(0.18), lineWidth: 0.5)
                     )
                     .accessibilityElement(children: .ignore)
@@ -1240,8 +1240,8 @@ public struct ExperienceDetailView: View {
             }
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 14).fill(CT.surfaceWhite))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(CT.borderSubtle, lineWidth: 0.5))
+        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(CT.surfaceWhite))
+        .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).strokeBorder(CT.borderSubtle, lineWidth: 0.5))
         .opacity(isEstimate ? 0.85 : 1.0)
         .onAppear {
             guard !barsAppeared else { return }
@@ -1320,7 +1320,7 @@ public struct ExperienceDetailView: View {
             }
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color(.secondarySystemBackground)))
+        .background(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).fill(Color(.secondarySystemBackground)))
     }
 
     // MARK: - US-015: Multi-source indicator
@@ -1503,7 +1503,7 @@ public struct ExperienceDetailView: View {
             .padding(10)
             .frame(width: 180, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .fill(CT.surfaceSunken)
             )
         }

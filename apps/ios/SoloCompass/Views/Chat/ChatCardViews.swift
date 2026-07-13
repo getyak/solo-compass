@@ -32,11 +32,11 @@ struct ChatExperienceCard: View {
         .padding(.vertical, 11)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(cardFill)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
@@ -82,7 +82,7 @@ struct ChatExperienceCard: View {
             .foregroundStyle(.white)
             .frame(width: 36, height: 36)
             .background(
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .fill(experience.category.color)
             )
     }
@@ -191,11 +191,11 @@ struct ChatRouteProposalCard: View {
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(cardFill)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .strokeBorder(CT.accentBorder, lineWidth: 0.5)
         )
         .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
@@ -243,7 +243,7 @@ struct ChatRouteProposalCard: View {
         .padding(.horizontal, 9)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(CT.sunGoldSoft))
+        .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(CT.sunGoldSoft))
     }
 
     /// Color-bead strip: each stop is a small category disc, joined by hairline

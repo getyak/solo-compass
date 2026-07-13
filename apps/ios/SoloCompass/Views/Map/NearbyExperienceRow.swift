@@ -145,7 +145,7 @@ struct NearbyExperienceRow: View {
             .padding(.vertical, 12 * BottomSheetDetentScale.factor())
             .background(cardBackground)
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                     .strokeBorder(
                         colorScheme == .dark
                             ? CT.warmBorderDark
@@ -156,14 +156,14 @@ struct NearbyExperienceRow: View {
             .overlay(alignment: .leading) {
                 // Left color-bar: golden for smart picks, else the category tint.
                 UnevenRoundedRectangle(
-                    topLeadingRadius: 14, bottomLeadingRadius: 14,
+                    topLeadingRadius: Radius.md, bottomLeadingRadius: Radius.md,
                     bottomTrailingRadius: 0, topTrailingRadius: 0,
                     style: .continuous
                 )
                 .fill(isSmartPick ? CT.sunGold : experience.category.color)
                 .frame(width: 3)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .clipShape(Radius.shape(Radius.md))
             .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
         }
         .buttonStyle(.plain)
@@ -255,7 +255,7 @@ struct NearbyExperienceRow: View {
                         .resizable()
                         .scaledToFill()
                         .frame(width: 48, height: 48)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .clipShape(Radius.shape(Radius.md))
                 default:
                     warmAmberHero
                 }
@@ -273,7 +273,7 @@ struct NearbyExperienceRow: View {
     /// carrying the category glyph on top for scannability.
     private var warmAmberHero: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -670,7 +670,7 @@ struct NearbyExperienceRow: View {
     }
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
             .fill(isSmartPick ? AnyShapeStyle(smartPickGradient) : AnyShapeStyle(cardFill))
     }
 

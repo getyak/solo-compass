@@ -10,9 +10,15 @@ private extension ProcessInfo {
 /// Centralised haptic feedback with a per-user opt-out via UserDefaults.
 ///
 /// Wraps `UIImpactFeedbackGenerator` and `UINotificationFeedbackGenerator`.
-/// All methods are no-ops when `hapticsEnabled` is false, when
-/// `UIAccessibility.isReduceMotionEnabled` is true, or when running inside
+/// All methods are no-ops when `hapticsEnabled` is false or when running inside
 /// an Xcode preview.
+///
+/// NOTE: haptics are intentionally NOT gated on Reduce Motion. Per HIG /
+/// apple-design §14, Reduce Motion suppresses vestibular *visual* movement
+/// (parallax, large position shifts) — not completion/error confirmation
+/// haptics, which many users rely on precisely when animation is reduced.
+/// Views own their own `@Environment(\.accessibilityReduceMotion)` gating for
+/// visual effects; the Taptic layer stays on.
 @MainActor public final class HapticService {
     public static let shared = HapticService()
 
@@ -35,7 +41,7 @@ private extension ProcessInfo {
     private func shouldFire() -> Bool {
         guard isEnabled else { return false }
         guard !ProcessInfo.processInfo.isPreview else { return false }
-        guard !UIAccessibility.isReduceMotionEnabled else { return false }
+        // Deliberately NOT gated on isReduceMotionEnabled — see type doc.
         return true
     }
 

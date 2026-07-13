@@ -383,13 +383,13 @@ public struct ExperienceCardView: View {
         .padding(16)
         .background(
             ZStack {
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: Radius.xl, style: .continuous)
                     .stroke(CT.verifiedGreen.opacity(arrivalGlow ? 0 : 0.7), lineWidth: 3)
                     .scaleEffect(arrivalGlow ? 1.25 : 1.0)
                     .animation(.easeOut(duration: 0.8), value: arrivalGlow)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: Radius.xl, style: .continuous)
                     .fill(.regularMaterial)
                     // Card now floats ABOVE the BottomInfoSheet, so it casts a
                     // soft downward shadow onto the sheet to read as "lifted",
@@ -905,7 +905,7 @@ public struct ExperienceCardView: View {
                 }
             }
             .frame(width: 52, height: 52)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(Radius.shape(Radius.md))
             // Category color corner badge keeps the type glanceable over a photo.
             .overlay(alignment: .bottomTrailing) {
                 Image(systemName: experience.category.symbol)
