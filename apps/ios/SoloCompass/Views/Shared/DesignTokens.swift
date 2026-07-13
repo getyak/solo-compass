@@ -214,6 +214,34 @@ private struct ScaledFontModifier: ViewModifier {
     }
 }
 
+// MARK: - Hero tracking (audit font-03)
+//
+// Large SF display text reads too loose at its default tracking; apple-design
+// says tighten it. But CJK must NOT get negative tracking — squeezing Han
+// glyphs looks broken. `heroTracking` applies a small negative tracking ONLY
+// when the string is Latin-script (no CJK unified ideographs), and nothing
+// otherwise, so a mixed title stays safe.
+
+private func containsCJK(_ s: String) -> Bool {
+    s.unicodeScalars.contains { scalar in
+        (0x4E00...0x9FFF).contains(scalar.value)   // CJK Unified Ideographs
+            || (0x3400...0x4DBF).contains(scalar.value)  // Ext A
+            || (0x3040...0x30FF).contains(scalar.value)  // Hiragana + Katakana
+            || (0xAC00...0xD7AF).contains(scalar.value)  // Hangul syllables
+    }
+}
+
+public extension Text {
+    /// Tightens tracking for a large Latin hero title (−0.2 at 20–28pt, −0.3 at
+    /// ≥30pt); a no-op for CJK/mixed titles. Pass the title string so the
+    /// script can be detected.
+    func heroTracking(size: CGFloat, content: String) -> Text {
+        guard !containsCJK(content) else { return self }
+        let amount: CGFloat = size >= 30 ? -0.3 : -0.2
+        return tracking(amount)
+    }
+}
+
 public extension View {
     /// Body text at `size`, scaling with Dynamic Type (anchored to `.body`).
     func ctBody(_ size: CGFloat, _ weight: Font.Weight = .regular, relativeTo textStyle: Font.TextStyle = .body) -> some View {

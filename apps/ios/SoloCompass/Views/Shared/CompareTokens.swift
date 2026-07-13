@@ -58,7 +58,12 @@ public enum CT {
     // From styles.css --warning-soft/--warning + --success-soft/--success used by
     // .sc-caveat, .sc-trust-chip, .sc-note-status, .sc-hours-line .open.
     public static let warningSoft   = rgb(0xFB, 0xF2, 0xE3) // amber caveat-card fill
-    public static let warningText   = rgb(0xB5, 0x74, 0x20) // #B57420 amber label
+    public static let warningText   = rgb(0xB5, 0x74, 0x20) // #B57420 amber label (3.83:1 — large/bold only)
+    /// Darkened amber label — #9E5F00, 4.62:1 on warningSoft / 5.13:1 on white.
+    /// Use for warning/caveat text under ~18.66px non-bold so it passes WCAG AA
+    /// (audit color-05). Keep `warningText` only where the label is genuinely
+    /// large (≥18.66px) or true-bold ≥14pt.
+    public static let warningTextStrong = rgb(0x9E, 0x5F, 0x00)
     public static let successSoft   = Color(.sRGB, red: 0x2F / 255, green: 0xA4 / 255, blue: 0x6A / 255, opacity: 0.12)
     public static let successText   = rgb(0x1F, 0x7B, 0x4D) // = verifiedGreen
 
