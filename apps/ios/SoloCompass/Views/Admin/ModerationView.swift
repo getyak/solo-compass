@@ -35,11 +35,12 @@ public struct ModerationView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if service.reports.isEmpty {
-                ContentUnavailableView(
-                    NSLocalizedString("moderation.empty.title", comment: "No reports title"),
+                SoloEmptyState(
                     systemImage: "checkmark.shield",
-                    description: Text(NSLocalizedString("moderation.empty.message", comment: "No reports message"))
+                    title: NSLocalizedString("moderation.empty.title", comment: "No reports title"),
+                    message: NSLocalizedString("moderation.empty.message", comment: "No reports message")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 queueList
             }

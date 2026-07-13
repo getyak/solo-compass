@@ -588,49 +588,22 @@ private struct FriendRow: View {
 private struct EmptyFriendsView: View {
     var onAddFriend: (() -> Void)? = nil
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isBreathing = false
-
     var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(CT.accent.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "person.2")
-                    .font(.system(size: 36))
-                    .foregroundStyle(CT.accent.opacity(0.7))
-                    .scaleEffect(isBreathing ? 1.08 : 0.94)
-                    .opacity(isBreathing ? 1.0 : 0.7)
-                    .animation(
-                        reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
-                        value: isBreathing
-                    )
-            }
-            Text(NSLocalizedString("friends.list.empty.title", comment: "Empty friends title"))
-                .font(.headline)
-            Text(NSLocalizedString("friends.list.empty.description", comment: "Empty friends description"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            if let onAddFriend {
-                Button {
+        SoloEmptyState(
+            systemImage: "person.2",
+            title: NSLocalizedString("friends.list.empty.title", comment: "Empty friends title"),
+            message: NSLocalizedString("friends.list.empty.description", comment: "Empty friends description"),
+            actionTitle: onAddFriend == nil
+                ? nil
+                : NSLocalizedString("friends.list.empty.cta", comment: "Add a friend button in empty friends state"),
+            action: onAddFriend.map { add in
+                {
                     Haptics.selection()
-                    onAddFriend()
-                } label: {
-                    Label(NSLocalizedString("friends.list.empty.cta", comment: "Add a friend button in empty friends state"), systemImage: "person.badge.plus")
+                    add()
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .padding(.top, 4)
             }
-        }
-        .padding(32)
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            guard !isBreathing, !reduceMotion else { return }
-            isBreathing = true
-        }
     }
 }
 

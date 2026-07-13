@@ -60,19 +60,11 @@ struct LiveSheet: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "calendar")
-                .font(.system(size: 40))
-                .foregroundStyle(CT.fgSubtle)
-            Text(NSLocalizedString("cityos.live.empty.title", comment: "No local events this week"))
-                .ctDisplay(16, .semibold)
-                .foregroundStyle(colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary)
-            Text(NSLocalizedString("cityos.live.empty.hint", comment: "Check back — the city brief refreshes twice a week."))
-                .ctBody(13)
-                .foregroundStyle(CT.fgMuted)
-                .multilineTextAlignment(.center)
-        }
-        .padding(32)
+        SoloEmptyState(
+            systemImage: "calendar",
+            title: NSLocalizedString("cityos.live.empty.title", comment: "No local events this week"),
+            message: NSLocalizedString("cityos.live.empty.hint", comment: "Check back — the city brief refreshes twice a week.")
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(background.ignoresSafeArea())
     }
