@@ -212,7 +212,7 @@ public struct PaywallView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .frame(width: 24)
-                .foregroundStyle(CT.sunGold)
+                .foregroundStyle(CT.sunGoldDeep)
             Text(NSLocalizedString(key, comment: ""))
                 .font(.subheadline)
                 .frame(maxWidth: .infinity, alignment: .leading)

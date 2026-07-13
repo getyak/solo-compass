@@ -465,7 +465,7 @@ public struct ExperienceDetailView: View {
                 Text(levelSignalText)
                     .font(CT.mono(10.5, userContributed ? .semibold : .regular))
                     .tracking(0.5)
-                    .foregroundStyle(userContributed ? CT.accent : CT.fgSubtle)
+                    .foregroundStyle(userContributed ? CT.accent : CT.fgMuted)
                     .contentTransition(.numericText())
                 Spacer(minLength: 0)
                 trustChip
@@ -537,7 +537,7 @@ public struct ExperienceDetailView: View {
             case .healthy:
                 return ("trust.verified", "checkmark.seal.fill", CT.successText, CT.successSoft)
             case .questioned, .mayBeGone:
-                return ("trust.questioned", "exclamationmark.circle.fill", CT.warningText, CT.warningSoft)
+                return ("trust.questioned", "exclamationmark.circle.fill", CT.warningTextStrong, CT.warningSoft)
             case .fading:
                 return ("trust.observing", "eye", CT.fgMuted, CT.surfaceSunken)
             }
@@ -949,7 +949,7 @@ public struct ExperienceDetailView: View {
                 )
                 symbol = "clock.badge.exclamationmark"
                 background = CT.warningSoft
-                tint = CT.warningText
+                tint = CT.warningTextStrong
             } else if let minutesLeft {
                 label = String(
                     format: NSLocalizedString("bestTimes.now.pill.left", comment: "Good now with minutes left pill"),
@@ -1039,7 +1039,7 @@ public struct ExperienceDetailView: View {
                         let range = viewModel.experience.durationMinutes
                         Text(String(format: NSLocalizedString("section.duration", comment: ""), range.min, range.max))
                             .font(CT.mono(11))
-                            .foregroundStyle(CT.fgSubtle)
+                            .foregroundStyle(CT.fgMuted)
                         Spacer()
                         bestTimeStatusPill
                     }
@@ -1097,7 +1097,7 @@ public struct ExperienceDetailView: View {
                                 .tracking(1.2)
                                 .accessibilityHidden(true)
                         }
-                        .foregroundStyle(CT.warningText)
+                        .foregroundStyle(CT.warningTextStrong)
                         Text(item.text)
                             .font(CT.body(13.5))
                             .foregroundStyle(CT.fgPrimary)
@@ -1197,7 +1197,7 @@ public struct ExperienceDetailView: View {
             if let subtitle {
                 Text(isEstimate ? NSLocalizedString("solo.estimate.pill", comment: "AI estimate pill") : subtitle)
                     .font(CT.mono(10.5))
-                    .foregroundStyle(CT.fgSubtle)
+                    .foregroundStyle(CT.fgMuted)
                     .padding(.bottom, 14)
             }
             VStack(spacing: 9) {
@@ -1431,18 +1431,18 @@ public struct ExperienceDetailView: View {
         HStack(spacing: 8) {
             Image(systemName: iconName)
                 .font(.system(size: 12))
-                .foregroundStyle(CT.fgSubtle)
+                .foregroundStyle(CT.fgMuted)
             Text(label)
                 .font(CT.body(12.5))
                 .foregroundStyle(CT.fgMuted)
             Spacer(minLength: 8)
             Text(date, style: .date)
                 .font(CT.mono(10.5))
-                .foregroundStyle(CT.fgSubtle)
+                .foregroundStyle(CT.fgMuted)
             if isLink {
                 Image(systemName: "arrow.up.right")
                     .font(.system(size: 9))
-                    .foregroundStyle(CT.fgSubtle)
+                    .foregroundStyle(CT.fgMuted)
             }
         }
         .padding(.vertical, 5)

@@ -190,9 +190,9 @@
 "ai.explanation.loading" = "Loading insight…";
 "ai.explanation.title" = "AI Insight";
 "ai.error.missingKey" = "AI features are not configured.";
-"ai.error.request" = "AI request failed (status %d).";
+"ai.error.request" = "Solo couldn't think that through just now — give it another try in a moment.";
 "amap.error.missingKey" = "Amap key not configured; using global data source.";
-"amap.error.request" = "Amap request failed (status %d).";
+"amap.error.request" = "Couldn't reach the map just now — try again in a moment.";
 "amap.error.api" = "Amap API error %@: %@";
 "ai.fallback.explanation" = "Recommended for solo travelers based on quiet seating, low staff pressure, and a strong local signal.";
 "ai.fallback.voice" = "Showing solo-friendly experiences nearby.";
@@ -848,7 +848,7 @@
 
 /* Overpass errors */
 "overpass.error.url" = "Overpass endpoint URL is invalid.";
-"overpass.error.request" = "Map data request failed (status %d).";
+"overpass.error.request" = "The map's still catching up — give it another moment.";
 
 /* Explore consent (US-034) */
 "explore.consent.title" = "Before we explore here";
@@ -2033,7 +2033,7 @@
 
 /* Foursquare errors */
 "foursquare.error.missingKey" = "Foursquare API key is missing";
-"foursquare.error.request" = "Foursquare request failed (status %d)";
+"foursquare.error.request" = "Couldn't pull in places just now — try again in a moment.";
 "foursquare.error.url" = "Invalid Foursquare URL";
 
 /* Friends list — preview */

@@ -100,7 +100,7 @@ struct ExploreConsentSheet: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 18))
-                .foregroundStyle(CT.sunGold)
+                .foregroundStyle(CT.sunGoldDeep)
                 .frame(width: 24, alignment: .center)
             Text(text)
                 .font(.callout)

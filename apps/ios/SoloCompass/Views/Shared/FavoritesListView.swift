@@ -236,7 +236,7 @@ public struct FavoritesListView: View {
                 } else if filteredFavorites.isEmpty && showRemainingOnly && searchText.trimmingCharacters(in: .whitespaces).isEmpty {
                     AllRemainingDoneView(onShowAll: {
                         Haptics.selection()
-                        withAnimation(reduceMotion ? nil : .easeInOut) { showRemainingOnly = false }
+                        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) { showRemainingOnly = false }
                     })
                     .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 } else if filteredFavorites.isEmpty {
@@ -259,7 +259,7 @@ public struct FavoritesListView: View {
                                 nearbyCount: nearbyCount,
                                 onTapNearby: locationService.currentLocation != nil && nearbyCount > 0 ? {
                                     Haptics.selection()
-                                    withAnimation(reduceMotion ? nil : .easeInOut) { sortMode = .nearest }
+                                    withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) { sortMode = .nearest }
                                 } : nil,
                                 momentumLine: momentumLine,
                                 closestTitle: locationService.currentLocation != nil && nearbyCount == 0 ? nearestFavorite?.title : nil,
@@ -267,12 +267,12 @@ public struct FavoritesListView: View {
                                 closestProximityColor: locationService.currentLocation != nil && nearbyCount == 0 ? nearestFavorite.flatMap { proximity(for: $0)?.color } : nil,
                                 onTapClosest: locationService.currentLocation != nil && nearbyCount == 0 && nearestFavorite != nil ? {
                                     Haptics.selection()
-                                    withAnimation(reduceMotion ? nil : .easeInOut) { sortMode = .nearest }
+                                    withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) { sortMode = .nearest }
                                 } : nil,
                                 goodNowCount: goodNowCount,
                                 onTapGoodNow: goodNowCount > 0 ? {
                                     Haptics.selection()
-                                    withAnimation(reduceMotion ? nil : .easeInOut) { prioritizeGoodNow = true }
+                                    withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) { prioritizeGoodNow = true }
                                 } : nil
                             )
                             .padding(.horizontal, 16)
@@ -312,7 +312,7 @@ public struct FavoritesListView: View {
                                     } else {
                                         Button {
                                             Haptics.selection()
-                                            withAnimation(reduceMotion ? nil : .easeInOut) {
+                                            withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
                                                 showRemainingOnly.toggle()
                                             }
                                         } label: {
@@ -325,7 +325,7 @@ public struct FavoritesListView: View {
                                                         : Color.clear,
                                                     in: Capsule()
                                                 )
-                                                .animation(reduceMotion ? nil : .easeInOut, value: showRemainingOnly)
+                                                .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85), value: showRemainingOnly)
                                         }
                                         .buttonStyle(.plain)
                                         .accessibilityLabel(
@@ -341,7 +341,7 @@ public struct FavoritesListView: View {
                                 if showNearbyChip {
                                     Button {
                                         Haptics.selection()
-                                        withAnimation(reduceMotion ? nil : .easeInOut) {
+                                        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
                                             sortMode = .nearest
                                         }
                                     } label: {
@@ -1043,7 +1043,7 @@ private struct EmptyFavoritesView: View {
 
     private func selectTip(_ index: Int) {
         guard index != tipIndex else { return }
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.4)) { tipIndex = index }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) { tipIndex = index }
         Haptics.selection()
         UIAccessibility.post(notification: .announcement, argument: tips[index])
     }
@@ -1210,7 +1210,7 @@ private struct NoSearchResultsView: View {
             if goodNowCount > 0, let onShowGoodNow {
                 Button {
                     Haptics.selection()
-                    withAnimation(reduceMotion ? nil : .easeInOut) {
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
                         onShowGoodNow()
                     }
                 } label: {
@@ -1372,7 +1372,7 @@ private extension FavoritesListView {
         undoDismissTask?.cancel()
         undoDismissTask = nil
         undoProgress = 1
-        withAnimation(.easeInOut) {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
             preferences.toggleFavorite(saved.id, at: saved.date)
             lastUnfavorited = nil
         }
@@ -1537,7 +1537,7 @@ private extension FavoritesListView {
                 let expId = exp.id
                 let expTitle = exp.title
                 undoProgress = 1
-                withAnimation(.easeInOut) {
+                withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
                     preferences.toggleFavorite(expId)
                 }
                 lastUnfavorited = (id: expId, title: expTitle, date: savedDate)
@@ -1565,7 +1565,7 @@ private extension FavoritesListView {
             Button {
                 if isDone {
                     Haptics.selection()
-                    withAnimation(.easeInOut) {
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
                         preferences.completedExperiences.remove(exp.id)
                         preferences.visitHistory.removeValue(forKey: exp.id)
                     }
@@ -1574,7 +1574,7 @@ private extension FavoritesListView {
                         argument: NSLocalizedString("favorites.row.markNotVisited.announcement", comment: "VoiceOver announcement after marking as not visited")
                     )
                 } else {
-                    withAnimation(.easeInOut) {
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
                         preferences.markCompleted(exp.id)
                     }
                     celebrationTrigger += 1
