@@ -116,8 +116,8 @@ public extension View {
 // tier by *surface size*, not by guesswork.
 //
 // Discipline (per axiom-design): never stack glass on glass; tint only primary
-// actions; let the system own legibility. Reduce-transparency downgrades the
-// fallback material automatically via SwiftUI.
+// actions; let the system own legibility. Reduce Transparency is handled
+// explicitly by the modifier below — it swaps to an opaque semantic fill.
 
 public enum GlassTier {
     /// Structural chrome — sheets, nav bars, large floating panels. Thicker.
@@ -133,23 +133,52 @@ public enum GlassTier {
     }
 }
 
+/// Backs a surface with Liquid Glass (iOS 26+) or a material fallback (iOS 17–25),
+/// AND honors Reduce Transparency by dropping to an opaque fill (audit a11y-01).
+private struct GlassSurfaceModifier<S: Shape>: ViewModifier {
+    let tier: GlassTier
+    let shape: S
+    let opaqueFallback: Color
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            // Reduce Transparency: no blur/glass at all — a semantic opaque fill.
+            content.background(opaqueFallback, in: shape)
+        } else if #available(iOS 26, *) {
+            content.glassEffect(.regular, in: shape)
+        } else {
+            content.background(tier.fallbackMaterial, in: shape)
+        }
+    }
+}
+
 public extension View {
     /// Applies a Liquid Glass surface (iOS 26+) or the unified material fallback
     /// (iOS 17–25), clipped to `shape`. Use instead of ad-hoc `.background(.xMaterial, in:)`.
     ///
+    /// Reduce Transparency automatically swaps the blur/glass for `opaqueFallback`
+    /// — pass a fill that matches the surface's semantics (a warm sheet ground,
+    /// a card fill…), NOT a blanket white, so the accessible variant still reads
+    /// as the right surface.
+    ///
+    /// FORBIDDEN SURFACES: any float that sits OVER a sunGold / event-bloom map
+    /// marker must NOT use glass or translucent material — iOS 26's vibrancy pass
+    /// samples the warm amber marker underneath and remaps it into purple/cyan
+    /// fringes (see BottomInfoSheet's opaque-fill decision). Those floats use a
+    /// CT.bgWarm / warmSheetDark solid fill instead. Includes (but isn't limited
+    /// to) ExploreModeOverlay pill and ExploreProgressBar (audit glass-02).
+    ///
     /// - Parameters:
     ///   - tier: structural (thick) vs control (thin) — chosen by surface size.
     ///   - shape: the clip/glass shape (default: Capsule).
-    @ViewBuilder
+    ///   - opaqueFallback: opaque fill used under Reduce Transparency (default: warm card).
     func glassSurface(
         _ tier: GlassTier = .structural,
-        in shape: some Shape = Capsule()
+        in shape: some Shape = Capsule(),
+        opaqueFallback: Color = CT.cardAdaptive
     ) -> some View {
-        if #available(iOS 26, *) {
-            self.glassEffect(.regular, in: shape)
-        } else {
-            self.background(tier.fallbackMaterial, in: shape)
-        }
+        modifier(GlassSurfaceModifier(tier: tier, shape: shape, opaqueFallback: opaqueFallback))
     }
 }
 
