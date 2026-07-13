@@ -85,18 +85,23 @@ public enum Elevation {
         public let radius: CGFloat
         public let x: CGFloat
         public let y: CGFloat
+
+        /// Warm shadow tint — #1F1A14 (CT.fgPrimary) at low opacity. Keeps shadows
+        /// in the amber system rather than a cold pure-black.
+        private static let warmScrim = Color(.sRGB, red: 0x1F / 255, green: 0x1A / 255, blue: 0x14 / 255, opacity: 1)
+
+        /// Card — a resting surface just above the background.
+        public static let card = Preset(color: warmScrim.opacity(0.08), radius: 8, x: 0, y: 2)
+        /// Sheet — a floating panel / bottom sheet lifted off content.
+        public static let sheet = Preset(color: warmScrim.opacity(0.12), radius: 16, x: 0, y: 6)
+        /// Modal — a takeover surface that must read as clearly in front.
+        public static let modal = Preset(color: warmScrim.opacity(0.18), radius: 28, x: 0, y: 12)
     }
 
-    /// Warm shadow tint — #1F1A14 (CT.fgPrimary) at low opacity. Keeps shadows
-    /// in the amber system rather than a cold pure-black.
-    private static let warmScrim = Color(.sRGB, red: 0x1F / 255, green: 0x1A / 255, blue: 0x14 / 255, opacity: 1)
-
-    /// Card — a resting surface just above the background.
-    public static let card = Preset(color: warmScrim.opacity(0.08), radius: 8, x: 0, y: 2)
-    /// Sheet — a floating panel / bottom sheet lifted off content.
-    public static let sheet = Preset(color: warmScrim.opacity(0.12), radius: 16, x: 0, y: 6)
-    /// Modal — a takeover surface that must read as clearly in front.
-    public static let modal = Preset(color: warmScrim.opacity(0.18), radius: 28, x: 0, y: 12)
+    // Convenience aliases on the enum itself, so `Elevation.card` also works.
+    public static let card = Preset.card
+    public static let sheet = Preset.sheet
+    public static let modal = Preset.modal
 }
 
 public extension View {

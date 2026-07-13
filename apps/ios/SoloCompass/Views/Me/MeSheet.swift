@@ -560,8 +560,10 @@ struct MapAvatarBubble: View {
                 Text(CompanionProfile.sample.avatarEmoji)
                     .font(.system(size: 22))
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(.regularMaterial))
-                    .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
+                    // Small control → thin glass tier (was regular = too heavy);
+                    // gains Liquid Glass on iOS 26 and Reduce-Transparency fallback.
+                    .glassSurface(.control, in: Circle())
+                    .elevation(.card)
 
                 if hasPendingRequests {
                     Circle()

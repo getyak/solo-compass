@@ -412,7 +412,8 @@ public struct ExperienceCardView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 26, height: 26)
-                    .background(Circle().fill(.regularMaterial))
+                    // Small control → thin glass tier (was regular = too heavy).
+                    .glassSurface(.control, in: Circle())
                     .frame(
                         minWidth: HitTargetMetrics.minimum,
                         minHeight: HitTargetMetrics.minimum
