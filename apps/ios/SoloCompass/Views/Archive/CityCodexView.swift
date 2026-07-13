@@ -44,7 +44,7 @@ public struct CityCodexView: View {
                     .padding(.bottom, 20)
             }
         }
-        .background(CT.bgWarm)
+        .background(CT.pageAdaptive)
         .navigationTitle("City Codex")
     }
 

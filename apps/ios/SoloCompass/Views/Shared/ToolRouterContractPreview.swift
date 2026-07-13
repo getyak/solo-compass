@@ -31,7 +31,7 @@ public struct ToolRouterContractPreview: View {
             }
             .padding(20)
         }
-        .background(Color(white: 0.98))
+        .background(CT.pageAdaptive)
         .navigationTitle("Tool Router contract")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -71,7 +71,7 @@ public struct ToolRouterContractPreview: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(white: 0.94))
+                        .fill(CT.sheetAdaptive)
                 )
         }
         .padding(14)

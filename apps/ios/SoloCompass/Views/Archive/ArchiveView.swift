@@ -78,7 +78,7 @@ public struct ArchiveView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
         }
-        .background(colorScheme == .dark ? Color(.systemBackground) : Color(white: 0.98))
+        .background(colorScheme == .dark ? Color(.systemBackground) : CT.bgWarm)
         .navigationTitle(NSLocalizedString("archive.title", comment: "Travel archive title"))
         .onAppear {
             viewModel.refresh()
@@ -280,7 +280,7 @@ public struct ArchiveView: View {
             }
             .padding(20)
         }
-        .background(colorScheme == .dark ? Color(.systemBackground) : Color(white: 0.98))
+        .background(colorScheme == .dark ? Color(.systemBackground) : CT.bgWarm)
         .navigationTitle("Travel Book")
         .navigationBarTitleDisplayMode(.inline)
     }

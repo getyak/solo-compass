@@ -58,31 +58,18 @@ struct ChatCardStack: View {
             }
         }
         // Slice B: overlay the undo pill only while the entry is
-        // provisional. `.topTrailing` so it sits above the card's own
-        // action area without stealing hit targets. A committed / undone
-        // entry gets no pill (case handled by exhaustive switch).
+        // provisional. A committed / undone entry gets no pill and no swipe
+        // (case handled by exhaustive switch). The provisional path is a
+        // dedicated child view so it can own per-row `@State` drag offset for
+        // a true 1:1 follow — a `@ViewBuilder` method can't hold state.
         if let entry, case let .provisional(deadline) = entry.state {
-            content
-                .overlay(alignment: .topTrailing) {
-                    UndoPill(
-                        deadline: deadline,
-                        onUndo: { onUndoCard?(entry.id) }
-                    )
-                    // Nudge into the card's top-right corner without
-                    // clipping past the padding on ChatCardStack itself.
-                    .padding(.trailing, 6)
-                    .padding(.top, 6)
-                }
-                // Whole-card left swipe as a second undo affordance — the
-                // pill is the primary one; swipe is for muscle-memory.
-                .gesture(
-                    DragGesture(minimumDistance: 30, coordinateSpace: .local)
-                        .onEnded { drag in
-                            if drag.translation.width < -40 {
-                                onUndoCard?(entry.id)
-                            }
-                        }
-                )
+            ProvisionalCardRow(
+                entryID: entry.id,
+                deadline: deadline,
+                onUndoCard: onUndoCard
+            ) {
+                content
+            }
         } else {
             content
         }
@@ -108,6 +95,73 @@ struct ChatCardStack: View {
                 }
             }
         }
+    }
+}
+
+/// A provisional card row that follows the finger 1:1 on a left swipe as a
+/// second undo affordance (the `UndoPill` is the primary one). Extracted into
+/// its own view so it can own the per-row `@State` drag offset — a
+/// `@ViewBuilder` method on `ChatCardStack` can't. The offset acts only on this
+/// row; sibling rows in the `VStack` are unaffected.
+@MainActor
+private struct ProvisionalCardRow<Content: View>: View {
+    let entryID: UUID
+    let deadline: Date
+    let onUndoCard: ((UUID) -> Void)?
+    @ViewBuilder let content: Content
+
+    /// Distance past which a release commits the undo. Also the point where the
+    /// drag starts rubber-banding so overshoot feels resistant, not runaway.
+    private static var undoThreshold: CGFloat { 80 }
+
+    @State private var dragOffset: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        content
+            .overlay(alignment: .topTrailing) {
+                UndoPill(
+                    deadline: deadline,
+                    onUndo: { onUndoCard?(entryID) }
+                )
+                // Nudge into the card's top-right corner without clipping past
+                // the padding on ChatCardStack itself.
+                .padding(.trailing, 6)
+                .padding(.top, 6)
+            }
+            .offset(x: dragOffset)
+            .gesture(swipeGesture)
+    }
+
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .local)
+            .onChanged { drag in
+                // Left-only: ignore rightward pull entirely. Past the threshold,
+                // the extra travel is dampened (0.3) so the card resists an
+                // overshoot instead of flying off — classic rubber-band.
+                let raw = min(0, drag.translation.width)
+                if raw < -Self.undoThreshold {
+                    let extra = raw + Self.undoThreshold
+                    dragOffset = -Self.undoThreshold + extra * 0.3
+                } else {
+                    dragOffset = raw
+                }
+            }
+            .onEnded { drag in
+                // Commit on either enough travel or a fast predicted throw.
+                let committed = drag.translation.width < -Self.undoThreshold
+                    || drag.predictedEndTranslation.width < -Self.undoThreshold * 1.5
+                let settle = Animation.spring(response: 0.3, dampingFraction: 0.8)
+                if committed {
+                    withAnimation(reduceMotion ? nil : settle) {
+                        onUndoCard?(entryID)
+                    }
+                } else {
+                    withAnimation(reduceMotion ? nil : settle) {
+                        dragOffset = 0
+                    }
+                }
+            }
     }
 }
 

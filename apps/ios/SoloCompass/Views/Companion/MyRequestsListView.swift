@@ -273,55 +273,25 @@ public struct MyRequestsListView: View {
 private struct EmptyMyRequestsView: View {
     var onDiscover: (() -> Void)? = nil
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isBreathing = false
-
     var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(CT.accent.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(CT.accent.opacity(0.7))
-                    .scaleEffect(isBreathing ? 1.08 : 0.94)
-                    .opacity(isBreathing ? 1.0 : 0.7)
-                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: isBreathing)
-            }
-            Text(NSLocalizedString(
+        SoloEmptyState(
+            systemImage: "paperplane.fill",
+            title: NSLocalizedString(
                 "my.requests.empty",
                 comment: "Empty state — no join requests sent yet"
-            ))
-            .font(.headline)
-            Text(NSLocalizedString(
+            ),
+            message: NSLocalizedString(
                 "my.requests.empty.hint",
                 comment: "Empty state hint — explains how to send a join request"
-            ))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            if let onDiscover {
-                Button {
-                    Haptics.selection()
-                    onDiscover()
-                } label: {
-                    Label(
-                        NSLocalizedString("my.requests.empty.cta", comment: "Discover recruiting routes CTA"),
-                        systemImage: "figure.walk"
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .padding(.top, 4)
+            ),
+            actionTitle: onDiscover.map { _ in
+                NSLocalizedString("my.requests.empty.cta", comment: "Discover recruiting routes CTA")
+            },
+            action: onDiscover.map { discover in
+                { Haptics.selection(); discover() }
             }
-        }
-        .padding(32)
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            guard !isBreathing, !reduceMotion else { return }
-            isBreathing = true
-        }
     }
 }
 

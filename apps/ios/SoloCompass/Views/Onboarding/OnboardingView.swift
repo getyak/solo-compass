@@ -613,7 +613,7 @@ public struct OnboardingView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.body)
-                .foregroundStyle(CT.sunGold)
+                .foregroundStyle(CT.sunGoldDeep)
                 .frame(width: 24)
             Text(NSLocalizedString(key, comment: ""))
                 .font(.subheadline)

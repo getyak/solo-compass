@@ -43,7 +43,7 @@ public struct FriendProfileView: View {
 
     public var body: some View {
         ZStack(alignment: .bottom) {
-            CT.bgWarm.ignoresSafeArea()
+            CT.pageAdaptive.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 20) {
@@ -175,6 +175,10 @@ public struct FriendProfileView: View {
         VStack(spacing: 4) {
             Text("\(value)")
                 .font(.title3.weight(.bold))
+                // Fixed near-black: this row lives inside `fixedCard` (CT.surfaceWhite,
+                // white in both themes), so text must stay fixed-dark — adaptive tokens
+                // here would render near-white on white in dark mode. See sibling
+                // languageChip/bioCard, which correctly keep fixed foregrounds.
                 .foregroundStyle(CT.fgPrimary)
             Text(label)
                 .font(.caption2)

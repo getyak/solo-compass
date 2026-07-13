@@ -61,8 +61,12 @@ private struct SkeletonLine: View {
     }
 
     private func shimmerGradient(width: CGFloat) -> LinearGradient {
-        let highlight = Color.white.opacity(0.6)
-        let base = Color(uiColor: .systemGray5)
+        // Warm-amber shimmer instead of cold systemGray — the loading state is
+        // one of the screens users stare at longest, and it should breathe the
+        // same amber identity as the rest of the app (audit skeleton-01).
+        // Base + highlight are adaptive so dark mode stays warm-charcoal, not gray.
+        let highlight = CT.surfaceWhite.opacity(0.55)
+        let base = CT.sheetAdaptive
         let center = (shimmerPhase + 1) / 2
         return LinearGradient(
             stops: [
@@ -85,7 +89,7 @@ public struct CompanionRowSkeleton: View {
     public var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Circle()
-                .fill(Color(uiColor: .systemGray5))
+                .fill(CT.sheetAdaptive)
                 .frame(width: 36, height: 36)
                 .accessibilityHidden(true)
 
@@ -111,8 +115,8 @@ public struct CompanionSkeletonList: View {
                 Divider().padding(.leading, 64)
             }
         }
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .background(CT.cardAdaptive)
+        .clipShape(Radius.shape(Radius.md))
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .accessibilityElement(children: .ignore)

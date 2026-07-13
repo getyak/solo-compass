@@ -383,13 +383,13 @@ public struct ExperienceCardView: View {
         .padding(16)
         .background(
             ZStack {
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: Radius.xl, style: .continuous)
                     .stroke(CT.verifiedGreen.opacity(arrivalGlow ? 0 : 0.7), lineWidth: 3)
                     .scaleEffect(arrivalGlow ? 1.25 : 1.0)
                     .animation(.easeOut(duration: 0.8), value: arrivalGlow)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: Radius.xl, style: .continuous)
                     .fill(.regularMaterial)
                     // Card now floats ABOVE the BottomInfoSheet, so it casts a
                     // soft downward shadow onto the sheet to read as "lifted",
@@ -412,7 +412,12 @@ public struct ExperienceCardView: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 26, height: 26)
-                    .background(Circle().fill(.regularMaterial))
+                    // Plain thin material, NOT glassSurface: this card floats directly
+                    // over the map (its own bg is .regularMaterial), so a glass layer
+                    // here would stack glass-on-glass inside the sunGold-marker vibrancy
+                    // zone — a forbidden glass surface. Thin material was the goal
+                    // (regular was too heavy) without entering the glass path.
+                    .background(.thinMaterial, in: Circle())
                     .frame(
                         minWidth: HitTargetMetrics.minimum,
                         minHeight: HitTargetMetrics.minimum
@@ -905,7 +910,7 @@ public struct ExperienceCardView: View {
                 }
             }
             .frame(width: 52, height: 52)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(Radius.shape(Radius.md))
             // Category color corner badge keeps the type glanceable over a photo.
             .overlay(alignment: .bottomTrailing) {
                 Image(systemName: experience.category.symbol)

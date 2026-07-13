@@ -714,7 +714,7 @@ struct NowHintRow: View {
         HStack(spacing: 6) {
             Image(systemName: "sunset.fill")
                 .font(.caption)
-                .foregroundStyle(CT.sunGold)
+                .foregroundStyle(CT.sunGoldDeep)
             Text(hint)
                 .font(.caption)
                 .foregroundStyle(.secondary)

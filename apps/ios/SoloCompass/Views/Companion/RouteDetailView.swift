@@ -134,7 +134,7 @@ public struct RouteDetailView: View {
                     .font(.system(size: 40))
 
                 Text(liveRoute.title)
-                    .font(.custom("SpaceGrotesk-Bold", size: 26).weight(.bold))
+                    .font(CT.displayRounded(26, .bold))
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
 

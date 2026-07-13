@@ -309,6 +309,10 @@ public struct ChatSheet: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 30, height: 30)
                         .background(closeButtonFill, in: Circle())
+                        // Keep the visible glyph 30×30 but expand the tappable
+                        // region to the 44pt HIG minimum (a11y-02).
+                        .frame(minWidth: HitTargetMetrics.minimum, minHeight: HitTargetMetrics.minimum)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(NSLocalizedString("chat.history.open.a11y", comment: "Open chat history")))
@@ -320,6 +324,10 @@ public struct ChatSheet: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 30, height: 30)
                     .background(closeButtonFill, in: Circle())
+                    // Keep the visible glyph 30×30 but expand the tappable
+                    // region to the 44pt HIG minimum (a11y-02).
+                    .frame(minWidth: HitTargetMetrics.minimum, minHeight: HitTargetMetrics.minimum)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text(NSLocalizedString("common.close", comment: "Close")))
@@ -852,7 +860,7 @@ public struct ChatSheet: View {
                 if let secondary = placeSecondaryName(place) {
                     Text(secondary)
                         .font(.system(size: 12, weight: .regular))
-                        .foregroundStyle(CT.fgSubtle)
+                        .foregroundStyle(CT.fgMuted)
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1112,7 +1120,7 @@ public struct ChatSheet: View {
         return HStack(spacing: 7) {
             Image(systemName: nowContextIcon)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(CT.sunGold)
+                .foregroundStyle(CT.sunGoldDeep)
             Text(copy)
                 .font(.system(size: 11.5, weight: .medium))
                 .lineLimit(1)

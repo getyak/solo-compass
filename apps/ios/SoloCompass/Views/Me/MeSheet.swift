@@ -560,8 +560,12 @@ struct MapAvatarBubble: View {
                 Text(CompanionProfile.sample.avatarEmoji)
                     .font(.system(size: 22))
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(.regularMaterial))
-                    .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
+                    // Plain thin material, NOT glassSurface: this bubble floats over the
+                    // raw map in the top overlay row, and glass surfaces are forbidden
+                    // over the map (markers scroll under it → sunGold vibrancy fringe).
+                    // Thin material was the goal (regular too heavy) without glass.
+                    .background(.thinMaterial, in: Circle())
+                    .elevation(.card)
 
                 if hasPendingRequests {
                     Circle()

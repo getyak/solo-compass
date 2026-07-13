@@ -101,9 +101,9 @@
 "ai.explanation.loading" = "正在加载洞察…";
 "ai.explanation.title" = "AI 洞察";
 "ai.error.missingKey" = "AI 功能尚未配置。";
-"ai.error.request" = "AI 请求失败（状态 %d）。";
+"ai.error.request" = "Solo 这会儿没想明白，稍等片刻再试一次。";
 "amap.error.missingKey" = "高德 Key 未配置，已改用全球数据源。";
-"amap.error.request" = "高德请求失败（状态 %d）。";
+"amap.error.request" = "这会儿连不上地图，稍等片刻再试。";
 "amap.error.api" = "高德 API 错误 %@：%@";
 "ai.fallback.explanation" = "推荐给独行旅人：座位安静、员工不打扰、本地信号强。";
 "ai.fallback.voice" = "正在显示附近适合独行的体验。";
@@ -521,7 +521,7 @@
 
 /* Overpass errors */
 "overpass.error.url" = "Overpass 端点 URL 无效。";
-"overpass.error.request" = "地图数据请求失败（状态 %d）。";
+"overpass.error.request" = "地图还在加载，再给它一点时间。";
 
 /* Explore consent (US-034) */
 "explore.consent.title" = "开始探索之前";
@@ -1968,7 +1968,7 @@
 
 /* Foursquare errors */
 "foursquare.error.missingKey" = "缺少 Foursquare API 密钥";
-"foursquare.error.request" = "Foursquare 请求失败（状态 %d）";
+"foursquare.error.request" = "这会儿没能拉到地点，稍后再试。";
 "foursquare.error.url" = "Foursquare URL 无效";
 
 /* Friend add */

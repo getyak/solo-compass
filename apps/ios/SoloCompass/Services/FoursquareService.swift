@@ -33,8 +33,8 @@ public final class FoursquareService {
                 return NSLocalizedString("foursquare.error.url", comment: "Invalid Foursquare URL")
             case .missingAPIKey:
                 return NSLocalizedString("foursquare.error.missingKey", comment: "Foursquare API key missing")
-            case .requestFailed(let status):
-                return String(format: NSLocalizedString("foursquare.error.request", comment: "Foursquare request failed status %d"), status)
+            case .requestFailed:
+                return NSLocalizedString("foursquare.error.request", comment: "Foursquare request failed — warm retry copy")
             case .decodingFailed(let msg):
                 return msg
             }

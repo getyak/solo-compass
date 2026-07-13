@@ -107,11 +107,11 @@ public struct RouteCard: View {
         .padding(.top, 13)
         .padding(.bottom, 11)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(CT.surfaceWhite)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 // `.sc-route-card.is-now` warms the border to the accent tone.
                 .strokeBorder(nowContext ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
         )
@@ -154,7 +154,7 @@ public struct RouteCard: View {
         .padding(.horizontal, 11)
         .padding(.vertical, 7)
         .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous).fill(CT.sunGoldSoft)
+            RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(CT.sunGoldSoft)
         )
         .padding(.bottom, 11)
         .accessibilityElement(children: .combine)
@@ -348,11 +348,13 @@ public struct RouteCard: View {
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 9)
+        // Inner tile nested in the md (12pt) route card → sm (8pt) keeps concentric
+        // corners (inner < outer); md here equalled the parent radius (HIG smell).
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous).fill(bg)
+            RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(bg)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.sm, style: .continuous)
                 .strokeBorder(border, lineWidth: 0.5)
         )
         .accessibilityElement(children: .ignore)

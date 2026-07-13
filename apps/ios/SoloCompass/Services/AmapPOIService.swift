@@ -45,8 +45,8 @@ public final class AmapPOIService {
             switch self {
             case .missingKey:
                 return NSLocalizedString("amap.error.missingKey", comment: "Amap API key not configured")
-            case .requestFailed(let status):
-                return String(format: NSLocalizedString("amap.error.request", comment: "Amap request failed status %d"), status)
+            case .requestFailed:
+                return NSLocalizedString("amap.error.request", comment: "Amap request failed — warm retry copy")
             case .apiError(let code, let info):
                 return String(format: NSLocalizedString("amap.error.api", comment: "Amap API error %@ %@"), code, info)
             }

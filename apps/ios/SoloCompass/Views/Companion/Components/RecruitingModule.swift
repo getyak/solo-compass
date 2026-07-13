@@ -56,7 +56,7 @@ public struct RecruitingModule: View {
         .padding(.bottom, 12)
         .background(cardBackground)
         .overlay(cardBorder)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
     }
 
     // MARK: - Strength-based card styling
@@ -77,13 +77,13 @@ public struct RecruitingModule: View {
     private var cardBorder: some View {
         switch strength {
         case .restrained:
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
         case .neutral:
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .strokeBorder(CT.accentBorder, lineWidth: 0.5)
         case .strong:
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .strokeBorder(CT.accent, lineWidth: 1.5)
         }
     }
@@ -214,7 +214,7 @@ public struct RecruitingModule: View {
             .overlay(alignment: .leading) {
                 CT.accent.frame(width: 2)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
             .padding(.top, 7)
     }
 

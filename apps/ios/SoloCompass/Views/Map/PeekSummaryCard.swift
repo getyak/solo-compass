@@ -84,7 +84,7 @@ struct PeekSummaryCard: View {
         .padding(.vertical, 11)
         .background(cardBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .strokeBorder(isSmartPick ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5)
         )
         .overlay(alignment: .leading) {
@@ -97,7 +97,7 @@ struct PeekSummaryCard: View {
             .fill(isSmartPick ? CT.sunGold : experience.category.color)
             .frame(width: 3)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(Radius.shape(Radius.md))
         .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -519,7 +519,7 @@ struct PeekSummaryCard: View {
     }
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
             .fill(isSmartPick ? AnyShapeStyle(smartPickGradient) : AnyShapeStyle(CT.surfaceWhite))
     }
 
@@ -644,11 +644,11 @@ struct PeekEmptyCard: View {
         .padding(.horizontal, 14)
         .frame(minHeight: 44)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .fill(CT.surfaceWhite)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
                 .strokeBorder(CT.borderSubtle, lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)

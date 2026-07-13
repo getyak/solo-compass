@@ -65,8 +65,9 @@ public final class AIService {
             switch self {
             case .missingAPIKey:
                 return NSLocalizedString("ai.error.missingKey", comment: "Missing API key")
-            case .requestFailed(let status, _):
-                return String(format: NSLocalizedString("ai.error.request", comment: "Request failed status %d"), status)
+            case .requestFailed:
+                // Status code stays in the error case for logging; the user sees warm copy.
+                return NSLocalizedString("ai.error.request", comment: "AI request failed — warm retry copy")
             case .decodingFailed(let msg):
                 return msg
             }

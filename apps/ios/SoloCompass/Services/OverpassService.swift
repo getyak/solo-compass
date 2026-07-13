@@ -48,8 +48,8 @@ public final class OverpassService {
             switch self {
             case .invalidURL:
                 return NSLocalizedString("overpass.error.url", comment: "Invalid Overpass URL")
-            case .requestFailed(let status):
-                return String(format: NSLocalizedString("overpass.error.request", comment: "Overpass request failed status %d"), status)
+            case .requestFailed:
+                return NSLocalizedString("overpass.error.request", comment: "Map data request failed — warm retry copy")
             case .decodingFailed(let msg):
                 return msg
             }
