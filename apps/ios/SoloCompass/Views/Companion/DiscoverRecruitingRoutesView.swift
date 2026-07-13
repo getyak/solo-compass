@@ -79,7 +79,7 @@ public struct DiscoverRecruitingRoutesView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .background(CT.bgWarm)
+        .background(CT.pageAdaptive)
     }
 
     private var emptyState: some View {
@@ -92,7 +92,7 @@ public struct DiscoverRecruitingRoutesView: View {
                 )
             )
             .font(.headline)
-            .foregroundStyle(CT.fgPrimary)
+            .foregroundStyle(CT.textPrimaryAdaptive)
             .multilineTextAlignment(.center)
             Text(
                 NSLocalizedString(
@@ -101,7 +101,7 @@ public struct DiscoverRecruitingRoutesView: View {
                 )
             )
             .font(.subheadline)
-            .foregroundStyle(CT.fgMuted)
+            .foregroundStyle(CT.textMutedAdaptive)
             .multilineTextAlignment(.center)
             Button {
                 showingCreateRoute = true
@@ -117,7 +117,7 @@ public struct DiscoverRecruitingRoutesView: View {
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(CT.bgWarm)
+        .background(CT.pageAdaptive)
     }
 
     // MARK: - Composite scoring

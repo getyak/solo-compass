@@ -185,6 +185,10 @@ public enum CT {
     public static let textMutedAdaptive   = adaptive(light: 0x6D, 0x63, 0x58, dark: 0xB0, 0xA6, 0x97)
     /// Hairline border — borderSubtle (light) / warmBorderDark (dark).
     public static let borderAdaptive      = adaptive(light: 0xED, 0xE8, 0xDF, dark: 0x3A, 0x33, 0x29)
+    /// Full-page warm ground — bgWarm (light) / warmSheetDark (dark). For the
+    /// page-level `.background(CT.bgWarm)` on full-screen surfaces that must go
+    /// dark instead of staying a light-locked white page (audit color-01).
+    public static let pageAdaptive        = adaptive(light: 0xFA, 0xF8, 0xF6, dark: 0x17, 0x14, 0x10)
 
     /// Builds a light/dark-adaptive `Color` from two RGB triples. Mirrors the
     /// `rgb()` factory below but resolves per `userInterfaceStyle` at render time.

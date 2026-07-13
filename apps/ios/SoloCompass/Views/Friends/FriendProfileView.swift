@@ -43,7 +43,7 @@ public struct FriendProfileView: View {
 
     public var body: some View {
         ZStack(alignment: .bottom) {
-            CT.bgWarm.ignoresSafeArea()
+            CT.pageAdaptive.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 20) {
@@ -175,10 +175,10 @@ public struct FriendProfileView: View {
         VStack(spacing: 4) {
             Text("\(value)")
                 .font(.title3.weight(.bold))
-                .foregroundStyle(CT.fgPrimary)
+                .foregroundStyle(CT.textPrimaryAdaptive)
             Text(label)
                 .font(.caption2)
-                .foregroundStyle(CT.fgMuted)
+                .foregroundStyle(CT.textMutedAdaptive)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
