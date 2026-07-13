@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // Design tokens lifted verbatim from CompareCanvas.html (claude.ai/design handoff).
 // Use these when a view is a direct port of a Route / Companion design surface.
@@ -153,6 +154,49 @@ public enum CT {
     public static let washLight     = Color.white.opacity(0.85)
     /// Glassmorphism capsule fill — warm white with subtle translucency.
     public static let washCapsule   = Color.white.opacity(0.72)
+
+    // MARK: - Adaptive color tokens (audit color-02)
+    //
+    // ~75 call sites hand-wrote the SAME `colorScheme == .dark ? CT.xDark : CT.x`
+    // ternary inline. These five tokens fold that duplication into one place using
+    // a dynamic UIColor provider, so a call site can drop the ternary (and often
+    // its `@Environment(\.colorScheme)`) and just use the adaptive token.
+    //
+    // DISCIPLINE (do not skip — see audit color-02 adjusted_fix):
+    //  • These are ONLY for surfaces that were ALREADY colorScheme-aware. The
+    //    46 fixed white cards (`CT.surfaceWhite` with near-black `CT.fgPrimary`,
+    //    no colorScheme branch) are intentional light-fixed cards — DO NOT swap
+    //    them to these adaptive tokens, or a fixed white card would go dark.
+    //  • `cardAdaptive` (bg) and `textPrimaryAdaptive` (text) must be adopted as a
+    //    PAIR on the same view so contrast stays self-consistent.
+    //  • Semantic (non-mechanical) dark mappings — e.g. `warmSunkenDark : accentSoft`,
+    //    `fgPrimaryDark : sunGoldDeep` — are NOT covered here; keep those explicit.
+    //
+    // `Color(UIColor { ... })` resolves per-trait at render time (iOS 13+), so it
+    // adapts to light/dark for backgrounds, fills, and foreground styles alike.
+
+    /// Raised card fill — surfaceWhite (light) / warmCardDark (dark).
+    public static let cardAdaptive        = adaptive(light: 0xFF, 0xFF, 0xFF, dark: 0x23, 0x1F, 0x19)
+    /// Sheet / sunken base — surfaceSunken (light) / warmSheetDark (dark).
+    public static let sheetAdaptive       = adaptive(light: 0xF3, 0xEE, 0xE6, dark: 0x17, 0x14, 0x10)
+    /// Primary text — fgPrimary (light) / fgPrimaryDark (dark).
+    public static let textPrimaryAdaptive = adaptive(light: 0x1F, 0x1A, 0x14, dark: 0xF4, 0xEF, 0xE7)
+    /// Secondary text — fgMuted (light) / fgMutedDark (dark).
+    public static let textMutedAdaptive   = adaptive(light: 0x6D, 0x63, 0x58, dark: 0xB0, 0xA6, 0x97)
+    /// Hairline border — borderSubtle (light) / warmBorderDark (dark).
+    public static let borderAdaptive      = adaptive(light: 0xED, 0xE8, 0xDF, dark: 0x3A, 0x33, 0x29)
+
+    /// Builds a light/dark-adaptive `Color` from two RGB triples. Mirrors the
+    /// `rgb()` factory below but resolves per `userInterfaceStyle` at render time.
+    private static func adaptive(
+        light lr: Int, _ lg: Int, _ lb: Int,
+        dark dr: Int, _ dg: Int, _ db: Int
+    ) -> Color {
+        Color(UIColor { traits in
+            let (r, g, b) = traits.userInterfaceStyle == .dark ? (dr, dg, db) : (lr, lg, lb)
+            return UIColor(red: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: 1)
+        })
+    }
 
     // MARK: - Typography (Space Grotesk / Inter / JetBrains Mono → system fallback)
     // `display` keeps the existing default-design fallback so chat/route surfaces
