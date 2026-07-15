@@ -1,0 +1,14 @@
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    env_file: ../.env
+    ports:
+      - "127.0.0.1:14300:4300"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4300/ >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
