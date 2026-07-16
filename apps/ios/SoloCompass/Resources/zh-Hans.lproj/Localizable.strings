@@ -2353,3 +2353,19 @@
 
 "dev.lock" = "锁定开发者选项";
 "dev.lock.footer" = "隐藏该面板，直到你再次用测试邮箱解锁。你的 Pro 权益会保留。";
+
+// MARK: Settings consolidation (#130)
+"settings.personalize" = "你的喜好";
+"settings.personalize.footer" = "你的旅行风格与类别喜好，决定哪些体验浮上地图。";
+"settings.categories.value" = "%1$d 喜欢 · %2$d 隐藏";
+"settings.discovery" = "发现";
+"settings.discovery.footer" = "只有此半径内的体验会出现在地图上。经过收藏地点时会轻声提醒——绝无营销打扰。";
+"settings.appearanceLanguage" = "外观与语言";
+"settings.companion.hub" = "同行中心";
+"settings.account" = "账户";
+"settings.dataAbout" = "数据与关于";
+"settings.about.version" = "版本";
+"settings.advanced" = "高级";
+"settings.advanced.footer" = "面向高级用户的工具：AI 服务、测试员解锁与开发者选项。";
+"settings.theme.system" = "跟随系统";
+"settings.theme.obsidian" = "曜石黑";

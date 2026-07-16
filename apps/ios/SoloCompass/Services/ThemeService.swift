@@ -12,7 +12,14 @@ public final class ThemeService {
         case system = "System"
         case obsidian = "Obsidian"
         public var id: String { rawValue }
-        public var localizedName: String { rawValue }
+        public var localizedName: String {
+            switch self {
+            case .system:
+                return NSLocalizedString("settings.theme.system", comment: "System theme option")
+            case .obsidian:
+                return NSLocalizedString("settings.theme.obsidian", comment: "Obsidian theme option")
+            }
+        }
     }
 
     public var currentTheme: any Theme { Self.theme(for: selectedOption) }

@@ -1728,7 +1728,7 @@
 "my.hosted.routes.empty.title" = "No hosted routes yet";
 "my.hosted.routes.empty.hint" = "Create a route and invite companions to join you on your journey.";
 "my.hosted.routes.empty.cta" = "Create a route";
-"settings.companion.hosted.routes" = "我主理的路线";
+"settings.companion.hosted.routes" = "My hosted routes";
 
 /* US-038 — CompletionMoment */
 "completion.mark.done" = "标记完成";
@@ -2343,3 +2343,19 @@
 
 "dev.lock" = "Lock developer options";
 "dev.lock.footer" = "Hides this panel until you unlock again with a tester email. Your Pro access is kept.";
+
+// MARK: Settings consolidation (#130)
+"settings.personalize" = "Your Taste";
+"settings.personalize.footer" = "Your style and category taste shape which experiences float to the top of the map.";
+"settings.categories.value" = "%1$d loved · %2$d hidden";
+"settings.discovery" = "Discovery";
+"settings.discovery.footer" = "Only experiences within this radius appear on the map. Nearby nudges are quiet — no marketing, ever.";
+"settings.appearanceLanguage" = "Appearance & Language";
+"settings.companion.hub" = "Companion hub";
+"settings.account" = "Account";
+"settings.dataAbout" = "Data & About";
+"settings.about.version" = "Version";
+"settings.advanced" = "Advanced";
+"settings.advanced.footer" = "Power-user tools: AI provider, tester unlock, and developer options.";
+"settings.theme.system" = "System";
+"settings.theme.obsidian" = "Obsidian";

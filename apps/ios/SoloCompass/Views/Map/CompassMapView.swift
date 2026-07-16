@@ -1818,7 +1818,6 @@ struct CompassMapContentView: View {
     private var settingsSheetContent: some View {
         SettingsView(
             onClose: { viewModel.isShowingSettings = false },
-            onShowFavorites: { isShowingFavorites = true },
             onDistanceCommitted: { viewModel.reloadForDistanceChange() }
         )
         .environment(preferences)
