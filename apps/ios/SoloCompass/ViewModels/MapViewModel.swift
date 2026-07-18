@@ -1521,6 +1521,28 @@ public final class MapViewModel {
         }
     }
 
+    /// Candidate pool for the route builder: every nearby experience in the
+    /// selected city, ignoring the *transient* map filters (Now / category /
+    /// tag / favorite). The create-route sheet used to be fed
+    /// `visibleExperiences` — but its entry card lives in the Now section, so
+    /// the pool arrived pre-filtered by `isBestNow()` and was routinely empty:
+    /// a blank "選擇地點" list and a permanently disabled AI button.
+    /// Standing preferences (disliked categories) still apply.
+    public func routeCandidates() -> [Experience] {
+        var nearby = experienceService.getExperiences(
+            near: nearbyQueryOrigin,
+            radiusKm: max(1.0, preferences.maxDistanceKm)
+        )
+        if let cityCode = selectedCity, !cityCode.hasPrefix("custom_") {
+            nearby = nearby.filter { Self.cityCodeMatches($0.location.cityCode, selected: cityCode) }
+        }
+        if !preferences.dislikedCategories.isEmpty {
+            let disliked = Set(preferences.dislikedCategories)
+            nearby = nearby.filter { !disliked.contains($0.category) }
+        }
+        return nearby
+    }
+
     private func applyFilters(near coordinate: CLLocationCoordinate2D, radiusKm: Double) -> [Experience] {
         var nearby = experienceService.getExperiences(near: coordinate, radiusKm: radiusKm)
         #if DEBUG
