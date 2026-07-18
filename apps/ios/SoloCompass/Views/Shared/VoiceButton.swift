@@ -33,6 +33,16 @@ public struct VoiceButton: View {
 
     @State private var didDetectSpeech = false
 
+    /// True while the finger has slid far enough up during a hold that releasing
+    /// will DISCARD the recording instead of sending it — the "slide up to
+    /// cancel" affordance every voice-note UI has (WeChat, iMessage). Without it
+    /// a hold-to-talk button can only ever commit: you say something wrong and
+    /// your only exit is to send it. Drives the button's red cancel treatment
+    /// and the hint copy.
+    @State private var isInCancelZone = false
+    /// Upward travel (pt) past which the release cancels rather than sends.
+    private let cancelSlideThreshold: CGFloat = 80
+
     public init(voiceService: VoiceService, onTranscript: @escaping (String) -> Void) {
         self.voiceService = voiceService
         self.onTranscript = onTranscript
@@ -72,14 +82,17 @@ public struct VoiceButton: View {
             }
 
             Circle()
-                .fill(isRecording ? CT.savedRed : Color.black.opacity(0.85))
+                // In the cancel zone the button goes neutral-gray with an xmark
+                // so the "release now = discard" outcome is unmistakable before
+                // the finger lifts (apple-design §8: telegraph the outcome).
+                .fill(isInCancelZone ? Color(white: 0.45) : (isRecording ? CT.savedRed : Color.black.opacity(0.85)))
                 .frame(width: 56, height: 56)
                 .shadow(radius: isRecording ? 10 : 4)
 
-            Image(systemName: isRecording ? "waveform" : "mic.fill")
+            Image(systemName: isInCancelZone ? "xmark" : (isRecording ? "waveform" : "mic.fill"))
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(.white)
-                .symbolEffect(.variableColor.iterative, isActive: isRecording)
+                .symbolEffect(.variableColor.iterative, isActive: isRecording && !isInCancelZone)
         }
         .gesture(
             LongPressGesture(minimumDuration: 0.2)
@@ -87,16 +100,34 @@ public struct VoiceButton: View {
         )
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
-                .onChanged { _ in
+                .onChanged { value in
                     // Pre-warm all generators at first touch so impactOccurred() fires without latency.
                     recordStartGenerator.prepare()
                     recordStopSuccessGenerator.prepare()
                     recordStopEmptyGenerator.prepare()
                     permissionDeniedGenerator.prepare()
                     speechDetectedGenerator.prepare()
+
+                    // Slide-up-to-cancel: while recording, track upward travel.
+                    // Crossing the threshold arms cancel (and disarming below it
+                    // re-arms send), each transition ticking a haptic so the
+                    // state change is felt without looking.
+                    guard isRecording else { return }
+                    let over = value.translation.height < -cancelSlideThreshold
+                    if over != isInCancelZone {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
+                            isInCancelZone = over
+                        }
+                        Haptics.selection()
+                    }
                 }
                 .onEnded { _ in
-                    if isRecording { stopRecording() }
+                    guard isRecording else { return }
+                    if isInCancelZone {
+                        cancelRecording()
+                    } else {
+                        stopRecording()
+                    }
                 }
         )
         .accessibilityLabel(Text(NSLocalizedString("voice.button", comment: "Voice input")))
@@ -124,7 +155,19 @@ public struct VoiceButton: View {
                 let secondsRemaining = Int(maxRecordingDuration) - Int(elapsed)
                 let inCountdown = elapsed >= 50 && !didAutoStop
                 VStack(spacing: 4) {
-                    if let hint = emptyHint {
+                    if isInCancelZone {
+                        // In the cancel zone the whole pill collapses to one
+                        // unambiguous "release to cancel" line — no timer, no
+                        // transcript competing with the decision.
+                        Text(NSLocalizedString("voice.recording.releaseToCancel", comment: "Release to cancel"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AnyShapeStyle(CT.savedRed))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.thinMaterial, in: Capsule())
+                            .transition(reduceMotion ? .identity : .opacity)
+                            .accessibilityHidden(true)
+                    } else if let hint = emptyHint {
                         Text(hint)
                             .font(.caption)
                             .foregroundStyle(AnyShapeStyle(CT.warningText))
@@ -152,7 +195,7 @@ public struct VoiceButton: View {
                             .accessibilityHidden(true)
                     }
 
-                    if emptyHint == nil {
+                    if emptyHint == nil && !isInCancelZone {
                         let displayText = liveTranscript.isEmpty
                             ? NSLocalizedString("chat.voice.listening", comment: "Listening placeholder")
                             : liveTranscript
@@ -202,6 +245,7 @@ public struct VoiceButton: View {
             }
             do {
                 isRecording = true
+                isInCancelZone = false
                 if !reduceMotion { pulse = true }
                 liveTranscript = ""
                 elapsed = 0
@@ -282,6 +326,34 @@ public struct VoiceButton: View {
             }
         }
         liveTranscript = ""
+    }
+
+    /// Slide-up cancel: stop listening and DISCARD the transcript — the mirror
+    /// of `stopRecording`, minus the `onTranscript` callback and success haptic.
+    /// A soft impact + spoken announcement confirm the discard.
+    private func cancelRecording() {
+        voiceService.stopListening()
+        isRecording = false
+        pulse = false
+        stopElapsedTimer()
+        streamTask?.cancel()
+        streamTask = nil
+        liveTranscript = ""
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
+            isInCancelZone = false
+        }
+        recordStopEmptyGenerator.impactOccurred()
+        let hint = NSLocalizedString("voice.recording.cancelled", comment: "Recording discarded")
+        emptyHint = hint
+        if UIAccessibility.isVoiceOverRunning {
+            UIAccessibility.post(notification: .announcement, argument: hint)
+        }
+        emptyHintTask?.cancel()
+        emptyHintTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.4))
+            guard !Task.isCancelled else { return }
+            if emptyHint == hint { emptyHint = nil }
+        }
     }
 
     private func startElapsedTimer() {

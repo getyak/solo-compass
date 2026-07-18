@@ -13,7 +13,6 @@ public struct PendingCheckInBanner: View {
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
     @State private var confirmed = false
     @State private var dragOffset: CGFloat = 0
-    @State private var crossedThreshold = false
     @State private var pulse = false
     @State private var countdownProgress: CGFloat = 1
     @State private var autoDismissTask: Task<Void, Never>?
@@ -148,48 +147,36 @@ public struct PendingCheckInBanner: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
         .padding(.horizontal, 16)
-        .offset(y: dragOffset)
-        .gesture(
-            DragGesture()
-                .onChanged { gesture in
-                    guard !confirmed else { return }
-                    dragOffset = min(0, gesture.translation.height * 0.85)
-                    let overThreshold = -gesture.translation.height > dismissThreshold
-                    if overThreshold && !crossedThreshold {
-                        crossedThreshold = true
-                        #if canImport(UIKit)
-                        Haptics.selection()
-                        #endif
-                    } else if !overThreshold && crossedThreshold {
-                        crossedThreshold = false
-                    }
-                    // Pause on first touch; guard prevents repeated calls per drag event.
-                    if !wasPaused {
-                        wasPaused = true
-                        isInteracting = true
-                        pauseCountdown()
-                    }
+        // Shared drag-to-dismiss: this banner sits at the top and leaves *up*.
+        // The reusable modifier gives it the same 1:1 tracking + momentum
+        // projection + velocity-continuous settle as BottomInfoSheet/ChatCard,
+        // replacing the old hand-rolled `* 0.85` + release-point-threshold code
+        // that neither tracked 1:1 nor honoured a quick flick. The countdown
+        // pause/resume hooks onto the modifier's began/cancel callbacks.
+        .dismissibleBanner(
+            offset: $dragOffset,
+            edge: .up,
+            threshold: dismissThreshold,
+            isEnabled: !confirmed,
+            onDragBegan: {
+                // Pause the auto-dismiss countdown the instant a drag starts.
+                if !wasPaused {
+                    wasPaused = true
+                    isInteracting = true
+                    pauseCountdown()
                 }
-                .onEnded { gesture in
-                    guard !confirmed else { return }
-                    if gesture.translation.height < -dismissThreshold {
-                        #if canImport(UIKit)
-                        Haptics.impact(.soft)
-                        #endif
-                        crossedThreshold = false
-                        autoDismissTask?.cancel()
-                        autoDismissTask = nil
-                        withAnimation(.easeOut(duration: 0.2)) { dragOffset = -200 }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { onDismiss() }
-                    } else {
-                        crossedThreshold = false
-                        withAnimation(.spring(response: 0.3)) { dragOffset = 0 }
-                        // Resume countdown from where it left off.
-                        isInteracting = false
-                        wasPaused = false
-                        startCountdown(remainingFraction: progressAtPause)
-                    }
-                }
+            },
+            onDismiss: {
+                autoDismissTask?.cancel()
+                autoDismissTask = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { onDismiss() }
+            },
+            onCancel: {
+                // Released below threshold → resume the countdown where it paused.
+                isInteracting = false
+                wasPaused = false
+                startCountdown(remainingFraction: progressAtPause)
+            }
         )
         .onAppear {
             #if canImport(UIKit)

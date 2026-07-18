@@ -13,7 +13,6 @@ public struct ItineraryListView: View {
     @State private var undoDismissTask: Task<Void, Never>?
     @State private var undoProgress: CGFloat = 1
     @State private var undoDragOffset: CGFloat = 0
-    @State private var undoDragCrossedThreshold = false
 
     /// Production init using the shared on-disk container.
     public init() {
@@ -172,34 +171,21 @@ public struct ItineraryListView: View {
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 16)
-        .offset(y: undoDragOffset)
-        .gesture(
-            DragGesture()
-                .onChanged { gesture in
-                    undoDragOffset = max(0, gesture.translation.height * 0.85)
-                    let overThreshold = gesture.translation.height > 80
-                    if overThreshold && !undoDragCrossedThreshold {
-                        undoDragCrossedThreshold = true
-                        Haptics.selection()
-                    } else if !overThreshold && undoDragCrossedThreshold {
-                        undoDragCrossedThreshold = false
-                    }
+        // Shared drag-to-dismiss (down). Replaces the hand-rolled `* 0.85` +
+        // `translation > 80` code with the app's reference gesture model:
+        // 1:1 tracking, momentum projection (a quick flick dismisses), and a
+        // velocity-continuous settle.
+        .dismissibleBanner(
+            offset: $undoDragOffset,
+            edge: .down,
+            onDismiss: {
+                undoDismissTask?.cancel()
+                undoDismissTask = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    withAnimation(.easeInOut) { lastDeleted = nil }
+                    undoDragOffset = 0
                 }
-                .onEnded { gesture in
-                    undoDragCrossedThreshold = false
-                    if gesture.translation.height > 80 {
-                        Haptics.impact(.soft)
-                        withAnimation(.easeOut(duration: 0.2)) { undoDragOffset = 300 }
-                        undoDismissTask?.cancel()
-                        undoDismissTask = nil
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            withAnimation(.easeInOut) { lastDeleted = nil }
-                            undoDragOffset = 0
-                        }
-                    } else {
-                        withAnimation(.spring(response: 0.3)) { undoDragOffset = 0 }
-                    }
-                }
+            }
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(String(

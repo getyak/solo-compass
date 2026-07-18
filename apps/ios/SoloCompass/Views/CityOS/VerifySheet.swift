@@ -60,20 +60,40 @@ struct VerifySheet: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(NSLocalizedString("cityos.verify.title", comment: "30 秒，帮下一个独行者"))
-                .ctDisplay(18, .bold)
-                .foregroundStyle(primaryText)
-            Text(String(
-                format: NSLocalizedString(
-                    "cityos.verify.subtitle",
-                    comment: "%@ —— 三下点完，你的印证会直接进入这个点的信心分"
-                ),
-                placeName
-            ))
-            .ctBody(12.5)
-            .foregroundStyle(CT.fgMuted)
-            .fixedSize(horizontal: false, vertical: true)
+        // The submit stays gated on all-three-answered, but a traveler who
+        // opens this and decides not to answer must have a *visible* exit — not
+        // just the drag indicator. An explicit close button keeps the flow from
+        // being a dead-end (HIG: never trap the user) while preserving the
+        // "half-filled verification is worse than none" gate on Submit itself.
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("cityos.verify.title", comment: "30 秒，帮下一个独行者"))
+                    .ctDisplay(18, .bold)
+                    .foregroundStyle(primaryText)
+                Text(String(
+                    format: NSLocalizedString(
+                        "cityos.verify.subtitle",
+                        comment: "%@ —— 三下点完，你的印证会直接进入这个点的信心分"
+                    ),
+                    placeName
+                ))
+                .ctBody(12.5)
+                .foregroundStyle(CT.fgMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Button {
+                Haptics.selection()
+                onDismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(CT.fgMuted)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(optionFill))
+            }
+            .buttonStyle(PressableButtonStyle(pressedScale: 0.9, haptic: false))
+            .accessibilityLabel(Text(NSLocalizedString("common.close", comment: "Close")))
         }
     }
 

@@ -46,8 +46,11 @@ enum MapStyleChoice: String, CaseIterable {
 enum RouteSheet: Identifiable {
     /// Open a route's detail view.
     case detail(Route)
-    /// Open the create-your-own-route flow.
-    case create
+    /// Open the create-your-own-route flow. `autoGenerate: true` kicks off
+    /// the AI stringing immediately on open — used by the Now section's
+    /// "让 Solo 为你拼一条" placeholder, whose copy promises Solo picks the
+    /// stops (landing on a blank manual form broke that promise).
+    case create(autoGenerate: Bool)
 
     var id: String {
         switch self {
@@ -1165,12 +1168,17 @@ struct CompassMapContentView: View {
                 )
                 .environment(experienceService)
             }
-        case .create:
+        case .create(let autoGenerate):
             CreateRouteView(
-                candidates: viewModel.visibleExperiences,
+                // Full nearby pool, NOT `visibleExperiences`: the entry card
+                // lives in the Now section, so visibleExperiences arrives
+                // pre-filtered by isBestNow() and is routinely empty — a blank
+                // stop picker and a dead AI button.
+                candidates: viewModel.routeCandidates(),
                 cityCode: viewModel.selectedCity ?? "",
                 userCoordinate: locationService.currentLocation?.coordinate
-                    ?? viewModel.defaultCenterForSelectedCity
+                    ?? viewModel.defaultCenterForSelectedCity,
+                autoGenerate: autoGenerate
             ) { route in
                 // Persist + open the new route's detail; RouteStore.didChange
                 // refreshes the sheet's routes section automatically. Swapping
@@ -1231,7 +1239,21 @@ struct CompassMapContentView: View {
                     isMapPanning: $isMapPanning,
                     mapStyleChoice: $mapStyleChoice,
                     pendingRequestCount: friendService.incomingRequests.count,
-                    onTapAvatar: { isShowingMe = true }
+                    onTapAvatar: { isShowingMe = true },
+                    // P2.5 #250: the FilterBar "Ask Solo" pill opens the chat
+                    // seeded with a "what's good right now" ask — the same
+                    // suggest_now_action shortcut the pill's a11y hint promises.
+                    // (It previously pointed at `selectNowFilter()`, a leftover
+                    // placeholder: with the Now filter already active the tap
+                    // was a visible no-op — a dead button on the main screen.)
+                    onAskSolo: {
+                        pendingDiagnosticsPrompt = NSLocalizedString(
+                            "filter.solo.agent.seed",
+                            comment: "Seed prompt sent when tapping the Ask Solo pill"
+                        )
+                        chatStartMode = .text
+                        ensureOrchestrator(viewModel: viewModel)
+                    }
                 )
 
                 VStack {
@@ -1435,13 +1457,16 @@ struct CompassMapContentView: View {
                                         // below so we keep a single create-route code
                                         // path (no new orchestration).
                                         onProposeRoute: {
-                                            routeSheet = .create
+                                            // The placeholder's copy promises "Solo
+                                            // picks 3 stops" — honour it by starting
+                                            // the AI generation on open.
+                                            routeSheet = .create(autoGenerate: true)
                                         }
                                     )
 
                                     // Create-your-own-route entry, between Routes and Nearby.
                                     CreateRouteEntryCard {
-                                        routeSheet = .create
+                                        routeSheet = .create(autoGenerate: false)
                                     }
                                     .padding(.horizontal, 16)
                                     .padding(.top, 8)
@@ -1726,10 +1751,10 @@ struct CompassMapContentView: View {
                     onSaveWalk: {
                         // Freeze the batch into a route candidate set.
                         // CreateRouteView pulls its candidates from
-                        // `viewModel.visibleExperiences`, which already
+                        // `viewModel.routeCandidates()`, which already
                         // contains the added set at this point.
                         viewModel.exploreClearHandoff()
-                        routeSheet = .create
+                        routeSheet = .create(autoGenerate: false)
                     },
                     onExpand: {
                         viewModel.exploreClearHandoff()
@@ -2115,7 +2140,8 @@ struct CompassMapContentView: View {
                     viewModel.selectExperience(exp)
                 }
             },
-            onExplore: { isShowingFavorites = false }
+            onExplore: { isShowingFavorites = false },
+            onClose: { isShowingFavorites = false }
         )
         .environment(experienceService)
         .environment(preferences)
@@ -2957,6 +2983,11 @@ private struct MapOverlayView: View {
     // the tap opens the personal hub (MeSheet).
     var pendingRequestCount: Int = 0
     var onTapAvatar: () -> Void = {}
+    /// P2.5 #250: the FilterBar's "Ask Solo" pill. The overlay can't reach the
+    /// chat presenter (`ensureOrchestrator` lives on CompassMapContentView),
+    /// so the parent hands the real open-chat action down as a closure —
+    /// same pattern as `onTapAvatar`.
+    var onAskSolo: () -> Void = {}
 
     @State private var checkInCelebrationTrigger = 0
     @State private var noMatchPop = false
@@ -3031,10 +3062,11 @@ private struct MapOverlayView: View {
                 onSelectCustomTag: { viewModel.selectCustomTag($0) },
                 isMapPanning: $isMapPanning,
                 resultCount: viewModel.visibleExperiences.count,
-                // P2.5 hooks: Solo Agent pill fires the map's ambient
-                // "Ask Solo" affordance; taste rank pill toggles the
-                // TasteProfile-weighted ordering.
-                onSoloAgentTap: { viewModel.selectNowFilter() },
+                // P2.5 hooks: Solo Agent pill opens the ChatSheet seeded with
+                // a "what's good right now" ask (the suggest_now_action
+                // shortcut); taste rank pill toggles the TasteProfile-weighted
+                // ordering.
+                onSoloAgentTap: onAskSolo,
                 isTasteRankOn: isTasteRankOn,
                 onTasteRankToggle: { isTasteRankOn = $0 }
             )
@@ -3758,7 +3790,12 @@ private struct MapControlBar: View {
             VStack(spacing: 4) {
                 PlusActionButton(
                     onShortTap: {
-                        Haptics.impact(.medium)
+                        // No haptic here: `PlusActionButton` already fired a
+                        // soft impact on touch-down (the "I've got it" cue that
+                        // pairs with the ring). A second `.medium` on release
+                        // made one tap buzz twice — and opening the chat is a
+                        // navigation, which HIG says shouldn't warrant a heavy
+                        // impact anyway.
                         onOpenChat(.text)
                     },
                     onLongPress: { onOpenChat(.voice) }

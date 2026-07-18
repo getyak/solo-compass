@@ -64,6 +64,28 @@ public struct ItineraryFormView: View {
 
     private var endBeforeStart: Bool { endDate < startDate }
 
+    /// True once the user has entered anything not yet saved. Drives
+    /// `interactiveDismissDisabled` so an accidental swipe-down can't silently
+    /// discard a half-filled form — HIG requires unsaved edits to be protected
+    /// (Mail/Contacts prompt "Discard Changes?"; here we simply block the swipe
+    /// so the explicit Cancel is the only way out). New form: dirty if any field
+    /// diverges from its empty default. Editing: dirty if any field diverges
+    /// from the record being edited.
+    private var isDirty: Bool {
+        if let editing {
+            return title != (editing.title)
+                || selectedCityCode != (editing.cityCode)
+                || note != (editing.note)
+                || openToCompanions != editing.openToCompanions
+                || startDate != (iso8601DateOrToday(editing.startDate) ?? startDate)
+                || endDate != (iso8601DateOrToday(editing.endDate) ?? endDate)
+        }
+        return !title.trimmingCharacters(in: .whitespaces).isEmpty
+            || !selectedCityCode.isEmpty
+            || !note.trimmingCharacters(in: .whitespaces).isEmpty
+            || openToCompanions
+    }
+
     // MARK: - Body
 
     public var body: some View {
@@ -154,12 +176,16 @@ public struct ItineraryFormView: View {
             ))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                // `.cancellationAction` / `.confirmationAction` let the system
+                // place Cancel (leading) and Save (trailing) per-platform
+                // convention, instead of hard-coding topBarLeading/Trailing.
+                // This is the app-wide standard the sheet audit calls for.
+                ToolbarItem(placement: .cancellationAction) {
                     Button(NSLocalizedString("itinerary.form.action.cancel", comment: "Cancel")) {
                         dismiss()
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(NSLocalizedString("itinerary.form.action.save", comment: "Save")) {
                         save()
                     }
@@ -174,6 +200,9 @@ public struct ItineraryFormView: View {
                 )
             }
         }
+        // Block accidental swipe-to-dismiss while there are unsaved edits; the
+        // explicit Cancel stays the deliberate exit.
+        .interactiveDismissDisabled(isDirty)
     }
 
     // MARK: - Save

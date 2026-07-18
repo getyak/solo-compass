@@ -309,7 +309,6 @@ private struct DiscoverPostRow: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
-    @State private var pressed = false
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -414,18 +413,12 @@ private struct DiscoverPostRow: View {
         .buttonStyle(.bordered)
         .tint(hasSentRequest ? .green : CT.accent)
         .disabled(hasSentRequest)
-        .scaleEffect(pressed ? 0.96 : 1)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard !reduceMotion, !pressed else { return }
-                    withAnimation(.easeOut(duration: 0.12)) { pressed = true }
-                }
-                .onEnded { _ in
-                    guard !reduceMotion else { return }
-                    withAnimation(.easeOut(duration: 0.12)) { pressed = false }
-                }
-        )
+        // No overlaid `.simultaneousGesture(DragGesture(minimumDistance:0))`
+        // press-scale: this row sits in a List, where a zero-distance drag
+        // competes with the list's own scroll recognizer and flashes a phantom
+        // press-down as the user scrolls past. `.bordered` already provides a
+        // system press state, so the hand-rolled scale was both redundant and a
+        // scroll conflict. Matches the sibling addFriendButton.
     }
 
     /// US-016: opens the trust-gated [Add Friend] detail for this post.

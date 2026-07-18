@@ -767,9 +767,9 @@ struct SortCountToolbar: View {
 
     private var sortButton: some View {
         Button {
-            #if canImport(UIKit)
-            Haptics.selection()
-            #endif
+            // No haptic on open: merely surfacing the sort options isn't a
+            // commit. The single meaningful buzz fires in `onChange(of:sortMode)`
+            // when the sort actually changes.
             showSortSheet = true
         } label: {
             HStack(spacing: 4) {
@@ -837,10 +837,11 @@ struct SortModeSheet: View {
 
             ForEach(SortMode.allCases) { mode in
                 Button {
-                    #if canImport(UIKit)
-                    Haptics.selection()
-                    #endif
-                    withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7)) {
+                    // No haptic here: changing `sortMode` propagates to the
+                    // parent SortCountToolbar's `onChange(of: sortMode)`, which
+                    // owns the single selection haptic. Buzzing here too made
+                    // one pick fire twice.
+                    withAnimation(reduceMotion ? nil : Motion.momentumPop) {
                         sortMode = mode
                     }
                     dismiss()

@@ -77,6 +77,10 @@ struct CreateRouteView: View {
     let candidates: [Experience]
     let cityCode: String
     let userCoordinate: CLLocationCoordinate2D?
+    /// When true, the AI generation starts as soon as the sheet appears —
+    /// used by entries whose copy promises Solo picks the stops (the Now
+    /// section's "让 Solo 为你拼一条" placeholder). Manual entries pass false.
+    var autoGenerate: Bool = false
     /// Called with the saved route so the caller can persist + refresh.
     let onSave: (Route) -> Void
 
@@ -88,6 +92,10 @@ struct CreateRouteView: View {
     @State private var pace: Pace = .relaxed
     @State private var isGenerating = false
     @State private var aiSummary: String?
+    /// Non-nil after a failed AI generation. The old `try?`-and-return made
+    /// the ✨ button a silent no-op on any error (missing key, network, quota)
+    /// — the user tapped, nothing loaded, nothing explained itself.
+    @State private var generateErrorText: String?
 
     /// Selected experiences in selection order (the walk order).
     private var orderedSelection: [Experience] {
@@ -101,6 +109,7 @@ struct CreateRouteView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     aiGenerateButton
+                    generateErrorBanner
                     summaryHeader
                     titleField
                     pacePicker
@@ -111,6 +120,13 @@ struct CreateRouteView: View {
             .background(CT.bgWarm)
             .navigationTitle(NSLocalizedString("route.create.title", comment: "Create route nav title"))
             .navigationBarTitleDisplayMode(.inline)
+            // Honour the "Solo picks the stops" promise: kick the generation
+            // off on open. `.task` runs once per appearance; the guard keeps
+            // it from clobbering a session where the user already picked.
+            .task {
+                guard autoGenerate, selectedIds.isEmpty, candidates.count >= 2 else { return }
+                await generate()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(NSLocalizedString("action.cancel", comment: "Cancel")) { dismiss() }
@@ -122,6 +138,9 @@ struct CreateRouteView: View {
                 }
             }
         }
+        // Once stops are picked or a title is typed, block swipe-to-dismiss so a
+        // stray gesture can't discard the walk-in-progress; Cancel is the exit.
+        .interactiveDismissDisabled(!selectedIds.isEmpty || !title.trimmingCharacters(in: .whitespaces).isEmpty)
     }
 
     // MARK: - Sections
@@ -147,6 +166,30 @@ struct CreateRouteView: View {
         }
         .buttonStyle(.plain)
         .disabled(isGenerating || candidates.count < 2)
+        // `.disabled` alone doesn't dim a plain-style button with explicit
+        // foreground/background colors — it looked fully tappable while
+        // candidates were empty, reading as a dead button. Make the disabled
+        // state visible.
+        .opacity(candidates.count < 2 ? 0.4 : 1)
+    }
+
+    /// Error surface for a failed AI generation (replaces the silent no-op).
+    @ViewBuilder
+    private var generateErrorBanner: some View {
+        if let generateErrorText {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                Text(generateErrorText)
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .foregroundStyle(CT.fgMuted)
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(CT.surfaceWhite))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(CT.borderSubtle, lineWidth: 0.5))
+        }
     }
 
     @ViewBuilder
@@ -207,8 +250,22 @@ struct CreateRouteView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(CT.fgSubtle)
             }
-            ForEach(candidates) { exp in
-                selectRow(exp)
+            if candidates.isEmpty {
+                // Dead-end guard: with zero candidates both paths (manual pick
+                // + AI generate) are unusable — say so instead of rendering a
+                // blank section under an inert button.
+                Text(NSLocalizedString(
+                    "route.create.empty",
+                    comment: "Shown when no nearby experiences are available to build a route from"
+                ))
+                .font(.caption)
+                .foregroundStyle(CT.fgMuted)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                ForEach(candidates) { exp in
+                    selectRow(exp)
+                }
             }
         }
     }
@@ -272,17 +329,27 @@ struct CreateRouteView: View {
 
     private func generate() async {
         isGenerating = true
+        generateErrorText = nil
         defer { isGenerating = false }
-        guard let route = try? await aiService.generateRoute(
-            from: candidates,
-            cityCode: cityCode,
-            userCoordinate: userCoordinate
-        ) else { return }
-        // Adopt the AI's ordering + copy as the editable starting point.
-        selectedIds = route.experienceIds
-        if title.isEmpty { title = route.title }
-        aiSummary = route.summary
-        pace = route.pace
+        do {
+            let route = try await aiService.generateRoute(
+                from: candidates,
+                cityCode: cityCode,
+                userCoordinate: userCoordinate
+            )
+            // Adopt the AI's ordering + copy as the editable starting point.
+            selectedIds = route.experienceIds
+            if title.isEmpty { title = route.title }
+            aiSummary = route.summary
+            pace = route.pace
+        } catch {
+            // Surface the failure — the previous `try?` swallowed every error
+            // (missing key, network, quota) and the button read as broken.
+            generateErrorText = NSLocalizedString(
+                "route.create.ai.error",
+                comment: "Shown when AI route generation fails"
+            )
+        }
     }
 
     private func save() {

@@ -24,7 +24,6 @@ public struct AvatarStack: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
     @State private var showAll = false
-    @State private var pressed = false
 
     private var overlap: CGFloat { size * 0.32 }
 
@@ -126,28 +125,27 @@ public struct AvatarStack: View {
         }
     }
 
+    // A real Button, not a `.simultaneousGesture(DragGesture(minimumDistance:0))`
+    // acting as the tap. This component is embedded inside RouteCard, which
+    // lives in the BottomInfoSheet's ScrollView; a zero-distance drag there
+    // claims the touch the instant a finger lands, so the host scroll view
+    // classifies the release as a drag and the "show all" popover either
+    // misfires while scrolling or swallows the scroll. A Button + ButtonStyle
+    // lets the tap reach the action and the scroll pass through — the same fix
+    // already applied to RouteCard / CreateRouteView. See [[project_dead_fab_sheet_wiring]].
     private var overflowButton: some View {
-        overflowBubble
-            .scaleEffect(pressed ? 0.94 : 1.0)
-            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6), value: pressed)
-            .contentShape(Circle())
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        if !reduceMotion { pressed = true }
-                    }
-                    .onEnded { _ in
-                        pressed = false
-                        Haptics.selection()
-                        showAll = true
-                    }
-            )
-            .accessibilityAddTraits(.isButton)
-            .accessibilityHint(NSLocalizedString("avatarstack.overflow.hint", comment: ""))
-            .popover(isPresented: $showAll) {
-                membersPopover
-                    .presentationCompactAdaptation(.popover)
-            }
+        Button {
+            Haptics.selection()
+            showAll = true
+        } label: {
+            overflowBubble
+        }
+        .buttonStyle(PressableButtonStyle(pressedScale: 0.94, haptic: false))
+        .accessibilityHint(NSLocalizedString("avatarstack.overflow.hint", comment: ""))
+        .popover(isPresented: $showAll) {
+            membersPopover
+                .presentationCompactAdaptation(.popover)
+        }
     }
 
     private var membersPopover: some View {

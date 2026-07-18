@@ -59,10 +59,10 @@ public struct ReportIssueSheet: View {
             .navigationTitle(NSLocalizedString("report.title", comment: "Report an Issue"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button(NSLocalizedString("report.cancel", comment: "Cancel"), action: onCancel)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(NSLocalizedString("report.submit", comment: "Submit")) {
                         guard let reason = selectedReason else { return }
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -74,6 +74,12 @@ public struct ReportIssueSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        // Guard a partly-composed report (reason chosen or detail typed) from a
+        // stray swipe-down; Cancel remains the deliberate exit.
+        .interactiveDismissDisabled(
+            selectedReason != nil || !detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        )
     }
 
     // MARK: - Helpers

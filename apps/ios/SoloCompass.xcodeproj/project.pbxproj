@@ -199,6 +199,7 @@
 		54941425223B5EBAC714ADE9 /* CityOSInterruptionBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF58E512BB0C51F4C5887108 /* CityOSInterruptionBudget.swift */; };
 		54952646C79E8F29AF89F4D6 /* VoiceAgentToolRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20208D92E4F564C474E8AEED /* VoiceAgentToolRouter.swift */; };
 		5544DD796A2D4987A7CB9DC9 /* WebSearchEnrichmentSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 977F66FB36894EA4088C2905 /* WebSearchEnrichmentSource.swift */; };
+		559C2ADB38BF9A8E7144EBCF /* DismissibleBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4943B64768A825479867B6EC /* DismissibleBanner.swift */; };
 		561418100F2F7D4D88DE1BC4 /* MessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 086B3C207483BA0EBD27451F /* MessageBubble.swift */; };
 		56F3055416F4A5316100F9B2 /* ExperienceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363714672D8A0FA8F7C39887 /* ExperienceCardView.swift */; };
 		579468F851C408D34CDC7025 /* TravelerNoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91DB88CF9AE303E72C776B72 /* TravelerNoteStore.swift */; };
@@ -755,6 +756,7 @@
 		488103B60D7D46DB3467EE87 /* ThinkingBorderShimmer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThinkingBorderShimmer.swift; sourceTree = "<group>"; };
 		48ADAE2497800574C4E8819B /* GroupConversationAutoCreateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupConversationAutoCreateTests.swift; sourceTree = "<group>"; };
 		48FF87CCF00DEEE87B290812 /* MapViewModelCityRegionSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapViewModelCityRegionSyncTests.swift; sourceTree = "<group>"; };
+		4943B64768A825479867B6EC /* DismissibleBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DismissibleBanner.swift; sourceTree = "<group>"; };
 		49F36F9AC9ED0AE7E3F0E5EA /* NotificationServiceHandleURLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationServiceHandleURLTests.swift; sourceTree = "<group>"; };
 		4A5F0C6695E934C430648EA4 /* PrintFulfillmentClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintFulfillmentClient.swift; sourceTree = "<group>"; };
 		4ABE29FC4F9EBBBF8C3C61C4 /* LiveSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSheet.swift; sourceTree = "<group>"; };
@@ -1204,6 +1206,7 @@
 				2294AF173D063B1F55894696 /* CompletionCelebrationView.swift */,
 				EC8F9EFD56A2C839428AA92D /* ConfidenceBadge.swift */,
 				03EC45C610C546626FABA9F7 /* DesignTokens.swift */,
+				4943B64768A825479867B6EC /* DismissibleBanner.swift */,
 				9DF52264EDAC06D283132721 /* ExperiencePreviewCard.swift */,
 				C5C3BA25EFA9F149FB4FAAB3 /* FavoritesListView.swift */,
 				B39F3D5F813E5C3B23C7EE30 /* FlowLayout.swift */,
@@ -2631,6 +2634,7 @@
 				B6B9B93525A5E3F8DD5EA34E /* DiscoverPostDetailView.swift in Sources */,
 				86FFAC8B5D235B7AEBA6408C /* DiscoverRecruitingRoutesView.swift in Sources */,
 				EDBD7B0E715165E71BC0C17D /* DiscoveredCityRecord.swift in Sources */,
+				559C2ADB38BF9A8E7144EBCF /* DismissibleBanner.swift in Sources */,
 				F11FDDDC600A1EF9C08E8193 /* EnrichmentAgent.swift in Sources */,
 				EC922EEF8917DDACE1388F06 /* EntitlementBanner.swift in Sources */,
 				1964F1B56FDCF7880F068967 /* EventMarkerView.swift in Sources */,

@@ -104,6 +104,40 @@ public enum Elevation {
     public static let modal = Preset.modal
 }
 
+// MARK: Motion — semantic spring tokens
+//
+// Collapses the scattered `.spring(response:dampingFraction:)` literals onto a
+// few named intents, following the apple-design (WWDC 2018 "Designing Fluid
+// Interfaces") rule: **only momentum-driven interactions (flick / throw / drag
+// release) get overshoot; everything else is critically-damped.** The audit
+// found 55% of springs carried a bounce (dampingFraction < 0.8), a large share
+// of them on press-down and pure fade-in surfaces where overshoot reads as
+// "cheap wobble". Adopt these tokens to snap those onto one disciplined feel.
+//
+// `BottomInfoSheet` is the reference for `.settle`; its response/damping were
+// tuned on-device and these values mirror it exactly.
+public enum Motion {
+    /// Press-down / release feedback for tappable surfaces. A touch is a static
+    /// press with no momentum, so this is near-critically damped — crisp like a
+    /// system button, with only the faintest settle, never a visible wobble.
+    public static let press = Animation.spring(response: 0.22, dampingFraction: 0.82)
+
+    /// Content appearing / fading in (sheets, rows, disclosure). Pure arrival
+    /// carries no momentum → critically damped, zero overshoot. Overshoot on a
+    /// menu that just faded in feels wrong (apple-design §4).
+    public static let appear = Animation.spring(response: 0.32, dampingFraction: 0.95)
+
+    /// A small tactile "pop" that IS meant to overshoot a touch: a count badge
+    /// ticking, a heart bursting, an item snapping home. The one place a gentle
+    /// bounce is on-spec because it reads as physical feedback, not decoration.
+    public static let momentumPop = Animation.spring(response: 0.3, dampingFraction: 0.7)
+
+    /// A drag release settling to its resting position / nearest detent. Mirrors
+    /// `BottomInfoSheet`'s on-device-tuned settle. Slight give so a flick lands
+    /// with life, but damped enough not to ring.
+    public static let settle = Animation.spring(response: 0.3, dampingFraction: 0.85)
+}
+
 public extension View {
     /// Applies a named elevation preset. Replaces bespoke `.shadow(color:radius:x:y:)`
     /// calls so the app has exactly three shadow depths.
