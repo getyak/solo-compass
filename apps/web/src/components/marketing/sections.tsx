@@ -22,7 +22,7 @@ interface Props {
   copy: Copy;
   locale: Locale;
   homePath: string; // "/" or "/zh"
-  altPath: string;  // "/zh" or "/"
+  altPath: string; // "/zh" or "/"
 }
 
 /* ============================================================
@@ -42,7 +42,10 @@ export function MarketingNav({ copy, locale, homePath, altPath }: Props) {
     >
       <Container width="wide">
         <div className="flex h-[72px] items-center justify-between gap-6">
-          <Link href={homePath} className="flex items-center gap-2 font-display text-[20px] font-medium tracking-tight">
+          <Link
+            href={homePath}
+            className="flex items-center gap-2 font-display text-[20px] font-medium tracking-tight"
+          >
             <SoloCompassMark />
             <span>Solo Compass</span>
           </Link>
@@ -113,10 +116,7 @@ export function Hero({ copy }: Props) {
                 </span>
               ))}
             </h1>
-            <p
-              className="ds-body-xl ds-reveal mt-10 max-w-xl"
-              style={{ animationDelay: "800ms" }}
-            >
+            <p className="ds-body-xl ds-reveal mt-10 max-w-xl" style={{ animationDelay: "800ms" }}>
               {copy.hero.sub}
             </p>
             <div
@@ -136,7 +136,10 @@ export function Hero({ copy }: Props) {
             </div>
           </div>
           <div className="md:col-span-5">
-            <div className="ds-reveal-scale flex justify-center md:justify-end" style={{ animationDelay: "200ms" }}>
+            <div
+              className="ds-reveal-scale flex justify-center md:justify-end"
+              style={{ animationDelay: "200ms" }}
+            >
               <IPhoneFrame tilt>
                 <DayPageMock />
               </IPhoneFrame>
@@ -173,8 +176,8 @@ export function Problem({ copy }: Props) {
                 i === copy.problem.paragraphs.length - 1
                   ? "text-fg-primary font-medium"
                   : i < 2
-                  ? "text-fg-primary"
-                  : "text-fg-muted"
+                    ? "text-fg-primary"
+                    : "text-fg-muted"
               }`}
             >
               {renderMuted(p.text, p.muted)}
@@ -235,8 +238,8 @@ export function Pillars({ copy }: Props) {
                   item.dot === "sun"
                     ? "bg-sun-gold"
                     : item.dot === "omen"
-                    ? "bg-omen-gold"
-                    : "bg-accent"
+                      ? "bg-omen-gold"
+                      : "bg-accent"
                 }`}
                 aria-hidden
               />
@@ -304,14 +307,14 @@ export function Capabilities({ copy }: Props) {
                       kind === "askSolo"
                         ? "accent"
                         : kind === "blindbox"
-                        ? "warning"
-                        : kind === "capsule"
-                        ? "accent"
-                        : kind === "omen"
-                        ? "sun"
-                        : kind === "bestNow"
-                        ? "success"
-                        : "sun"
+                          ? "warning"
+                          : kind === "capsule"
+                            ? "accent"
+                            : kind === "omen"
+                              ? "sun"
+                              : kind === "bestNow"
+                                ? "success"
+                                : "sun"
                     }
                   >
                     {block.eyebrow}
@@ -402,7 +405,10 @@ export function Pricing({ copy, locale }: Props) {
             <p className="ds-body-md mt-4 text-fg-muted">{copy.pricing.lifetime.tagline}</p>
             <ul className="mt-8 space-y-3">
               {copy.pricing.lifetime.features.map((f, i) => (
-                <li key={i} className="flex items-start gap-3 font-body text-[15px] text-fg-primary">
+                <li
+                  key={i}
+                  className="flex items-start gap-3 font-body text-[15px] text-fg-primary"
+                >
                   <CheckGlyph />
                   <span>{f}</span>
                 </li>
@@ -430,7 +436,10 @@ export function Pricing({ copy, locale }: Props) {
             <p className="ds-body-md mt-4 text-fg-muted">{copy.pricing.yearly.tagline}</p>
             <ul className="mt-8 space-y-3">
               {copy.pricing.yearly.features.map((f, i) => (
-                <li key={i} className="flex items-start gap-3 font-body text-[15px] text-fg-primary">
+                <li
+                  key={i}
+                  className="flex items-start gap-3 font-body text-[15px] text-fg-primary"
+                >
                   <CheckGlyph filled />
                   <span>{f}</span>
                 </li>

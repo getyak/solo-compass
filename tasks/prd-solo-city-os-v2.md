@@ -2,12 +2,12 @@
 
 | 字段     | 值                                                                                                     |
 | -------- | ------------------------------------------------------------------------------------------------------ |
-| 版本     | v2.0 融合稿                                                                                             |
-| 创建日期 | 2026-07-06                                                                                              |
+| 版本     | v2.0 融合稿                                                                                            |
+| 创建日期 | 2026-07-06                                                                                             |
 | 融合对象 | `prd-solo-city-os-v1.md`(外壳) + `prd-solo-confidence-refactor-v1.md`(心脏) + 暖琥珀 CT 设计系统(皮肤) |
-| 取代     | 上述两份 PRD 的分期与 IA 章节以本稿为准;其余章节继续作为详细规格引用                                    |
-| 参照     | `docs/V_NEXT_DESIGN.md`(部分采纳,仪式层裁决见 §7)· `docs/design/incoming/`(设计交接包,token 事实源)  |
-| 范围     | apps/ios/SoloCompass 为主                                                                               |
+| 取代     | 上述两份 PRD 的分期与 IA 章节以本稿为准;其余章节继续作为详细规格引用                                   |
+| 参照     | `docs/V_NEXT_DESIGN.md`(部分采纳,仪式层裁决见 §7)· `docs/design/incoming/`(设计交接包,token 事实源)    |
+| 范围     | apps/ios/SoloCompass 为主                                                                              |
 
 ---
 
@@ -54,11 +54,11 @@
 
 这是本次融合最核心的发现。检视已落地的 `CompareTokens.swift`,三条骨架规则在色彩系统里已经有**1:1 的语义映射**——只是从未被显式声明过:
 
-| 骨架规则(city-os §2)         | 色彩语义(CT token)                                                        | 已上线的组件族                                                                       |
-| ----------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **① 独行透镜** Solo Lens      | 暖琥珀 `accent 0x5D3000` / `accentSoft` — 独行底气的颜色                    | SoloScoreCard heatmap 维度条 · hint 行 · 問Solo dock 入口 · 主 amber pill            |
-| **② 会呼吸** Living/时间感知  | 此刻金 `sunGold 0xC9A677` / `sunGoldSoft` / `sunGoldDeep` — 时间窗口的颜色  | BestTimeRibbon 好窗口 band · peek「此刻最值得去」header · 灵动岛 IslandPalette       |
-| **③ 信心贯穿** Confidence     | 核验绿 `verifiedGreen` + 健康度点 🟢🟡🔴⚫ + TrustBadge 五桶                  | trustChip 三态 · TrustBadge(verified/amap/osm/userCreated/curated)· L{n}·信号 mono 行 |
+| 骨架规则(city-os §2)         | 色彩语义(CT token)                                                         | 已上线的组件族                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **① 独行透镜** Solo Lens     | 暖琥珀 `accent 0x5D3000` / `accentSoft` — 独行底气的颜色                   | SoloScoreCard heatmap 维度条 · hint 行 · 問Solo dock 入口 · 主 amber pill             |
+| **② 会呼吸** Living/时间感知 | 此刻金 `sunGold 0xC9A677` / `sunGoldSoft` / `sunGoldDeep` — 时间窗口的颜色 | BestTimeRibbon 好窗口 band · peek「此刻最值得去」header · 灵动岛 IslandPalette        |
+| **③ 信心贯穿** Confidence    | 核验绿 `verifiedGreen` + 健康度点 🟢🟡🔴⚫ + TrustBadge 五桶               | trustChip 三态 · TrustBadge(verified/amap/osm/userCreated/curated)· L{n}·信号 mono 行 |
 
 **由此推出 v2 的第一设计公理**:
 
@@ -80,7 +80,7 @@ v2 的全部体验收敛为三个表面,各司其职:
 一岛(灵动岛)     = 时间感知:锁屏/岛上流动的"此刻"。日落窗口、出发倒计时、落地欢迎。
 ```
 
-- **屏**回答 *where*,**卡**回答 *now what*,**岛**回答 *when*。三者共用同一套 token(`CT` ↔ `IP` 镜像已存在)。
+- **屏**回答 _where_,**卡**回答 _now what_,**岛**回答 _when_。三者共用同一套 token(`CT` ↔ `IP` 镜像已存在)。
 - 灵动岛是"会呼吸"规则的**平台级护城河**——Nomad List 是网页,Google Maps 不做独行时间窗。已有 7 个 Kind(route/countdown/recording/compile/soloAgentHint/timeCapsule/dailyOmen),v2 只做接线与重定位,不加新 Kind。
 - Chat 不是第四表面:它已按 confidence PRD 降级为意图输入,产出物是卡片(`ChatCard`/`RouteProposal`)落回屏与卡,`AgentStatusLine` → `ReasoningSummaryChip` 的折叠链路已上线,方向正确,保持。
 
@@ -101,12 +101,12 @@ v2 的全部体验收敛为三个表面,各司其职:
 
 三档 detent 不变(peek/mid/full,固定高度+offset 平移的丝滑机制保留),但**mid/full 的内容从"固定栏目"改为"按 phase 浮现的货架"**:
 
-| 阶段       | mid 档货架(自上而下)                                          | 备注                                        |
-| ---------- | ------------------------------------------------------------- | ------------------------------------------- |
-| 抵达 Land  | 落地包卡(可收起)→ Now shelf → Nearby                          | 落地包首次主动浮现,之后收进货架首位薄条     |
-| 立足 Settle| Now shelf → 能干活的地方(咖啡/work 切片)→ Nearby              | 立足 = 第 2 层需求,轻做,复用现有分类切片   |
-| 生活 Live  | Now shelf → Routes → 在地本周(§5.3)→ Nearby                   | 现有主形态 + 新增在地流                     |
-| 离开 Leave | 回顾卡(本段图鉴 + 留下独行者信号 CTA)→ Now shelf              | Recall 贡献引擎入口                         |
+| 阶段        | mid 档货架(自上而下)                             | 备注                                     |
+| ----------- | ------------------------------------------------ | ---------------------------------------- |
+| 抵达 Land   | 落地包卡(可收起)→ Now shelf → Nearby             | 落地包首次主动浮现,之后收进货架首位薄条  |
+| 立足 Settle | Now shelf → 能干活的地方(咖啡/work 切片)→ Nearby | 立足 = 第 2 层需求,轻做,复用现有分类切片 |
+| 生活 Live   | Now shelf → Routes → 在地本周(§5.3)→ Nearby      | 现有主形态 + 新增在地流                  |
+| 离开 Leave  | 回顾卡(本段图鉴 + 留下独行者信号 CTA)→ Now shelf | Recall 贡献引擎入口                      |
 
 - **peek 档永远是此刻卡片**(§5.1),不随 phase 变——北极星常驻。
 - 货架浮现规则就是"生命周期驱动、不做 30 格图标墙"的落地形式;FilterBar 保持信心切片方向(Now / Solo-friendly / Trusted),不为新模块加 chip。
@@ -169,15 +169,15 @@ city-os §4 的四项 + 在地预告,渲染规则:
 
 ## 6. 丝滑体验规范(Motion & Feel)
 
-| 项            | 规范                                                                                                                    |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Sheet 动效    | 固定高度 + offset 平移(已实现,禁止回退到每帧改 frame);spring `response 0.3 / damping 0.85` 全局统一                     |
-| Marker 呼吸   | NowScore 高分点 `sunGold` 光环 + 1.06 缩放浮起,TimelineView 每分钟推进;低分点降饱和收敛。**呼吸是渐变不是闪烁**,无动画循环 |
-| 模式切换      | Live↔Plan↔Recall:地图罩层 `washLight` 交叉淡入 350ms + 城市栏徽章滑换;绝不整屏 push                                     |
-| Haptics       | 完成动作 success(已有 HeartBurst 配套);「带我去」轻 impact;横幅出现**无** haptic(不打扰预算的一部分)                    |
-| 深色模式      | 全部走 `warmSheetDark/warmCardDark` 暖中性梯度,保住琥珀身份;固定白底卡(NearbyRow 类)按既有约定不动                       |
-| 性能门       | nowScore p95 < 5ms(沿用)· sheet 拖拽全程 60fps · 冷启动到 Now Card 可读 < 2s                                             |
-| 可达性        | Dynamic Type 经 `BottomSheetDetentScale` 缩放(已有);健康度点永远伴随文字,不单靠颜色                                      |
+| 项          | 规范                                                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Sheet 动效  | 固定高度 + offset 平移(已实现,禁止回退到每帧改 frame);spring `response 0.3 / damping 0.85` 全局统一                        |
+| Marker 呼吸 | NowScore 高分点 `sunGold` 光环 + 1.06 缩放浮起,TimelineView 每分钟推进;低分点降饱和收敛。**呼吸是渐变不是闪烁**,无动画循环 |
+| 模式切换    | Live↔Plan↔Recall:地图罩层 `washLight` 交叉淡入 350ms + 城市栏徽章滑换;绝不整屏 push                                        |
+| Haptics     | 完成动作 success(已有 HeartBurst 配套);「带我去」轻 impact;横幅出现**无** haptic(不打扰预算的一部分)                       |
+| 深色模式    | 全部走 `warmSheetDark/warmCardDark` 暖中性梯度,保住琥珀身份;固定白底卡(NearbyRow 类)按既有约定不动                         |
+| 性能门      | nowScore p95 < 5ms(沿用)· sheet 拖拽全程 60fps · 冷启动到 Now Card 可读 < 2s                                               |
+| 可达性      | Dynamic Type 经 `BottomSheetDetentScale` 缩放(已有);健康度点永远伴随文字,不单靠颜色                                        |
 
 ---
 
@@ -185,23 +185,23 @@ city-os §4 的四项 + 在地预告,渲染规则:
 
 ### 7.1 总表(更新 confidence PRD §5.2)
 
-| 处置       | 功能                                                                                              | v2 说明                                                        |
-| ---------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **留·强化** | 地图 / NowScore / SoloScore / Confidence / 详情页(基准态)/ 此刻卡片 / 灵动岛 / 意图输入 / 旅人共建层 | 信心内核 + 呼吸表面                                            |
-| **留·新增** | 城市容器三模式 / 生命周期货架 / 落地包 / 在地模块 / 签证税务自算                                     | 城市 OS 外壳,全部过三关 + 复用视觉语法                          |
-| **降级**   | ChatSheet(意图输入化,已完成)/ Companion **仅存路线分享卡**进主线                                    | 分享卡是传播物,走 `route-map-share-card.md` 规格               |
-| **砍(旗标关)** | Friends 图谱 / Companion 招募与 DM / Brag / Insight                                              | `FF_COMPANION` Release OFF 维持;不删库                          |
+| 处置           | 功能                                                                                                 | v2 说明                                          |
+| -------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **留·强化**    | 地图 / NowScore / SoloScore / Confidence / 详情页(基准态)/ 此刻卡片 / 灵动岛 / 意图输入 / 旅人共建层 | 信心内核 + 呼吸表面                              |
+| **留·新增**    | 城市容器三模式 / 生命周期货架 / 落地包 / 在地模块 / 签证税务自算                                     | 城市 OS 外壳,全部过三关 + 复用视觉语法           |
+| **降级**       | ChatSheet(意图输入化,已完成)/ Companion **仅存路线分享卡**进主线                                     | 分享卡是传播物,走 `route-map-share-card.md` 规格 |
+| **砍(旗标关)** | Friends 图谱 / Companion 招募与 DM / Brag / Insight                                                  | `FF_COMPANION` Release OFF 维持;不删库           |
 
 ### 7.2 仪式层裁决(对 V_NEXT 的回应)
 
 硬标准:**仪式必须强化三条骨架规则之一,且频率受硬上限约束,否则=gamification=砍。**
 
-| 仪式       | 裁决     | 重定位                                                                                                   |
-| ---------- | -------- | --------------------------------------------------------------------------------------------------------- |
-| dailyOmen  | **留**   | →「今日城市签」= 在地模块每日摘要(§5.3)。强化"会呼吸";1 条/日硬上限已有                                   |
-| timeCapsule| **留**   | → Recall 模式的贡献仪式:离城时封一条给"下一个独行者"的信号,开启即贡献数据。强化"信心贯穿"(冷启动引擎)     |
-| blindbox   | **条件留** | →「信心盲盒」:仅当存在 NowScore×SoloScore×Confidence 三高的点时才可开,开出的必是三高点。$1.99 冲动购保留,但它卖的是"这一次完全信任罗盘",不是随机刺激。若数据显示复购靠随机性而非信任,砍 |
-| Brag/Insight | **砍** | 无法通过任何一关                                                                                           |
+| 仪式         | 裁决       | 重定位                                                                                                                                                                                  |
+| ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| dailyOmen    | **留**     | →「今日城市签」= 在地模块每日摘要(§5.3)。强化"会呼吸";1 条/日硬上限已有                                                                                                                 |
+| timeCapsule  | **留**     | → Recall 模式的贡献仪式:离城时封一条给"下一个独行者"的信号,开启即贡献数据。强化"信心贯穿"(冷启动引擎)                                                                                   |
+| blindbox     | **条件留** | →「信心盲盒」:仅当存在 NowScore×SoloScore×Confidence 三高的点时才可开,开出的必是三高点。$1.99 冲动购保留,但它卖的是"这一次完全信任罗盘",不是随机刺激。若数据显示复购靠随机性而非信任,砍 |
+| Brag/Insight | **砍**     | 无法通过任何一关                                                                                                                                                                        |
 
 ---
 
@@ -209,15 +209,15 @@ city-os §4 的四项 + 在地预告,渲染规则:
 
 几乎零新视觉投资——这是融合稿的工程红利:
 
-| v2 规格            | 现有资产                                                              | 缺口                                        |
-| ------------------ | ---------------------------------------------------------------------- | -------------------------------------------- |
-| 此刻卡片           | `PeekSummaryCard` + `peekHeaderLabel` + `SoloScoreBadge` + `TrustBadge` | 三行重排 + NowScore reason 接入(依赖 R1 信号) |
-| 城市容器三模式     | 城市切换 + `-startCity` 链路 + `washLight` token                        | mode 状态机 + Plan 投影                       |
-| 生命周期货架       | `BottomInfoSheet` 三档 + `RoutesSection`/`NearbySection` 门控模式        | phase 推断(入境日 + 停留天数)+ 货架编排       |
-| 落地包             | `surfaceSunken` 分组语法 + 健康度点 + mono 体系                          | 四项数据编排层 + 183 天自算(纯本地)           |
-| 在地模块           | Experience 限时字段 + BestTimeRibbon + TrustBadge                        | 事件源接入 + 独行友好度标注(复用 SoloScore)   |
-| 灵动岛接线         | 7 Kind + `IslandPalette` 全齐                                            | dailyOmen/timeCapsule 按 §7.2 重定位接真数据  |
-| NowScore 主角化    | `Models/NowScore.swift` 骨架                                             | Crowd/SafetyTime 两信号(confidence PRD §6.1)  |
+| v2 规格         | 现有资产                                                                | 缺口                                          |
+| --------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
+| 此刻卡片        | `PeekSummaryCard` + `peekHeaderLabel` + `SoloScoreBadge` + `TrustBadge` | 三行重排 + NowScore reason 接入(依赖 R1 信号) |
+| 城市容器三模式  | 城市切换 + `-startCity` 链路 + `washLight` token                        | mode 状态机 + Plan 投影                       |
+| 生命周期货架    | `BottomInfoSheet` 三档 + `RoutesSection`/`NearbySection` 门控模式       | phase 推断(入境日 + 停留天数)+ 货架编排       |
+| 落地包          | `surfaceSunken` 分组语法 + 健康度点 + mono 体系                         | 四项数据编排层 + 183 天自算(纯本地)           |
+| 在地模块        | Experience 限时字段 + BestTimeRibbon + TrustBadge                       | 事件源接入 + 独行友好度标注(复用 SoloScore)   |
+| 灵动岛接线      | 7 Kind + `IslandPalette` 全齐                                           | dailyOmen/timeCapsule 按 §7.2 重定位接真数据  |
+| NowScore 主角化 | `Models/NowScore.swift` 骨架                                            | Crowd/SafetyTime 两信号(confidence PRD §6.1)  |
 
 Schema 影响维持 confidence PRD §7 口径:只加不改,`parity:check` 必绿。城市 OS 新增数据(入境日、phase)**纯本地存储**,隐私友好且零后端成本。
 
@@ -228,16 +228,19 @@ Schema 影响维持 confidence PRD §7 口径:只加不改,`parity:check` 必绿
 > 原两份 PRD 各有 R1–R3,合并为一条线,信心内核先行——心脏没跳,外壳无意义。
 
 **R1 · 收敛 + 内核可见(2–3 周)** = confidence R1+R2
+
 - 旗标关闭第 4 层入口(现状已大半完成,验收即可);仪式层按 §7.2 重定位或下线。
 - NowScore 补 Crowd/SafetyTime 信号 → marker 呼吸;此刻卡片上线(§5.1)。
 - Gate:任一时段有三高点 demo;30 秒可用性测试说得清产品;`parity:check` 绿。
 
 **R2 · 城市容器 + 单城打透(3–4 周)** = city-os R1
+
 - `(city, mode, phase)` 状态机 + 生命周期货架;落地包四项(人工策展版)+ 在地模块(人工策展版)在清迈或万象一座城上线。
 - 灵动岛 dailyOmen 接在地摘要。
 - Gate:一个真实用户靠它"落地→立足→探索"走完一天不跳去别的 App。
 
 **R3 · 聚合成型 + 打磨(3–4 周)** = city-os R2 + confidence R3
+
 - 落地包外链化 + 签证税务自算;在地接活动源 + 独行友好标注;三条骨架规则审查所有模块。
 - 排序压制 level≤1、离线 fallback、性能门全过。
 - Gate:需要者周 2 留存 ≥ 40%;跨 App 替代率有正向信号。
@@ -255,12 +258,12 @@ Schema 影响维持 confidence PRD §7 口径:只加不改,`parity:check` 必绿
 
 ## 11. 风险与对策(增量部分)
 
-| 风险                                              | 对策                                                                                     |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 生命周期 phase 推断错误(用户没按剧本走)           | phase 只影响货架排序,永不隐藏内容;用户可手动钉住任何货架节                                 |
-| 视觉语法被新模块稀释(有人给落地包发明新颜色)      | §2 两条公理写进 code review checklist;新增语义色 = 架构级决策需过评审                      |
-| 三张 PRD 并存导致执行混乱                          | 本稿为准的裁决范围写明(表头"取代"行);两份 v1 降为规格附录,V_NEXT 仅 §7.2 采纳部分有效     |
-| 仪式层重定位后仍被质疑 gamification               | 每个仪式绑定硬上限 + 反指标监控;数据说话,越线即砍                                          |
+| 风险                                         | 对策                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 生命周期 phase 推断错误(用户没按剧本走)      | phase 只影响货架排序,永不隐藏内容;用户可手动钉住任何货架节                            |
+| 视觉语法被新模块稀释(有人给落地包发明新颜色) | §2 两条公理写进 code review checklist;新增语义色 = 架构级决策需过评审                 |
+| 三张 PRD 并存导致执行混乱                    | 本稿为准的裁决范围写明(表头"取代"行);两份 v1 降为规格附录,V_NEXT 仅 §7.2 采纳部分有效 |
+| 仪式层重定位后仍被质疑 gamification          | 每个仪式绑定硬上限 + 反指标监控;数据说话,越线即砍                                     |
 
 ---
 

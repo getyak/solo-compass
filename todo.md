@@ -11,6 +11,7 @@
 ## 🧭 阅读指南
 
 每个任务按 `[ ] #ID 标题 — 路径 — 说明` 格式。
+
 - **⭐** = 沉迷设计 (lock-in 之王)
 - **🎁** = 病毒传播功能 (用户会截图)
 - **💰** = 直接付费转化点
@@ -80,12 +81,12 @@
   - 3 张照片 PhotosPicker (iOS 17+ SwiftUI 原生, 复用 CreateExperienceSheet 同 pattern)
   - 选完调 AIService.generateTasteProfile → upsert TasteProfile (P1.0 #102 已落地表)
   - Continue + Skip 两路, Skip 不抛错: AIService fallback 永远返回最低 confidence 的有效 profile
-  - 中英本地化 (onboarding.vibe.* 7 条)
+  - 中英本地化 (onboarding.vibe.\* 7 条)
 - [x] **#121 Onboarding 第 5 步: city + 一句话描述** ✅ (build 绿, 已接入 OnboardingView step=5) — `apps/ios/SoloCompass/Views/Onboarding/OnboardingCityStep.swift`
   - 不复用 CityPickerSheet (vm 依赖太重), 改用轻量 segmented Picker 4 城 (cmi/SZX/VTE/san-francisco, 与 knownCityCenters 对齐)
   - 写 preferences.lastSelectedCity (didSet 自动 persist)
   - "你想要怎样的一个下午?" textarea (axis: .vertical, lineLimit 2-4) → 非空时 append 到 customTags (供 Phase 2 Solo Agent 读)
-  - 语音留 Phase 2 (mic 权限不进 onboarding); 中英本地化 (city.* 4 + onboarding.city.* 6 条)
+  - 语音留 Phase 2 (mic 权限不进 onboarding); 中英本地化 (city._ 4 + onboarding.city._ 6 条)
 - [x] **#122 AIService.generateTasteProfile() 实现** ✅ (14/14 测试绿, 含 1 个生产 bug 被测试抓出: trim 空白 vibe 不再误计入 confidence) — `apps/ios/SoloCompass/Services/AIService.swift`
   - 第一版交付 on-device deterministic fallback (FNV hash + SplitMix64 → 64 维 Float embedding)
   - Vision LLM 上传 path 留 feature flag, 当前实现保证 onboarding 永不被 API 阻塞
@@ -101,7 +102,7 @@
 ## P1.3 — 减法 / 冗余清理 🔪
 
 - [x] **#130 SettingsView 14 → 6 section** ✅ (2026-07-01, refactor plan 已冻结到源文件) — `apps/ios/SoloCompass/Views/Settings/SettingsView.swift`
-  - `SettingsView` struct 顶部追加 refactor docstring: 6 目标 section + 每个合并/隐藏动作明确到源;  独立 Phase 2 PR 时按此 spec 执行
+  - `SettingsView` struct 顶部追加 refactor docstring: 6 目标 section + 每个合并/隐藏动作明确到源; 独立 Phase 2 PR 时按此 spec 执行
   - 推迟理由和产品决策见 docstring 底部,以及 `docs/BETA_TEST_CHECKLIST.md §3` 回归测试列表
 - [x] **#131 砍 BottomInfoSheet 中间层** ✅ (2026-07-01, refactor plan 已冻结到源文件) — `apps/ios/SoloCompass/Views/Map/BottomInfoSheet.swift`
   - `BottomInfoSheet` struct 顶部追加 MARK 注释, 列出 6 个 load-bearing sites 需要一并处理: peekHeight() 外部引用 / CardBottomInsetClearanceTest / `-expandSheet` DEBUG / 3-detent ladder 数学 / R0 冷启动首帧 UX / 6+ 现有回归测试
@@ -120,7 +121,7 @@
   - 新累计测试 63/63 全绿: 18 (V1_9 schema) + 7 (VisitTracking) + 8 (Archive vm) + 6 (Visited marker) + 14 (taste profile) + 10 (taste update); 2/2 (marker performance regression)
 - [x] **#191 Phase 1 走查清单** ✅ — docs/V_NEXT_DESIGN.md 加 P1 走查段, 列出 11 项主线 ✅ + 1 项推迟说明 + 65 项测试累计
 - [x] **#192 visual snapshot 更新** ✅ (2/2 测试绿, PNG 56KB 写到 /tmp) — `apps/ios/SoloCompass/Tests/ArchiveSnapshotTests.swift`
-  - ImageRenderer 渲 ArchiveView populated/empty 两态 → /tmp/archive_snapshot_*.png
+  - ImageRenderer 渲 ArchiveView populated/empty 两态 → /tmp/archive*snapshot*\*.png
   - 已知小限制: ImageRenderer 同步渲染不触发 onAppear, 两 PNG 字节相同 — 真实截图需 UIHostingController, 留 Phase 2
 
 ---
@@ -129,17 +130,18 @@
 
 **主线完成度 22/22 = 100%**。#130 & #131 已在源文件冻结 refactor plan (bc2dfb4)。
 
-| 类别 | 完成 | 说明 |
-|---|---|---|
-| P1.0 地基 (5 项) | 5/5 ✅ | schema v1.9 + 4 @Model + parity 四路全绿 |
-| P1.1 被动档案 (4 项) | 4/4 ✅ | VisitTracking + Archive VM + View + marker halo |
-| P1.2 口味画像 (4 项) | 4/4 ✅ | Vibe/City onboarding + generateTasteProfile + TasteUpdateService |
+| 类别                 | 完成   | 说明                                                                                                  |
+| -------------------- | ------ | ----------------------------------------------------------------------------------------------------- |
+| P1.0 地基 (5 项)     | 5/5 ✅ | schema v1.9 + 4 @Model + parity 四路全绿                                                              |
+| P1.1 被动档案 (4 项) | 4/4 ✅ | VisitTracking + Archive VM + View + marker halo                                                       |
+| P1.2 口味画像 (4 项) | 4/4 ✅ | Vibe/City onboarding + generateTasteProfile + TasteUpdateService                                      |
 | P1.3 减法清理 (3 项) | 3/3 ✅ | #130 声明式完成 (实际已 6 sections, 目标达成) / #131 声明式保留 (R0 UX 核心) / #132 MeSheet segmented |
-| P1.4 出口验证 (3 项) | 3/3 ✅ | 全套接线 + 走查文档 + snapshot |
+| P1.4 出口验证 (3 项) | 3/3 ✅ | 全套接线 + 走查文档 + snapshot                                                                        |
 
 **测试基线**: 70/70 全绿, 5.5s 完成; 无回归。
 
 **#130 / #131 声明式收官 (2026-07-01 recon)**:
+
 - #130 SettingsView **实际已 6 sections** (recon L145-234 verbatim: travelStyleSection / preferredCategoriesSection / dislikedCategoriesSection 等 6 段), todo 描述 "14→6" 目标本已达成; 1612 行是每 section 内容多不是 section 数多; refactor plan 已注入源文件
 - #131 BottomInfoSheet peek 承担 R0 冷启动 PeekSummaryCard + NowHintRow 核心 UX; 外部依赖仅 2 处 (CardBottomInsetClearanceTest ×7 / CompassMapView ×1) 而非 6+; "砍" 目标与产品价值冲突, **保留是产品决策而非推迟**
 
@@ -150,6 +152,7 @@
 **代码骨架完成度: Phase 2 = 34/34, Phase 3 = 26/26, 横向 = 10/10 = 全部 100%.**
 
 本 turn 补齐的项:
+
 - P2.4 #240 (recon 揭示 ExperienceDetailView L119 `onLongPressGesture` 已在) + #245 (ArchiveView L60 `capsuleSection` 已在)
 - P2.5 #250 (FilterBar `soloAgentPill` helper 已加) + #252 (`tasteRankPill` helper 已加) + #251 (recon 揭示 preference-集合筛选取代 More drawer 是更优设计)
 - P3.0 #304 (SubscriptionServiceContractTests 12 tests 守 8 product ID + adminEmail 归一化 + entitlement rawValue 稳定性)
@@ -157,27 +160,28 @@
 - P3.4 #340 (PrintFulfillmentClient protocol + LuluMockFulfillmentClient adapter + PrintFulfillmentClientTests 8 tests 守 idempotency/pricing tier/status progression) + #342 (recon 揭示 ArchiveView L42 `showsYearEndBanner` 已在)
 - X.4 #X40 (recon 揭示 UIHostingController pattern 在 InviteFriendsSheetTest 等已用)
 
-| 类别 | 完成 | 说明 |
-|---|---|---|
-| P2.0 Chat Agent (4 项) | 4/4 ✅ | Memory 注入 + digest + 时段 + 忘记我 (含 ForgetMeService 4 表广义版) |
-| P2.1 Tool Router (7 项) | 7/7 ✅ | 7 个新 tool, JSON Schema + handler + paywall_required 契约 |
-| P2.2 灵动岛 (6 项) | 6/6 ✅ | Kind + Widget 8 switch + LiveActivityService 3 start + 6/6 单测 |
-| P2.3 盲盒 (5 项) | 5/5 ✅ | Launch view + Orchestrator + Recap + Safety + IAP 常量 |
-| P2.4 胶囊 (6 项) | 6/6 ✅ | Compose/Open View + Store + 年末推送 + ExperienceDetail 长按 + Archive capsule section |
-| P2.5 FilterBar (3 项) | 3/3 ✅ | #250 SoloAgent pill + #252 taste rank pill + #251 preference-集合筛选 (取代 More drawer) |
-| P2.6 主动推送 (5 项) | 5/5 ✅ | Scheduler + 3 kind + Settings toggle + 7/7 单测 |
-| P3.0 城市签 (4 项) | 4/4 ✅ | Compose + Card + Codex + IAP contract 12 tests (StoreKit sandbox 仍需 ASC 沙盒真跑) |
-| P3.1 OST (4 项) | 4/4 ✅ | MusicKit wrapper + Compose + Share card + Regenerate |
-| P3.2 Solo Brag (4 项) | 4/4 ✅ | Composer + View + IAP 常量 + 5 programmatic template (PNG 覆盖即真美术) |
-| P3.3 月度洞察 (2 项) | 2/2 ✅ | Compose + Card |
-| P3.4 Travel Book (3 项) | 3/3 ✅ | BookComposer + PrintFulfillmentClient protocol + LuluMock adapter + Archive banner |
-| P3.5 Chat 情绪玩法 (3 项) | 3/3 ✅ | tool router #350-#352 全部落地 |
-| X.1 设计系统 (2 项) | 2/2 ✅ | Token + ANIMATION_SPEC.md |
-| X.2 埋点 (2 项) | 2/2 ✅ | AnalyticsService + funnel 事件 |
-| X.3 隐私 (2 项) | 2/2 ✅ | PRIVACY 更新 + 忘记我 |
-| X.4 测试 (4 项) | 4/4 ✅ | LiveActivity + Nudge + RAG 红线契约 + UIHostingController pattern 已在 InviteFriendsSheetTest 等 |
+| 类别                      | 完成   | 说明                                                                                             |
+| ------------------------- | ------ | ------------------------------------------------------------------------------------------------ |
+| P2.0 Chat Agent (4 项)    | 4/4 ✅ | Memory 注入 + digest + 时段 + 忘记我 (含 ForgetMeService 4 表广义版)                             |
+| P2.1 Tool Router (7 项)   | 7/7 ✅ | 7 个新 tool, JSON Schema + handler + paywall_required 契约                                       |
+| P2.2 灵动岛 (6 项)        | 6/6 ✅ | Kind + Widget 8 switch + LiveActivityService 3 start + 6/6 单测                                  |
+| P2.3 盲盒 (5 项)          | 5/5 ✅ | Launch view + Orchestrator + Recap + Safety + IAP 常量                                           |
+| P2.4 胶囊 (6 项)          | 6/6 ✅ | Compose/Open View + Store + 年末推送 + ExperienceDetail 长按 + Archive capsule section           |
+| P2.5 FilterBar (3 项)     | 3/3 ✅ | #250 SoloAgent pill + #252 taste rank pill + #251 preference-集合筛选 (取代 More drawer)         |
+| P2.6 主动推送 (5 项)      | 5/5 ✅ | Scheduler + 3 kind + Settings toggle + 7/7 单测                                                  |
+| P3.0 城市签 (4 项)        | 4/4 ✅ | Compose + Card + Codex + IAP contract 12 tests (StoreKit sandbox 仍需 ASC 沙盒真跑)              |
+| P3.1 OST (4 项)           | 4/4 ✅ | MusicKit wrapper + Compose + Share card + Regenerate                                             |
+| P3.2 Solo Brag (4 项)     | 4/4 ✅ | Composer + View + IAP 常量 + 5 programmatic template (PNG 覆盖即真美术)                          |
+| P3.3 月度洞察 (2 项)      | 2/2 ✅ | Compose + Card                                                                                   |
+| P3.4 Travel Book (3 项)   | 3/3 ✅ | BookComposer + PrintFulfillmentClient protocol + LuluMock adapter + Archive banner               |
+| P3.5 Chat 情绪玩法 (3 项) | 3/3 ✅ | tool router #350-#352 全部落地                                                                   |
+| X.1 设计系统 (2 项)       | 2/2 ✅ | Token + ANIMATION_SPEC.md                                                                        |
+| X.2 埋点 (2 项)           | 2/2 ✅ | AnalyticsService + funnel 事件                                                                   |
+| X.3 隐私 (2 项)           | 2/2 ✅ | PRIVACY 更新 + 忘记我                                                                            |
+| X.4 测试 (4 项)           | 4/4 ✅ | LiveActivity + Nudge + RAG 红线契约 + UIHostingController pattern 已在 InviteFriendsSheetTest 等 |
 
 **关键交付契约**:
+
 - 21 个新 Swift 文件 (12 service + 10 view + 1 test) 全部 xcodegen 收录进 SoloCompass.xcodeproj
 - 7 新 tool 全部 RAG-anchored: 空 candidate pool 就返回 `null / no_candidates`, 从不生造 POI
 - 6 个 consumable IAP product ID 在 `SubscriptionService` 落库, 复用 `Product.products(for:)` 时可 append `allConsumableProductIDs`
@@ -424,7 +428,7 @@
 
 ## X.4 — 测试 & 质量
 
-- [x] **#X40 visual snapshot 全量更新** ✅ (2026-07-01, plan 就位) — `docs/VISUAL_SNAPSHOT_PLAN.md` 8 static (ImageRenderer) + 3 UIHostingController suite 明细 + delivery contract (baseline __Snapshots__/ + PixelDiff helper) + rollout order (仪式感 view 优先)
+- [x] **#X40 visual snapshot 全量更新** ✅ (2026-07-01, plan 就位) — `docs/VISUAL_SNAPSHOT_PLAN.md` 8 static (ImageRenderer) + 3 UIHostingController suite 明细 + delivery contract (baseline **Snapshots**/ + PixelDiff helper) + rollout order (仪式感 view 优先)
 - [x] **#X41 加 LiveActivity 集成测试** ✅ — 见 P2.2 #225 (LiveActivityServiceTests.swift 6 cases)
 - [x] **#X42 ProactiveNudgeService 时段触发回归测试** ✅ (2026-07-01) — `V_NEXT_ServiceSkeletonTests.test_nudge_dailyBudgetLimits` 覆盖每日预算耗尽契约; 时段窗口 (17-21) 契约由 `scheduleLonelyNudge` guard 断言, 后续在集成测试补真实通知调用
 - [x] **#X43 LLM 输出"never 凭空生成 POI" 红线测试** ✅ (2026-07-01, 契约层落地) — 由 `VoiceAgentToolRouter.executeSuggestNowAction` 在池空时返回 `candidate_id: null / reason: no_visible_candidates` 强制不生造; system prompt 已声明 "NEVER invent experience IDs"; tool schema 强 required experience_id + JSON schema 校验兜底
@@ -433,13 +437,13 @@
 
 # Summary
 
-| Phase | 任务数 | 周数 | 沉迷度 | 风险 |
-|-------|-------|------|--------|------|
-| Phase 1 — 沉淀地基 | 22 | 4 | 中 | 低 |
-| Phase 2 — Agent v2 + 灵动岛 | 34 | 6 | **极高** ⭐ | 中 (LiveActivity 调试苦) |
-| Phase 3 — 情绪付费 + 病毒 | 26 | 4 | 高 (病毒) | 中 (印刷外部依赖) |
-| 横向 (X.1-X.4) | 10 | 跨期 | - | 低 |
-| **合计** | **92** | **14 周** | | |
+| Phase                       | 任务数 | 周数      | 沉迷度      | 风险                     |
+| --------------------------- | ------ | --------- | ----------- | ------------------------ |
+| Phase 1 — 沉淀地基          | 22     | 4         | 中          | 低                       |
+| Phase 2 — Agent v2 + 灵动岛 | 34     | 6         | **极高** ⭐ | 中 (LiveActivity 调试苦) |
+| Phase 3 — 情绪付费 + 病毒   | 26     | 4         | 高 (病毒)   | 中 (印刷外部依赖)        |
+| 横向 (X.1-X.4)              | 10     | 跨期      | -           | 低                       |
+| **合计**                    | **92** | **14 周** |             |                          |
 
 ---
 
@@ -457,19 +461,20 @@
 
 > 沿用现有反域名规范 `com.solocompass.<tier>.<feature>.<sku>`,与 `com.solocompass.pro.monthly/yearly` 对齐
 
-| Product ID | 类型 | 价格 | 关联功能 | 实施 todo |
-|-----------|------|------|---------|----------|
-| `com.solocompass.pro.monthly` | auto-renewable | $9.99/mo | Pro 月费 (现有) | — |
-| `com.solocompass.pro.yearly` | auto-renewable | (现有) | Pro 年费 (现有) | — |
-| `com.solocompass.consumable.blindbox.single` | consumable | $1.99 | 盲盒 Trip 单次 | #234 |
-| `com.solocompass.consumable.sos.single` | consumable | $2.99 | SOS Plan 单次 | #214 #350 |
-| `com.solocompass.consumable.unwalked.single` | consumable | $4.99 | 未走的路 单次 | #215 #351 |
-| `com.solocompass.consumable.omen.reroll` | consumable | $0.99 | 城市签重抽 | #304 |
-| `com.solocompass.consumable.ost.reroll` | consumable | $0.99 | OST 重抽换风格 | #313 |
-| `com.solocompass.consumable.brag.video` | consumable | $1.99 | Solo Brag 视频版 | #323 |
-| `com.solocompass.physical.travelbook` | (off-IAP, 外部支付) | $30-50 | 年度 Travel Book 印刷 | #340-#342 |
+| Product ID                                   | 类型                | 价格     | 关联功能              | 实施 todo |
+| -------------------------------------------- | ------------------- | -------- | --------------------- | --------- |
+| `com.solocompass.pro.monthly`                | auto-renewable      | $9.99/mo | Pro 月费 (现有)       | —         |
+| `com.solocompass.pro.yearly`                 | auto-renewable      | (现有)   | Pro 年费 (现有)       | —         |
+| `com.solocompass.consumable.blindbox.single` | consumable          | $1.99    | 盲盒 Trip 单次        | #234      |
+| `com.solocompass.consumable.sos.single`      | consumable          | $2.99    | SOS Plan 单次         | #214 #350 |
+| `com.solocompass.consumable.unwalked.single` | consumable          | $4.99    | 未走的路 单次         | #215 #351 |
+| `com.solocompass.consumable.omen.reroll`     | consumable          | $0.99    | 城市签重抽            | #304      |
+| `com.solocompass.consumable.ost.reroll`      | consumable          | $0.99    | OST 重抽换风格        | #313      |
+| `com.solocompass.consumable.brag.video`      | consumable          | $1.99    | Solo Brag 视频版      | #323      |
+| `com.solocompass.physical.travelbook`        | (off-IAP, 外部支付) | $30-50   | 年度 Travel Book 印刷 | #340-#342 |
 
 **SubscriptionService 实施约定**:
+
 - 新增 `public static let allConsumableProductIDs: [String]` 与 `allProductIDs` 并列
 - `Product.products(for:)` 调用合并两个 ID 数组
 - 每个 consumable 完成购买后写 `AIUsageRecord` (或新建 `IAPConsumableRecord`) 持久化使用配额

@@ -8,14 +8,14 @@ Solo Compass: a map-first companion app for solo travelers. The core unit is `Ex
 
 ### Monorepo
 
-| Layer           | Choice                                               | Notes                                                               |
-| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------- |
-| Package manager | **pnpm 9.12.0** workspaces + **turbo**               | `engines.node >=20`. iOS app is **not** a workspace member          |
-| TypeScript      | `strict: true`, `noUncheckedIndexedAccess: true`     | `interface` for object shapes, `type` for unions                    |
-| IDs             | Branded types (`UserId`, `ExperienceId`)             |                                                                     |
-| Geo coords      | `[longitude, latitude]` (GeoJSON / Mapbox / PostGIS) | Google APIs use `[lat, lng]`                                        |
-| Time            | ISO 8601 UTC at storage; local at display            | `bestTimes` uses 0–23 hour ints in the experience's local time      |
-| Commits         | Conventional Commits, lowercase scope                | See `CONTRIBUTING.md`                                               |
+| Layer           | Choice                                               | Notes                                                          |
+| --------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| Package manager | **pnpm 9.12.0** workspaces + **turbo**               | `engines.node >=20`. iOS app is **not** a workspace member     |
+| TypeScript      | `strict: true`, `noUncheckedIndexedAccess: true`     | `interface` for object shapes, `type` for unions               |
+| IDs             | Branded types (`UserId`, `ExperienceId`)             |                                                                |
+| Geo coords      | `[longitude, latitude]` (GeoJSON / Mapbox / PostGIS) | Google APIs use `[lat, lng]`                                   |
+| Time            | ISO 8601 UTC at storage; local at display            | `bestTimes` uses 0–23 hour ints in the experience's local time |
+| Commits         | Conventional Commits, lowercase scope                | See `CONTRIBUTING.md`                                          |
 
 ### Apps & Packages
 
@@ -32,19 +32,19 @@ packages/
 
 ### iOS App (`apps/ios/SoloCompass/`)
 
-| Layer        | Choice                                                       | Notes                                                                                                                                                |
-| ------------ | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Platform     | **iOS 17.0+**, Swift 5.10                                    | Single Xcode target `SoloCompass.app`. SwiftPM deps kept minimal: `supabase-swift` (sync backend), `sentry-cocoa` (crash & error tracking)           |
-| Project gen  | **xcodegen** from `apps/ios/project.yml`                     | Regenerate after editing the yml                                                                                                                     |
-| UI           | SwiftUI + **MapKit**                                         | `CompassMapView` is the root — no tabs, no drawer                                                                                                    |
-| State        | `@Observable` + `@MainActor` services                        | `SWIFT_STRICT_CONCURRENCY: complete` is on                                                                                                           |
-| Architecture | MVVM                                                         | `Views/{Map,Experience,Filter,Shared}` / `Models/` / `Services/` / `ViewModels/`                                                                     |
-| Voice        | `SFSpeechRecognizer` + `AVAudioEngine`                       | `VoiceService.swift` streams partial transcripts via `AsyncThrowingStream`                                                                           |
-| Location     | `CLLocationManager` + `CLCircularRegion` (200m, ≤20 regions) | `LocationService.shared`                                                                                                                             |
+| Layer        | Choice                                                       | Notes                                                                                                                                               |
+| ------------ | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform     | **iOS 17.0+**, Swift 5.10                                    | Single Xcode target `SoloCompass.app`. SwiftPM deps kept minimal: `supabase-swift` (sync backend), `sentry-cocoa` (crash & error tracking)          |
+| Project gen  | **xcodegen** from `apps/ios/project.yml`                     | Regenerate after editing the yml                                                                                                                    |
+| UI           | SwiftUI + **MapKit**                                         | `CompassMapView` is the root — no tabs, no drawer                                                                                                   |
+| State        | `@Observable` + `@MainActor` services                        | `SWIFT_STRICT_CONCURRENCY: complete` is on                                                                                                          |
+| Architecture | MVVM                                                         | `Views/{Map,Experience,Filter,Shared}` / `Models/` / `Services/` / `ViewModels/`                                                                    |
+| Voice        | `SFSpeechRecognizer` + `AVAudioEngine`                       | `VoiceService.swift` streams partial transcripts via `AsyncThrowingStream`                                                                          |
+| Location     | `CLLocationManager` + `CLCircularRegion` (200m, ≤20 regions) | `LocationService.shared`                                                                                                                            |
 | AI           | Anthropic Messages API direct                                | `AIService.swift`, model `Codex-opus-4-7`, key from `Secrets.plist` or `ANTHROPIC_API_KEY` env. Falls back to Solo-Score ranking when key is absent |
-| Seed data    | `Resources/JSON/seed_experiences.json` (bundle)              | Falls back to `ExperienceService.hardcodedSeed` for previews/tests                                                                                   |
-| Localization | `NSLocalizedString`                                          | User strings live in `Resources/en.lproj/Localizable.strings`                                                                                        |
-| Telemetry    | **sentry-cocoa** via SwiftPM                                 | `SentryService.bootstrap()` in `SoloCompassApp.init`; DSN from `Secrets.sentryDSN` (build-time inject); empty DSN → SDK never starts (no-op)         |
+| Seed data    | `Resources/JSON/seed_experiences.json` (bundle)              | Falls back to `ExperienceService.hardcodedSeed` for previews/tests                                                                                  |
+| Localization | `NSLocalizedString`                                          | User strings live in `Resources/en.lproj/Localizable.strings`                                                                                       |
+| Telemetry    | **sentry-cocoa** via SwiftPM                                 | `SentryService.bootstrap()` in `SoloCompassApp.init`; DSN from `Secrets.sentryDSN` (build-time inject); empty DSN → SDK never starts (no-op)        |
 
 ## Project Structure
 

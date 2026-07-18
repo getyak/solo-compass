@@ -219,7 +219,9 @@ export function buildKitPrompt(
 ): string {
   const urls = candidates.map((c) => c.url);
   const current = currentRows
-    .map((r) => `- section=${r.section} name="${r.name}" body="${r.body}" lens="${r.lensLine ?? ""}"`)
+    .map(
+      (r) => `- section=${r.section} name="${r.name}" body="${r.body}" lens="${r.lensLine ?? ""}"`,
+    )
     .join("\n");
   return `You are re-verifying the landing kit for ${city.nameEn} (${city.nameZh}) against fresh search snippets. Output zh-Hans.
 
@@ -555,7 +557,8 @@ export function validateKit(items: unknown, candidateURLs: string[]): KitValidat
       action: "update",
       name,
       body,
-      lensLine: typeof d["lens_line"] === "string" ? (d["lens_line"] as string).trim() || null : null,
+      lensLine:
+        typeof d["lens_line"] === "string" ? (d["lens_line"] as string).trim() || null : null,
       linkLabel:
         typeof d["link_label"] === "string" ? (d["link_label"] as string).trim() || null : null,
       sources: rawSources,

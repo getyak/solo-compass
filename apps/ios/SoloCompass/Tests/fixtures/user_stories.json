@@ -11,10 +11,7 @@
     "emotional_context": "轻度耗竭+失恋期,怕吵、怕被搭讪、怕店员盯着看;想要一杯热的、暖光、可以待到打烊也不被赶的地方",
     "scenario": {
       "city": "szx",
-      "coords": [
-        114.0579,
-        22.5431
-      ],
+      "coords": [114.0579, 22.5431],
       "hour": 23,
       "weather": "夏夜 28°C 闷热无雨",
       "energy": "low",
@@ -56,10 +53,7 @@
     "emotional_context": "饥饿+疲惫+微焦躁;不想吃便利店,想坐下来吃口热的",
     "scenario": {
       "city": "szx",
-      "coords": [
-        113.9345,
-        22.5279
-      ],
+      "coords": [113.9345, 22.5279],
       "hour": 1,
       "weather": "夏夜微雨 26°C",
       "energy": "very_low",
@@ -102,10 +96,7 @@
     "emotional_context": "轻微社交焦虑,想喝一杯但害怕独自走进酒吧被 bartender 关注",
     "scenario": {
       "city": "nyc",
-      "coords": [
-        -73.9857,
-        40.7484
-      ],
+      "coords": [-73.9857, 40.7484],
       "hour": 23,
       "weather": "Summer clear 24°C",
       "energy": "medium_low",
@@ -147,10 +138,7 @@
     "emotional_context": "深度悲伤+时差;需要看到窗外有生活迹象",
     "scenario": {
       "city": "tyo",
-      "coords": [
-        139.7708,
-        35.6817
-      ],
+      "coords": [139.7708, 35.6817],
       "hour": 5,
       "weather": "梅雨末小雨 22°C",
       "energy": "very_low",
@@ -193,10 +181,7 @@
     "emotional_context": "轻度愉悦但雨天焦虑,想找有内容的室内空间",
     "scenario": {
       "city": "san-francisco",
-      "coords": [
-        -122.4194,
-        37.7749
-      ],
+      "coords": [-122.4194, 37.7749],
       "hour": 14,
       "weather": "雨 12°C",
       "energy": "medium",
@@ -239,10 +224,7 @@
     "emotional_context": "专注、时间紧、有创作兴奋感",
     "scenario": {
       "city": "sgn",
-      "coords": [
-        106.7009,
-        10.7769
-      ],
+      "coords": [106.7009, 10.7769],
       "hour": 17,
       "weather": "干季云 30%",
       "energy": "high",
@@ -284,10 +266,7 @@
     "emotional_context": "时间焦虑+决策疲劳",
     "scenario": {
       "city": "szx",
-      "coords": [
-        113.9067,
-        22.5313
-      ],
+      "coords": [113.9067, 22.5313],
       "hour": 12,
       "weather": "夏正午 34°C 暴晒",
       "energy": "medium",
@@ -312,11 +291,7 @@
       "emotional_resonance": "像懂通勤的同事",
       "solo_fit_signals": "「AC 强」「快速出餐」chip"
     },
-    "failure_modes": [
-      "Route 总时长 >45min",
-      "没有 AC chip",
-      "推荐需排队 20min 的网红店"
-    ]
+    "failure_modes": ["Route 总时长 >45min", "没有 AC chip", "推荐需排队 20min 的网红店"]
   },
   {
     "id": "s08_sofia_lisbon_student_budget",
@@ -330,10 +305,7 @@
     "emotional_context": "兴奋+小心翼翼;预算是 hard cap,怕踩游客陷阱",
     "scenario": {
       "city": "lis",
-      "coords": [
-        -9.1393,
-        38.7223
-      ],
+      "coords": [-9.1393, 38.7223],
       "hour": 10,
       "weather": "晴 24°C",
       "energy": "high",
@@ -375,10 +347,7 @@
     "emotional_context": "紧张+尊重亡妻+小心眼力",
     "scenario": {
       "city": "tyo",
-      "coords": [
-        139.7016,
-        35.658
-      ],
+      "coords": [139.7016, 35.658],
       "hour": 10,
       "weather": "晴 26°C",
       "energy": "medium",
@@ -421,10 +390,7 @@
     "emotional_context": "创作充电+自我重启;怕晚上不安全",
     "scenario": {
       "city": "sgn",
-      "coords": [
-        106.6884,
-        10.7823
-      ],
+      "coords": [106.6884, 10.7823],
       "hour": 20,
       "weather": "干季夜温 27°C",
       "energy": "medium",

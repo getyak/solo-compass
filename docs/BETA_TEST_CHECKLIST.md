@@ -9,42 +9,46 @@ real hardware. §2 items are informational — capture data, don't gate.
 ## §1 Must-pass on device
 
 ### Live Activity rate limits
+
 - [ ] `soloAgentHint` fires at most 3× / calendar day (`UserDefaults` key
-  `solo.liveactivity.count.soloAgentHint.<yyyy-MM-dd>` observable via
-  Xcode → Devices → App Data).
+      `solo.liveactivity.count.soloAgentHint.<yyyy-MM-dd>` observable via
+      Xcode → Devices → App Data).
 - [ ] `dailyOmen` fires at most 1× / calendar day.
 - [ ] `timeCapsule` is uncapped and always fires on region enter with a
-  ripe capsule present.
+      ripe capsule present.
 - [ ] Cross-midnight reset: counters restart at 00:00 local.
 - [ ] Reduce Motion respected: kill animation on capsule reveal +
-  blindbox reveal + omen flip.
+      blindbox reveal + omen flip.
 
 ### Capsule accuracy
+
 - [ ] Bury a text capsule scheduled for **3 months**. Manually rewind
-  the device clock to that date (Settings → General → Date & Time,
-  disable Automatic). Open app → capsule appears in Archive's "Ripe"
-  band → open triggers CapsuleOpenView with the exact text.
+      the device clock to that date (Settings → General → Date & Time,
+      disable Automatic). Open app → capsule appears in Archive's "Ripe"
+      band → open triggers CapsuleOpenView with the exact text.
 - [ ] Bury at experience A, walk to experience B — B's region enter
-  MUST NOT surface A's capsule.
+      MUST NOT surface A's capsule.
 - [ ] After "Forget me" (Settings → Data → Forget me), all buried
-  capsules are gone from Archive and never re-surface on subsequent
-  region enters.
+      capsules are gone from Archive and never re-surface on subsequent
+      region enters.
 
 ### Blindbox safety
+
 - [ ] Fresh-install user: blindbox picks only experiences with
-  `soloScore ≥ 7.0` AND `confidence.level ≥ 3`. Verify by seeding a
-  known low-confidence experience and confirming it's excluded.
+      `soloScore ≥ 7.0` AND `confidence.level ≥ 3`. Verify by seeding a
+      known low-confidence experience and confirming it's excluded.
 - [ ] "Reshuffle" costs $0.00 — no paywall prompt, no consumable IAP
-  charge.
+      charge.
 - [ ] Blindbox running: closing the sheet ends the trip (in-memory
-  orchestrator drops).
+      orchestrator drops).
 
 ### Data hygiene
+
 - [ ] "Forget me" clears AgentMemorySnapshot + TasteProfile in a
-  single transaction. Chat opened afterwards has NO memory block in
-  the system prompt (inspect `orch.currentSystemPrompt`).
+      single transaction. Chat opened afterwards has NO memory block in
+      the system prompt (inspect `orch.currentSystemPrompt`).
 - [ ] `AnalyticsService.pendingCount` after 5 minutes of active use
-  is between 3 and 30. Opt-out flips it to 0 within one click.
+      is between 3 and 30. Opt-out flips it to 0 within one click.
 
 ## §2 Informational (capture, don't block)
 
@@ -60,11 +64,11 @@ real hardware. §2 items are informational — capture data, don't gate.
 ## §3 Regression must-not-happen
 
 - [ ] Phase 1 baseline: Archive tab still populated, taste profile
-  still updating after 5 visits, MeSheet segmented tab still swaps
-  Archive / Me content.
+      still updating after 5 visits, MeSheet segmented tab still swaps
+      Archive / Me content.
 - [ ] Chat still surfaces cards from `explore_nearby` /
-  `filter_by_category` / `show_details` / `build_route` — the 4
-  original tools MUST continue to work end-to-end.
+      `filter_by_category` / `show_details` / `build_route` — the 4
+      original tools MUST continue to work end-to-end.
 
 ## Sign-off
 

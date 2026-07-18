@@ -56,4 +56,4 @@ BragCards/
 - [ ] Round 1 review + revisions requested.
 - [ ] Final assets in this folder.
 - [ ] `BragCardView` updated to reference the templates instead of
-  the current numeric layout.
+      the current numeric layout.

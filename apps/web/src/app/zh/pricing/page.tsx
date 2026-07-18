@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { copy } from "@/components/marketing/copy";
-import {
-  Footer,
-  MarketingNav,
-  Pricing,
-} from "@/components/marketing/sections";
+import { Footer, MarketingNav, Pricing } from "@/components/marketing/sections";
 import { Container } from "@/components/marketing/Container";
 import { Eyebrow, Section } from "@/components/marketing/primitives";
 import { HomeJsonLd } from "../../_seo";
@@ -85,9 +81,7 @@ export default function PricingPageZh() {
         <Section className="border-t border-border-subtle/50">
           <Container width="narrow">
             <Eyebrow dot="sun">常见问题</Eyebrow>
-            <h2 className="ds-display-md mt-6 font-display">
-              真实用户会问的问题，诚实回答。
-            </h2>
+            <h2 className="ds-display-md mt-6 font-display">真实用户会问的问题，诚实回答。</h2>
             <dl className="mt-12 divide-y divide-border-subtle">
               {FAQ_ZH.map((item, i) => (
                 <div key={i} className="py-8">

@@ -42,7 +42,7 @@ const PARAGRAPHS_EN: { heading: string; body: string }[] = [
   },
   {
     heading: "Experience, not place.",
-    body: "\"Blue Bottle Coffee\" is a place. \"A quiet corner where I can read for two hours without a barista rushing me\" is an experience. Places are what maps store. Experiences are what people remember. We built the core data model around Experience — with mood, best times, sensory notes, and solo-friendliness — so the app can answer real questions, not point at pins.",
+    body: '"Blue Bottle Coffee" is a place. "A quiet corner where I can read for two hours without a barista rushing me" is an experience. Places are what maps store. Experiences are what people remember. We built the core data model around Experience — with mood, best times, sensory notes, and solo-friendliness — so the app can answer real questions, not point at pins.',
   },
   {
     heading: "AI shows its work.",
@@ -78,12 +78,9 @@ export default function ManifestoEn() {
             <Eyebrow dot="accent" className="justify-center">
               Manifesto
             </Eyebrow>
-            <h1 className="ds-display-xl mt-6 font-display">
-              A map for people who travel alone.
-            </h1>
+            <h1 className="ds-display-xl mt-6 font-display">A map for people who travel alone.</h1>
             <p className="ds-body-xl mt-6 text-fg-muted">
-              Six things we believe. Written before the first line of code, and
-              still true.
+              Six things we believe. Written before the first line of code, and still true.
             </p>
           </Container>
         </Section>

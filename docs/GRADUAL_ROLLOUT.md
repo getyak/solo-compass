@@ -12,7 +12,7 @@ Every stage below has an exit criterion. Do NOT advance until met.
 - [ ] App Store Connect: v1.0 build submitted for review, review passed.
 - [ ] Phased release toggle ENABLED in App Store Connect.
 - [ ] AnalyticsService dashboard connected to the 9 event names
-  (`AnalyticsService.EventName`).
+      (`AnalyticsService.EventName`).
 
 ## Stage 1 — 10% (day 1–7)
 
@@ -50,6 +50,7 @@ Every stage below has an exit criterion. Do NOT advance until met.
 ## Rollback protocol
 
 If a Stage 1 abort fires:
+
 1. Immediate: phased release paused via App Store Connect.
 2. Hotfix build submitted within 48h with the isolated fix.
 3. Post-mortem written to `docs/incidents/YYYY-MM-DD-v1.0-abort.md`.
@@ -58,6 +59,7 @@ If a Stage 1 abort fires:
 ## Manual toggle backdoors
 
 For emergency shutdown of a runaway new surface:
+
 - Blindbox: no runtime kill switch — must ship hotfix removing
   `BlindboxLaunchView` entry point.
 - Capsule: `CapsuleStore` writes are best-effort; UI kill = strip the

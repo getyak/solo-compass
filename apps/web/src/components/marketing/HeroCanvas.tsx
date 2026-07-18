@@ -202,7 +202,8 @@ function Dust({ paused, count = 220 }: { paused: boolean; count?: number }) {
     if (paused) return;
     const points = pointsRef.current;
     if (!points) return;
-    const arr = (points.geometry.attributes.position as THREE.BufferAttribute).array as Float32Array;
+    const arr = (points.geometry.attributes.position as THREE.BufferAttribute)
+      .array as Float32Array;
     for (let i = 0; i < count; i++) {
       const yIdx = i * 3 + 1;
       const xIdx = i * 3;
@@ -256,10 +257,9 @@ export function HeroCanvas() {
     const onMobile = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mqMobile.addEventListener("change", onMobile);
 
-    const io = new IntersectionObserver(
-      ([e]) => setInView(!!e?.isIntersecting),
-      { threshold: 0.02 },
-    );
+    const io = new IntersectionObserver(([e]) => setInView(!!e?.isIntersecting), {
+      threshold: 0.02,
+    });
     const el = document.getElementById("hero-canvas-anchor");
     if (el) io.observe(el);
 
@@ -315,22 +315,24 @@ export function HeroCanvas() {
       }}
       aria-hidden
     >
-      {ready && <Canvas
-        gl={{
-          antialias: true,
-          alpha: false,
-          powerPreference: "low-power",
-          preserveDrawingBuffer: false,
-        }}
-        dpr={[1, isMobile ? 1.25 : 1.5]}
-        camera={{ position: [0, 0, 4], fov: 55 }}
-        style={{ background: "transparent" }}
-        frameloop={paused ? "demand" : "always"}
-      >
-        <WarmAuroraPlane paused={paused} />
-        <CompassRings paused={paused} />
-        <Dust paused={paused} count={dustCount} />
-      </Canvas>}
+      {ready && (
+        <Canvas
+          gl={{
+            antialias: true,
+            alpha: false,
+            powerPreference: "low-power",
+            preserveDrawingBuffer: false,
+          }}
+          dpr={[1, isMobile ? 1.25 : 1.5]}
+          camera={{ position: [0, 0, 4], fov: 55 }}
+          style={{ background: "transparent" }}
+          frameloop={paused ? "demand" : "always"}
+        >
+          <WarmAuroraPlane paused={paused} />
+          <CompassRings paused={paused} />
+          <Dust paused={paused} count={dustCount} />
+        </Canvas>
+      )}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-24"

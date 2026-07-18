@@ -13,10 +13,10 @@ state machine it produces.
 
 ## 1. Product catalog
 
-| Product ID                          | Period | Intro offer        |
-| ----------------------------------- | ------ | ------------------ |
-| `com.solocompass.pro.monthly`       | P1M    | 1 month free       |
-| `com.solocompass.pro.yearly`        | P1Y    | 1 month free       |
+| Product ID                    | Period | Intro offer  |
+| ----------------------------- | ------ | ------------ |
+| `com.solocompass.pro.monthly` | P1M    | 1 month free |
+| `com.solocompass.pro.yearly`  | P1Y    | 1 month free |
 
 Both products belong to the **Solo Compass Pro** subscription group so a user
 can upgrade from monthly to yearly without losing access.
@@ -111,15 +111,16 @@ The state is resolved by walking `Transaction.currentEntitlements` in
 
 ## 5. UI entry points to Paywall
 
-| Surface                       | Trigger                                                    |
-| ----------------------------- | ---------------------------------------------------------- |
-| Onboarding step 5             | Shown to every new user; opt-out via "Maybe later"         |
-| MeSheet → EntitlementBanner   | Always visible; banner contents change by entitlement      |
-| MapViewModel AI gate          | Tapping Explore/voice/etc. while `entitlement.isActive==false` |
-| ExperienceDetailViewModel     | Tapping Per-place AI insight while ineligible              |
-| SettingsView                  | "Subscription" row                                         |
+| Surface                     | Trigger                                                        |
+| --------------------------- | -------------------------------------------------------------- |
+| Onboarding step 5           | Shown to every new user; opt-out via "Maybe later"             |
+| MeSheet → EntitlementBanner | Always visible; banner contents change by entitlement          |
+| MapViewModel AI gate        | Tapping Explore/voice/etc. while `entitlement.isActive==false` |
+| ExperienceDetailViewModel   | Tapping Per-place AI insight while ineligible                  |
+| SettingsView                | "Subscription" row                                             |
 
 All five paths feed into the same `PaywallView`, which auto-detects:
+
 - **Eligible for intro offer** → CTA = "Start 1-month free trial"
 - **Mid-trial** → banner shows X days remaining + manage subscription link
 - **Ineligible / already Pro** → CTA = "Subscribe" (no trial promise)

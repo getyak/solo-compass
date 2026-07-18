@@ -60,10 +60,7 @@ export function HomeJsonLd({ locale }: { locale: Locale }) {
     name: "Solo Compass",
     url: SITE_URL,
     logo: `${SITE_URL}/icon-512.png`,
-    sameAs: [
-      "https://twitter.com/solocompassapp",
-      "https://github.com/solo-compass",
-    ],
+    sameAs: ["https://twitter.com/solocompassapp", "https://github.com/solo-compass"],
   };
 
   return (

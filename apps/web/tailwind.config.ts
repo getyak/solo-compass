@@ -70,7 +70,10 @@ const config: Config = {
         "display-2xl": ["clamp(56px, 8vw, 96px)", { lineHeight: "1.02", letterSpacing: "-0.02em" }],
         "display-xl": ["clamp(44px, 6vw, 72px)", { lineHeight: "1.05", letterSpacing: "-0.015em" }],
         "display-lg": ["clamp(36px, 5vw, 56px)", { lineHeight: "1.08", letterSpacing: "-0.01em" }],
-        "display-md": ["clamp(28px, 3.5vw, 40px)", { lineHeight: "1.15", letterSpacing: "-0.005em" }],
+        "display-md": [
+          "clamp(28px, 3.5vw, 40px)",
+          { lineHeight: "1.15", letterSpacing: "-0.005em" },
+        ],
         "display-sm": ["32px", { lineHeight: "1.2" }],
         "body-xl": ["22px", { lineHeight: "1.55" }],
         "body-lg": ["18px", { lineHeight: "1.6" }],

@@ -22,7 +22,11 @@
       "link_label": "打开 Airalo",
       "action": null,
       "sources": [
-        { "type": "official", "url": "https://www.airalo.com/laos-esim", "attribution": "Airalo 官方" }
+        {
+          "type": "official",
+          "url": "https://www.airalo.com/laos-esim",
+          "attribution": "Airalo 官方"
+        }
       ],
       "model_name": null,
       "seen_label": "人工策展 · 7月5日"
@@ -38,7 +42,11 @@
       "link_label": "打开 Wise",
       "action": null,
       "sources": [
-        { "type": "official", "url": "https://wise.com/currency-converter/lak-rate", "attribution": "Wise 汇率" }
+        {
+          "type": "official",
+          "url": "https://wise.com/currency-converter/lak-rate",
+          "attribution": "Wise 汇率"
+        }
       ],
       "model_name": null,
       "seen_label": "人工策展 · 7月5日"
@@ -98,8 +106,8 @@
       "solo_note": "一个人逛正好，傍晚人最舒服",
       "health": "green",
       "seen_label": "人工策展 · 7月5日",
-      "lat": 17.9560,
-      "lng": 102.6130,
+      "lat": 17.956,
+      "lng": 102.613,
       "limited_label": "仅本周五",
       "source_url": "https://www.tourismlaos.org/events/naga-fireball-market",
       "verified_at": "2026-07-05T00:00:00Z",
@@ -115,8 +123,8 @@
       "solo_note": "小吃摊多，独自吃走都自在",
       "health": "green",
       "seen_label": "人工策展 · 7月5日",
-      "lat": 17.9700,
-      "lng": 102.6480,
+      "lat": 17.97,
+      "lng": 102.648,
       "limited_label": "本周每晚",
       "source_url": "https://www.tourismlaos.org/events/that-luang-night-market",
       "verified_at": "2026-07-05T00:00:00Z",

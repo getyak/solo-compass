@@ -15,8 +15,7 @@ const buttonVariant: Record<Variant, string> = {
     "bg-accent text-bg-warm hover:bg-accent-hover active:scale-[0.98] shadow-sm hover:shadow-lg hover:-translate-y-[1px]",
   secondary:
     "bg-transparent text-fg-primary border border-border-default hover:border-fg-primary hover:bg-surface-white active:scale-[0.98]",
-  ghost:
-    "bg-transparent text-fg-muted hover:text-fg-primary underline-offset-4 hover:underline",
+  ghost: "bg-transparent text-fg-muted hover:text-fg-primary underline-offset-4 hover:underline",
 };
 
 export function Button({
@@ -109,11 +108,7 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section
-      id={id}
-      className={`py-section-y-sm md:py-section-y ${className}`}
-      style={style}
-    >
+    <section id={id} className={`py-section-y-sm md:py-section-y ${className}`} style={style}>
       {children}
     </section>
   );

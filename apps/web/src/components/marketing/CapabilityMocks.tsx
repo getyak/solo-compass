@@ -108,8 +108,7 @@ function BlindboxMock({ copy }: { copy: Copy }) {
       <div
         className="relative mx-4 mt-2 flex flex-col items-center overflow-hidden rounded-xl p-4"
         style={{
-          background:
-            "radial-gradient(circle at 50% 40%, #F7DEB0 0%, #C9A677 55%, #6E5432 100%)",
+          background: "radial-gradient(circle at 50% 40%, #F7DEB0 0%, #C9A677 55%, #6E5432 100%)",
         }}
       >
         <div className="relative flex h-24 w-24 items-center justify-center">
@@ -190,11 +189,19 @@ function CapsuleMock({ copy }: { copy: Copy }) {
       </div>
       <div className="grow" />
       <div className="mx-4 mb-3 flex items-center justify-between rounded-full border border-fg-primary/30 bg-bg-warm px-3 py-2">
-        <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-fg-muted">Seal for</span>
+        <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-fg-muted">
+          Seal for
+        </span>
         <div className="flex gap-1">
-          <span className="rounded-full bg-surface-white px-1.5 py-0.5 font-mono text-[7px] text-fg-muted">1m</span>
-          <span className="rounded-full bg-fg-primary px-1.5 py-0.5 font-mono text-[7px] text-bg-warm">6m</span>
-          <span className="rounded-full bg-surface-white px-1.5 py-0.5 font-mono text-[7px] text-fg-muted">1y</span>
+          <span className="rounded-full bg-surface-white px-1.5 py-0.5 font-mono text-[7px] text-fg-muted">
+            1m
+          </span>
+          <span className="rounded-full bg-fg-primary px-1.5 py-0.5 font-mono text-[7px] text-bg-warm">
+            6m
+          </span>
+          <span className="rounded-full bg-surface-white px-1.5 py-0.5 font-mono text-[7px] text-fg-muted">
+            1y
+          </span>
         </div>
       </div>
     </ScreenFrame>
@@ -236,7 +243,9 @@ function OmenMock({ copy }: { copy: Copy }) {
         </div>
       </div>
       <div className="mx-4 mt-3 flex items-center gap-2 rounded-lg border border-border-subtle bg-surface-white px-3 py-2 opacity-70">
-        <span className="font-mono text-[7px] uppercase tracking-[0.14em] text-fg-muted">Yesterday</span>
+        <span className="font-mono text-[7px] uppercase tracking-[0.14em] text-fg-muted">
+          Yesterday
+        </span>
         <span className="text-[9px] text-fg-muted">Notice the color of doors.</span>
       </div>
       <div className="grow" />
@@ -281,18 +290,18 @@ function BestNowMock({ copy }: { copy: Copy }) {
         </div>
         <div className="flex h-6 items-end gap-[2px]">
           {[
-            0.1, 0.05, 0.05, 0.05, 0.1, 0.2, 0.4, 0.55, 0.62, 0.5, 0.35, 0.28,
-            0.32, 0.4, 0.45, 0.55, 0.7, 0.92, 0.98, 0.85, 0.55, 0.3, 0.18, 0.1,
+            0.1, 0.05, 0.05, 0.05, 0.1, 0.2, 0.4, 0.55, 0.62, 0.5, 0.35, 0.28, 0.32, 0.4, 0.45,
+            0.55, 0.7, 0.92, 0.98, 0.85, 0.55, 0.3, 0.18, 0.1,
           ].map((v, i) => {
             const isPeak = i === 17 || i === 18;
             const isNow = i === 16;
             const bg = isPeak
               ? "bg-sun-gold"
               : isNow
-              ? "bg-accent"
-              : v > 0.5
-              ? "bg-sun-gold-soft"
-              : "bg-border-subtle";
+                ? "bg-accent"
+                : v > 0.5
+                  ? "bg-sun-gold-soft"
+                  : "bg-border-subtle";
             return (
               <div
                 key={i}
@@ -370,10 +379,16 @@ function BragMock({ copy }: { copy: Copy }) {
       </div>
       <div className="grow" />
       <div className="mx-4 mb-3 flex items-center justify-between rounded-full border border-border-subtle bg-bg-warm px-3 py-2">
-        <span className="font-mono text-[7px] uppercase tracking-[0.14em] text-fg-muted">Share as</span>
+        <span className="font-mono text-[7px] uppercase tracking-[0.14em] text-fg-muted">
+          Share as
+        </span>
         <div className="flex gap-1">
-          <span className="rounded-full bg-fg-primary px-1.5 py-0.5 font-mono text-[7px] text-bg-warm">image</span>
-          <span className="rounded-full bg-surface-white px-1.5 py-0.5 font-mono text-[7px] text-fg-muted">print</span>
+          <span className="rounded-full bg-fg-primary px-1.5 py-0.5 font-mono text-[7px] text-bg-warm">
+            image
+          </span>
+          <span className="rounded-full bg-surface-white px-1.5 py-0.5 font-mono text-[7px] text-fg-muted">
+            print
+          </span>
         </div>
       </div>
     </ScreenFrame>

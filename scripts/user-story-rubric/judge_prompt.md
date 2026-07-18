@@ -13,13 +13,13 @@ You are given:
 
 Score each of 5 rubric dimensions out of 20:
 
-| Dimension              | 20 pts if…                                                                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| visual_craft           | Typography hierarchy is clear; spacing breathes; color harmony (warm-amber tone respected); no crowding; dark-mode-ready if applicable |
-| information_density    | The single most important answer to this persona's question is visible in the first 3 seconds — one glance                            |
-| ai_content_quality     | The visible AI-generated content (oneLiner, why-it-matters, trust chip labels) is SPECIFIC to real POIs, never generic marketing copy |
-| emotional_resonance    | The tone in visible text matches the persona's emotional context (grief → restraint; commuter → efficiency; drinker → non-pressure)   |
-| solo_fit_signals       | Trust chips visible in the screenshot include the SPECIFIC solo-fit signals this story's `failure_modes` demand                       |
+| Dimension           | 20 pts if…                                                                                                                             |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| visual_craft        | Typography hierarchy is clear; spacing breathes; color harmony (warm-amber tone respected); no crowding; dark-mode-ready if applicable |
+| information_density | The single most important answer to this persona's question is visible in the first 3 seconds — one glance                             |
+| ai_content_quality  | The visible AI-generated content (oneLiner, why-it-matters, trust chip labels) is SPECIFIC to real POIs, never generic marketing copy  |
+| emotional_resonance | The tone in visible text matches the persona's emotional context (grief → restraint; commuter → efficiency; drinker → non-pressure)    |
+| solo_fit_signals    | Trust chips visible in the screenshot include the SPECIFIC solo-fit signals this story's `failure_modes` demand                        |
 
 **Then:** total 5 × up-to-20 → 100.
 
@@ -29,7 +29,7 @@ Score each of 5 rubric dimensions out of 20:
 - Any recognizable chain brand (Starbucks, 7-Eleven, McDonald's, Fisherman's Wharf, Time Out Market) as the top card **deducts 8 pts** from `information_density` — this is a failure mode.
 - The story's declared `failure_modes` are hard checks: each triggered failure mode caps that dimension at **12/20**.
 - A missing/blank screen (crash, black frame, onboarding still visible when `-devSkipOnboarding` was set) is **0/100** — do not softball it.
-- Perfect 100 requires: no failure mode triggered AND every dimension has one *specific* positive artifact you can name from the screenshot.
+- Perfect 100 requires: no failure mode triggered AND every dimension has one _specific_ positive artifact you can name from the screenshot.
 
 ## Your output — STRICT JSON
 
@@ -47,10 +47,7 @@ Return exactly this shape, no wrapping code fence:
     "solo_fit_signals": 10
   },
   "total": 71,
-  "positives": [
-    "One concrete good thing you saw in the screenshot",
-    "Another concrete good thing"
-  ],
+  "positives": ["One concrete good thing you saw in the screenshot", "Another concrete good thing"],
   "failure_modes_triggered": [
     "The exact failure_mode from the fixture that appears in the screenshot"
   ],

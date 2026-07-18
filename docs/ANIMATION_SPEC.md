@@ -11,6 +11,7 @@ Elsewhere, restraint > flourish.
 ## 1. Time-capsule accept (P2.4 #242 — `CapsuleOpenView`)
 
 **Beats**
+
 1. **T=0.00s** — full-screen fade-in of `CT.capsuleGlow → CT.accentSoft`
    gradient. Duration: 0.35s, `.easeOut`.
 2. **T=0.20s** — the envelope glyph (`envelope.open.fill`, size 44)
@@ -34,6 +35,7 @@ render the final state instantly.
 ## 2. Blindbox reveal (P2.3 — `BlindboxOrchestrator` `.revealed` state)
 
 **Beats** (per anchor)
+
 1. Anchor marker's masked title (`"???"`) crossfades to the real title.
    Duration: 0.45s, `.easeInOut`.
 2. Simultaneously, the map annotation halo (`CT.blindboxAmber`) expands
@@ -50,6 +52,7 @@ halo carries the ceremony.
 ## 3. City-omen flip (P3.0 #302 — `OmenCardView`)
 
 **Beats**
+
 1. On "Mark done" tap: `.rotation3DEffect(.degrees(180), axis: (0, 1, 0))`
    over 0.55s, `.easeInOut`.
 2. The back face is pre-mounted with `.rotation3DEffect(.degrees(180))`
@@ -65,6 +68,7 @@ a crossfade over 0.35s.
 ## Tokens
 
 Ceremonial-only, defined in `Views/Shared/CompareTokens.swift`:
+
 - `CT.capsuleGlow` = `#F7DEB0` — capsule reveal.
 - `CT.omenGold` = `#B8925C` — omen accent.
 - `CT.blindboxAmber` = `#8A4A14` — blindbox halo + launch background.

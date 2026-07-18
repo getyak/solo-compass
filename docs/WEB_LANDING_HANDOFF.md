@@ -10,11 +10,11 @@
 
 ### 1) 三份深度战略文档（`docs/`）
 
-| 文档                        | 作用                                                             |
-| --------------------------- | ---------------------------------------------------------------- |
-| `GO_TO_MARKET.md`           | 商业化定位、Free/Yearly/Lifetime 双轨定价、Persona、竞品切位、漏斗、24 个月收入预测 |
-| `SEO_STRATEGY.md`           | 中英四类关键词矩阵（Brand/Category/Comparative/Long-tail）、URL 结构、hreflang、Schema.org JSON-LD 模板、Core Web Vitals 红线、内容日历、外链战略 |
-| `WEB_LANDING_DESIGN.md`     | 完整视觉设计系统：CT tokens 到 CSS 变量、type scale、spacing、shadow、motion、编辑感排版规则、7 个 section 逐屏 spec、Component 库、中英文案 voice guide |
+| 文档                    | 作用                                                                                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GO_TO_MARKET.md`       | 商业化定位、Free/Yearly/Lifetime 双轨定价、Persona、竞品切位、漏斗、24 个月收入预测                                                                      |
+| `SEO_STRATEGY.md`       | 中英四类关键词矩阵（Brand/Category/Comparative/Long-tail）、URL 结构、hreflang、Schema.org JSON-LD 模板、Core Web Vitals 红线、内容日历、外链战略        |
+| `WEB_LANDING_DESIGN.md` | 完整视觉设计系统：CT tokens 到 CSS 变量、type scale、spacing、shadow、motion、编辑感排版规则、7 个 section 逐屏 spec、Component 库、中英文案 voice guide |
 
 ### 2) 设计 tokens 全套落地（CT parity）
 
@@ -23,25 +23,25 @@
 
 ### 3) Marketing 组件库（`apps/web/src/components/marketing/`）
 
-| 文件                | 内容                                                                                          |
-| ------------------- | --------------------------------------------------------------------------------------------- |
-| `Container.tsx`     | 三档宽度容器（narrow/default/wide）                                                            |
-| `primitives.tsx`    | Button / ButtonLink / Chip / Eyebrow（`●`圆点式） / Section（section-y 垂直节奏）/ IPhoneFrame |
-| `DayPageMock.tsx`   | 纯 DOM 高保真的 iOS DayPage 模拟（Ristr8to 咖啡示例）—— 不是截图，永远清晰、支持深色模式         |
-| `copy.ts`           | 中英全量文案，`Copy` interface + `copy.en` / `copy.zh`；voice 遵循 `WEB_LANDING_DESIGN.md` §6  |
-| `sections.tsx`      | MarketingNav / Hero（cascading reveal）/ Problem（Google Maps/小红书/ChatGPT 三段对位）/ Pillars（三张暖琥珀卡）/ Trust（Privacy/AI/Pricing 三承诺）/ Pricing（双卡对比）/ Footer |
+| 文件              | 内容                                                                                                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Container.tsx`   | 三档宽度容器（narrow/default/wide）                                                                                                                                               |
+| `primitives.tsx`  | Button / ButtonLink / Chip / Eyebrow（`●`圆点式） / Section（section-y 垂直节奏）/ IPhoneFrame                                                                                    |
+| `DayPageMock.tsx` | 纯 DOM 高保真的 iOS DayPage 模拟（Ristr8to 咖啡示例）—— 不是截图，永远清晰、支持深色模式                                                                                          |
+| `copy.ts`         | 中英全量文案，`Copy` interface + `copy.en` / `copy.zh`；voice 遵循 `WEB_LANDING_DESIGN.md` §6                                                                                     |
+| `sections.tsx`    | MarketingNav / Hero（cascading reveal）/ Problem（Google Maps/小红书/ChatGPT 三段对位）/ Pillars（三张暖琥珀卡）/ Trust（Privacy/AI/Pricing 三承诺）/ Pricing（双卡对比）/ Footer |
 
 ### 4) 页面（`apps/web/src/app/`）
 
-| Route                     | 说明                                                             |
-| ------------------------- | ---------------------------------------------------------------- |
-| `/`                       | **英文首页**（7 section 完整）· 含 SoftwareApplication + Organization JSON-LD、OpenGraph、Twitter Card、hreflang |
-| `/zh`                     | **中文首页**（同结构，本地化 voice，非机翻）                     |
-| `/pricing`                | 英文定价页 · Pricing section + 6 条 FAQ                          |
-| `/zh/pricing`             | 中文定价页 · 同结构                                              |
-| `/app`                    | **老 Scenario A 研究面板**（Mapbox + Voice + Sheet）—— 之前的 `/`，通过 `git mv` 保存到 `/app`，未破坏 |
-| `/sitemap.xml`            | 自动生成（Next.js `sitemap.ts`）· 含 9 条 URL + hreflang alternates |
-| `/robots.txt`             | 自动生成 · 允许 `/`，禁止 `/api/`, `/app/`                        |
+| Route          | 说明                                                                                                             |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `/`            | **英文首页**（7 section 完整）· 含 SoftwareApplication + Organization JSON-LD、OpenGraph、Twitter Card、hreflang |
+| `/zh`          | **中文首页**（同结构，本地化 voice，非机翻）                                                                     |
+| `/pricing`     | 英文定价页 · Pricing section + 6 条 FAQ                                                                          |
+| `/zh/pricing`  | 中文定价页 · 同结构                                                                                              |
+| `/app`         | **老 Scenario A 研究面板**（Mapbox + Voice + Sheet）—— 之前的 `/`，通过 `git mv` 保存到 `/app`，未破坏           |
+| `/sitemap.xml` | 自动生成（Next.js `sitemap.ts`）· 含 9 条 URL + hreflang alternates                                              |
+| `/robots.txt`  | 自动生成 · 允许 `/`，禁止 `/api/`, `/app/`                                                                       |
 
 ### 5) 技术验证
 

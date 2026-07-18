@@ -59,16 +59,17 @@ runTurn(transcript:)              ← 单 turn 入口
 
 `VoiceAgentSession` 是真正的 FSM 中枢（`VoiceAgentSession.swift:108-116`）：
 
-| 状态 | 进入条件 | 离开条件 |
-|------|---------|---------|
-| `.idle` | 初始 / `end()` | 用户输入 / 长按麦 |
-| `.listening` | 长按麦克风 | 松开 / 静音超时 |
-| `.transcribing` | listening 结束 | STT 给出 final |
-| `.thinking` | `beginUserTurn()` | 有 tool / 拿到 final text |
-| `.toolExecuting(n)` | assistant turn 含 `tool_calls` | 全部 tool result 回灌 |
-| `.speaking` | `finishSpeakingTurn(text:)` | 用户中断 / TTS 完成 |
+| 状态                | 进入条件                       | 离开条件                  |
+| ------------------- | ------------------------------ | ------------------------- |
+| `.idle`             | 初始 / `end()`                 | 用户输入 / 长按麦         |
+| `.listening`        | 长按麦克风                     | 松开 / 静音超时           |
+| `.transcribing`     | listening 结束                 | STT 给出 final            |
+| `.thinking`         | `beginUserTurn()`              | 有 tool / 拿到 final text |
+| `.toolExecuting(n)` | assistant turn 含 `tool_calls` | 全部 tool result 回灌     |
+| `.speaking`         | `finishSpeakingTurn(text:)`    | 用户中断 / TTS 完成       |
 
 **硬上限（PRD §5.2）**：
+
 - `toolCallsMaxPerTurn = 5`
 - `recursionDepthMax = 3`（think→tool→think 最多绕 3 圈）
 - `messagesMaxCount = 11`（超过触发压缩）
@@ -99,17 +100,17 @@ runTurn(transcript:)              ← 单 turn 入口
 
 ### 4.1 9 个工具（`VoiceAgentToolRouter.swift:80-228`）
 
-| Tool | 副作用 | 返回 |
-|------|--------|------|
-| `explore_nearby` | progressive explore + 空环自动扩张 | `{added_count, auto_expanded_stages, search_exhausted}` |
-| `filter_by_category` | `MapViewModel.selectCategory()` | `{visible_count}` |
-| `show_details` | **不**自动开详情页，转 `ToolEffect.experiences` 卡片 | `{experience_id, title}` |
-| `save_to_favorites` | `UserPreferences.toggleFavorite()` | `{now_favorited}` |
-| `dismiss_recommendation` | 从可见集移除 | `{visible_count}` |
-| `search_places` | 等价 explore + query | 同 explore |
-| `navigate_to` | 启动 Apple/Google Maps | `{ok}` |
-| `build_route` | `AIService.generateRoute()` → `RouteProposal` | `{route_title, stop_count, estimated_minutes}` |
-| `filter_visible` | 本地无网络过滤 | `{remaining_count}` |
+| Tool                     | 副作用                                               | 返回                                                    |
+| ------------------------ | ---------------------------------------------------- | ------------------------------------------------------- |
+| `explore_nearby`         | progressive explore + 空环自动扩张                   | `{added_count, auto_expanded_stages, search_exhausted}` |
+| `filter_by_category`     | `MapViewModel.selectCategory()`                      | `{visible_count}`                                       |
+| `show_details`           | **不**自动开详情页，转 `ToolEffect.experiences` 卡片 | `{experience_id, title}`                                |
+| `save_to_favorites`      | `UserPreferences.toggleFavorite()`                   | `{now_favorited}`                                       |
+| `dismiss_recommendation` | 从可见集移除                                         | `{visible_count}`                                       |
+| `search_places`          | 等价 explore + query                                 | 同 explore                                              |
+| `navigate_to`            | 启动 Apple/Google Maps                               | `{ok}`                                                  |
+| `build_route`            | `AIService.generateRoute()` → `RouteProposal`        | `{route_title, stop_count, estimated_minutes}`          |
+| `filter_visible`         | 本地无网络过滤                                       | `{remaining_count}`                                     |
 
 ### 4.2 协议
 
@@ -130,6 +131,7 @@ runTurn(transcript:)              ← 单 turn 入口
 两层（`VoiceAgentOrchestrator.swift:735-863`）：
 
 **A. Session 种子（一次性）**——`buildSystemPrompt(experience:)`：
+
 - 角色描述 + 用户当前经纬度（8 位精度）
 - 可选 `<experience_context>` XML 块（scoped chat 时）
 - 可选 `CONTEXT SNAPSHOT` JSON（来自 `DefaultContextManager.snapshot()` actor，含偏好 / 天气 / visible top 20）
@@ -137,6 +139,7 @@ runTurn(transcript:)              ← 单 turn 入口
 - 50 行规则：引用 `[exp:id]`、不虚构 id、不自动导航、最多一个澄清问题…
 
 **B. 每轮刷新**（前缀注入）——`prependContextRefresh(to:)`：
+
 ```xml
 <latest_context>
   hour: 14
@@ -147,6 +150,7 @@ runTurn(transcript:)              ← 单 turn 入口
 ```
 
 **风险**：
+
 - 系统 prompt 改一次，所有现有 DeepSeek KV cache 失效。
 - `<latest_context>` 是松散 XML 字符串注入到 user message，没用单独 role 或 message envelope，理论上有 prompt-injection 面。
 - visible list 仅前 20，密集城区会 truncate。
@@ -164,6 +168,7 @@ runTurn(transcript:)              ← 单 turn 入口
 **解析流程**：strip 三引号 fence → 提取首个 `{` 到末尾 `}` → `JSONDecoder.decode` → 失败回 fallback。
 
 **问题**：
+
 - 没用 DeepSeek `response_format: { type: "json_object" }`（packages/ai 的 Node 侧用了，iOS 端没启）。
 - 没用 tool-call schema 强制输出（structured output 完全靠 prompt 哀求）。
 - parse 失败的 fallback 是质量明显下降的 skeleton / 贪心路径，UI 上只挂一个 `.skeleton` badge。
@@ -195,14 +200,15 @@ runTurn(transcript:)              ← 单 turn 入口
 
 `AIObservability.swift` 统一入口：
 
-| 项 | 字段 / 动作 |
-|----|---------|
-| Token usage | `prompt_tokens / completion_tokens / total_tokens / latencyMs / cached` |
-| 事件 | `synthesis_success / cache_hit / quota_exceeded / tool_executed / skeleton_fallback` |
-| 工具分布 | `toolCallCounts: [String: Int]` |
-| 错误 | Sentry breadcrumb + `os.Logger`（不带原始 body） |
+| 项          | 字段 / 动作                                                                          |
+| ----------- | ------------------------------------------------------------------------------------ |
+| Token usage | `prompt_tokens / completion_tokens / total_tokens / latencyMs / cached`              |
+| 事件        | `synthesis_success / cache_hit / quota_exceeded / tool_executed / skeleton_fallback` |
+| 工具分布    | `toolCallCounts: [String: Int]`                                                      |
+| 错误        | Sentry breadcrumb + `os.Logger`（不带原始 body）                                     |
 
 **缺口**：
+
 - 没有 turn-level trace ID 串起 user → LLM → tools → final answer。
 - 没有 reasoning step 持久化（archive 只在内存）。
 - 没有"模型选了哪个 tool / 跳过了哪个 tool"的 attribution。
@@ -230,26 +236,31 @@ key 缺失
 ## 11. 五大瓶颈 / 风险（按影响排序）
 
 ### R1 · Tool 串行 + recursion budget = 3 → 复杂意图被静默截断
+
 - 位置：`VoiceAgentSession.swift:41`、`VoiceAgentOrchestrator.swift:457-459`
 - 表现：第 4 轮被强制 "summarize what you know" 收尾，用户看到一个含糊回答，**没有"我没想完"提示**。
 - 影响：多步链式任务（先 explore 三类 → 选其一 → 建路 → 排序 → 解释）天然撞墙。
 
 ### R2 · 上下文压缩有损且不可逆
+
 - 位置：`VoiceAgentSession.swift:303-349`
 - 表现：>11 条后中间 turns 被替换成一行 system 摘要，"两轮前我说过 X" 类约束消失。
 - 影响：长对话越聊越蠢；恢复历史时无法看出"被压过"。
 
 ### R3 · 卡片只在执行时生成，恢复历史会永久丢失
+
 - 位置：`VoiceAgentOrchestrator.swift:615`、`ChatHistoryStore`
 - 表现：`appendCard` 仅在 `executePendingTools()` 期间触发；replay saved messages 不会重建卡片。
 - 影响：用户翻到昨天的对话，"AI 推荐的咖啡馆卡片"消失，只剩干文字，体验断层。
 
 ### R4 · 结构化输出零强制，靠 prompt 哀求
+
 - 位置：`AIService.swift:445-668`、`packages/ai` 与 iOS 端不对称
 - 表现：iOS 没启 `response_format: json_object`，没用 tool schema 校验；解析失败默默 fallback。
 - 影响：模型有时回多余 markdown / 错 id / 漏字段 → skeleton 增多 → 用户感觉 AI 不稳定。
 
 ### R5 · Tool 错误 / 超时是一团字符串
+
 - 位置：`VoiceAgentSession.swift:233-242`、`VoiceAgentOrchestrator.swift:598-608`
 - 表现：HTTP 超时 → tool 返回截断 JSON → 模型接着推理"已知信息" → 用户看到错答。
 - 影响：可靠性顶层封死——重试 / 替代源 / 用户可见错误都没有。
@@ -258,37 +269,37 @@ key 缺失
 
 ## 12. 现状能力地图（自评）
 
-| 维度 | 当前 | 注解 |
-|------|-----|------|
-| 单轮回答质量 | 7/10 | DeepSeek + 强 system prompt + 引用规范 |
-| 多步任务能力 | 4/10 | 串行 + budget=3 + 无并行 |
-| 上下文连续性 | 5/10 | 压缩有损、无长期记忆 |
-| 工具可靠性 | 5/10 | 无 schema 校验、无 retry、无降级源 |
-| 可观测性 | 6/10 | Sentry + Logger 完整，但 turn trace 缺失 |
-| 用户感知透明 | 7/10 | 推理 chip + 卡片 inline，但失败不可见 |
-| 离线可用 | 6/10 | 全套 fallback，但与在线断层 |
-| 隐私 / Prompt 安全 | 6/10 | XML 拼接有 injection 面 |
-| 可恢复（断网 / 重启） | 4/10 | 卡片丢失、压缩有损 |
-| 扩展性（加新 agent） | 3/10 | 单 LLM、无 planner 分层 |
+| 维度                  | 当前 | 注解                                     |
+| --------------------- | ---- | ---------------------------------------- |
+| 单轮回答质量          | 7/10 | DeepSeek + 强 system prompt + 引用规范   |
+| 多步任务能力          | 4/10 | 串行 + budget=3 + 无并行                 |
+| 上下文连续性          | 5/10 | 压缩有损、无长期记忆                     |
+| 工具可靠性            | 5/10 | 无 schema 校验、无 retry、无降级源       |
+| 可观测性              | 6/10 | Sentry + Logger 完整，但 turn trace 缺失 |
+| 用户感知透明          | 7/10 | 推理 chip + 卡片 inline，但失败不可见    |
+| 离线可用              | 6/10 | 全套 fallback，但与在线断层              |
+| 隐私 / Prompt 安全    | 6/10 | XML 拼接有 injection 面                  |
+| 可恢复（断网 / 重启） | 4/10 | 卡片丢失、压缩有损                       |
+| 扩展性（加新 agent）  | 3/10 | 单 LLM、无 planner 分层                  |
 
 ---
 
 ## 13. 关键源代码索引
 
-| 文件 | 行 | 角色 |
-|------|----|------|
-| `VoiceAgentOrchestrator.swift` | 303-611 | turn loop / streaming / tool dispatch / persistence |
-| `VoiceAgentSession.swift` | 80-349 | 状态机 / 消息历史 / 压缩 |
-| `VoiceAgentToolRouter.swift` | 80-643 | 9 个 tool 定义 + ToolEffect 副作用 |
-| `AIService.swift` | 445-668 | DeepSeek streaming + tool serialization |
-| `AIModelRouter.swift` | 59-97 | per-kind model 路由 |
-| `AIObservability.swift` | 56-153 | token / event / tool 统计 |
-| `Services/Context/ContextManager.swift` | actor | LLMContext snapshot |
-| `Services/Agents/EnrichmentAgent.swift` | — | POI 合成 batch agent |
-| `Services/Agents/WebSearchEnrichmentSource.swift` | — | anti-hallucination 字段补 |
-| `ChatSheet.swift` | 325-437 | 消息列表 / 卡片 / chip 渲染 |
-| `ChatHistoryStore.swift` | 40-150 | SwiftData 持久化 |
-| `VoiceService.swift` | 75-148 | STT 流 + actor 隔离 |
+| 文件                                              | 行      | 角色                                                |
+| ------------------------------------------------- | ------- | --------------------------------------------------- |
+| `VoiceAgentOrchestrator.swift`                    | 303-611 | turn loop / streaming / tool dispatch / persistence |
+| `VoiceAgentSession.swift`                         | 80-349  | 状态机 / 消息历史 / 压缩                            |
+| `VoiceAgentToolRouter.swift`                      | 80-643  | 9 个 tool 定义 + ToolEffect 副作用                  |
+| `AIService.swift`                                 | 445-668 | DeepSeek streaming + tool serialization             |
+| `AIModelRouter.swift`                             | 59-97   | per-kind model 路由                                 |
+| `AIObservability.swift`                           | 56-153  | token / event / tool 统计                           |
+| `Services/Context/ContextManager.swift`           | actor   | LLMContext snapshot                                 |
+| `Services/Agents/EnrichmentAgent.swift`           | —       | POI 合成 batch agent                                |
+| `Services/Agents/WebSearchEnrichmentSource.swift` | —       | anti-hallucination 字段补                           |
+| `ChatSheet.swift`                                 | 325-437 | 消息列表 / 卡片 / chip 渲染                         |
+| `ChatHistoryStore.swift`                          | 40-150  | SwiftData 持久化                                    |
+| `VoiceService.swift`                              | 75-148  | STT 流 + actor 隔离                                 |
 
 ---
 

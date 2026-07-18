@@ -6,17 +6,12 @@
     "whyItMatters": "Most travelers visit temples in midday glare. At sunset, the courtyard empties and the white stupas blaze gold against Doi Suthep behind them. The light shifts every minute. Bring nothing but yourself and time to sit on the stone steps.",
     "category": "culture",
     "location": {
-      "coordinates": [
-        98.9692,
-        18.7892
-      ],
+      "coordinates": [98.9692, 18.7892],
       "cityCode": "cmi",
       "addressHint": "Suthep, Mueang Chiang Mai",
       "placeNameLocal": "วัดสวนดอก",
       "placeNameRomanized": "Wat Suan Dok",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -89,9 +84,7 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": [
-      "exp_cmi_nimman_coffee"
-    ],
+    "nearbyExperienceIds": ["exp_cmi_nimman_coffee"],
     "stats": {
       "completionCount": 47,
       "averageRating": 4.7
@@ -107,16 +100,11 @@
     "whyItMatters": "Nimmanhaemin's main strip is full of Instagram cafés. One soi over, in a converted shophouse with no English signage, beans are roasted three mornings a week. The owner pours one pour-over at a time. There's a single bar seat. You'll talk to him or watch the kettle in silence.",
     "category": "coffee",
     "location": {
-      "coordinates": [
-        98.9683,
-        18.8019
-      ],
+      "coordinates": [98.9683, 18.8019],
       "cityCode": "cmi",
       "addressHint": "Soi 7, Nimmanhaemin Rd",
       "placeNameRomanized": "Nimman Roasters",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"]
     },
     "bestTimes": [
       {
@@ -185,10 +173,7 @@
         "trustedVerifications": 0
       }
     },
-    "nearbyExperienceIds": [
-      "exp_cmi_suan_dok_sunset",
-      "exp_cmi_bookstore_work"
-    ],
+    "nearbyExperienceIds": ["exp_cmi_suan_dok_sunset", "exp_cmi_bookstore_work"],
     "stats": {
       "completionCount": 22,
       "averageRating": 4.8
@@ -204,16 +189,11 @@
     "whyItMatters": "Most khao soi tourists visit Khao Soi Khun Yai. Two streets away, a family has been running the same recipe since 1974. The crispy noodle nest is fried to order. There's a single round table where solo diners share with strangers. The mother takes orders; her grandson runs them out.",
     "category": "food",
     "location": {
-      "coordinates": [
-        98.9981,
-        18.7883
-      ],
+      "coordinates": [98.9981, 18.7883],
       "cityCode": "cmi",
       "addressHint": "Old City east gate area",
       "placeNameRomanized": "Khao Soi Mae 1974",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -296,17 +276,12 @@
     "whyItMatters": "Doi Suthep is a tour-bus circus by 09:00. At dawn, the gold chedi is yours. Monks chant in the main hall. You can sit at the back, no one expects anything. The cable car isn't running yet — you climb the 309 naga steps with the locals coming up to make merit.",
     "category": "wellness",
     "location": {
-      "coordinates": [
-        98.9216,
-        18.8048
-      ],
+      "coordinates": [98.9216, 18.8048],
       "cityCode": "cmi",
       "addressHint": "Doi Suthep mountain",
       "placeNameLocal": "วัดพระธาตุดอยสุเทพ",
       "placeNameRomanized": "Wat Phra That Doi Suthep",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400"]
     },
     "bestTimes": [
       {
@@ -398,16 +373,11 @@
     "whyItMatters": "Co-working spaces in Chiang Mai are crowded and loud. This bookstore — owned by a retired English professor — has a second floor with four desks, two armchairs, and a single rule: you must buy something. A pot of tea is 50 baht and lasts the afternoon. The wifi is fast. Nobody talks above a whisper.",
     "category": "work",
     "location": {
-      "coordinates": [
-        98.9939,
-        18.7869
-      ],
+      "coordinates": [98.9939, 18.7869],
       "cityCode": "cmi",
       "addressHint": "Old City near Tha Phae Gate",
       "placeNameRomanized": "Backstreet Books",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1497366216548-37526070297c?w=400"]
     },
     "bestTimes": [
       {
@@ -474,9 +444,7 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": [
-      "exp_cmi_khao_soi_1974"
-    ],
+    "nearbyExperienceIds": ["exp_cmi_khao_soi_1974"],
     "stats": {
       "completionCount": 12,
       "averageRating": 4.9
@@ -492,17 +460,12 @@
     "whyItMatters": "The Mekong here is the border. The sun sets behind Thailand and the river turns the color of weak tea. Locals bring whole families; you bring a single chair. Vendors don't push. It is the most ordinary, most generous evening in Southeast Asia.",
     "category": "nature",
     "location": {
-      "coordinates": [
-        102.6093,
-        17.9633
-      ],
+      "coordinates": [102.6093, 17.9633],
       "cityCode": "VTE",
       "addressHint": "Chao Anouvong Park, Quai Fa Ngum",
       "placeNameLocal": "ແມ່ນ້ຳຂອງ",
       "placeNameRomanized": "Mae Nam Khong",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"]
     },
     "bestTimes": [
       {
@@ -575,10 +538,7 @@
         "trustedVerifications": 2
       }
     },
-    "nearbyExperienceIds": [
-      "exp_vte_wat_si_saket_morning",
-      "exp_vte_slow_coffee_dao"
-    ],
+    "nearbyExperienceIds": ["exp_vte_wat_si_saket_morning", "exp_vte_slow_coffee_dao"],
     "stats": {
       "completionCount": 58,
       "averageRating": 4.8
@@ -594,17 +554,12 @@
     "whyItMatters": "Built in 1818 in Siamese style — which is why the Siamese army spared it when they razed everything else in 1828. Thousands of small Buddha niches line the cloister walls. At 8am the gravel is still cool and you may be the only foreigner inside.",
     "category": "culture",
     "location": {
-      "coordinates": [
-        102.6125,
-        17.9626
-      ],
+      "coordinates": [102.6125, 17.9626],
       "cityCode": "VTE",
       "addressHint": "Lan Xang Avenue at Setthathirath Rd",
       "placeNameLocal": "ວັດສີສະເກດ",
       "placeNameRomanized": "Wat Si Saket",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -677,10 +632,7 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": [
-      "exp_vte_patuxai_view",
-      "exp_vte_slow_coffee_dao"
-    ],
+    "nearbyExperienceIds": ["exp_vte_patuxai_view", "exp_vte_slow_coffee_dao"],
     "stats": {
       "completionCount": 34,
       "averageRating": 4.6
@@ -696,17 +648,12 @@
     "whyItMatters": "The plaque inside calls itself a 'monster of concrete'. The Americans gifted the cement in 1957 for an airport runway; Laos built a victory arch instead. Climb seven floors past souvenir stalls and you get an unobstructed look at how flat, green and low-rise this capital still is.",
     "category": "culture",
     "location": {
-      "coordinates": [
-        102.6311,
-        17.9686
-      ],
+      "coordinates": [102.6311, 17.9686],
       "cityCode": "VTE",
       "addressHint": "Lan Xang Avenue, north end",
       "placeNameLocal": "ປະຕູໄຊ",
       "placeNameRomanized": "Patuxai",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -775,10 +722,7 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": [
-      "exp_vte_pha_that_luang_dawn",
-      "exp_vte_wat_si_saket_morning"
-    ],
+    "nearbyExperienceIds": ["exp_vte_pha_that_luang_dawn", "exp_vte_wat_si_saket_morning"],
     "stats": {
       "completionCount": 21,
       "averageRating": 4.3
@@ -794,17 +738,12 @@
     "whyItMatters": "Pha That Luang is on the seal of the republic. Daytime, it's a tour-bus stop; at dawn it's local monks, a handful of joggers on the surrounding plaza, and the gold leaf turning briefly pink. You don't need to enter the stupa — the plaza itself is the point.",
     "category": "culture",
     "location": {
-      "coordinates": [
-        102.6486,
-        17.9756
-      ],
+      "coordinates": [102.6486, 17.9756],
       "cityCode": "VTE",
       "addressHint": "Thanon That Luang, ~4km NE of city center",
       "placeNameLocal": "ພະທາດຫຼວງ",
       "placeNameRomanized": "Pha That Luang",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -877,10 +816,7 @@
         "trustedVerifications": 2
       }
     },
-    "nearbyExperienceIds": [
-      "exp_vte_patuxai_view",
-      "exp_vte_slow_coffee_dao"
-    ],
+    "nearbyExperienceIds": ["exp_vte_patuxai_view", "exp_vte_slow_coffee_dao"],
     "stats": {
       "completionCount": 41,
       "averageRating": 4.8
@@ -896,17 +832,12 @@
     "whyItMatters": "Bolaven Plateau coffee is some of the best in Southeast Asia and almost all of it leaves Laos. A handful of tiny Vientiane roasters keep the good lots home. This one has two tables, a single grinder, and a barista who pours water like he's defusing something. Bring a book.",
     "category": "coffee",
     "location": {
-      "coordinates": [
-        102.6111,
-        17.9646
-      ],
+      "coordinates": [102.6111, 17.9646],
       "cityCode": "VTE",
       "addressHint": "Off Setthathirath Rd, behind Wat Inpeng",
       "placeNameLocal": "ກາເຟຊ້າ",
       "placeNameRomanized": "Kafe Sao",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"]
     },
     "bestTimes": [
       {
@@ -978,10 +909,7 @@
         "trustedVerifications": 1
       }
     },
-    "nearbyExperienceIds": [
-      "exp_vte_wat_si_saket_morning",
-      "exp_vte_mekong_riverside_sunset"
-    ],
+    "nearbyExperienceIds": ["exp_vte_wat_si_saket_morning", "exp_vte_mekong_riverside_sunset"],
     "stats": {
       "completionCount": 47,
       "averageRating": 4.9
@@ -997,17 +925,12 @@
     "whyItMatters": "华强北金光华周边多数店 22:00 打烊。这家是福田少见的日式独立居酒屋,靠墙一排三个高凳,老板做菜时低头不看客人。工作日 22:30 后单人吧台几乎必有空位,无最低消费,暖琥珀色纸灯,菜单可指着图点。",
     "category": "food",
     "location": {
-      "coordinates": [
-        114.0579,
-        22.5431
-      ],
+      "coordinates": [114.0579, 22.5431],
       "cityCode": "cn-深圳市",
       "addressHint": "福田区华强北路,近金光华广场",
       "placeNameLocal": "鹤松·居酒屋",
       "placeNameRomanized": "Tsurumatsu Izakaya",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -1105,17 +1028,12 @@
     "whyItMatters": "赵一鸣这类前海券商研究员午休只有 45 分钟。这家开在嘉里中心 L1,冷气常年 19 度,进门左手一排面窗高凳,店员点单后不再打扰,一杯冰澳白 3 分钟出,不排长队。可 12:45 走回办公楼。",
     "category": "coffee",
     "location": {
-      "coordinates": [
-        114.04,
-        22.54
-      ],
+      "coordinates": [114.04, 22.54],
       "cityCode": "cn-深圳市",
       "addressHint": null,
       "placeNameLocal": null,
       "placeNameRomanized": "% Arabica Qianhai Kerry Centre",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"]
     },
     "bestTimes": [
       {
@@ -1205,17 +1123,12 @@
     "whyItMatters": "林伟这类出差回程半夜落地的场景需要一碗热的。科兴科学园地铁 A 出口对面这家 24h 粥面档,凌晨仍开三口锅,单人拼桌无压力,一碗艇仔粥 12 元加油条 4 元。店员喊单不喊客,吃完直接走。",
     "category": "food",
     "location": {
-      "coordinates": [
-        113.9345,
-        22.5279
-      ],
+      "coordinates": [113.9345, 22.5279],
       "cityCode": "cn-深圳市",
       "addressHint": "南山区科苑南路,科兴科学园地铁 A 口对面",
       "placeNameLocal": "华强龙记肠粉王(24h)",
       "placeNameRomanized": "Huaqiang Long Kee (24h)",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -1315,17 +1228,12 @@
     "whyItMatters": "梅林关内老书店的地下听音室,晚上转成半吧半书房。22:00 后主厅灯降到 40 lux,吧台放黑胶,每人一张唱片一杯手冲,无最低消费但需登记一次。角落有单人沙发桌,插座齐,店员只在你抬手时过来。",
     "category": "culture",
     "location": {
-      "coordinates": [
-        114.0453,
-        22.5726
-      ],
+      "coordinates": [114.0453, 22.5726],
       "cityCode": "cn-深圳市",
       "addressHint": "福田区梅林一村,近梅林关",
       "placeNameLocal": "旧天堂书店·听音室",
       "placeNameRomanized": "Old Heaven Books Listening Room",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -1415,16 +1323,11 @@
     "whyItMatters": "Down a half flight of stairs on East 9th, this 30-year-old sake bar keeps the room at conversation-cover volume so a solo drinker at the counter blends in. Bartender pours, names the sake once, and doesn't hover. Ten seats total; four are counter singles. Open until 02:00 weekdays, 03:00 Fri/Sat. No reservations for solos.",
     "category": "nightlife",
     "location": {
-      "coordinates": [
-        -73.9854,
-        40.729
-      ],
+      "coordinates": [-73.9854, 40.729],
       "cityCode": "nyc",
       "addressHint": "240 E 9th St, East Village, Manhattan",
       "placeNameRomanized": "Sake Bar Decibel",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"]
     },
     "bestTimes": [
       {
@@ -1514,17 +1417,12 @@
     "whyItMatters": "Koreatown's 32nd St has three 24h Korean spots; Gammeeok is the quietest at 02:00-05:00. One bowl of seolleongtang ($16) refills of rice and kimchi free. Booth or single tables against the north wall — servers drop banchan and leave. English menu with photos.",
     "category": "food",
     "location": {
-      "coordinates": [
-        -73.9856,
-        40.7476
-      ],
+      "coordinates": [-73.9856, 40.7476],
       "cityCode": "nyc",
       "addressHint": "43 W 32nd St, Koreatown, Manhattan",
       "placeNameLocal": "감미옥",
       "placeNameRomanized": "Gammeeok",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -1619,16 +1517,11 @@
     "whyItMatters": "Nolita/SoHo's Crosby St bookstore-café, staffed by volunteers, sells used books floor to ceiling. Two single tables sit on the back mezzanine above the reading room. Order a $4.50 drip and read for four hours; no one clears you. Free wifi, outlets at back tables, quiet weekday afternoons.",
     "category": "culture",
     "location": {
-      "coordinates": [
-        -73.9975,
-        40.7229
-      ],
+      "coordinates": [-73.9975, 40.7229],
       "cityCode": "nyc",
       "addressHint": "126 Crosby St, Nolita, Manhattan",
       "placeNameRomanized": "Housing Works Bookstore Café",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -1719,16 +1612,11 @@
     "whyItMatters": "Bar LunÀtico on Halsey St runs a nightly 21:00 jazz set with no cover — a tip jar circulates. Twelve counter seats face the trio directly, and a solo listener at the bar is standard. Order a $9 mezcal or $6 draft; no minimum. Sets end 23:30. Owner Arthur will nod once when you walk in and never again.",
     "category": "nightlife",
     "location": {
-      "coordinates": [
-        -73.9438,
-        40.6836
-      ],
+      "coordinates": [-73.9438, 40.6836],
       "cityCode": "nyc",
       "addressHint": "486 Halsey St, Bedford-Stuyvesant/Prospect Heights, Brooklyn",
       "placeNameRomanized": "Bar LunÀtico",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"]
     },
     "bestTimes": [
       {
@@ -1819,17 +1707,12 @@
     "whyItMatters": "Coffee Ron behind Shibuya west exit opens at 05:30 every day including holidays. Six window counter seats face the sakuragaoka morning-walk slope, where you can watch the first office workers appear. Order by pointing at the menu photo — the master says 'hai' twice and never asks a question. Toast set ¥580.",
     "category": "coffee",
     "location": {
-      "coordinates": [
-        139.698,
-        35.658
-      ],
+      "coordinates": [139.698, 35.658],
       "cityCode": "tyo",
       "addressHint": "Sakuragaoka-cho 22-14, Shibuya",
       "placeNameLocal": "喫茶ロン",
       "placeNameRomanized": "Coffee Ron",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"]
     },
     "bestTimes": [
       {
@@ -1919,17 +1802,12 @@
     "whyItMatters": "Ichiran's Dogenzaka branch is the closest 24h location to Shibuya station. You buy a ticket at the machine, walk to a numbered solo booth with side dividers and a curtain that lowers between you and the kitchen. Passes ticket through the curtain, bowl comes back, curtain drops. Zero conversation. ¥1,050 basic.",
     "category": "food",
     "location": {
-      "coordinates": [
-        139.696,
-        35.657
-      ],
+      "coordinates": [139.696, 35.657],
       "cityCode": "tyo",
       "addressHint": "Dogenzaka 2-9-1, Shibuya",
       "placeNameLocal": "一蘭 渋谷道玄坂店",
       "placeNameRomanized": "Ichiran Shibuya Dogenzaka",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -2025,17 +1903,12 @@
     "whyItMatters": "Aoyama Book Center's flagship in Omotesando has a small café inside — six single tables set against the design/photography section shelves. No music, only page-turning sound. Order the ¥550 drip, sit for two hours, staff never approach. Open 10:00-22:00. Foreign-language books at arm's reach.",
     "category": "culture",
     "location": {
-      "coordinates": [
-        139.718,
-        35.662
-      ],
+      "coordinates": [139.718, 35.662],
       "cityCode": "tyo",
       "addressHint": "Roppongi 6-1-20, Minato-ku (Aoyama Book Center HQ)",
       "placeNameLocal": "青山ブックセンター本店",
       "placeNameRomanized": "Aoyama Book Center Main Store",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -2126,17 +1999,12 @@
     "whyItMatters": "Meiji Jingu's inner shrine forest opens at sunrise (04:40-06:40 depending on month), and for the first 45 minutes the gravel path holds mostly staff sweeping and one or two other solo walkers. Flat, wide, benches every 200 meters, English signage at every fork, and one water fountain near the treasure hall. Free.",
     "category": "nature",
     "location": {
-      "coordinates": [
-        139.6994,
-        35.6764
-      ],
+      "coordinates": [139.6994, 35.6764],
       "cityCode": "tyo",
       "addressHint": "Yoyogi Kamizonocho 1-1, Shibuya",
       "placeNameLocal": "明治神宮",
       "placeNameRomanized": "Meiji Jingu",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"]
     },
     "bestTimes": [
       {
@@ -2232,16 +2100,11 @@
     "whyItMatters": "City Lights on Columbus opens 10:00; the Poetry Room on the second floor has a bench under the window and a hand-written sign: 'sit down and read a book'. When done, cross Jack Kerouac Alley into Vesuvio: climb to the second-floor balcony, take the two-top overlooking Columbus. Whole ritual is 90 min, $8 pint, no one talks to you.",
     "category": "culture",
     "location": {
-      "coordinates": [
-        -122.4066,
-        37.7975
-      ],
+      "coordinates": [-122.4066, 37.7975],
       "cityCode": "san-francisco",
       "addressHint": "261 Columbus Ave, North Beach",
       "placeNameRomanized": "City Lights Bookstore",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -2343,16 +2206,11 @@
     "whyItMatters": "Hog Island's counter inside the Ferry Building has ten bar stools facing the shucker. Weekday 14:00-16:00 the lunch rush is gone; solo diners take the counter to eat one dozen Kumamotos ($36) with a glass of Muscadet ($14). Bay-facing window behind you. Shuckers name each oyster once and go back to work.",
     "category": "food",
     "location": {
-      "coordinates": [
-        -122.3937,
-        37.7955
-      ],
+      "coordinates": [-122.3937, 37.7955],
       "cityCode": "san-francisco",
       "addressHint": "One Ferry Building, Shop 11-1, Embarcadero",
       "placeNameRomanized": "Hog Island Oyster Co.",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -2443,16 +2301,11 @@
     "whyItMatters": "Ritual on Valencia between 20th and 21st has one long communal table at the back with outlets built into the wood every three feet. On a rainy afternoon it's the driest, warmest solo laptop-and-book spot in the Mission — floor-to-ceiling windows dim to soft gray, espresso hisses over the rain. Order the $5 cortado; nobody checks how long you sit.",
     "category": "coffee",
     "location": {
-      "coordinates": [
-        -122.4213,
-        37.758
-      ],
+      "coordinates": [-122.4213, 37.758],
       "cityCode": "san-francisco",
       "addressHint": "1026 Valencia St, Mission District",
       "placeNameRomanized": "Ritual Coffee Roasters — Valencia",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"]
     },
     "bestTimes": [
       {
@@ -2543,16 +2396,11 @@
     "whyItMatters": "Stow Lake sits in the middle of Golden Gate Park. The paved 1-mile loop is flat, mostly under Monterey pines, and quiet on weekday mornings. Benches every 100 meters face the water. The boathouse (10:00-17:00) rents a rowboat for $28/hour — one person allowed. Solo walkers are the majority on weekday 8:00-10:00.",
     "category": "nature",
     "location": {
-      "coordinates": [
-        -122.4756,
-        37.769
-      ],
+      "coordinates": [-122.4756, 37.769],
       "cityCode": "san-francisco",
       "addressHint": "Stow Lake Dr, Golden Gate Park",
       "placeNameRomanized": "Stow Lake",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"]
     },
     "bestTimes": [
       {
@@ -2648,16 +2496,11 @@
     "whyItMatters": "The Workshop lives on the top floor of an old French colonial at 27 Ngo Duc Ke. A 15-seat open terrace on the west face catches full sunset — camera-friendly, no cover, no upsell. Order a Vietnamese pour-over (₫85k) and hold the corner table nearest the west rail; solo photographers occupy it 17:30-18:30 daily.",
     "category": "coffee",
     "location": {
-      "coordinates": [
-        106.7031,
-        10.7739
-      ],
+      "coordinates": [106.7031, 10.7739],
       "cityCode": "sgn",
       "addressHint": "27 Ngo Duc Ke, District 1 (near District 3 border)",
       "placeNameRomanized": "The Workshop Coffee",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"]
     },
     "bestTimes": [
       {
@@ -2748,16 +2591,11 @@
     "whyItMatters": "Okkio's Vo Van Tan branch in District 3 stays open to 23:00 with strong LED street lighting all along the block. Solo women make up roughly 40% of evening customers based on staff count. Grab and Xanh SM pick up directly at the door (no side alley). ₫60k coffee, single tables lining the windows.",
     "category": "coffee",
     "location": {
-      "coordinates": [
-        106.6884,
-        10.7823
-      ],
+      "coordinates": [106.6884, 10.7823],
       "cityCode": "sgn",
       "addressHint": "220 Vo Van Tan, District 3",
       "placeNameRomanized": "Okkio Caffe — Vo Van Tan",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"]
     },
     "bestTimes": [
       {
@@ -2848,16 +2686,11 @@
     "whyItMatters": "Pho Quynh on Pham Ngu Lao runs 24h with a wide sidewalk of small solo four-tops. From order to bowl is 3 minutes. Bowl of pho bo tai ₫89k, no service charge, plate of herbs on the table free-refill. English photo menu. Even at 03:00 there are three or four other solo eaters.",
     "category": "food",
     "location": {
-      "coordinates": [
-        106.6934,
-        10.7683
-      ],
+      "coordinates": [106.6934, 10.7683],
       "cityCode": "sgn",
       "addressHint": "323 Pham Ngu Lao, District 1",
       "placeNameRomanized": "Pho Quynh",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -2953,16 +2786,11 @@
     "whyItMatters": "Hong Hoa's corner stall at Nguyen Trai in D5 runs 24/7. Aunt behind the grill knows two English words — 'yes' and 'spicy?'. A classic pork-liver-pate baguette is ₫40k, packed in 90 seconds. Three plastic solo stools on the corner or take away. Common 02:00 crowd is night-shift drivers eating quietly.",
     "category": "food",
     "location": {
-      "coordinates": [
-        106.6797,
-        10.7546
-      ],
+      "coordinates": [106.6797, 10.7546],
       "cityCode": "sgn",
       "addressHint": "62 Nguyen Trai, District 5",
       "placeNameRomanized": "Banh Mi Hong Hoa",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -3052,16 +2880,11 @@
     "whyItMatters": "Zé dos Cornos in the tight streets above Alfama serves grilled sardines, iscas (liver), and bacalhau á brás at €10-14 a plate. No English menu; owner points at the chalkboard. Locals fill the room by 20:00 — go 12:30 or 19:00 as a solo. One small counter seat by the door. Cash only. Water tap €0.50.",
     "category": "food",
     "location": {
-      "coordinates": [
-        -9.1279,
-        38.7148
-      ],
+      "coordinates": [-9.1279, 38.7148],
       "cityCode": "lis",
       "addressHint": "Beco dos Surradores 5, Alfama",
       "placeNameRomanized": "Tasca Zé dos Cornos",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -3162,16 +2985,11 @@
     "whyItMatters": "Bertrand in Chiado has been open since 1732 and holds a Guinness record. Past the front register, wander through six connected rooms to the back where a café serves €2 espresso and pastel de nata. Two single tables sit against the poetry section — take one, read anything off the shelf, staff never checks. Free wifi at counter password.",
     "category": "culture",
     "location": {
-      "coordinates": [
-        -9.1424,
-        38.7104
-      ],
+      "coordinates": [-9.1424, 38.7104],
       "cityCode": "lis",
       "addressHint": "R. Garrett 73, Chiado",
       "placeNameRomanized": "Livraria Bertrand Chiado",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400"]
     },
     "bestTimes": [
       {
@@ -3267,16 +3085,11 @@
     "whyItMatters": "A Merendinha do Arco tucks under the arcade off Rua dos Sapateiros in Baixa. Daily menu (menu do dia) €9: soup, one of three mains (bacalhau, bife, or carne de porco à alentejana), a small drink and a coffee. Solo diners take the counter along the left wall. Locals fill it 13:00-14:30; go 12:00 or 14:45.",
     "category": "food",
     "location": {
-      "coordinates": [
-        -9.1385,
-        38.7093
-      ],
+      "coordinates": [-9.1385, 38.7093],
       "cityCode": "lis",
       "addressHint": "R. dos Sapateiros 230, Baixa",
       "placeNameRomanized": "A Merendinha do Arco",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400"]
     },
     "bestTimes": [
       {
@@ -3366,16 +3179,11 @@
     "whyItMatters": "Tasca do Chico on Rua do Diário de Notícias runs two nightly fado sets at 20:00 and 22:00, no cover, no minimum, singers cycle through. Twenty seats, mostly two-tops but a solo can sit at the back-wall bench. Order €4 glass of vinho verde and stay for one set. During singing the room drops to complete silence — a rule enforced by the owner clapping once.",
     "category": "nightlife",
     "location": {
-      "coordinates": [
-        -9.1443,
-        38.7119
-      ],
+      "coordinates": [-9.1443, 38.7119],
       "cityCode": "lis",
       "addressHint": "R. do Diário de Notícias 39, Bairro Alto",
       "placeNameRomanized": "Tasca do Chico",
-      "photoUrls": [
-        "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"
-      ]
+      "photoUrls": ["https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400"]
     },
     "bestTimes": [
       {
