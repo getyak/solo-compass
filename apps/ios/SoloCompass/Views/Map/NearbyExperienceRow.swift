@@ -745,7 +745,13 @@ struct NearbyExperienceRow: View {
                 cityDisplayName
             )
         }
-        return Self.distanceFormatter.string(from: Measurement(value: meters, unit: UnitLength.meters))
+        // Floor the reading at 50 m before formatting. `MeasurementFormatter`'s
+        // `.naturalScale` auto-downgrades near-zero distances to centimetres or
+        // millimetres — a GPS fix a few metres off the pin rendered a nonsense
+        // "0mm" next to the "Almost there" label. Mirrors the existing guard in
+        // `ExperienceDetailView.formatDistance` (`max(50, rounded)`).
+        let floored = max(50, meters)
+        return Self.distanceFormatter.string(from: Measurement(value: floored, unit: UnitLength.meters))
     }
 }
 
