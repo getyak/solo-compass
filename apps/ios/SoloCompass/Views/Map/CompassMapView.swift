@@ -289,6 +289,21 @@ struct CompassMapContentView: View {
     // "prompt only once" behaviour across repeat onAppear fires.
     @State private var hasRunFirstAppear: Bool = false
 
+    // P0 (UX audit 2026-07-16 #1): the terms + onboarding `fullScreenCover`
+    // lives in `SoloCompassApp`, but this map still enters the hierarchy and
+    // fires its own `onAppear` side effects *underneath* that cover on a fresh
+    // install. Two of them — `locationService.requestPermission()` and the
+    // auto-opened city picker — surface a system alert / modal that iOS renders
+    // ABOVE the SwiftUI cover, visually burying the consent screen. This mirrors
+    // the exact state SoloCompassApp uses to decide the cover, so we can hold
+    // those side effects until consent + onboarding are both done. `hasAccepted`
+    // and `hasCompletedOnboarding` are the same persisted flags the cover reads;
+    // the DEBUG `-devSkipOnboarding` path sets both, so screenshot harnesses stay
+    // unaffected.
+    private var firstLaunchGateActive: Bool {
+        !(TermsConsentSheet.hasAccepted && preferences.hasCompletedOnboarding)
+    }
+
     /// Startup self-diagnostics — runs once per calendar day 1.5s after first
     /// paint. Findings drive a `SoloAgentBubble` shown just above the Solo
     /// mascot FAB; tapping the CTA seeds the findings into ChatSheet as the
@@ -809,7 +824,14 @@ struct CompassMapContentView: View {
                     ensureOrchestrator(viewModel: viewModel)
                 }
                 #endif
-                locationService.requestPermission()
+                // P0 #1: only ask for location once the consent + onboarding
+                // gate is clear. While the `fullScreenCover` is up, the system
+                // location alert would render above it and bury the terms
+                // screen. The `onChange(of: preferences.hasCompletedOnboarding)`
+                // below re-fires this the moment onboarding finishes.
+                if !firstLaunchGateActive {
+                    locationService.requestPermission()
+                }
                 // US-021: `viewModel` is built eagerly in `init`, so there is no
                 // lazy-creation block here anymore. We only run the one-shot
                 // first-launch side effects that used to live behind the
@@ -825,8 +847,15 @@ struct CompassMapContentView: View {
                     // unexpectedly opens the picker over the consent gate.
                     // DEBUG: screenshot harness can pass -skipLocationPicker to keep
                     // the home view clean (no modal sheet covering peek/pins/FAB).
+                    // P0 #1: don't auto-open the picker while the consent /
+                    // onboarding cover is still up — it would stack a modal over
+                    // (and iOS renders it above) the terms screen. Onboarding's
+                    // final step usually resolves a starting city anyway; if it
+                    // doesn't, `maybePromptCityPicker()` re-evaluates once the
+                    // gate clears.
                     let skipPicker = ProcessInfo.processInfo.arguments.contains("-skipLocationPicker")
                     if !skipPicker
+                        && !firstLaunchGateActive
                         && viewModel.selectedCity == nil
                         && preferences.lastSelectedCity == nil
                         && locationService.currentLocation == nil {
@@ -959,6 +988,19 @@ struct CompassMapContentView: View {
                 // light up on first render — without waiting for the next
                 // VisitRecord write to trigger the onChange below.
                 viewModel.attachVisitedExperienceIds(Set(visitRecords.map(\.experienceId)))
+            }
+            // P0 #1: bridge the consent/onboarding gate → deferred cold-start
+            // side effects. The map's `onAppear` fires *underneath* the terms
+            // cover on a fresh install, so it holds off on the location prompt
+            // and city picker (they'd surface a system alert / modal above the
+            // cover and bury consent). When onboarding completes the cover
+            // dismisses and this fires, running those side effects now that the
+            // screen belongs to the map. Idempotent: `requestPermission()` no-ops
+            // once decided, and `maybePromptCityPicker()` self-guards.
+            .onChange(of: preferences.hasCompletedOnboarding) { _, completed in
+                guard completed, TermsConsentSheet.hasAccepted else { return }
+                locationService.requestPermission()
+                maybePromptCityPicker()
             }
             .onChange(of: locationService.currentLocation) { _, _ in
                 viewModel.bindToLocation()
@@ -2375,6 +2417,21 @@ struct CompassMapContentView: View {
     /// DEBUG `-forceDiagnosticsBubble` launch arg: injects a synthetic finding
     /// so screenshot / e2e harnesses can always exercise the bubble without
     /// depending on the current sim's authorization / key state.
+    /// P0 #1 helper: open the city picker only when there's genuinely no city
+    /// to land on. Called both from the first-appear block and from the
+    /// onboarding-complete bridge so a fresh install that finished onboarding
+    /// without resolving a city still gets prompted — just *after* the consent
+    /// cover is gone, never stacked underneath it.
+    private func maybePromptCityPicker() {
+        let skipPicker = ProcessInfo.processInfo.arguments.contains("-skipLocationPicker")
+        guard !skipPicker,
+              !firstLaunchGateActive,
+              viewModel.selectedCity == nil,
+              preferences.lastSelectedCity == nil,
+              locationService.currentLocation == nil else { return }
+        isShowingCityPicker = true
+    }
+
     private func kickoffStartupDiagnostics() {
         let svc = diagnostics ?? StartupDiagnosticsService(
             preferences: preferences,

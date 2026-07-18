@@ -38,6 +38,14 @@ public struct SettingsView: View {
     // favorites / preferences.
     @State private var showingForgetMeConfirm = false
     @State private var forgetMeToast: String?
+    // Data-sovereignty export twin of "Forget me". Renders the four
+    // high-stickiness personal assets (visits / capsules / notes / taste) to
+    // temp files and hands them to a share sheet so they survive device
+    // migration. `exportedFileURLs` non-empty drives the share sheet; the toast
+    // covers the empty-data case (nothing accrued yet → no files to share).
+    @State private var exportedFileURLs: [URL] = []
+    @State private var showingExportShare = false
+    @State private var exportToast: String?
     @State private var restoreToast: String?
     @State private var restoreInFlight = false
     @State private var showingLanguageRestartAlert = false
@@ -526,6 +534,37 @@ public struct SettingsView: View {
                 Text(NSLocalizedString("settings.clearData.confirm.message", comment: "Clear all data message"))
             }
 
+            // Data-sovereignty export — the read-side twin of "Forget me".
+            // Non-destructive, so it sits BEFORE the two nukes: offer the user
+            // a way to carry their data out before offering ways to erase it.
+            Button {
+                let result = PersonalDataExporter.shared.exportEverything()
+                if result.isEmpty {
+                    exportToast = NSLocalizedString(
+                        "settings.exportData.toast.empty",
+                        comment: "Export empty (nothing accrued yet)"
+                    )
+                    return
+                }
+                exportedFileURLs = Self.writeExportFiles(result.files)
+                if exportedFileURLs.isEmpty {
+                    exportToast = NSLocalizedString(
+                        "settings.exportData.toast.failure",
+                        comment: "Export write failed"
+                    )
+                } else {
+                    showingExportShare = true
+                }
+            } label: {
+                settingsIconLabel(
+                    icon: "square.and.arrow.up", color: .blue,
+                    label: NSLocalizedString("settings.exportData", comment: "Export my data")
+                )
+            }
+            .sheet(isPresented: $showingExportShare) {
+                DataExportActivitySheet(items: exportedFileURLs)
+            }
+
             // P2.0 #204: "Forget me" — narrower than Clear All Data. Wipes
             // the AgentMemorySnapshot + TasteProfile singletons so the
             // Chat Agent forgets any accumulated personalisation. Routes,
@@ -586,12 +625,54 @@ public struct SettingsView: View {
                 }
             }
         )
+        // Data-export result toast — covers the empty-data and write-failure
+        // cases (success opens the share sheet instead of a toast). Same
+        // writable-binding pattern as the two alerts above.
+        .alert(
+            exportToast ?? "",
+            isPresented: Binding(
+                get: { exportToast != nil },
+                set: { if !$0 { exportToast = nil } }
+            ),
+            actions: {
+                Button(NSLocalizedString("common.ok", comment: "OK")) {
+                    exportToast = nil
+                }
+            }
+        )
     }
 
     private var appVersion: String {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
         return "\(v) (\(b))"
+    }
+
+    /// Write each exported `File` to a uniquely-scoped temp directory and
+    /// return the URLs for the share sheet. A per-export subdirectory keeps
+    /// filenames stable (the share target shows `solo-compass-visits-….csv`,
+    /// not a UUID) while still avoiding collisions across repeat exports. A
+    /// file that fails to write is skipped rather than aborting the whole
+    /// export — the user still gets whatever assets serialized cleanly.
+    private static func writeExportFiles(_ files: [PersonalDataExporter.File]) -> [URL] {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("data-export-\(UUID().uuidString)", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        } catch {
+            return []
+        }
+        var urls: [URL] = []
+        for file in files {
+            let url = dir.appendingPathComponent(file.filename)
+            do {
+                try file.contents.write(to: url, atomically: true, encoding: .utf8)
+                urls.append(url)
+            } catch {
+                continue
+            }
+        }
+        return urls
     }
 
     private func handleVersionTap() {
@@ -1297,4 +1378,18 @@ struct CustomTagsView: View {
         CustomTagsView()
             .environment(UserPreferences())
     }
+}
+
+/// Wraps `UIActivityViewController` so the Settings data-export button can hand
+/// the rendered files to the system share sheet. Mirrors the private wrapper in
+/// `ShareSheet.swift`; kept file-private here to avoid coupling Settings to the
+/// Experience share module.
+private struct DataExportActivitySheet: UIViewControllerRepresentable {
+    let items: [URL]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

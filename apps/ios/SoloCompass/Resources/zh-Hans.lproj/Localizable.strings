@@ -2108,6 +2108,9 @@
 "settings.forgetMe.confirm.action" = "忘记我";
 "settings.forgetMe.toast.success" = "已清空——下次开聊时,Agent 会重新认识你。";
 "settings.forgetMe.toast.failure" = "暂时无法清空,请稍后再试。";
+"settings.exportData" = "导出我的数据";
+"settings.exportData.toast.empty" = "暂无可导出的数据——开始使用后,你的到访、时空胶囊和笔记会在这里出现。";
+"settings.exportData.toast.failure" = "导出准备失败,请稍后再试。";
 
 /* 启动自检 (StartupDiagnosticsService + SoloAgentBubble) */
 "diagnostics.anthropic.missing.title" = "AI 大脑没接上";

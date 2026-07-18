@@ -117,3 +117,4 @@ apps/ios/SoloCompass/Resources/JSON/seed_experiences.json.backup
 # Scratch skill directories (sc-evaluator/sc-executor/sc-loop) that live
 # alongside the shipping code but aren't part of the app build.
 .agents/skills/
+.gstack/

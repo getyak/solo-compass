@@ -1632,20 +1632,20 @@
 "route.duration.hoursMinutes" = "%dh %dmin";
 "route.duration.minutes" = "%dmin";
 "route.create.title" = "Create Route";
-"route.create.ai" = "✨ 讓 AI 幫我串成路線";
-"route.create.titleLabel" = "路線名稱";
-"route.create.titlePlaceholder" = "例如：湄公河日落散步";
-"route.create.paceLabel" = "節奏";
-"route.create.pickLabel" = "選擇地點（按點選順序串聯）";
-"route.create.selectedCount" = "已選 %d";
-"route.create.save" = "保存";
+"route.create.ai" = "✨ Let AI string one together";
+"route.create.titleLabel" = "Route name";
+"route.create.titlePlaceholder" = "e.g. Mekong sunset walk";
+"route.create.paceLabel" = "Pace";
+"route.create.pickLabel" = "Pick stops (linked in tap order)";
+"route.create.selectedCount" = "%d selected";
+"route.create.save" = "Save";
 "route.create.empty" = "No nearby places to build from yet — try Explore first, or widen your distance in Settings.";
 "route.create.ai.error" = "Couldn't build the route this time — check your connection and try again.";
 
 /* Active route drawn on the map (start route) */
-"route.active.stops" = "%d 站 · 路線中";
+"route.active.stops" = "%d stops · on route";
 "route.active.stop.a11y" = "Stop %d";
-"route.active.end" = "結束路線";
+"route.active.end" = "End route";
 "route.active.skip" = "Skip this stop";
 "route.active.pause" = "Pause route";
 "filter.tip.title" = "Browse by mood";
@@ -1668,11 +1668,11 @@
 "nearby.chip.closingNow" = "Closing now";
 
 /* US-058 — RouteCard walked-by row (CompareCanvas A-003) */
-"route.card.walkedBy" = "%d 位旅人走过";
+"route.card.walkedBy" = "Walked by %d travelers";
 
 /* US-030 — Companion Profile walked routes section */
-"profile.walkedRoutes.header" = "走过的路线 (%d)";
-"profile.walkedRoutes.viewAll" = "查看全部 ->";
+"profile.walkedRoutes.header" = "Walked routes (%d)";
+"profile.walkedRoutes.viewAll" = "View all ->";
 
 /* Empty state for MyWalkedRoutesListView */
 "profile.walkedRoutes.empty.title" = "No routes walked yet";
@@ -1682,12 +1682,12 @@
 "profile.walkedRoutes.count" = "%d routes walked";
 
 /* US-032 — DiscoverRecruitingRoutesView */
-"discover.recruiting.title" = "发现招募路线";
+"discover.recruiting.title" = "Discover recruiting routes";
 "discover.recruiting.chip" = "%d/%d · %@";
 "discover.recruiting.chip.a11y" = "%d of %d members · %@";
-"discover.recruiting.empty.title" = "目前没有招募中的路线";
-"discover.recruiting.empty.description" = "附近还没有开放加入的路线。";
-"discover.recruiting.empty.create" = "开一个你自己的路线";
+"discover.recruiting.empty.title" = "No routes recruiting right now";
+"discover.recruiting.empty.description" = "No routes open to join nearby yet.";
+"discover.recruiting.empty.create" = "Open one of your own";
 
 /* US-033 — MyRequestsListView */
 "my.requests.empty" = "You have not requested to join any routes yet.";
@@ -1703,33 +1703,33 @@
 "my.requests.count" = "%1$d requests · %2$d pending";
 
 /* US-031 — JoinRouteRequestSheet */
-"join.sheet.title" = "申请加入";
-"join.pace.label" = "配速匹配";
-"join.pace.placeholder" = "请选择";
-"join.pace.slower" = "慢于宿主";
-"join.pace.matching" = "匹配";
-"join.pace.faster" = "快于宿主";
-"join.message.label" = "自我介绍";
-"join.message.placeholder" = "向主理人介绍自己...";
-"join.submit" = "提交申请";
-"join.error.pace.missing" = "请选择配速匹配";
-"join.error.message.missing" = "请填写自我介绍";
+"join.sheet.title" = "Request to join";
+"join.pace.label" = "Pace match";
+"join.pace.placeholder" = "Please select";
+"join.pace.slower" = "Slower than host";
+"join.pace.matching" = "Matching";
+"join.pace.faster" = "Faster than host";
+"join.message.label" = "About you";
+"join.message.placeholder" = "Introduce yourself to the host...";
+"join.submit" = "Send request";
+"join.error.pace.missing" = "Please choose a pace match";
+"join.error.message.missing" = "Please add a short intro";
 
 /* US-034 — ApprovalQueueView */
-"approval.queue.title" = "待审批申请";
-"approval.queue.trust.line" = "已走过 %d 条 · 拼团 %d 次";
+"approval.queue.title" = "Pending requests";
+"approval.queue.trust.line" = "Walked %d routes · %d group trips";
 /* US-032 — per-requester trust micro-stats */
 "approval.queue.signal.optin.yes" = "Opted in";
 "approval.queue.signal.optin.no" = "Not opted in";
 "approval.queue.signal.optin.a11y" = "Companion opt-in: %@";
 "approval.queue.signal.walked.a11y" = "Walked %@ routes";
 "approval.queue.signal.group.a11y" = "%@ group trips";
-"approval.queue.decline" = "拒绝";
-"approval.queue.accept" = "接受";
+"approval.queue.decline" = "Decline";
+"approval.queue.accept" = "Accept";
 "approval.queue.empty" = "No pending requests for this route.";
 
 /* US-034 — MyHostedRoutesListView */
-"my.hosted.routes.title" = "我主理的路线";
+"my.hosted.routes.title" = "Routes I host";
 "my.hosted.routes.empty" = "You are not hosting any routes yet.";
 "my.hosted.routes.empty.title" = "No hosted routes yet";
 "my.hosted.routes.empty.hint" = "Create a route and invite companions to join you on your journey.";
@@ -1737,14 +1737,14 @@
 "settings.companion.hosted.routes" = "My hosted routes";
 
 /* US-038 — CompletionMoment */
-"completion.mark.done" = "标记完成";
-"completion.stat.walked" = "走过";
-"completion.stat.travelers" = "旅人";
-"completion.tagline" = "这条路线现在为下一批旅人发光";
+"completion.mark.done" = "Mark done";
+"completion.stat.walked" = "Walked";
+"completion.stat.travelers" = "Travelers";
+"completion.tagline" = "This route now shines for the next traveler";
 "completion.a11y" = "Route complete — walked by %d travelers, %d companions joined";
 
 /* US-039 — OpenForCompanionsSheet */
-"openForCompanions.button" = "开为招募路线 ->";
+"openForCompanions.button" = "Open for companions ->";
 "openForCompanions.sheet.title" = "Create Recruiting Route";
 "openForCompanions.departure.header" = "Departure Window";
 "openForCompanions.departureFrom" = "From";
@@ -2098,6 +2098,9 @@
 "settings.forgetMe.confirm.action" = "Forget me";
 "settings.forgetMe.toast.success" = "Done — the agent will start fresh next time you chat.";
 "settings.forgetMe.toast.failure" = "Couldn't clear right now. Try again in a moment.";
+"settings.exportData" = "Export my data";
+"settings.exportData.toast.empty" = "Nothing to export yet — your visits, capsules, and notes will show up here once you start using the app.";
+"settings.exportData.toast.failure" = "Couldn't prepare the export. Try again in a moment.";
 
 /* Startup self-diagnostics (StartupDiagnosticsService + SoloAgentBubble) */
 "diagnostics.anthropic.missing.title" = "AI brain isn't wired up";

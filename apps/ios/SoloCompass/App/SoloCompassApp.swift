@@ -306,7 +306,16 @@ struct SoloCompassApp: App {
         // to the system asynchronously.
         locationService.preferences = preferences
         locationService.notificationService = notificationService
-        locationService.requestPermission()
+        // P0 (UX audit 2026-07-16 #1): only fire the location prompt once
+        // onboarding is also done. Bootstrap is terms-gated (the legal line),
+        // but a warm re-entry where terms were accepted yet onboarding never
+        // finished would otherwise pop the system location alert *above* the
+        // re-presented onboarding cover — the exact stacking the audit flagged.
+        // CompassMapView's `onChange(of: hasCompletedOnboarding)` still fires
+        // the request the moment onboarding completes, so nothing is lost.
+        if preferences.hasCompletedOnboarding {
+            locationService.requestPermission()
+        }
 
         // P1.1 #110: passive visit recorder. Chains onto LocationService's
         // region enter/exit callbacks; the model container injection lets it
@@ -326,6 +335,12 @@ struct SoloCompassApp: App {
         // (region enter matcher), and ProactiveNudgeScheduler (#244 year
         // end review).
         CapsuleStore.shared.setModelContainer(SoloCompassModelContainer.shared)
+
+        // Data-sovereignty export twin of ForgetMeService. Same
+        // setModelContainer pattern; lets Settings render the four
+        // high-stickiness personal assets (visits / capsules / notes /
+        // taste) to shareable files so they survive device migration.
+        PersonalDataExporter.shared.setModelContainer(SoloCompassModelContainer.shared)
 
         // US-020: cold-start TTI must not block on a serial main-thread
         // init chain. Each piece of bootstrap below is independent — no
