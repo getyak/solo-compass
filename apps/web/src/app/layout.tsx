@@ -11,8 +11,7 @@ export const metadata: Metadata = {
     default: "Solo Compass · A map for people who travel alone",
     template: "%s · Solo Compass",
   },
-  description:
-    "A map-first, experience-as-unit, AI-curated companion for solo travelers on iOS.",
+  description: "A map-first, experience-as-unit, AI-curated companion for solo travelers on iOS.",
   applicationName: "Solo Compass",
   referrer: "origin-when-cross-origin",
   formatDetection: { telephone: false, email: false, address: false },

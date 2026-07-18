@@ -37,23 +37,53 @@ export const metadata: Metadata = {
 };
 
 const COLLECT: [string, string][] = [
-  ["邮箱地址", "只在你付费或订阅邮件通讯时收集。存储在支付服务商（Paddle）和邮件服务商（Buttondown）那里。我们能看到，他们能看到，别人看不到。"],
-  ["匿名崩溃报告", "如果 app 崩溃且你开启了崩溃上报（默认开启，可在设置里关），Sentry 会收到调用栈、设备型号和 iOS 版本。没有邮箱，没有用户 ID，没有位置。"],
-  ["匿名使用计数", "你点了哪些功能、多频繁，聚合数据。没有 IP，没有设备指纹。可在 设置 > 隐私 里关掉。"],
+  [
+    "邮箱地址",
+    "只在你付费或订阅邮件通讯时收集。存储在支付服务商（Paddle）和邮件服务商（Buttondown）那里。我们能看到，他们能看到，别人看不到。",
+  ],
+  [
+    "匿名崩溃报告",
+    "如果 app 崩溃且你开启了崩溃上报（默认开启，可在设置里关），Sentry 会收到调用栈、设备型号和 iOS 版本。没有邮箱，没有用户 ID，没有位置。",
+  ],
+  [
+    "匿名使用计数",
+    "你点了哪些功能、多频繁，聚合数据。没有 IP，没有设备指纹。可在 设置 > 隐私 里关掉。",
+  ],
 ];
 
 const NEVER_COLLECT: [string, string][] = [
-  ["你的位置", "永远留在设备上。地图跑在 Apple MapKit 上，我们看不到。关于你在哪里、去过哪里，什么都不会离开你的手机。"],
-  ["你保存的体验", "你保存、计划、完成过的地点列表，存在你的 iCloud（如果开了 Pro 同步）或者只存在你的设备上。我们没有备份。"],
-  ["你的语音录音", "「问 Solo」的语音输入通过 Apple 的 SFSpeechRecognizer 在设备上转文字。音频永远不会离开你的手机。只有转好的文字才会发给 AI，而且只用于那一次查询。"],
-  ["通讯录、日历、照片", "我们从来不要这些权限。你可以自己查 app 的 Info.plist——权限清单是最小集。"],
-  ["广告标识符", "不用 AdSupport，不用 SKAdNetwork，不接广告网络 SDK。我们没有你的 IDFA，也不想要。"],
+  [
+    "你的位置",
+    "永远留在设备上。地图跑在 Apple MapKit 上，我们看不到。关于你在哪里、去过哪里，什么都不会离开你的手机。",
+  ],
+  [
+    "你保存的体验",
+    "你保存、计划、完成过的地点列表，存在你的 iCloud（如果开了 Pro 同步）或者只存在你的设备上。我们没有备份。",
+  ],
+  [
+    "你的语音录音",
+    "「问 Solo」的语音输入通过 Apple 的 SFSpeechRecognizer 在设备上转文字。音频永远不会离开你的手机。只有转好的文字才会发给 AI，而且只用于那一次查询。",
+  ],
+  [
+    "通讯录、日历、照片",
+    "我们从来不要这些权限。你可以自己查 app 的 Info.plist——权限清单是最小集。",
+  ],
+  [
+    "广告标识符",
+    "不用 AdSupport，不用 SKAdNetwork，不接广告网络 SDK。我们没有你的 IDFA，也不想要。",
+  ],
 ];
 
 const THIRD_PARTY: [string, string][] = [
-  ["Apple", "MapKit（地图瓦片）、SFSpeechRecognizer（语音）、StoreKit（支付）。适用 Apple 的隐私政策。"],
+  [
+    "Apple",
+    "MapKit（地图瓦片）、SFSpeechRecognizer（语音）、StoreKit（支付）。适用 Apple 的隐私政策。",
+  ],
   ["Sentry", "只收匿名崩溃报告。服务器在欧盟（法兰克福）。可在设置里关闭。"],
-  ["Anthropic", "AI 推荐用的是 Claude。发送的是你的问题文本——没有位置，没有邮箱，没有设备 ID。Anthropic 不用 API 数据训练模型。"],
+  [
+    "Anthropic",
+    "AI 推荐用的是 Claude。发送的是你的问题文本——没有位置，没有邮箱，没有设备 ID。Anthropic 不用 API 数据训练模型。",
+  ],
   ["Paddle", "支付服务商。处理卡号、税、退款。我们永远看不到你的卡号。"],
 ];
 
@@ -73,9 +103,7 @@ export default function PrivacyZh() {
             <Eyebrow dot="accent" className="justify-center">
               隐私
             </Eyebrow>
-            <h1 className="ds-display-xl mt-6 font-display">
-              我们收集什么，不收集什么。
-            </h1>
+            <h1 className="ds-display-xl mt-6 font-display">我们收集什么，不收集什么。</h1>
             <p className="ds-body-xl mt-6 text-fg-muted">
               最近更新：2026 年 7 月。写给人看，不是律师版本。
             </p>
@@ -132,8 +160,12 @@ export default function PrivacyZh() {
               </h2>
               <p className="ds-body-lg mt-4 text-fg-muted">
                 你可以在 app 内 设置 里删除账号——这会在 30 天内清除你的邮箱和所有服务端同步数据。
-                也可以邮件 <a className="underline" href="mailto:privacy@solocompass.app">privacy@solocompass.app</a> 要一份我们持有的全部数据副本，或者立刻删除。
-                GDPR 和 CCPA 适用，我们对所有人一视同仁，不只是欧盟和加州居民。
+                也可以邮件{" "}
+                <a className="underline" href="mailto:privacy@solocompass.app">
+                  privacy@solocompass.app
+                </a>{" "}
+                要一份我们持有的全部数据副本，或者立刻删除。 GDPR 和 CCPA
+                适用，我们对所有人一视同仁，不只是欧盟和加州居民。
               </p>
             </article>
           </Container>

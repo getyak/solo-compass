@@ -8,11 +8,11 @@ Phase 3 sprint (`docs/V_NEXT_DESIGN.md` §3 targets).
 
 ## Success targets (Phase 3 exit)
 
-| Metric | Baseline (pre v1.0) | v1.0 target | Kill signal |
-|---|---|---|---|
-| Self-reported share rate / month | 1.5% | **5%** | < 2.5% |
-| CAC via referral | $X | **-30%** | flat / worse |
-| Pro conversion | Y% | **2× baseline** | < 1.2× |
+| Metric                           | Baseline (pre v1.0) | v1.0 target     | Kill signal  |
+| -------------------------------- | ------------------- | --------------- | ------------ |
+| Self-reported share rate / month | 1.5%                | **5%**          | < 2.5%       |
+| CAC via referral                 | $X                  | **-30%**        | flat / worse |
+| Pro conversion                   | Y%                  | **2× baseline** | < 1.2×       |
 
 Baseline numbers freeze at Stage 0. Snapshot them here before
 promoting to 10%:
@@ -29,11 +29,11 @@ The `AnalyticsService.EventName` catalog aligns 1:1 with the targets.
 Wire the analytics dashboard so each panel reads the exact event name
 listed here:
 
-| Target | Event stream |
-|---|---|
+| Target              | Event stream                                                                                                                                   |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Self-reported share | `brag_card_shared` + `ost_shared` + `insight_card_shared` (add these three EventName cases if not yet present at the point of this validation) |
-| CAC via referral | UTM-tagged install referrer → `paywall_shown` `iap_success` funnel; join at device id |
-| Pro conversion | `paywall_shown` → `iap_initiated` → `iap_success` funnel; window = 24h |
+| CAC via referral    | UTM-tagged install referrer → `paywall_shown` `iap_success` funnel; join at device id                                                          |
+| Pro conversion      | `paywall_shown` → `iap_initiated` → `iap_success` funnel; window = 24h                                                                         |
 
 Any event stream missing from the current `AnalyticsService.EventName`
 enum blocks the validation — file a follow-up to add it (deterministic

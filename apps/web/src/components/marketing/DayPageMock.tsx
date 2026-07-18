@@ -23,10 +23,14 @@ export function DayPageMock() {
       {/* Nav row */}
       <div className="flex items-center justify-between px-4 pt-2 pb-3">
         <button className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-white shadow-xs">
-          <span className="text-[14px]" aria-hidden>‹</span>
+          <span className="text-[14px]" aria-hidden>
+            ‹
+          </span>
         </button>
         <button className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-white shadow-xs">
-          <span className="text-[12px]" aria-hidden>♡</span>
+          <span className="text-[12px]" aria-hidden>
+            ♡
+          </span>
         </button>
       </div>
 
@@ -46,7 +50,9 @@ export function DayPageMock() {
             Café · Chiang Mai
           </span>
         </div>
-        <p className="mt-1.5 font-display text-[17px] font-medium leading-tight text-fg-primary">Ristr8to</p>
+        <p className="mt-1.5 font-display text-[17px] font-medium leading-tight text-fg-primary">
+          Ristr8to
+        </p>
         <p className="mt-1 text-[10px] leading-tight text-fg-muted">
           Third-wave espresso worth walking 15 minutes to. Quiet before 10.
         </p>
@@ -123,11 +129,7 @@ function ScoreBar({
   tone?: "success" | "sunGold" | "accent";
 }) {
   const barColor =
-    tone === "sunGold"
-      ? "bg-sun-gold"
-      : tone === "accent"
-      ? "bg-accent"
-      : "bg-success-text";
+    tone === "sunGold" ? "bg-sun-gold" : tone === "accent" ? "bg-accent" : "bg-success-text";
   return (
     <div className="flex items-center gap-2">
       <span className="w-8 font-mono text-[7px] uppercase tracking-[0.12em] text-fg-muted">

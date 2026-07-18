@@ -164,7 +164,7 @@ export const copy: Record<Locale, Copy> = {
           muted: ["Google Maps"],
         },
         {
-          text: "You could open 小红书 — but the \"instagrammable\" spot is a queue of tripods.",
+          text: 'You could open 小红书 — but the "instagrammable" spot is a queue of tripods.',
           muted: ["小红书"],
         },
         {
@@ -189,7 +189,7 @@ export const copy: Record<Locale, Copy> = {
         {
           dot: "omen",
           title: "Experience-as-unit",
-          body: "Not places — verb-bound, time-anchored things to do. \"Watch sunset paint the stupas at 5:30\" beats \"Wat Suan Dok.\"",
+          body: 'Not places — verb-bound, time-anchored things to do. "Watch sunset paint the stupas at 5:30" beats "Wat Suan Dok."',
         },
         {
           dot: "accent",
@@ -204,7 +204,7 @@ export const copy: Record<Locale, Copy> = {
       items: [
         {
           heading: "Privacy is a promise, not a checkbox.",
-          body: "Your location never leaves your phone. No accounts to try. No email. No \"sign up with Google.\" Anonymous by default.",
+          body: 'Your location never leaves your phone. No accounts to try. No email. No "sign up with Google." Anonymous by default.',
         },
         {
           heading: "AI is a filter, not an oracle.",
@@ -233,7 +233,8 @@ export const copy: Record<Locale, Copy> = {
       ],
       demoUser: "Somewhere quiet I can read for 2 hours. Not a chain.",
       demoAgent: "Three candidates within 8 min walk.",
-      demoReason: "Ranked by ambient dB (measured), power outlets, and how full a solo traveler said it was Tuesday afternoon.",
+      demoReason:
+        "Ranked by ambient dB (measured), power outlets, and how full a solo traveler said it was Tuesday afternoon.",
     },
     blindbox: {
       eyebrow: "02 · Blindbox",
@@ -259,7 +260,7 @@ export const copy: Record<Locale, Copy> = {
       ],
       sealTitle: "Sealed at Nimman corner café",
       sealMeta: "opens in 6 months · when you're here",
-      sealBody: "\"You were tired today. You almost skipped this walk. Remember it was worth it.\"",
+      sealBody: '"You were tired today. You almost skipped this walk. Remember it was worth it."',
     },
     omen: {
       eyebrow: "04 · Daily Omen",
@@ -272,7 +273,8 @@ export const copy: Record<Locale, Copy> = {
       ],
       cardDate: "Tuesday · Chiang Mai",
       cardTitle: "Today, take the long way.",
-      cardLine: "The mango tree at Wat Suan Dok drops fruit around 3 PM. Nobody's told the algorithm.",
+      cardLine:
+        "The mango tree at Wat Suan Dok drops fruit around 3 PM. Nobody's told the algorithm.",
     },
     bestNow: {
       eyebrow: "05 · Best Now",
@@ -361,9 +363,7 @@ export const copy: Record<Locale, Copy> = {
         },
         {
           heading: "Legal",
-          links: [
-            { label: "Privacy", href: "/privacy" },
-          ],
+          links: [{ label: "Privacy", href: "/privacy" }],
         },
       ],
       bottom: "© 2026 Solo Compass · Made with respect for solo travelers.",
@@ -397,7 +397,7 @@ export const copy: Record<Locale, Copy> = {
           muted: ["Google 地图"],
         },
         {
-          text: "你可以刷小红书 —— 但\"出片圣地\"排着三脚架的长队。",
+          text: '你可以刷小红书 —— 但"出片圣地"排着三脚架的长队。',
           muted: ["小红书"],
         },
         {
@@ -421,7 +421,7 @@ export const copy: Record<Locale, Copy> = {
         },
         {
           dot: "omen",
-          title: "以\"体验\"为单位",
+          title: '以"体验"为单位',
           body: "不是地点，是带动词、带时间、带感官的具体事。「下午 5:30 看夕阳把白塔染成蜜色」比「双龙寺」更有信息。",
         },
         {
@@ -437,7 +437,7 @@ export const copy: Record<Locale, Copy> = {
       items: [
         {
           heading: "隐私是承诺，不是勾选项。",
-          body: "你的位置永远不离开你的手机。试用无需注册、无需邮箱、无需\"Google 登录\"。默认匿名。",
+          body: '你的位置永远不离开你的手机。试用无需注册、无需邮箱、无需"Google 登录"。默认匿名。',
         },
         {
           heading: "AI 是过滤器，不是神谕。",
@@ -445,7 +445,7 @@ export const copy: Record<Locale, Copy> = {
         },
         {
           heading: "定价是诚实的。",
-          body: "一次性 ¥118，或每年 ¥198。就这两档。永远不接广告，永远不卖数据，永远不做\"免费然后付费墙\"的诱饵。",
+          body: '一次性 ¥118，或每年 ¥198。就这两档。永远不接广告，永远不卖数据，永远不做"免费然后付费墙"的诱饵。',
         },
       ],
     },
@@ -473,7 +473,7 @@ export const copy: Record<Locale, Copy> = {
       title: "选择困难的时候，交给它。",
       body: "有些下午，选择本身是敌人。点开盲盒，Solo 根据你所在的位置和此刻的时间，替你挑一件事。事前不能预览。这就是重点。",
       bullets: [
-        "把\"选什么\"从你手上拿走",
+        '把"选什么"从你手上拿走',
         "只推此时此地此刻合适的体验",
         "不允许重开 —— 就是要你去做",
       ],
@@ -574,8 +574,7 @@ export const copy: Record<Locale, Copy> = {
       free: "或先免费试用 —— 无需信用卡，无需注册",
     },
     footer: {
-      tagline:
-        "Solo Compass 由一个人在京都独立开发。没有 VC，没有广告，没有追踪。只对你负责。",
+      tagline: "Solo Compass 由一个人在京都独立开发。没有 VC，没有广告，没有追踪。只对你负责。",
       columns: [
         {
           heading: "产品",
@@ -594,9 +593,7 @@ export const copy: Record<Locale, Copy> = {
         },
         {
           heading: "法律",
-          links: [
-            { label: "隐私", href: "/zh/privacy" },
-          ],
+          links: [{ label: "隐私", href: "/zh/privacy" }],
         },
       ],
       bottom: "© 2026 Solo Compass · 尊重每一位独自出发的人。",

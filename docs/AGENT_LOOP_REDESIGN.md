@@ -141,12 +141,14 @@ protocol ToolDescriptor {
 **目标**：把 user input + memory snapshot 转成 `Plan`，**不**执行任何副作用。
 
 **Prompt 骨架**：
+
 - 系统：角色 + 可用 tools 列表 + 输出 schema（强制 JSON）
 - 上下文：`<memory>` 块（short + mid 召回 + long 头像）
 - 用户消息：`<user>` 块（含 STT 文本 + attachments id 引用）
 - 输出 schema：`Plan` 类型对应的 JSON Schema
 
 **关键决策**：
+
 - **轻意图直答**：planner 评估 confidence > 0.92 且无 tool 需求时，直接产 `.steps: []` + `inlineAnswer`，跳过 executor / verifier，单次 LLM 调用完成。这是绝大多数 small-talk 场景的最快路径。
 - **澄清不算"失败"**：plan 可只含 `needsClarification`，loop 直接进 `.clarify` 状态，UI 渲染选项 chip，不计入 recursion budget。
 - **并行标注**：`step.group` 相同的 step 同时跑；模型由系统 prompt 教会"地理调研类可并行，状态变更类必须串行"。
@@ -176,6 +178,7 @@ func run(_ plan: Plan, ctx: TurnContext) async -> [StepResult] {
 ```
 
 **重试策略**：
+
 - `idempotent == true` 的 tool 网络错最多重试 2 次（exponential backoff 250ms / 750ms）。
 - 非幂等（如 `save_to_favorites`）失败直接报到 verifier，让它决定是否要 user 确认。
 - 超时是 per-step **软**预算（默认 8s），到点不杀任务，先把 partial result 回灌，UI 显示"还在查 X..."；硬上限走 turn-level 总预算（默认 45s，可由用户在 settings 调）。
@@ -185,6 +188,7 @@ func run(_ plan: Plan, ctx: TurnContext) async -> [StepResult] {
 **目标**：拿 `[StepResult]` + 原始 user input + plan，产 final answer 草稿 + 自检 verdict。
 
 **Prompt 骨架**：
+
 - 输出 schema：`{ answer: string, citations: [ExpID], confidence: float, issues: [Issue], retryHint: PlannedStep? }`
 - 自检规则：
   - 引用的每个 `[exp:id]` 必须在 step results 里能找到；找不到 → `issue: hallucinated_id`。
@@ -192,6 +196,7 @@ func run(_ plan: Plan, ctx: TurnContext) async -> [StepResult] {
   - 用户问"附近咖啡"但所有 step 都失败 → `issue: empty_evidence`，verdict = `.partial`，retryHint = 改 plan 的某个 step。
 
 **Verdict 路由**：
+
 - `.pass` → 直接发 turnFinished
 - `.retry(hint)` → loop 把 hint 当新 plan 跑（计入 budget）
 - `.partial` → 发 turnFinished，但 final answer 携带"我只能查到 X，Y/Z 没找到"，UI 显示一个橙色 partial badge（不是 skeleton）
@@ -205,15 +210,22 @@ func run(_ plan: Plan, ctx: TurnContext) async -> [StepResult] {
 
 承接 `docs/architecture/agent-memory-context.md` 的方向，落到三层结构：
 
-| 层 | 生命周期 | 存储 | 写入触点 | 召回方式 |
-|---|---------|------|---------|---------|
-| **Short** | 一个 turn | 内存（TurnContext） | 每个 step 的输入 / 输出 / partial | 直接传引用 |
-| **Mid** | 一个 session（多 turn） | SwiftData `ChatSessionRecord` | turn 结束写入摘要 + 关键事实 | session 开始时 load 全量 |
-| **Long** | 跨 session（user 维度） | SwiftData `UserMemoryRecord` + 远端可选同步 | verifier 标记 `memorable: true` 的事实 | 每 turn planner prompt 注入 top-K |
+| 层        | 生命周期                | 存储                                        | 写入触点                               | 召回方式                          |
+| --------- | ----------------------- | ------------------------------------------- | -------------------------------------- | --------------------------------- |
+| **Short** | 一个 turn               | 内存（TurnContext）                         | 每个 step 的输入 / 输出 / partial      | 直接传引用                        |
+| **Mid**   | 一个 session（多 turn） | SwiftData `ChatSessionRecord`               | turn 结束写入摘要 + 关键事实           | session 开始时 load 全量          |
+| **Long**  | 跨 session（user 维度） | SwiftData `UserMemoryRecord` + 远端可选同步 | verifier 标记 `memorable: true` 的事实 | 每 turn planner prompt 注入 top-K |
 
 **Long memory 入口（v1 限定写入）**：只让 verifier 在 issue/answer 里 emit `memoryWrite` 记录，loop 落盘。示例（合成数据）：
+
 ```json
-{ "kind": "preference", "key": "dietary", "value": "vegetarian", "confidence": 0.88, "evidenceTurn": "T-12" }
+{
+  "kind": "preference",
+  "key": "dietary",
+  "value": "vegetarian",
+  "confidence": 0.88,
+  "evidenceTurn": "T-12"
+}
 ```
 
 **召回**：planner prompt 注入前用 `MemoryStore.recall(intent, k: 5)`，按 `(kind, value, lastUsedAt)` 做轻量 re-rank（v1 不用 embedding，下一版加）。
@@ -232,13 +244,13 @@ func run(_ plan: Plan, ctx: TurnContext) async -> [StepResult] {
 
 ### 5.2 新 tool（草拟）
 
-| Tool | 用途 | 并行安全 |
-|------|------|---------|
-| `search_places_parallel` | 一次性接收多个 `{category, radius}` 组，内部 fan-out 高德/Overpass/MapKit | ✅ |
-| `enrich_experience` | 单卡片重编译（复用 `EnrichmentAgent.recompile`） | ✅ |
-| `route_optimize` | 拿候选 stop 列表出多个 ordering 选最优 | ✅ |
-| `clarify_user` | 不副作用，仅产 ClarificationPrompt | ✅ |
-| `confirm_destructive` | 副作用前的 user 二次确认（如清空收藏） | ❌ |
+| Tool                     | 用途                                                                      | 并行安全 |
+| ------------------------ | ------------------------------------------------------------------------- | -------- |
+| `search_places_parallel` | 一次性接收多个 `{category, radius}` 组，内部 fan-out 高德/Overpass/MapKit | ✅       |
+| `enrich_experience`      | 单卡片重编译（复用 `EnrichmentAgent.recompile`）                          | ✅       |
+| `route_optimize`         | 拿候选 stop 列表出多个 ordering 选最优                                    | ✅       |
+| `clarify_user`           | 不副作用，仅产 ClarificationPrompt                                        | ✅       |
+| `confirm_destructive`    | 副作用前的 user 二次确认（如清空收藏）                                    | ❌       |
 
 旧 9 个 tool 全部保留，新增上面 5 个；planner prompt 里教模型"先并行 search → 选 1 个 enrich → route_optimize"。
 
@@ -289,6 +301,7 @@ struct ToolError: Codable, Sendable, Error {
 每个 turn 分配 `TurnID = UUID()` + `TraceID = hex(8)`，所有 Sentry breadcrumb、`os.Logger`、SwiftData 记录都带这两个 ID。Sentry 端可按 `trace_id:<x>` 过滤出整条调用链。
 
 新增指标（`AIObservability`）：
+
 - `plan.steps.count` / `plan.confidence` / `plan.parallel_groups`
 - `executor.parallel_speedup`（理论 vs 实际墙钟）
 - `verifier.verdict.distribution` / `verifier.retry_rate`
@@ -325,34 +338,40 @@ struct ToolError: Codable, Sendable, Error {
 **所有阶段保留旧 `VoiceAgentOrchestrator`**，新 `AgentLoop` 走独立 feature flag `ff.agentLoopV2`，DEBUG 默认开、Release 默认关，逐城/逐用户灰度。
 
 ### Phase 1 · 地基（1-2 周）
+
 - 引入 `AgentEvent` / `TurnTraceRecord`，让旧 orchestrator **也发** events（适配层）。
 - 卡片持久化 + replay（独立 PR，先修 R3）。
 - TurnID / TraceID 串可观测，Sentry breadcrumb 升级。
 - 风险：低，只加字段不改主路。
 
 ### Phase 2 · Schema 强约束（1 周）
+
 - iOS `AIService` 启 `response_format: json_schema`，老 9 个 tool 加 result schema。
 - 错误模型升级到 `ToolError`。
 - 失败时旧 fallback 路径保留。
 - 风险：中，DeepSeek schema 模式 + 老 prompt 兼容性需要测。
 
 ### Phase 3 · Planner / Executor / Verifier 接入（2-3 周）
+
 - 实装新 loop，先只跑"轻意图直答"路径（绝大多数 small-talk + 单 tool 场景），覆盖 ~70% 流量。
 - DEBUG flag 开启后，新 loop + 旧 loop 影子并行：旧 loop 出答案给用户，新 loop 出答案进 trace 比对，统计一致率 / 时延。
 - 风险：中高，需要充分的 shadow 比对。
 
 ### Phase 4 · 并行 + 复杂任务（2 周）
+
 - 引入 `search_places_parallel` / `route_optimize` 等新 tool，planner prompt 教并行。
 - 复杂任务流量切到新 loop。
 - 风险：中，主要看并行 race。
 
 ### Phase 5 · 长期记忆 + 离线快照（2 周）
+
 - `UserMemoryRecord` + verifier 写入 + planner 召回。
 - `OfflineCache` 接 `intent_signature`。
 - Settings 加"清空 / 关闭长记忆"开关。
 - 风险：中，涉及 GDPR / 隐私评审。
 
 ### Phase 6 · 收尾（1 周）
+
 - 删除旧 orchestrator + 旧 fallback 分支（保留 schema fallback）。
 - 文档归档：`AGENT_SYSTEM_ANALYSIS.md` 标 historical，本文档升为 ARCHITECTURE 引用。
 
@@ -372,15 +391,15 @@ struct ToolError: Codable, Sendable, Error {
 
 ## 12. 关键测试点
 
-| 测试 | 目标 | 类型 |
-|------|------|------|
-| `AgentLoopShadowParityTests` | 新旧 loop 同 input 同输出（轻意图） | 集成 |
-| `PlannerSchemaViolationRetryTests` | 模型故意出错，verifier 重试一次后成功 | mock |
-| `ExecutorParallelSpeedupTests` | 3 个并行 step 总时延 < 1.5× 单 step | 性能 |
-| `VerifierHallucinatedIdTests` | answer 引用不存在的 `[exp:x]` → verdict.partial | mock |
-| `MemoryRecallRelevanceTests` | 同 intent 召回 top-K 的相关性人工标注 ≥80% | eval |
-| `OfflineCacheHitTests` | 同 intent_signature 无网络命中快照 | 集成 |
-| `TurnTraceReplayTests` | 关闭 app → 重开历史 → 卡片 / chip 完整 | UI |
+| 测试                               | 目标                                            | 类型 |
+| ---------------------------------- | ----------------------------------------------- | ---- |
+| `AgentLoopShadowParityTests`       | 新旧 loop 同 input 同输出（轻意图）             | 集成 |
+| `PlannerSchemaViolationRetryTests` | 模型故意出错，verifier 重试一次后成功           | mock |
+| `ExecutorParallelSpeedupTests`     | 3 个并行 step 总时延 < 1.5× 单 step             | 性能 |
+| `VerifierHallucinatedIdTests`      | answer 引用不存在的 `[exp:x]` → verdict.partial | mock |
+| `MemoryRecallRelevanceTests`       | 同 intent 召回 top-K 的相关性人工标注 ≥80%      | eval |
+| `OfflineCacheHitTests`             | 同 intent_signature 无网络命中快照              | 集成 |
+| `TurnTraceReplayTests`             | 关闭 app → 重开历史 → 卡片 / chip 完整          | UI   |
 
 ---
 

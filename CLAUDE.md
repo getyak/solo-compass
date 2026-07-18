@@ -8,14 +8,14 @@ Solo Compass: a map-first companion app for solo travelers. The core unit is `Ex
 
 ### Monorepo
 
-| Layer           | Choice                                               | Notes                                                               |
-| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------- |
-| Package manager | **pnpm 9.12.0** workspaces + **turbo**               | `engines.node >=20`. iOS app is **not** a workspace member          |
-| TypeScript      | `strict: true`, `noUncheckedIndexedAccess: true`     | `interface` for object shapes, `type` for unions                    |
-| IDs             | Branded types (`UserId`, `ExperienceId`)             |                                                                     |
-| Geo coords      | `[longitude, latitude]` (GeoJSON / Mapbox / PostGIS) | Google APIs use `[lat, lng]`                                        |
-| Time            | ISO 8601 UTC at storage; local at display            | `bestTimes` uses 0–23 hour ints in the experience's local time      |
-| Commits         | Conventional Commits, lowercase scope                | See `CONTRIBUTING.md`                                               |
+| Layer           | Choice                                               | Notes                                                          |
+| --------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| Package manager | **pnpm 9.12.0** workspaces + **turbo**               | `engines.node >=20`. iOS app is **not** a workspace member     |
+| TypeScript      | `strict: true`, `noUncheckedIndexedAccess: true`     | `interface` for object shapes, `type` for unions               |
+| IDs             | Branded types (`UserId`, `ExperienceId`)             |                                                                |
+| Geo coords      | `[longitude, latitude]` (GeoJSON / Mapbox / PostGIS) | Google APIs use `[lat, lng]`                                   |
+| Time            | ISO 8601 UTC at storage; local at display            | `bestTimes` uses 0–23 hour ints in the experience's local time |
+| Commits         | Conventional Commits, lowercase scope                | See `CONTRIBUTING.md`                                          |
 
 ### Apps & Packages
 

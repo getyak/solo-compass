@@ -86,7 +86,7 @@
       "health": "yellow",
       "seen_label": "人工策展 · 7月5日",
       "lat": 17.9764,
-      "lng": 102.6350,
+      "lng": 102.635,
       "limited_label": null,
       "source_url": "https://www.tourismlaos.org/vientiane"
     },
@@ -103,7 +103,7 @@
       "health": "green",
       "seen_label": "本地新闻 · 7月4日",
       "lat": 17.9614,
-      "lng": 102.6070,
+      "lng": 102.607,
       "limited_label": "临时",
       "source_url": "https://www.vientianetimes.org.la"
     }

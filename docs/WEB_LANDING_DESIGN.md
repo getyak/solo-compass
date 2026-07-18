@@ -28,52 +28,52 @@
 
 ```css
 /* --- Warm Amber Base (== CT.bg* + CT.fg* + CT.surface*) --- */
---bg-warm:            #FAF8F6;   /* 页面底色 - 暖白 */
---surface-white:      #FFFFFF;   /* 卡片/表单底色 */
---surface-sunken:     #F3EEE6;   /* 表单沉降/引用块 */
+--bg-warm: #faf8f6; /* 页面底色 - 暖白 */
+--surface-white: #ffffff; /* 卡片/表单底色 */
+--surface-sunken: #f3eee6; /* 表单沉降/引用块 */
 
---fg-primary:         #1F1A14;   /* 正文近黑 */
---fg-muted:           #6D6358;   /* 二级文本 */
---fg-subtle:          #A39A8C;   /* 三级、时间戳、caption */
+--fg-primary: #1f1a14; /* 正文近黑 */
+--fg-muted: #6d6358; /* 二级文本 */
+--fg-subtle: #a39a8c; /* 三级、时间戳、caption */
 
---border-subtle:      #EDE8DF;   /* 极细分隔 */
---border-default:     #D6CEC0;   /* 卡片描边 */
+--border-subtle: #ede8df; /* 极细分隔 */
+--border-default: #d6cec0; /* 卡片描边 */
 
 /* --- Accent (== CT.accent*) - 深咖 CTA 主色 --- */
---accent:             #5D3000;   /* 主按钮、link、focus ring */
---accent-hover:       #4A2600;   /* hover 加深 */
---accent-soft:        #FBF1E4;   /* 背景高亮、chip fill */
---accent-border:      #E8DCCA;   /* accent 环境的描边 */
+--accent: #5d3000; /* 主按钮、link、focus ring */
+--accent-hover: #4a2600; /* hover 加深 */
+--accent-soft: #fbf1e4; /* 背景高亮、chip fill */
+--accent-border: #e8dcca; /* accent 环境的描边 */
 
 /* --- Sun-Gold (== CT.sunGold*) - "此刻"金色 --- */
---sun-gold:           #C9A677;
---sun-gold-deep:      #A07F4B;
---sun-gold-soft:      #F5E9D2;
+--sun-gold: #c9a677;
+--sun-gold-deep: #a07f4b;
+--sun-gold-soft: #f5e9d2;
 
 /* --- Scene tokens (== CT.capsuleGlow/omenGold/blindboxAmber) --- */
---capsule-glow:       #F7DEB0;   /* Ritual 相关 UI */
---omen-gold:          #B8925C;
---blindbox-amber:     #8A4A14;
+--capsule-glow: #f7deb0; /* Ritual 相关 UI */
+--omen-gold: #b8925c;
+--blindbox-amber: #8a4a14;
 
 /* --- Semantic (== CT.tone*) --- */
---tone-open:          #5D3000;
---tone-forming:       #B57420;
---tone-closed:        #1F7B4D;
---tone-completed:     #6D6358;
+--tone-open: #5d3000;
+--tone-forming: #b57420;
+--tone-closed: #1f7b4d;
+--tone-completed: #6d6358;
 
 /* --- Warning / Success --- */
---warning-soft:       #FBF2E3;
---warning-text:       #B57420;
---success-soft:       rgba(47,164,106,0.12);
---success-text:       #1F7B4D;
+--warning-soft: #fbf2e3;
+--warning-text: #b57420;
+--success-soft: rgba(47, 164, 106, 0.12);
+--success-text: #1f7b4d;
 
 /* --- Dark mode (== CT.warm*Dark) --- */
---dark-sheet:         #171410;
---dark-card:          #231F19;
---dark-sunken:        #2C2720;
---dark-border:        #3A3329;
---dark-fg-primary:    #F4EFE7;
---dark-fg-muted:      #B0A697;
+--dark-sheet: #171410;
+--dark-card: #231f19;
+--dark-sunken: #2c2720;
+--dark-border: #3a3329;
+--dark-fg-primary: #f4efe7;
+--dark-fg-muted: #b0a697;
 ```
 
 ### 1.2 Typography Scale
@@ -89,19 +89,19 @@ Serif    → "Fraunces", ui-serif, Georgia   ← 编辑感 pull-quote 专用
 
 **Type Scale**（modular scale 1.25）：
 
-| Token         | Size      | Line   | Weight | Use                                  |
-| ------------- | --------- | ------ | ------ | ------------------------------------ |
-| `display-2xl` | 96px      | 1.02   | 500    | Hero H1 (仅 hero)                    |
-| `display-xl`  | 72px      | 1.05   | 500    | 大标题                               |
-| `display-lg`  | 56px      | 1.08   | 500    | 分区标题 (section header)            |
-| `display-md`  | 40px      | 1.15   | 500    | 卡片标题、blog h2                    |
-| `display-sm`  | 32px      | 1.2    | 500    | h3                                   |
-| `body-xl`     | 22px      | 1.55   | 400    | Hero 副标题、pull-quote              |
-| `body-lg`     | 18px      | 1.6    | 400    | 主正文（blog）                       |
-| `body-md`     | 16px      | 1.6    | 400    | 常规正文                             |
-| `body-sm`     | 14px      | 1.5    | 400    | 元数据、caption                      |
-| `body-xs`     | 12px      | 1.4    | 500    | tag、chip、超小注解                  |
-| `mono-md`     | 14px      | 1.5    | 400    | 代码、data label、"since 2026" 类装饰 |
+| Token         | Size | Line | Weight | Use                                   |
+| ------------- | ---- | ---- | ------ | ------------------------------------- |
+| `display-2xl` | 96px | 1.02 | 500    | Hero H1 (仅 hero)                     |
+| `display-xl`  | 72px | 1.05 | 500    | 大标题                                |
+| `display-lg`  | 56px | 1.08 | 500    | 分区标题 (section header)             |
+| `display-md`  | 40px | 1.15 | 500    | 卡片标题、blog h2                     |
+| `display-sm`  | 32px | 1.2  | 500    | h3                                    |
+| `body-xl`     | 22px | 1.55 | 400    | Hero 副标题、pull-quote               |
+| `body-lg`     | 18px | 1.6  | 400    | 主正文（blog）                        |
+| `body-md`     | 16px | 1.6  | 400    | 常规正文                              |
+| `body-sm`     | 14px | 1.5  | 400    | 元数据、caption                       |
+| `body-xs`     | 12px | 1.4  | 500    | tag、chip、超小注解                   |
+| `mono-md`     | 14px | 1.5  | 400    | 代码、data label、"since 2026" 类装饰 |
 
 **响应式规则**：`display-*` 在 md 断点以下（< 768px）自动降一级；hero H1 移动端顶格 56px。
 
@@ -276,6 +276,7 @@ Just experiences worth your afternoon.        max-w 640px
 - CTA："App Store 下载"
 
 **动效**：
+
 - Hero 加载：H1 每行 `display-md` fade-up 60px + `dur-editorial` (640ms) 依次入场
 - iPhone frame `dur-editorial` (640ms) `scale-95 → 1 + fade-in`
 - **不用 spring**。iOS Home Screen 是 spring，Web hero 是 editorial
@@ -341,6 +342,7 @@ happens on the map.
 ```
 
 三张卡的圆点用不同色：
+
 - Map-First → `--sun-gold`
 - Experience-as-Unit → `--omen-gold`
 - AI doesn't decide → `--accent`
@@ -536,12 +538,12 @@ Optional subheader body-xl    ← fg-muted, max-w-2xl
 
 ### 6.2 Do / Don't
 
-| Don't                                       | Do                                                |
-| ------------------------------------------- | ------------------------------------------------- |
-| "Discover amazing hidden gems!"             | "Places worth walking twenty minutes to."         |
-| "Powered by AI to plan your perfect trip."  | "AI narrows a thousand options to five. You pick." |
-| "The ultimate travel companion for 2026"    | "A map for people who travel alone."              |
-| "Sign up now, it's free!"                   | "Try it. If you like it, pay once."               |
+| Don't                                      | Do                                                 |
+| ------------------------------------------ | -------------------------------------------------- |
+| "Discover amazing hidden gems!"            | "Places worth walking twenty minutes to."          |
+| "Powered by AI to plan your perfect trip." | "AI narrows a thousand options to five. You pick." |
+| "The ultimate travel companion for 2026"   | "A map for people who travel alone."               |
+| "Sign up now, it's free!"                  | "Try it. If you like it, pay once."                |
 
 ### 6.3 中文文案纪律
 

@@ -79,9 +79,7 @@ export default function ManifestoZh() {
             <Eyebrow dot="accent" className="justify-center">
               宣言
             </Eyebrow>
-            <h1 className="ds-display-xl mt-6 font-display">
-              一款为独自出发的人做的地图 app。
-            </h1>
+            <h1 className="ds-display-xl mt-6 font-display">一款为独自出发的人做的地图 app。</h1>
             <p className="ds-body-xl mt-6 text-fg-muted">
               六件我们相信的事。写在第一行代码之前，到今天依然成立。
             </p>

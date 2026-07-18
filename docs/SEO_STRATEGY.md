@@ -33,44 +33,44 @@ Solo Compass 的 SEO 不追求"抢流量"，追求"抢定位"。
 
 ### Tier 1 · Brand（首页 + 定价页承接）
 
-| Keyword                            | Monthly Volume (est) | Intent | Target Page      |
-| ---------------------------------- | -------------------- | ------ | ---------------- |
-| solo compass app                   | -                    | Brand  | `/`              |
-| solo compass ios                   | -                    | Brand  | `/`              |
-| solo compass pricing               | -                    | Brand  | `/pricing`       |
+| Keyword              | Monthly Volume (est) | Intent | Target Page |
+| -------------------- | -------------------- | ------ | ----------- |
+| solo compass app     | -                    | Brand  | `/`         |
+| solo compass ios     | -                    | Brand  | `/`         |
+| solo compass pricing | -                    | Brand  | `/pricing`  |
 
 ### Tier 2 · Category（Hero + Features 承接）
 
-| Keyword                            | Vol   | Difficulty | Target Page                    |
-| ---------------------------------- | ----- | ---------- | ------------------------------ |
-| solo travel app                    | 2,900 | 42         | `/`                            |
-| best app for traveling alone       | 720   | 35         | `/`                            |
-| solo travel companion              | 480   | 30         | `/`                            |
-| solo travel ios app                | 210   | 25         | `/features/ios`                |
-| offline solo travel app            | 170   | 22         | `/features/privacy-offline`    |
-| privacy-focused travel app         | 210   | 28         | `/features/privacy-offline`    |
-| ai travel assistant no ads         | 90    | 20         | `/features/ai-transparency`    |
+| Keyword                      | Vol   | Difficulty | Target Page                 |
+| ---------------------------- | ----- | ---------- | --------------------------- |
+| solo travel app              | 2,900 | 42         | `/`                         |
+| best app for traveling alone | 720   | 35         | `/`                         |
+| solo travel companion        | 480   | 30         | `/`                         |
+| solo travel ios app          | 210   | 25         | `/features/ios`             |
+| offline solo travel app      | 170   | 22         | `/features/privacy-offline` |
+| privacy-focused travel app   | 210   | 28         | `/features/privacy-offline` |
+| ai travel assistant no ads   | 90    | 20         | `/features/ai-transparency` |
 
 ### Tier 3 · Comparative（Blog 长文承接）
 
-| Keyword                            | Vol   | Diff | Target Page                                |
-| ---------------------------------- | ----- | ---- | ------------------------------------------ |
-| solo compass vs google maps        | -     | 15   | `/blog/solo-compass-vs-google-maps`        |
-| solo compass vs tripadvisor        | -     | 15   | `/blog/solo-compass-vs-tripadvisor`        |
-| best alternative to lonely planet  | 320   | 30   | `/blog/lonely-planet-alternatives`         |
-| chatgpt travel planner limitations | 140   | 20   | `/blog/why-chatgpt-fails-solo-travelers`   |
+| Keyword                            | Vol | Diff | Target Page                              |
+| ---------------------------------- | --- | ---- | ---------------------------------------- |
+| solo compass vs google maps        | -   | 15   | `/blog/solo-compass-vs-google-maps`      |
+| solo compass vs tripadvisor        | -   | 15   | `/blog/solo-compass-vs-tripadvisor`      |
+| best alternative to lonely planet  | 320 | 30   | `/blog/lonely-planet-alternatives`       |
+| chatgpt travel planner limitations | 140 | 20   | `/blog/why-chatgpt-fails-solo-travelers` |
 
 ### Tier 4 · Long-tail Experience（城市/体验页承接 — SEO 主战场）
 
 模板 `/city/[city-slug]` + `/city/[city-slug]/[experience-slug]`：
 
-| Pattern                              | Example Volume  |
-| ------------------------------------ | --------------- |
-| quiet café [city]                    | 90-500/city     |
-| what to do alone in [city]           | 320-2400/city   |
-| best solo travel spots [city]        | 40-320/city     |
-| [attraction] sunset time             | 90-700/attraction|
-| solo dining [city] no reservation    | 20-200/city     |
+| Pattern                           | Example Volume    |
+| --------------------------------- | ----------------- |
+| quiet café [city]                 | 90-500/city       |
+| what to do alone in [city]        | 320-2400/city     |
+| best solo travel spots [city]     | 40-320/city       |
+| [attraction] sunset time          | 90-700/attraction |
+| solo dining [city] no reservation | 20-200/city       |
 
 **这一层是 SEO 的护城河**。5 个种子城市 (Chiang Mai / Lisbon / Tokyo / Kyoto / Bali) × 平均 50 个 experience/city = 250 个静态页面。每个页面精心 seed 内容，配合 Wikivoyage attribution + 出站信号（AI 会推理"这个站尊重信息来源"）。
 
@@ -82,38 +82,38 @@ Solo Compass 的 SEO 不追求"抢流量"，追求"抢定位"。
 
 ### Tier 1 · 品牌
 
-| 关键词          | Vol   | Target                     |
-| --------------- | ----- | -------------------------- |
-| solo compass    | -     | `/zh`                      |
-| 独行罗盘 app    | -     | `/zh`                      |
+| 关键词       | Vol | Target |
+| ------------ | --- | ------ |
+| solo compass | -   | `/zh`  |
+| 独行罗盘 app | -   | `/zh`  |
 
 ### Tier 2 · 品类
 
-| 关键词                | Vol       | 承接页                                 |
-| --------------------- | --------- | -------------------------------------- |
-| 独自旅行 app          | 1200      | `/zh`                                  |
-| 一个人旅行 app        | 800       | `/zh`                                  |
-| 一个人 旅游 推荐 app  | 320       | `/zh`                                  |
-| 无广告 旅行 app       | 260       | `/zh/features/privacy-offline`         |
-| 隐私 旅行 app         | 90        | `/zh/features/privacy-offline`         |
-| ai 旅行规划 app       | 480       | `/zh/features/ai-transparency`         |
+| 关键词               | Vol  | 承接页                         |
+| -------------------- | ---- | ------------------------------ |
+| 独自旅行 app         | 1200 | `/zh`                          |
+| 一个人旅行 app       | 800  | `/zh`                          |
+| 一个人 旅游 推荐 app | 320  | `/zh`                          |
+| 无广告 旅行 app      | 260  | `/zh/features/privacy-offline` |
+| 隐私 旅行 app        | 90   | `/zh/features/privacy-offline` |
+| ai 旅行规划 app      | 480  | `/zh/features/ai-transparency` |
 
 ### Tier 3 · 对比
 
-| 关键词                       | Vol  | 承接页                                       |
-| ---------------------------- | ---- | -------------------------------------------- |
-| 小红书 旅行 替代              | 210  | `/zh/blog/xiaohongshu-vs-solo-compass`       |
-| chatgpt 旅行 局限              | 90   | `/zh/blog/why-chatgpt-fails-solo-travelers`  |
-| 高德 独自 旅行 局限            | 40   | `/zh/blog/gaode-vs-solo-compass`             |
+| 关键词              | Vol | 承接页                                      |
+| ------------------- | --- | ------------------------------------------- |
+| 小红书 旅行 替代    | 210 | `/zh/blog/xiaohongshu-vs-solo-compass`      |
+| chatgpt 旅行 局限   | 90  | `/zh/blog/why-chatgpt-fails-solo-travelers` |
+| 高德 独自 旅行 局限 | 40  | `/zh/blog/gaode-vs-solo-compass`            |
 
 ### Tier 4 · 长尾体验（中国用户的独行目的地）
 
-| 模板                    | 示例                                             |
-| ----------------------- | ------------------------------------------------ |
-| 独自 咖啡 [城市]         | 独自 咖啡 大理                                    |
-| 一个人 [城市] 攻略        | 一个人 松阳 攻略                                  |
-| [城市] 独行 安静地方      | 苏州 独行 安静地方                                |
-| [景点] 最佳 时间          | 洱海 最佳 拍照时间                                |
+| 模板                 | 示例               |
+| -------------------- | ------------------ |
+| 独自 咖啡 [城市]     | 独自 咖啡 大理     |
+| 一个人 [城市] 攻略   | 一个人 松阳 攻略   |
+| [城市] 独行 安静地方 | 苏州 独行 安静地方 |
+| [景点] 最佳 时间     | 洱海 最佳 拍照时间 |
 
 **中文 Tier 4 的独特性**：中文用户经常在"小红书搜"而不是"Google 搜"。所以 URL 结构要 shareable to 小红书（短、有 emoji 兼容、复制到小红书 caption 里不掉格式）。
 
@@ -204,7 +204,9 @@ Google Rich Result 的入场券。三类页面三种 schema：
   "name": "Chiang Mai for Solo Travelers",
   "description": "50 hand-picked experiences...",
   "geo": { "@type": "GeoCoordinates", "latitude": 18.7883, "longitude": 98.9853 },
-  "includesAttraction": [/* 每个体验的 TouristAttraction 引用 */]
+  "includesAttraction": [
+    /* 每个体验的 TouristAttraction 引用 */
+  ]
 }
 ```
 

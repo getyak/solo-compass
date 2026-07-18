@@ -405,8 +405,7 @@ async function compileEvents(
     const endMs = Date.parse(ev.endsAt);
     const twin = existing.find(
       (r) =>
-        normalizeName(r.name) === norm &&
-        Math.abs(Date.parse(r.ends_at) - endMs) <= 2 * DAY_MS,
+        normalizeName(r.name) === norm && Math.abs(Date.parse(r.ends_at) - endMs) <= 2 * DAY_MS,
     );
     if (twin) id = twin.id;
 

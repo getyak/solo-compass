@@ -1,12 +1,12 @@
 # PRD: Solo Confidence Refactor v1 — 把产品彻底收敛到「信心层」
 
-| 字段     | 值                                                              |
-| -------- | --------------------------------------------------------------- |
-| 版本     | v1.0 草稿                                                       |
-| 创建日期 | 2026-07-05                                                      |
-| 范围     | apps/ios/SoloCompass 为主 · packages/core schema 为辅           |
-| 力度     | 彻底重构 — 单一北极星,砍掉偏离信心层的功能面                    |
-| 关联     | 复用并升级 `prd-now-score-v1.md`;回归 `docs/PRODUCT_BRIEF.md`  |
+| 字段     | 值                                                            |
+| -------- | ------------------------------------------------------------- |
+| 版本     | v1.0 草稿                                                     |
+| 创建日期 | 2026-07-05                                                    |
+| 范围     | apps/ios/SoloCompass 为主 · packages/core schema 为辅         |
+| 力度     | 彻底重构 — 单一北极星,砍掉偏离信心层的功能面                  |
+| 关联     | 复用并升级 `prd-now-score-v1.md`;回归 `docs/PRODUCT_BRIEF.md` |
 | 前置研究 | 数字游民/独行者需求金字塔(见 §3)                              |
 
 ---
@@ -25,12 +25,12 @@
 
 但当前 iOS 代码库已经严重偏离自己定的边界。实际存在的功能面:
 
-| 偏离面           | 代码证据(实际文件)                                                      | 属于需求金字塔哪层 |
-| ---------------- | -------------------------------------------------------------------------- | ------------------ |
-| 结伴 / 路线同行  | `Views/Companion/` 30+ 文件、`CompanionService`、`RouteCompanion`          | 第 4 层 归属/社交  |
-| 好友社交图谱     | `Views/Friends/`、`FriendsService`、friend-code、QR 加好友                 | 第 4 层 归属/社交  |
-| 聊天 / Agent 对话 | `Views/Chat/` 20+ 文件、`ChatService`、`SoloOrb`、`SoloAgentBubbleQueue`   | 偏 assistant,散焦 |
-| 娱乐化包装        | `Blindbox`、`Brag`、`Capsule`、`Omen`、`Insight`、`BragCardComposer`       | gamification 味    |
+| 偏离面            | 代码证据(实际文件)                                                       | 属于需求金字塔哪层 |
+| ----------------- | ------------------------------------------------------------------------ | ------------------ |
+| 结伴 / 路线同行   | `Views/Companion/` 30+ 文件、`CompanionService`、`RouteCompanion`        | 第 4 层 归属/社交  |
+| 好友社交图谱      | `Views/Friends/`、`FriendsService`、friend-code、QR 加好友               | 第 4 层 归属/社交  |
+| 聊天 / Agent 对话 | `Views/Chat/` 20+ 文件、`ChatService`、`SoloOrb`、`SoloAgentBubbleQueue` | 偏 assistant,散焦  |
+| 娱乐化包装        | `Blindbox`、`Brag`、`Capsule`、`Omen`、`Insight`、`BragCardComposer`     | gamification 味    |
 
 **诊断:产品在往「belonging 层(社交)」和「gamification」漂移——而这两层既是市场血海(nomadtable / TripBFF / NomadHer / Nomad List Friend Finder 全在打),又正是 brief 自己列的反目标。** 真正的差异化资产 `SoloScore`(`packages/core/src/solo-score.ts`)、`Confidence`(`confidence.ts`)、`NowScore`(`Models/NowScore.swift`)反而被淹没在这些面里。
 
@@ -43,15 +43,15 @@
 整个产品只回答一个问题,所有界面、排序、文案都服务于它:
 
 > **「我一个人,现在,去这里,会不会是段好体验?」**
-> *"If I go here, alone, right now — will it be good?"*
+> _"If I go here, alone, right now — will it be good?"_
 
 拆成三个可计算的子问题,恰好对应已有的三个资产:
 
-| 子问题                     | 资产           | 现状                                             |
-| -------------------------- | -------------- | ------------------------------------------------ |
-| 现在是不是好时机?          | **NowScore**   | 已有 v1 骨架(bestTimes/天气/日落),需提为主角  |
-| 一个人去尴不尬、安不安全?  | **SoloScore**  | schema 完整(6 维),UI 未成主线                  |
-| 这条信息可不可信、新不新?  | **Confidence** | schema + 衰减逻辑完整,健康度点未贯穿全局         |
+| 子问题                    | 资产           | 现状                                         |
+| ------------------------- | -------------- | -------------------------------------------- |
+| 现在是不是好时机?         | **NowScore**   | 已有 v1 骨架(bestTimes/天气/日落),需提为主角 |
+| 一个人去尴不尬、安不安全? | **SoloScore**  | schema 完整(6 维),UI 未成主线                |
+| 这条信息可不可信、新不新? | **Confidence** | schema + 衰减逻辑完整,健康度点未贯穿全局     |
 
 **信心 = NowScore × SoloScore × Confidence。** 这是 Google/Apple 地图、小红书、Nomad List 都算不出来的合成量,是护城河。
 
@@ -97,11 +97,11 @@
 
 ### 5.2 功能三分:留 / 降 / 砍
 
-| 处置       | 功能                                                                                | 理由                                                                 |
-| ---------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **留(强化)** | 地图 `CompassMapView`、`NowScore`、`SoloScore` 徽章与雷达图、`Confidence` 健康度、Experience 详情、Archive/城市图鉴、语音意图输入 | 信心层核心                                                           |
-| **降级(移出主线)** | `Chat` 对话面 → 收敛为「语音/文字问一句 → 出地图筛选结果」的**意图输入条**,不做常驻聊天室;`SoloOrb` 保留为入口不做拟人陪聊 | brief 明确「voice is restrained, not chatty」;聊天室会喧宾夺主        |
-| **砍(移出 v1)** | `Views/Companion/` 全部、`Views/Friends/` 全部、`Blindbox`、`Brag`、`Capsule`、`Omen`、`Insight` 娱乐卡 | 全属第 4 层社交 / gamification,即 brief 反目标                       |
+| 处置               | 功能                                                                                                                              | 理由                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **留(强化)**       | 地图 `CompassMapView`、`NowScore`、`SoloScore` 徽章与雷达图、`Confidence` 健康度、Experience 详情、Archive/城市图鉴、语音意图输入 | 信心层核心                                                     |
+| **降级(移出主线)** | `Chat` 对话面 → 收敛为「语音/文字问一句 → 出地图筛选结果」的**意图输入条**,不做常驻聊天室;`SoloOrb` 保留为入口不做拟人陪聊        | brief 明确「voice is restrained, not chatty」;聊天室会喧宾夺主 |
+| **砍(移出 v1)**    | `Views/Companion/` 全部、`Views/Friends/` 全部、`Blindbox`、`Brag`、`Capsule`、`Omen`、`Insight` 娱乐卡                           | 全属第 4 层社交 / gamification,即 brief 反目标                 |
 
 > 砍 = 从主导航与主流程移除、feature-flag 关闭、代码移入 `legacy/` 或独立 target,**不删库**(保留未来 A/B 或独立产品的可能)。降级 = 保留能力但退出主界面层级。
 
@@ -171,11 +171,13 @@
 > 遵循 `docs/PHASES.md` 的「不跳步、每期有 gate」原则。本重构在现有 iOS 之上做减法与聚焦,分三期。
 
 **R1 · 收敛(1–2 周)** — 纯做减法,零新功能风险
+
 - feature-flag 关闭 Companion / Friends / Blindbox / Brag / Capsule / Omen / Insight 主入口。
 - Chat 降级为意图输入条。
 - Gate:主流程点击深度下降、地图→决策路径 ≤ 2 步;既有测试全绿;`parity:check` 绿。
 
 **R2 · 信心层三合一(2–3 周)** — 让北极星可见
+
 - NowScore 补 Crowd/SafetyTime 信号并驱动 marker。
 - SoloScore 徽章 + hint 提到第一视觉位。
 - Confidence 健康度点贯穿 marker/卡片。
@@ -183,6 +185,7 @@
 - Gate:清迈 50 个种子中,任一时段都有点达到「三项皆高」的 demo;10 人可用性测试能在 30 秒说清产品做什么。
 
 **R3 · 打磨与验证(2 周)**
+
 - 排序调优(压制 level≤1)、离线 fallback、性能(nowScore p95 < 5ms,沿用 v1 指标)。
 - Gate:回归 `docs/PHASES.md` 的 Phase 2/3 留存口径——需要这 app 的人里,周 2 留存 ≥ 40%。
 
@@ -201,12 +204,12 @@
 
 ## 10. 风险与对策
 
-| 风险                                       | 对策                                                                   |
-| ------------------------------------------ | ---------------------------------------------------------------------- |
-| 砍社交功能引发已有用户流失                 | 不删库、feature-flag 灰度;若数据证明社交有真实留存,再评估拆为独立产品 |
+| 风险                                                | 对策                                                                                     |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 砍社交功能引发已有用户流失                          | 不删库、feature-flag 灰度;若数据证明社交有真实留存,再评估拆为独立产品                    |
 | SoloScore/Confidence 冷启动数据不足(basedOnCount=0) | 诚实显示「AI 估算」,用第 2 层(咖啡/work)先把种子做深;人工策展前 200 条(见数据冷启动讨论) |
-| CrowdSignal 数据源受限于第三方             | 先用 bestTimes + 时段先验做近似,有被动 GPS 后再增强;不阻塞 R2         |
-| 「减法」被质疑「砍掉了辛苦做的功能」        | 定位为聚焦而非否定;保留代码;用完成率/留存指标验证聚焦收益             |
+| CrowdSignal 数据源受限于第三方                      | 先用 bestTimes + 时段先验做近似,有被动 GPS 后再增强;不阻塞 R2                            |
+| 「减法」被质疑「砍掉了辛苦做的功能」                | 定位为聚焦而非否定;保留代码;用完成率/留存指标验证聚焦收益                                |
 
 ---
 

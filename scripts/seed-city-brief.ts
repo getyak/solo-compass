@@ -243,7 +243,9 @@ async function main(): Promise<void> {
   for (const row of existingKits ?? []) {
     kitLastVerified.set(row.section as string, (row.last_verified_at as string | null) ?? null);
   }
-  const kitRows = seed.kits.map((k) => kitToRow(cityCode, k, kitLastVerified.get(k.section) ?? null));
+  const kitRows = seed.kits.map((k) =>
+    kitToRow(cityCode, k, kitLastVerified.get(k.section) ?? null),
+  );
   const { error: kitErr, count: kitCount } = await client
     .from("city_kits")
     .upsert(kitRows, { onConflict: "city_code,section", ignoreDuplicates: false })
@@ -263,7 +265,11 @@ async function main(): Promise<void> {
     evVerified.set(row.id as string, (row.verified_at as string | null) ?? null);
   }
   const finalEventRows = seed.events.map((e) =>
-    eventToRow(cityCode, e, evVerified.get(eventId(cityCode, e.name, e.starts_at ?? e.ends_at)) ?? null),
+    eventToRow(
+      cityCode,
+      e,
+      evVerified.get(eventId(cityCode, e.name, e.starts_at ?? e.ends_at)) ?? null,
+    ),
   );
   const { error: evErr, count: evCount } = await client
     .from("city_events")

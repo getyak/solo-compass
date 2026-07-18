@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: "Solo Compass",
     title: "一款为独自旅行者做的地图 app",
     description:
-      "地图为家。以\"体验\"为单位。AI 只过滤，不替你决定。京都独立开发。永不接广告、永不追踪。",
+      '地图为家。以"体验"为单位。AI 只过滤，不替你决定。京都独立开发。永不接广告、永不追踪。',
     locale: "zh_CN",
     alternateLocale: "en_US",
     // og image comes from src/app/zh/opengraph-image.tsx (file-based).

@@ -24,8 +24,7 @@ export const metadata: Metadata = {
     type: "website",
     url: `${SITE_URL}/download`,
     title: "Download Solo Compass for iOS",
-    description:
-      "iPhone. iOS 17+. Free tier, no card needed. Available on the App Store.",
+    description: "iPhone. iOS 17+. Free tier, no card needed. Available on the App Store.",
     images: [{ url: "/og/download.png", width: 1200, height: 630 }],
   },
   twitter: {
@@ -60,12 +59,9 @@ export default function DownloadPage() {
             <Eyebrow dot="accent" className="justify-center">
               Download
             </Eyebrow>
-            <h1 className="ds-display-xl mt-6 font-display">
-              Get Solo Compass on iPhone.
-            </h1>
+            <h1 className="ds-display-xl mt-6 font-display">Get Solo Compass on iPhone.</h1>
             <p className="ds-body-xl mt-6 text-fg-muted">
-              Free to try. No card, no email. Pay only when Free stops being
-              enough.
+              Free to try. No card, no email. Pay only when Free stops being enough.
             </p>
             <div className="mt-10 flex justify-center">
               <ButtonLink href={APP_STORE_URL} variant="primary">
@@ -96,10 +92,9 @@ export default function DownloadPage() {
                 Not on Android yet.
               </h2>
               <p className="ds-body-lg mt-4 text-fg-muted">
-                Solo Compass is iOS-only for now. The app is built with SwiftUI
-                and MapKit — porting to Android is not a straight line, and
-                a bad Android version would be worse than none. If you want to
-                be notified when it lands, email{" "}
+                Solo Compass is iOS-only for now. The app is built with SwiftUI and MapKit — porting
+                to Android is not a straight line, and a bad Android version would be worse than
+                none. If you want to be notified when it lands, email{" "}
                 <a className="underline" href="mailto:hello@solocompass.app">
                   hello@solocompass.app
                 </a>{" "}

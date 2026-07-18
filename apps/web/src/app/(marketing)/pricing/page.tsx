@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { copy } from "@/components/marketing/copy";
-import {
-  Footer,
-  MarketingNav,
-  Pricing,
-} from "@/components/marketing/sections";
+import { Footer, MarketingNav, Pricing } from "@/components/marketing/sections";
 import { Container } from "@/components/marketing/Container";
 import { Eyebrow, Section } from "@/components/marketing/primitives";
 import { HomeJsonLd } from "../../_seo";
