@@ -60,12 +60,12 @@ public struct OpenForCompanionsSheet: View {
             ))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button(NSLocalizedString("action.cancel", comment: "Cancel")) {
                         dismiss()
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(NSLocalizedString(
                         "openForCompanions.submit",
                         comment: "Submit button: create recruiting route"
@@ -79,6 +79,14 @@ public struct OpenForCompanionsSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        // Protect an edited recruiting form (host message typed, or any default
+        // pace/size/visibility changed) from a stray swipe-down.
+        .interactiveDismissDisabled(
+            !hostMessage.trimmingCharacters(in: .whitespaces).isEmpty
+                || pace != .standard
+                || maxMembers != 4
+                || visibility != .public
+        )
     }
 
     // MARK: - Sections

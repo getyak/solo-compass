@@ -392,7 +392,7 @@ public struct RouteDetailView: View {
                 // Ghost button — favorite
                 Button {
                     let willFavorite = !isFavorited
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         isFavorited.toggle()
                     }
                     if willFavorite {
@@ -407,7 +407,7 @@ public struct RouteDetailView: View {
                         .foregroundStyle(isFavorited ? CT.toneClosed : CT.fgMuted)
                         .symbolEffect(.bounce, value: isFavorited)
                         .scaleEffect(isFavorited ? 1.12 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.45), value: isFavorited)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFavorited)
                         .frame(width: 44, height: 44)
                         .background(Circle().fill(CT.surfaceSunken))
                         .overlay { HeartBurstView(trigger: heartBurstTrigger) }

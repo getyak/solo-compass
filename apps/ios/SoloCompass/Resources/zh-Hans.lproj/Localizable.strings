@@ -15,6 +15,7 @@
 "filter.saved.a11y" = "收藏，%d 个已收藏的体验";
 "filter.solo.agent" = "问 Solo";
 "filter.solo.agent.a11y" = "让 Solo 给一个附近的建议";
+"filter.solo.agent.seed" = "此刻附近有什么值得去的？";
 "filter.taste.rank" = "我的菜";
 "filter.taste.rank.a11y" = "按你的口味画像排序结果";
 "filter.a11y.resultsAnnounce" = "%1$@：找到 %2$d 个";
@@ -1575,6 +1576,8 @@
 "route.create.pickLabel" = "选择地点（按点选顺序串联）";
 "route.create.selectedCount" = "已选 %d";
 "route.create.save" = "保存";
+"route.create.empty" = "附近还没有可以串联的地点——先去探索一下，或在设置里调大距离范围。";
+"route.create.ai.error" = "这次没能生成路线——检查网络后再试一次。";
 
 /* Active route drawn on the map (start route) */
 "route.active.stops" = "%d 站 · 路线中";
@@ -1621,7 +1624,7 @@
 "voice.a11y.toggle" = "开始/停止语音输入";
 "voice.announcement.listening" = "正在聆听…";
 "voice.announcement.stopped" = "已停止录音";
-"voice.button.hint" = "双击开始录音，再次双击停止";
+"voice.button.hint" = "长按说话，松开发送，上滑取消。或双击开始、再双击停止。";
 "voice.button.value.idle" = "空闲";
 "voice.button.value.recording" = "录音中";
 "voice.recording.maxReached" = "已达最大时长";
@@ -2054,6 +2057,9 @@
 "voice.recording.empty" = "没听清 — 长按说话";
 "voice.recording.secondsLeft" = "剩余 %d 秒";
 "voice.recording.tooShort" = "长按麦克风说话";
+"voice.recording.cancelled" = "已取消 — 上滑放弃";
+"voice.recording.slideToCancel" = "上滑取消";
+"voice.recording.releaseToCancel" = "松开取消";
 
 /* Map style picker */
 "map.style.standard" = "标准";

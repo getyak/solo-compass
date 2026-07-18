@@ -7,23 +7,32 @@ public struct PressableButtonStyle: ButtonStyle {
     /// Press-down scale. Default 0.92 matches the filter pills; the send button
     /// passes a slightly punchier value.
     private let pressedScale: CGFloat
-    /// When true, fires a light selection haptic on press-down (default).
-    /// Set to false on surfaces that provide their own haptic feedback.
+    /// Whether to fire a light selection haptic. Default is **off** — the audit
+    /// found this style applied to ~34 buttons, of which only 2 opted out, so
+    /// the app buzzed on essentially every button *press-down*, including plain
+    /// navigation taps. That trains users to ignore all haptics (HIG: reserve
+    /// haptics for meaningful commits). Opt in (`haptic: true`) only on genuine
+    /// state-change/commit surfaces — a filter toggling, a message sending.
     private let haptic: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(pressedScale: CGFloat = 0.92, haptic: Bool = true) {
+    public init(pressedScale: CGFloat = 0.92, haptic: Bool = false) {
         self.pressedScale = pressedScale
         self.haptic = haptic
     }
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            // Motion.press: near-critically damped (df 0.82) so the button
+            // settles crisply like a system control instead of the old df-0.6
+            // wobble that overshot on release.
             .scaleEffect(configuration.isPressed ? pressedScale : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed && haptic && !reduceMotion {
+            .animation(reduceMotion ? nil : Motion.press, value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { wasPressed, isPressed in
+                // Fire on release (commit), not press-down: the haptic should
+                // confirm the action, not merely acknowledge a finger landing.
+                if wasPressed && !isPressed && haptic && !reduceMotion {
                     #if canImport(UIKit)
                     Haptics.selection()
                     #endif

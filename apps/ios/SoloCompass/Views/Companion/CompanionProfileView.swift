@@ -48,26 +48,31 @@ public struct MyProfileEditView: View {
 
     public var body: some View {
         @Bindable var prefs = preferences
-        NavigationStack {
-            Form {
-                avatarSection(prefs: $prefs)
-                handleSection
-                bioSection(prefs: $prefs)
-                languagesSection(prefs: $prefs)
-                visibilitySection(prefs: $prefs)
-                if preferences.companionEnabled {
-                    walkedRoutesSection
-                }
+        // NOTE: This view is always reached by `NavigationLink` push from a
+        // parent stack (MeSheet ×2, SettingsView.CompanionHubView). It must NOT
+        // declare its own `NavigationStack` — a nested stack renders a double
+        // nav bar and, critically, kills the system edge-swipe-back gesture for
+        // this whole screen and its inner walked-routes push. Every peer detail
+        // view in the module (RouteDetailView, ItineraryDetailView, ChatView…)
+        // correctly inherits the parent stack; this one now matches.
+        Form {
+            avatarSection(prefs: $prefs)
+            handleSection
+            bioSection(prefs: $prefs)
+            languagesSection(prefs: $prefs)
+            visibilitySection(prefs: $prefs)
+            if preferences.companionEnabled {
+                walkedRoutesSection
             }
-            .navigationTitle(NSLocalizedString("profile.edit.title", comment: "My Profile nav title"))
-            .navigationBarTitleDisplayMode(.large)
-            .onAppear {
-                loadWalkedRoutes()
-                handleDraft = preferences.displayHandle
-            }
-            .navigationDestination(isPresented: $showAllWalked) {
-                MyWalkedRoutesListView(routes: walkedRoutes)
-            }
+        }
+        .navigationTitle(NSLocalizedString("profile.edit.title", comment: "My Profile nav title"))
+        .navigationBarTitleDisplayMode(.large)
+        .onAppear {
+            loadWalkedRoutes()
+            handleDraft = preferences.displayHandle
+        }
+        .navigationDestination(isPresented: $showAllWalked) {
+            MyWalkedRoutesListView(routes: walkedRoutes)
         }
     }
 

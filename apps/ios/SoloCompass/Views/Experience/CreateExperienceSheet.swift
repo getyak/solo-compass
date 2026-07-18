@@ -52,6 +52,16 @@ public struct CreateExperienceSheet: View {
         !placeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// Any field touched or photo added → protect against an accidental
+    /// swipe-to-dismiss discarding the draft (HIG: guard unsaved edits).
+    private var isDirty: Bool {
+        !placeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !placeNameLocal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !oneLiner.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !images.isEmpty
+    }
+
     public var body: some View {
         NavigationStack {
             Form {
@@ -87,6 +97,7 @@ public struct CreateExperienceSheet: View {
                 Task { await loadPickedImages(newItems) }
             }
         }
+        .interactiveDismissDisabled(isDirty)
     }
 
     // MARK: - Sections

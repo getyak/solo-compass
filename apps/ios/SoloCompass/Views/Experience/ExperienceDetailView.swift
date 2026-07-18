@@ -189,9 +189,15 @@ public struct ExperienceDetailView: View {
         .navigationTitle(heroTitleVisible ? "" : viewModel.experience.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            // Close uses the app-standard `xmark`, not a bespoke `chevron.down`.
+            // This is the most-opened sheet in the app; every other sheet closes
+            // with an xmark/Done, so a unique down-chevron here made users
+            // re-learn the dismiss affordance. `.cancellationAction` lets the
+            // system place it (leading) while the ··· menu keeps the trailing
+            // slot — a valid HIG split for a browse sheet with a secondary menu.
+            ToolbarItem(placement: .cancellationAction) {
                 Button(action: onClose) {
-                    Image(systemName: "chevron.down")
+                    Image(systemName: "xmark")
                 }
                 .accessibilityLabel(Text(NSLocalizedString("action.close", comment: "Close detail sheet")))
             }
@@ -1614,7 +1620,7 @@ public struct ExperienceDetailView: View {
                     : NSLocalizedString("action.favorite", comment: "Add favorite")
             ) {
                 let willFavorite = !viewModel.isFavorited
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     viewModel.toggleFavorite()
                 }
                 if willFavorite {

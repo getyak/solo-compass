@@ -18,13 +18,25 @@ final class PressableButtonStyleHapticTest: XCTestCase {
         }
     }
 
-    /// Invariant 1: `Haptics.selection()` must be called inside `makeBody` so
-    /// every press-down fires a light selection haptic.
+    /// Invariant 1: `Haptics.selection()` must still be wired in `makeBody` so
+    /// opted-in surfaces (`haptic: true`) get their commit haptic.
     func testHapticsSelectionIsCalled() throws {
         XCTAssertTrue(
             try source.contains("Haptics.selection()"),
-            "PressableButtonStyle must call `Haptics.selection()` on press-down "
-                + "to provide consistent tactile feedback across all tappable surfaces."
+            "PressableButtonStyle must retain the `Haptics.selection()` call so "
+                + "opt-in (`haptic: true`) surfaces still fire their commit haptic."
+        )
+    }
+
+    /// Invariant 1b: the haptic must fire on *release/commit*, not press-down.
+    /// A haptic on touch-down merely acknowledges a finger landing; the
+    /// meaningful confirmation is that the action committed. Enforced by
+    /// requiring the release-edge check `wasPressed && !isPressed`.
+    func testHapticFiresOnReleaseNotPressDown() throws {
+        XCTAssertTrue(
+            try source.contains("wasPressed && !isPressed"),
+            "PressableButtonStyle must gate the haptic on the release edge "
+                + "(`wasPressed && !isPressed`) so it confirms the commit, not the press-down."
         )
     }
 
@@ -48,13 +60,16 @@ final class PressableButtonStyleHapticTest: XCTestCase {
         )
     }
 
-    /// Invariant 4: the `haptic` parameter must default to `true` so existing
-    /// call sites gain haptic feedback without any modification.
-    func testHapticParameterDefaultsToTrue() throws {
+    /// Invariant 4: the `haptic` parameter must default to `false`. The audit
+    /// found this style on ~34 buttons with only 2 opting out, so the app buzzed
+    /// on essentially every button press — including plain navigation — which
+    /// trains users to ignore haptics (HIG). Meaningful commit surfaces opt in
+    /// explicitly with `haptic: true`; the default stays silent.
+    func testHapticParameterDefaultsToFalse() throws {
         XCTAssertTrue(
-            try source.contains("haptic: Bool = true"),
-            "PressableButtonStyle.init must declare `haptic: Bool = true` so "
-                + "all existing call sites compile without modification."
+            try source.contains("haptic: Bool = false"),
+            "PressableButtonStyle.init must declare `haptic: Bool = false` so the "
+                + "app doesn't buzz on every button press; commit surfaces opt in explicitly."
         )
     }
 

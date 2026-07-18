@@ -17,13 +17,16 @@ public struct FavoritesListView: View {
     /// Long-pressing a favorite floats the quick preview card instead.
     var onLongPressExperience: ((Experience) -> Void)? = nil
     var onExplore: (() -> Void)? = nil
+    /// Explicit "Done" dismiss. Optional so existing call sites are unchanged;
+    /// when the host wires it, a toolbar Done button appears so users aren't
+    /// forced to discover the drag-indicator as the only way back to the map.
+    var onClose: (() -> Void)? = nil
 
     @State private var lastUnfavorited: (id: String, title: String, date: Date)?
     @State private var undoDismissTask: Task<Void, Never>?
     @State private var animatePulse = false
     @State private var undoProgress: CGFloat = 1
     @State private var undoDragOffset: CGFloat = 0
-    @State private var undoDragCrossedThreshold = false
     @State private var searchText = ""
     @State private var sortMode: FavSort = .recent
     @State private var showSwipeHint = false
@@ -471,6 +474,13 @@ public struct FavoritesListView: View {
             .animation(.easeInOut, value: filteredFavorites.isEmpty)
             .navigationTitle(NSLocalizedString("favorites.title", comment: "Favorites list title"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if let onClose {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(NSLocalizedString("common.done", comment: "Done")) { onClose() }
+                    }
+                }
+            }
             .searchable(
                 text: $searchText,
                 placement: .navigationBarDrawer(displayMode: .always),
@@ -780,7 +790,7 @@ private struct JourneyProgressBar: View {
             argument: String(format: NSLocalizedString("favorites.journey.halfway", comment: "VoiceOver halfway milestone announcement"), completed, total)
         )
         guard !reduceMotion else { return }
-        withAnimation(.spring(response: 0.18, dampingFraction: 0.45)) {
+        withAnimation(.spring(response: 0.18, dampingFraction: 0.7)) {
             fillScaleY = 1.18
         }
         withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
@@ -926,7 +936,7 @@ private struct JourneyProgressBar: View {
         withAnimation(.easeInOut(duration: 0.7).delay(0.15)) {
             sweepPhase = 1.4
         }
-        withAnimation(.spring(response: 0.18, dampingFraction: 0.45).delay(0.1)) {
+        withAnimation(.spring(response: 0.18, dampingFraction: 0.7).delay(0.1)) {
             fillScaleY = 1.25
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) {
@@ -1311,34 +1321,20 @@ private extension FavoritesListView {
         }
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 16)
-        .offset(y: undoDragOffset)
-        .gesture(
-            DragGesture()
-                .onChanged { gesture in
-                    undoDragOffset = max(0, gesture.translation.height * 0.85)
-                    let overThreshold = gesture.translation.height > 80
-                    if overThreshold && !undoDragCrossedThreshold {
-                        undoDragCrossedThreshold = true
-                        Haptics.selection()
-                    } else if !overThreshold && undoDragCrossedThreshold {
-                        undoDragCrossedThreshold = false
-                    }
+        // Shared drag-to-dismiss (down). Same reference gesture model as the
+        // itinerary + check-in banners: 1:1 tracking, momentum projection,
+        // velocity-continuous settle.
+        .dismissibleBanner(
+            offset: $undoDragOffset,
+            edge: .down,
+            onDismiss: {
+                undoDismissTask?.cancel()
+                undoDismissTask = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    withAnimation(.easeInOut) { lastUnfavorited = nil }
+                    undoDragOffset = 0
                 }
-                .onEnded { gesture in
-                    undoDragCrossedThreshold = false
-                    if gesture.translation.height > 80 {
-                        Haptics.impact(.soft)
-                        withAnimation(.easeOut(duration: 0.2)) { undoDragOffset = 300 }
-                        undoDismissTask?.cancel()
-                        undoDismissTask = nil
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            withAnimation(.easeInOut) { lastUnfavorited = nil }
-                            undoDragOffset = 0
-                        }
-                    } else {
-                        withAnimation(.spring(response: 0.3)) { undoDragOffset = 0 }
-                    }
-                }
+            }
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(String(format: NSLocalizedString("favorites.undo.named", comment: "Removed named experience undo banner"), lastUnfavorited?.title ?? "")))
@@ -1697,7 +1693,7 @@ private struct RowCompletionFlourish: View {
                 bloomScale = 0.2
                 sweepPhase = -1
                 // Two-spring bloom: 0.2 → 1.15 → 1.0 (mirrors CompletionRing.triggerCelebration)
-                withAnimation(.spring(response: 0.18, dampingFraction: 0.45)) {
+                withAnimation(.spring(response: 0.18, dampingFraction: 0.7)) {
                     bloomScale = 1.15
                 }
                 withAnimation(.spring(response: 0.2, dampingFraction: 0.6).delay(0.18)) {

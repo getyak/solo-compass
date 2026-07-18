@@ -101,12 +101,12 @@ struct SendRequestSheet: View {
             .navigationTitle(NSLocalizedString(titleKey, comment: "Send request sheet title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button(NSLocalizedString("action.cancel", comment: "Cancel")) {
                         dismiss()
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(NSLocalizedString("companion.request.send.action", comment: "Send button")) {
                         onSend(note.trimmingCharacters(in: .whitespaces).isEmpty ? nil : note)
                         dismiss()
@@ -117,6 +117,8 @@ struct SendRequestSheet: View {
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
+        // Protect a typed-but-unsent icebreaker from an accidental swipe-down.
+        .interactiveDismissDisabled(!note.trimmingCharacters(in: .whitespaces).isEmpty)
     }
 }
 
