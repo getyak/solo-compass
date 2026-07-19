@@ -2408,6 +2408,11 @@
 "today.card.now.eyebrow" = "此刻最值得";
 "today.card.tonight.eyebrow" = "今晚";
 
+/* B1-f — 一次性「新家」横幅 */
+"today.newHome.title" = "你的地图有了新家";
+"today.newHome.subtitle" = "随时下拉即可回到地图。";
+"today.newHome.dismiss" = "知道了";
+
 /* Nomad OS B1-b — Today 状态头 */
 "today.header.noCity" = "选择城市";
 "today.header.dayInCity" = "在城第 %d 天";

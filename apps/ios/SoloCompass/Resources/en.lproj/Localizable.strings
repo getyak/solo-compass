@@ -2398,6 +2398,11 @@
 "today.card.now.eyebrow" = "Worth it now";
 "today.card.tonight.eyebrow" = "Tonight";
 
+/* B1-f — one-shot "new home" banner */
+"today.newHome.title" = "Your map has a new home";
+"today.newHome.subtitle" = "Pull down any time to get back to the map.";
+"today.newHome.dismiss" = "Dismiss";
+
 /* Nomad OS B1-b — Today status header */
 "today.header.noCity" = "Pick a city";
 "today.header.dayInCity" = "Day %d in this city";
