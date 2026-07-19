@@ -213,6 +213,9 @@ public struct BottomInfoSheet<Content: View>: View {
     /// vertical position, so a re-grab mid-settle picks up from where the sheet
     /// visually is rather than its target detent.
     private static var sheetSpace: String { "bottomInfoSheet.slab" }
+    /// Named coordinate space for the inner ScrollView, used by the zero-height
+    /// anchor probe to report the list's scroll offset (iOS 17-compatible).
+    private static var listScrollSpace: String { "bottomInfoSheet.list" }
 
     @State private var currentDetent: BottomSheetDetent = BottomInfoSheet.initialDetent
 
@@ -229,6 +232,23 @@ public struct BottomInfoSheet<Content: View>: View {
     }
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
+    /// The inner list's live vertical scroll offset (0 = pinned at the top,
+    /// positive = scrolled down). Sampled via `onScrollGeometryChange`. Used by
+    /// the content-area drag gesture to decide, at the instant a drag begins,
+    /// whether the gesture should move the *sheet* or let the *list* scroll:
+    /// only when the list is already at its top (offset ≤ 0) does a downward
+    /// drag collapse the sheet — otherwise the list scrolls as normal.
+    @State private var listScrollOffset: CGFloat = 0
+    /// Latched at the start of a content-area drag: true when this drag is
+    /// steering the sheet (list was at top, or sheet not yet at full), false
+    /// when it's a plain list scroll we should stay out of. Nil between drags.
+    @State private var contentDragOwnsSheet: Bool? = nil
+    /// Tracks whether the content drag is physically active. `@GestureState`
+    /// auto-resets to false the instant the gesture ends OR is cancelled — even
+    /// when the ScrollView wins the `simultaneousGesture` race and swallows
+    /// `.onEnded`. `onChange(of:)` on this value is the safety net that settles
+    /// the sheet home so it can never strand at a half-height (Pitfall 4).
+    @GestureState private var contentDragActive: Bool = false
     /// Sheet height captured at the instant a drag begins — the origin the
     /// finger tracks from. Seeded to the live rendered height so re-grabbing
     /// mid-settle is seamless.
@@ -381,12 +401,35 @@ public struct BottomInfoSheet<Content: View>: View {
                 // expand to full. At .peek the closure is empty, so this is a cheap
                 // no-op.
                 ScrollView {
+                    // iOS 17-compatible scroll-offset probe. A zero-height anchor
+                    // pinned to the content top reports its minY within the
+                    // ScrollView's coordinate space: 0 when the list is at its
+                    // top, negative once scrolled down. (`onScrollGeometryChange`
+                    // would be cleaner but is iOS 18+, and the target is 17.0.)
+                    // We negate it into `listScrollOffset` so "> 0 = scrolled
+                    // down", matching the co-operative-drag ownership rule.
+                    GeometryReader { geo in
+                        Color.clear
+                            .frame(height: 0)
+                            .preference(
+                                key: ListScrollOffsetKey.self,
+                                value: geo.frame(in: .named(Self.listScrollSpace)).minY
+                            )
+                    }
+                    .frame(height: 0)
+
                     content(contentDetent, $sortMode)
                         // Pin content to the top so the column never re-centres
                         // against the viewport — without this the rows visibly
                         // jump frame-to-frame, reading as a flicker.
                         .frame(maxWidth: .infinity, alignment: .top)
                         .padding(.bottom, 28 * scale)
+                }
+                .coordinateSpace(name: Self.listScrollSpace)
+                .onPreferenceChange(ListScrollOffsetKey.self) { minY in
+                    // minY: 0 at top, negative when scrolled down. Flip sign so
+                    // `listScrollOffset > 0` means "the list has scrolled down".
+                    listScrollOffset = -minY
                 }
                 // With the fixed-height + offset layout, the bottom
                 // `maxHeight − detentHeight` points of the viewport sit below
@@ -395,15 +438,19 @@ public struct BottomInfoSheet<Content: View>: View {
                 // still be scrolled up into the visible region. It changes only
                 // on a detent settle (never per drag frame).
                 .contentMargins(.bottom, max(0, maxHeight - detentHeight), for: .scrollContent)
-                // Freeze the ScrollView while the handle is being dragged. The
-                // sheet translates every frame during a settle; an active
-                // ScrollView would re-clamp its contentOffset against the
-                // moving sheet and fight the drag, producing flicker.
-                // Re-enabled the instant the drag ends.
-                .refreshable {
-                    if let onRefresh { await onRefresh() }
-                }
-                .scrollDisabled(isDragging)
+                // Down-pull-to-refresh removed: the refresh re-ran the full
+                // nearby POI reload + AI recompile, which the user found
+                // meaningless during normal browsing (and it stole the downward
+                // gesture from sheet-collapse). Downward drag now collapses the
+                // sheet (Apple Maps behaviour) via `contentDragGesture`. The
+                // `onRefresh` closure is retained on the API for a future
+                // explicit refresh affordance but is no longer bound to a pull.
+                //
+                // Disable native scrolling while EITHER the handle is dragging or
+                // a content-area drag has claimed the sheet, so the ScrollView
+                // doesn't re-clamp its offset against the moving sheet and fight
+                // the drag (flicker). Re-enabled the instant the drag ends.
+                .scrollDisabled(isDragging || contentDragOwnsSheet == true)
                 .scrollDismissesKeyboard(.interactively)
                 // Show the indicator at mid/full as an affordance that more
                 // content lies below; peek has no scroll content so it stays clean.
@@ -411,6 +458,19 @@ public struct BottomInfoSheet<Content: View>: View {
                 // Suppress the empty bottom rubber-band when content is shorter
                 // than the viewport, so a short list doesn't feel "loose".
                 .scrollBounceBehavior(.basedOnSize)
+                // Apple-Maps-style co-operative drag over the whole list area:
+                // grabbing anywhere in the content can steer the sheet, not just
+                // the handle. `simultaneousGesture` lets it coexist with the
+                // ScrollView — the ownership decision (steer sheet vs. let the
+                // list scroll) is made once per drag in `contentDragGesture`.
+                .simultaneousGesture(
+                    contentDragGesture(
+                        detentHeight: detentHeight,
+                        minHeight: minHeight,
+                        maxHeight: maxHeight,
+                        fullHeight: fullHeight
+                    )
+                )
             }
             .frame(maxWidth: .infinity)
             .frame(height: maxHeight)
@@ -456,6 +516,26 @@ public struct BottomInfoSheet<Content: View>: View {
         .onChange(of: currentDetent) { _, newValue in
             if newValue != .peek { hasEverExpanded = true }
             onDetentChange?(newValue)
+        }
+        // Safety net: if a content drag ends or is cancelled while it still owned
+        // the sheet (e.g. the ScrollView swallowed `.onEnded` in the
+        // simultaneous-gesture race), settle to the nearest detent so the sheet
+        // never strands at a half-height. Reads the live dragged height rather
+        // than a fling projection — a cancel has no meaningful velocity.
+        .onChange(of: contentDragActive) { _, active in
+            guard !active, contentDragOwnsSheet == true else { return }
+            contentDragOwnsSheet = nil
+            let scale = BottomSheetDetentScale.factor(for: dynamicTypeTraits)
+            let minHeight = baseMinHeight * scale
+            let maxHeight = BottomSheetDetent.full.baseHeight * scale + detentMaxHeadroom
+            // The live dragged height is exactly what `displayHeight` renders:
+            // the current detent's height minus the accumulated drag offset.
+            let draggedHeight = max(minHeight, min(maxHeight, currentDetent.baseHeight * scale - dragOffset))
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                isDragging = false
+                currentDetent = BottomSheetDetent.nearest(to: draggedHeight, traits: dynamicTypeTraits)
+                dragOffset = 0
+            }
         }
         .onAppear { onDetentChange?(currentDetent) }
     }
@@ -569,6 +649,85 @@ public struct BottomInfoSheet<Content: View>: View {
         .transition(.opacity)
     }
 
+    // MARK: - Content-area co-operative drag
+
+    /// Apple-Maps-style drag that lets the user grab *anywhere in the list* to
+    /// move the sheet, while still allowing the list itself to scroll. On the
+    /// first frame of a drag it decides ownership:
+    ///
+    /// - The sheet is not yet at `.full` → any drag steers the sheet (you can
+    ///   always pull the whole card up/down from its body).
+    /// - The sheet is at `.full` and the list is scrolled down (`listScrollOffset
+    ///   > 0`) → this is a plain list scroll; the gesture stays out of the way.
+    /// - The sheet is at `.full`, the list is pinned at its top, and the drag is
+    ///   downward → collapse the sheet (the gesture that used to trigger refresh).
+    ///
+    /// Once ownership is claimed (`contentDragOwnsSheet == true`) the drag tracks
+    /// 1:1 like the handle; when it declines ownership the closure is a no-op and
+    /// the ScrollView handles the gesture normally.
+    private func contentDragGesture(
+        detentHeight: CGFloat,
+        minHeight: CGFloat,
+        maxHeight: CGFloat,
+        fullHeight: CGFloat
+    ) -> some Gesture {
+        // A small threshold keeps taps on rows from being read as drags.
+        DragGesture(minimumDistance: 8)
+            // Drives `contentDragActive`, which auto-resets on end/cancel so the
+            // `onChange` safety net can always settle the sheet.
+            .updating($contentDragActive) { _, state, _ in
+                state = true
+            }
+            .onChanged { value in
+                if contentDragOwnsSheet == nil {
+                    // Decide ownership once, on the first qualifying frame.
+                    let sheetAtFull = currentDetent == .full && dragOffset == 0
+                    let draggingDown = value.translation.height > 0
+                    let listAtTop = listScrollOffset <= 0.5
+                    // Steer the sheet when it can still grow, or when it's full,
+                    // the list is at its top, and the pull is downward (collapse).
+                    let ownsSheet = !sheetAtFull || (listAtTop && draggingDown)
+                    contentDragOwnsSheet = ownsSheet
+                    if ownsSheet {
+                        dragStartHeight = renderedHeight > 0 ? renderedHeight : detentHeight
+                        var tx = Transaction()
+                        tx.disablesAnimations = true
+                        withTransaction(tx) { isDragging = true }
+                    }
+                }
+                guard contentDragOwnsSheet == true else { return }
+                let targetHeight = dragStartHeight - value.translation.height
+                dragOffset = detentHeight - targetHeight
+            }
+            .onEnded { value in
+                defer { contentDragOwnsSheet = nil }
+                guard contentDragOwnsSheet == true else { return }
+                settleAfterDrag(
+                    predictedTranslation: value.predictedEndTranslation.height,
+                    minHeight: minHeight,
+                    maxHeight: maxHeight
+                )
+            }
+    }
+
+    /// Shared release handler for both the handle drag and the content drag:
+    /// projects the fling to the nearest detent and springs the sheet home. Both
+    /// call sites tracked from `dragStartHeight`, so the projection uses the same
+    /// origin (a flick begun mid-settle lands on the intended detent).
+    private func settleAfterDrag(
+        predictedTranslation: CGFloat,
+        minHeight: CGFloat,
+        maxHeight: CGFloat
+    ) {
+        let projectedHeight = dragStartHeight - predictedTranslation
+        let clampedHeight = max(minHeight, min(maxHeight, projectedHeight))
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            isDragging = false
+            currentDetent = BottomSheetDetent.nearest(to: clampedHeight, traits: dynamicTypeTraits)
+            dragOffset = 0
+        }
+    }
+
     // MARK: - Drag Handle
 
     private func dragHandleArea(
@@ -620,26 +779,15 @@ public struct BottomInfoSheet<Content: View>: View {
                 .onEnded { value in
                     // Project from the same origin the drag tracked
                     // (`dragStartHeight`), not the resting detent — otherwise a
-                    // flick begun mid-settle picks the wrong target detent.
-                    let projectedHeight = dragStartHeight - value.predictedEndTranslation.height
-                    let clampedHeight = max(minHeight, min(maxHeight, projectedHeight))
-                    // Settle to the nearest detent with an EXPLICIT spring. Both
-                    // `currentDetent` and `dragOffset` feed `displayHeight`, but the
-                    // implicit `.animation(value: currentDetent)` only fires when the
-                    // detent actually changes. On a small drag that lands back on the
-                    // same detent, `currentDetent` is unchanged, so zeroing
-                    // `dragOffset` outside an animation would snap the sheet back with
-                    // no spring (the "生硬" settle). Wrapping the state collapse in
-                    // `withAnimation` guarantees the release always springs home —
-                    // whether or not the detent changed.
-                    // Keep `isDragging` true until the settle animation starts so
-                    // `.scrollDisabled(isDragging)` doesn't release mid-spring and
-                    // let the ScrollView swallow the remaining bounce.
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                        isDragging = false
-                        currentDetent = BottomSheetDetent.nearest(to: clampedHeight, traits: dynamicTypeTraits)
-                        dragOffset = 0
-                    }
+                    // flick begun mid-settle picks the wrong target detent. The
+                    // settle springs the sheet to the nearest detent; see
+                    // `settleAfterDrag` for why the collapse is wrapped in an
+                    // explicit `withAnimation`.
+                    settleAfterDrag(
+                        predictedTranslation: value.predictedEndTranslation.height,
+                        minHeight: minHeight,
+                        maxHeight: maxHeight
+                    )
                 }
         )
         // A discrete tap on the handle steps up one detent. `DragGesture`'s
@@ -667,6 +815,19 @@ public struct BottomInfoSheet<Content: View>: View {
                 break
             }
         }
+    }
+}
+
+// MARK: - ListScrollOffsetKey
+
+/// Carries the inner ScrollView's top-anchor minY out to the sheet so the
+/// co-operative content drag can tell whether the list is scrolled to the top.
+/// Last-writer-wins reduce: there is a single probe, so `nextValue()` simply
+/// replaces the default.
+private struct ListScrollOffsetKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
