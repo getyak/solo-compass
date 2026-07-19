@@ -56,6 +56,16 @@ private struct TodayHomeScaffold: View {
     /// isn't re-laid-out every frame, only translated.
     @GestureState private var dragTranslation: CGFloat = 0
 
+    /// Latches true the first time the map layer is pulled up. Until then the
+    /// heavy `CompassMapView` is NOT instantiated — the parked layer is just a
+    /// grab handle. This is what stops the map's cold-start `onAppear` from
+    /// firing an Always-location prompt over the Today home on launch (B1-a
+    /// finding): the map only requests location once the traveler actually
+    /// reaches for it. Once mounted it stays mounted, so a rest back to parked
+    /// never tears down and rebuilds the map (that would be expensive and
+    /// re-trigger its bootstrap).
+    @State private var mapEverRevealed = false
+
     /// Height of the peek handle that stays visible when the map is parked.
     private let handlePeek: CGFloat = 96
 
@@ -65,6 +75,8 @@ private struct TodayHomeScaffold: View {
             // Committed reveal + live drag, clamped to [0, fullTravel].
             let reveal = min(max(mapReveal + dragTranslation, 0), fullTravel)
             let isMapOpen = reveal > fullTravel * 0.5
+            // Mount the real map as soon as any pull begins; keep it mounted.
+            let mapMounted = mapEverRevealed || reveal > 0
 
             ZStack(alignment: .bottom) {
                 // ── Layer 1: Today home (placeholder skeleton for B1-a) ──
@@ -85,11 +97,16 @@ private struct TodayHomeScaffold: View {
                     fullTravel: fullTravel,
                     reveal: reveal,
                     isOpen: isMapOpen,
+                    mapMounted: mapMounted,
                     toggle: { mapReveal = isMapOpen ? 0 : fullTravel }
                 )
                 .offset(y: fullTravel - reveal)
             }
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: mapReveal)
+            .onChange(of: reveal) { _, newValue in
+                // Latch the mount the first time the layer is pulled at all.
+                if newValue > 0 && !mapEverRevealed { mapEverRevealed = true }
+            }
         }
         .ignoresSafeArea(.keyboard)
     }
@@ -97,24 +114,26 @@ private struct TodayHomeScaffold: View {
     // MARK: Today home placeholder (B1-a skeleton — real content in B1-b..d)
 
     private var todayHome: some View {
-        VStack(spacing: Space.xl) {
-            Spacer(minLength: Space.xxxl)
+        VStack(spacing: 0) {
+            // Sticky status header (B1-b). Stays out of any scroll region — the
+            // three-things / nearby / seal-receipt content that scrolls below it
+            // lands in B1-c/d.
+            TodayStatusHeader()
 
+            // Placeholder for the scrolling Today body (B1-c/d).
             VStack(spacing: Space.sm) {
-                Text("Today")
-                    .ctDisplay(34, .bold, relativeTo: .largeTitle)
-                    .foregroundStyle(CT.textPrimaryAdaptive)
+                Spacer(minLength: Space.xxxl)
                 Text(NSLocalizedString(
                     "today.scaffold.placeholder",
-                    comment: "B1-a placeholder subtitle on the Today home shell"
+                    comment: "Placeholder subtitle for the not-yet-wired Today body"
                 ))
                 .ctBody(15)
                 .foregroundStyle(CT.textMutedAdaptive)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Space.xxl)
+                Spacer()
             }
-
-            Spacer()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -125,10 +144,20 @@ private struct TodayHomeScaffold: View {
         fullTravel: CGFloat,
         reveal: CGFloat,
         isOpen: Bool,
+        mapMounted: Bool,
         toggle: @escaping () -> Void
     ) -> some View {
         ZStack(alignment: .top) {
-            CompassMapView()
+            if mapMounted {
+                // The real map — only instantiated once the layer is reached
+                // for, so its cold-start location request never fires under the
+                // Today home (B1-a finding).
+                CompassMapView()
+            } else {
+                // Parked, never-opened placeholder: a plain warm surface behind
+                // the grab handle. No CompassMapView → no location prompt.
+                CT.pageAdaptive
+            }
 
             // Grab affordance / return-to-Today control, pinned to the layer's
             // top edge. When parked it's the "open map" handle; when open it's

@@ -2375,3 +2375,10 @@
 "today.scaffold.placeholder" = "Your day, your city, your ledger — coming here soon.";
 "today.map.open" = "Open map";
 "today.map.backToToday" = "Back to Today";
+
+/* Nomad OS B1-b — Today status header */
+"today.header.noCity" = "Pick a city";
+"today.header.dayInCity" = "Day %d in this city";
+"today.header.firstDay" = "Just arrived";
+"today.header.visaRemaining" = "%d visa days left";
+"today.header.setEntryDate" = "Set entry";

@@ -2385,3 +2385,10 @@
 "today.scaffold.placeholder" = "你的一天、你的城市、你的账本——即将在这里呈现。";
 "today.map.open" = "打开地图";
 "today.map.backToToday" = "返回 Today";
+
+/* Nomad OS B1-b — Today 状态头 */
+"today.header.noCity" = "选择城市";
+"today.header.dayInCity" = "在城第 %d 天";
+"today.header.firstDay" = "刚抵达";
+"today.header.visaRemaining" = "签证剩 %d 天";
+"today.header.setEntryDate" = "填入境日";

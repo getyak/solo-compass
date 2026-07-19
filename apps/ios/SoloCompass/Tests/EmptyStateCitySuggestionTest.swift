@@ -77,13 +77,16 @@ final class EmptyStateCitySuggestionTest: XCTestCase {
     func testCityNameMapCoversAllSeedCodes() {
         let service = ExperienceService()
         let seedCodes = Set(service.allExperiences.map { $0.location.cityCode })
-        let nameMap: [String: String] = [
-            "cmi": "Chiang Mai",
-            "VTE": "Vientiane",
-            "cn-深圳市": "Shenzhen",
-        ]
+        // Assert against the real, now-`static` map — not a hand-copied subset.
+        // The previous inline copy only listed 3 cities and silently rotted as
+        // seeds gained sgn/nyc/lis/tyo/san-francisco; sourcing from the single
+        // source of truth is what keeps this guard honest (and is only possible
+        // now that `cityNameMap` is `static`).
         for code in seedCodes {
-            XCTAssertNotNil(nameMap[code], "cityNameMap should have a name for seed code '\(code)'")
+            XCTAssertNotNil(
+                MapViewModel.cityNameMap[code],
+                "MapViewModel.cityNameMap should have a name for seed code '\(code)'"
+            )
         }
     }
 }
