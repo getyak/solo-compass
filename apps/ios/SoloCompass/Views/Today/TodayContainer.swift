@@ -157,16 +157,9 @@ private struct TodayHomeScaffold: View {
                         // capsule was buried yesterday, else takes no space.
                         TodaySealReceipt()
 
-                        // Three-things placeholder (B1-c).
-                        Text(NSLocalizedString(
-                            "today.scaffold.placeholder",
-                            comment: "Placeholder subtitle for the not-yet-wired Today body"
-                        ))
-                        .ctBody(15)
-                        .foregroundStyle(CT.textMutedAdaptive)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Space.xxl)
-                        .padding(.top, Space.xxl)
+                        // Today's three things (B1-c): work / now / tonight,
+                        // picked from the current city's experiences.
+                        TodayThreeThings()
                     }
                     .padding(.top, Space.lg)
                 }
