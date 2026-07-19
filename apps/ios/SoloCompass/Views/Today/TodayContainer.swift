@@ -141,6 +141,12 @@ private struct TodayHomeScaffold: View {
 
     private var todayHome: some View {
         VStack(spacing: 0) {
+            // One-shot "your map has a new home" banner (B1-f) — shows once when
+            // an existing user first lands on Today, then never again. Takes no
+            // space after dismissal / for users who have already seen it.
+            TodayNewHomeBanner()
+                .padding(.top, Space.sm)
+
             // Sticky status header (B1-b) — stays out of the scroll region.
             TodayStatusHeader()
 
