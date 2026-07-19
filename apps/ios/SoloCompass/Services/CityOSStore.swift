@@ -43,6 +43,27 @@ public final class CityOSStore {
         preferences.cityModesRaw = raw
     }
 
+    /// Infer the city's mode from signals the app already has, so the traveler
+    /// never has to flip it by hand: a stay that has ended (stage `.leave`) →
+    /// recall; a GPS fix inside the city → live; a city picked far from where we
+    /// are (no fix nearby) → plan.
+    ///
+    /// - Parameters:
+    ///   - cityCode: the city being framed (currently only used for symmetry
+    ///     with the other store APIs; the decision is driven by the signals).
+    ///   - isUserInCity: whether a GPS fix places the traveler inside this city
+    ///     (computed by the caller from distance to the city center).
+    ///   - stage: the lifecycle stage from `stage(for:daysStayed:)`; `.leave`
+    ///     means the stay has ended.
+    ///
+    /// Pure so it can be unit-tested without a live location or preferences.
+    public func inferMode(for cityCode: String?, isUserInCity: Bool, stage: CityStage?) -> CityMode {
+        // A finished stay reads as recall regardless of where the phone is now.
+        if stage == .leave { return .recall }
+        // Standing in the city → live; a far-away pick with no nearby fix → plan.
+        return isUserInCity ? .live : .plan
+    }
+
     /// Whether the landing kit has already auto-surfaced for this city.
     public func hasSeenKit(_ cityCode: String) -> Bool {
         preferences.kitSeenCities.contains(Self.normalizedCityKey(cityCode))
