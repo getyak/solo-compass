@@ -402,18 +402,13 @@ struct CompassMapContentView: View {
     /// controls hug the sheet without crowding it.
     private var controlBarBottomInset: CGFloat {
         let controlSheetGap: CGFloat = 8
-        let base = sheetPeekClearance + controlSheetGap
-        return cityOSBottomSlotOccupied ? base + 60 : base
+        // The Base card no longer floats over the map (it now lives inside the
+        // sheet peek header), so the control bar only needs to clear the peek
+        // sheet itself — no extra lift for a bottom slot.
+        return sheetPeekClearance + controlSheetGap
     }
 
     // MARK: - City OS v2 helpers
-
-    /// Bottom inset for the City-OS Base card so it floats just above the
-    /// peek sheet. Slightly more gap than the control bar so the card reads
-    /// as its own row, not stacked on the FAB.
-    private var baseSlotBottomInset: CGFloat {
-        sheetPeekClearance + 8
-    }
 
     /// The current city's mode (Live/Plan/Recall). Live is the default.
     private var currentCityMode: CityMode {
@@ -578,18 +573,6 @@ struct CompassMapContentView: View {
             dismissed: complianceBannerDismissed,
             isLive: currentCityMode == .live
         )
-    }
-
-    /// Whether the City-OS drawer tabs should show: flag on, resting at peek,
-    /// Live mode, no experience selected, and kit content exists.
-    /// Whether the City-OS floating bottom slot (the always-on Base card) is
-    /// occupied. Centered empty-state cards consult this to shift up clear of
-    /// the slot — without it the quiet-hours card's CTA renders underneath
-    /// the Base card.
-    private var cityOSBottomSlotOccupied: Bool {
-        FeatureFlags.cityOS
-            && sheetDetent == .peek
-            && viewModel.selectedExperience == nil
     }
 
     /// Load the landing kit + local events for a city and, when `autoSurface`
@@ -1419,7 +1402,7 @@ struct CompassMapContentView: View {
                         VStack {
                             Spacer()
                             NowEmptyOverlay(viewModel: viewModel)
-                                .padding(.bottom, sheetPeekClearance + 16 + (cityOSBottomSlotOccupied ? 52 : 0))
+                                .padding(.bottom, sheetPeekClearance + 16)
                         }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
@@ -1427,7 +1410,7 @@ struct CompassMapContentView: View {
                         VStack {
                             Spacer()
                             FilteredEmptyOverlay(viewModel: viewModel)
-                                .padding(.bottom, sheetPeekClearance + 16 + (cityOSBottomSlotOccupied ? 52 : 0))
+                                .padding(.bottom, sheetPeekClearance + 16)
                         }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .animation(.easeOut(duration: 0.35), value: viewModel.visibleExperiences.isEmpty)
@@ -1514,7 +1497,34 @@ struct CompassMapContentView: View {
                         },
                         onDetentChange: { detent in
                             if sheetDetent != detent { sheetDetent = detent }
-                        }
+                        },
+                        // City OS: the 游民基地 Base card rides inside the sheet's
+                        // peek header instead of floating over the map, so its
+                        // full-width banner no longer occludes the right-side
+                        // control column (AI / explore / config). Only provided
+                        // when cityOS is on; nil otherwise keeps the sheet
+                        // behaviour identical for non-City-OS users.
+                        peekHeader: FeatureFlags.cityOS ? {
+                            AnyView(
+                                BaseCard(
+                                    face: currentBaseFace,
+                                    cityName: currentCityDisplayName,
+                                    daysStayed: complianceService.state()?.daysStayed,
+                                    visaDaysRemaining: complianceService.state()?.visaDaysRemaining,
+                                    visaPolicyDays: cityBriefService.kit
+                                        .first(where: { $0.kind == .visa })?.action?.visaDays,
+                                    workReadyCount: viewModel.workReadySpots(limit: 99).count,
+                                    eventCount: cityBriefService.activeEvents().count,
+                                    kitDone: viewModel.selectedCity.map {
+                                        cityOSStore.kitTodoDoneCount(cityCode: $0, kit: cityBriefService.kit)
+                                    } ?? 0,
+                                    kitTotal: cityBriefService.kit.count,
+                                    recallVisited: recallVisited.count,
+                                    recallPending: recallPending.count,
+                                    onOpen: { isShowingBaseSheet = true }
+                                )
+                            )
+                        } : nil
                     ) { detent, sortMode in
                         if detent != .peek {
                             VStack(spacing: 0) {
@@ -1689,41 +1699,12 @@ struct CompassMapContentView: View {
                     }
                 }
 
-                // City OS: the floating slot above the peek sheet holds the one
-                // 游民基地 Base card — every mode, every stage, no data gate.
-                // Live mode used to swap in CityDrawerTabs here, but that pair
-                // was guarded by `!kit.isEmpty`, so the traveler actually IN the
-                // city lost the entry whenever the server kit hadn't loaded —
-                // the exact entry-existence-gated-by-data mistake that got v1
-                // reverted. One card, always present; the panel carries the
-                // kit / live hops the tabs used to provide (BaseFollowUp).
-                if FeatureFlags.cityOS {
-                    if sheetDetent == .peek && viewModel.selectedExperience == nil {
-                        VStack {
-                            Spacer()
-                            BaseCard(
-                                face: currentBaseFace,
-                                cityName: currentCityDisplayName,
-                                daysStayed: complianceService.state()?.daysStayed,
-                                visaDaysRemaining: complianceService.state()?.visaDaysRemaining,
-                                visaPolicyDays: cityBriefService.kit
-                                    .first(where: { $0.kind == .visa })?.action?.visaDays,
-                                workReadyCount: viewModel.workReadySpots(limit: 99).count,
-                                eventCount: cityBriefService.activeEvents().count,
-                                kitDone: viewModel.selectedCity.map {
-                                    cityOSStore.kitTodoDoneCount(cityCode: $0, kit: cityBriefService.kit)
-                                } ?? 0,
-                                kitTotal: cityBriefService.kit.count,
-                                recallVisited: recallVisited.count,
-                                recallPending: recallPending.count,
-                                onOpen: { isShowingBaseSheet = true }
-                            )
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, baseSlotBottomInset)
-                        }
-                        .transition(.opacity)
-                    }
-                }
+                // City OS: the 游民基地 Base card no longer floats over the map —
+                // it rides inside the BottomInfoSheet peek header (see the
+                // `peekHeader:` argument on the BottomInfoSheet above), so its
+                // full-width banner no longer occludes the right-side control
+                // column. Still peek-only + no data gate: the sheet renders it
+                // only at `.peek`, matching the old `sheetDetent == .peek` gate.
 
                 // City OS v3 toast (印证 confirmation). Floats above the dock
                 // slot; purely informational, never intercepts touches.
@@ -1736,7 +1717,7 @@ struct CompassMapContentView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(Capsule().fill(CT.accent))
-                            .padding(.bottom, baseSlotBottomInset + 62)
+                            .padding(.bottom, sheetPeekClearance + 70)
                     }
                     .allowsHitTesting(false)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
