@@ -2202,6 +2202,8 @@
 "dev.flag.companionLayer.subtitle" = "In-map toggle for nearby presence cells.";
 "dev.flag.cityOS.title" = "City OS";
 "dev.flag.cityOS.subtitle" = "Landing kit, local events, compliance banner, and city modes.";
+"dev.flag.todayHome.title" = "Today Home";
+"dev.flag.todayHome.subtitle" = "New Today home flow with the map demoted to a pull-up layer.";
 
 /* City OS v2: visa-expiry local reminder (PRD §5.2) */
 "cityos.visa.reminder.title" = "Visa reminder";
@@ -2368,3 +2370,8 @@
 "settings.advanced.footer" = "Power-user tools: AI provider, tester unlock, and developer options.";
 "settings.theme.system" = "System";
 "settings.theme.obsidian" = "Obsidian";
+
+/* Nomad OS B1 — Today home container (nomad-os-b1-today-home-20260719) */
+"today.scaffold.placeholder" = "Your day, your city, your ledger — coming here soon.";
+"today.map.open" = "Open map";
+"today.map.backToToday" = "Back to Today";

@@ -165,7 +165,13 @@ struct SoloCompassApp: App {
 
     var body: some Scene {
         WindowGroup {
-            CompassMapView()
+            // Nomad OS B1: the root is `TodayContainer`, which either renders
+            // the Today home (map as a pull-up layer) or falls straight through
+            // to `CompassMapView` when `FeatureFlags.todayHome` is off. Every
+            // environment / cover / lifecycle modifier below stays attached to
+            // the single root view and flows down to whichever branch renders,
+            // so the first-launch gate and bootstrap wiring are unchanged.
+            TodayContainer()
                 .environment(locationService)
                 .environment(experienceService)
                 .environment(travelerNoteStore)

@@ -130,6 +130,34 @@ public enum FeatureFlags {
         #endif
     }
 
+    /// Nomad OS B1 gate (design nomad-os-b1-today-home-20260719 §0 decision B):
+    /// when true, the app root is `TodayContainer` — a vertical Today home flow
+    /// (status header → three things → who's nearby → yesterday's seal) with the
+    /// map demoted to a pull-up full-screen layer. When false, the root falls
+    /// straight through to `CompassMapView`, i.e. today's map-first form with
+    /// zero behavioural change — this is the rollback safety net for a form
+    /// pivot that touches the app's loading point.
+    ///
+    /// Default OFF everywhere (including DEBUG) so the map-first form stays the
+    /// shipping default until Today is content-complete and staged. Flip on in
+    /// DEBUG without rebuilding:
+    ///
+    ///     defaults write <app-bundle-id> FF_TODAY_HOME -bool YES
+    ///
+    /// or via the Developer Options panel. Env var `FF_TODAY_HOME=1` wins in
+    /// CI / test schemes.
+    public static var todayHome: Bool {
+        #if DEBUG
+        if UserDefaults.standard.object(forKey: "FF_TODAY_HOME") != nil {
+            return UserDefaults.standard.bool(forKey: "FF_TODAY_HOME")
+        }
+        if let env = ProcessInfo.processInfo.environment["FF_TODAY_HOME"] {
+            return env == "1" || env.lowercased() == "true"
+        }
+        #endif
+        return readBool("FF_TODAY_HOME", default: false)
+    }
+
     /// US-009: Master gate for the in-map Companion *layer* toggle (the
     /// floating control that overlays nearby blurred presence cells). The
     /// underlying discovery still returns nil today, so the toggle is a dead
@@ -192,6 +220,8 @@ public enum FeatureFlags {
                       subtitleKey: "dev.flag.companionLayer.subtitle", defaultValue: false),
         DeveloperFlag(key: "FF_CITY_OS", titleKey: "dev.flag.cityOS.title",
                       subtitleKey: "dev.flag.cityOS.subtitle", defaultValue: false),
+        DeveloperFlag(key: "FF_TODAY_HOME", titleKey: "dev.flag.todayHome.title",
+                      subtitleKey: "dev.flag.todayHome.subtitle", defaultValue: false),
     ]
 
     /// The developer override currently stored for `key`, or nil when the
