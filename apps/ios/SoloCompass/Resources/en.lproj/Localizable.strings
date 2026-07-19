@@ -562,6 +562,22 @@
 "onboarding.scoring.cta" = "Makes sense";
 "onboarding.style.cta" = "Start exploring";
 "onboarding.style.skip" = "Decide later";
+
+/* Onboarding cohort step (Nomad OS B1-e) — city-change frequency */
+"onboarding.cohort.title" = "How often do you move?";
+"onboarding.cohort.subtitle" = "Roughly how many cities you settle into in a year. It tunes your visa and day-count reminders.";
+"onboarding.cohort.cta" = "That's me";
+"onboarding.cohort.skip" = "Skip for now";
+"onboarding.cohort.settled.title" = "Home base";
+"onboarding.cohort.settled.desc" = "1–2 cities a year";
+"onboarding.cohort.slow.title" = "Slow travel";
+"onboarding.cohort.slow.desc" = "3–5 cities a year";
+"onboarding.cohort.active.title" = "Active nomad";
+"onboarding.cohort.active.desc" = "6–11 cities a year";
+"onboarding.cohort.frequent.title" = "Always moving";
+"onboarding.cohort.frequent.desc" = "12+ cities a year";
+"onboarding.cohort.unset.title" = "Not set";
+
 "onboarding.skip" = "Skip";
 
 /* Favorites list */

@@ -37,13 +37,13 @@ public struct OnboardingView: View {
 
     @State private var step: Int = {
         #if DEBUG
-        // Goal-audit entry point: `-onboardingStep <n>` (0…6) skips to the
+        // Goal-audit entry point: `-onboardingStep <n>` (0…7) skips to the
         // requested step on first appear so simctl screenshot can capture
         // the vibe / city surfaces without touching the flow.
         if let idx = ProcessInfo.processInfo.arguments.firstIndex(of: "-onboardingStep"),
            idx + 1 < ProcessInfo.processInfo.arguments.count,
            let n = Int(ProcessInfo.processInfo.arguments[idx + 1]),
-           (0...6).contains(n) {
+           (0...7).contains(n) {
             return n
         }
         #endif
@@ -58,9 +58,10 @@ public struct OnboardingView: View {
     /// non-modal post-onboarding paywall, not repeated wall-of-trial popups).
     private static let onboardingPaywallSeenKey = "hasSeenOnboardingPaywall"
 
-    // P1.2: added two new steps after styleStep — vibe (#120) at index 4
-    // and city (#121) at index 5 — so the paywall step now sits at index 6.
-    private static let totalSteps = 7
+    // P1.2: added two steps after styleStep — vibe (#120) and city (#121).
+    // Nomad OS B1-e: inserted the cohort step at index 4 (right after style),
+    // pushing vibe→5, city→6, paywall→7. The flow is now 8 steps.
+    private static let totalSteps = 8
 
     private var slideTransition: AnyTransition {
         reduceMotion
@@ -93,17 +94,21 @@ public struct OnboardingView: View {
                     .transition(slideTransition)
                     .id(3)
             case 4:
-                vibeStep
+                cohortStep
                     .transition(slideTransition)
                     .id(4)
             case 5:
-                cityStep
+                vibeStep
                     .transition(slideTransition)
                     .id(5)
+            case 6:
+                cityStep
+                    .transition(slideTransition)
+                    .id(6)
             default:
                 paywallStep
                     .transition(slideTransition)
-                    .id(6)
+                    .id(7)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -119,7 +124,7 @@ public struct OnboardingView: View {
     /// future onboarding re-entry doesn't re-pitch the trial.
     private var skipButton: some View {
         Button {
-            if step == 6 {
+            if step == 7 {
                 UserDefaults.standard.set(true, forKey: Self.onboardingPaywallSeenKey)
             }
             preferences.completeOnboarding()
@@ -412,10 +417,10 @@ public struct OnboardingView: View {
 
             VStack(spacing: 12) {
                 Button {
-                    // P1.2: vibe (step 4) + city (step 5) come BEFORE any paywall
-                    // gating now, so styleStep always advances to vibe. The
-                    // "skip the paywall pitch" gate is consulted later, in the
-                    // city step's onContinue handler.
+                    // Nomad OS B1-e: style now advances to the cohort step
+                    // (index 4). Vibe/city/paywall all shifted down one. The
+                    // "skip the paywall pitch" gate is still consulted later,
+                    // in the city step's onContinue handler.
                     withAnimation { step = 4 }
                 } label: {
                     Text(NSLocalizedString("onboarding.style.cta", comment: "Start exploring"))
@@ -442,7 +447,7 @@ public struct OnboardingView: View {
         .accessibilityElement(children: .contain)
     }
 
-    // MARK: - Step 4: Paywall (1-month free trial via StoreKit)
+    // MARK: - Step 7: Paywall (1-month free trial via StoreKit)
 
     /// True if we should bypass the onboarding paywall and finish immediately.
     /// Covers three cases that all share the same UX rule: the user has
@@ -470,7 +475,22 @@ public struct OnboardingView: View {
         onComplete()
     }
 
-    // MARK: - Step 4: Vibe (P1.2 #120)
+    // MARK: - Step 4: Cohort — city-change frequency (Nomad OS B1-e)
+
+    /// Embed the standalone `OnboardingCohortStep` inside the shared step
+    /// chrome. The selected band writes `preferences.nomadCohort` on tap; the
+    /// CTA just advances to the vibe step (index 5).
+    private var cohortStep: some View {
+        VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 24)
+            OnboardingCohortStep {
+                withAnimation { step = 5 }
+            }
+        }
+    }
+
+    // MARK: - Step 5: Vibe (P1.2 #120)
 
     /// Embed the standalone OnboardingVibeStep view inside the same step
     /// chrome the rest of the flow uses. The step indicator runs at the
@@ -480,12 +500,12 @@ public struct OnboardingView: View {
             stepIndicator
                 .padding(.top, 24)
             OnboardingVibeStep {
-                withAnimation { step = 5 }
+                withAnimation { step = 6 }
             }
         }
     }
 
-    // MARK: - Step 5: City + afternoon (P1.2 #121)
+    // MARK: - Step 6: City + afternoon (P1.2 #121)
 
     /// After city is picked, the user either lands on the paywall or — if the
     /// onboarding paywall has already been seen this device — finishes the
@@ -499,7 +519,7 @@ public struct OnboardingView: View {
                     preferences.completeOnboarding()
                     onComplete()
                 } else {
-                    withAnimation { step = 6 }
+                    withAnimation { step = 7 }
                 }
             }
         }
