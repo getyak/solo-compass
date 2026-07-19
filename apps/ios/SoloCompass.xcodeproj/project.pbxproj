@@ -329,6 +329,7 @@
 		915E4532026427BA9F00B39D /* ModerationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71031524B916484E4C152E6 /* ModerationView.swift */; };
 		9260A79D1F643E59A55A4401 /* CityBrief.swift in Sources */ = {isa = PBXBuildFile; fileRef = B05F48898F445A18234B6979 /* CityBrief.swift */; };
 		92C0C68AE15DFE4AF0DFE012 /* UndoPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C03A30AB5CD426978E8C72 /* UndoPill.swift */; };
+		952E35DC8914A2F0384962BF /* TodayThreeThings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61D6CA0AEDFCE1422EA4A1D2 /* TodayThreeThings.swift */; };
 		95389B7D23017957CB6C69E0 /* RouteBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66273C940FD90B51EBCD97BC /* RouteBuilder.swift */; };
 		953C7BD48AF4AF55608145A6 /* LanguageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87002BB6D344B384A3FDFBFD /* LanguageService.swift */; };
 		95960204376DC82FBC3EBB9D /* WeatherSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = B922F9040238050C82A5F312 /* WeatherSignal.swift */; };
@@ -572,6 +573,7 @@
 		F89696722D9A0A3C85B8C7BC /* PeekCardShortNameTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91FB9685AAB19B85A859BDB8 /* PeekCardShortNameTest.swift */; };
 		FA1137B32C1B39D8340DD42F /* ForgetMeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF401E3F554B9E2948A64ABC /* ForgetMeService.swift */; };
 		FA8584E1511404B374B57E66 /* ExploreProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0997D8150E77F70A4B8C64 /* ExploreProgressBar.swift */; };
+		FA9632525DA89F235F69B7F8 /* TodayThreeThingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CEEAF462B119E54E9340766 /* TodayThreeThingsTests.swift */; };
 		FB18E501DE07BA0D80A7F3C5 /* NearbySkeletonRenderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994CE03CD59A3B638A7570AD /* NearbySkeletonRenderTest.swift */; };
 		FB6C7D275F3072ACE07C371E /* ProvisionalCardWiringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271284A1F632E444E85EF589 /* ProvisionalCardWiringTests.swift */; };
 		FB7EEAB898783B82525C324D /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF04600907C1137CC70AFFC /* AnalyticsService.swift */; };
@@ -838,6 +840,7 @@
 		6163572F4644BF852B35FDA4 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
 		61C0472D19B6973CF720ADBD /* SortButtonA11yValueTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortButtonA11yValueTest.swift; sourceTree = "<group>"; };
 		61D000D2E41CDD0DBF2B54C1 /* OnboardingA11yOrderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingA11yOrderTest.swift; sourceTree = "<group>"; };
+		61D6CA0AEDFCE1422EA4A1D2 /* TodayThreeThings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayThreeThings.swift; sourceTree = "<group>"; };
 		61ED51ACFDCE6E0ED274BB60 /* seed_experiences.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = seed_experiences.json; sourceTree = "<group>"; };
 		62C03A30AB5CD426978E8C72 /* UndoPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndoPill.swift; sourceTree = "<group>"; };
 		62E28B094263860A9B4657A2 /* UIAuditSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAuditSnapshotTests.swift; sourceTree = "<group>"; };
@@ -863,6 +866,7 @@
 		6C5CA5533D846B39EF16CDFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		6CA38159B41E3E998455E922 /* MusicService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicService.swift; sourceTree = "<group>"; };
 		6CE165B6335EEBF5DDED2C47 /* AmapPOIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmapPOIServiceTests.swift; sourceTree = "<group>"; };
+		6CEEAF462B119E54E9340766 /* TodayThreeThingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayThreeThingsTests.swift; sourceTree = "<group>"; };
 		6D22DBF50B6C3FABE64A9DE2 /* AmapLiveIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmapLiveIntegrationTests.swift; sourceTree = "<group>"; };
 		6D31F422914779D9228B0278 /* RouteCardNowReasonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteCardNowReasonTests.swift; sourceTree = "<group>"; };
 		6DE289F1023BD3630C38364C /* TimeCapsule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeCapsule.swift; sourceTree = "<group>"; };
@@ -1548,6 +1552,7 @@
 				FFA0BCC3FA2B0DF44F1F5217 /* TodayContainerTests.swift */,
 				118294EB8964E37C63FEE7FC /* TodaySealReceiptTests.swift */,
 				2BA42F14E0B63119912C00AD /* TodayStatusHeaderTests.swift */,
+				6CEEAF462B119E54E9340766 /* TodayThreeThingsTests.swift */,
 				331B2AE74EFAD9589AF60498 /* TodoIssueReferenceTests.swift */,
 				D94A585E823470D513C6C861 /* ToolOutcomeLiveIntegrationTests.swift */,
 				7FD405D02D1BE843764ADFF9 /* ToolOutcomeTests.swift */,
@@ -2115,6 +2120,7 @@
 				D76E5FA5F9C2CADE936F9D40 /* TodayNearbyRow.swift */,
 				912B8348C2044FEAD6C0643B /* TodaySealReceipt.swift */,
 				3D6EE32340E0A83362F440D7 /* TodayStatusHeader.swift */,
+				61D6CA0AEDFCE1422EA4A1D2 /* TodayThreeThings.swift */,
 			);
 			path = Today;
 			sourceTree = "<group>";
@@ -2541,6 +2547,7 @@
 				A4528F9189C69F1292BA6006 /* TodayContainerTests.swift in Sources */,
 				7AC84A1CE63882AEA5D066A5 /* TodaySealReceiptTests.swift in Sources */,
 				3C835FCB531DC30448F763AA /* TodayStatusHeaderTests.swift in Sources */,
+				FA9632525DA89F235F69B7F8 /* TodayThreeThingsTests.swift in Sources */,
 				CA89195562C759E6F118465B /* TodoIssueReferenceTests.swift in Sources */,
 				E5916F3DFB21BA26A2FFFFBE /* ToolOutcomeLiveIntegrationTests.swift in Sources */,
 				14A08808EC415815951AD5A8 /* ToolOutcomeTests.swift in Sources */,
@@ -2892,6 +2899,7 @@
 				37375126C9D00F02A3233357 /* TodayNearbyRow.swift in Sources */,
 				B2060AA2A2C1E4933941D2BB /* TodaySealReceipt.swift in Sources */,
 				B89002ECF766AA5D3F1D3172 /* TodayStatusHeader.swift in Sources */,
+				952E35DC8914A2F0384962BF /* TodayThreeThings.swift in Sources */,
 				5148EFD1A860D54B6F1CB8CB /* ToolOutcome.swift in Sources */,
 				AC44E44D1AC48E33145DF0F0 /* ToolRouterContractPreview.swift in Sources */,
 				3BDFE453122F7D464FEF5490 /* TravelerNoteRecord.swift in Sources */,

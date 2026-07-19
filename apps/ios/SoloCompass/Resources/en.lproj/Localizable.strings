@@ -2392,6 +2392,12 @@
 "today.map.open" = "Open map";
 "today.map.backToToday" = "Back to Today";
 
+/* B1-c — today's three things */
+"today.threeThings.empty" = "Nothing to surface here yet — open the map and explore to fill this in.";
+"today.card.work.eyebrow" = "Work today";
+"today.card.now.eyebrow" = "Worth it now";
+"today.card.tonight.eyebrow" = "Tonight";
+
 /* Nomad OS B1-b — Today status header */
 "today.header.noCity" = "Pick a city";
 "today.header.dayInCity" = "Day %d in this city";

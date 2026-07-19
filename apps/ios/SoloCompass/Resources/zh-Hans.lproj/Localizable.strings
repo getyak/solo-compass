@@ -2402,6 +2402,12 @@
 "today.map.open" = "打开地图";
 "today.map.backToToday" = "返回 Today";
 
+/* B1-c — 今日三件事 */
+"today.threeThings.empty" = "这里还没有可呈现的内容——打开地图探索一下来填满它。";
+"today.card.work.eyebrow" = "今日办公";
+"today.card.now.eyebrow" = "此刻最值得";
+"today.card.tonight.eyebrow" = "今晚";
+
 /* Nomad OS B1-b — Today 状态头 */
 "today.header.noCity" = "选择城市";
 "today.header.dayInCity" = "在城第 %d 天";
