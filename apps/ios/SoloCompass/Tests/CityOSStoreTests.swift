@@ -128,6 +128,50 @@ final class CityOSStoreTests: XCTestCase {
         XCTAssertEqual(store.stage(for: "vte", daysStayed: 1), .land)
     }
 
+    // MARK: - inferMode (P1: automatic Live/Plan/Recall)
+
+    func testInferModeLeaveStageWinsRecall() {
+        let (store, _) = makeStore()
+        // A finished stay reads as Recall regardless of the GPS signal.
+        XCTAssertEqual(
+            store.inferMode(for: "cmi", isUserInCity: true, stage: .leave),
+            .recall,
+            "已离城 (.leave) 无论 GPS 是否在城内都应回顾"
+        )
+        XCTAssertEqual(
+            store.inferMode(for: "cmi", isUserInCity: false, stage: .leave),
+            .recall
+        )
+    }
+
+    func testInferModeInCityIsLive() {
+        let (store, _) = makeStore()
+        // A GPS fix inside the city, stay not ended → Live.
+        XCTAssertEqual(
+            store.inferMode(for: "vte", isUserInCity: true, stage: .live),
+            .live
+        )
+        XCTAssertEqual(
+            store.inferMode(for: "vte", isUserInCity: true, stage: nil),
+            .live,
+            "在城内且未离城 → 生活"
+        )
+    }
+
+    func testInferModeFarAwayIsPlan() {
+        let (store, _) = makeStore()
+        // A far-away city (no nearby fix), stay not ended → Plan.
+        XCTAssertEqual(
+            store.inferMode(for: "lpq", isUserInCity: false, stage: nil),
+            .plan
+        )
+        XCTAssertEqual(
+            store.inferMode(for: "lpq", isUserInCity: false, stage: .live),
+            .plan,
+            "选了远城、GPS 不在城内 → 计划"
+        )
+    }
+
     // MARK: - Helpers
 
     private func makeKitItem(kind: CityKitItem.Kind) -> CityKitItem {

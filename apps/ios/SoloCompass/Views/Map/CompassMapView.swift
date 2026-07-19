@@ -429,6 +429,38 @@ struct CompassMapContentView: View {
         )
     }
 
+    /// City OS v2 · infer this city's Live / Plan / Recall mode from signals the
+    /// app already has and persist it, replacing the manual segmented control the
+    /// traveler used to flip in the location picker.
+    ///
+    /// - A GPS fix inside the city (`<50 km` from its center) → Live.
+    /// - A city picked far from where we are (no nearby fix) → Plan.
+    /// - A stay whose lifecycle stage has reached `.leave` → Recall.
+    ///
+    /// Called on cold start and on every city switch, before the city pill and
+    /// brief render, so `cityPillModeLine` reads the freshly inferred mode. Never
+    /// overrides an already-`.recall` city back to Live/Plan — a finished stay
+    /// stays a memory (the stored mode feeds `currentCityStage`, whose `.leave`
+    /// keeps `inferMode` on Recall).
+    private func inferAndPersistCityMode(for cityCode: String?) {
+        guard FeatureFlags.cityOS, let cityCode, !cityCode.isEmpty else { return }
+        // Distance from the current GPS fix to this city's center decides whether
+        // the traveler is standing in it. `defaultCenterForSelectedCity` resolves
+        // the selected city's center (this helper runs for the selected city).
+        let isUserInCity: Bool = {
+            guard let fix = locationService.currentLocation else { return false }
+            let center = viewModel.defaultCenterForSelectedCity
+            let cityLoc = CLLocation(latitude: center.latitude, longitude: center.longitude)
+            return fix.distance(from: cityLoc) < 50_000  // 50 km radius
+        }()
+        let inferred = cityOSStore.inferMode(
+            for: cityCode,
+            isUserInCity: isUserInCity,
+            stage: currentCityStage
+        )
+        cityOSStore.setMode(inferred, for: cityCode)
+    }
+
     /// City OS v3 · the city pill's second line ("第 3 天 · 生活" / "未到 · 计划"
     /// / "已离 · 回顾"). Nil keeps the pill single-line: Live with no entry date
     /// has nothing honest to say, so it says nothing.
@@ -874,6 +906,12 @@ struct CompassMapContentView: View {
                     // lands directly on a city with seeded routes shows an empty
                     // Routes section, and 开始路线 is unreachable from the map.
                     refreshNearbyRoutes(cityCode: viewModel.selectedCity)
+                    // City OS v2: infer the initial city's mode (Live/Plan/
+                    // Recall) from GPS + lifecycle stage before the pill and
+                    // brief render, so the pill's mode line is correct on cold
+                    // start without any manual flip. A DEBUG `-cityMode` override
+                    // below still wins (it runs after this).
+                    inferAndPersistCityMode(for: viewModel.selectedCity)
                     // City OS v2: load the landing kit + local events for the
                     // initial city and, on first cold start in a Live city, let
                     // the kit auto-surface once (budget-gated).
@@ -1115,6 +1153,10 @@ struct CompassMapContentView: View {
                 // City OS v3: 切城 = 切换整个聚合上下文 — active filters belong
                 // to the city they were set in, so they never carry over.
                 viewModel.clearFilters()
+                // City OS v2: re-infer the new city's mode (Live/Plan/Recall)
+                // from GPS + lifecycle stage before the pill + brief render, so
+                // switching city updates the mode line without a manual flip.
+                inferAndPersistCityMode(for: cityCode)
                 loadCityBrief(for: cityCode, autoSurface: true)
             }
             .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { _ in
