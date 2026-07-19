@@ -19,6 +19,23 @@ public final class MapViewModel {
     // Default: Chiang Mai old city center.
     public static let defaultCenter = CLLocationCoordinate2D(latitude: 18.7877, longitude: 98.9938)
 
+    // Camera spans. Street-level (~1.3km) when we have a GPS fix so the
+    // traveler can read the shops underfoot, matching Apple/高德 Maps'
+    // locate-me zoom; wider city-level (~5.5km) when only a city is picked
+    // with no fix, so the city outline stays legible. The previous single
+    // 0.09 span (~10km, big-district scale) read as "too coarse".
+    enum MapZoom {
+        static let streetLevel: CLLocationDegrees = 0.012
+        static let cityLevel: CLLocationDegrees = 0.05
+    }
+
+    /// The span an initial / city-selection camera should use: street-level
+    /// when a GPS fix is available (the traveler is somewhere concrete), else
+    /// city-level so the picked city stays legible without a location.
+    private var initialCameraSpan: CLLocationDegrees {
+        locationService.currentLocation != nil ? MapZoom.streetLevel : MapZoom.cityLevel
+    }
+
     // MARK: - Dependencies
     private let locationService: LocationService
     private let experienceService: ExperienceService
@@ -629,7 +646,7 @@ public final class MapViewModel {
         if selectedCity?.hasPrefix("custom_") == true { return }
         cameraPosition = .region(MKCoordinateRegion(
             center: defaultCenterForSelectedCity,
-            span: MKCoordinateSpan(latitudeDelta: 0.09, longitudeDelta: 0.09)
+            span: MKCoordinateSpan(latitudeDelta: initialCameraSpan, longitudeDelta: initialCameraSpan)
         ))
     }
 
@@ -658,9 +675,11 @@ public final class MapViewModel {
         customLocationLabel = label
         selectedCity = cityCode
         preferences.lastSelectedCity = nil  // don't persist custom pins across restarts
+        // A custom pin is a deliberate concrete point the user dropped, so
+        // zoom straight to street-level regardless of GPS.
         cameraPosition = .region(MKCoordinateRegion(
             center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.09, longitudeDelta: 0.09)
+            span: MKCoordinateSpan(latitudeDelta: MapZoom.streetLevel, longitudeDelta: MapZoom.streetLevel)
         ))
         loadNearbyExperiences()
         updateBottomInfo()
@@ -1396,7 +1415,10 @@ public final class MapViewModel {
         }
         self._cameraPosition = .region(MKCoordinateRegion(
             center: initialCenter,
-            span: MKCoordinateSpan(latitudeDelta: 0.09, longitudeDelta: 0.09)
+            span: MKCoordinateSpan(
+                latitudeDelta: locationService.currentLocation != nil ? MapZoom.streetLevel : MapZoom.cityLevel,
+                longitudeDelta: locationService.currentLocation != nil ? MapZoom.streetLevel : MapZoom.cityLevel
+            )
         ))
         // V-002: `didSet` does not fire for the `selectedCity` set above
         // (initializer semantics), so apply the same camera↔city sync here so
@@ -1947,7 +1969,7 @@ public final class MapViewModel {
         withAnimation(Self.cameraAnimation) {
             cameraPosition = .region(MKCoordinateRegion(
                 center: coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+                span: MKCoordinateSpan(latitudeDelta: MapZoom.streetLevel, longitudeDelta: MapZoom.streetLevel)
             ))
         }
         // The camera was just deliberately pinned on `coordinate`; the pin
