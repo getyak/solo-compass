@@ -598,13 +598,25 @@ struct NearbyExperienceRow: View {
 
     private var subtitleText: String {
         let title = experience.title
+        // Deduplicate against the title AND against each other. When a place's
+        // romanized and local names are identical (e.g. a global chain like
+        // "Starbucks" where both fields carry the English name), the naive join
+        // rendered "Starbucks · Starbucks". Collapse case-insensitive duplicates
+        // so the subtitle shows each distinct name once.
+        var seen: [String] = []
         let parts = [
             experience.location.placeNameRomanized,
             experience.location.placeNameLocal
         ].compactMap { name -> String? in
             guard let name, !name.isEmpty else { return nil }
             // Hide name parts that duplicate the title verbatim
-            return name.caseInsensitiveCompare(title) == .orderedSame ? nil : name
+            if name.caseInsensitiveCompare(title) == .orderedSame { return nil }
+            // Hide a part that duplicates an earlier accepted part
+            if seen.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) {
+                return nil
+            }
+            seen.append(name)
+            return name
         }
         if parts.isEmpty {
             return experience.location.addressHint ?? ""

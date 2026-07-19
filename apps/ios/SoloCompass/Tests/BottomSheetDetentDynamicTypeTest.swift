@@ -68,10 +68,12 @@ final class BottomSheetDetentDynamicTypeTest: XCTestCase {
     }
 
     func testBaseDetentHeightsMatchSpec() {
-        // The base (unscaled) ladder is 240 / 500 / 800. Peek grew from 170 → 240
-        // in f351c37 to fit the "best for right now" summary card; this spec test
-        // tracks the current peek height so the ladder stays pinned to intent.
-        XCTAssertEqual(BottomSheetDetent.peek.scaledHeight(for: defaultTraits), 240, accuracy: 0.5)
+        // The base (unscaled) ladder is 272 / 500 / 800. Peek grew 170 → 240 (to
+        // fit the "best for right now" summary card) → 272 (north-star peek card
+        // gained its NowScore line + confidence-facts + 带我去/换一个 action row).
+        // This spec test tracks the current peek height so the ladder stays pinned
+        // to intent; keep it in step with `basePeekHeight` in BottomInfoSheet.
+        XCTAssertEqual(BottomSheetDetent.peek.scaledHeight(for: defaultTraits), 272, accuracy: 0.5)
         XCTAssertEqual(BottomSheetDetent.mid.scaledHeight(for: defaultTraits), 500, accuracy: 0.5)
         XCTAssertEqual(BottomSheetDetent.full.scaledHeight(for: defaultTraits), 800, accuracy: 0.5)
     }
