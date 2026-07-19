@@ -26,22 +26,44 @@ public struct TodayContainer: View {
     public var body: some View {
         if FeatureFlags.todayHome {
             TodayHomeScaffold()
-                .onAppear { TodayContainer.debugRenderedBranch = .todayHome }
+                .debugRecordBranch(.todayHome)
         } else {
             // Rollback path: zero behavioural change from today's shipping form.
             CompassMapView()
-                .onAppear { TodayContainer.debugRenderedBranch = .mapFallback }
+                .debugRecordBranch(.mapFallback)
         }
     }
 
-    #if DEBUG
-    /// Test hook: which branch `body` resolved to once installed in a graph.
-    /// Lets `TodayContainerTests` assert the flag actually routes the root,
-    /// including the flag-off rollback path (the shipping default). DEBUG-only
-    /// and read-only — never affects production rendering.
+    /// Which branch `body` resolves to once installed in a graph. The type is
+    /// available in every configuration so the `debugRecordBranch(_:)` call site
+    /// type-checks in Release too; only the *recording* (the `@State`-like store
+    /// below and the `.onAppear` write) is DEBUG-only.
     @MainActor enum RenderedBranch { case none, todayHome, mapFallback }
+
+    #if DEBUG
+    /// Test hook read by `TodayContainerTests` to assert the flag routes the
+    /// root — including the flag-off rollback path (the shipping default).
+    /// DEBUG-only and read-only; never affects production rendering.
     @MainActor static var debugRenderedBranch: RenderedBranch = .none
     #endif
+}
+
+private extension View {
+    /// Records which `TodayContainer` branch rendered, for `TodayContainerTests`.
+    /// In Release (`DEBUG` off) it compiles to a plain `self` — no reference to
+    /// the DEBUG-only `debugRenderedBranch` store — so the release archive never
+    /// touches it. An unconditional `.onAppear` reading that DEBUG-only member is
+    /// exactly what failed the TestFlight archive; gating the write (while
+    /// keeping the `RenderedBranch` argument type non-gated) makes the flag-off
+    /// path Release-safe.
+    @ViewBuilder
+    func debugRecordBranch(_ branch: TodayContainer.RenderedBranch) -> some View {
+        #if DEBUG
+        onAppear { TodayContainer.debugRenderedBranch = branch }
+        #else
+        self
+        #endif
+    }
 }
 
 /// The Today-on, map-as-layer composition. Kept separate from `TodayContainer`
