@@ -689,7 +689,7 @@ public final class MapViewModel {
             let code = exp.location.cityCode
             cityExperiences[code, default: []].append(coord)
         }
-        let nameMap = cityNameMap
+        let nameMap = Self.cityNameMap
         var byCode: [String: (code: String, name: String, center: CLLocationCoordinate2D)] = [:] // swiftlint:disable:this large_tuple
         let nearbyLabel = NSLocalizedString("city.nearby", comment: "Fallback city label for synthetic osm_ codes")
         // Seed-derived rows first.
@@ -730,7 +730,11 @@ public final class MapViewModel {
 
     /// Static seed-city names. Discovered-city names come from
     /// `DiscoveredCityRecord` via `availableCities`.
-    private let cityNameMap: [String: String] = [
+    /// City code → display name. `static` so surfaces outside the map (e.g.
+    /// `TodayStatusHeader`) resolve a city's name from the same single source
+    /// of truth without holding a `MapViewModel`, keeping the name shown on
+    /// Today and on the map pill in lockstep. Pure data, no instance state.
+    static let cityNameMap: [String: String] = [
         "cmi": "Chiang Mai",
         "CNX": "Chiang Mai",
         "VTE": "Vientiane",
@@ -886,7 +890,7 @@ public final class MapViewModel {
     public var suggestedCityName: String? {
         guard visibleExperiences.isEmpty else { return nil }
         guard let code = firstAvailableCityCode else { return nil }
-        return cityNameMap[code] ?? code
+        return Self.cityNameMap[code] ?? code
     }
 
     /// When the current area has no experiences, returns the code of the first
@@ -900,9 +904,9 @@ public final class MapViewModel {
     /// static name map and alias table. Used by the city pill when
     /// `availableCities` doesn't contain the code directly.
     public func resolvedCityName(for code: String) -> String? {
-        if let name = cityNameMap[code] { return name }
+        if let name = Self.cityNameMap[code] { return name }
         if let canonical = Self.cityCodeAliases[code.lowercased()],
-           let name = cityNameMap[canonical] { return name }
+           let name = Self.cityNameMap[canonical] { return name }
         return nil
     }
 

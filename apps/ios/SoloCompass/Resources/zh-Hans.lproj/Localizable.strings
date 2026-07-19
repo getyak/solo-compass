@@ -2212,6 +2212,8 @@
 "dev.flag.companionLayer.subtitle" = "地图内的附近在场单元开关。";
 "dev.flag.cityOS.title" = "城市 OS";
 "dev.flag.cityOS.subtitle" = "落地包、在地活动、合规横幅与城市模式。";
+"dev.flag.todayHome.title" = "Today 首页";
+"dev.flag.todayHome.subtitle" = "全新 Today 首页流，地图降级为上拉图层。";
 
 /* City OS v2: visa-expiry local reminder (PRD §5.2) */
 "cityos.visa.reminder.title" = "签证提醒";
@@ -2378,3 +2380,23 @@
 "settings.advanced.footer" = "面向高级用户的工具：AI 服务、测试员解锁与开发者选项。";
 "settings.theme.system" = "跟随系统";
 "settings.theme.obsidian" = "曜石黑";
+
+/* Nomad OS B1 — Today 首页容器 (nomad-os-b1-today-home-20260719) */
+"today.scaffold.placeholder" = "你的一天、你的城市、你的账本——即将在这里呈现。";
+"today.map.open" = "打开地图";
+"today.map.backToToday" = "返回 Today";
+
+/* Nomad OS B1-b — Today 状态头 */
+"today.header.noCity" = "选择城市";
+"today.header.dayInCity" = "在城第 %d 天";
+"today.header.firstDay" = "刚抵达";
+"today.header.visaRemaining" = "签证剩 %d 天";
+"today.header.setEntryDate" = "填入境日";
+
+/* Nomad OS B1-d — Today 谁在附近 + 封存回执 */
+"today.nearby.count" = "%d 位游民在附近";
+"today.nearby.beFirst" = "这座城还没有游民 · 成为第一个";
+"today.seal.yesterdayTitle" = "昨天你封存了一个瞬间";
+"today.seal.type.photo" = "一张照片，等待重现";
+"today.seal.type.voice" = "一段语音，等待重现";
+"today.seal.type.text" = "一段文字，等待重现";
