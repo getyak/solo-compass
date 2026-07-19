@@ -20,11 +20,42 @@ public final class UserPreferences {
         public var id: String { rawValue }
     }
 
+    /// Nomad OS B1-e: how often the traveler changes cities in a year. The
+    /// data floor for the digital-nomad convergence strategy — a higher band
+    /// maps directly to a sharper visa / 90-180-day compliance pain point, and
+    /// so to a higher willingness to pay for the B2 ledger. Captured once in
+    /// onboarding (the cohort step, after style); `.unset` until then so a
+    /// returning user who predates the step is never mis-bucketed.
+    public enum NomadCohort: String, Codable, CaseIterable, Identifiable {
+        /// Not yet asked (returning users pre-B1-e) — treated as "no signal".
+        case unset
+        /// 1-2 cities a year — settled travel, one long base.
+        case settled
+        /// 3-5 — slow travel, a season per city.
+        case slow
+        /// 6-11 — active nomad, roughly monthly hops.
+        case active
+        /// 12+ — high-frequency, a city or less per month.
+        case frequent
+
+        public var id: String { rawValue }
+
+        /// The four bands the onboarding step offers (everything except the
+        /// `.unset` sentinel, which is never a user-selectable option).
+        public static var selectableCases: [NomadCohort] {
+            allCases.filter { $0 != .unset }
+        }
+    }
+
     /// Snapshot used for Codable persistence. Mirrors the @Observable surface.
     private struct Snapshot: Codable {
         var preferredCategories: [ExperienceCategory] = []
         var dislikedCategories: [ExperienceCategory] = []
         var soloTravelStyle: SoloTravelStyle = .explorer
+        // Nomad OS B1-e: city-change frequency band. Raw string so adding a
+        // future band never breaks an older client's decode. `.unset` until
+        // the onboarding cohort step captures it.
+        var nomadCohortRaw: String = NomadCohort.unset.rawValue
         // First-launch default raised 5 → 8 km so a cold start in a seeded city
         // (e.g. Chiang Mai, where Doi Suthep sits at ~7.8 km from the centroid)
         // surfaces all curated Experiences instead of showing an "empty within
@@ -104,7 +135,7 @@ public final class UserPreferences {
 
         // swiftlint:disable:next nesting
         enum CodingKeys: String, CodingKey {
-            case preferredCategories, dislikedCategories, soloTravelStyle, maxDistanceKm
+            case preferredCategories, dislikedCategories, soloTravelStyle, nomadCohortRaw, maxDistanceKm
             case visitHistory, completedExperiences, favoritedExperiences, favoritedAt, pendingCheckIns
             case lastSelectedCity, hasCompletedOnboarding, notificationsEnabled
             case quietHoursStart, quietHoursEnd, seedImported, swiftDataMirrored
@@ -129,6 +160,7 @@ public final class UserPreferences {
             preferredCategories: [ExperienceCategory],
             dislikedCategories: [ExperienceCategory],
             soloTravelStyle: SoloTravelStyle,
+            nomadCohortRaw: String = NomadCohort.unset.rawValue,
             maxDistanceKm: Double,
             visitHistory: [String: Date],
             completedExperiences: Set<String>,
@@ -175,6 +207,7 @@ public final class UserPreferences {
             self.preferredCategories = preferredCategories
             self.dislikedCategories = dislikedCategories
             self.soloTravelStyle = soloTravelStyle
+            self.nomadCohortRaw = nomadCohortRaw
             self.maxDistanceKm = maxDistanceKm
             self.visitHistory = visitHistory
             self.completedExperiences = completedExperiences
@@ -224,6 +257,7 @@ public final class UserPreferences {
             self.preferredCategories = try container.decodeIfPresent([ExperienceCategory].self, forKey: .preferredCategories) ?? []
             self.dislikedCategories = try container.decodeIfPresent([ExperienceCategory].self, forKey: .dislikedCategories) ?? []
             self.soloTravelStyle = try container.decodeIfPresent(SoloTravelStyle.self, forKey: .soloTravelStyle) ?? .explorer
+            self.nomadCohortRaw = try container.decodeIfPresent(String.self, forKey: .nomadCohortRaw) ?? NomadCohort.unset.rawValue
             self.maxDistanceKm = try container.decodeIfPresent(Double.self, forKey: .maxDistanceKm) ?? 8.0
             self.visitHistory = try container.decodeIfPresent([String: Date].self, forKey: .visitHistory) ?? [:]
             self.completedExperiences = try container.decodeIfPresent(Set<String>.self, forKey: .completedExperiences) ?? []
@@ -273,6 +307,16 @@ public final class UserPreferences {
     public var preferredCategories: [ExperienceCategory] { didSet { persist() } }
     public var dislikedCategories: [ExperienceCategory] { didSet { persist() } }
     public var soloTravelStyle: SoloTravelStyle { didSet { persist() } }
+    /// Nomad OS B1-e: raw string backing for `nomadCohort`. Stored so a new
+    /// band added later still decodes on older clients. Default `.unset`.
+    public var nomadCohortRaw: String { didSet { persist() } }
+    /// Nomad OS B1-e: typed access to the traveler's city-change frequency
+    /// band. Reads/writes `nomadCohortRaw`; an unknown stored value degrades
+    /// to `.unset` rather than crashing.
+    public var nomadCohort: NomadCohort {
+        get { NomadCohort(rawValue: nomadCohortRaw) ?? .unset }
+        set { nomadCohortRaw = newValue.rawValue }
+    }
     public var maxDistanceKm: Double { didSet { persist() } }
     public var visitHistory: [String: Date] { didSet { persist() } }
     public var completedExperiences: Set<String> { didSet { persist() } }
@@ -432,6 +476,7 @@ public final class UserPreferences {
         self.preferredCategories = snapshot.preferredCategories
         self.dislikedCategories = snapshot.dislikedCategories
         self.soloTravelStyle = snapshot.soloTravelStyle
+        self.nomadCohortRaw = snapshot.nomadCohortRaw
         self.maxDistanceKm = snapshot.maxDistanceKm
         self.visitHistory = snapshot.visitHistory
         self.completedExperiences = snapshot.completedExperiences
@@ -506,6 +551,7 @@ public final class UserPreferences {
             preferredCategories: preferredCategories,
             dislikedCategories: dislikedCategories,
             soloTravelStyle: soloTravelStyle,
+            nomadCohortRaw: nomadCohortRaw,
             maxDistanceKm: maxDistanceKm,
             visitHistory: visitHistory,
             completedExperiences: completedExperiences,

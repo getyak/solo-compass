@@ -120,6 +120,7 @@
 		344AA4D02D20133A5BC7562D /* TasteUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D194A2740848FA0C9D4BA3D /* TasteUpdateService.swift */; };
 		34F2006B922A8F29F62B7317 /* FarAwayDistanceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AA7C71C5E9C16456C7A65D2 /* FarAwayDistanceTest.swift */; };
 		352247C1FBF4C8F901D17F32 /* ApprovalTrustSignalTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804618047547A9D7F3F8EAAA /* ApprovalTrustSignalTest.swift */; };
+		3596C0741E576CFBBB50FDF7 /* NomadCohortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E478564C50AFC377D036375E /* NomadCohortTests.swift */; };
 		36E1316045802B2F642A9623 /* LocalAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C89CB8D3309FD5646E23434 /* LocalAttachment.swift */; };
 		37273BCDAED53D5F49CD756D /* CityBriefServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDD92E055336925881B13C67 /* CityBriefServiceTests.swift */; };
 		37375126C9D00F02A3233357 /* TodayNearbyRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76E5FA5F9C2CADE936F9D40 /* TodayNearbyRow.swift */; };
@@ -583,6 +584,7 @@
 		FD8F94BFC5C298D62943FFF3 /* MarkerStatePerformanceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 658C2890F90C08A686F501BA /* MarkerStatePerformanceTest.swift */; };
 		FDF6502B0962A7AD161E1067 /* ChatCardRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A54294FE114979C2230686E /* ChatCardRecord.swift */; };
 		FEC4BF6E3C7FA92D982C0B4F /* ChatCardRenderVisualTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C504FA7911B469792541F323 /* ChatCardRenderVisualTest.swift */; };
+		FF03726AF1497D01D665620B /* OnboardingCohortStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 762C398E4512C7B1809CD866 /* OnboardingCohortStep.swift */; };
 		FF880C11C06B7673E5C728D7 /* MemoryDigestServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B33B0431703DD49E0228D33 /* MemoryDigestServiceTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -879,6 +881,7 @@
 		741295168A3FC1A94FBDDA45 /* ItineraryRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryRecord.swift; sourceTree = "<group>"; };
 		746139AC01A1D37CE002BFCF /* ReviewsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewsService.swift; sourceTree = "<group>"; };
 		7571A35B387B48264B721AB7 /* BragCardTemplateBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BragCardTemplateBackground.swift; sourceTree = "<group>"; };
+		762C398E4512C7B1809CD866 /* OnboardingCohortStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCohortStep.swift; sourceTree = "<group>"; };
 		763DF01F638C99097DD5FE20 /* EmptyStateAnnouncementTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateAnnouncementTest.swift; sourceTree = "<group>"; };
 		76D60D55727FB72C1C202C90 /* ItineraryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItineraryListView.swift; sourceTree = "<group>"; };
 		76DB99E393326334CEAD0309 /* DataSourceSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSourceSettingsTests.swift; sourceTree = "<group>"; };
@@ -1133,6 +1136,7 @@
 		E212233396693C6264237B11 /* SoloScoreBadgeScaleTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloScoreBadgeScaleTest.swift; sourceTree = "<group>"; };
 		E406C379247653B4AA5A3E0E /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		E4486B29C6268AB3905D4E0F /* FriendshipStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendshipStateMachineTests.swift; sourceTree = "<group>"; };
+		E478564C50AFC377D036375E /* NomadCohortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NomadCohortTests.swift; sourceTree = "<group>"; };
 		E4E0D46949612D8FCC41696B /* VoiceButtonHapticTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceButtonHapticTests.swift; sourceTree = "<group>"; };
 		E536D4CFF44CF4CEFD1EFF4F /* WeatherCacheTTLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCacheTTLTests.swift; sourceTree = "<group>"; };
 		E575898B14533C58035EFC79 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
@@ -1468,6 +1472,7 @@
 				994CE03CD59A3B638A7570AD /* NearbySkeletonRenderTest.swift */,
 				DE1E1FC2007C2AFC681D322A /* NeverInventPOIRedLineTests.swift */,
 				D08AFC181DB143A21E97A2ED /* NextBestExperienceClockTest.swift */,
+				E478564C50AFC377D036375E /* NomadCohortTests.swift */,
 				CE95C3399C8616CBDE8B44BE /* NoProductionPrintTests.swift */,
 				49F36F9AC9ED0AE7E3F0E5EA /* NotificationServiceHandleURLTests.swift */,
 				F1D68F42114231582501CB90 /* NowCountCacheTests.swift */,
@@ -2063,6 +2068,7 @@
 			isa = PBXGroup;
 			children = (
 				7D3D7AE265D80F76BA9BB28B /* OnboardingCityStep.swift */,
+				762C398E4512C7B1809CD866 /* OnboardingCohortStep.swift */,
 				D0123E9112C29BF44DBF525B /* OnboardingVibeStep.swift */,
 				C660F7996B1E4387C37720B3 /* OnboardingView.swift */,
 				0364599CF5416C94D9711120 /* TermsConsentSheet.swift */,
@@ -2462,6 +2468,7 @@
 				62F1F72C563FF41389050CEB /* NeverInventPOIRedLineTests.swift in Sources */,
 				FC1E25FED02B767FBFB5EFE2 /* NextBestExperienceClockTest.swift in Sources */,
 				B42207A02271655D3498B723 /* NoProductionPrintTests.swift in Sources */,
+				3596C0741E576CFBBB50FDF7 /* NomadCohortTests.swift in Sources */,
 				2FDE17BACDABCE85552A022B /* NotificationServiceHandleURLTests.swift in Sources */,
 				C3A87993F509B921A9F7FE06 /* NowCountCacheTests.swift in Sources */,
 				98CE98CA3A71C84641FBC39D /* NowEmptyStateTest.swift in Sources */,
@@ -2786,6 +2793,7 @@
 				81C19176806829BBF820D0C2 /* OmenCardView.swift in Sources */,
 				E61ADD9CE38B917026123DEE /* OmenComposeService.swift in Sources */,
 				D3D09BE396ED9D2DF5FE91B9 /* OnboardingCityStep.swift in Sources */,
+				FF03726AF1497D01D665620B /* OnboardingCohortStep.swift in Sources */,
 				0AB319F3D38506DF9EA6F7D5 /* OnboardingVibeStep.swift in Sources */,
 				C81007F6A39364D0872736B2 /* OnboardingView.swift in Sources */,
 				CD73E1A29E0D2EB8D8AC93AC /* OpenForCompanionsSheet.swift in Sources */,

@@ -338,6 +338,22 @@
 "onboarding.scoring.cta" = "明白了";
 "onboarding.style.cta" = "开始探索";
 "onboarding.style.skip" = "稍后决定";
+
+/* Onboarding cohort step (Nomad OS B1-e) — 换城频率 */
+"onboarding.cohort.title" = "你多久换一座城？";
+"onboarding.cohort.subtitle" = "一年大概在几座城市住下来。它会调校你的签证与天数提醒。";
+"onboarding.cohort.cta" = "就是我";
+"onboarding.cohort.skip" = "暂时跳过";
+"onboarding.cohort.settled.title" = "定居旅行";
+"onboarding.cohort.settled.desc" = "一年 1–2 座城";
+"onboarding.cohort.slow.title" = "慢游";
+"onboarding.cohort.slow.desc" = "一年 3–5 座城";
+"onboarding.cohort.active.title" = "活跃游民";
+"onboarding.cohort.active.desc" = "一年 6–11 座城";
+"onboarding.cohort.frequent.title" = "常在路上";
+"onboarding.cohort.frequent.desc" = "一年 12 座城以上";
+"onboarding.cohort.unset.title" = "未设置";
+
 "onboarding.skip" = "跳过";
 
 /* Favorites list */
