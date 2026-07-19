@@ -296,6 +296,13 @@ public struct BottomInfoSheet<Content: View>: View {
     /// peek-only floating overlays (drawer tabs / mode cards). Optional with a
     /// nil default so every existing call site is byte-identical.
     private let onDetentChange: ((BottomSheetDetent) -> Void)?
+    /// City OS: an optional header slot rendered ONLY in the peek state, between
+    /// the drag handle and the peek summary card. The City-OS 游民基地 Base card
+    /// lives here so it rides inside the sheet instead of floating over the map
+    /// (where its full-width banner occluded the right-side control column).
+    /// Optional with a nil default so every non-City-OS call site stays
+    /// byte-identical and the row simply never renders.
+    private let peekHeaderContent: (() -> AnyView)?
     private let content: (BottomSheetDetent, Binding<SortMode>) -> Content
 
     public init(
@@ -310,6 +317,7 @@ public struct BottomInfoSheet<Content: View>: View {
         onShuffle: (() -> Void)? = nil,
         onRefresh: (() async -> Void)? = nil,
         onDetentChange: ((BottomSheetDetent) -> Void)? = nil,
+        peekHeader: (() -> AnyView)? = nil,
         @ViewBuilder content: @escaping (BottomSheetDetent, Binding<SortMode>) -> Content
     ) {
         self.aiHint = aiHint
@@ -323,6 +331,7 @@ public struct BottomInfoSheet<Content: View>: View {
         self.onShuffle = onShuffle
         self.onRefresh = onRefresh
         self.onDetentChange = onDetentChange
+        self.peekHeaderContent = peekHeader
         self.content = content
     }
 
@@ -377,6 +386,15 @@ public struct BottomInfoSheet<Content: View>: View {
             // settle animates at compositor cost.
             VStack(spacing: 0) {
                 dragHandleArea(detentHeight: detentHeight, minHeight: minHeight, maxHeight: maxHeight)
+                // City OS Base card slot — only in peek. At mid/full the space
+                // yields to the list, matching the old floating card's
+                // `sheetDetent == .peek` gate. Horizontal padding matches the
+                // peek summary card below (16) so the two align.
+                if currentDetent == .peek, let peekHeaderContent {
+                    peekHeaderContent()
+                        .padding(.horizontal, 16)
+                        .padding(.top, 6)
+                }
                 peekContentArea
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
