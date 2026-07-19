@@ -55,6 +55,17 @@ public final class MapViewModel {
     /// environment in `CompassMapView` (Epic D US-024).
     private weak var subscriptionService: SubscriptionService?
 
+    /// Nomad OS A2: pulls a city's already-synthesized experiences from the
+    /// backend when the local store has none, so non-seed cities aren't empty.
+    /// `@ObservationIgnored lazy` mirrors `enrichmentAgent` — no init-signature
+    /// change, no cost on paths that never trigger a hydrate, still injectable.
+    @ObservationIgnored
+    private lazy var cityExperienceFetcher = CityExperienceFetcher()
+    /// Cities already hydrated from the backend this session, so a repeated
+    /// `selectCity` (e.g. GPS re-follow) fires at most one network read per city.
+    @ObservationIgnored
+    private var backendHydratedCities: Set<String> = []
+
     /// Wire the subscription service after init (called from
     /// CompassMapView.onAppear). Free tier gating only applies after
     /// this is set; pre-attach treats every caller as Pro to keep the
@@ -880,6 +891,38 @@ public final class MapViewModel {
         ))
         loadNearbyExperiences()
         updateBottomInfo()
+        hydrateCityFromBackendIfNeeded(cityCode)
+    }
+
+    /// Nomad OS A2: if the freshly-selected city has no local experiences, pull
+    /// whatever another traveler already synthesized for it from the backend and
+    /// merge it in. Fire-and-forget and self-gating so it never blocks the map:
+    ///
+    ///  - skips seed / already-populated cities (a non-empty local set means
+    ///    the map is fine as-is — this only rescues the empty case);
+    ///  - runs at most once per city per session (`backendHydratedCities`);
+    ///  - a fetch miss (backend off, offline, or nobody has synthesized this
+    ///    city yet) leaves the empty state exactly as it was — the honest
+    ///    "no experiences here" is a valid outcome, never an error.
+    ///
+    /// On a real merge it re-runs `loadNearbyExperiences()` so the new pins
+    /// reach `visibleExperiences` (append alone doesn't refresh the map).
+    private func hydrateCityFromBackendIfNeeded(_ cityCode: String?) {
+        guard let cityCode, !cityCode.isEmpty else { return }
+        // Only rescue the empty case; a populated city needs no network read.
+        guard visibleExperiences.isEmpty else { return }
+        guard !backendHydratedCities.contains(cityCode) else { return }
+        backendHydratedCities.insert(cityCode)
+
+        Task { [weak self] in
+            guard let self else { return }
+            let fetched = await self.cityExperienceFetcher.fetchCityExperiences(cityCode: cityCode)
+            guard !fetched.isEmpty else { return }
+            let added = self.experienceService.appendGenerated(fetched)
+            // Only refresh if this is still the active city and something landed.
+            guard added > 0, self.selectedCity == cityCode else { return }
+            self.loadNearbyExperiences()
+        }
     }
 
     /// When the current area has no experiences, returns the name of the first
