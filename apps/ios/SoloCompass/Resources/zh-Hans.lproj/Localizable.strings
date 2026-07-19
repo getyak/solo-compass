@@ -2392,3 +2392,11 @@
 "today.header.firstDay" = "刚抵达";
 "today.header.visaRemaining" = "签证剩 %d 天";
 "today.header.setEntryDate" = "填入境日";
+
+/* Nomad OS B1-d — Today 谁在附近 + 封存回执 */
+"today.nearby.count" = "%d 位游民在附近";
+"today.nearby.beFirst" = "这座城还没有游民 · 成为第一个";
+"today.seal.yesterdayTitle" = "昨天你封存了一个瞬间";
+"today.seal.type.photo" = "一张照片，等待重现";
+"today.seal.type.voice" = "一段语音，等待重现";
+"today.seal.type.text" = "一段文字，等待重现";

@@ -2382,3 +2382,11 @@
 "today.header.firstDay" = "Just arrived";
 "today.header.visaRemaining" = "%d visa days left";
 "today.header.setEntryDate" = "Set entry";
+
+/* Nomad OS B1-d — Today nearby row + seal receipt */
+"today.nearby.count" = "%d nomads nearby";
+"today.nearby.beFirst" = "No nomads here yet — be the first";
+"today.seal.yesterdayTitle" = "Yesterday you sealed a moment";
+"today.seal.type.photo" = "a photo, waiting to resurface";
+"today.seal.type.voice" = "a voice note, waiting to resurface";
+"today.seal.type.text" = "a note, waiting to resurface";

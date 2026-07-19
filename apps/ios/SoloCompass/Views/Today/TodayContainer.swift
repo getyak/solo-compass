@@ -47,6 +47,8 @@ public struct TodayContainer: View {
 /// The Today-on, map-as-layer composition. Kept separate from `TodayContainer`
 /// so the flag-off path never constructs any of this view's state.
 private struct TodayHomeScaffold: View {
+    @Environment(UserPreferences.self) private var preferences
+
     /// How far the map layer is pulled up, in points above its resting
     /// (fully-hidden-below) position. 0 = map parked off-screen, showing only
     /// its grab affordance; `fullTravel` = map covers the screen.
@@ -111,29 +113,47 @@ private struct TodayHomeScaffold: View {
         .ignoresSafeArea(.keyboard)
     }
 
-    // MARK: Today home placeholder (B1-a skeleton — real content in B1-b..d)
+    // MARK: Today home (real content lands slice by slice — three-things = B1-c)
+
+    private var cityCode: String? { preferences.lastSelectedCity }
 
     private var todayHome: some View {
         VStack(spacing: 0) {
-            // Sticky status header (B1-b). Stays out of any scroll region — the
-            // three-things / nearby / seal-receipt content that scrolls below it
-            // lands in B1-c/d.
+            // Sticky status header (B1-b) — stays out of the scroll region.
             TodayStatusHeader()
 
-            // Placeholder for the scrolling Today body (B1-c/d).
-            VStack(spacing: Space.sm) {
-                Spacer(minLength: Space.xxxl)
-                Text(NSLocalizedString(
-                    "today.scaffold.placeholder",
-                    comment: "Placeholder subtitle for the not-yet-wired Today body"
-                ))
-                .ctBody(15)
-                .foregroundStyle(CT.textMutedAdaptive)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Space.xxl)
-                Spacer()
+            // Scrolling body. NavigationStack so the nearby row can push the
+            // full discovery list; its own bar is hidden to keep Today chrome
+            // clean (the status header above is the app's real top).
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: Space.lg) {
+                        // Who's nearby (B1-d) — self-gates on FeatureFlags.companion.
+                        TodayNearbyRow(cityCode: cityCode)
+
+                        // Yesterday's seal receipt (B1-d) — renders only when a
+                        // capsule was buried yesterday, else takes no space.
+                        TodaySealReceipt()
+
+                        // Three-things placeholder (B1-c).
+                        Text(NSLocalizedString(
+                            "today.scaffold.placeholder",
+                            comment: "Placeholder subtitle for the not-yet-wired Today body"
+                        ))
+                        .ctBody(15)
+                        .foregroundStyle(CT.textMutedAdaptive)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Space.xxl)
+                        .padding(.top, Space.xxl)
+                    }
+                    .padding(.top, Space.lg)
+                }
+                .navigationDestination(for: NearbyDestination.self) { dest in
+                    DiscoverListView(cityCode: dest.cityCode)
+                }
+                .toolbar(.hidden, for: .navigationBar)
+                .background(CT.pageAdaptive)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
