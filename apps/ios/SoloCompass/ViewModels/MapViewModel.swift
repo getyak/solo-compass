@@ -1192,12 +1192,19 @@ public final class MapViewModel {
     /// Purely a render cue for `EventMarkerView.isHighlighted`; nil = none.
     public var highlightedEventId: String?
     public var isShowingDetail: Bool = false
-    /// True when the current detail sheet was opened *directly* by a tap (map
-    /// pin / Nearby row) with no floating preview card behind it. Backing out
-    /// of such a sheet returns to the bare map, not to a preview card the user
-    /// never summoned. A detail opened by *expanding* a preview card (long-press
-    /// → card → expand) leaves this false, so dismiss peels back to that card.
-    private var detailOpenedDirectly: Bool = false
+    /// How the currently-open detail was reached, so dismissing it can pick the
+    /// right destination: a list/nearby/pin tap returns to the clean list, while
+    /// a map-pin long-press peek falls back to the floating preview card.
+    ///
+    /// The two entry points share one `selectedExperience` but carry different
+    /// mental models. A `.listTap` is "open this, look, then back to my list" —
+    /// backing out must land on a clean list with no floating card left hovering
+    /// over it (the "退出详情后悬窗残留 / Starbucks card floating over the list"
+    /// report). A `.mapPeek` is the Approach-C long-press flow (peek card →
+    /// expand → detail): backing out deliberately falls back to that preview
+    /// card, because detail is a layer *above* the peek, not a replacement.
+    enum DetailEntrySource { case listTap, mapPeek }
+    private(set) var detailEntrySource: DetailEntrySource = .mapPeek
     public var bottomInfoText: String = ""
     public var nearbySoloCount: Int = 0
     public var aiExplanation: String?
@@ -1830,10 +1837,10 @@ public final class MapViewModel {
     public func selectExperience(_ experience: Experience) {
         Haptics.impact(.light)
         selectedExperience = experience
-        // This is the preview-card path (long-press). The detail layer, if the
-        // user later expands the card, sits *above* this card — so dismissing
+        // This is the preview-card path (long-press peek). The detail layer, if
+        // the user later expands the card, sits *above* this card — so dismissing
         // it must peel back to the card, not to the bare map.
-        detailOpenedDirectly = false
+        detailEntrySource = .mapPeek
         // isShowingDetail stays false — card shows first, detail sheet on expand
         focusOnExperience(experience)
     }
@@ -1849,9 +1856,9 @@ public final class MapViewModel {
         selectedExperience = experience
         isShowingDetail = true
         // Tap jumped straight to detail with no preview card behind it, so a
-        // back-out should land on the bare map rather than reveal a card the
-        // user never summoned (see `dismissDetail`).
-        detailOpenedDirectly = true
+        // back-out should land on the clean list / bare map rather than reveal a
+        // card the user never summoned (see `dismissDetail`).
+        detailEntrySource = .listTap
         focusOnExperience(experience)
     }
 
@@ -1891,23 +1898,20 @@ public final class MapViewModel {
         }
     }
 
-    /// Close the expanded detail sheet, falling back to the floating preview
-    /// card for the same experience.
+    /// Close the expanded detail sheet, choosing the destination by how the
+    /// detail was reached (`detailEntrySource`).
     ///
-    /// Every entry point (map pin, Nearby list row, favorites) now routes
-    /// through the preview card first — selecting an experience floats the
-    /// card, and the card's expand action opens the detail. Backing out of the
-    /// detail therefore lands back on that preview card (selectedExperience is
-    /// deliberately retained), which is the consistent mental model: detail is
-    /// a layer *above* the preview, not a replacement for it. The card is only
-    /// fully cleared when the user dismisses the card itself (`clearSelection`).
+    /// - `.listTap` (Nearby row / map pin / favorites tap): the user opened
+    ///   detail straight from a list with no preview card underneath, so a
+    ///   back-out clears the selection and lands on the clean list — nothing
+    ///   floats over it. This kills the "退出详情后悬窗残留 / Starbucks card
+    ///   hovering above the list" overlap.
+    /// - `.mapPeek` (long-press → preview card → expand): detail is a layer
+    ///   *above* the peek card the user deliberately summoned, so dismiss peels
+    ///   off only that layer and reveals the card again (selection retained).
     public func dismissDetail() {
         isShowingDetail = false
-        // A tap-opened detail has no preview card underneath — peel straight
-        // back to the bare map. A card-expanded detail keeps its selection so
-        // the dismiss reveals the preview card it sits above.
-        if detailOpenedDirectly {
-            detailOpenedDirectly = false
+        if detailEntrySource == .listTap {
             selectedExperience = nil
         }
     }
@@ -1919,7 +1923,7 @@ public final class MapViewModel {
     public func clearSelection() {
         isShowingDetail = false
         selectedExperience = nil
-        detailOpenedDirectly = false
+        detailEntrySource = .mapPeek
     }
 
     /// US-VA-03 tool `dismiss_recommendation`: hide one experience from
@@ -1932,7 +1936,7 @@ public final class MapViewModel {
         if selectedExperience?.id == id {
             selectedExperience = nil
             isShowingDetail = false
-            detailOpenedDirectly = false
+            detailEntrySource = .mapPeek
         }
     }
 
