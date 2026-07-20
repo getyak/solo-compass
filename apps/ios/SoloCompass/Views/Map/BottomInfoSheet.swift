@@ -386,101 +386,117 @@ public struct BottomInfoSheet<Content: View>: View {
             // settle animates at compositor cost.
             VStack(spacing: 0) {
                 dragHandleArea(detentHeight: detentHeight, minHeight: minHeight, maxHeight: maxHeight)
-                // City OS Base card slot — only in peek. At mid/full the space
-                // yields to the list, matching the old floating card's
-                // `sheetDetent == .peek` gate. Horizontal padding matches the
-                // peek summary card below (16) so the two align.
-                if currentDetent == .peek, let peekHeaderContent {
-                    peekHeaderContent()
+                // Everything BELOW the handle shares ONE co-operative drag so a
+                // pull that begins ANYWHERE in the sheet body — the peek summary
+                // card, its text and its 带我去 / 换一个 buttons, the sort toolbar,
+                // or the list — moves the sheet, exactly like Apple Maps / Find My.
+                // Previously the drag lived only on the inner ScrollView, so at
+                // peek (where the card sits *above* an empty ScrollView) the card
+                // could only be *tapped*, never dragged up. `contentShape` makes
+                // the padding and whitespace grabbable too, and the DragGesture's
+                // `minimumDistance: 8` still lets taps and button presses through.
+                VStack(spacing: 0) {
+                    // City OS Base card slot — only in peek. At mid/full the space
+                    // yields to the list, matching the old floating card's
+                    // `sheetDetent == .peek` gate. Horizontal padding matches the
+                    // peek summary card below (16) so the two align.
+                    if currentDetent == .peek, let peekHeaderContent {
+                        peekHeaderContent()
+                            .padding(.horizontal, 16)
+                            .padding(.top, 6)
+                    }
+                    peekContentArea
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
-                }
-                peekContentArea
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
-                // The sort/count toolbar only belongs above the *list*; in the
-                // peek state the summary card stands alone, so it is gated out.
-                if currentDetent != .peek {
-                    SortCountToolbar(count: count, isNowMode: isNowMode, sortMode: $sortMode)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                }
-                // Single unified scroll layer for every sheet section (Routes →
-                // Create-route → Nearby). The sheet header rows above (handle,
-                // peek/now-hint, toolbar) stay pinned; only the content closure
-                // scrolls. Previously this was a bare `content + Spacer`, so the
-                // Routes + Create-route rows were non-scrollable and only Nearby
-                // carried its own inner ScrollView — a long Routes list pushed
-                // Nearby off-screen with no way to scroll it back, and dragging up
-                // to mid left the route cards stuck (the user's "滑不动"). Hosting
-                // the whole closure in one ScrollView makes the sections a
-                // continuous, naturally scrollable stream (like Apple Maps / Find
-                // My) at *any* detent — mid scrolls the full list, no need to first
-                // expand to full. At .peek the closure is empty, so this is a cheap
-                // no-op.
-                ScrollView {
-                    // iOS 17-compatible scroll-offset probe. A zero-height anchor
-                    // pinned to the content top reports its minY within the
-                    // ScrollView's coordinate space: 0 when the list is at its
-                    // top, negative once scrolled down. (`onScrollGeometryChange`
-                    // would be cleaner but is iOS 18+, and the target is 17.0.)
-                    // We negate it into `listScrollOffset` so "> 0 = scrolled
-                    // down", matching the co-operative-drag ownership rule.
-                    GeometryReader { geo in
-                        Color.clear
-                            .frame(height: 0)
-                            .preference(
-                                key: ListScrollOffsetKey.self,
-                                value: geo.frame(in: .named(Self.listScrollSpace)).minY
-                            )
+                    // The sort/count toolbar only belongs above the *list*; in the
+                    // peek state the summary card stands alone, so it is gated out.
+                    if currentDetent != .peek {
+                        SortCountToolbar(count: count, isNowMode: isNowMode, sortMode: $sortMode)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
                     }
-                    .frame(height: 0)
+                    // Single unified scroll layer for every sheet section (Routes →
+                    // Create-route → Nearby). The sheet header rows above (handle,
+                    // peek/now-hint, toolbar) stay pinned; only the content closure
+                    // scrolls. Previously this was a bare `content + Spacer`, so the
+                    // Routes + Create-route rows were non-scrollable and only Nearby
+                    // carried its own inner ScrollView — a long Routes list pushed
+                    // Nearby off-screen with no way to scroll it back, and dragging up
+                    // to mid left the route cards stuck (the user's "滑不动"). Hosting
+                    // the whole closure in one ScrollView makes the sections a
+                    // continuous, naturally scrollable stream (like Apple Maps / Find
+                    // My) at *any* detent — mid scrolls the full list, no need to first
+                    // expand to full. At .peek the closure is empty, so this is a cheap
+                    // no-op.
+                    ScrollView {
+                        // iOS 17-compatible scroll-offset probe. A zero-height anchor
+                        // pinned to the content top reports its minY within the
+                        // ScrollView's coordinate space: 0 when the list is at its
+                        // top, negative once scrolled down. (`onScrollGeometryChange`
+                        // would be cleaner but is iOS 18+, and the target is 17.0.)
+                        // We negate it into `listScrollOffset` so "> 0 = scrolled
+                        // down", matching the co-operative-drag ownership rule.
+                        GeometryReader { geo in
+                            Color.clear
+                                .frame(height: 0)
+                                .preference(
+                                    key: ListScrollOffsetKey.self,
+                                    value: geo.frame(in: .named(Self.listScrollSpace)).minY
+                                )
+                        }
+                        .frame(height: 0)
 
-                    content(contentDetent, $sortMode)
-                        // Pin content to the top so the column never re-centres
-                        // against the viewport — without this the rows visibly
-                        // jump frame-to-frame, reading as a flicker.
-                        .frame(maxWidth: .infinity, alignment: .top)
-                        .padding(.bottom, 28 * scale)
+                        content(contentDetent, $sortMode)
+                            // Pin content to the top so the column never re-centres
+                            // against the viewport — without this the rows visibly
+                            // jump frame-to-frame, reading as a flicker.
+                            .frame(maxWidth: .infinity, alignment: .top)
+                            .padding(.bottom, 28 * scale)
+                    }
+                    .coordinateSpace(name: Self.listScrollSpace)
+                    .onPreferenceChange(ListScrollOffsetKey.self) { minY in
+                        // minY: 0 at top, negative when scrolled down. Flip sign so
+                        // `listScrollOffset > 0` means "the list has scrolled down".
+                        listScrollOffset = -minY
+                    }
+                    // With the fixed-height + offset layout, the bottom
+                    // `maxHeight − detentHeight` points of the viewport sit below
+                    // the screen edge at peek/mid. This margin extends the
+                    // scrollable range by exactly that amount so the last row can
+                    // still be scrolled up into the visible region. It changes only
+                    // on a detent settle (never per drag frame).
+                    .contentMargins(.bottom, max(0, maxHeight - detentHeight), for: .scrollContent)
+                    // Down-pull-to-refresh removed: the refresh re-ran the full
+                    // nearby POI reload + AI recompile, which the user found
+                    // meaningless during normal browsing (and it stole the downward
+                    // gesture from sheet-collapse). Downward drag now collapses the
+                    // sheet (Apple Maps behaviour) via `contentDragGesture`. The
+                    // `onRefresh` closure is retained on the API for a future
+                    // explicit refresh affordance but is no longer bound to a pull.
+                    //
+                    // Disable native scrolling while EITHER the handle is dragging or
+                    // a content-area drag has claimed the sheet, so the ScrollView
+                    // doesn't re-clamp its offset against the moving sheet and fight
+                    // the drag (flicker). Re-enabled the instant the drag ends.
+                    .scrollDisabled(isDragging || contentDragOwnsSheet == true)
+                    .scrollDismissesKeyboard(.interactively)
+                    // Show the indicator at mid/full as an affordance that more
+                    // content lies below; peek has no scroll content so it stays clean.
+                    .scrollIndicators(currentDetent == .peek ? .hidden : .automatic)
+                    // Suppress the empty bottom rubber-band when content is shorter
+                    // than the viewport, so a short list doesn't feel "loose".
+                    .scrollBounceBehavior(.basedOnSize)
                 }
-                .coordinateSpace(name: Self.listScrollSpace)
-                .onPreferenceChange(ListScrollOffsetKey.self) { minY in
-                    // minY: 0 at top, negative when scrolled down. Flip sign so
-                    // `listScrollOffset > 0` means "the list has scrolled down".
-                    listScrollOffset = -minY
-                }
-                // With the fixed-height + offset layout, the bottom
-                // `maxHeight − detentHeight` points of the viewport sit below
-                // the screen edge at peek/mid. This margin extends the
-                // scrollable range by exactly that amount so the last row can
-                // still be scrolled up into the visible region. It changes only
-                // on a detent settle (never per drag frame).
-                .contentMargins(.bottom, max(0, maxHeight - detentHeight), for: .scrollContent)
-                // Down-pull-to-refresh removed: the refresh re-ran the full
-                // nearby POI reload + AI recompile, which the user found
-                // meaningless during normal browsing (and it stole the downward
-                // gesture from sheet-collapse). Downward drag now collapses the
-                // sheet (Apple Maps behaviour) via `contentDragGesture`. The
-                // `onRefresh` closure is retained on the API for a future
-                // explicit refresh affordance but is no longer bound to a pull.
-                //
-                // Disable native scrolling while EITHER the handle is dragging or
-                // a content-area drag has claimed the sheet, so the ScrollView
-                // doesn't re-clamp its offset against the moving sheet and fight
-                // the drag (flicker). Re-enabled the instant the drag ends.
-                .scrollDisabled(isDragging || contentDragOwnsSheet == true)
-                .scrollDismissesKeyboard(.interactively)
-                // Show the indicator at mid/full as an affordance that more
-                // content lies below; peek has no scroll content so it stays clean.
-                .scrollIndicators(currentDetent == .peek ? .hidden : .automatic)
-                // Suppress the empty bottom rubber-band when content is shorter
-                // than the viewport, so a short list doesn't feel "loose".
-                .scrollBounceBehavior(.basedOnSize)
-                // Apple-Maps-style co-operative drag over the whole list area:
-                // grabbing anywhere in the content can steer the sheet, not just
-                // the handle. `simultaneousGesture` lets it coexist with the
-                // ScrollView — the ownership decision (steer sheet vs. let the
-                // list scroll) is made once per drag in `contentDragGesture`.
+                // Apple-Maps-style co-operative drag over the ENTIRE sheet body —
+                // the peek summary card, its text and buttons, the sort toolbar,
+                // AND the list — so a pull that begins anywhere steers the sheet,
+                // not just the handle. `contentShape(Rectangle())` makes the peek
+                // whitespace grabbable; `simultaneousGesture` lets the drag coexist
+                // with the inner ScrollView — the ownership decision (steer sheet
+                // vs. let the list scroll) is made once per drag in
+                // `contentDragGesture`, and its `minimumDistance: 8` still lets
+                // taps and button presses through untouched.
+                .contentShape(Rectangle())
                 .simultaneousGesture(
                     contentDragGesture(
                         detentHeight: detentHeight,
