@@ -86,6 +86,10 @@ public final class VoiceAgentToolRouter {
         /// City OS v2: 在地 events surfaced by `find_local_events`, rendered as
         /// `ChatEventCard`s the user can tap to jump to on the map.
         case events([CityEvent])
+        /// Live web-search sources surfaced by `web_search`, rendered as
+        /// tappable source-link cards (Perplexity-style provenance) beneath the
+        /// agent's grounded answer.
+        case webSources([WebSearchResult])
     }
     public private(set) var lastEffect: ToolEffect?
 
@@ -97,18 +101,24 @@ public final class VoiceAgentToolRouter {
     /// the model never invents day counts.
     private weak var complianceService: ComplianceService?
 
+    /// Live web search backing the `web_search` tool. Defaults to the shared
+    /// instance; injectable so tests can stub the network.
+    private let webSearchService: WebSearchService
+
     public init(
         mapViewModel: MapViewModel,
         preferences: UserPreferences,
         aiService: AIService? = nil,
         cityBriefService: CityBriefService? = nil,
-        complianceService: ComplianceService? = nil
+        complianceService: ComplianceService? = nil,
+        webSearchService: WebSearchService? = nil
     ) {
         self.mapViewModel = mapViewModel
         self.preferences = preferences
         self.aiService = aiService
         self.cityBriefService = cityBriefService
         self.complianceService = complianceService
+        self.webSearchService = webSearchService ?? WebSearchService.shared
     }
 
     // MARK: - Tool catalog
@@ -132,6 +142,21 @@ public final class VoiceAgentToolRouter {
                 "rating_min":     {"type": "number", "minimum": 0, "maximum": 10, "description": "Minimum provider rating"},
                 "ambiance_min":   {"type": "number", "minimum": 0, "maximum": 10, "description": "Minimum ambiance fit score"},
                 "progressive":    {"type": "boolean", "default": true, "description": "When true, use progressive multi-ring explore (recommended)"}
+              }
+            }
+            """#
+        ),
+        .init(
+            name: "web_search",
+            description: "Search the live web for current, real-world information you don't already know or that changes over time — opening hours, this week's events/exhibitions, recent news, prices, whether a place still exists, travel advisories. Returns real web pages (title, url, snippet) to ground your answer; cite them. Use this instead of guessing from training knowledge whenever the question is time-sensitive or asks about a specific real place/event. Do NOT use it for on-map actions (use explore_nearby / search_places for those).",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "required": ["query"],
+              "properties": {
+                "query": {"type": "string", "description": "The natural-language search query, e.g. 'exhibitions in Shenzhen this week' or 'Giang Cafe Hanoi opening hours'"},
+                "topic": {"type": "string", "enum": ["general", "news"], "default": "general", "description": "Use 'news' for time-sensitive/recent-events queries; 'general' otherwise"},
+                "days": {"type": "integer", "minimum": 1, "maximum": 30, "description": "For topic=news only: how many days back to search"}
               }
             }
             """#
@@ -444,6 +469,8 @@ public final class VoiceAgentToolRouter {
                 return try executeDismissRecommendation(args: call.argumentsJSON)
             case "search_places":
                 return try await executeSearchPlaces(args: call.argumentsJSON)
+            case "web_search":
+                return try await executeWebSearch(args: call.argumentsJSON)
             case "navigate_to":
                 return try executeNavigateTo(args: call.argumentsJSON)
             case "filter_visible":
@@ -700,6 +727,47 @@ public final class VoiceAgentToolRouter {
             "progressive": useProgressive,
             "auto_expanded_stages": stagesExpanded,
             "search_exhausted": ladderExhausted,
+        ])
+    }
+
+    // MARK: - web_search (live web search via Tavily)
+
+    private struct WebSearchArgs: Decodable {
+        let query: String
+        let topic: String?
+        let days: Int?
+    }
+
+    /// Run a live web search and hand the model back real pages to ground its
+    /// answer. The result envelope includes the snippets (so the model can cite
+    /// them) and sets `lastEffect = .webSources` (so the UI can render tappable
+    /// source cards). Best-effort: an empty result set is a valid, non-error
+    /// outcome — the model then answers from its own knowledge and says so.
+    private func executeWebSearch(args: String) async throws -> String {
+        let parsed: WebSearchArgs = try Self.decode(args, tool: "web_search")
+        let query = parsed.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            throw RouterError.invalidArguments(tool: "web_search", reason: "query must not be empty")
+        }
+
+        let topic: WebSearchService.Topic = (parsed.topic == "news") ? .news : .general
+        let results = await webSearchService.search(query: query, topic: topic, days: parsed.days)
+
+        // Surface source cards to the UI only when the search actually returned
+        // pages — an empty result leaves the chat clean.
+        if !results.isEmpty {
+            lastEffect = .webSources(results)
+        }
+
+        // Model-facing envelope: the snippets are what it summarizes. Keep it
+        // compact — title, url, and the bounded content per source.
+        let sources: [[String: Any]] = results.map { r in
+            ["title": r.title, "url": r.url, "content": r.content]
+        }
+        return Self.successJSON([
+            "query": query,
+            "result_count": results.count,
+            "sources": sources,
         ])
     }
 

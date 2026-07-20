@@ -25,6 +25,16 @@ import os
 public final class EnrichmentAgent {
     private static let logger = Logger(subsystem: "com.solocompass", category: "EnrichmentAgent")
 
+    /// Progress callback fired at each stage of the enrichment loop so a UI can
+    /// render a live feed instead of an opaque spinner. Always invoked on the
+    /// main actor. Optional — passing `nil` (the default) keeps the silent path
+    /// for background auto-upgrades and tests.
+    public typealias ProgressHandler = @MainActor (
+        CompileProgressEvent.Stage,
+        CompileProgressEvent.Status,
+        String
+    ) -> Void
+
     /// Default search radius. Deliberately small — the whole point is depth
     /// over breadth. Callers can widen it for a sparse area.
     public static let defaultRadiusMeters = 800
@@ -265,28 +275,48 @@ public final class EnrichmentAgent {
         category: ExperienceCategory? = nil,
         cityCode: String,
         locale: Locale = .current,
-        topN: Int = EnrichmentAgent.defaultTopN
+        topN: Int = EnrichmentAgent.defaultTopN,
+        onProgress: ProgressHandler? = nil
     ) async throws -> [Experience] {
+        // Which base provider is authoritative here — reported to the feed so
+        // the user sees "Amap" in China vs "OpenStreetMap" overseas.
+        let inCN = CoordinateConverter.isInsideChinaMainland(coordinate)
+        let baseStage: CompileProgressEvent.Stage =
+            (inCN && amapService != nil && DataSourceSettings.policy.allowsAmap) ? .amap : .overpass
+
         // 1. Base collection, routed by region: Amap inside mainland China
         //    (authoritative there), Overpass overseas / on fallback. MapKit is
         //    folded in best-effort. Returns WGS84 regardless of source.
+        onProgress?(baseStage, .running, "")
+        onProgress?(.mapKit, .running, "")
         var pois = try await basePOIs(
             near: coordinate, radiusMeters: radiusMeters, category: category
         )
-        guard !pois.isEmpty else { return [] }
+        guard !pois.isEmpty else {
+            onProgress?(baseStage, .failure, NSLocalizedString("recompile.feed.noPOIs", comment: "No POIs found nearby"))
+            onProgress?(.mapKit, .failure, "")
+            return []
+        }
+        onProgress?(baseStage, .success, String(format: NSLocalizedString("recompile.feed.poiCount", comment: "N places found"), pois.count))
+        onProgress?(.mapKit, .success, "")
 
         // 2. Fold Foursquare hard signals into the matching base POIs. One
         //    region call (with fields) covers the whole small radius. Skipped
         //    when no key is configured.
         if !Secrets.resolvedFoursquareKey.isEmpty {
+            onProgress?(.foursquare, .running, "")
             do {
                 let fsq = try await foursquareService.fetchPOIs(
                     near: coordinate, radiusMeters: radiusMeters, category: category
                 )
                 pois = FoursquareService.enrichMerge(base: pois, enrichment: fsq)
+                onProgress?(.foursquare, .success, String(format: NSLocalizedString("recompile.feed.signalCount", comment: "N signals"), fsq.count))
             } catch {
                 Self.logger.error("Foursquare enrichment failed: \(String(describing: error), privacy: .public)")
+                onProgress?(.foursquare, .failure, "")
             }
+        } else {
+            onProgress?(.foursquare, .skipped, NSLocalizedString("recompile.feed.noKey", comment: "No API key configured"))
         }
 
         // 3. Fold the ephemeral Amap enrichment channel (rating / hours /
@@ -299,17 +329,31 @@ public final class EnrichmentAgent {
         pois = foldAmapEnrichments(into: pois)
 
         // 4. Rank by signal richness (now rating-aware), keep the deepest N.
+        onProgress?(.ranking, .running, "")
         let ranked = Array(
             pois.sorted { Self.signalScore($0) > Self.signalScore($1) }.prefix(topN)
         )
+        onProgress?(.ranking, .success, String(format: NSLocalizedString("recompile.feed.keptCount", comment: "kept top N"), ranked.count))
 
         // 5. Backfill a street-level address on survivors missing one.
+        onProgress?(.address, .running, "")
         let enriched = await backfillAddresses(ranked)
+        onProgress?(.address, .success, "")
 
         // 6. Synthesize. The (already-relaxed) prompt cites the real signals.
-        return try await aiService.synthesizeExperiences(
+        onProgress?(.synthesis, .running, "")
+        let synthesized = try await aiService.synthesizeExperiences(
             from: enriched, cityCode: cityCode, locale: locale
         )
+        // Honest signal: an AI-enriched result means the model actually ran; a
+        // pure skeleton (no key / quota) leaves `isAIEnriched` false everywhere.
+        let didSynthesize = synthesized.contains { $0.isAIEnriched }
+        onProgress?(
+            .synthesis,
+            didSynthesize ? .success : .skipped,
+            didSynthesize ? "" : NSLocalizedString("recompile.feed.noAI", comment: "AI unavailable, used local ranking")
+        )
+        return synthesized
     }
 
     // MARK: - Single-entry Re-compile
@@ -327,9 +371,13 @@ public final class EnrichmentAgent {
     public func recompile(
         experience: Experience,
         radiusMeters: Int = EnrichmentAgent.recompileRadiusMeters,
-        locale: Locale = .current
+        locale: Locale = .current,
+        onProgress: ProgressHandler? = nil
     ) async -> Experience? {
-        guard let coordinate = experience.coordinate else { return nil }
+        guard let coordinate = experience.coordinate else {
+            onProgress?(.adopt, .failure, NSLocalizedString("recompile.feed.noCoordinate", comment: "Place has no coordinate"))
+            return nil
+        }
 
         let candidates: [Experience]
         do {
@@ -339,10 +387,12 @@ public final class EnrichmentAgent {
                 category: experience.category,
                 cityCode: experience.location.cityCode,
                 locale: locale,
-                topN: EnrichmentAgent.recompileTopN
+                topN: EnrichmentAgent.recompileTopN,
+                onProgress: onProgress
             )
         } catch {
             Self.logger.error("Re-compile failed for \(experience.id, privacy: .public): \(String(describing: error), privacy: .public)")
+            onProgress?(.adopt, .failure, NSLocalizedString("recompile.feed.pipelineError", comment: "Pipeline error"))
             return nil
         }
 
@@ -359,21 +409,30 @@ public final class EnrichmentAgent {
             }
             .min { $0.1 < $1.1 }
 
-        guard let (enrichedMatch, matchDistance) = best else { return nil }
+        guard let (enrichedMatch, matchDistance) = best else {
+            onProgress?(.adopt, .failure, NSLocalizedString("recompile.feed.noMatch", comment: "No matching venue nearby"))
+            return nil
+        }
 
         // Only return an upgrade if it actually went through AI synthesis with
         // real cross-source signals. A skeleton fallback is not an upgrade.
-        guard enrichedMatch.isAIEnriched else { return nil }
+        guard enrichedMatch.isAIEnriched else {
+            onProgress?(.adopt, .failure, NSLocalizedString("recompile.feed.skeletonOnly", comment: "Only skeleton data, not an upgrade"))
+            return nil
+        }
 
+        onProgress?(.adopt, .running, "")
         guard Self.shouldAdoptRecompiled(
             original: experience,
             candidate: enrichedMatch,
             distanceMeters: matchDistance
         ) else {
             Self.logger.info("Re-compile match rejected for \(experience.id, privacy: .public): different venue or lower quality")
+            onProgress?(.adopt, .failure, NSLocalizedString("recompile.feed.rejected", comment: "Different venue or lower quality"))
             return nil
         }
 
+        onProgress?(.adopt, .success, "")
         return experience.adoptingContent(of: enrichedMatch)
     }
 

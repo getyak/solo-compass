@@ -791,6 +791,16 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     list.count
                 )
             ))
+        case let .webSources(list):
+            guard !list.isEmpty else { return }
+            card = .webSources(id: UUID(), list)
+            reasoningTrace.append(ReasoningStep(
+                kind: .insight,
+                label: String(
+                    format: NSLocalizedString("agent.trace.foundSources", comment: "Cited N web sources"),
+                    list.count
+                )
+            ))
         }
         provisionalCards.append(card: card, to: messageId, at: Date())
         syncCardsSnapshot()
@@ -1028,6 +1038,8 @@ public final class VoiceAgentOrchestrator: Identifiable {
             return NSLocalizedString("agent.step.dismiss", comment: "✕ Dismissing…")
         case "search_places":
             return NSLocalizedString("agent.step.search", comment: "🔍 Searching places…")
+        case "web_search":
+            return NSLocalizedString("agent.step.webSearch", comment: "🌐 Searching the web…")
         case "navigate_to":
             return NSLocalizedString("agent.step.navigate", comment: "🗺 Opening navigation…")
         case "build_route":
@@ -1118,6 +1130,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         8. build_route(experience_ids?) — String nearby places into ONE walkable route, ordered into a sensible walk, with a "why now" line reflecting the time, weather, and which places the user has or hasn't visited. The route appears as a card the user can adopt — it is NOT saved until they tap adopt. Use when the user asks you to plan a walk or string places together.
         9. get_city_kit(city_code?, kinds?) — Return the 落地包 landing-kit essentials for the current city: connectivity, money, visa/tax, safety. Use for "how do I get online / get cash / visa rules / days left / emergency numbers". Visa day counts come from the user's own stored data — if `visa_setup_needed` is returned, tell them to set their entry date in the 落地包; NEVER invent day counts.
         10. find_local_events(city_code?, within_days?, solo_score_min?, query?) — Find 在地 local happenings this week with a solo-friendliness score and a "good to go alone?" note. Results appear as tappable cards the user can jump to on the map. Use for "what's on this weekend / anything happening / something to do alone".
+        11. web_search(query, topic?, days?) — Search the LIVE web for current, real-world facts you don't reliably know or that change over time: opening hours, this week's exhibitions/events, recent news, prices, whether a place still exists, travel advisories. Returns real pages that appear to the user as source-link cards. ALWAYS prefer this over guessing from memory when a question is time-sensitive or about a specific real place/event, and CITE what you find ("according to …"). Use topic="news" (with optional days) for recent happenings. This does NOT touch the map — for on-map discovery use explore_nearby / search_places.
 
         PLAN BLOCKS (① plan-execute-reflect):
         - Some turns will be preceded by a `<plan>...</plan>` system block containing a JSON plan with an ordered `steps` array.

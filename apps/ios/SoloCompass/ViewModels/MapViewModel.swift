@@ -78,6 +78,21 @@ public final class MapViewModel {
     /// change, no cost on paths that never trigger a hydrate, still injectable.
     @ObservationIgnored
     private lazy var cityExperienceFetcher = CityExperienceFetcher()
+
+    /// MapKit-backed free-text POI search. Separate instance from the one inside
+    /// `enrichmentAgent` — `MKLocalSearch` is stateless, so sharing buys nothing,
+    /// and keeping it here avoids widening the agent's surface. `lazy` so tests
+    /// and non-search sessions never allocate it.
+    @ObservationIgnored
+    private lazy var searchMapKitService = MapKitPOIService()
+
+    /// True while a web POI search is in flight — drives the search bar spinner.
+    public var isSearchingWeb = false
+
+    /// Result of the last web search, surfaced to the user: the query and how
+    /// many new pins it dropped. `nil` until a search runs. Lets the empty-state
+    /// button turn into "Found N places" feedback instead of silently reloading.
+    public var lastWebSearchResult: (query: String, added: Int)?
     /// Cities already hydrated from the backend this session, so a repeated
     /// `selectCity` (e.g. GPS re-follow) fires at most one network read per city.
     @ObservationIgnored
@@ -314,6 +329,16 @@ public final class MapViewModel {
     /// when idle. Drives the per-card spinner so the rest of the UI stays live.
     public var recompilingExperienceId: String?
 
+    /// Live feed backing the deep cross-compile sheet. A manual recompile
+    /// resets and drives this so the user watches the agent loop run instead of
+    /// a bare spinner; the background auto-upgrade path leaves it untouched.
+    public let recompileProgress = RecompileProgressStore()
+
+    /// Drives presentation of the cross-compile feed sheet. Set true the instant
+    /// the user taps "deep cross-compile" — the sheet appears immediately, before
+    /// any network call, so the tap always has a visible response.
+    public var isShowingRecompileFeed = false
+
     /// Ids re-compiled (or auto-upgraded) this session, so the on-demand
     /// auto-upgrade (Approach C) never spends quota on the same card twice.
     /// Manual re-compile (Approach A) bypasses this — the user asked for it.
@@ -366,6 +391,61 @@ public final class MapViewModel {
         await runRecompile(experience, manual: false)
     }
 
+    // MARK: - Web POI Search
+
+    /// Free-text POI search that reaches the live map providers instead of only
+    /// filtering the cards already on screen.
+    ///
+    /// The Nearby search box filters `experiences` locally — so a query for a
+    /// place that hasn't been explored yet always comes up empty. This drops
+    /// that ceiling: it asks Apple MapKit (free, key-less, no Pro gate) for POIs
+    /// matching the query near the reference point, converts each hit into a
+    /// skeleton `Experience`, and appends them to the map. The user can then tap
+    /// any new pin and run the (Pro) deep cross-compile to enrich it.
+    ///
+    /// Deliberately lightweight: no paywall, no consent gate, no AI quota spend.
+    /// Discovery should be instant and free; enrichment is the paid step.
+    ///
+    /// - Parameters:
+    ///   - query: The user-typed search string. Empty/whitespace is a no-op.
+    ///   - coordinate: Center to bias results toward (map center or user fix).
+    @discardableResult
+    public func webSearchPOIs(
+        query: String,
+        near coordinate: CLLocationCoordinate2D
+    ) async -> Int {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !isSearchingWeb else { return 0 }
+
+        isSearchingWeb = true
+        defer { isSearchingWeb = false }
+
+        let pois: [OverpassService.POI]
+        do {
+            pois = try await searchMapKitService.search(query: trimmed, near: coordinate)
+        } catch {
+            lastWebSearchResult = (trimmed, 0)
+            return 0
+        }
+
+        guard !pois.isEmpty else {
+            lastWebSearchResult = (trimmed, 0)
+            return 0
+        }
+
+        // Skeleton conversion mirrors the free/Overpass explore path — name +
+        // coords + generic tagline, honestly attributed to MapKit. Enrichment is
+        // the user's next (optional, Pro) step via deep cross-compile.
+        let cityCode = selectedCity ?? ""
+        let skeletons = pois.map { AIService.skeletonExperience(from: $0, cityCode: cityCode) }
+        let added = experienceService.appendGenerated(skeletons)
+        lastWebSearchResult = (trimmed, added)
+        if added > 0 {
+            Haptics.notify(.success)
+        }
+        return added
+    }
+
     /// Shared re-compile body for both manual (A) and auto (C) paths. Stamps
     /// the session cache, drives the spinner, calls the agent, and swaps the
     /// upgraded content in place. `aiService.isProTier` is synced so the
@@ -376,12 +456,36 @@ public final class MapViewModel {
         recompilingExperienceId = experience.id
         defer { recompilingExperienceId = nil }
 
+        // Manual taps drive the visible feed sheet: reset the store and present
+        // it NOW, before the first network call, so the tap always responds and
+        // the user watches each stage of the agent loop resolve. The silent
+        // background auto-upgrade path leaves the store and sheet untouched.
+        let progressHandler: EnrichmentAgent.ProgressHandler?
+        if manual {
+            recompileProgress.begin(placeName: experience.shortName)
+            isShowingRecompileFeed = true
+            progressHandler = { [weak self] stage, status, detail in
+                self?.recompileProgress.emit(stage, status, detail)
+            }
+        } else {
+            progressHandler = nil
+        }
+
         guard let upgraded = await enrichmentAgent.recompile(
             experience: experience,
-            locale: LanguageService.shared.effectiveLocale
+            locale: LanguageService.shared.effectiveLocale,
+            onProgress: progressHandler
         ) else {
-            // Manual taps deserve feedback when nothing richer was found.
+            // Manual taps deserve feedback when nothing richer was found — the
+            // feed's terminal line now carries the reason, so no silent spinner.
             if manual {
+                recompileProgress.finish(
+                    upgraded: false,
+                    detail: NSLocalizedString(
+                        "recompile.feed.noChange",
+                        comment: "Terminal feed line when nothing richer was found"
+                    )
+                )
                 lastExploreToast = NSLocalizedString(
                     "recompile.toast.noChange",
                     comment: "Shown when a manual deep re-compile found nothing richer"
@@ -396,6 +500,13 @@ public final class MapViewModel {
             selectedExperience = upgraded
         }
         if manual {
+            recompileProgress.finish(
+                upgraded: true,
+                detail: NSLocalizedString(
+                    "recompile.feed.upgraded",
+                    comment: "Terminal feed line when the card was upgraded"
+                )
+            )
             lastExploreToast = NSLocalizedString(
                 "recompile.toast.success",
                 comment: "Shown after a manual deep re-compile upgrades a card"

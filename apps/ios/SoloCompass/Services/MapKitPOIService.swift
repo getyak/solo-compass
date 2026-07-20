@@ -74,6 +74,59 @@ public final class MapKitPOIService {
         return response.mapItems.compactMap { Self.poi(from: $0) }
     }
 
+    /// Free-text POI search — the missing piece the local card filter can't do.
+    ///
+    /// `MKLocalPointsOfInterestRequest` (used by `fetchPOIs`) can only return
+    /// "everything of category X near a point"; it takes no query string. To
+    /// answer "find me izakayas" the user must be able to *type* — that's what
+    /// `MKLocalSearch.Request.naturalLanguageQuery` is for. We bias the results
+    /// toward the user's current map region so "coffee" surfaces nearby cafes
+    /// rather than a city across the country.
+    ///
+    /// Best-effort: an empty MapKit result (which surfaces as an `MKError` on
+    /// some OS versions) degrades to `[]` rather than throwing, so the caller
+    /// can render an honest "no results" state instead of an error banner.
+    ///
+    /// - Parameters:
+    ///   - query: The raw, user-typed search string. Whitespace-trimmed here;
+    ///     an empty query short-circuits to `[]` (no wasted network call).
+    ///   - coordinate: Center of the region to bias results toward.
+    ///   - radiusMeters: Half-span of the search region (default 20 km — wide
+    ///     enough to cover a city, tight enough to stay locally relevant).
+    public func search(
+        query: String,
+        near coordinate: CLLocationCoordinate2D,
+        radiusMeters: Int = 20_000
+    ) async throws -> [OverpassService.POI] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        isFetching = true
+        defer { isFetching = false }
+
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = trimmed
+        request.region = MKCoordinateRegion(
+            center: coordinate,
+            latitudinalMeters: CLLocationDistance(radiusMeters * 2),
+            longitudinalMeters: CLLocationDistance(radiusMeters * 2)
+        )
+
+        let search = MKLocalSearch(request: request)
+        let response: MKLocalSearch.Response
+        do {
+            response = try await search.start()
+        } catch {
+            let ns = error as NSError
+            if ns.domain == MKError.errorDomain {
+                return []
+            }
+            throw MapKitPOIError.searchFailed(String(describing: error))
+        }
+
+        return response.mapItems.compactMap { Self.poi(from: $0) }
+    }
+
     // MARK: - Mapping
 
     /// Convert an `MKMapItem` into an `OverpassService.POI`. Returns nil when

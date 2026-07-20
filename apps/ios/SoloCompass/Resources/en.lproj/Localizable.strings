@@ -603,6 +603,7 @@
 "search.experiences.placeholder" = "Search experiences";
 "search.clear" = "Clear search";
 "search.empty.title" = "No results for \"%@\"";
+"search.web.cta" = "Search the map for \"%@\"";
 "favorites.search.noResults" = "No matches for \"%@\"";
 "favorites.search.noResults.hint" = "Try a different word, or clear your search.";
 /* VoiceOver announcement when favorites search returns results: "%d matching favorites" */
@@ -746,6 +747,37 @@
 "recompile.inProgress" = "Cross-compiling…";
 "recompile.toast.success" = "Upgraded with cross-source detail";
 "recompile.toast.noChange" = "Already as detailed as we can get this one";
+
+// Deep cross-compile live feed sheet
+"recompile.feed.title" = "Deep cross-compile";
+"recompile.feed.subtitle" = "Cross-referencing multiple sources…";
+"recompile.feed.working" = "Working…";
+"recompile.feed.upgraded" = "Upgraded with richer cross-source detail.";
+"recompile.feed.noChange" = "Nothing richer was found — the card is unchanged.";
+"recompile.feed.poiCount" = "%d places found";
+"recompile.feed.signalCount" = "%d rich signals";
+"recompile.feed.keptCount" = "Kept the top %d";
+"recompile.feed.noPOIs" = "No places found nearby";
+"recompile.feed.noKey" = "No API key — skipped";
+"recompile.feed.noAI" = "AI unavailable — used local ranking";
+"recompile.feed.noCoordinate" = "This place has no coordinate to compile around";
+"recompile.feed.pipelineError" = "Something went wrong fetching data";
+"recompile.feed.noMatch" = "No matching venue nearby";
+"recompile.feed.skeletonOnly" = "Only basic data available — not an upgrade";
+"recompile.feed.rejected" = "Closest match was a different venue or lower quality";
+// Cross-compile stage labels
+"recompile.stage.start" = "Deep cross-compile started";
+"recompile.stage.amap" = "Querying Amap (AutoNavi)";
+"recompile.stage.mapKit" = "Querying Apple Maps";
+"recompile.stage.overpass" = "Querying OpenStreetMap";
+"recompile.stage.foursquare" = "Folding in Foursquare signals";
+"recompile.stage.ranking" = "Ranking by signal richness";
+"recompile.stage.address" = "Backfilling street addresses";
+"recompile.stage.synthesis" = "Synthesizing with AI";
+"recompile.stage.webVerify" = "Verifying details on the web";
+"recompile.stage.adopt" = "Matching to this place";
+"recompile.stage.done" = "Done";
+"recompile.stage.failed" = "Finished";
 "explore.aiBadge" = "AI-generated · OpenStreetMap";
 "explore.osmBadge" = "OpenStreetMap · not enriched";
 "trustBadge.verified" = "%d sources";
@@ -910,6 +942,7 @@
 "agent.step.save" = "❤️ Saving to favorites…";
 "agent.step.dismiss" = "✕ Dismissing…";
 "agent.step.search" = "🔍 Searching places…";
+"agent.step.webSearch" = "🌐 Searching the web…";
 "agent.step.navigate" = "🗺 Opening navigation…";
 "agent.step.buildRoute" = "🧭 Stringing a route together…";
 "agent.step.executing" = "⚙️ Executing…";
@@ -918,6 +951,11 @@
 "agent.trace.foundPlaces" = "Found %d place(s) that fit";
 "agent.trace.builtRoute" = "Strung %d stops into a walk";
 "agent.trace.foundEvents" = "Found %d local event(s)";
+"agent.trace.foundSources" = "Cited %d web source(s)";
+
+/* Web-search source cards (in-chat provenance) */
+"chat.sources.title" = "Sources";
+"chat.sources.a11y" = "Source %1$d: %2$@, from %3$@";
 "chat.thinking.title" = "Thinking it through";
 "chat.thinking.a11y" = "Solo Compass is thinking";
 
@@ -1463,6 +1501,7 @@
 "action.ok" = "OK";
 "action.cancel" = "Cancel";
 "action.done" = "Done";
+"action.hide" = "Hide";
 
 /* ============================================================
  * Companion Hub — entry point on the map
