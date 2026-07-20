@@ -7,21 +7,22 @@ import XCTest
 ///
 ///     selectedExperience != nil && !isShowingDetail
 ///
-/// Tap-vs-long-press model (all card/pin entry points behave the same):
-///   • TAP a card/pin (`openExperienceDetail`) jumps straight to the detail
-///     sheet — `selectedExperience` is set AND `isShowingDetail = true`;
+/// Tap-vs-long-press model — the dismiss destination depends on how detail was
+/// reached (`MapViewModel.DetailEntrySource`):
+///   • TAP a card/pin (`openExperienceDetail`) jumps straight to detail as
+///     `.listTap` — `selectedExperience` is set AND `isShowingDetail = true`;
+///     backing out CLEARS the selection → clean list, no floating card left over;
 ///   • LONG-PRESS a card/pin (`selectExperience`) floats the quick preview card
-///     instead — it does NOT open detail;
-///   • the preview card's expand action opens the detail sheet
-///     (isShowingDetail = true);
-///   • backing out of detail (dismissDetail) FALLS BACK to the preview card —
-///     selection is retained, because detail is a layer above the preview;
-///   • the card's own dismiss (clearSelection) is the only thing that returns
-///     to the bare map.
+///     as `.mapPeek` — it does NOT open detail;
+///   • the preview card's expand action opens the detail sheet above the peek;
+///     backing out FALLS BACK to that preview card (selection retained), because
+///     detail is a layer above a card the user deliberately summoned;
+///   • the card's own dismiss (clearSelection) returns to the bare map and
+///     resets the entry source.
 ///
-/// Regression guard for the "退出详情后悬窗残留" report: backing out of detail
-/// lands on the preview card (selection retained), and `clearSelection` gives a
-/// clean exit to the bare map.
+/// P3 regression guard for the "退出详情后悬窗残留 / Starbucks card floating over
+/// the list" report: a list-tap dismiss must NOT leave a preview card hovering
+/// over the list, while the long-press peek fall-back stays intact.
 @MainActor
 final class PreviewCardLifecycleTests: XCTestCase {
 
@@ -72,35 +73,63 @@ final class PreviewCardLifecycleTests: XCTestCase {
                        "the preview card must NOT float on a tap — detail is up")
     }
 
-    // MARK: - Tap → back-out falls back to the preview card
+    // MARK: - List/pin tap → back-out returns to a CLEAN list (no floating card)
 
-    func testOpenDetailThenDismissFallsBackToCard() throws {
+    /// P3 regression: a Nearby/pin *tap* opens detail as `.listTap`; backing out
+    /// must clear the selection so no preview card is left hovering over the list
+    /// ("Starbucks card floating above the list" / 退出详情后悬窗残留). This is the
+    /// listTap ≠ mapPeek distinction — a tap has no card underneath to fall back
+    /// to, unlike the long-press peek path below.
+    func testListTapDetailThenDismissClearsSelection() throws {
         let vm = makeViewModel()
         let exp = try firstExperience(vm)
 
-        vm.openExperienceDetail(exp)         // tap → detail
+        vm.openExperienceDetail(exp)         // list/pin tap → detail (.listTap)
+        XCTAssertEqual(vm.detailEntrySource, .listTap,
+                       "a tap into detail must record the listTap source")
         vm.dismissDetail()                   // back out of detail
-        XCTAssertTrue(cardIsFloating(vm),
-                      "backing out of a tapped detail still lands on the card")
-        XCTAssertEqual(vm.selectedExperience?.id, exp.id,
-                       "selection retained after dismissing a tapped detail")
+        XCTAssertNil(vm.selectedExperience,
+                     "dismissing a list-tapped detail must clear selection — no floating card")
+        XCTAssertFalse(cardIsFloating(vm),
+                       "no preview card may hover over the clean list after a list-tap dismiss")
+        XCTAssertFalse(vm.isShowingDetail)
     }
 
-    // MARK: - Card → detail → back lands on the card again
+    // MARK: - Long-press peek → card → detail → back lands on the card again
 
-    func testExpandThenDismissDetailFallsBackToCard() throws {
+    /// Approach C: long-press floats the preview card (`.mapPeek`), the card's
+    /// expand opens detail *above* it, and backing out peels only the detail
+    /// layer — the deliberately-summoned card returns, selection retained.
+    func testMapPeekExpandThenDismissDetailFallsBackToCard() throws {
         let vm = makeViewModel()
         let exp = try firstExperience(vm)
 
-        vm.selectExperience(exp)             // card up
+        vm.selectExperience(exp)             // long-press peek → card up (.mapPeek)
+        XCTAssertEqual(vm.detailEntrySource, .mapPeek,
+                       "long-press peek must record the mapPeek source")
         vm.isShowingDetail = true            // onExpand → detail
         XCTAssertFalse(cardIsFloating(vm), "card hidden behind detail")
 
         vm.dismissDetail()                   // back out of detail
         XCTAssertTrue(cardIsFloating(vm),
-                      "dismissing detail must fall back to the preview card")
+                      "dismissing a peek-expanded detail must fall back to the preview card")
         XCTAssertEqual(vm.selectedExperience?.id, exp.id,
-                       "selection is retained on detail dismiss")
+                       "selection is retained on a mapPeek detail dismiss")
+    }
+
+    // MARK: - Source resets to mapPeek after a full clear
+
+    /// A subsequent long-press peek must not inherit a stale `.listTap` source
+    /// from a prior tap — `clearSelection` resets it so the peek → expand →
+    /// dismiss fall-back keeps working.
+    func testClearSelectionResetsEntrySourceToMapPeek() throws {
+        let vm = makeViewModel()
+        let exp = try firstExperience(vm)
+
+        vm.openExperienceDetail(exp)         // .listTap
+        vm.clearSelection()
+        XCTAssertEqual(vm.detailEntrySource, .mapPeek,
+                       "clearSelection must reset the entry source to the peek default")
     }
 
     // MARK: - Card dismiss is the only full exit to the bare map
