@@ -134,7 +134,10 @@ Deno.serve(async (req: Request) => {
   }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    return json({ error: "search provider error", status: res.status, detail: text.slice(0, 500) }, 502);
+    return json(
+      { error: "search provider error", status: res.status, detail: text.slice(0, 500) },
+      502,
+    );
   }
 
   const data = (await res.json().catch(() => ({}))) as { results?: TavilyResult[] };
