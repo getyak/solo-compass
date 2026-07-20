@@ -453,6 +453,12 @@ struct CompassMapContentView: View {
             isUserInCity: isUserInCity,
             stage: currentCityStage
         )
+        // Only write when the inference actually changes the stored mode. This
+        // runs on cold start, on every city switch, AND on every GPS fix (see
+        // the `locationService.currentLocation` onChange) — an unconditional
+        // write would churn the Observable preferences blob on every location
+        // tick, and re-render the pill + brief needlessly.
+        guard inferred != cityOSStore.mode(for: cityCode) else { return }
         cityOSStore.setMode(inferred, for: cityCode)
     }
 
@@ -1025,6 +1031,17 @@ struct CompassMapContentView: View {
             }
             .onChange(of: locationService.currentLocation) { _, _ in
                 viewModel.bindToLocation()
+                // City OS v2: the first GPS fix almost always lands AFTER
+                // cold-start inference already ran with no location — and no
+                // location resolves to Plan ("未到 · 计划"). Re-infer now that we
+                // know where the traveler actually is, so someone standing in
+                // their selected city flips Plan → Live instead of staying stuck
+                // on "未到" (the user's "我明明在广州却显示未到"). The inference is
+                // keyed off the *selected* city's centre vs. the fix, so a city
+                // deliberately picked to plan a future trip (far from the fix)
+                // correctly stays Plan; only a fix inside the selected city
+                // promotes it to Live. A finished stay stays Recall (stage gate).
+                inferAndPersistCityMode(for: viewModel.selectedCity)
             }
             // "Entering the app" isn't only a cold launch: when the process
             // survives a trip to another city, returning to the foreground
