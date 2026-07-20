@@ -361,6 +361,77 @@ struct ChatEventCard: View {
     }
 }
 
+// MARK: - ChatWebSourceCard (live web search provenance)
+
+/// One tappable source-link row beneath a web-search-grounded answer. Shows a
+/// numbered citation, the page title, and its host — the same shape a reader
+/// expects from a "sources" footnote. Tapping opens the URL.
+///
+/// Kept deliberately compact (single row, host-only) so a stack of 6 sources
+/// reads as a citation list, not six full cards competing with the answer.
+@MainActor
+struct ChatWebSourceCard: View {
+    /// 1-based citation index, matching how the answer may cite "(1)", "(2)".
+    let index: Int
+    let source: WebSearchResult
+    let onTap: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: {
+            Haptics.impact(.light)
+            onTap()
+        }) {
+            HStack(alignment: .top, spacing: 10) {
+                Text("\(index)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(CT.accent)
+                    .frame(width: 18, height: 18)
+                    .background(Circle().fill(CT.accentSoft))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(source.title.isEmpty ? source.host : source.title)
+                        .font(.subheadline)
+                        .foregroundStyle(CT.textPrimaryAdaptive)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    HStack(spacing: 4) {
+                        Image(systemName: "link")
+                            .font(.system(size: 9, weight: .semibold))
+                        Text(source.host)
+                            .font(.caption2)
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(CT.textMutedAdaptive)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(CT.fgSubtle)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(colorScheme == .dark ? CT.warmCardDark : CT.surfaceWhite)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(CT.borderAdaptive, lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(
+            String(
+                format: NSLocalizedString("chat.sources.a11y", comment: "Source N: title, host"),
+                index, source.title.isEmpty ? source.host : source.title, source.host
+            )
+        ))
+    }
+}
+
 private extension Optional where Wrapped == String {
     var isNilOrEmpty: Bool {
         switch self {

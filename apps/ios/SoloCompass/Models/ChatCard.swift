@@ -25,12 +25,17 @@ public enum ChatCard: Identifiable, Equatable {
     /// Rendered as a stack of `ChatEventCard`s; tapping "在地图上看" jumps to
     /// the event on the map.
     case events(id: UUID, [CityEvent])
+    /// Live web-search sources the agent cited (via `web_search`). Rendered as
+    /// a compact list of tappable source-link cards (title + host) beneath the
+    /// grounded answer — Perplexity-style provenance. Tapping opens the URL.
+    case webSources(id: UUID, [WebSearchResult])
 
     public var id: UUID {
         switch self {
         case let .experiences(id, _): return id
         case let .route(id, _): return id
         case let .events(id, _): return id
+        case let .webSources(id, _): return id
         }
     }
 

@@ -29,6 +29,13 @@ struct NearbySection: View {
     let suggestedCityName: String?
     let onSwitchToSuggestedCity: (() -> Void)?
     let isNowFilter: Bool
+    /// Escalates a local-filter miss to a live MapKit POI search. When nil, the
+    /// empty-search state stays passive (callers that can't reach the map's
+    /// search action, e.g. previews). Given the raw query string.
+    let onWebSearch: ((String) -> Void)?
+    /// True while a `onWebSearch` call is in flight — swaps the button for a
+    /// spinner so a slow network search still reads as "working".
+    let isSearchingWeb: Bool
 
     @Environment(BestNowClock.self) private var clock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -44,9 +51,11 @@ struct NearbySection: View {
         showsSectionDivider: Bool = false,
         isLoading: Bool = false,
         isNowFilter: Bool = false,
+        isSearchingWeb: Bool = false,
         onExploreElsewhere: (() -> Void)? = nil,
         suggestedCityName: String? = nil,
         onSwitchToSuggestedCity: (() -> Void)? = nil,
+        onWebSearch: ((String) -> Void)? = nil,
         onSelectExperience: @escaping (Experience) -> Void,
         onLongPressExperience: ((Experience) -> Void)? = nil,
         onAskSoloExperience: ((Experience) -> Void)? = nil
@@ -58,9 +67,11 @@ struct NearbySection: View {
         self.showsSectionDivider = showsSectionDivider
         self.isLoading = isLoading
         self.isNowFilter = isNowFilter
+        self.isSearchingWeb = isSearchingWeb
         self.onExploreElsewhere = onExploreElsewhere
         self.suggestedCityName = suggestedCityName
         self.onSwitchToSuggestedCity = onSwitchToSuggestedCity
+        self.onWebSearch = onWebSearch
         self.onSelectExperience = onSelectExperience
         self.onLongPressExperience = onLongPressExperience
         self.onAskSoloExperience = onAskSoloExperience
@@ -125,9 +136,13 @@ struct NearbySection: View {
                 .padding(.top, 10)
                 .padding(.bottom, 8)
             } else if !searchText.isEmpty {
-                SearchEmptyView(query: searchText)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
+                SearchEmptyView(
+                    query: searchText,
+                    isSearchingWeb: isSearchingWeb,
+                    onWebSearch: onWebSearch.map { handler in { handler(searchText) } }
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
             }
         }
         .padding(.top, 8)
@@ -591,9 +606,14 @@ private struct ExperienceSearchBar: View {
 
 private struct SearchEmptyView: View {
     let query: String
+    /// True while a live web search triggered from here is in flight.
+    var isSearchingWeb: Bool = false
+    /// When set, renders a "search the web for <query>" button that escalates
+    /// past the local-only card filter to live MapKit results. Nil hides it.
+    var onWebSearch: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .font(.title2)
                 .foregroundStyle(.secondary)
@@ -604,6 +624,37 @@ private struct SearchEmptyView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
+
+            // The local filter only sees cards already on the map. Offer to
+            // reach the live providers so a first-time query isn't a dead end.
+            if let onWebSearch {
+                Button {
+                    Haptics.impact(.light)
+                    onWebSearch()
+                } label: {
+                    HStack(spacing: 6) {
+                        if isSearchingWeb {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "globe")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        Text(String(
+                            format: NSLocalizedString("search.web.cta", comment: "Search live map providers for query"),
+                            query
+                        ))
+                        .font(.subheadline.weight(.medium))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 9)
+                    .background(
+                        Capsule().fill(CT.accentSoft)
+                    )
+                    .foregroundStyle(CT.accent)
+                }
+                .buttonStyle(.plain)
+                .disabled(isSearchingWeb)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)

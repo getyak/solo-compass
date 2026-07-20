@@ -27,6 +27,8 @@ struct ChatCardStack: View {
     /// Wired to `orchestrator.undoCard(id:)` at the ChatSheet layer.
     var onUndoCard: ((UUID) -> Void)? = nil
 
+    @Environment(\.openURL) private var openURL
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
@@ -55,6 +57,8 @@ struct ChatCardStack: View {
                 )
             case let .events(_, list):
                 eventResults(list)
+            case let .webSources(_, list):
+                webSourceResults(list)
             }
         }
         // Slice B: overlay the undo pill only while the entry is
@@ -92,6 +96,30 @@ struct ChatCardStack: View {
             ForEach(list) { event in
                 ChatEventCard(event: event) { tapped in
                     onShowEventOnMap?(tapped)
+                }
+            }
+        }
+    }
+
+    /// Perplexity-style provenance: the live web pages the agent cited via
+    /// `web_search`. A small "Sources" header plus one tappable row per page
+    /// (title + host) — tapping opens the URL in the system browser.
+    @ViewBuilder
+    private func webSourceResults(_ list: [WebSearchResult]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "globe")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(CT.sunGoldDeep)
+                Text(NSLocalizedString("chat.sources.title", comment: "Web sources card header — Sources"))
+                    .font(.caption2.weight(.semibold))
+                    .textCase(.uppercase)
+                    .tracking(0.6)
+                    .foregroundStyle(CT.sunGoldDeep)
+            }
+            ForEach(Array(list.enumerated()), id: \.element.id) { index, source in
+                ChatWebSourceCard(index: index + 1, source: source) {
+                    if let url = URL(string: source.url) { openURL(url) }
                 }
             }
         }

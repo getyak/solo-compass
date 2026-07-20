@@ -1196,6 +1196,15 @@ struct CompassMapContentView: View {
             // dropped this line, leaving the bottom-left settings FAB inert — its
             // `isShowingSettings = true` had no presenter to observe it.
             .sheet(isPresented: settingsSheetBinding) { settingsSheetContent }
+            // Deep cross-compile live feed: presented the instant the user taps
+            // "deep cross-compile" (before any network call), streaming each
+            // stage of the enrichment agent loop instead of a silent spinner.
+            .sheet(isPresented: recompileFeedSheetBinding) {
+                RecompileFeedSheet(
+                    store: viewModel.recompileProgress,
+                    onClose: { viewModel.isShowingRecompileFeed = false }
+                )
+            }
             // One sheet for both route flows (detail + create), driven by the
             // `routeSheet` enum. Hosted here on the outer `mapContent` chain — not
             // on the inner BottomInfoSheet ZStack — so SwiftUI arbitrates it
@@ -1579,6 +1588,7 @@ struct CompassMapContentView: View {
                                     showsSectionDivider: viewModel.isNowFilter,
                                     isLoading: viewModel.isFetchingPOIs,
                                     isNowFilter: viewModel.isNowFilter,
+                                    isSearchingWeb: viewModel.isSearchingWeb,
                                     onExploreElsewhere: {
                                         // Zoom the map out one step by doubling the visible span,
                                         // capped at ±90° lat / ±180° lon, so out-of-range
@@ -1596,6 +1606,15 @@ struct CompassMapContentView: View {
                                     suggestedCityName: viewModel.suggestedCityName,
                                     onSwitchToSuggestedCity: viewModel.suggestedCityCode.map { code in
                                         { viewModel.selectCity(code) }
+                                    },
+                                    onWebSearch: { query in
+                                        // Escalate a local-filter miss to a live MapKit
+                                        // POI search around the same reference point the
+                                        // list uses. Free, no Pro gate — new pins land
+                                        // and become deep-cross-compile candidates.
+                                        let center = locationService.currentLocation?.coordinate
+                                            ?? viewModel.defaultCenterForSelectedCity
+                                        Task { await viewModel.webSearchPOIs(query: query, near: center) }
                                     },
                                     onSelectExperience: { exp in
                                         // Tap → jump straight to the detail sheet.
@@ -1846,6 +1865,13 @@ struct CompassMapContentView: View {
         Binding(
             get: { viewModel.isShowingSettings },
             set: { if !$0 { viewModel.isShowingSettings = false } }
+        )
+    }
+
+    private var recompileFeedSheetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.isShowingRecompileFeed },
+            set: { if !$0 { viewModel.isShowingRecompileFeed = false } }
         )
     }
 

@@ -417,6 +417,37 @@
 "recompile.inProgress" = "交叉编译中…";
 "recompile.toast.success" = "已用多来源信息升级";
 "recompile.toast.noChange" = "这个地点已经尽可能详细了";
+
+// 深度交叉编译实时 feed 弹窗
+"recompile.feed.title" = "深度交叉编译";
+"recompile.feed.subtitle" = "正在交叉比对多个来源…";
+"recompile.feed.working" = "处理中…";
+"recompile.feed.upgraded" = "已用更丰富的多来源信息升级。";
+"recompile.feed.noChange" = "没有找到更丰富的信息——卡片保持不变。";
+"recompile.feed.poiCount" = "找到 %d 个地点";
+"recompile.feed.signalCount" = "%d 条丰富信号";
+"recompile.feed.keptCount" = "保留信号最丰富的 %d 个";
+"recompile.feed.noPOIs" = "附近没有找到地点";
+"recompile.feed.noKey" = "未配置 API 密钥——已跳过";
+"recompile.feed.noAI" = "AI 不可用——改用本地排序";
+"recompile.feed.noCoordinate" = "这个地点没有坐标,无法交叉编译";
+"recompile.feed.pipelineError" = "获取数据时出错";
+"recompile.feed.noMatch" = "附近没有匹配的地点";
+"recompile.feed.skeletonOnly" = "只有基础数据——算不上升级";
+"recompile.feed.rejected" = "最近的匹配是另一个地点或质量更低";
+// 交叉编译各阶段标签
+"recompile.stage.start" = "深度交叉编译已开始";
+"recompile.stage.amap" = "正在查询高德地图";
+"recompile.stage.mapKit" = "正在查询苹果地图";
+"recompile.stage.overpass" = "正在查询 OpenStreetMap";
+"recompile.stage.foursquare" = "正在融合 Foursquare 信号";
+"recompile.stage.ranking" = "按信号丰富度排序";
+"recompile.stage.address" = "正在回填街道地址";
+"recompile.stage.synthesis" = "正在用 AI 合成";
+"recompile.stage.webVerify" = "正在联网核实细节";
+"recompile.stage.adopt" = "正在匹配到这个地点";
+"recompile.stage.done" = "完成";
+"recompile.stage.failed" = "已结束";
 "explore.aiBadge" = "AI 生成 · 来自 OpenStreetMap";
 "explore.osmBadge" = "来自 OpenStreetMap · 未增强";
 "trustBadge.verified" = "%d 源确认";
@@ -1037,7 +1068,12 @@
 "agent.trace.foundPlaces" = "找到 %d 个合适的地方";
 "agent.trace.builtRoute" = "把 %d 个站点串成了一条路线";
 "agent.trace.foundEvents" = "找到 %d 场在地活动";
+"agent.trace.foundSources" = "引用了 %d 个网页来源";
 "chat.thinking.title" = "正在思考";
+
+/* Web 搜索来源卡片(聊天内溯源) */
+"chat.sources.title" = "来源";
+"chat.sources.a11y" = "来源 %1$d:%2$@,来自 %3$@";
 "chat.thinking.a11y" = "Solo Compass 正在思考";
 "agent.trace.summary.steps" = "推理了 %d 步";
 "agent.trace.summary.thought" = "已想清楚";
@@ -1062,6 +1098,7 @@
 "chat.route.stops" = "%1$d 站 · %2$@";
 "agent.step.save" = "❤️ 收藏中…";
 "agent.step.search" = "🔍 搜索地点…";
+"agent.step.webSearch" = "🌐 联网搜索中…";
 "agent.step.showDetails" = "📍 查看详情…";
 "agent.step.thinking" = "思考中…";
 
@@ -1256,6 +1293,7 @@
 "search.experiences.placeholder" = "搜索体验";
 "search.clear" = "清除搜索";
 "search.empty.title" = "没有\"%@\"的结果";
+"search.web.cta" = "在地图上搜索\"%@\"";
 "favorites.search.noResults" = "没有\"%@\"的匹配结果";
 "favorites.search.noResults.hint" = "换个词试试，或清空搜索。";
 "favorites.search.prompt" = "搜索收藏";
@@ -1950,6 +1988,7 @@
 
 /* Actions */
 "action.done" = "完成";
+"action.hide" = "隐藏";
 "action.favorited" = "已收藏";
 "action.notFavorited" = "未收藏";
 
