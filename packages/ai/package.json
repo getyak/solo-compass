@@ -16,7 +16,7 @@
     "@solo-compass/sources-core": "workspace:*",
     "fast-levenshtein": "^3.0.0",
     "openai": "^4.73.0",
-    "posthog-node": "^4.0.0"
+    "posthog-node": "^5.51.2"
   },
   "devDependencies": {
     "@types/fast-levenshtein": "^0.0.4",

@@ -18,25 +18,31 @@ jobs:
     name: typecheck + lint + format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: install
         run: pnpm install --frozen-lockfile
+
+      - name: dependency audit
+        run: pnpm audit --audit-level=low
 
       - name: typecheck
         run: pnpm typecheck
 
       - name: test
         run: pnpm test
+
+      - name: production build
+        run: pnpm build
 
       - name: format check
         run: pnpm format:check
@@ -50,3 +56,27 @@ jobs:
 
       - name: parity check
         run: pnpm parity:check
+
+  go-security:
+    name: Go test + vulnerability scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+
+      - name: verify module checksums
+        run: go mod verify
+
+      - name: test
+        run: go test ./...
+
+      - name: vulnerability scan
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
