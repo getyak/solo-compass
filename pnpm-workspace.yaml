@@ -3,3 +3,24 @@ packages:
   - "apps/bot"
   - "packages/*"
   - "packages/sources/*"
+
+allowBuilds:
+  '@sentry/cli': true
+  core-js: false
+  esbuild: true
+
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+
+update:
+  githubActions: true
+
+overrides:
+  "brace-expansion@2": "2.1.4"
+  "brace-expansion@>=3 <6": "5.0.9"
+  "@esbuild-kit/core-utils@3>esbuild": "0.25.12"
+  "form-data@": "4.0.6"
+  postcss: "8.5.26"
+  sharp: "0.35.3"
+  "undici@": "7.29.0"
+  "ws@": "8.21.0"

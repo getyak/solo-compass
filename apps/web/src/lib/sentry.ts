@@ -1,34 +1,7 @@
-/**
- * Web Sentry init helper.
- *
- * Lazy-initialized — first call wins, subsequent are no-ops. We do this rather
- * than wiring instrumentation.ts so the helper is platform-agnostic and easy
- * to read.
- *
- * beforeSend strips PII: no Mapbox tokens, no transcripts, no message text.
- */
+import type { ErrorEvent } from "@sentry/nextjs";
 
-import * as Sentry from "@sentry/nextjs";
-
-let initialized = false;
-
-export function initSentry(): void {
-  if (initialized || typeof window === "undefined") return;
-  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
-  if (!dsn) return;
-
-  Sentry.init({
-    dsn,
-    environment: process.env.NODE_ENV ?? "development",
-    tracesSampleRate: 0,
-    beforeSend(event) {
-      return scrubPII(event);
-    },
-  });
-  initialized = true;
-}
-
-function scrubPII(event: Sentry.ErrorEvent): Sentry.ErrorEvent {
+/** Strip known secrets and message content before an event leaves the app. */
+export function scrubSentryEvent(event: ErrorEvent): ErrorEvent {
   if (event.user) {
     delete event.user.email;
     delete event.user.username;

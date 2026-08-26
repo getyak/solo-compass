@@ -2,7 +2,7 @@
 #
 # Long-polling locally; webhook in prod (set WEBHOOK_URL).
 
-FROM node:20-alpine AS base
+FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS base
 RUN corepack enable
 WORKDIR /app
 
@@ -23,6 +23,7 @@ COPY apps/bot apps/bot
 WORKDIR /app/apps/bot
 
 ENV NODE_ENV=production
+USER node
 EXPOSE 8080
 
-CMD ["pnpm", "start"]
+CMD ["./node_modules/.bin/tsx", "src/index.ts"]
