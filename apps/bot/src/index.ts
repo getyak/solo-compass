@@ -19,6 +19,7 @@ import type { Experience } from "@solo-compass/core";
 import { DEMO_EXPERIENCES } from "./demo-experiences.js";
 import { getSession, resetSession } from "./session.js";
 import { track, optOut, isOptedOut } from "./lib/analytics.js";
+import { escapeMarkdown } from "./lib/markdown.js";
 import { captureException } from "./lib/sentry.js";
 
 // ─── Config ────────────────────────────────────────────────────────────────────
@@ -54,10 +55,6 @@ function localHour(): number {
   // Demo data is Chiang Mai — UTC+7 fixed for now.
   const utcHour = new Date().getUTCHours();
   return (utcHour + 7) % 24;
-}
-
-function escapeMarkdown(text: string): string {
-  return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, "\\$1");
 }
 
 function firstSourceLink(exp: Experience): string | undefined {

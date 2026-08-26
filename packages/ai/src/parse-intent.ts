@@ -18,6 +18,10 @@ export interface IntentFilters {
   rawText: string;
 }
 
+// Telegram messages are capped at 4,096 characters. Keep the original text for
+// downstream context, but never run heuristic regexes over an unbounded string.
+const MAX_INTENT_PARSE_CHARS = 4_096;
+
 // ─── Duration ─────────────────────────────────────────────────────────────────
 
 interface DurationRule {
@@ -144,13 +148,55 @@ function parseBudget(text: string): number | undefined {
     return Math.round(parseFloat(usdMatch[1]));
   }
 
-  // "under NNN" / "less than NNN" when followed by no currency → assume USD
-  const genericMatch = text.match(/(?:under|less\s+than)\s+(\d+(?:\.\d+)?)\b(?!\s*baht)/i);
-  if (genericMatch?.[1]) {
-    return Math.round(parseFloat(genericMatch[1]));
+  // "under NNN" / "less than NNN" when followed by no currency → assume USD.
+  // Parse the numeric span with a linear scan: a backtracking decimal regex plus
+  // a negative currency lookahead becomes polynomial on very long digit input.
+  const genericPrefix = text.match(/\b(?:under|less\s+than)\s+/i);
+  if (genericPrefix?.index !== undefined) {
+    const numberStart = genericPrefix.index + genericPrefix[0].length;
+    const amount = scanDecimal(text, numberStart);
+    if (amount && !isAsciiWord(text[amount.end])) {
+      const suffix = text.slice(amount.end).trimStart().toLowerCase();
+      if (!suffix.startsWith("baht") || isAsciiWord(suffix[4])) {
+        return Math.round(amount.value);
+      }
+    }
   }
 
   return undefined;
+}
+
+interface ScannedDecimal {
+  value: number;
+  end: number;
+}
+
+function scanDecimal(text: string, start: number): ScannedDecimal | undefined {
+  let cursor = start;
+  while (isAsciiDigit(text[cursor])) cursor += 1;
+  if (cursor === start) return undefined;
+
+  if (text[cursor] === "." && isAsciiDigit(text[cursor + 1])) {
+    cursor += 1;
+    while (isAsciiDigit(text[cursor])) cursor += 1;
+  }
+
+  const value = Number(text.slice(start, cursor));
+  return Number.isFinite(value) ? { value, end: cursor } : undefined;
+}
+
+function isAsciiDigit(character: string | undefined): boolean {
+  return character !== undefined && character >= "0" && character <= "9";
+}
+
+function isAsciiWord(character: string | undefined): boolean {
+  return (
+    isAsciiDigit(character) ||
+    (character !== undefined &&
+      ((character >= "a" && character <= "z") ||
+        (character >= "A" && character <= "Z") ||
+        character === "_"))
+  );
 }
 
 // ─── indoorOutdoor ────────────────────────────────────────────────────────────
@@ -166,10 +212,11 @@ function deriveIndoorOutdoor(vibes: string[]): "indoor" | "outdoor" | "either" {
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function parseIntent(text: string): IntentFilters {
-  const durationMinMax = parseDuration(text);
-  const vibes = parseVibes(text);
-  const timeOfDayHour = parseTimeOfDay(text);
-  const budgetMax = parseBudget(text);
+  const parseableText = text.slice(0, MAX_INTENT_PARSE_CHARS);
+  const durationMinMax = parseDuration(parseableText);
+  const vibes = parseVibes(parseableText);
+  const timeOfDayHour = parseTimeOfDay(parseableText);
+  const budgetMax = parseBudget(parseableText);
   const indoorOutdoor = deriveIndoorOutdoor(vibes);
 
   const filters: IntentFilters = { rawText: text };
