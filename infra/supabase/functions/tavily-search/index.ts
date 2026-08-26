@@ -129,8 +129,9 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify(payload),
     });
-  } catch (e) {
-    return json({ error: "search provider unreachable", detail: String(e) }, 502);
+  } catch {
+    // Do not expose network exception text or stack details to the caller.
+    return json({ error: "search provider unreachable" }, 502);
   }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
