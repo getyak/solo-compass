@@ -106,6 +106,18 @@ cd scripts/ralph && ./ralph.sh --tool Codex 12
 
 **TS**: per-package `pnpm test` via turbo.
 
+## Code Review Rules
+
+- Flag any `Experience`, geo, time, or confidence schema change that breaks
+  TypeScript/Swift parity, treats GeoJSON coordinates as `[latitude,
+longitude]`, or loses versioned seed and round-trip compatibility.
+- Flag recommendation or extraction paths that invent experience facts, hide
+  provenance or confidence, or fail unsafely when model evidence, network
+  access, or an API key is unavailable.
+- Flag location, voice, or telemetry changes that collect before user
+  permission, outlive the visible feature lifecycle, or expose precise
+  location, transcripts, credentials, or user-linked travel data.
+
 ## Skill Routing
 
 Skills available for common tasks:
