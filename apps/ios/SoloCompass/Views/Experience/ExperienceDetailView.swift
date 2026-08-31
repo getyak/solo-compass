@@ -171,7 +171,13 @@ public struct ExperienceDetailView: View {
         .coordinateSpace(name: "detailScroll")
         .scrollContentBackground(.hidden)
         .background(CT.bgWarm.ignoresSafeArea())
-        .onAppear { scrollProxy = proxy }
+        .onAppear {
+            scrollProxy = proxy
+            InteractionTracker.shared.finishLatency(
+                .pinToDetail,
+                experienceId: viewModel.experience.id
+            )
+        }
         } // ScrollViewReader
         .onPreferenceChange(HeroTitleOffsetKey.self) { offset in
             let visible = offset > 0
@@ -381,29 +387,37 @@ public struct ExperienceDetailView: View {
 
     // MARK: - Hero
 
-    /// Full-bleed hero photo at the top of the detail sheet, shown only when a
-    /// real place photo resolved (OSM image / Wikimedia). Breaks out of the 20pt
-    /// horizontal padding to sit edge-to-edge. Absent → nothing renders and the
-    /// sheet starts at the hero text exactly as before.
+    /// Full-bleed hero photo at the top of the detail sheet when the experience
+    /// carries a real OSM/Wikimedia URL. Loading or failure keeps an abstract
+    /// category wash at the same height; no stock imagery is substituted.
+    /// Experiences with no photo URL still start directly at the hero text.
     @ViewBuilder
     private var heroImageBanner: some View {
         if let urlString = viewModel.experience.location.photoUrls?.first,
            let url = URL(string: urlString) {
-            AsyncImage(url: url) { phase in
+            AsyncImage(
+                url: url,
+                transaction: Transaction(
+                    animation: reduceMotion ? nil : .easeOut(duration: 0.2)
+                )
+            ) { phase in
                 switch phase {
                 case .success(let image):
                     image
                         .resizable()
                         .scaledToFill()
-                case .empty:
-                    ZStack {
-                        Rectangle().fill(viewModel.experience.category.color.opacity(0.12))
-                        ProgressView()
-                    }
-                case .failure:
-                    EmptyView()
+                        .transition(.opacity)
+                case .empty, .failure:
+                    // A stable category wash reads as intentional content and
+                    // keeps the final image's exact geometry reserved. A small
+                    // spinner in a 200pt empty slab looked stalled on slow or
+                    // unreachable Wikimedia URLs; failure also collapsed into
+                    // a blank slab. The abstract symbol is honest (not a stock
+                    // photo pretending to be this venue) and crossfades away
+                    // when the real place image arrives.
+                    heroImagePlaceholder
                 @unknown default:
-                    EmptyView()
+                    heroImagePlaceholder
                 }
             }
             .frame(height: 200)
@@ -415,6 +429,23 @@ public struct ExperienceDetailView: View {
             .padding(.top, -16)
             .accessibilityHidden(true)
         }
+    }
+
+    private var heroImagePlaceholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    viewModel.experience.category.color.opacity(0.18),
+                    CT.bgWarm
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: viewModel.experience.category.symbol)
+                .font(.system(size: 42, weight: .light))
+                .foregroundStyle(viewModel.experience.category.color.opacity(0.42))
+        }
+        .transition(.opacity)
     }
 
     /// Category-specific scannable facts (Wi-Fi, signature, best light…) shown
@@ -597,7 +628,10 @@ public struct ExperienceDetailView: View {
                 }
             }
             HStack(spacing: 5) {
-                Text("Solo \(String(format: "%.1f", viewModel.displaySoloScore.overall))")
+                Text(String(
+                    format: NSLocalizedString("experience.soloScore.short", comment: "Compact Solo Score value"),
+                    viewModel.displaySoloScore.overall
+                ))
             }
             .foregroundStyle(CT.successText)
             .fontWeight(.semibold)

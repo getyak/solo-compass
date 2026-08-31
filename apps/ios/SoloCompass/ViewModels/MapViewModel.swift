@@ -1146,7 +1146,12 @@ public final class MapViewModel {
     /// this value. Mutually exclusive with `selectedCategory` and
     /// `isNowFilter` — selecting any of those clears the others. US-008.
     public var selectedCustomTag: String?
-    public var visibleExperiences: [Experience] = []
+    public var visibleExperiences: [Experience] = [] {
+        didSet {
+            mapRenderGeneration &+= 1
+            invalidateMapRenderCache()
+        }
+    }
 
     // MARK: - Zoom-adaptive map density (Level-of-Detail)
 
@@ -1168,11 +1173,7 @@ public final class MapViewModel {
     /// the cold-start watchdog, and the bottom list all keep reading the
     /// complete set (the list intentionally shows more than the map).
     public var displayedExperiences: [Experience] {
-        let limit = Self.spanToLimit(currentSpanLatitudeDelta)
-        guard visibleExperiences.count > limit else { return visibleExperiences }
-        let affinity = experienceService.repo.categoryAffinity()
-        return Self.rankedByProminence(visibleExperiences, categoryAffinity: affinity)
-            .prefix(limit).map { $0 }
+        mapRenderSnapshot(at: AppClock.now()).displayed
     }
 
     /// Cached snapshot of the last `clusteredMapItems` compute, keyed by a
@@ -1183,26 +1184,103 @@ public final class MapViewModel {
     /// two back-to-back calls with the same inputs could return items in
     /// different orders. The fingerprint snaps to the same discrete `cellSize`
     /// bands the engine already uses, so a small pan doesn't invalidate.
-    @ObservationIgnored private var clusteredCacheFingerprint: String?
-    @ObservationIgnored private var clusteredCacheValue: [MapItem] = []
+    private struct MapRenderCacheKey: Equatable {
+        let generation: UInt64
+        let displayLimit: Int
+        let cellSize: Double
+        let minuteBucket: Int64
+        let affinityFingerprint: Int
+    }
+
+    private struct MapRenderSnapshot {
+        let displayed: [Experience]
+        let items: [MapItem]
+    }
+
+    @ObservationIgnored private var mapRenderGeneration: UInt64 = 0
+    @ObservationIgnored private var mapRenderCacheKey: MapRenderCacheKey?
+    @ObservationIgnored private var mapRenderCache = MapRenderSnapshot(displayed: [], items: [])
+    @ObservationIgnored private var affinityCacheGeneration: UInt64 = .max
+    @ObservationIgnored private var affinityCacheMinuteBucket: Int64 = .min
+    @ObservationIgnored private var affinityCache: [ExperienceCategory: Int] = [:]
+    #if DEBUG
+    /// Deterministic test hook: repeated body reads with unchanged inputs must
+    /// not rebuild ranking + clustering work.
+    @ObservationIgnored private(set) var mapRenderComputeCount: Int = 0
+    #endif
 
     /// Clustered map items — groups overlapping pins at city/district zoom into
     /// cluster markers. At street zoom, every pin renders individually.
     var clusteredMapItems: [MapItem] {
-        let displayed = displayedExperiences
+        clusteredMapItems(at: AppClock.now())
+    }
+
+    /// Time-aware entry point used by the map layer. Passing the shared minute
+    /// tick keeps marker ranking, closing-soon state, and cache invalidation on
+    /// the same clock rather than letting multiple `Date()` reads disagree.
+    func clusteredMapItems(at now: Date) -> [MapItem] {
+        mapRenderSnapshot(at: now).items
+    }
+
+    private func mapRenderSnapshot(at now: Date) -> MapRenderSnapshot {
+        let limit = Self.spanToLimit(currentSpanLatitudeDelta)
         let cellSize = MapClusterEngine.cellSize(for: currentSpanLatitudeDelta)
-        // Fingerprint = (cellSize band, count, joined id list). The id list is
-        // cheap because `displayedExperiences` is already capped by
-        // `spanToLimit`, and it's the only thing that reliably catches both
-        // "a pin appeared" and "the ranked order changed".
-        let fingerprint = "\(cellSize)|\(displayed.count)|\(displayed.map(\.id).joined(separator: ","))"
-        if fingerprint == clusteredCacheFingerprint {
-            return clusteredCacheValue
+        let minuteBucket = Int64(now.timeIntervalSince1970 / 60)
+        // `categoryAffinity()` reads SwiftData completions + experience
+        // records. Doing that before a render-cache lookup would turn every
+        // harmless body read into two database fetches. Visible-data changes
+        // invalidate immediately; the shared minute tick also bounds staleness
+        // after a completion is recorded elsewhere in the app.
+        let affinity: [ExperienceCategory: Int]
+        if affinityCacheGeneration == mapRenderGeneration,
+           affinityCacheMinuteBucket == minuteBucket {
+            affinity = affinityCache
+        } else {
+            affinity = experienceService.repo.categoryAffinity()
+            affinityCache = affinity
+            affinityCacheGeneration = mapRenderGeneration
+            affinityCacheMinuteBucket = minuteBucket
+        }
+        var affinityHasher = Hasher()
+        for category in ExperienceCategory.allCases {
+            affinityHasher.combine(category.rawValue)
+            affinityHasher.combine(affinity[category] ?? 0)
+        }
+        let key = MapRenderCacheKey(
+            generation: mapRenderGeneration,
+            displayLimit: limit,
+            cellSize: cellSize,
+            minuteBucket: minuteBucket,
+            affinityFingerprint: affinityHasher.finalize()
+        )
+        if key == mapRenderCacheKey {
+            return mapRenderCache
+        }
+
+        let displayed: [Experience]
+        if visibleExperiences.count > limit {
+            displayed = Array(
+                Self.rankedByProminence(
+                    visibleExperiences,
+                    now: now,
+                    categoryAffinity: affinity
+                ).prefix(limit)
+            )
+        } else {
+            displayed = visibleExperiences
         }
         let items = MapClusterEngine.cluster(displayed, spanLatitudeDelta: currentSpanLatitudeDelta)
-        clusteredCacheFingerprint = fingerprint
-        clusteredCacheValue = items
-        return items
+        let snapshot = MapRenderSnapshot(displayed: displayed, items: items)
+        mapRenderCacheKey = key
+        mapRenderCache = snapshot
+        #if DEBUG
+        mapRenderComputeCount += 1
+        #endif
+        return snapshot
+    }
+
+    private func invalidateMapRenderCache() {
+        mapRenderCacheKey = nil
     }
 
     /// Span → max number of map pins. Three bands matched to how a solo traveler
@@ -1985,6 +2063,7 @@ public final class MapViewModel {
     /// `dismissDetail`), and the camera reframes the same way `selectExperience`
     /// does. Long-pressing the same card/pin floats the preview card instead.
     public func openExperienceDetail(_ experience: Experience) {
+        InteractionTracker.shared.beginLatency(.pinToDetail, experienceId: experience.id)
         Haptics.selection()
         selectedExperience = experience
         isShowingDetail = true
@@ -2152,9 +2231,15 @@ public final class MapViewModel {
     public func refreshForLocation(_ coordinate: CLLocationCoordinate2D) {
         let radiusKm = max(1.0, preferences.maxDistanceKm)
         let nearby = applyFilters(near: coordinate, radiusKm: radiusKm)
-        withAnimation(Self.markerSetAnimation) {
-            visibleExperiences = nearby
-            nearbySoloCount = computeNearbySoloCount(in: nearby)
+        // A meaningful viewport move can still resolve to the exact same
+        // ordered set. Avoid invalidating the full Map/BottomSheet hierarchy in
+        // that case; the user gets a stable map instead of a gratuitous marker
+        // fade after every small pan.
+        if nearby != visibleExperiences {
+            withAnimation(Self.markerSetAnimation) {
+                visibleExperiences = nearby
+                nearbySoloCount = computeNearbySoloCount(in: nearby)
+            }
         }
         recomputeNowCount()
         updateBottomInfo()
@@ -2306,6 +2391,9 @@ public final class MapViewModel {
     /// a sun-gold border and warm gradient bg.
     public var aiSmartPickIds: [String] = []
 
+    @ObservationIgnored private var fallbackSmartPickGeneration: UInt64 = .max
+    @ObservationIgnored private var fallbackSmartPickCache: [String] = []
+
     /// Smart-pick ids actually surfaced to the UI. Falls back to the
     /// Solo-Score top-3 of the visible set when AI ranking hasn't produced
     /// any picks yet (cold start, missing AI key, or offline). Without this
@@ -2314,10 +2402,15 @@ public final class MapViewModel {
     /// for users without an API key.
     public var effectiveSmartPickIds: [String] {
         if !aiSmartPickIds.isEmpty { return aiSmartPickIds }
-        return visibleExperiences
+        if fallbackSmartPickGeneration == mapRenderGeneration {
+            return fallbackSmartPickCache
+        }
+        fallbackSmartPickCache = visibleExperiences
             .sorted { $0.soloScore.overall > $1.soloScore.overall }
             .prefix(3)
             .map { $0.id }
+        fallbackSmartPickGeneration = mapRenderGeneration
+        return fallbackSmartPickCache
     }
 
     /// Reorder the visible experiences using AI ranking and highlight the top

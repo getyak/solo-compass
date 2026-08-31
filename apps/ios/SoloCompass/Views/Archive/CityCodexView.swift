@@ -78,10 +78,10 @@ public struct CityCodexView: View {
     private var upsellBar: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Free tier shows the current month.")
+                Text(NSLocalizedString("archive.codex.upsell.free", comment: "City Codex free-tier explanation"))
                     .font(.footnote.weight(.semibold))
                     .foregroundColor(CT.fgPrimary)
-                Text("Pro reveals your entire codex.")
+                Text(NSLocalizedString("archive.codex.upsell.pro", comment: "City Codex Pro-tier explanation"))
                     .font(.caption)
                     .foregroundColor(CT.fgMuted)
             }

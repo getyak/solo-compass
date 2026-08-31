@@ -1,0 +1,209 @@
+# Solo Compass 前端体验与丝滑度预算
+
+> 状态：v1 · 2026-08-31
+> 首要实现面：iOS 地图主链路（打开地图 → 拖动/缩放 → 选体验 → 详情）
+> 原则：丝滑不是“动画多”，而是输入立即被接住、连续运动不掉节奏、异步等待有确定反馈、状态变化不跳变。
+
+## 1. 体验模型
+
+把用户感知拆成五段，任何一段超预算都会被感知为“卡”：
+
+1. **接住输入**：手指落下后，视觉/触觉是否立即确认。
+2. **连续跟手**：拖动、缩放、滚动、拉 Sheet 时，运动是否与手指同相位。
+3. **状态交接**：手势结束、筛选切换、详情出现时，旧状态和新状态是否连续。
+4. **等待可解释**：网络、AI、定位慢时，是否在用户开始怀疑前给出阶段反馈。
+5. **结束稳定**：动画落点、列表顺序、地图标记和焦点是否稳定，不二次跳动。
+
+性能只是第 2 段的一部分。一个 120 fps 但点击后 700 ms 没反馈的界面仍然不丝滑；一个动画流畅但标记落点每次改变的地图也不丝滑。
+
+## 2. 量化指标与预算
+
+### 2.1 帧节奏和主线程
+
+| 指标 | 定义 | 目标 | 告警 | 测量 |
+| --- | --- | ---: | ---: | --- |
+| 60 Hz 帧预算 | 单帧提交时间 | p95 ≤ 16.7 ms | p99 > 33.3 ms | Instruments Animation Hitches |
+| 120 Hz 帧预算 | ProMotion 单帧提交时间 | p95 ≤ 8.3 ms | p99 > 16.7 ms | 真机 Animation Hitches |
+| Hitch rate | > 1 个目标帧周期的帧占比 | < 1% | > 2% | Instruments |
+| 严重卡顿 | 单次主线程阻塞 ≥ 100 ms | 0 / 主路径 | 任意一次 | Time Profiler / MetricKit |
+| 冻结 | 单次无响应 ≥ 250 ms | 0 | 任意一次 | MetricKit hang diagnostics |
+| 地图连续回调成本 | 每个 `.continuous` 回调自身 CPU | p95 < 1 ms | p95 ≥ 2 ms | `Map interaction` signpost |
+| 手势观察失效次数 | 一次 1 秒拖动导致的 SwiftUI 可观察状态边沿 | ≤ 2 | > 4 | `MapInteractionSmoothnessTests` |
+
+### 2.2 输入和页面交接
+
+| 指标 | 起点 → 终点 | p50 | p95 预算 | 失败体验 |
+| --- | --- | ---: | ---: | --- |
+| Tap acknowledgement | touch-up → 高亮/触觉 | ≤ 50 ms | ≤ 100 ms | “按钮没点上” |
+| Pin → detail usable | 标记点击 → 详情首个可用帧 | ≤ 180 ms | ≤ 300 ms | 重复点击、误以为无响应 |
+| Filter → marker commit | 筛选点击 → 新标记集稳定 | ≤ 120 ms | ≤ 250 ms | 标记先消失再闪回 |
+| Pan end → controls restored | 手指离开 → 筛选条/提示恢复清晰 | ≤ 50 ms | ≤ 100 ms | 结束后仍“灰着” |
+| Sheet settle | 松手 → detent 静止 | ≤ 280 ms | ≤ 400 ms | 回弹拖沓或二次跳动 |
+| Back/close | 点击关闭 → 地图可交互 | ≤ 150 ms | ≤ 250 ms | 透明遮罩仍挡手势 |
+
+当前 `pin_to_detail` 由 `InteractionTracker` 在输入边沿开始、`ExperienceDetailView.onAppear` 结束，预算为 300 ms；`sheet_settle` 从 Bottom Sheet 松手开始，到归位动画逻辑完成结束，预算为 400 ms。两者的数据只保存在本地 100 条滚动窗口，同时写入 Instruments signpost，并在测试员可见的 Developer Options 中显示会话 p50、p95、预算达标率。
+
+### 2.3 地图专属放大系数
+
+| 指标 | 定义 | 预算 | 当前保护 |
+| --- | --- | ---: | --- |
+| 标记渲染上限 | 城市 / 街区 / 街道缩放的地图节点数 | 12 / 30 / 当前可见全量 | LOD `spanToLimit` |
+| 渲染快照重算 | 同一数据、缩放档、分钟内 1000 次 body 读取 | 1 次 | `MapRenderCacheKey` |
+| 轻微视口抖动 | 中心移动 < 12% 视口且缩放变化 < 8% | 0 次全量筛选 | `MapViewportRefreshPolicy` |
+| 有效视口移动 | 中心 ≥ 12% 或缩放 ≥ 8% | 手势结束后 1 次刷新 | `consumeRefresh` |
+| 派生状态放大 | N 个标记对 Explore/Smart Pick 的重复派生 | O(N)，不能 O(N²) | 循环外快照化 |
+| 标记集合稳定 | 输入相同的连续两帧 id 和顺序 | 100% 相同 | 稳定排序 + 缓存 |
+| Marker CPU | 150 个 marker state 派生 | p95 < 4 ms | XCTest + XCTClockMetric |
+
+12% 不是“少刷新数据”，而是把 MapKit 的落点抖动从用户意图里分离出来。用户真正移动一个屏幕的八分之一，仍会在手势结束时刷新；几像素的惯性修正不会让全图标记淡出重来。
+
+### 2.4 加载、网络和可信反馈
+
+| 场景 | 第一反馈 | 阶段反馈 | 降级/超时 |
+| --- | ---: | ---: | ---: |
+| 冷启动地图骨架 | ≤ 400 ms | 本地 seed/cache ≤ 800 ms | 1 s 空态 watchdog |
+| 定位未授权/失败 | 当前城市地图不能被阻塞 | 原因 banner ≤ 500 ms | 可直接打开 Settings |
+| Explore/POI | 点击反馈 ≤ 100 ms | 进度阶段 ≤ 500 ms | 8 s 显示“仍在查找”，15 s 可取消 |
+| AI 重编译 | Sheet 立即出现 ≤ 150 ms | 每阶段 ≤ 1 s 有推进 | 网络失败保留旧卡，不清空 |
+| 离线 | 本地内容立即可浏览 | 明确离线状态 ≤ 500 ms | 使用 7 天内区域缓存 |
+| 图片 | 先稳定占位，不推布局 | 首屏图 p95 ≤ 1.5 s | 失败保持同尺寸 fallback |
+
+### 2.5 视觉稳定和动作设计
+
+| 指标 | 预算/规则 |
+| --- | --- |
+| Layout shift | 首屏稳定后，非用户触发元素位移累计接近 0；图片/异步文案必须预留尺寸 |
+| 动画并发 | 同一视觉层级最多 1 个主动作；背景呼吸不与 Sheet/地图手势争抢 |
+| 常规时长 | 微反馈 80–160 ms；状态切换 180–280 ms；页面交接 250–400 ms |
+| 弹簧 | 只用于空间位移/直接操控；颜色、透明度、文案变化用 easeInOut |
+| 过冲 | 常规地图和筛选不超过 3%；典礼动画按 `ANIMATION_SPEC.md` |
+| 中断性 | 动画中再次触摸必须从当前 presentation value 接管，不能跳到旧 target |
+| Reduce Motion | 所有非必要位移/缩放取消；状态仍需用透明度或即时变化表达 |
+| Reduce Transparency | Material 之下仍满足文字对比度；不能依赖模糊区分层级 |
+
+### 2.6 可用性、认知和无障碍
+
+| 指标 | 目标 |
+| --- | --- |
+| 触控热区 | 普通控件 ≥ 44×44 pt；地图标记视觉可小但命中区仍 ≥ 44 pt |
+| 首屏决策负荷 | 城市总览核心高亮 ≤ 3；地图可见突出点 ≤ 12 |
+| 主要动作唯一性 | 一个 Surface 同时最多 1 个实心主 CTA |
+| 动态字体 | AX5 不裁切关键文案，不遮挡关闭/导航控件 |
+| VoiceOver | 焦点顺序与视觉顺序一致；状态变化不重复播报 |
+| 颜色对比 | 正文 ≥ 4.5:1，大字/图形 ≥ 3:1 |
+| 单手可达 | 高频动作位于底部/边缘可达区，且不与系统返回手势冲突 |
+
+### 2.7 内存、能耗和长会话
+
+| 指标 | 目标 | Case |
+| --- | ---: | --- |
+| 地图浏览内存增长 | 10 分钟往返 5 个城区后净增长 < 30 MB | 重复 pan/zoom |
+| 详情泄漏 | 打开/关闭 50 次后 Detail VM 存活数回到基线 | 自动化循环 |
+| 图片缓存 | 收到 memory warning 后可释放非首屏图片 | 低内存模拟 |
+| 后台 CPU | 地图退后台后动画/时钟停止，无持续 > 1% CPU | scenePhase |
+| 热状态 | Serious thermal state 下停止非必要呼吸/粒子动画 | 真机压力 |
+| 网络重复 | 同一区域同一手势最多一次请求；短距离回摆命中缓存 | Charles/日志 |
+
+## 3. 必测体验 Cases
+
+### A. 启动与恢复
+
+1. **A1 冷启动 + 已授权定位**：首帧直接是地图；不先闪 ProgressView；本地标记先出现，网络补充不改变相机所有权。
+2. **A2 冷启动 + 未授权定位**：地图可浏览；系统授权弹窗不压住条款/引导；拒绝后显示可恢复说明。
+3. **A3 暖启动换城市**：从后台回到新城市只自动跟随一次，不与第一次手动拖动争夺相机。
+4. **A4 离线启动**：缓存/seed 首帧可用；没有永久 spinner；离线 banner 不挡地图主要手势。
+5. **A5 低端设备启动**：同步主线程初始化不出现 ≥100 ms block。
+
+### B. 地图连续交互
+
+6. **B1 1 秒连续拖动（120 callbacks）**：观察状态只有 `[active, settled]`；不在每个 callback 写 Date 到 SwiftUI State。
+7. **B2 轻微拖动后松手**：中心 < 12% 视口，不全量筛选、不闪标记；控制条立即恢复。
+8. **B3 拖动半屏**：手势期间不刷新；结束后恰好刷新一次，结果稳定。
+9. **B4 连续捏合缩放跨 LOD**：12 → 30 → 全量单调增加；跨档才重建聚类，同档内不重算。
+10. **B5 惯性尚未结束又重新抓取**：从当前位置接管，无“先跳到目标再回来”。
+11. **B6 150 标记 + Explore active**：Explore session 和 Smart Pick 各计算一次，不按标记重复扫描。
+12. **B7 同一分钟 1000 次 body read**：排名 + 聚类只计算一次；分钟、数据或缩放档变化才失效。
+13. **B8 点击空地图取消预览**：只清预览，不误关已打开详情；触觉一次。
+
+### C. 筛选与内容变化
+
+14. **C1 快速切换“此刻/收藏/分类”**：最后一次输入获胜；旧 marker transition 可中断；无空白中间态超过 100 ms。
+15. **C2 0 结果**：空态与筛选条同步出现，不叠两个相同计数；清除筛选 ≤ 1 tap。
+16. **C3 结果 id 相同但中心轻微改变**：不重新赋值 marker 数组，不播放无意义淡入淡出。
+17. **C4 分钟边界 crossing soon**：共享 `BestNowClock` 同时更新标记和卡片，不出现一分钟不同步。
+18. **C5 AI 排名返回**：顺序变化有稳定 id；当前选中 Experience 不被错误关闭。
+
+### D. 标记、详情与返回
+
+19. **D1 标记点击 → 详情**：触觉/选中 ≤100 ms；详情首个可用帧 p95 ≤300 ms；记录 `pin_to_detail`。
+20. **D2 快速双击两个标记**：后一次覆盖旧 latency start；最终详情与最后点击一致。
+21. **D3 长按标记预览**：预览走独立路径；Reduce Motion 下不做 spring pop。
+22. **D4 详情关闭**：直接点击进入的详情返回干净地图；长按预览进入的详情返回预览卡。
+23. **D5 打开/关闭 50 次**：无 VM、图片任务、toast task 泄漏；内存回到稳定平台。
+
+### E. Bottom Sheet 和滚动
+
+24. **E1 慢拖跨 detent**：Sheet 与手指 1:1；松手到最近 detent；地图不同时抢同方向拖动。
+25. **E2 settle 中重新抓取**：从实时 presentation 高度继续，不能从目标 detent 跳回。
+26. **E3 内部列表已在顶部向下拖**：手势交接给 Sheet；列表非顶部时继续滚列表。
+27. **E4 AX5 字体**：peek/mid/full 高度随字体扩展；核心 CTA 和关闭按钮不裁切。
+28. **E5 Reduce Motion 拖动**：手指跟随仍为 1:1；松手后即时吸附目标 detent，不播放大幅垂直弹簧；`sheet_settle` 仍完整闭合并记样。
+
+### F. 异步、异常和无障碍
+
+29. **F1 3G/800 ms RTT**：每次用户动作先本地确认；阶段文案明确，不因网络结果晚到而回滚用户选择。
+30. **F2 请求超时后重试**：旧内容保留；重试幂等；无两个并发 spinner。
+31. **F3 Reduce Motion**：地图密度变化交叉淡化或即时完成；无缩放/位移型循环动画。
+32. **F4 VoiceOver 快速滑动**：地图标记标签明确，聚类播报数量，焦点不被一分钟时钟抢走。
+33. **F5 后台/前台切换**：后台停止非必要 Task；前台只恢复一次，不重播冷启动动画。
+
+## 4. 本次重构与指标映射
+
+| 改动 | 消除的问题 | 被保护的指标 |
+| --- | --- | --- |
+| `MapInteractionCoordinator` | 每个连续相机回调写 `@State Date`，导致根视图高频失效 | B1、回调 <1 ms、每手势 ≤2 状态边沿 |
+| `.onEnd` 立即 settle + 250 ms fallback | 原 800 ms 后控件仍半透明；中断手势可能卡在 panning | Pan end ≤100 ms、B5 |
+| `MapViewportRefreshPolicy` | 小抖动也全量 filter + marker animation | B2、B3、网络/刷新放大 |
+| 相同 Experience 内容不重赋值 | 结果未变仍让标记整组淡入淡出 | C3、layout/marker stability |
+| `MapRenderSnapshot` | 聚类缓存前仍重复排序；缓存 key 不含时间/亲和度 | B7、O(N log N) 每分钟一次 |
+| 循环外 hoist Explore/Smart Pick | 每个标记重复扫描 session，最坏 O(N²) | B6、150 marker CPU |
+| fallback Smart Pick 版本缓存 | 冷启动每次 body 都排序全量体验 | frame budget |
+| 共享 `BestNowClock.tick` | 同一 render 内多次 `Date()` 造成临界分钟状态不一致 | C4、状态稳定 |
+| `pin_to_detail` signpost | 过去只有函数 CPU，没有用户感知端到端延迟 | D1、p95 ≤300 ms |
+| `sheet_settle` signpost + 动画完成回调 | 过去只规定 spring 参数，无法知道真实归位耗时 | E1/E2、p95 ≤400 ms |
+| Bottom Sheet Reduce Motion 策略 | 系统要求减少动态效果时仍播放大幅纵向 spring | E5、即时吸附、指标闭环不丢样 |
+| Developer Options 性能摘要 | 指标只能进 Instruments，日常走查无法即时判断 | 本地 100 条、p50/p95、达标率、超预算告警 |
+| 详情 Hero 稳定 category placeholder | 慢图用小 spinner + 空白大色块，失败后仍可能留下空 slab | 图片 layout stability、F1/F2、Reduce Motion |
+
+## 5. 测量与发布门禁
+
+### 每次 PR
+
+- 运行 `MapRenderPerformanceTests` 和 `MapInteractionSmoothnessTests`。
+- 任何地图主路径改动至少录一段：冷启动、连续拖动、缩放跨 LOD、点击详情、返回。
+- 检查 Reduce Motion 和 AX5；不能只验证默认字体/动画。
+- 不接受仅以“看起来顺”作为结论；必须指向预算、测试或 Instruments 轨迹。
+
+### 每周真机基线
+
+- 低档基线设备、当前主流设备、ProMotion 设备各跑一次 5 分钟脚本。
+- Instruments 采集 Animation Hitches + Time Profiler + Allocations。
+- 每个场景预热 1 次、测量 5 次；报告 p50/p95，不只给平均值。
+- 网络 case 固定 Wi-Fi、800 ms RTT/3G、离线三档；性能数据标记设备、系统、构建类型和温度状态。
+
+### Release 阻断条件
+
+- 主路径出现任意 ≥250 ms freeze。
+- Pin → Detail p95 > 300 ms 且连续两轮复现。
+- 60 Hz hitch rate > 2%，或 120 Hz p95 > 16.7 ms。
+- 一次地图手势触发 >4 个可观察状态边沿或 >1 次数据刷新。
+- Reduce Motion 仍存在非必要位移/循环动画。
+- 50 次详情往返有持续内存爬升或残留交互遮罩。
+
+## 6. 尚未自动化、但必须继续补齐
+
+1. 用 XCUITest 的 `XCTOSSignpostMetric` 把 `pin_to_detail` 变为真 UI p95 门禁；当前已有运行时 signpost，尚缺自动点击脚本。
+2. 接入 MetricKit 聚合 launch、hang、peak memory，并按设备等级分桶；不要把模拟器数值当真机结论。
+3. 为 BottomInfoSheet 加真实手势的 frame pacing 测试；本轮已记录松手到逻辑归位的 `sheet_settle`，但仍缺 XCUITest 手势脚本和 Animation Hitches 门禁。
+4. 图片 pipeline 增加 decode/resize 预算，避免高分辨率图在主线程解码。
+5. Web 面保持同一指标语义：INP p75 < 200 ms、LCP p75 < 2.5 s、CLS p75 < 0.1、long task >50 ms 为 0；但本轮实现优先覆盖产品主形态 iOS 地图。

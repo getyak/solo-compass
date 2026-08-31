@@ -101,7 +101,7 @@ public struct ArchiveView: View {
     @ViewBuilder
     private var ritualsHub: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Rituals")
+            Text(NSLocalizedString("archive.rituals.title", comment: "Archive rituals section title"))
                 .font(.system(.headline, design: .rounded))
                 .foregroundStyle((colorScheme == .dark ? CT.fgPrimaryDark : CT.fgPrimary).opacity(0.85))
             LazyVGrid(
@@ -254,10 +254,10 @@ public struct ArchiveView: View {
         )
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Travel Book · manifest")
+                Text(NSLocalizedString("archive.bookManifest.title", comment: "Travel book manifest preview title"))
                     .font(.system(.headline, design: .rounded))
                     .foregroundStyle(CT.fgPrimary)
-                Text("P3.4 #341/#342 — the shape of your year in print.")
+                Text(NSLocalizedString("archive.bookManifest.subtitle", comment: "Travel book manifest preview subtitle"))
                     .font(.caption)
                     .foregroundStyle(CT.fgMuted)
 
@@ -406,7 +406,7 @@ public struct ArchiveView: View {
             EmptyView()
         } else {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Your capsules")
+                Text(NSLocalizedString("archive.capsules.title", comment: "Archive time capsules section title"))
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(CT.fgPrimary.opacity(0.85))
                 capsuleRow(label: "Ripe to open", count: ripe.count, accent: CT.omenGold)
@@ -451,10 +451,10 @@ public struct ArchiveView: View {
     @ViewBuilder
     private var yearEndBookBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Your year, in print.")
+            Text(NSLocalizedString("archive.book.yearEnd.title", comment: "Year-end travel book banner title"))
                 .font(.system(.headline, design: .serif))
                 .foregroundStyle(CT.fgPrimary)
-            Text("Turn this year's archive into a printed book. Limited window.")
+            Text(NSLocalizedString("archive.book.yearEnd.subtitle", comment: "Year-end travel book banner subtitle"))
                 .font(.footnote)
                 .foregroundStyle(CT.fgMuted)
         }

@@ -77,6 +77,140 @@ enum BaseFollowUp {
     case askSolo(String)
 }
 
+/// Quantitative gate for viewport-driven data refresh. A tiny finger wobble or
+/// MapKit settling correction should not re-filter the entire experience set;
+/// a meaningful move or zoom still refreshes immediately when the gesture ends.
+enum MapViewportRefreshPolicy {
+    /// Refresh after the center moves by 12% of the visible viewport. This is
+    /// early enough that new edge content arrives before it feels stale, while
+    /// filtering out sub-block jitter at walking/district zoom.
+    static let centerTravelFraction = 0.12
+    /// Refresh after an 8% zoom change even when the center is unchanged.
+    static let zoomChangeFraction = 0.08
+
+    static func shouldRefresh(
+        from previous: MKCoordinateRegion?,
+        to current: MKCoordinateRegion
+    ) -> Bool {
+        guard let previous else { return true }
+
+        let latSpan = max(abs(previous.span.latitudeDelta), 0.000_001)
+        let lonSpan = max(abs(previous.span.longitudeDelta), 0.000_001)
+        let centerTravel = max(
+            abs(current.center.latitude - previous.center.latitude) / latSpan,
+            abs(current.center.longitude - previous.center.longitude) / lonSpan
+        )
+        if centerTravel >= centerTravelFraction { return true }
+
+        let latitudeZoomChange = abs(current.span.latitudeDelta - previous.span.latitudeDelta) / latSpan
+        let longitudeZoomChange = abs(current.span.longitudeDelta - previous.span.longitudeDelta) / lonSpan
+        return max(latitudeZoomChange, longitudeZoomChange) >= zoomChangeFraction
+    }
+}
+
+/// Coalesces MapKit's high-frequency `.continuous` callbacks into two observed
+/// state changes per gesture: active and settled. Timestamps and the fallback
+/// task deliberately live outside SwiftUI observation, preventing dozens of
+/// root-view invalidations during a single pan.
+@MainActor
+final class MapInteractionCoordinator {
+    private static let performanceLog = OSLog(
+        subsystem: "com.solocompass",
+        category: .pointsOfInterest
+    )
+
+    private let fallbackIdleSeconds: TimeInterval
+    private var lastContinuousEventAt: Date = .distantPast
+    private var fallbackTask: Task<Void, Never>?
+    private var panSignpostID: OSSignpostID?
+    private var lastRefreshedRegion: MKCoordinateRegion?
+
+    private(set) var isActive = false
+    #if DEBUG
+    private(set) var fallbackTaskStartCount = 0
+    #endif
+
+    init(fallbackIdleSeconds: TimeInterval = 0.25) {
+        self.fallbackIdleSeconds = fallbackIdleSeconds
+    }
+
+    func noteContinuous(
+        at now: Date = Date(),
+        onStateChange: @MainActor @escaping (Bool) -> Void
+    ) {
+        lastContinuousEventAt = now
+        if !isActive {
+            isActive = true
+            onStateChange(true)
+            let signpostID = OSSignpostID(log: Self.performanceLog)
+            panSignpostID = signpostID
+            os_signpost(.begin, log: Self.performanceLog, name: "Map interaction", signpostID: signpostID)
+        }
+
+        guard fallbackTask == nil else { return }
+        #if DEBUG
+        fallbackTaskStartCount += 1
+        #endif
+        fallbackTask = Task { @MainActor [weak self] in
+            while let self {
+                do {
+                    try await Task.sleep(for: .milliseconds(50))
+                } catch {
+                    return
+                }
+                if self.settleIfIdle(at: Date(), onStateChange: onStateChange) {
+                    return
+                }
+            }
+        }
+    }
+
+    /// MapKit's `.onEnd` is the primary settle signal. The time-based path is a
+    /// safety net for interrupted gestures where `.onEnd` is not delivered.
+    @discardableResult
+    func noteEnded(onStateChange: @MainActor (Bool) -> Void) -> Bool {
+        let wasActive = isActive
+        fallbackTask?.cancel()
+        fallbackTask = nil
+        transitionToSettled(onStateChange: onStateChange)
+        return wasActive
+    }
+
+    @discardableResult
+    func settleIfIdle(
+        at now: Date,
+        onStateChange: @MainActor (Bool) -> Void
+    ) -> Bool {
+        guard isActive,
+              now.timeIntervalSince(lastContinuousEventAt) >= fallbackIdleSeconds else {
+            return false
+        }
+        fallbackTask = nil
+        transitionToSettled(onStateChange: onStateChange)
+        return true
+    }
+
+    /// Returns true once per meaningfully different viewport and records that
+    /// region as the next comparison baseline.
+    func consumeRefresh(for region: MKCoordinateRegion) -> Bool {
+        guard MapViewportRefreshPolicy.shouldRefresh(from: lastRefreshedRegion, to: region) else {
+            return false
+        }
+        lastRefreshedRegion = region
+        return true
+    }
+
+    private func transitionToSettled(onStateChange: @MainActor (Bool) -> Void) {
+        guard isActive else { return }
+        isActive = false
+        onStateChange(false)
+        if let panSignpostID {
+            os_signpost(.end, log: Self.performanceLog, name: "Map interaction", signpostID: panSignpostID)
+        }
+        panSignpostID = nil
+    }
+}
+
 /// THE root view. Map-first means: this is what the app *is*. No tabs. No
 /// drawer. Filters and the bottom info bar overlay it; an experience card
 /// floats up when a marker is tapped.
@@ -259,6 +393,9 @@ struct CompassMapContentView: View {
     // Presentation is driven by `voiceOrchestrator` via `.sheet(item:)`.
     @State private var chatStartMode: ChatStartMode = .text
     @State private var isMapPanning: Bool = false
+    /// Owns non-render-affecting camera callback bookkeeping. Only its active ↔
+    /// settled edges are copied into `isMapPanning`.
+    @State private var mapInteractionCoordinator = MapInteractionCoordinator()
     // US-007: personal hub (MeSheet) presentation, driven by the top-right
     // avatar bubble in the map overlay. Friend state is read live so the
     // bubble can show a pending-request dot.
@@ -268,8 +405,6 @@ struct CompassMapContentView: View {
     // `nil` when the hub was opened any other way (avatar bubble, inbox).
     @State private var deepLinkConversationId: String?
     @State private var friendService = FriendService.shared
-    @State private var lastPanAt: Date = .distantPast
-    @State private var panDebounceTask: Task<Void, Never>? = nil
 
     // Direction 2: on the first frame after the map loads, only the 3 AI
     // smart-pick pins "shine"; every other pin is dimmed (~35% opacity, ~85%
@@ -332,10 +467,6 @@ struct CompassMapContentView: View {
         }
         return ""
     }
-
-    /// Idle window after the last pan before POIs refresh. Lowered from 1.5s
-    /// to cut the "dragged the map, nothing happened" lag (#133).
-    private static let panRefreshDebounce: TimeInterval = 0.8
 
     enum ChatStartMode { case text, voice }
 
@@ -2706,6 +2837,20 @@ struct CompassMapContentView: View {
         )
 
         MapReader { proxy in
+            // Hoist render-wide derived values out of the annotation loop. In
+            // Explore mode `exploreSession` counts verified additions, and the
+            // fallback Smart Pick list sorts candidates; doing either once per
+            // marker turns a 150-pin render into accidental O(n²) work.
+            let renderNow = bestNowClock.tick
+            let mapItems = viewModel.clusteredMapItems(at: renderNow)
+            let smartPickIds = viewModel.effectiveSmartPickIds
+            let smartPickRanks = Dictionary(
+                uniqueKeysWithValues: smartPickIds.enumerated().map { ($0.element, $0.offset) }
+            )
+            let selectedExperienceId = viewModel.selectedExperience?.id
+            let exploreSessionAddedIds = viewModel.exploreSessionAddedIds
+            let exploreSessionIsActive = viewModel.exploreSession.isActive
+
             Map(position: bindingCamera) {
                 // The traveler's own location. The built-in `UserAnnotation()`
                 // blue dot is too small to find among the POI markers, so we
@@ -2732,18 +2877,18 @@ struct CompassMapContentView: View {
                 // Zoom-adaptive density with clustering: at city/district zoom,
                 // overlapping pins collapse into cluster bubbles showing a count.
                 // At street zoom, every pin renders individually.
-                ForEach(viewModel.clusteredMapItems) { item in
+                ForEach(mapItems) { item in
                     switch item {
                     case .single(let exp):
                         if let coord = exp.coordinate {
                             let state = viewModel.markerState(for: exp)
                             let isClosingSoon = BestNowChipState
-                                .resolve(for: exp, at: bestNowClock.tick)
+                                .resolve(for: exp, at: renderNow)
                                 .isClosingSoon
-                            let smartPickRank = viewModel.effectiveSmartPickIds.firstIndex(of: exp.id)
+                            let smartPickRank = smartPickRanks[exp.id]
                             let isSmartPick = smartPickRank != nil
                             let highlightActive = smartPickHighlightActive
-                                && !viewModel.effectiveSmartPickIds.isEmpty
+                                && !smartPickIds.isEmpty
                                 && viewModel.exploreRadiusOverlay == nil
                             Annotation("", coordinate: coord) {
                                 Button {
@@ -2755,7 +2900,7 @@ struct CompassMapContentView: View {
                                             category: exp.category,
                                             state: state,
                                             confidenceLevel: exp.confidence.level,
-                                            isSelected: viewModel.selectedExperience?.id == exp.id,
+                                            isSelected: selectedExperienceId == exp.id,
                                             nowFilterActive: viewModel.isNowFilter,
                                             closingSoon: isClosingSoon
                                         )
@@ -2780,8 +2925,8 @@ struct CompassMapContentView: View {
                                     // existing map. The `.active` check gates
                                     // this so idle map is untouched.
                                     .modifier(ExploreSessionDimModifier(
-                                        isNewInSession: viewModel.exploreSessionAddedIds.contains(exp.id),
-                                        sessionActive: viewModel.exploreSession.isActive,
+                                        isNewInSession: exploreSessionAddedIds.contains(exp.id),
+                                        sessionActive: exploreSessionIsActive,
                                         reduceMotion: reduceMotion
                                     ))
                                     .transition(.scale.combined(with: .opacity))
@@ -2807,11 +2952,11 @@ struct CompassMapContentView: View {
                         // the cluster it's still surfaced, just not visually
                         // forced; the home-screen narrative ("look at these
                         // three") stays clean.
-                        let clusterRanks = cluster.experiences.compactMap { viewModel.effectiveSmartPickIds.firstIndex(of: $0.id) }
+                        let clusterRanks = cluster.experiences.compactMap { smartPickRanks[$0.id] }
                         let clusterHasSmartPick = !clusterRanks.isEmpty
                         let clusterTopRank = clusterRanks.min()
                         let clusterHighlightActive = smartPickHighlightActive
-                            && !viewModel.effectiveSmartPickIds.isEmpty
+                            && !smartPickIds.isEmpty
                             && viewModel.exploreRadiusOverlay == nil
                         Annotation("", coordinate: cluster.coordinate) {
                             ClusterAnnotationView(cluster: cluster) {
@@ -2833,14 +2978,14 @@ struct CompassMapContentView: View {
                 ForEach(viewModel.candidateExperiences) { cand in
                     if let coord = cand.coordinate {
                         let candHighlightActive = smartPickHighlightActive
-                            && !viewModel.effectiveSmartPickIds.isEmpty
+                            && !smartPickIds.isEmpty
                             && viewModel.exploreRadiusOverlay == nil
                         Annotation("", coordinate: coord) {
                             MarkerIconView(
                                 category: cand.category,
                                 state: .default,
                                 confidenceLevel: cand.confidence.level,
-                                isSelected: viewModel.selectedExperience?.id == cand.id
+                                isSelected: selectedExperienceId == cand.id
                             )
                             .modifier(SmartPickHighlightModifier(
                                 isSmartPick: false,
@@ -2920,35 +3065,41 @@ struct CompassMapContentView: View {
                 MapCompass()
             }
             .onMapCameraChange(frequency: .continuous) { _ in
-                isMapPanning = true
-                lastPanAt = Date()
-                if panDebounceTask == nil {
-                    panDebounceTask = Task {
-                        repeat {
-                            try? await Task.sleep(for: .milliseconds(100))
-                            if Task.isCancelled { return }
-                        } while Date().timeIntervalSince(lastPanAt) < Self.panRefreshDebounce
-                        if !Task.isCancelled {
-                            isMapPanning = false
-                        }
-                        panDebounceTask = nil
-                    }
+                mapInteractionCoordinator.noteContinuous { active in
+                    guard isMapPanning != active else { return }
+                    isMapPanning = active
                 }
             }
             .onMapCameraChange(frequency: .onEnd) { context in
+                // Capture the interaction edge before settling so the one-shot
+                // cold-start highlight knows this was a real map gesture.
+                let wasInteracting = mapInteractionCoordinator.noteEnded { active in
+                    guard isMapPanning != active else { return }
+                    isMapPanning = active
+                }
                 // Feed the zoom level into the view model so the map's
                 // Level-of-Detail (few prominent pins zoomed out → more zoomed
                 // in) recomputes. Animate so pins fade in/out rather than snap.
-                withAnimation(MapViewModel.markerSetAnimation) {
-                    viewModel.currentSpanLatitudeDelta = context.region.span.latitudeDelta
+                let nextSpan = context.region.span.latitudeDelta
+                let spanDelta = abs(viewModel.currentSpanLatitudeDelta - nextSpan)
+                let meaningfulSpanDelta = max(0.000_001, viewModel.currentSpanLatitudeDelta * 0.01)
+                if spanDelta >= meaningfulSpanDelta {
+                    withAnimation(reduceMotion ? nil : MapViewModel.markerSetAnimation) {
+                        viewModel.currentSpanLatitudeDelta = nextSpan
+                    }
                 }
-                viewModel.refreshForLocation(context.region.center)
+                // Re-filter only after a meaningful viewport move. MapKit's
+                // tiny settle corrections retain stable pins instead of
+                // invalidating the full Map + bottom sheet hierarchy.
+                if mapInteractionCoordinator.consumeRefresh(for: context.region) {
+                    viewModel.refreshForLocation(context.region.center)
+                }
                 // Direction 2: the curation dim-out is a cold-start cue. Once
                 // the camera settles for the first time after the user has
                 // panned or zoomed (isMapPanning flipped during the move),
                 // restore every pin to full opacity so Explore feels like the
                 // whole map again — not a guided tour.
-                if smartPickHighlightActive && isMapPanning {
+                if smartPickHighlightActive && wasInteracting {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
                         smartPickHighlightActive = false
                     }
