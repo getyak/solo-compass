@@ -25,8 +25,10 @@ import {
   healthFromConfidence,
   type HealthStatus,
 } from "@solo-compass/core";
-import { getExperiencesRepo } from "@/lib/repos";
+import { getEvidenceRepo, getExperiencesRepo } from "@/lib/repos";
 import { DEV_FALLBACK_EXPERIENCES } from "@/lib/dev-fallback";
+import { coverageRefreshJob, planEvidenceRefresh } from "@/lib/evidence-refresh";
+import { scheduleRefreshJobs } from "@/lib/refresh-scheduler";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,6 +51,10 @@ export interface NearbyResult {
 export interface NearbyResponse {
   readonly results: readonly NearbyResult[];
   readonly degraded?: true;
+  readonly evidence?: {
+    readonly coverage: "fresh" | "partial" | "legacy";
+    readonly refreshScheduled: boolean;
+  };
 }
 
 const MAX_RESULTS = 30;
@@ -121,12 +127,28 @@ export async function GET(
   }
 
   if (candidates.length === 0) {
-    return NextResponse.json({ results: [] });
+    scheduleRefreshJobs([coverageRefreshJob({ center, radiusMeters: radius })]);
+    return NextResponse.json({
+      results: [],
+      evidence: { coverage: "partial", refreshScheduled: true },
+    });
   }
+
+  const refreshPlan = await planEvidenceRefresh({
+    evidenceRepo: getEvidenceRepo(),
+    experiences: candidates,
+    center,
+    radiusMeters: radius,
+  });
+  scheduleRefreshJobs(refreshPlan.jobs);
+  const evidence = {
+    coverage: refreshPlan.coverage,
+    refreshScheduled: refreshPlan.jobs.length > 0,
+  } as const;
 
   // No intent → straightforward distance/score sort, no AI call.
   if (!intent) {
-    return NextResponse.json({ results: fallbackRank(candidates, center) });
+    return NextResponse.json({ results: fallbackRank(candidates, center), evidence });
   }
 
   // Intent provided → ask the ranker to pick the top 3.
@@ -148,10 +170,14 @@ export async function GET(
       walkingMinutes: r.walkingMinutes,
       health: healthFromConfidence(r.experience.confidence),
     }));
-    return NextResponse.json({ results });
+    return NextResponse.json({ results, evidence });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("rankExperiences failed, falling back to soloScore", err);
-    return NextResponse.json({ results: fallbackRank(candidates, center), degraded: true });
+    return NextResponse.json({
+      results: fallbackRank(candidates, center),
+      degraded: true,
+      evidence,
+    });
   }
 }

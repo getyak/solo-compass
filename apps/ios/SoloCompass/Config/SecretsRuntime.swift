@@ -183,6 +183,20 @@ extension Secrets {
         return (url, key)
     }
 
+    /// Root URL for the authenticated Solo Compass web API (for example,
+    /// `https://solo-compass.app`). Resolution chain mirrors Supabase config:
+    /// process env → bundled Secrets.plist → build-time generated value.
+    /// There is intentionally no localhost or public-service fallback.
+    static func resolvedAPIBaseURL() -> URL? {
+        let raw = ProcessInfo.processInfo.environment["SOLO_API_BASE_URL"]
+            ?? secretsPlistString("SOLO_API_BASE_URL")
+            ?? (apiBaseURL.isEmpty ? nil : apiBaseURL)
+        guard let raw else { return nil }
+        let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return nil }
+        return URL(string: cleaned)
+    }
+
     /// Single bundled-plist string reader used by `resolvedSupabaseConfig()`.
     /// Kept private so callers always go through a typed surface like
     /// `resolvedSupabaseConfig()` rather than reading raw keys ad-hoc.

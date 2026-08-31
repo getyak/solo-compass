@@ -65,6 +65,61 @@ final class ChatCardRenderVisualTest: XCTestCase {
         )
     }
 
+    func testCompiledWorkdayRouteCardRendersScheduleAndFallback() throws {
+        let stops = Array(seed.prefix(2))
+        guard stops.count == 2 else { throw XCTSkip("need 2 seed places") }
+        let plan = CompiledWorkdayPlan(
+            localDate: "2026-09-01",
+            startsAtMinute: 540,
+            endsAtMinute: 900,
+            totalTravelMinutes: 18,
+            totalWaitMinutes: 0,
+            evidenceCoverage: "partial",
+            refreshScheduled: true,
+            cacheStatus: "miss",
+            stops: [
+                CompiledRouteStop(
+                    taskId: "focus", taskKind: "deep_work",
+                    experienceId: stops[0].id, title: stops[0].title,
+                    arrivalMinute: 532, startMinute: 540, endMinute: 660,
+                    travelFromPreviousMinutes: 8, waitMinutes: 0
+                ),
+                CompiledRouteStop(
+                    taskId: "meal", taskKind: "meal",
+                    experienceId: stops[1].id, title: stops[1].title,
+                    arrivalMinute: 675, startMinute: 675, endMinute: 735,
+                    travelFromPreviousMinutes: 15, waitMinutes: 0
+                ),
+            ],
+            fallbacks: [
+                CompiledRouteFallback(
+                    taskId: "focus", primaryExperienceId: stops[0].id,
+                    experienceId: stops[1].id, title: stops[1].title,
+                    startMinute: 545, endMinute: 665, extraTravelMinutes: 6
+                )
+            ]
+        )
+        let route = Route(
+            id: RouteId(rawValue: "r-compiled"),
+            title: "附近的专注工作日",
+            summary: "2 个有依据的地点 · 通勤 18 分钟",
+            experienceIds: stops.map(\.id),
+            cityCode: stops[0].location.cityCode,
+            region: "Nimman",
+            estimatedDuration: 360,
+            distanceMeters: 1_100,
+            pace: .standard,
+            source: .aiGenerated,
+            reasonNow: "部分可工作性事实正在刷新",
+            compiledPlan: plan
+        )
+        let proposal = RouteProposal(route: route, stops: stops)
+        try write(
+            render(ChatRouteProposalCard(proposal: proposal, onAdopt: {}, onTapStop: { _ in })),
+            "chatcard_compiled_workday"
+        )
+    }
+
     func testReasoningTracePanelRenders() throws {
         let steps = [
             ReasoningStep(kind: .thinking, label: "正在分析当下的时间与天气…"),

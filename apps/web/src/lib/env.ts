@@ -45,6 +45,7 @@ const serverSchema = z.object({
   SUPABASE_KEY: z.string().min(20),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
   ANTHROPIC_API_KEY: z.string().min(20).optional(),
+  VALHALLA_URL: z.string().url().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -55,9 +56,10 @@ export function getServerEnv(): ServerEnv {
   if (serverEnvCache) return serverEnvCache;
   const parsed = serverSchema.safeParse({
     SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_KEY: process.env.SUPABASE_KEY,
+    SUPABASE_KEY: process.env.SUPABASE_KEY ?? process.env.SUPABASE_ANON_KEY,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    VALHALLA_URL: process.env.VALHALLA_URL,
   });
   if (!parsed.success) {
     // eslint-disable-next-line no-console

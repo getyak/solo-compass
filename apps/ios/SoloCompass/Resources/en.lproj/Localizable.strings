@@ -945,6 +945,7 @@
 "agent.step.webSearch" = "🌐 Searching the web…";
 "agent.step.navigate" = "🗺 Opening navigation…";
 "agent.step.buildRoute" = "🧭 Stringing a route together…";
+"agent.step.compileWorkdayRoute" = "🗓 Compiling a workday route…";
 "agent.step.executing" = "⚙️ Executing…";
 
 /* Reasoning trace (elegant "thinking" panel) */
@@ -981,8 +982,12 @@
 "chat.route.saved" = "Saved.";
 "chat.route.tag.draft" = "DRAFT ROUTE";
 "chat.route.tag.verified" = "VERIFIED ROUTE";
+"chat.route.tag.compiled" = "COMPILED WORKDAY";
 "chat.route.walked" = "%d walked";
 "chat.route.stops" = "%1$d stops · %2$@";
+"chat.route.evidence.fresh" = "Evidence fresh";
+"chat.route.evidence.partial" = "Refreshing facts";
+"chat.route.fallbacks" = "Alternatives ready: %d";
 
 /* Voice agent inline overlay (VoiceAgentOverlay) */
 "voiceAgent.orb.a11y" = "Hold to speak to Solo Compass";
@@ -1646,6 +1651,24 @@
 "route.detail.pace.relaxed" = "Relaxed";
 "route.detail.pace.standard" = "Standard";
 "route.detail.pace.packed" = "Packed";
+"route.workday.title" = "A focused workday nearby";
+"route.workday.summary" = "%d grounded stops · %d min travel";
+"route.workday.evidence.fresh" = "Opening hours and workability evidence are current";
+"route.workday.evidence.partial" = "Usable plan; some workability facts are refreshing";
+"route.workday.schedule.title" = "Compiled schedule";
+"route.workday.evidence.badge.fresh" = "FRESH";
+"route.workday.evidence.badge.partial" = "PARTIAL";
+"route.workday.fallback" = "Fallback: %@ · +%d min travel";
+"route.workday.refresh.scheduled" = "Some facts are stale or unknown. A refresh has been queued; check again before leaving.";
+"route.workday.refresh.partial" = "Some facts are stale or unknown. Confirm the highlighted assumptions before leaving.";
+"route.workday.travel" = "%d min travel";
+"route.workday.wait" = "%d min wait";
+"route.workday.task.deep_work" = "Deep work";
+"route.workday.task.video_call" = "Video call";
+"route.workday.task.meal" = "Meal";
+"route.workday.task.explore" = "Explore";
+"route.workday.task.break" = "Break";
+"route.workday.task.custom" = "Task";
 
 /* US-026 — AddToItinerary success toast */
 "itinerary.toast.added" = "Added to 《%@》";

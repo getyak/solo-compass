@@ -5,7 +5,7 @@ export const sourceTypeEnum = pgEnum("source_type", ["wikivoyage", "osm", "googl
 
 export const sources = pgTable("sources", {
   id: uuid("id").primaryKey().defaultRandom(),
-  experienceId: uuid("experience_id")
+  experienceId: text("experience_id")
     .notNull()
     .references(() => experiences.id, { onDelete: "cascade" }),
   sourceType: sourceTypeEnum("source_type").notNull(),

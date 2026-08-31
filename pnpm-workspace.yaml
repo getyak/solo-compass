@@ -1,11 +1,12 @@
 packages:
   - "apps/web"
   - "apps/bot"
+  - "apps/worker"
   - "packages/*"
   - "packages/sources/*"
 
 allowBuilds:
-  '@sentry/cli': true
+  "@sentry/cli": true
   core-js: false
   esbuild: true
 

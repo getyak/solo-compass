@@ -172,6 +172,8 @@ struct ChatRouteProposalCard: View {
         route.verification.status == .verified && route.verification.walkedByCount > 0
     }
 
+    private var isCompiledWorkday: Bool { route.compiledPlan != nil }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             tagRow
@@ -182,6 +184,9 @@ struct ChatRouteProposalCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             if !route.reasonNow.isNilOrEmpty {
                 reasonNowBanner
+            }
+            if let plan = route.compiledPlan {
+                compiledTimeline(plan)
             }
             beadStrip
             actions
@@ -209,7 +214,9 @@ struct ChatRouteProposalCard: View {
             Image(systemName: "flag.fill")
                 .font(.system(size: 9, weight: .bold))
             Text(NSLocalizedString(
-                isVerified ? "chat.route.tag.verified" : "chat.route.tag.draft",
+                isCompiledWorkday
+                    ? "chat.route.tag.compiled"
+                    : (isVerified ? "chat.route.tag.verified" : "chat.route.tag.draft"),
                 comment: "Route card tag"
             ))
             .font(.system(size: 9.5, weight: .bold, design: .rounded))
@@ -244,6 +251,56 @@ struct ChatRouteProposalCard: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(CT.sunGoldSoft))
+    }
+
+    private func compiledTimeline(_ plan: CompiledWorkdayPlan) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock.badge.checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                Text(plan.localDate)
+                    .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+                Spacer(minLength: 4)
+                Text(NSLocalizedString(
+                    plan.evidenceCoverage == "fresh"
+                        ? "chat.route.evidence.fresh"
+                        : "chat.route.evidence.partial",
+                    comment: "Workday evidence coverage"
+                ))
+                .font(.system(size: 9.5, weight: .semibold))
+            }
+            .foregroundStyle(plan.evidenceCoverage == "fresh" ? CT.verifiedGreen : CT.sunGoldDeep)
+
+            ForEach(Array(plan.stops.prefix(3))) { stop in
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text("\(Self.minuteLabel(stop.startMinute))–\(Self.minuteLabel(stop.endMinute))")
+                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                        .foregroundStyle(CT.fgMuted)
+                    Text(stop.title)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+            }
+            if !plan.fallbacks.isEmpty {
+                Label(
+                    String(
+                        format: NSLocalizedString("chat.route.fallbacks", comment: "%d fallbacks"),
+                        plan.fallbacks.count
+                    ),
+                    systemImage: "arrow.triangle.branch"
+                )
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(CT.accent)
+            }
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.sm, style: .continuous)
+                .fill(CT.surfaceSunken)
+        )
     }
 
     /// Color-bead strip: each stop is a small category disc, joined by hairline
@@ -336,6 +393,10 @@ struct ChatRouteProposalCard: View {
 
     private var cardFill: Color {
         colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceWhite
+    }
+
+    private static func minuteLabel(_ minute: Int) -> String {
+        String(format: "%02d:%02d", max(0, minute) / 60, max(0, minute) % 60)
     }
 }
 

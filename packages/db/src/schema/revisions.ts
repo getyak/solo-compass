@@ -5,7 +5,7 @@ export const experienceRevisions = pgTable(
   "experience_revisions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    experienceId: uuid("experience_id")
+    experienceId: text("experience_id")
       .notNull()
       .references(() => experiences.id, { onDelete: "cascade" }),
     revisionNumber: integer("revision_number").notNull(),

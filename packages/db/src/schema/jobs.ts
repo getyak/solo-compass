@@ -21,7 +21,7 @@ export const editorQueue = pgTable(
   "editor_queue",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    experienceId: uuid("experience_id")
+    experienceId: text("experience_id")
       .notNull()
       .references(() => experiences.id, { onDelete: "cascade" }),
     priority: integer("priority").notNull().default(0),

@@ -205,6 +205,141 @@ public struct RouteCompanion: Codable, Hashable, Sendable {
     }
 }
 
+// MARK: - Compiled workday plan
+
+/// One evidence warning carried through from the deterministic route compiler.
+/// Warnings are retained on-device so a saved route never loses the uncertainty
+/// that was visible when the traveler adopted it.
+public struct CompiledRouteWarning: Codable, Hashable, Sendable {
+    public var code: String
+    public var featureKey: String?
+    public var message: String
+
+    public init(code: String, featureKey: String? = nil, message: String) {
+        self.code = code
+        self.featureKey = featureKey
+        self.message = message
+    }
+}
+
+/// A stop placed on an exact local-day timeline by the constraint solver.
+public struct CompiledRouteStop: Codable, Hashable, Sendable, Identifiable {
+    public var id: String { taskId }
+    public var taskId: String
+    public var taskKind: String
+    public var experienceId: String
+    public var title: String
+    public var arrivalMinute: Int
+    public var startMinute: Int
+    public var endMinute: Int
+    public var travelFromPreviousMinutes: Int
+    public var distanceFromPreviousMeters: Int?
+    public var waitMinutes: Int
+    public var warnings: [CompiledRouteWarning]
+
+    public init(
+        taskId: String,
+        taskKind: String,
+        experienceId: String,
+        title: String,
+        arrivalMinute: Int,
+        startMinute: Int,
+        endMinute: Int,
+        travelFromPreviousMinutes: Int,
+        distanceFromPreviousMeters: Int? = nil,
+        waitMinutes: Int,
+        warnings: [CompiledRouteWarning] = []
+    ) {
+        self.taskId = taskId
+        self.taskKind = taskKind
+        self.experienceId = experienceId
+        self.title = title
+        self.arrivalMinute = arrivalMinute
+        self.startMinute = startMinute
+        self.endMinute = endMinute
+        self.travelFromPreviousMinutes = travelFromPreviousMinutes
+        self.distanceFromPreviousMeters = distanceFromPreviousMeters
+        self.waitMinutes = waitMinutes
+        self.warnings = warnings
+    }
+}
+
+/// A task-specific alternative that remains valid when its primary stop fails.
+public struct CompiledRouteFallback: Codable, Hashable, Sendable, Identifiable {
+    public var id: String { "\(taskId):\(experienceId)" }
+    public var taskId: String
+    public var primaryExperienceId: String
+    public var experienceId: String
+    public var title: String
+    public var startMinute: Int
+    public var endMinute: Int
+    public var extraTravelMinutes: Int
+    public var warnings: [CompiledRouteWarning]
+
+    public init(
+        taskId: String,
+        primaryExperienceId: String,
+        experienceId: String,
+        title: String,
+        startMinute: Int,
+        endMinute: Int,
+        extraTravelMinutes: Int,
+        warnings: [CompiledRouteWarning] = []
+    ) {
+        self.taskId = taskId
+        self.primaryExperienceId = primaryExperienceId
+        self.experienceId = experienceId
+        self.title = title
+        self.startMinute = startMinute
+        self.endMinute = endMinute
+        self.extraTravelMinutes = extraTravelMinutes
+        self.warnings = warnings
+    }
+}
+
+/// Persisted output of the server-side time-window solver. The LLM may explain
+/// this plan, but it never chooses stops, invents opening windows, or edits the
+/// timeline. `evidenceCoverage` is deliberately stored with the schedule.
+public struct CompiledWorkdayPlan: Codable, Hashable, Sendable {
+    public var localDate: String
+    public var startsAtMinute: Int
+    public var endsAtMinute: Int
+    public var totalTravelMinutes: Int
+    public var totalWaitMinutes: Int
+    public var evidenceCoverage: String
+    public var refreshScheduled: Bool
+    public var cacheStatus: String
+    public var stops: [CompiledRouteStop]
+    public var fallbacks: [CompiledRouteFallback]
+    public var warnings: [CompiledRouteWarning]
+
+    public init(
+        localDate: String,
+        startsAtMinute: Int,
+        endsAtMinute: Int,
+        totalTravelMinutes: Int,
+        totalWaitMinutes: Int,
+        evidenceCoverage: String,
+        refreshScheduled: Bool,
+        cacheStatus: String,
+        stops: [CompiledRouteStop],
+        fallbacks: [CompiledRouteFallback] = [],
+        warnings: [CompiledRouteWarning] = []
+    ) {
+        self.localDate = localDate
+        self.startsAtMinute = startsAtMinute
+        self.endsAtMinute = endsAtMinute
+        self.totalTravelMinutes = totalTravelMinutes
+        self.totalWaitMinutes = totalWaitMinutes
+        self.evidenceCoverage = evidenceCoverage
+        self.refreshScheduled = refreshScheduled
+        self.cacheStatus = cacheStatus
+        self.stops = stops
+        self.fallbacks = fallbacks
+        self.warnings = warnings
+    }
+}
+
 // MARK: - Route
 
 /// An ordered sequence of experiences to walk, with pacing, verification, and an optional companion slot.
@@ -232,6 +367,9 @@ public struct Route: Identifiable, Codable, Sendable {
     public var reasonNow: String?
     public var verification: RouteVerification
     public var companion: RouteCompanion?
+    /// Exact, evidence-backed schedule for routes produced by the workday
+    /// compiler. Nil for editorial, manual, and ordinary walk routes.
+    public var compiledPlan: CompiledWorkdayPlan?
 
     public init(
         id: RouteId,
@@ -250,7 +388,8 @@ public struct Route: Identifiable, Codable, Sendable {
         bestNow: Bool = false,
         reasonNow: String? = nil,
         verification: RouteVerification = RouteVerification(),
-        companion: RouteCompanion? = nil
+        companion: RouteCompanion? = nil,
+        compiledPlan: CompiledWorkdayPlan? = nil
     ) {
         self.id = id
         self.title = title
@@ -269,6 +408,7 @@ public struct Route: Identifiable, Codable, Sendable {
         self.reasonNow = reasonNow
         self.verification = verification
         self.companion = companion
+        self.compiledPlan = compiledPlan
     }
 
     // MARK: - Runtime now-window check

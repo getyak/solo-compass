@@ -243,22 +243,22 @@ public final class AIService {
 
     // MARK: - Generate a route (AI "discover / build a walk")
 
-    /// The model's route plan: an ordered subset of the candidate ids plus the
-    /// editorial copy. Decoded from a single JSON object the model returns.
+    /// Editorial copy for a route whose stops have already been chosen by the
+    /// deterministic planner. `orderedIds` remains optional for backwards
+    /// compatibility with cached/older model responses, but is never trusted.
     private struct GeneratedRoutePlan: Codable {
-        let orderedIds: [String]
+        let orderedIds: [String]?
         let title: String
         let summary: String
         let reasonNow: String?
         let tags: [String]?
     }
 
-    /// Generate a single walkable route from nearby experiences. The model
-    /// picks 3–5 stops, orders them into a sensible walk, and writes a title,
-    /// summary, and an optional "why now" line. Falls back — when no key is
-    /// configured or the response can't be parsed — to a local greedy
-    /// nearest-neighbour walk over the top Solo-scored candidates, so the
-    /// feature always produces a route.
+    /// Generate a single walkable route from nearby experiences. Stop choice
+    /// and order are deterministic; the model only writes title/summary copy.
+    /// This prevents a fluent model response from overriding actual candidate
+    /// identity or walking order. When the model is unavailable, the exact same
+    /// planned stops are returned with local copy.
     ///
     /// - Parameters:
     ///   - candidates: nearby experiences to choose stops from.
@@ -273,7 +273,8 @@ public final class AIService {
         now: Date = Date()
     ) async throws -> Route {
         let routeId = RouteId(rawValue: "ai-\(UUID().uuidString.prefix(8))")
-        let validIds = Set(candidates.map(\.id))
+        let ordered = RouteBuilder.rankedWalk(candidates, from: userCoordinate, now: now)
+        guard !ordered.isEmpty else { throw AIError.decodingFailed("no candidates to build a route") }
 
         // An AI-built route is composed for the CURRENT moment (the user asked
         // to "plan tonight" / "string these together now", and reasonNow speaks
@@ -285,17 +286,9 @@ public final class AIService {
         let nowHour = Double(Calendar.current.component(.hour, from: now))
 
         do {
-            let prompt = Self.routeGenerationPrompt(candidates: candidates, cityCode: cityCode)
+            let prompt = Self.routeGenerationPrompt(candidates: ordered, cityCode: cityCode)
             let raw = try await sendMessage(prompt: prompt, kind: .synthesis)
             let plan = try Self.parseRoutePlan(raw)
-            // Keep only ids the model was actually given, in the order it chose,
-            // capped to a walkable 3–6 stops; drop dupes.
-            var seen = Set<String>()
-            let chosen = plan.orderedIds
-                .filter { validIds.contains($0) && seen.insert($0).inserted }
-                .prefix(6)
-            let ordered = chosen.compactMap { id in candidates.first { $0.id == id } }
-            guard ordered.count >= 2 else { throw AIError.decodingFailed("route plan too short") }
             return RouteBuilder.makeRoute(
                 id: routeId,
                 title: plan.title.isEmpty ? Self.fallbackRouteTitle(ordered) : plan.title,
@@ -330,16 +323,8 @@ public final class AIService {
                     ]
                 )
             }
-            // Local fallback: top Solo-scored candidates, walked nearest-first.
-            let top = candidates
-                .sorted { lhs, rhs in
-                    let l = lhs.soloScore.overall + (lhs.isBestNow(at: now) ? 2 : 0)
-                    let r = rhs.soloScore.overall + (rhs.isBestNow(at: now) ? 2 : 0)
-                    return l > r
-                }
-                .prefix(5)
-            let ordered = RouteBuilder.nearestNeighbourOrder(Array(top), from: userCoordinate)
-            guard !ordered.isEmpty else { throw AIError.decodingFailed("no candidates to build a route") }
+            // Local fallback uses the same deterministic plan, only without
+            // model-authored copy.
             return RouteBuilder.makeRoute(
                 id: routeId,
                 title: Self.fallbackRouteTitle(ordered),
@@ -894,28 +879,26 @@ public final class AIService {
         """
     }
 
-    /// Prompt for `generateRoute` — asks the model to choose and order 3–5
-    /// stops into a walkable loop and return a single JSON object.
+    /// Prompt for `generateRoute`. The ordered stop list is already fixed; the
+    /// model is an editor here, not a constraint solver.
     private static func routeGenerationPrompt(candidates: [Experience], cityCode: String) -> String {
         let candidateLines = candidates.prefix(40).map { exp in
             let coord = exp.coordinate.map { String(format: "%.4f,%.4f", $0.latitude, $0.longitude) } ?? "?"
             return "- \(exp.id): \(exp.title) [\(exp.category.rawValue), solo=\(String(format: "%.1f", exp.soloScore.overall)), @\(coord)]"
         }.joined(separator: "\n")
         return """
-        You are planning ONE walkable route for a solo traveler in city \(cityCode).
-        Choose 3 to 5 of the candidates below and order them into a sensible walk \
-        (short hops, varied categories, a satisfying arc — e.g. coffee → culture → sunset viewpoint).
+        You are naming and explaining ONE already-planned walkable route for a solo traveler in city \(cityCode).
+        The stop order below is fixed by a deterministic route planner. Do not add, remove, reorder, or invent places.
 
         Return ONLY a JSON object, no prose, with exactly these keys:
         {
-          "orderedIds": ["id1","id2","id3"],   // 3–5 ids FROM the candidates, in walking order
           "title": "短而具体的路线名",            // concise, evocative; the traveler's language is fine
           "summary": "one sentence on the vibe of this walk",
           "reasonNow": "optional: why it's good right now, or empty string",
           "tags": ["culture","coffee"]          // 1–3 category tags
         }
 
-        Candidates:
+        Fixed ordered stops:
         \(candidateLines)
         """
     }

@@ -1065,6 +1065,7 @@
 "agent.step.listening" = "聆听中…";
 "agent.step.navigate" = "🗺 打开导航…";
 "agent.step.buildRoute" = "🧭 正在为你串联路线…";
+"agent.step.compileWorkdayRoute" = "🗓 正在编译工作日路线…";
 "agent.trace.foundPlaces" = "找到 %d 个合适的地方";
 "agent.trace.builtRoute" = "把 %d 个站点串成了一条路线";
 "agent.trace.foundEvents" = "找到 %d 场在地活动";
@@ -1094,8 +1095,12 @@
 "chat.route.saved" = "已收藏";
 "chat.route.tag.draft" = "草拟路线";
 "chat.route.tag.verified" = "已验证路线";
+"chat.route.tag.compiled" = "已编译工作日";
 "chat.route.walked" = "%d 人走过";
 "chat.route.stops" = "%1$d 站 · %2$@";
+"chat.route.evidence.fresh" = "证据新鲜";
+"chat.route.evidence.partial" = "事实刷新中";
+"chat.route.fallbacks" = "已备好 %d 个备选";
 "agent.step.save" = "❤️ 收藏中…";
 "agent.step.search" = "🔍 搜索地点…";
 "agent.step.webSearch" = "🌐 联网搜索中…";
@@ -1409,6 +1414,24 @@
 "route.detail.pace.relaxed" = "悠闲";
 "route.detail.pace.standard" = "适中";
 "route.detail.pace.packed" = "紧凑";
+"route.workday.title" = "附近的专注工作日";
+"route.workday.summary" = "%d 个有依据的地点 · 通勤 %d 分钟";
+"route.workday.evidence.fresh" = "营业时间和可工作性证据均为新鲜状态";
+"route.workday.evidence.partial" = "路线可用；部分可工作性事实正在刷新";
+"route.workday.schedule.title" = "编译时间表";
+"route.workday.evidence.badge.fresh" = "新鲜";
+"route.workday.evidence.badge.partial" = "部分";
+"route.workday.fallback" = "备选：%@ · 多通勤 %d 分钟";
+"route.workday.refresh.scheduled" = "部分事实已陈旧或未知，后台刷新已排队；出发前请再确认。";
+"route.workday.refresh.partial" = "部分事实已陈旧或未知，出发前请确认标出的假设。";
+"route.workday.travel" = "通勤 %d 分钟";
+"route.workday.wait" = "等待 %d 分钟";
+"route.workday.task.deep_work" = "深度工作";
+"route.workday.task.video_call" = "视频会议";
+"route.workday.task.meal" = "用餐";
+"route.workday.task.explore" = "探索";
+"route.workday.task.break" = "休息";
+"route.workday.task.custom" = "任务";
 
 /* Settings — AI Provider */
 "settings.aiProvider" = "AI 提供商";

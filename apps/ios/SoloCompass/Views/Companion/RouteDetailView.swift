@@ -196,6 +196,11 @@ public struct RouteDetailView: View {
                 .padding(.horizontal, 16)
             }
 
+            if let plan = liveRoute.compiledPlan {
+                compiledPlanCard(plan)
+                    .padding(.horizontal, 16)
+            }
+
             // StopsList
             StopsList(route: liveRoute, onTapStop: onTapStop)
                 .background(CT.surfaceWhite)
@@ -232,6 +237,129 @@ public struct RouteDetailView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 4)
+    }
+
+    // MARK: - Compiled workday schedule
+
+    private func compiledPlanCard(_ plan: CompiledWorkdayPlan) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(CT.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(NSLocalizedString("route.workday.schedule.title", comment: "Workday schedule title"))
+                        .ctDisplay(12, .bold)
+                        .tracking(0.7)
+                        .textCase(.uppercase)
+                    Text("\(plan.localDate) · \(Self.minuteLabel(plan.startsAtMinute))–\(Self.minuteLabel(plan.endsAtMinute))")
+                        .ctMono(11)
+                        .foregroundStyle(CT.fgMuted)
+                }
+                Spacer(minLength: 4)
+                Text(NSLocalizedString(
+                    plan.evidenceCoverage == "fresh"
+                        ? "route.workday.evidence.badge.fresh"
+                        : "route.workday.evidence.badge.partial",
+                    comment: "Evidence status badge"
+                ))
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(plan.evidenceCoverage == "fresh" ? CT.verifiedGreen : CT.sunGoldDeep)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule().fill(
+                        plan.evidenceCoverage == "fresh" ? CT.successSoft : CT.sunGoldSoft
+                    )
+                )
+            }
+
+            ForEach(plan.stops) { stop in
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(Self.minuteLabel(stop.startMinute))–\(Self.minuteLabel(stop.endMinute))")
+                            .ctMono(11, .semibold)
+                            .foregroundStyle(CT.accent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(stop.title)
+                                .ctBody(13.5, .semibold)
+                                .foregroundStyle(CT.fgPrimary)
+                            Text(Self.taskKindLabel(stop.taskKind))
+                                .ctBody(11)
+                                .foregroundStyle(CT.fgMuted)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    if stop.travelFromPreviousMinutes > 0 || stop.waitMinutes > 0 {
+                        Text(Self.stopMeta(stop))
+                            .ctBody(10.5)
+                            .foregroundStyle(CT.fgMuted)
+                    }
+                    if let fallback = plan.fallbacks.first(where: { $0.taskId == stop.taskId }) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Image(systemName: "arrow.triangle.branch")
+                                .font(.system(size: 10, weight: .semibold))
+                            Text(String(
+                                format: NSLocalizedString("route.workday.fallback", comment: "Fallback place and extra minutes"),
+                                fallback.title,
+                                fallback.extraTravelMinutes
+                            ))
+                            .ctBody(11, .medium)
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .foregroundStyle(CT.accent)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+
+            if plan.evidenceCoverage != "fresh" {
+                Label(
+                    NSLocalizedString(
+                        plan.refreshScheduled
+                            ? "route.workday.refresh.scheduled"
+                            : "route.workday.refresh.partial",
+                        comment: "Partial route evidence note"
+                    ),
+                    systemImage: "exclamationmark.triangle"
+                )
+                .ctBody(10.5)
+                .foregroundStyle(CT.sunGoldDeep)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(14)
+        .background(CT.surfaceWhite)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(CT.accentBorder, lineWidth: 0.5)
+        )
+    }
+
+    private static func minuteLabel(_ minute: Int) -> String {
+        String(format: "%02d:%02d", max(0, minute) / 60, max(0, minute) % 60)
+    }
+
+    private static func taskKindLabel(_ raw: String) -> String {
+        NSLocalizedString("route.workday.task.\(raw)", comment: "Compiled route task kind")
+    }
+
+    private static func stopMeta(_ stop: CompiledRouteStop) -> String {
+        var parts: [String] = []
+        if stop.travelFromPreviousMinutes > 0 {
+            parts.append(String(
+                format: NSLocalizedString("route.workday.travel", comment: "Travel minutes"),
+                stop.travelFromPreviousMinutes
+            ))
+        }
+        if stop.waitMinutes > 0 {
+            parts.append(String(
+                format: NSLocalizedString("route.workday.wait", comment: "Wait minutes"),
+                stop.waitMinutes
+            ))
+        }
+        return parts.joined(separator: " · ")
     }
 
     // MARK: - AI insight locked card (.sc-locked)
