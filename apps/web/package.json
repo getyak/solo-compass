@@ -37,7 +37,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@types/mapbox-gl": "^3.4.1",
-    "@types/node": "^22.7.0",
+    "@types/node": "^26.4.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.185.0",

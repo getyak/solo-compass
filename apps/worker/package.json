@@ -17,7 +17,7 @@
     "@solo-compass/sources-osm": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.7.0",
+    "@types/node": "^26.4.0",
     "tsx": "^4.23.12",
     "typescript": "^5.6.2",
     "vitest": "^3.2.7"
