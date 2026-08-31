@@ -268,6 +268,14 @@ public struct BottomInfoSheet<Content: View>: View {
     @State private var sortMode: SortMode = .smart
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Drag tracking stays immediate for everyone. Only the release-to-detent
+    /// interpolation is removed when Reduce Motion is enabled, avoiding a
+    /// large vertical spring while preserving the same final state and haptic.
+    private var settleAnimation: Animation? {
+        reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)
+    }
 
     private let aiHint: String
     private let count: Int
@@ -546,7 +554,7 @@ public struct BottomInfoSheet<Content: View>: View {
         // (the "flicker"). Pinned to `currentDetent`, the drag is pure
         // immediate finger-tracking (no animation) and only the
         // release-to-nearest-detent gets the spring.
-        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: currentDetent)
+        .animation(settleAnimation, value: currentDetent)
         .onChange(of: currentDetent) { _, newValue in
             if newValue != .peek { hasEverExpanded = true }
             onDetentChange?(newValue)
@@ -565,7 +573,7 @@ public struct BottomInfoSheet<Content: View>: View {
             // The live dragged height is exactly what `displayHeight` renders:
             // the current detent's height minus the accumulated drag offset.
             let draggedHeight = max(minHeight, min(maxHeight, currentDetent.baseHeight * scale - dragOffset))
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            withAnimation(settleAnimation) {
                 isDragging = false
                 currentDetent = BottomSheetDetent.nearest(to: draggedHeight, traits: dynamicTypeTraits)
                 dragOffset = 0
@@ -629,8 +637,11 @@ public struct BottomInfoSheet<Content: View>: View {
                 PeekEmptyCard()
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: isPreviewActive)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: peekExperience?.id)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: isPreviewActive)
+        .animation(
+            reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85),
+            value: peekExperience?.id
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -755,10 +766,25 @@ public struct BottomInfoSheet<Content: View>: View {
     ) {
         let projectedHeight = dragStartHeight - predictedTranslation
         let clampedHeight = max(minHeight, min(maxHeight, projectedHeight))
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+        let applyTargetDetent = {
             isDragging = false
             currentDetent = BottomSheetDetent.nearest(to: clampedHeight, traits: dynamicTypeTraits)
             dragOffset = 0
+        }
+
+        InteractionTracker.shared.beginLatency(.sheetSettle)
+        if reduceMotion {
+            applyTargetDetent()
+            InteractionTracker.shared.finishLatency(.sheetSettle)
+        } else {
+            withAnimation(
+                settleAnimation,
+                completionCriteria: .logicallyComplete
+            ) {
+                applyTargetDetent()
+            } completion: {
+                InteractionTracker.shared.finishLatency(.sheetSettle)
+            }
         }
     }
 

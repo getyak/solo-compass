@@ -29,10 +29,12 @@ struct DeveloperOptionsView: View {
     @State private var flagsRevision = 0
     @State private var showingResetConfirm = false
     @State private var toast: String?
+    @State private var interactionTracker = InteractionTracker.shared
 
     var body: some View {
         List {
             statusSection
+            performanceSection
             apiConfigSection
             dataSourceSection
             featureFlagsSection
@@ -48,6 +50,35 @@ struct DeveloperOptionsView: View {
             isPresented: Binding(get: { toast != nil }, set: { if !$0 { toast = nil } })
         ) {
             Button(NSLocalizedString("common.ok", comment: "OK")) { toast = nil }
+        }
+    }
+
+    // MARK: - UX performance
+
+    private var performanceSection: some View {
+        Section {
+            let summaries = InteractionTracker.LatencyJourney.allCases.compactMap {
+                interactionTracker.latencySummary(for: $0)
+            }
+            if summaries.isEmpty {
+                Text(NSLocalizedString("dev.performance.empty", comment: "No UX latency samples yet"))
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(summaries, id: \.journey.rawValue) { summary in
+                    latencyRow(summary)
+                }
+                Button(NSLocalizedString("dev.performance.clear", comment: "Clear UX performance samples")) {
+                    interactionTracker.clearLatencySamples()
+                    Haptics.selection()
+                }
+            }
+        } header: {
+            header("gauge.with.dots.needle.50percent", NSLocalizedString(
+                "dev.performance.header",
+                comment: "UX performance diagnostics header"
+            ))
+        } footer: {
+            Text(NSLocalizedString("dev.performance.footer", comment: "UX performance diagnostics footer"))
         }
     }
 
@@ -281,6 +312,43 @@ struct DeveloperOptionsView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
+    }
+
+    private func latencyRow(_ summary: InteractionTracker.LatencySummary) -> some View {
+        let passPercent = Int((summary.withinBudgetRate * 100).rounded())
+        let title: String
+        switch summary.journey {
+        case .pinToDetail:
+            title = NSLocalizedString("dev.performance.pinToDetail", comment: "Pin to detail latency journey")
+        case .sheetSettle:
+            title = NSLocalizedString("dev.performance.sheetSettle", comment: "Bottom sheet settle latency journey")
+        }
+        let value = String(
+            format: NSLocalizedString("dev.performance.p95", comment: "p95 latency and budget"),
+            Int(summary.p95Milliseconds.rounded()),
+            Int(summary.budgetMilliseconds.rounded())
+        )
+        let detail = String(
+            format: NSLocalizedString("dev.performance.detail", comment: "Latency sample summary"),
+            summary.sampleCount,
+            Int(summary.p50Milliseconds.rounded()),
+            passPercent
+        )
+        return HStack(spacing: 10) {
+            Image(systemName: summary.isWithinBudget ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .foregroundStyle(summary.isWithinBudget ? Color.green : Color.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(value)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(summary.isWithinBudget ? .secondary : Color.orange)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private func iconLabel(icon: String, color: Color, title: String, subtitle: String?) -> some View {

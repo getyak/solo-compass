@@ -18,10 +18,10 @@ public struct ToolRouterContractPreview: View {
     public var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
-                Text("Tool Router · 7 new tools")
+                Text(NSLocalizedString("toolRouter.preview.title", comment: "Tool Router contract preview title"))
                     .font(.system(.headline, design: .rounded))
                     .foregroundStyle(CT.fgPrimary)
-                Text("Runs inside the chat agent — no standalone UI. This is the audit contract.")
+                Text(NSLocalizedString("toolRouter.preview.subtitle", comment: "Tool Router contract preview explanation"))
                     .font(.caption)
                     .foregroundStyle(CT.fgMuted)
 

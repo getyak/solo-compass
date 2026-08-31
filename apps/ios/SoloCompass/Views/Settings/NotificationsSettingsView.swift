@@ -26,9 +26,9 @@ public struct NotificationsSettingsView: View {
                         ProactiveNudgeScheduler.shared.setEnabled(.capsule, v)
                     }
             } header: {
-                Text("Proactive nudges")
+                Text(NSLocalizedString("settings.notifications.proactive.header", comment: "Proactive notification settings header"))
             } footer: {
-                Text("You'll never get more than 3 nudges in a day, regardless of type.")
+                Text(NSLocalizedString("settings.notifications.proactive.footer", comment: "Daily proactive notification limit"))
             }
         }
         .navigationTitle("Notifications")

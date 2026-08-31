@@ -64,7 +64,7 @@ public struct LiveActivityLockScreenPreview: View {
 
     @ViewBuilder private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("SOLOCOMPASS")
+            Text(NSLocalizedString("liveActivity.brand", comment: "Solo Compass brand wordmark"))
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .tracking(1.4)
                 .foregroundStyle(Color(white: 0.85).opacity(0.5))
@@ -158,7 +158,7 @@ public struct LiveActivityAllKindsPreview: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Live Activity · 3 new kinds")
+                Text(NSLocalizedString("liveActivity.preview.allKindsTitle", comment: "Live Activity preview collection title"))
                     .font(.system(.headline, design: .rounded))
                     .foregroundStyle(CT.fgPrimary)
 

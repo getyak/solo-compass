@@ -430,7 +430,7 @@
 "recompile.feed.noPOIs" = "附近没有找到地点";
 "recompile.feed.noKey" = "未配置 API 密钥——已跳过";
 "recompile.feed.noAI" = "AI 不可用——改用本地排序";
-"recompile.feed.noCoordinate" = "这个地点没有坐标,无法交叉编译";
+"recompile.feed.noCoordinate" = "这个地点没有坐标，无法交叉编译";
 "recompile.feed.pipelineError" = "获取数据时出错";
 "recompile.feed.noMatch" = "附近没有匹配的地点";
 "recompile.feed.skeletonOnly" = "只有基础数据——算不上升级";
@@ -1073,7 +1073,7 @@
 
 /* Web 搜索来源卡片(聊天内溯源) */
 "chat.sources.title" = "来源";
-"chat.sources.a11y" = "来源 %1$d:%2$@,来自 %3$@";
+"chat.sources.a11y" = "来源 %1$d：%2$@，来自 %3$@";
 "chat.thinking.a11y" = "Solo Compass 正在思考";
 "agent.trace.summary.steps" = "推理了 %d 步";
 "agent.trace.summary.thought" = "已想清楚";
@@ -1085,7 +1085,7 @@
 "chat.card.open.a11y" = "在地图上打开 %@";
 "chat.card.solo" = "Solo %@";
 "chat.card.undo.pill" = "撤回 · %ds";
-"chat.card.undo.a11y" = "撤回这张卡片,%d 秒后确认";
+"chat.card.undo.a11y" = "撤回这张卡片，%d 秒后确认";
 "chat.card.undo.a11y.hint" = "双击可在卡片落定前撤回";
 "chat.route.adopt" = "采用这条路线";
 "chat.route.adopt.a11y" = "双击保存并打开这条路线";
@@ -2127,9 +2127,9 @@
 "archive.trip.places" = "个地方";
 "archive.city.count" = "%d 次到访";
 "archive.codex.title" = "城市图鉴";
-"archive.codex.coming" = "走走逛逛,卡片自动解锁。Phase 3 上线。";
+"archive.codex.coming" = "走走逛逛，卡片自动解锁。Phase 3 上线。";
 "archive.empty.title" = "还没有任何足迹";
-"archive.empty.subtitle" = "去一个地方,停留 5 分钟以上,这里会悄悄记得。";
+"archive.empty.subtitle" = "去一个地方，停留 5 分钟以上，这里会悄悄记得。";
 
 /* MeSheet top-tab segmented (P1.3 #132) */
 "me.tab.archive" = "档案";
@@ -2139,7 +2139,7 @@
 "onboarding.vibe.title" = "让我们看看你的氛围";
 "onboarding.vibe.subtitle" = "选 3 张照片代表你想要的下午——我们会悄悄调推荐。";
 "onboarding.vibe.field.label" = "或者用一句话描述";
-"onboarding.vibe.field.placeholder" = "安静的咖啡馆,慢慢的早晨…";
+"onboarding.vibe.field.placeholder" = "安静的咖啡馆，慢慢的早晨…";
 "onboarding.vibe.continue" = "继续";
 "onboarding.vibe.skip" = "暂时跳过";
 "onboarding.vibe.skip.hint" = "跳过会让前两周推荐不那么精准——之后可以随时补。";
@@ -2149,53 +2149,53 @@
 "city.szx" = "深圳";
 "city.vte" = "万象";
 "city.sf" = "旧金山";
-"onboarding.city.title" = "你从哪里出发?";
-"onboarding.city.subtitle" = "选个城市,地图就在你真实所在的地方打开。";
+"onboarding.city.title" = "你从哪里出发？";
+"onboarding.city.subtitle" = "选个城市，地图就在你真实所在的地方打开。";
 "onboarding.city.label" = "城市";
-"onboarding.city.afternoon.label" = "你想要怎样的一个下午?";
-"onboarding.city.afternoon.placeholder" = "安静的院子,慢慢的咖啡,没有压力……";
+"onboarding.city.afternoon.label" = "你想要怎样的一个下午？";
+"onboarding.city.afternoon.placeholder" = "安静的院子，慢慢的咖啡，没有压力……";
 "onboarding.city.continue" = "继续";
 
 /* Settings — Forget me (P2.0 #204) */
 "settings.forgetMe" = "忘记我";
-"settings.forgetMe.confirm.title" = "忘记你的口味和记忆?";
+"settings.forgetMe.confirm.title" = "忘记你的口味和记忆？";
 "settings.forgetMe.confirm.message" = "清空本地口味画像与 Solo Agent 关于你的所有记忆。你的收藏、路线和偏好会保留。";
 "settings.forgetMe.confirm.action" = "忘记我";
-"settings.forgetMe.toast.success" = "已清空——下次开聊时,Agent 会重新认识你。";
-"settings.forgetMe.toast.failure" = "暂时无法清空,请稍后再试。";
+"settings.forgetMe.toast.success" = "已清空——下次开聊时，Agent 会重新认识你。";
+"settings.forgetMe.toast.failure" = "暂时无法清空，请稍后再试。";
 "settings.exportData" = "导出我的数据";
-"settings.exportData.toast.empty" = "暂无可导出的数据——开始使用后,你的到访、时空胶囊和笔记会在这里出现。";
-"settings.exportData.toast.failure" = "导出准备失败,请稍后再试。";
+"settings.exportData.toast.empty" = "暂无可导出的数据——开始使用后，你的到访、时空胶囊和笔记会在这里出现。";
+"settings.exportData.toast.failure" = "导出准备失败，请稍后再试。";
 
 /* 启动自检 (StartupDiagnosticsService + SoloAgentBubble) */
 "diagnostics.anthropic.missing.title" = "AI 大脑没接上";
-"diagnostics.anthropic.missing.detail" = "没检测到 AI API key,Solo 现在只会用离线排序推荐地点,不会跟你自然对话。";
+"diagnostics.anthropic.missing.detail" = "没检测到 AI API key，Solo 现在只会用离线排序推荐地点，不会跟你自然对话。";
 "diagnostics.anthropic.missing.fix" = "去 设置 → AI Provider 填一个 Anthropic 或 DeepSeek 的 key。";
 "diagnostics.amap.missing.title" = "高德地图没接上";
-"diagnostics.amap.missing.detail" = "在中国区域,Solo 优先用高德查周边。当前没检测到高德 key,会回退到 Overpass 公共数据,结果可能不全。";
-"diagnostics.amap.missing.fix" = "在设置或环境变量里配一个 AMAP_API_KEY,再重启 App。";
+"diagnostics.amap.missing.detail" = "在中国区域，Solo 优先用高德查周边。当前没检测到高德 key，会回退到 Overpass 公共数据，结果可能不全。";
+"diagnostics.amap.missing.fix" = "在设置或环境变量里配一个 AMAP_API_KEY，再重启 App。";
 "diagnostics.location.denied.title" = "定位被拒了";
-"diagnostics.location.denied.detail" = "地图不知道你在哪,附近推荐、Now 排序、Live Activity 都会失效。";
+"diagnostics.location.denied.detail" = "地图不知道你在哪，附近推荐、Now 排序、Live Activity 都会失效。";
 "diagnostics.location.denied.fix" = "去 系统设置 → Solo Compass → 位置 → 使用期间。";
 "diagnostics.location.pending.title" = "还没授权定位";
-"diagnostics.location.pending.detail" = "点一下右下角 Solo 或者定位按钮,我会请求一次位置授权。";
+"diagnostics.location.pending.detail" = "点一下右下角 Solo 或者定位按钮，我会请求一次位置授权。";
 "diagnostics.location.pending.fix" = "触发一次定位授权弹窗。";
 "diagnostics.mic.denied.title" = "语音识别被关了";
-"diagnostics.mic.denied.detail" = "长按 Solo 说话没法转成文字,只能打字聊。";
+"diagnostics.mic.denied.detail" = "长按 Solo 说话没法转成文字，只能打字聊。";
 "diagnostics.mic.denied.fix" = "去 系统设置 → Solo Compass → 语音识别 打开。";
 "diagnostics.notification.denied.title" = "通知被拒了";
 "diagnostics.notification.denied.detail" = "拿不到孤独时段提醒、灵动岛胶囊、每月洞察推送。";
 "diagnostics.notification.denied.fix" = "去 系统设置 → Solo Compass → 通知 打开。";
 "diagnostics.onboarding.incomplete.title" = "onboarding 还没走完";
-"diagnostics.onboarding.incomplete.detail" = "没有 vibe / 城市 / 品味偏好,推荐会退化成通用榜。";
+"diagnostics.onboarding.incomplete.detail" = "没有 vibe / 城市 / 品味偏好，推荐会退化成通用榜。";
 "diagnostics.onboarding.incomplete.fix" = "回到 onboarding 把三步选完。";
 "diagnostics.seed.empty.title" = "地点数据是空的";
-"diagnostics.seed.empty.detail" = "seed_experiences.json 没加载出来,SwiftData 里也没历史数据。地图会是空的。";
-"diagnostics.seed.empty.fix" = "重装 App,或者报 bug 给我。";
-"diagnostics.seed.header" = "刚启动时你帮我做了一遍体检,发现下面这些问题。逐条解释一下影响,并告诉我怎么修:";
+"diagnostics.seed.empty.detail" = "seed_experiences.json 没加载出来，SwiftData 里也没历史数据。地图会是空的。";
+"diagnostics.seed.empty.fix" = "重装 App，或者报 bug 给我。";
+"diagnostics.seed.header" = "刚启动时你帮我做了一遍体检，发现下面这些问题。逐条解释一下影响，并告诉我怎么修：";
 "solo.agent.bubble.dismiss" = "关掉";
 "solo.agent.bubble.diagnostics.cta" = "问 Solo 怎么修 →";
-"solo.agent.bubble.diagnostics.subtitle.multi" = "还有 %d 个问题,点开我一起说。";
+"solo.agent.bubble.diagnostics.subtitle.multi" = "还有 %d 个问题，点开我一起说。";
 
 /* MARK: - 开发者选项（仅测试邮箱解锁后可见） */
 "dev.header" = "开发者";
@@ -2466,3 +2466,44 @@
 "today.seal.type.photo" = "一张照片，等待重现";
 "today.seal.type.voice" = "一段语音，等待重现";
 "today.seal.type.text" = "一段文字，等待重现";
+
+/* 本地化门禁修复 + 仪式感页面 */
+"diagnostics.seed.ask" = "问 Solo 怎么修复";
+"agent.step.clarify" = "正在确认你的需要";
+"agent.step.planning" = "正在规划下一步";
+"diagnostics.card.header" = "启动体检";
+"diagnostics.card.ask" = "问 Solo";
+"chat.bubble.expand" = "展开完整消息";
+"chat.bubble.collapse" = "收起消息";
+"archive.rituals.title" = "旅行仪式";
+"archive.bookManifest.title" = "旅行书 · 清单";
+"archive.bookManifest.subtitle" = "把这一年的形状印在纸上。";
+"archive.capsules.title" = "你的时空胶囊";
+"archive.book.yearEnd.title" = "把这一年，印成一本书。";
+"archive.book.yearEnd.subtitle" = "把今年的旅行档案做成实体书，限时开放。";
+"archive.codex.upsell.free" = "免费版展示本月记录。";
+"archive.codex.upsell.pro" = "Pro 可展开完整城市图鉴。";
+"blindbox.launch.title" = "盲盒路线";
+"blindbox.launch.subtitle" = "三个锚点，抵达时才揭晓。不赶路，也不剧透。";
+"blindbox.launch.open" = "开启";
+"capsule.compose.prompt" = "留一句话给未来的自己。";
+"capsule.compose.bury" = "埋下";
+"experience.soloScore.short" = "独行 %.1f";
+"omen.microTask" = "今日小任务";
+"omen.kept" = "收好了。";
+"omen.tomorrow" = "明天的卡片正在写来。";
+"ost.today.title" = "今日原声";
+"settings.notifications.proactive.header" = "主动提醒";
+"settings.notifications.proactive.footer" = "无论开启多少类型，每天最多收到 3 条提醒。";
+"liveActivity.brand" = "SOLOCOMPASS";
+"liveActivity.preview.allKindsTitle" = "实时活动 · 3 种新状态";
+"toolRouter.preview.title" = "工具路由 · 7 个新工具";
+"toolRouter.preview.subtitle" = "运行在聊天 Agent 内部，没有独立界面；这里展示的是审计契约。";
+"dev.performance.header" = "体验性能";
+"dev.performance.footer" = "仅统计本次会话的本地样本。p95 会与产品预算比较，数据不会上传。";
+"dev.performance.empty" = "还没有交互样本。打开一个地图标记，或拖动底部信息卡。";
+"dev.performance.clear" = "清除性能样本";
+"dev.performance.pinToDetail" = "标记 → 详情可用";
+"dev.performance.sheetSettle" = "底部信息卡归位";
+"dev.performance.p95" = "p95 %1$d / %2$d 毫秒";
+"dev.performance.detail" = "%1$d 个样本 · p50 %2$d 毫秒 · %3$d%% 达标";
