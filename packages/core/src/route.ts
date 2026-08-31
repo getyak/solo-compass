@@ -22,6 +22,51 @@ export interface RouteVerification {
  */
 export interface RouteCompanion {}
 
+export interface CompiledRouteWarning {
+  readonly code: string;
+  readonly featureKey?: string;
+  readonly message: string;
+}
+
+export interface CompiledRouteStop {
+  readonly taskId: string;
+  readonly taskKind: string;
+  readonly experienceId: ExperienceId;
+  readonly title: string;
+  readonly arrivalMinute: number;
+  readonly startMinute: number;
+  readonly endMinute: number;
+  readonly travelFromPreviousMinutes: number;
+  readonly distanceFromPreviousMeters?: number;
+  readonly waitMinutes: number;
+  readonly warnings: readonly CompiledRouteWarning[];
+}
+
+export interface CompiledRouteFallback {
+  readonly taskId: string;
+  readonly primaryExperienceId: ExperienceId;
+  readonly experienceId: ExperienceId;
+  readonly title: string;
+  readonly startMinute: number;
+  readonly endMinute: number;
+  readonly extraTravelMinutes: number;
+  readonly warnings: readonly CompiledRouteWarning[];
+}
+
+export interface CompiledWorkdayPlan {
+  readonly localDate: string;
+  readonly startsAtMinute: number;
+  readonly endsAtMinute: number;
+  readonly totalTravelMinutes: number;
+  readonly totalWaitMinutes: number;
+  readonly evidenceCoverage: string;
+  readonly refreshScheduled: boolean;
+  readonly cacheStatus: string;
+  readonly stops: readonly CompiledRouteStop[];
+  readonly fallbacks: readonly CompiledRouteFallback[];
+  readonly warnings: readonly CompiledRouteWarning[];
+}
+
 export interface Route {
   readonly id: RouteId;
   readonly title: string;
@@ -48,4 +93,6 @@ export interface Route {
   readonly reasonNow?: string;
   readonly verification: RouteVerification;
   readonly companion?: RouteCompanion;
+  /** Exact schedule produced by the evidence-backed constraint compiler. */
+  readonly compiledPlan?: CompiledWorkdayPlan;
 }

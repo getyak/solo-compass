@@ -41,6 +41,9 @@ public final class RouteRecord {
     public var tagsBlob: Data
     /// JSON-encoded `RouteCompanion?` — nil when no companion attached.
     public var companionBlob: Data?
+    /// JSON-encoded `CompiledWorkdayPlan?`. Optional so pre-v1.11 rows gain
+    /// NULL through a lightweight migration and continue decoding unchanged.
+    public var compiledPlanBlob: Data?
 
     // Beta-P0-A: active-route progress (Schema V1.7). Optional so existing
     // rows migrate without rewrite. iOS-local only; not synced to backend
@@ -72,6 +75,7 @@ public final class RouteRecord {
         walkedByBlob: Data,
         tagsBlob: Data,
         companionBlob: Data?,
+        compiledPlanBlob: Data? = nil,
         activeStartedAt: Date? = nil,
         currentStopIndex: Int? = nil,
         completedStopIdsBlob: Data? = nil
@@ -95,6 +99,7 @@ public final class RouteRecord {
         self.walkedByBlob = walkedByBlob
         self.tagsBlob = tagsBlob
         self.companionBlob = companionBlob
+        self.compiledPlanBlob = compiledPlanBlob
         self.activeStartedAt = activeStartedAt
         self.currentStopIndex = currentStopIndex
         self.completedStopIdsBlob = completedStopIdsBlob
@@ -110,6 +115,7 @@ extension RouteRecord {
         let walkedByBlob: Data
         let tagsBlob: Data
         let companionBlob: Data?
+        let compiledPlanBlob: Data?
         do {
             experienceIdsBlob = try encoder.encode(route.experienceIds)
             walkedByBlob = try encoder.encode(route.verification.walkedBy)
@@ -118,6 +124,11 @@ extension RouteRecord {
                 companionBlob = try encoder.encode(companion)
             } else {
                 companionBlob = nil
+            }
+            if let compiledPlan = route.compiledPlan {
+                compiledPlanBlob = try encoder.encode(compiledPlan)
+            } else {
+                compiledPlanBlob = nil
             }
         } catch {
             fatalError("Failed to encode Route \(route.id.rawValue) for persistence: \(error)")
@@ -141,7 +152,8 @@ extension RouteRecord {
             experienceIdsBlob: experienceIdsBlob,
             walkedByBlob: walkedByBlob,
             tagsBlob: tagsBlob,
-            companionBlob: companionBlob
+            companionBlob: companionBlob,
+            compiledPlanBlob: compiledPlanBlob
         )
     }
 
@@ -171,6 +183,24 @@ extension RouteRecord {
             )
             return nil
         }()
+        let compiledPlan: CompiledWorkdayPlan? = {
+            guard let blob = compiledPlanBlob else { return nil }
+            if let value = try? decoder.decode(CompiledWorkdayPlan.self, from: blob) {
+                return value
+            }
+            PersistenceLog.recordDecodeFailure(
+                PersistenceCodecError(
+                    context: "RouteRecord.asValue.compiledPlan",
+                    recordId: id,
+                    underlying: NSError(
+                        domain: "PersistenceCodec",
+                        code: -5,
+                        userInfo: [NSLocalizedDescriptionKey: "compiled plan decode failed; using nil"]
+                    )
+                )
+            )
+            return nil
+        }()
         let paceValue = Pace(rawValue: pace) ?? .standard
         let sourceValue = RouteSource(rawValue: source) ?? .editorial
         let statusValue = VerificationStatus(rawValue: verificationStatus) ?? .proposed
@@ -195,7 +225,8 @@ extension RouteRecord {
                 walkedByCount: walkedByCount,
                 walkedBy: walkedBy
             ),
-            companion: companion
+            companion: companion,
+            compiledPlan: compiledPlan
         )
     }
 }

@@ -1,6 +1,9 @@
 services:
   db:
-    image: pgvector/pgvector:pg16
+    build:
+      context: .
+      dockerfile: infra/postgres/Dockerfile
+    image: solo-compass-postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_USER: solo

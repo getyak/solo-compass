@@ -3653,10 +3653,12 @@ final class SoloCompassTests: XCTestCase {
             XCTAssertEqual(obj?["type"] as? String, "object",
                            "tool \(tool.name) schema must declare type:object")
         }
-        XCTAssertEqual(VoiceAgentToolRouter.allTools.count, 10,
-                       "9 PRD tools + build_route (conversational route creation)")
+        XCTAssertEqual(VoiceAgentToolRouter.allTools.count, 22,
+                       "tool catalog changes must be intentional and covered by schemas")
         XCTAssertTrue(VoiceAgentToolRouter.allTools.contains { $0.name == "build_route" },
                       "build_route must be advertised so the model can string a walk")
+        XCTAssertTrue(VoiceAgentToolRouter.allTools.contains { $0.name == "compile_workday_route" },
+                      "timed workability plans must use the deterministic compiler tool")
     }
 
     func testToolRouterFilterByCategoryHappyPath() async throws {
