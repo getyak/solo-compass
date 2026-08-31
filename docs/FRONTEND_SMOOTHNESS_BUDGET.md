@@ -20,89 +20,89 @@
 
 ### 2.1 帧节奏和主线程
 
-| 指标 | 定义 | 目标 | 告警 | 测量 |
-| --- | --- | ---: | ---: | --- |
-| 60 Hz 帧预算 | 单帧提交时间 | p95 ≤ 16.7 ms | p99 > 33.3 ms | Instruments Animation Hitches |
-| 120 Hz 帧预算 | ProMotion 单帧提交时间 | p95 ≤ 8.3 ms | p99 > 16.7 ms | 真机 Animation Hitches |
-| Hitch rate | > 1 个目标帧周期的帧占比 | < 1% | > 2% | Instruments |
-| 严重卡顿 | 单次主线程阻塞 ≥ 100 ms | 0 / 主路径 | 任意一次 | Time Profiler / MetricKit |
-| 冻结 | 单次无响应 ≥ 250 ms | 0 | 任意一次 | MetricKit hang diagnostics |
-| 地图连续回调成本 | 每个 `.continuous` 回调自身 CPU | p95 < 1 ms | p95 ≥ 2 ms | `Map interaction` signpost |
-| 手势观察失效次数 | 一次 1 秒拖动导致的 SwiftUI 可观察状态边沿 | ≤ 2 | > 4 | `MapInteractionSmoothnessTests` |
+| 指标             | 定义                                       |          目标 |          告警 | 测量                            |
+| ---------------- | ------------------------------------------ | ------------: | ------------: | ------------------------------- |
+| 60 Hz 帧预算     | 单帧提交时间                               | p95 ≤ 16.7 ms | p99 > 33.3 ms | Instruments Animation Hitches   |
+| 120 Hz 帧预算    | ProMotion 单帧提交时间                     |  p95 ≤ 8.3 ms | p99 > 16.7 ms | 真机 Animation Hitches          |
+| Hitch rate       | > 1 个目标帧周期的帧占比                   |          < 1% |          > 2% | Instruments                     |
+| 严重卡顿         | 单次主线程阻塞 ≥ 100 ms                    |    0 / 主路径 |      任意一次 | Time Profiler / MetricKit       |
+| 冻结             | 单次无响应 ≥ 250 ms                        |             0 |      任意一次 | MetricKit hang diagnostics      |
+| 地图连续回调成本 | 每个 `.continuous` 回调自身 CPU            |    p95 < 1 ms |    p95 ≥ 2 ms | `Map interaction` signpost      |
+| 手势观察失效次数 | 一次 1 秒拖动导致的 SwiftUI 可观察状态边沿 |           ≤ 2 |           > 4 | `MapInteractionSmoothnessTests` |
 
 ### 2.2 输入和页面交接
 
-| 指标 | 起点 → 终点 | p50 | p95 预算 | 失败体验 |
-| --- | --- | ---: | ---: | --- |
-| Tap acknowledgement | touch-up → 高亮/触觉 | ≤ 50 ms | ≤ 100 ms | “按钮没点上” |
-| Pin → detail usable | 标记点击 → 详情首个可用帧 | ≤ 180 ms | ≤ 300 ms | 重复点击、误以为无响应 |
-| Filter → marker commit | 筛选点击 → 新标记集稳定 | ≤ 120 ms | ≤ 250 ms | 标记先消失再闪回 |
-| Pan end → controls restored | 手指离开 → 筛选条/提示恢复清晰 | ≤ 50 ms | ≤ 100 ms | 结束后仍“灰着” |
-| Sheet settle | 松手 → detent 静止 | ≤ 280 ms | ≤ 400 ms | 回弹拖沓或二次跳动 |
-| Back/close | 点击关闭 → 地图可交互 | ≤ 150 ms | ≤ 250 ms | 透明遮罩仍挡手势 |
+| 指标                        | 起点 → 终点                    |      p50 | p95 预算 | 失败体验               |
+| --------------------------- | ------------------------------ | -------: | -------: | ---------------------- |
+| Tap acknowledgement         | touch-up → 高亮/触觉           |  ≤ 50 ms | ≤ 100 ms | “按钮没点上”           |
+| Pin → detail usable         | 标记点击 → 详情首个可用帧      | ≤ 180 ms | ≤ 300 ms | 重复点击、误以为无响应 |
+| Filter → marker commit      | 筛选点击 → 新标记集稳定        | ≤ 120 ms | ≤ 250 ms | 标记先消失再闪回       |
+| Pan end → controls restored | 手指离开 → 筛选条/提示恢复清晰 |  ≤ 50 ms | ≤ 100 ms | 结束后仍“灰着”         |
+| Sheet settle                | 松手 → detent 静止             | ≤ 280 ms | ≤ 400 ms | 回弹拖沓或二次跳动     |
+| Back/close                  | 点击关闭 → 地图可交互          | ≤ 150 ms | ≤ 250 ms | 透明遮罩仍挡手势       |
 
 当前 `pin_to_detail` 由 `InteractionTracker` 在输入边沿开始、`ExperienceDetailView.onAppear` 结束，预算为 300 ms；`sheet_settle` 从 Bottom Sheet 松手开始，到归位动画逻辑完成结束，预算为 400 ms。两者的数据只保存在本地 100 条滚动窗口，同时写入 Instruments signpost，并在测试员可见的 Developer Options 中显示会话 p50、p95、预算达标率。
 
 ### 2.3 地图专属放大系数
 
-| 指标 | 定义 | 预算 | 当前保护 |
-| --- | --- | ---: | --- |
-| 标记渲染上限 | 城市 / 街区 / 街道缩放的地图节点数 | 12 / 30 / 当前可见全量 | LOD `spanToLimit` |
-| 渲染快照重算 | 同一数据、缩放档、分钟内 1000 次 body 读取 | 1 次 | `MapRenderCacheKey` |
-| 轻微视口抖动 | 中心移动 < 12% 视口且缩放变化 < 8% | 0 次全量筛选 | `MapViewportRefreshPolicy` |
-| 有效视口移动 | 中心 ≥ 12% 或缩放 ≥ 8% | 手势结束后 1 次刷新 | `consumeRefresh` |
-| 派生状态放大 | N 个标记对 Explore/Smart Pick 的重复派生 | O(N)，不能 O(N²) | 循环外快照化 |
-| 标记集合稳定 | 输入相同的连续两帧 id 和顺序 | 100% 相同 | 稳定排序 + 缓存 |
-| Marker CPU | 150 个 marker state 派生 | p95 < 4 ms | XCTest + XCTClockMetric |
+| 指标         | 定义                                       |                   预算 | 当前保护                   |
+| ------------ | ------------------------------------------ | ---------------------: | -------------------------- |
+| 标记渲染上限 | 城市 / 街区 / 街道缩放的地图节点数         | 12 / 30 / 当前可见全量 | LOD `spanToLimit`          |
+| 渲染快照重算 | 同一数据、缩放档、分钟内 1000 次 body 读取 |                   1 次 | `MapRenderCacheKey`        |
+| 轻微视口抖动 | 中心移动 < 12% 视口且缩放变化 < 8%         |           0 次全量筛选 | `MapViewportRefreshPolicy` |
+| 有效视口移动 | 中心 ≥ 12% 或缩放 ≥ 8%                     |    手势结束后 1 次刷新 | `consumeRefresh`           |
+| 派生状态放大 | N 个标记对 Explore/Smart Pick 的重复派生   |       O(N)，不能 O(N²) | 循环外快照化               |
+| 标记集合稳定 | 输入相同的连续两帧 id 和顺序               |              100% 相同 | 稳定排序 + 缓存            |
+| Marker CPU   | 150 个 marker state 派生                   |             p95 < 4 ms | XCTest + XCTClockMetric    |
 
 12% 不是“少刷新数据”，而是把 MapKit 的落点抖动从用户意图里分离出来。用户真正移动一个屏幕的八分之一，仍会在手势结束时刷新；几像素的惯性修正不会让全图标记淡出重来。
 
 ### 2.4 加载、网络和可信反馈
 
-| 场景 | 第一反馈 | 阶段反馈 | 降级/超时 |
-| --- | ---: | ---: | ---: |
-| 冷启动地图骨架 | ≤ 400 ms | 本地 seed/cache ≤ 800 ms | 1 s 空态 watchdog |
-| 定位未授权/失败 | 当前城市地图不能被阻塞 | 原因 banner ≤ 500 ms | 可直接打开 Settings |
-| Explore/POI | 点击反馈 ≤ 100 ms | 进度阶段 ≤ 500 ms | 8 s 显示“仍在查找”，15 s 可取消 |
-| AI 重编译 | Sheet 立即出现 ≤ 150 ms | 每阶段 ≤ 1 s 有推进 | 网络失败保留旧卡，不清空 |
-| 离线 | 本地内容立即可浏览 | 明确离线状态 ≤ 500 ms | 使用 7 天内区域缓存 |
-| 图片 | 先稳定占位，不推布局 | 首屏图 p95 ≤ 1.5 s | 失败保持同尺寸 fallback |
+| 场景            |                第一反馈 |                 阶段反馈 |                       降级/超时 |
+| --------------- | ----------------------: | -----------------------: | ------------------------------: |
+| 冷启动地图骨架  |                ≤ 400 ms | 本地 seed/cache ≤ 800 ms |               1 s 空态 watchdog |
+| 定位未授权/失败 |  当前城市地图不能被阻塞 |     原因 banner ≤ 500 ms |             可直接打开 Settings |
+| Explore/POI     |       点击反馈 ≤ 100 ms |        进度阶段 ≤ 500 ms | 8 s 显示“仍在查找”，15 s 可取消 |
+| AI 重编译       | Sheet 立即出现 ≤ 150 ms |      每阶段 ≤ 1 s 有推进 |        网络失败保留旧卡，不清空 |
+| 离线            |      本地内容立即可浏览 |    明确离线状态 ≤ 500 ms |             使用 7 天内区域缓存 |
+| 图片            |    先稳定占位，不推布局 |       首屏图 p95 ≤ 1.5 s |         失败保持同尺寸 fallback |
 
 ### 2.5 视觉稳定和动作设计
 
-| 指标 | 预算/规则 |
-| --- | --- |
-| Layout shift | 首屏稳定后，非用户触发元素位移累计接近 0；图片/异步文案必须预留尺寸 |
-| 动画并发 | 同一视觉层级最多 1 个主动作；背景呼吸不与 Sheet/地图手势争抢 |
-| 常规时长 | 微反馈 80–160 ms；状态切换 180–280 ms；页面交接 250–400 ms |
-| 弹簧 | 只用于空间位移/直接操控；颜色、透明度、文案变化用 easeInOut |
-| 过冲 | 常规地图和筛选不超过 3%；典礼动画按 `ANIMATION_SPEC.md` |
-| 中断性 | 动画中再次触摸必须从当前 presentation value 接管，不能跳到旧 target |
-| Reduce Motion | 所有非必要位移/缩放取消；状态仍需用透明度或即时变化表达 |
-| Reduce Transparency | Material 之下仍满足文字对比度；不能依赖模糊区分层级 |
+| 指标                | 预算/规则                                                           |
+| ------------------- | ------------------------------------------------------------------- |
+| Layout shift        | 首屏稳定后，非用户触发元素位移累计接近 0；图片/异步文案必须预留尺寸 |
+| 动画并发            | 同一视觉层级最多 1 个主动作；背景呼吸不与 Sheet/地图手势争抢        |
+| 常规时长            | 微反馈 80–160 ms；状态切换 180–280 ms；页面交接 250–400 ms          |
+| 弹簧                | 只用于空间位移/直接操控；颜色、透明度、文案变化用 easeInOut         |
+| 过冲                | 常规地图和筛选不超过 3%；典礼动画按 `ANIMATION_SPEC.md`             |
+| 中断性              | 动画中再次触摸必须从当前 presentation value 接管，不能跳到旧 target |
+| Reduce Motion       | 所有非必要位移/缩放取消；状态仍需用透明度或即时变化表达             |
+| Reduce Transparency | Material 之下仍满足文字对比度；不能依赖模糊区分层级                 |
 
 ### 2.6 可用性、认知和无障碍
 
-| 指标 | 目标 |
-| --- | --- |
-| 触控热区 | 普通控件 ≥ 44×44 pt；地图标记视觉可小但命中区仍 ≥ 44 pt |
-| 首屏决策负荷 | 城市总览核心高亮 ≤ 3；地图可见突出点 ≤ 12 |
-| 主要动作唯一性 | 一个 Surface 同时最多 1 个实心主 CTA |
-| 动态字体 | AX5 不裁切关键文案，不遮挡关闭/导航控件 |
-| VoiceOver | 焦点顺序与视觉顺序一致；状态变化不重复播报 |
-| 颜色对比 | 正文 ≥ 4.5:1，大字/图形 ≥ 3:1 |
-| 单手可达 | 高频动作位于底部/边缘可达区，且不与系统返回手势冲突 |
+| 指标           | 目标                                                    |
+| -------------- | ------------------------------------------------------- |
+| 触控热区       | 普通控件 ≥ 44×44 pt；地图标记视觉可小但命中区仍 ≥ 44 pt |
+| 首屏决策负荷   | 城市总览核心高亮 ≤ 3；地图可见突出点 ≤ 12               |
+| 主要动作唯一性 | 一个 Surface 同时最多 1 个实心主 CTA                    |
+| 动态字体       | AX5 不裁切关键文案，不遮挡关闭/导航控件                 |
+| VoiceOver      | 焦点顺序与视觉顺序一致；状态变化不重复播报              |
+| 颜色对比       | 正文 ≥ 4.5:1，大字/图形 ≥ 3:1                           |
+| 单手可达       | 高频动作位于底部/边缘可达区，且不与系统返回手势冲突     |
 
 ### 2.7 内存、能耗和长会话
 
-| 指标 | 目标 | Case |
-| --- | ---: | --- |
-| 地图浏览内存增长 | 10 分钟往返 5 个城区后净增长 < 30 MB | 重复 pan/zoom |
-| 详情泄漏 | 打开/关闭 50 次后 Detail VM 存活数回到基线 | 自动化循环 |
-| 图片缓存 | 收到 memory warning 后可释放非首屏图片 | 低内存模拟 |
-| 后台 CPU | 地图退后台后动画/时钟停止，无持续 > 1% CPU | scenePhase |
-| 热状态 | Serious thermal state 下停止非必要呼吸/粒子动画 | 真机压力 |
-| 网络重复 | 同一区域同一手势最多一次请求；短距离回摆命中缓存 | Charles/日志 |
+| 指标             |                                             目标 | Case          |
+| ---------------- | -----------------------------------------------: | ------------- |
+| 地图浏览内存增长 |             10 分钟往返 5 个城区后净增长 < 30 MB | 重复 pan/zoom |
+| 详情泄漏         |       打开/关闭 50 次后 Detail VM 存活数回到基线 | 自动化循环    |
+| 图片缓存         |           收到 memory warning 后可释放非首屏图片 | 低内存模拟    |
+| 后台 CPU         |       地图退后台后动画/时钟停止，无持续 > 1% CPU | scenePhase    |
+| 热状态           |  Serious thermal state 下停止非必要呼吸/粒子动画 | 真机压力      |
+| 网络重复         | 同一区域同一手势最多一次请求；短距离回摆命中缓存 | Charles/日志  |
 
 ## 3. 必测体验 Cases
 
@@ -159,21 +159,21 @@
 
 ## 4. 本次重构与指标映射
 
-| 改动 | 消除的问题 | 被保护的指标 |
-| --- | --- | --- |
-| `MapInteractionCoordinator` | 每个连续相机回调写 `@State Date`，导致根视图高频失效 | B1、回调 <1 ms、每手势 ≤2 状态边沿 |
-| `.onEnd` 立即 settle + 250 ms fallback | 原 800 ms 后控件仍半透明；中断手势可能卡在 panning | Pan end ≤100 ms、B5 |
-| `MapViewportRefreshPolicy` | 小抖动也全量 filter + marker animation | B2、B3、网络/刷新放大 |
-| 相同 Experience 内容不重赋值 | 结果未变仍让标记整组淡入淡出 | C3、layout/marker stability |
-| `MapRenderSnapshot` | 聚类缓存前仍重复排序；缓存 key 不含时间/亲和度 | B7、O(N log N) 每分钟一次 |
-| 循环外 hoist Explore/Smart Pick | 每个标记重复扫描 session，最坏 O(N²) | B6、150 marker CPU |
-| fallback Smart Pick 版本缓存 | 冷启动每次 body 都排序全量体验 | frame budget |
-| 共享 `BestNowClock.tick` | 同一 render 内多次 `Date()` 造成临界分钟状态不一致 | C4、状态稳定 |
-| `pin_to_detail` signpost | 过去只有函数 CPU，没有用户感知端到端延迟 | D1、p95 ≤300 ms |
-| `sheet_settle` signpost + 动画完成回调 | 过去只规定 spring 参数，无法知道真实归位耗时 | E1/E2、p95 ≤400 ms |
-| Bottom Sheet Reduce Motion 策略 | 系统要求减少动态效果时仍播放大幅纵向 spring | E5、即时吸附、指标闭环不丢样 |
-| Developer Options 性能摘要 | 指标只能进 Instruments，日常走查无法即时判断 | 本地 100 条、p50/p95、达标率、超预算告警 |
-| 详情 Hero 稳定 category placeholder | 慢图用小 spinner + 空白大色块，失败后仍可能留下空 slab | 图片 layout stability、F1/F2、Reduce Motion |
+| 改动                                   | 消除的问题                                             | 被保护的指标                                |
+| -------------------------------------- | ------------------------------------------------------ | ------------------------------------------- |
+| `MapInteractionCoordinator`            | 每个连续相机回调写 `@State Date`，导致根视图高频失效   | B1、回调 <1 ms、每手势 ≤2 状态边沿          |
+| `.onEnd` 立即 settle + 250 ms fallback | 原 800 ms 后控件仍半透明；中断手势可能卡在 panning     | Pan end ≤100 ms、B5                         |
+| `MapViewportRefreshPolicy`             | 小抖动也全量 filter + marker animation                 | B2、B3、网络/刷新放大                       |
+| 相同 Experience 内容不重赋值           | 结果未变仍让标记整组淡入淡出                           | C3、layout/marker stability                 |
+| `MapRenderSnapshot`                    | 聚类缓存前仍重复排序；缓存 key 不含时间/亲和度         | B7、O(N log N) 每分钟一次                   |
+| 循环外 hoist Explore/Smart Pick        | 每个标记重复扫描 session，最坏 O(N²)                   | B6、150 marker CPU                          |
+| fallback Smart Pick 版本缓存           | 冷启动每次 body 都排序全量体验                         | frame budget                                |
+| 共享 `BestNowClock.tick`               | 同一 render 内多次 `Date()` 造成临界分钟状态不一致     | C4、状态稳定                                |
+| `pin_to_detail` signpost               | 过去只有函数 CPU，没有用户感知端到端延迟               | D1、p95 ≤300 ms                             |
+| `sheet_settle` signpost + 动画完成回调 | 过去只规定 spring 参数，无法知道真实归位耗时           | E1/E2、p95 ≤400 ms                          |
+| Bottom Sheet Reduce Motion 策略        | 系统要求减少动态效果时仍播放大幅纵向 spring            | E5、即时吸附、指标闭环不丢样                |
+| Developer Options 性能摘要             | 指标只能进 Instruments，日常走查无法即时判断           | 本地 100 条、p50/p95、达标率、超预算告警    |
+| 详情 Hero 稳定 category placeholder    | 慢图用小 spinner + 空白大色块，失败后仍可能留下空 slab | 图片 layout stability、F1/F2、Reduce Motion |
 
 ## 5. 测量与发布门禁
 
