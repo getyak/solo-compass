@@ -4,7 +4,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // so we use vi.mock for posthog-node and manipulate process.env per test.
 
 const mockCapture = vi.fn();
-const MockPostHog = vi.fn(() => ({ capture: mockCapture }));
+const MockPostHog = vi.fn(function () {
+  return { capture: mockCapture };
+});
 
 vi.mock("posthog-node", () => ({
   PostHog: MockPostHog,
