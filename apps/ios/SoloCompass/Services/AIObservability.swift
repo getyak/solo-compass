@@ -15,6 +15,7 @@ public final class AIObservability {
 
     // MARK: - Token usage tracking
 
+    /// Token counts, model, kind, and latency captured for one AI call.
     public struct TokenUsage: Sendable {
         public let promptTokens: Int
         public let completionTokens: Int
@@ -66,6 +67,7 @@ public final class AIObservability {
 
     // MARK: - Event tracking
 
+    /// Analytics event names emitted across the AI pipeline.
     public enum AIEvent: String {
         case synthesisSuccess = "ai.synthesis.success"
         case synthesisSkeletonFallback = "ai.synthesis.skeleton"
@@ -95,6 +97,7 @@ public final class AIObservability {
 
     public private(set) var toolCallCounts: [String: Int] = [:]
 
+    /// Records one executed tool call for the session summary.
     public func recordToolCall(name: String) {
         toolCallCounts[name, default: 0] += 1
         trackEvent(.toolCallExecuted, metadata: ["tool": name])

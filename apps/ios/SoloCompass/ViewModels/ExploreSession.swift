@@ -32,6 +32,7 @@ public struct ExploreSession: Equatable {
         case widening       // progressive ring expanded to a bigger radius
     }
 
+    /// Lifecycle state of an Explore session, including its live progress payload.
     public enum State: Equatable {
         case idle
         case active(
@@ -45,6 +46,7 @@ public struct ExploreSession: Equatable {
         case cancelled(kept: Int)
         case failed(reason: String)
 
+        /// Compares session states by their associated progress values.
         public static func == (lhs: State, rhs: State) -> Bool {
             switch (lhs, rhs) {
             case (.idle, .idle):

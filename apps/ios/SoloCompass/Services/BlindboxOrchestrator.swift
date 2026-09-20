@@ -25,6 +25,7 @@ import os
 @Observable
 public final class BlindboxOrchestrator {
 
+    /// Lifecycle stages of a blind-box reveal, from idle through finished.
     public enum Stage: Equatable {
         case idle
         case inProgress(anchorIndex: Int)
@@ -34,6 +35,7 @@ public final class BlindboxOrchestrator {
         case finished
     }
 
+    /// Safety gate applied to candidate picks for new vs returning users.
     public enum SafetyPolicy {
         /// A brand-new user gets only high-confidence + high-solo-score picks.
         case firstRun

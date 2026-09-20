@@ -30,6 +30,7 @@ public enum AITaskType: String, CaseIterable, Sendable {
 /// not *which model* to use.
 public enum AIModelRouter {
 
+    /// Per-task model routing knobs (kind, temperature, token cap, optional override).
     public struct ModelConfig: Sendable {
         public let modelKind: AIService.ModelKind
         public let temperature: Double

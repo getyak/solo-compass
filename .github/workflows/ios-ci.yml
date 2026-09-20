@@ -43,6 +43,7 @@ jobs:
   build-and-test:
     name: Build iOS app (placeholder secrets)
     runs-on: macos-latest
+    timeout-minutes: 30
     needs: [schema-parity]
 
     steps:
@@ -72,6 +73,30 @@ jobs:
           sudo xcode-select -s "$XCODE_PATH"
           xcodebuild -version
 
+      - name: Select available iPhone simulator
+        id: simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices available --json > "$RUNNER_TEMP/simulators.json"
+          python3 - "$RUNNER_TEMP/simulators.json" "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          candidates = []
+          for runtime, devices in json.load(open(sys.argv[1]))["devices"].items():
+              if not runtime.startswith("com.apple.CoreSimulator.SimRuntime.iOS-"):
+                  continue
+              version = tuple(int(part) for part in runtime.split("iOS-")[1].split("-"))
+              for device in devices:
+                  if device.get("isAvailable") and device["name"].startswith("iPhone"):
+                      candidates.append((version, device["name"] == "iPhone 17 Pro", device["name"], device["udid"]))
+          if not candidates:
+              raise SystemExit("No available iPhone simulator on this runner")
+          version, _, name, udid = max(candidates)
+          print(f"Selected {name} on iOS {'.'.join(map(str, version))}: {udid}")
+          with open(sys.argv[2], "a") as output:
+              output.write(f"udid={udid}\n")
+          PY
+
       # Regenerate the project from project.yml so CI compiles the exact same
       # source set TestFlight does. The committed .xcodeproj drifts out of sync
       # (xcodegen owns it — see CLAUDE.md), which previously let new files with
@@ -87,42 +112,42 @@ jobs:
           xcodegen generate --spec project.yml
 
       - name: Build iOS App
+        shell: bash
+        env:
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
         run: |
+          set -euo pipefail
           cd apps/ios
           xcodebuild build \
             -project SoloCompass.xcodeproj \
             -scheme SoloCompass \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
 
-          # Check for errors
-          if grep -q "BUILD FAILED" build.log; then
-            echo "❌ BUILD FAILED"
-            grep "error:" build.log | head -20
-            exit 1
-          fi
           echo "✅ BUILD SUCCEEDED"
 
       - name: Run Unit Tests
+        shell: bash
+        env:
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
         run: |
+          set -euo pipefail
           cd apps/ios
           xcodebuild test \
             -project SoloCompass.xcodeproj \
             -scheme SoloCompass \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 120 \
+            -maximum-test-execution-time-allowance 180 \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO 2>&1 | tee test.log
 
-          if grep -q "TEST FAILED" test.log; then
-            echo "❌ TESTS FAILED"
-            grep "failed" test.log | head -20
-            exit 1
-          fi
           echo "✅ TESTS PASSED"
 
       - name: Upload Build Log

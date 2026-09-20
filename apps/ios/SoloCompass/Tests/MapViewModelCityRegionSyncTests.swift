@@ -266,9 +266,12 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: "startCity")
         let locationService = LocationService()
         let prefs = UserPreferences(defaults: makeIsolatedDefaults())
+        // Isolated seed so `nearestKnownCity` resolves the catalog cities (`cmi`
+        // / `SZX`) instead of a discovered city persisted by an earlier test in
+        // the shared on-disk store.
         let vm = MapViewModel(
             locationService: locationService,
-            experienceService: ExperienceService(),
+            experienceService: ExperienceService(seed: ExperienceService.hardcodedSeed),
             aiService: AIService(),
             preferences: prefs
         )
@@ -330,7 +333,7 @@ final class MapViewModelCityRegionSyncTests: XCTestCase {
                        "Camera must stay pinned on the recenter coordinate")
         XCTAssertEqual(region.center.longitude, target.longitude, accuracy: 0.0001,
                        "Camera must stay pinned on the recenter coordinate")
-        XCTAssertEqual(region.span.latitudeDelta, 0.04, accuracy: 0.0001,
+        XCTAssertEqual(region.span.latitudeDelta, MapViewModel.MapZoom.streetLevel, accuracy: 0.0001,
                        "Recenter must keep its own span, not the auto-fit's")
     }
 

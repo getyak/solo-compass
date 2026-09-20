@@ -2774,10 +2774,10 @@ public final class MapViewModel {
         // All gates short-circuit before EnrichmentAgent.basePOIs ever runs,
         // so without this log a user reporting "no amap data" can't tell
         // whether the call was even attempted.
-        print("🧭 exploreNearby entry: coord=(\(coordinate.latitude),\(coordinate.longitude)) r=\(radiusMeters) cat=\(category?.rawValue ?? "nil") isExploring=\(isExploring) isProUser=\(isProUser) consent=\(preferences.hasAcceptedExploreConsent) deepDive=\(FeatureFlags.deepDiveEnrichment)")
+        logger.debug("🧭 exploreNearby entry: r=\(radiusMeters, privacy: .public) cat=\(category?.rawValue ?? "nil", privacy: .public) isExploring=\(self.isExploring, privacy: .public) isProUser=\(self.isProUser, privacy: .public) consent=\(self.preferences.hasAcceptedExploreConsent, privacy: .public) deepDive=\(FeatureFlags.deepDiveEnrichment, privacy: .public)")
 
         guard !isExploring else {
-            print("🧭 exploreNearby: skipped — already exploring")
+            logger.debug("🧭 exploreNearby: skipped — already exploring")
             return
         }
         // Track center so expandOneStage can reuse it (US-021).
@@ -2786,7 +2786,7 @@ public final class MapViewModel {
         // US-024: free-tier gate. Park the original action so the
         // paywall's onUnlocked can resume it after purchase, then bail.
         if !isProUser {
-            print("🧭 exploreNearby: gated by paywall (free tier)")
+            logger.debug("🧭 exploreNearby: gated by paywall (free tier)")
             onPaywallUnlocked = { [weak self] in
                 Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters, category: category) }
             }
@@ -2798,7 +2798,7 @@ public final class MapViewModel {
         // first OSM + Anthropic call. Same park-and-resume pattern as
         // the paywall.
         if !preferences.hasAcceptedExploreConsent {
-            print("🧭 exploreNearby: gated by explore consent (not yet accepted)")
+            logger.debug("🧭 exploreNearby: gated by explore consent (not yet accepted)")
             onExploreConsentAccepted = { [weak self] in
                 Task { await self?.exploreNearby(at: coordinate, radiusMeters: radiusMeters, category: category) }
             }
@@ -3048,10 +3048,13 @@ public final class MapViewModel {
             }
 
             if added > 0 {
-                // V-007 extension: when the user has an explicit city
-                // selection (non-custom), preserve it — don't let an
-                // explore result at the GPS coordinate hijack the camera.
-                let userOwnsCity = (selectedCity.map { !$0.hasPrefix("custom_") }) ?? false
+                // V-007 extension: when the user *explicitly* picked a city this
+                // session, preserve it — don't let an explore result at the GPS
+                // coordinate hijack the camera. A city merely persisted from a
+                // previous session is a pre-GPS placeholder (see
+                // `cityPickedExplicitlyThisSession`), so the discovered city may
+                // adopt the selection to keep the pill aligned with the fix.
+                let userOwnsCity = cityPickedExplicitlyThisSession
                 let discoveredMatchesSelected = selectedCity == cityCode
                     || Self.cityCodeAliases[cityCode] == selectedCity
                     || Self.cityCodeAliases.first(where: { $0.value == selectedCity })?.key == cityCode

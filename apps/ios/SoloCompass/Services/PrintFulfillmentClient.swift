@@ -41,6 +41,7 @@ public protocol PrintFulfillmentClient: Sendable {
 
 // MARK: - Value types (partner-neutral)
 
+/// Partner-neutral price estimate for printing a composed book.
 public struct PrintPriceEstimate: Codable, Hashable, Sendable {
     public let unitPriceCents: Int
     public let shippingCents: Int
@@ -58,6 +59,7 @@ public struct PrintPriceEstimate: Codable, Hashable, Sendable {
     }
 }
 
+/// A print order request carrying the manifest, PDF, address, and idempotency key.
 public struct PrintOrderRequest: Codable, Hashable, Sendable {
     public let manifest: BookManifest
     public let pdfURL: URL
@@ -76,6 +78,7 @@ public struct PrintOrderRequest: Codable, Hashable, Sendable {
     }
 }
 
+/// Mailing address supplied for a physical print order.
 public struct PrintShippingAddress: Codable, Hashable, Sendable {
     public let fullName: String
     public let line1: String
@@ -98,6 +101,7 @@ public struct PrintShippingAddress: Codable, Hashable, Sendable {
     }
 }
 
+/// Partner receipt confirming an accepted print order.
 public struct PrintOrderReceipt: Codable, Hashable, Sendable {
     public let orderId: String        // partner-owned
     public let acceptedAt: Date
@@ -129,6 +133,7 @@ public enum PrintOrderStatus: String, Codable, Hashable, Sendable {
 
 // MARK: - Errors
 
+/// Failures surfaced by the print-fulfillment client.
 public enum PrintFulfillmentError: Error, Equatable, Sendable {
     case invalidManifest(String)
     case partnerUnavailable
@@ -167,6 +172,7 @@ public actor LuluMockFulfillmentClient: PrintFulfillmentClient {
 
     public init() {}
 
+    /// Quotes a price for printing `manifest` and shipping to `shippingCountryCode`.
     public func estimatePrice(
         manifest: BookManifest,
         shippingCountryCode: String
@@ -186,6 +192,7 @@ public actor LuluMockFulfillmentClient: PrintFulfillmentClient {
         )
     }
 
+    /// Submits an order, returning the same receipt for a repeated idempotency key.
     public func submitOrder(_ request: PrintOrderRequest) async throws -> PrintOrderReceipt {
         // Idempotency: a retry with the same key returns the SAME order.
         let orderId = "mock-\(request.idempotencyKey)"
@@ -209,6 +216,7 @@ public actor LuluMockFulfillmentClient: PrintFulfillmentClient {
         return receipt
     }
 
+    /// Returns the current fulfillment status for `orderId`.
     public func pollStatus(orderId: String) async throws -> PrintOrderStatus {
         guard var entry = orders[orderId] else {
             throw PrintFulfillmentError.orderNotFound(orderId)

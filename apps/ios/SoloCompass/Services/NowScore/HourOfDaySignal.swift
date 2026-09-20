@@ -23,6 +23,7 @@ public struct HourOfDaySignal: NowSignal {
 
     public init() {}
 
+    /// Scores the experience against the hour-of-day fit for `date`.
     public func score(for experience: Experience, at date: Date) async -> NowSignalContribution {
         evaluate(for: experience, at: date)
     }

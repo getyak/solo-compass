@@ -13,6 +13,7 @@ public protocol NowScoreErrorReporting: Sendable {
 public struct LiveNowScoreErrorReporter: NowScoreErrorReporting {
     public init() {}
 
+    /// Forwards a NowScore error to Sentry with a context tag.
     public func capture(_ error: Error, context: String) {
         Task { @MainActor in
             SentryService.capture(error: error, context: ["context": context])

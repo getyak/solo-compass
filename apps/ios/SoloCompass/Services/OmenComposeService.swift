@@ -22,6 +22,7 @@ public final class OmenComposeService {
     public static let shared = OmenComposeService()
 
     public private(set) var useLLM: Bool = false
+    /// Enables or disables the optional LLM-backed omen composition path.
     public func setUseLLM(_ flag: Bool) { self.useLLM = flag }
 
     private let log = OSLog(subsystem: "com.solocompass.app", category: "Omen")

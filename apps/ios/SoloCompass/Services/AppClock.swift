@@ -12,6 +12,7 @@ import Foundation
 /// The override only pins hour+minute of *today* — day/month/year still come
 /// from `Date()`, so timer arithmetic and expiry logic stay correct.
 public enum AppClock {
+    /// Current date, honoring the DEBUG `-scenarioHour` override for e2e runs.
     public static func now() -> Date {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
