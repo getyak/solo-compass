@@ -424,6 +424,7 @@ public final class ConversationWorkspaceState {
     /// above the keyboard instead of leaving the dock wedged between them.
     public private(set) var isSoftwareKeyboardVisible: Bool = false
 
+    /// Update keyboard visibility so the panel can reserve space for the composer.
     public func setSoftwareKeyboardVisible(_ visible: Bool) {
         guard isSoftwareKeyboardVisible != visible else { return }
         isSoftwareKeyboardVisible = visible
@@ -431,6 +432,7 @@ public final class ConversationWorkspaceState {
 
     // MARK: - Scroll intent
 
+    /// Mark the latest message as visible and dismiss the return-to-latest affordance.
     public func noteReachedBottom() {
         isNearBottom = true
         showsReturnToLatest = false
@@ -463,10 +465,12 @@ public final class ConversationWorkspaceState {
         visibleAnchorId = nil
     }
 
+    /// Remember the visible message for restoring the reader's position after navigation.
     public func noteVisibleAnchor(_ id: UUID?) {
         visibleAnchorId = id
     }
 
+    /// Discard the saved message position when explicit navigation supersedes it.
     public func clearVisibleAnchor() {
         visibleAnchorId = nil
     }
@@ -478,6 +482,7 @@ public final class ConversationWorkspaceState {
         followStreaming = false
     }
 
+    /// Release automatic streaming follow without changing the current reading position.
     public func endFollowing() {
         followStreaming = false
     }
@@ -497,6 +502,7 @@ public enum WorkspaceAccessibility {
     public static let returnToLatest = "workspace.returnToLatest"
     public static let discover = "workspace.discover"
 
+    /// Return the stable accessibility identifier for a dock destination.
     public static func dockItem(_ surface: ConversationWorkspaceState.Surface) -> String {
         "workspace.dock.\(surface.rawValue)"
     }

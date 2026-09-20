@@ -486,12 +486,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
         didRequestImmediateSpeechStop = true
     }
 
-    /// Speak the agent's final text response via AVSpeechSynthesizer.
-    ///
-    /// Suppressed while the chat is hidden or covered by a modal: a turn that
+    /// Suppress speech while the chat is hidden or covered by a modal: a turn that
     /// completes after the user left must not start talking off-screen.
     public var isSpeechSuppressed: Bool = false
 
+    /// Speak a nonempty final response only while the visible chat permits speech.
     public func speakResponse(_ text: String) {
         guard !text.isEmpty, !isSpeechSuppressed else { return }
         didRequestImmediateSpeechStop = false
