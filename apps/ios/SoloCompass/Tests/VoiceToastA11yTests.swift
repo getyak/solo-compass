@@ -17,40 +17,55 @@ import UIKit
 @MainActor
 final class VoiceToastA11yTests: XCTestCase {
 
-    private var window: UIWindow?
-
-    override func tearDown() {
-        window?.isHidden = true
-        window?.rootViewController = nil
-        window = nil
-        super.tearDown()
-    }
-
-    func testToastViewTreeContainsUpdatesFrequentlyTrait() throws {
+    func testToastViewTreeContainsUpdatesFrequentlyTrait() async throws {
         let text = "Thinking about “coffee”…"
-        let host = UIHostingController(rootView: VoiceProcessingToast(text: text))
-        if let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first {
-            window = UIWindow(windowScene: scene)
-        } else {
-            window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 200))
+        // Exercise the assistive-technology environment explicitly instead of
+        // inheriting a developer simulator's Accessibility Inspector state.
+        let host = UIHostingController(rootView:
+            VoiceProcessingToast(text: text).environment(\.accessibilityEnabled, true)
+        )
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let scene = try XCTUnwrap(
+            scenes.first { $0.activationState == .foregroundActive } ?? scenes.first,
+            "the accessibility fixture needs a connected window scene"
+        )
+        let previousKeyWindow = scene.windows.first { $0.isKeyWindow }
+        let window = UIWindow(windowScene: scene)
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previousKeyWindow?.makeKeyAndVisible()
         }
-        let window = try XCTUnwrap(self.window)
+        window.frame = CGRect(x: 0, y: 0, width: 390, height: 200)
         window.rootViewController = host
         window.makeKeyAndVisible()
+        window.layoutIfNeeded()
+        host.view.frame = window.bounds
         host.view.setNeedsLayout()
         host.view.layoutIfNeeded()
-        // Give SwiftUI a beat to materialize its accessibility elements.
-        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
-
-        let elements = Self.accessibilityElements(in: host.view)
-        let toast: ElementSnapshot? = elements.first { element in
-            element.identifier == "voiceProcessingToast"
-                || (element.label?.contains("coffee") ?? false)
-        }
+        // On a clean simulator the first accessibility query can precede
+        // SwiftUI's lazy accessibility-tree update. Query before yielding and
+        // await the actual element rather than assuming a fixed render delay.
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(2))
+        var elements: [ElementSnapshot] = []
+        var toast: ElementSnapshot?
+        repeat {
+            host.view.layoutIfNeeded()
+            elements = Self.accessibilityElements(in: host.view)
+            toast = elements.first { element in
+                element.identifier == "voiceProcessingToast"
+                    || (element.label?.contains("coffee") ?? false)
+            }
+            if toast != nil { break }
+            try await Task.sleep(for: .milliseconds(20))
+        } while clock.now < deadline
         let resolved = try XCTUnwrap(
             toast,
             "the rendered toast must expose an accessibility element; "
-                + "found \(elements.count) element(s).\n" + Self.diagnostics(for: host.view)
+                + "found \(elements.count) element(s), scene=\(scene.activationState.rawValue), "
+                + "attachedToFixture=\(host.view.window === window).\n"
+                + Self.diagnostics(for: host.view)
         )
         XCTAssertTrue(
             resolved.traits.contains(.updatesFrequently),
@@ -158,6 +173,7 @@ final class VoiceToastA11yTests: XCTestCase {
                     + "elements=\(view.accessibilityElements?.count.description ?? "nil") "
                     + "count=\(view.accessibilityElementCount()) "
                     + "subviews=\(view.subviews.count) "
+                    + "frame=\(view.frame) window=\(view.window != nil) "
                     + "label=\(view.accessibilityLabel ?? "-") traits=\(view.accessibilityTraits.rawValue)"
             }
             return String(describing: type(of: object))
