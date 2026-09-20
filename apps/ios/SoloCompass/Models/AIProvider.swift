@@ -34,10 +34,23 @@ public enum AIProvider: String, CaseIterable, Codable, Identifiable {
 
     var defaultModel: String {
         switch self {
-        case .deepseek: return "deepseek-chat"
+        case .deepseek: return "deepseek-flash"
         case .openai: return "gpt-4o-mini"
         case .custom: return ""
         }
+    }
+
+    /// Recognize persisted defaults from older releases when switching providers.
+    static let legacyDeepSeekModels: Set<String> = [
+        "deepseek-chat", "deepseek-reasoner", "deepseek-v4-pro", "deepseek-v4-flash",
+    ]
+
+    func modelAfterSwitching(from currentModel: String) -> String {
+        let knownDefaults = Self.allCases.map(\.defaultModel)
+        if knownDefaults.contains(currentModel) || Self.legacyDeepSeekModels.contains(currentModel) {
+            return defaultModel
+        }
+        return currentModel
     }
 
     var accentColor: String {

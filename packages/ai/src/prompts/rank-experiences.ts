@@ -5,7 +5,7 @@ import {
   distanceMeters,
   walkingMinutes,
 } from "@solo-compass/core";
-import { createDeepseekClient, deepseekModel } from "../client";
+import { createDeepseekClient, deepseekModel, withDeepSeekThinkingDisabled } from "../client";
 import { withCostTracking } from "../cost-tracker";
 import { withRetry } from "../retry";
 
@@ -128,15 +128,17 @@ Rank the top 3 best matches. Output ONLY the JSON object.`;
 
   const response = await withRetry(() =>
     withCostTracking(route, async () => {
-      const msg = await deepseek.chat.completions.create({
-        model: deepseekModel(),
-        max_tokens: 1024,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
-      });
+      const msg = await deepseek.chat.completions.create(
+        withDeepSeekThinkingDisabled({
+          model: deepseekModel(),
+          max_tokens: 1024,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: userMessage },
+          ],
+        }),
+      );
       const usage = msg.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
       return { result: msg, usage, model: msg.model };
     }),

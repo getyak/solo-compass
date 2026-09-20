@@ -1950,11 +1950,97 @@ final class SoloCompassTests: XCTestCase {
         unsetenv("DEEPSEEK_MODEL_SYNTHESIS")
         unsetenv("DEEPSEEK_MODEL_EXPLANATION")
         unsetenv("DEEPSEEK_MODEL_VOICE")
-        // All kinds resolve to Secrets.resolvedDeepSeekModel which defaults
-        // to "deepseek-chat" when the build-time .env is empty / absent.
+        // All kinds resolve to Secrets.resolvedDeepSeekModel, which migrates
+        // any legacy build-time/stored id forward to "deepseek-flash".
         XCTAssertFalse(AIService.modelName(for: .synthesis).isEmpty)
         XCTAssertFalse(AIService.modelName(for: .voice).isEmpty)
         XCTAssertFalse(AIService.modelName(for: .explanation).isEmpty)
+        XCTAssertNotEqual(AIService.modelName(for: .synthesis), "deepseek-chat")
+    }
+
+    func testLegacyDeepSeekModelIdsNormalizeToFlash() {
+        for legacy in ["deepseek-chat", "deepseek-reasoner", "deepseek-v4-pro", "deepseek-v4-flash"] {
+            XCTAssertEqual(
+                Secrets.normalizeDeepSeekModel(legacy),
+                "deepseek-flash",
+                "\(legacy) must not silently keep a built-in route on an old model"
+            )
+        }
+        XCTAssertEqual(Secrets.normalizeDeepSeekModel("   "), "deepseek-flash")
+        XCTAssertEqual(AIProvider.deepseek.defaultModel, "deepseek-flash")
+    }
+
+    func testProviderSwitchReplacesPersistedLegacyDeepSeekDefaults() {
+        for legacy in AIProvider.legacyDeepSeekModels {
+            XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: legacy), "gpt-4o-mini")
+            XCTAssertEqual(AIProvider.deepseek.modelAfterSwitching(from: legacy), "deepseek-flash")
+            XCTAssertEqual(AIProvider.custom.modelAfterSwitching(from: legacy), "")
+        }
+        XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: "deepseek-flash"), "gpt-4o-mini")
+        XCTAssertEqual(AIProvider.deepseek.modelAfterSwitching(from: "gpt-4o-mini"), "deepseek-flash")
+        XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: ""), "gpt-4o-mini")
+    }
+
+    func testProviderSwitchPreservesExplicitCustomModel() {
+        for provider in AIProvider.allCases {
+            XCTAssertEqual(provider.modelAfterSwitching(from: "my-local-llm"), "my-local-llm")
+        }
+    }
+
+    func testExplicitNonDeepSeekModelIsPreserved() {
+        XCTAssertEqual(Secrets.normalizeDeepSeekModel("gpt-4o-mini"), "gpt-4o-mini")
+        XCTAssertEqual(Secrets.normalizeDeepSeekModel("my-local-llm"), "my-local-llm")
+    }
+
+    func testModelRoutingLegacyEnvOverrideNormalizes() {
+        setenv("DEEPSEEK_MODEL_SYNTHESIS", "deepseek-v4-pro", 1)
+        defer { unsetenv("DEEPSEEK_MODEL_SYNTHESIS") }
+        XCTAssertEqual(AIService.modelName(for: .synthesis), "deepseek-flash")
+    }
+
+    func testAIModelRouterPerTaskOverrideNormalizesLegacy() {
+        setenv("DEEPSEEK_MODEL_CLASSIFICATION", "deepseek-chat", 1)
+        setenv("DEEPSEEK_MODEL_SYNTHESIS", "deepseek-v4-pro", 1)
+        setenv("DEEPSEEK_MODEL_VOICE", "deepseek-reasoner", 1)
+        setenv("DEEPSEEK_MODEL_EXTRACT", "custom-finetune", 1)
+        defer {
+            unsetenv("DEEPSEEK_MODEL_CLASSIFICATION")
+            unsetenv("DEEPSEEK_MODEL_SYNTHESIS")
+            unsetenv("DEEPSEEK_MODEL_VOICE")
+            unsetenv("DEEPSEEK_MODEL_EXTRACT")
+        }
+        XCTAssertEqual(AIModelRouter.config(for: .classification).modelOverride, "deepseek-flash")
+        XCTAssertEqual(AIModelRouter.config(for: .narrativeSynth).modelOverride, "deepseek-flash")
+        XCTAssertEqual(AIModelRouter.config(for: .conversational).modelOverride, "deepseek-flash")
+        XCTAssertEqual(AIModelRouter.config(for: .structuredExtract).modelOverride, "custom-finetune")
+        XCTAssertNil(AIModelRouter.config(for: .ranking).modelOverride)
+    }
+
+    func testDeepSeekEndpointDetection() {
+        XCTAssertTrue(AIService.isDeepSeekEndpoint("https://api.deepseek.com/v1"))
+        XCTAssertFalse(AIService.isDeepSeekEndpoint("https://api.openai.com/v1"))
+        XCTAssertFalse(AIService.isDeepSeekEndpoint("not a url"))
+    }
+
+    func testDeepSeekOptionsOnlyInjectedForDeepSeekEndpoint() {
+        let deepSeekBody = AIService.applyingDeepSeekOptions(
+            to: ["model": "deepseek-flash"],
+            baseURL: "https://api.deepseek.com/v1"
+        )
+        XCTAssertEqual(deepSeekBody["thinking"] as? [String: String], ["type": "disabled"])
+        XCTAssertNil(deepSeekBody["extra_body"])
+
+        let openAIBody = AIService.applyingDeepSeekOptions(
+            to: ["model": "gpt-4o-mini"],
+            baseURL: "https://api.openai.com/v1"
+        )
+        XCTAssertNil(openAIBody["thinking"], "DeepSeek-only fields must not reach OpenAI/custom direct paths")
+
+        let explicit = AIService.applyingDeepSeekOptions(
+            to: ["model": "deepseek-flash", "thinking": ["type": "enabled"]],
+            baseURL: "https://api.deepseek.com/v1"
+        )
+        XCTAssertEqual(explicit["thinking"] as? [String: String], ["type": "enabled"])
     }
 
     func testModelRoutingPerKindEnvOverride() {
@@ -1964,7 +2050,7 @@ final class SoloCompassTests: XCTestCase {
     }
 
     @MainActor
-    func testSynthesisRequestBodyContainsSonnetModel() async throws {
+    func testSynthesisRequestBodyUsesFlashModelAndDisablesThinking() async throws {
         var capturedBody: [String: Any]?
         StubURLProtocol.handler = { request in
             // URLSession buffers small bodies as a stream — read both forms.
@@ -1982,6 +2068,21 @@ final class SoloCompassTests: XCTestCase {
         }
         StubURLProtocol.requestCount = 0
 
+        // Pin the resolved endpoint to DeepSeek so the thinking assertion is
+        // deterministic regardless of a developer's local .env / UserDefaults.
+        let prefs = UserPreferences()
+        let savedProvider = prefs.aiProviderRaw
+        let savedBaseURL = prefs.aiBaseURL
+        let savedModelName = prefs.aiModelName
+        prefs.aiProvider = .deepseek
+        prefs.aiBaseURL = AIProvider.deepseek.defaultBaseURL
+        prefs.aiModelName = ""
+        defer {
+            prefs.aiProviderRaw = savedProvider
+            prefs.aiBaseURL = savedBaseURL
+            prefs.aiModelName = savedModelName
+        }
+
         unsetenv("DEEPSEEK_MODEL_SYNTHESIS")
         setenv("DEEPSEEK_API_KEY", "sk-test-fake", 1)
         defer { unsetenv("DEEPSEEK_API_KEY") }
@@ -1998,7 +2099,9 @@ final class SoloCompassTests: XCTestCase {
         _ = try await ai.synthesizeExperiences(from: pois, cityCode: "vn-hanoi")
 
         let model = capturedBody?["model"] as? String
-        XCTAssertEqual(model, "deepseek-chat", "synthesis request must use the resolved DeepSeek model")
+        XCTAssertEqual(model, "deepseek-flash", "synthesis request must use the resolved DeepSeek model")
+        XCTAssertEqual(capturedBody?["thinking"] as? [String: String], ["type": "disabled"])
+        XCTAssertNil(capturedBody?["extra_body"], "thinking must be top-level, not nested under extra_body")
     }
 
     @MainActor

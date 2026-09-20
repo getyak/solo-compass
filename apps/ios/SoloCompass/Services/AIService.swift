@@ -151,9 +151,9 @@ public final class AIService {
         "When asked for JSON, return only a single valid JSON value with no markdown fences and no commentary."
 
     /// Model routing. DeepSeek currently exposes one general chat model
-    /// (`deepseek-chat` / `deepseek-v4-pro`) via the OpenAI-compatible
-    /// endpoint, so all three call kinds share the same model name resolved
-    /// from `Secrets.resolvedDeepSeekModel`. The kind is still passed
+    /// (`deepseek-flash`, V4.1) via the OpenAI-compatible endpoint, so all
+    /// three call kinds share the same model name resolved from
+    /// `Secrets.resolvedDeepSeekModel`. The kind is still passed
     /// through so future per-kind tuning (max_tokens, temperature, model
     /// override env var) can land without changing call sites.
     public enum ModelKind: String, Sendable {
@@ -202,7 +202,9 @@ public final class AIService {
     /// Resolve which model to use for a given call kind. All kinds share the
     /// DeepSeek model from `Secrets.resolvedDeepSeekModel`. Per-kind env var
     /// overrides (`DEEPSEEK_MODEL_SYNTHESIS` etc.) take precedence so QA can
-    /// pin a model per call kind without rebuilding.
+    /// pin a model per call kind without rebuilding. Legacy ids in those env
+    /// vars are normalized forward so an old pin cannot silently keep a
+    /// built-in route on an outdated model.
     static func modelName(for kind: ModelKind) -> String {
         let envKey: String
         switch kind {
@@ -211,7 +213,7 @@ public final class AIService {
         case .voice:       envKey = "DEEPSEEK_MODEL_VOICE"
         }
         if let override = ProcessInfo.processInfo.environment[envKey], !override.isEmpty {
-            return override
+            return Secrets.normalizeDeepSeekModel(override)
         }
         return Secrets.resolvedDeepSeekModel
     }
@@ -762,6 +764,35 @@ public final class AIService {
 
     // MARK: - Request routing (Pro → Edge / direct DeepSeek)
 
+    /// True when the resolved endpoint is DeepSeek's own API. Gates
+    /// DeepSeek-only wire fields so an explicitly configured OpenAI/custom
+    /// provider never receives them.
+    static func isDeepSeekEndpoint(_ rawBaseURL: String) -> Bool {
+        guard let host = URL(string: rawBaseURL)?.host?.lowercased() else { return false }
+        return host == "deepseek.com" || host.hasSuffix(".deepseek.com")
+    }
+
+    /// DeepSeek V4.1 enables "high" thinking by default. The app's tool loops
+    /// do not retain `reasoning_content` and max_tokens is capped at 256–4096,
+    /// so built-in DeepSeek routes explicitly disable thinking to preserve the
+    /// prior non-thinking latency and tool-call behavior. This must be a
+    /// top-level wire field — DeepSeek ignores an `extra_body` nesting.
+    static let deepSeekThinkingDisabled: [String: String] = ["type": "disabled"]
+
+    /// Inject DeepSeek-only wire options when (and only when) the resolved
+    /// endpoint is DeepSeek. Explicit OpenAI/custom providers are untouched.
+    /// `baseURL` is injectable so tests do not depend on global Secrets state.
+    static func applyingDeepSeekOptions(
+        to body: [String: Any],
+        baseURL: String = Secrets.resolvedDeepSeekBaseURL
+    ) -> [String: Any] {
+        var out = body
+        if isDeepSeekEndpoint(baseURL), out["thinking"] == nil {
+            out["thinking"] = deepSeekThinkingDisabled
+        }
+        return out
+    }
+
     /// Pick between Supabase Edge proxy (Pro tier + flags) and direct
     /// DeepSeek. Returns a fully-built `URLRequest`. The `kind` parameter
     /// is stamped into the body when going via Edge so chat-proxy can
@@ -776,12 +807,14 @@ public final class AIService {
         bodyDict: [String: Any],
         timeout: TimeInterval
     ) async throws -> URLRequest {
+        let wireBody = Self.applyingDeepSeekOptions(to: bodyDict)
+
         // Edge path: Pro user + flags on + Supabase session available.
         if FeatureFlags.routeAIThroughEdge
             && FeatureFlags.backendSync
             && isProTier
         {
-            var edgeBody = bodyDict
+            var edgeBody = wireBody
             edgeBody["kind"] = Self.edgeKindString(for: kind)
             let bodyData = try JSONSerialization.data(withJSONObject: edgeBody)
             let accept = stream ? "text/event-stream" : "application/json"
@@ -807,7 +840,7 @@ public final class AIService {
         // Direct DeepSeek path (legacy).
         guard let key = Self.resolveAPIKey() else { throw AIError.missingAPIKey }
         guard let apiURL else { throw AIError.requestFailed(status: 0, body: "bad URL") }
-        let bodyData = try JSONSerialization.data(withJSONObject: bodyDict)
+        let bodyData = try JSONSerialization.data(withJSONObject: wireBody)
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1025,7 +1058,7 @@ public final class AIService {
         }
 
         // Epic E US-031: route through Supabase Edge Function instead
-        // of direct Anthropic when the flag is on. This is the path
+        // of a direct DeepSeek call when the flag is on. This is the path
         // that lets us avoid bundling DEEPSEEK_API_KEY in the iOS app.
         if FeatureFlags.routeAIThroughEdge && FeatureFlags.backendSync {
             do {
@@ -1927,7 +1960,7 @@ public final class AIService {
                 soloScore: SoloScore(overall: overall, breakdown: breakdown, hint: item.soloHint, basedOnCount: basedOnCount),
                 sources: [
                     // Slice A / rubric fix: honor `poi.tags["source"]=="amap"` on
-                    // the direct-Anthropic path the same way the Edge Function
+                    // the direct-DeepSeek path the same way the Edge Function
                     // path does (see line 1201). Without this, mainland-CN Amap
                     // POIs were mislabeled as `.user` + OSM attribution — the
                     // TrustBadge would draw the AutoNavi chip only when hand-

@@ -117,7 +117,7 @@ function makeMockClient(payload: Record<string, unknown>): OpenAI {
         create: vi.fn().mockResolvedValue({
           choices: [{ message: { content: JSON.stringify(payload) } }],
           usage: { prompt_tokens: 100, completion_tokens: 80, total_tokens: 180 },
-          model: "deepseek-v4-pro",
+          model: "deepseek-flash",
         }),
       },
     },
@@ -322,7 +322,7 @@ describe("structureExperience — fence-wrapped response stripping", () => {
           create: vi.fn().mockResolvedValue({
             choices: [{ message: { content: fencedContent } }],
             usage: { prompt_tokens: 100, completion_tokens: 80, total_tokens: 180 },
-            model: "deepseek-v4-pro",
+            model: "deepseek-flash",
           }),
         },
       },
@@ -340,7 +340,7 @@ describe("structureExperience — fence-wrapped response stripping", () => {
           create: vi.fn().mockResolvedValue({
             choices: [{ message: { content: fencedContent } }],
             usage: { prompt_tokens: 100, completion_tokens: 80, total_tokens: 180 },
-            model: "deepseek-v4-pro",
+            model: "deepseek-flash",
           }),
         },
       },
@@ -361,7 +361,7 @@ describe("structureExperience — malformed JSON", () => {
           create: vi.fn().mockResolvedValue({
             choices: [{ message: { content: "not valid json at all" } }],
             usage: { prompt_tokens: 50, completion_tokens: 10, total_tokens: 60 },
-            model: "deepseek-v4-pro",
+            model: "deepseek-flash",
           }),
         },
       },
@@ -383,7 +383,7 @@ describe("structureExperience — malformed JSON", () => {
           create: vi.fn().mockResolvedValue({
             choices: [{ message: { content: JSON.stringify({ action: "unknown_action" }) } }],
             usage: { prompt_tokens: 50, completion_tokens: 20, total_tokens: 70 },
-            model: "deepseek-v4-pro",
+            model: "deepseek-flash",
           }),
         },
       },
@@ -408,5 +408,25 @@ describe("structureExperience — malformed JSON", () => {
     await expect(structureExperience(BASE_INPUT, mockClient)).rejects.toThrow(
       "Rate limit exceeded",
     );
+  });
+});
+
+// ─── DeepSeek thinking-mode wire contract ─────────────────────────────────────
+
+describe("structureExperience — DeepSeek thinking disabled", () => {
+  it("sends deepseek-flash with a top-level thinking:disabled field", async () => {
+    const create = vi.fn().mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify(EMIT_SUTHEP) } }],
+      usage: { prompt_tokens: 100, completion_tokens: 80, total_tokens: 180 },
+      model: "deepseek-flash",
+    });
+    const mockClient = { chat: { completions: { create } } } as unknown as OpenAI;
+
+    await structureExperience(BASE_INPUT, mockClient);
+
+    const params = create.mock.calls[0]![0] as Record<string, unknown>;
+    expect(params["model"]).toBe("deepseek-flash");
+    expect(params["thinking"]).toEqual({ type: "disabled" });
+    expect(params["extra_body"]).toBeUndefined();
   });
 });

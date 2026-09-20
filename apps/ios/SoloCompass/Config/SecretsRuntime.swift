@@ -83,14 +83,34 @@ extension Secrets {
         return deepSeekBaseURL.isEmpty ? AIProvider.deepseek.defaultBaseURL : deepSeekBaseURL
     }
 
+    /// Map legacy / empty DeepSeek model ids forward to the built-in default.
+    /// Deliberately not applied to explicit OpenAI/custom provider models —
+    /// callers gate on the selected provider before calling this.
+    static func normalizeDeepSeekModel(_ raw: String) -> String {
+        let model = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if model.isEmpty || AIProvider.legacyDeepSeekModels.contains(model) {
+            return AIProvider.deepseek.defaultModel
+        }
+        return model
+    }
+
     /// Effective model name. Prefers in-app setting, falls back to
     /// build-time `deepSeekModel`, then the DeepSeek default.
+    ///
+    /// Legacy migration: a stored `deepseek-chat` / `deepseek-reasoner` /
+    /// `deepseek-v4-pro` / `deepseek-v4-flash` selection on the built-in
+    /// DeepSeek provider resolves to `deepseek-flash`. If the user explicitly
+    /// selected OpenAI or a custom provider, their model id is preserved
+    /// verbatim.
     static var resolvedDeepSeekModel: String {
         let prefs = UserPreferences()
         if !prefs.aiModelName.isEmpty {
-            return prefs.aiModelName
+            return prefs.aiProvider == .deepseek
+                ? normalizeDeepSeekModel(prefs.aiModelName)
+                : prefs.aiModelName
         }
-        return deepSeekModel.isEmpty ? AIProvider.deepseek.defaultModel : deepSeekModel
+        let fallback = deepSeekModel.isEmpty ? AIProvider.deepseek.defaultModel : deepSeekModel
+        return normalizeDeepSeekModel(fallback)
     }
 
     /// Effective Foursquare API key: UserDefaults override → build-time baked.

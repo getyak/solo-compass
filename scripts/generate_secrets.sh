@@ -56,7 +56,7 @@ if [[ ! -f "${ENV_FILE}" ]]; then
         exit 0
     fi
     echo "[generate_secrets] WARN: .env not found; emitting empty Secrets so build proceeds." >&2
-    emit_swift "" "https://api.deepseek.com/v1" "deepseek-chat" "" "" "" "" "" "" ""
+    emit_swift "" "https://api.deepseek.com/v1" "deepseek-flash" "" "" "" "" "" "" ""
     echo "[generate_secrets] wrote placeholder ${OUTPUT_FILE}"
     exit 0
 fi
@@ -86,7 +86,7 @@ SOLO_API_BASE_URL=$(read_env_value "SOLO_API_BASE_URL")
 
 # Defaults
 [[ -z "${DEEPSEEK_BASE_URL}" ]] && DEEPSEEK_BASE_URL="https://api.deepseek.com/v1"
-[[ -z "${DEEPSEEK_MODEL}"    ]] && DEEPSEEK_MODEL="deepseek-chat"
+[[ -z "${DEEPSEEK_MODEL}"    ]] && DEEPSEEK_MODEL="deepseek-flash"
 
 # Per-key sanity check. Warn (don't fail) so open-source devs without keys
 # still get a green build that degrades gracefully. AMAP_API_KEY surface

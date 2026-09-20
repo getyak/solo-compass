@@ -60,7 +60,7 @@ jobs:
         run: |
           printf 'DEEPSEEK_API_KEY=\n' > .env
           printf 'DEEPSEEK_BASE_URL=https://api.deepseek.com/v1\n' >> .env
-          printf 'DEEPSEEK_MODEL=deepseek-chat\n' >> .env
+          printf 'DEEPSEEK_MODEL=deepseek-flash\n' >> .env
           printf 'SENTRY_DSN=\n' >> .env
           printf 'AMAP_API_KEY=%s\n' "${AMAP_API_KEY}" >> .env
           printf 'DEVELOPMENT_TEAM=%s\n' "$DEVELOPMENT_TEAM" >> .env

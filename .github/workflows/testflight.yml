@@ -234,7 +234,6 @@ jobs:
         env:
           DEEPSEEK_API_KEY:    ${{ secrets.DEEPSEEK_API_KEY }}
           DEEPSEEK_BASE_URL:   ${{ secrets.DEEPSEEK_BASE_URL }}
-          DEEPSEEK_MODEL:      ${{ secrets.DEEPSEEK_MODEL }}
           SENTRY_DSN:          ${{ secrets.SENTRY_DSN }}
           DEVELOPMENT_TEAM:    ${{ secrets.DEVELOPMENT_TEAM }}
           AMAP_API_KEY:        ${{ secrets.AMAP_API_KEY }}
@@ -243,7 +242,10 @@ jobs:
         run: |
           printf 'DEEPSEEK_API_KEY=%s\n'    "${DEEPSEEK_API_KEY}" > .env
           printf 'DEEPSEEK_BASE_URL=%s\n'   "${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}" >> .env
-          printf 'DEEPSEEK_MODEL=%s\n'      "${DEEPSEEK_MODEL:-deepseek-chat}" >> .env
+          # All built-in routes ship on deepseek-flash; the model is not
+          # sourced from a repo secret so a stale value cannot pin an old
+          # model.
+          printf 'DEEPSEEK_MODEL=deepseek-flash\n' >> .env
           printf 'SENTRY_DSN=%s\n'          "${SENTRY_DSN}" >> .env
           printf 'AMAP_API_KEY=%s\n'        "${AMAP_API_KEY}" >> .env
           printf 'FOURSQUARE_API_KEY=%s\n'  "${FOURSQUARE_API_KEY}" >> .env

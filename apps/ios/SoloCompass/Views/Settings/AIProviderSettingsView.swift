@@ -200,12 +200,7 @@ struct AIProviderSettingsView: View {
         if currentURL.isEmpty || knownDefaults.contains(currentURL) {
             preferences.aiBaseURL = provider.defaultBaseURL
         }
-        // Auto-fill model if empty or was a known provider default.
-        let knownModels = AIProvider.allCases.map(\.defaultModel).filter { !$0.isEmpty }
-        let currentModel = preferences.aiModelName
-        if currentModel.isEmpty || knownModels.contains(currentModel) {
-            preferences.aiModelName = provider.defaultModel
-        }
+        preferences.aiModelName = provider.modelAfterSwitching(from: preferences.aiModelName)
     }
 
     private func iconColor(for provider: AIProvider) -> Color {

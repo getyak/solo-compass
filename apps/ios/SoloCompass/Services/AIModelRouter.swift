@@ -6,9 +6,8 @@ import Foundation
 /// This is a planning layer ABOVE `AIService.ModelKind`. ModelKind
 /// controls which env-var override and quota bucket to use; AITaskType
 /// controls which model *family* is best for the task. Today they
-/// collapse to the same DeepSeek endpoint, but the routing matrix is
-/// ready for multi-model splits (DeepSeek for structured extraction,
-/// Claude for narrative synthesis).
+/// collapse to the same DeepSeek endpoint (`deepseek-flash`), but the
+/// routing matrix is ready for a future multi-model split.
 ///
 /// Research basis: arxiv.org/abs/2509.13487 found DeepSeek-AI leads at
 /// 93.3% for structured tasks vs Claude 3.5 Sonnet at 80.0%.
@@ -53,9 +52,9 @@ public enum AIModelRouter {
     }
 
     /// Map a task type to model configuration. Today all tasks route to
-    /// DeepSeek via the existing ModelKind path. When multi-model routing
-    /// ships, classification/structuredExtract stay on DeepSeek while
-    /// narrativeSynth/conversational move to Claude.
+    /// DeepSeek (`deepseek-flash`) via the existing ModelKind path. The
+    /// per-task env overrides all read DeepSeek model vars so a stale
+    /// Anthropic model setting can never pin a built-in route.
     public static func config(for taskType: AITaskType) -> ModelConfig {
         switch taskType {
         case .classification:
@@ -77,14 +76,14 @@ public enum AIModelRouter {
                 modelKind: .synthesis,
                 temperature: 0.7,
                 maxTokens: 2048,
-                modelOverride: envOverride("ANTHROPIC_MODEL_SYNTHESIS")
+                modelOverride: envOverride("DEEPSEEK_MODEL_SYNTHESIS")
             )
         case .conversational:
             return ModelConfig(
                 modelKind: .voice,
                 temperature: 0.3,
                 maxTokens: 512,
-                modelOverride: envOverride("ANTHROPIC_MODEL_CHAT")
+                modelOverride: envOverride("DEEPSEEK_MODEL_VOICE")
             )
         case .ranking:
             return ModelConfig(
@@ -96,8 +95,14 @@ public enum AIModelRouter {
         }
     }
 
+    /// Resolve a per-task model override from the environment. Legacy
+    /// DeepSeek ids (`deepseek-chat`, `deepseek-reasoner`, `deepseek-v4-pro`,
+    /// `deepseek-v4-flash`) normalize forward to `deepseek-flash` so a stale
+    /// env pin cannot keep a built-in route on an old model; explicit
+    /// non-DeepSeek model ids pass through untouched.
     private static func envOverride(_ key: String) -> String? {
         let value = ProcessInfo.processInfo.environment[key] ?? ""
-        return value.isEmpty ? nil : value
+        guard !value.isEmpty else { return nil }
+        return Secrets.normalizeDeepSeekModel(value)
     }
 }
