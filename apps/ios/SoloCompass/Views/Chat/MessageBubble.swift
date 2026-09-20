@@ -245,13 +245,13 @@ public struct MessageBubble: View {
                 }
             Spacer(minLength: 24)
         }
-        .accessibilityLabel(Text(String(
-            format: NSLocalizedString("chat.bubble.assistant.a11y", comment: "Solo said: %@"),
-            text
-        )))
-        .accessibilityAction(named: Text(NSLocalizedString("chat.bubble.copy", comment: "Copy bubble text"))) {
-            copyText()
-        }
+        // Deliberately NO container-level `.accessibilityLabel`: applying one to
+        // the HStack made VoiceOver announce the whole reply once per Markdown
+        // paragraph (the label plus each descendant). The rendered Markdown
+        // exposes its own text and links, so removing the container label fixes
+        // the duplicate announcement while keeping link accessibility. Copy is
+        // still offered through the context menu.
+        .accessibilityElement(children: .contain)
     }
 
     /// AI bubble fill — kept for `TypingIndicatorBubble` compatibility. The main

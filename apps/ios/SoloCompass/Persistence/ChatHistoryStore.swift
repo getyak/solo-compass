@@ -159,7 +159,7 @@ public final class ChatHistoryStore {
         guard let firstUser = messages.first(where: { $0.role == .user })?.content else {
             return nil
         }
-        let oneLine = firstUser
+        let oneLine = ChatDisplayText.removingContextEnvelopes(firstUser)
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !oneLine.isEmpty else { return nil }
