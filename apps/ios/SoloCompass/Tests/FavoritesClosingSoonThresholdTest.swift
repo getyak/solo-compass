@@ -53,52 +53,51 @@ final class FavoritesClosingSoonThresholdTest: XCTestCase {
 
     // MARK: - Tests
 
+    /// Deterministic wall-clock instant in `Calendar.current`, the same calendar
+    /// `minutesLeftInBestWindow(at:)` uses, so the boundary tests don't depend
+    /// on when CI happens to run.
+    private static func date(hour: Int, minute: Int = 0) -> Date {
+        var c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        c.hour = hour
+        c.minute = minute
+        c.second = 0
+        return Calendar.current.date(from: c)!
+    }
+
     /// When 46 minutes remain, closingSoon must be false.
     func testAboveThresholdIsNotClosingSoon() {
-        let cal = Calendar.current
-        // Build a window that ends exactly 46 minutes from now.
-        let endDate = Date().addingTimeInterval(46 * 60)
-        let endHour = cal.component(.hour, from: endDate)
-        // Start well before now so the window is currently open.
-        let startHour = (endHour + 23) % 24
-        let exp = Self.makeExp(startHour: startHour, endHour: endHour)
-
-        let minutesLeft = exp.minutesLeftInBestWindow(at: Date())
+        // Window 9–10, evaluated at 09:14 → 46 minutes remain.
+        let exp = Self.makeExp(startHour: 9, endHour: 10)
+        let minutesLeft = exp.minutesLeftInBestWindow(at: Self.date(hour: 9, minute: 14))
         guard let mins = minutesLeft else {
             XCTFail("Expected window to be active")
             return
         }
         let closingSoon = mins <= 45
+        XCTAssertEqual(mins, 46, "Window must have 46 minutes left at 09:14")
         XCTAssertFalse(closingSoon, "46 min left — should not be closing soon (got \(mins))")
     }
 
     /// When 45 minutes remain, closingSoon must be true.
     func testAtThresholdIsClosingSoon() {
-        let cal = Calendar.current
-        let endDate = Date().addingTimeInterval(45 * 60)
-        let endHour = cal.component(.hour, from: endDate)
-        let startHour = (endHour + 23) % 24
-        let exp = Self.makeExp(startHour: startHour, endHour: endHour)
-
-        let minutesLeft = exp.minutesLeftInBestWindow(at: Date())
+        // Window 9–10, evaluated at 09:15 → 45 minutes remain.
+        let exp = Self.makeExp(startHour: 9, endHour: 10)
+        let minutesLeft = exp.minutesLeftInBestWindow(at: Self.date(hour: 9, minute: 15))
         guard let mins = minutesLeft else {
             XCTFail("Expected window to be active")
             return
         }
         let closingSoon = mins <= 45
+        XCTAssertEqual(mins, 45, "Window must have 45 minutes left at 09:15")
         XCTAssertTrue(closingSoon, "45 min left — should be closing soon (got \(mins))")
     }
 
     /// When the experience is not currently in its best window, minutesLeft is
     /// nil and closingSoon must be false (nil ?? .max is greater than 45).
     func testNotGoodNowIsNeverClosingSoon() {
-        // Window 3–4 am — almost certainly not open right now during a test run.
+        // Window 3–4am, evaluated at noon — never open.
         let exp = Self.makeExp(startHour: 3, endHour: 4)
-        let now = Date()
-        guard !exp.isBestNow(at: now) else {
-            // If test is somehow run between 3–4am, skip rather than fail.
-            return
-        }
+        let now = Self.date(hour: 12)
         let minutesLeft = exp.minutesLeftInBestWindow(at: now)
         XCTAssertNil(minutesLeft, "Window not active — minutesLeftInBestWindow should be nil")
         let closingSoon = (minutesLeft ?? .max) <= 45

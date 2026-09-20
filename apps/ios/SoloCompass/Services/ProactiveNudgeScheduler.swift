@@ -38,6 +38,7 @@ public final class ProactiveNudgeScheduler {
     private let calendar: Calendar
     private let log = OSLog(subsystem: "com.solocompass.app", category: "Nudge")
 
+    /// User-facing toggles that gate each proactive nudge category.
     public enum Toggle: String {
         case lonelyHours = "com.solocompass.nudge.lonelyHours.enabled.v1"
         case cityOmen    = "com.solocompass.nudge.cityOmen.enabled.v1"
@@ -54,10 +55,12 @@ public final class ProactiveNudgeScheduler {
 
     // MARK: - Toggles
 
+    /// Whether the given nudge category is enabled (defaults to on).
     public func isEnabled(_ toggle: Toggle) -> Bool {
         UserDefaults.standard.object(forKey: toggle.rawValue) as? Bool ?? true
     }
 
+    /// Persists the enabled state for the given nudge category.
     public func setEnabled(_ toggle: Toggle, _ value: Bool) {
         UserDefaults.standard.set(value, forKey: toggle.rawValue)
     }
@@ -85,6 +88,7 @@ public final class ProactiveNudgeScheduler {
     // MARK: - P2.6 #261 lonely-hour nudge
 
     @discardableResult
+    /// Schedules a lonely-hours nudge for `anchorTitle`, returning false when disabled.
     public func scheduleLonelyNudge(
         anchorTitle: String,
         anchorExperienceId: String,
@@ -119,6 +123,7 @@ public final class ProactiveNudgeScheduler {
     // MARK: - P2.6 #262 morning city-omen nudge
 
     @discardableResult
+    /// Schedules the morning city-omen nudge at `hour`, returning false when disabled.
     public func scheduleMorningOmen(
         line: String,
         deliverAtHour hour: Int = 7,
@@ -155,6 +160,7 @@ public final class ProactiveNudgeScheduler {
     // MARK: - P2.6 #263 capsule proximity nudge
 
     @discardableResult
+    /// Schedules a proximity nudge for a buried capsule, respecting the daily budget.
     public func scheduleCapsuleProximityNudge(
         capsulePreview: String,
         experienceId: String,
@@ -186,6 +192,7 @@ public final class ProactiveNudgeScheduler {
     // MARK: - P2.4 #244 year-end capsule inventory nudge
 
     @discardableResult
+    /// Schedules the year-end capsule review nudge when there are capsules to review.
     public func scheduleYearEndCapsuleReview(
         buriedThisYear: Int,
         ripenNextYear: Int,

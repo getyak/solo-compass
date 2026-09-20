@@ -36,6 +36,7 @@ public final class RubricStore {
         }
     }
 
+    /// Removes all stored rubric reports.
     public func clear() {
         reports.removeAll(keepingCapacity: true)
     }

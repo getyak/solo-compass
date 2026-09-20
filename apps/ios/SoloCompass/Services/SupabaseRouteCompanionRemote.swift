@@ -25,30 +25,37 @@ public final class SupabaseRouteCompanionRemote: RouteCompanionRemote {
         #endif
     }
 
+    /// Fetches recruiting routes for a city from the Supabase backend.
     public func fetchRecruitingRoutes(cityCode: String) async throws -> [Route] {
         throw NotImplementedError(#function)
     }
 
+    /// Sends a join request for a route with the user's message and pace.
     public func sendJoinRequest(routeId: RouteId, message: String, pace: String) async throws {
         throw NotImplementedError(#function)
     }
 
+    /// Fetches the current user's pending join-request inbox.
     public func fetchInbox() async throws -> [JoinRequest] {
         throw NotImplementedError(#function)
     }
 
+    /// Accepts a join request and adds the user to the route.
     public func accept(_ request: JoinRequest, route: Route) async throws {
         throw NotImplementedError(#function)
     }
 
+    /// Declines a join request for a route.
     public func decline(_ request: JoinRequest, route: Route) async throws {
         throw NotImplementedError(#function)
     }
 
+    /// Withdraws the user's own pending join request for a route.
     public func withdraw(_ request: JoinRequest, route: Route) async throws {
         throw NotImplementedError(#function)
     }
 
+    /// Marks a route completed on the backend.
     public func markCompleted(routeId: RouteId) async throws {
         throw NotImplementedError(#function)
     }

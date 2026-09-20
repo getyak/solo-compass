@@ -138,6 +138,7 @@ public enum AnalyticsValue: Codable, Hashable, Sendable {
         }
     }
 
+    /// Encodes the tagged value so its type survives a JSON round trip.
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -149,6 +150,7 @@ public enum AnalyticsValue: Codable, Hashable, Sendable {
     }
 }
 
+/// A single analytics event with its properties and capture time.
 public struct AnalyticsEvent: Codable, Hashable, Sendable {
     public let name: String
     public let properties: [String: AnalyticsValue]

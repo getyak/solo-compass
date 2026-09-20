@@ -985,6 +985,7 @@ public final class FriendService {
 
 // MARK: - Errors
 
+/// Errors surfaced by friend-request flows.
 public enum FriendServiceError: LocalizedError {
     case featureDisabled
     case encodingFailed

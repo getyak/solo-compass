@@ -51,44 +51,40 @@ final class BestNowChipStateTests: XCTestCase {
         )
     }
 
-    /// Builds an experience whose active window ends `minutes` from `now`, with a
-    /// start safely in the past so the window is currently open. Mirrors the
-    /// approach in `FavoritesClosingSoonThresholdTest`.
-    private static func expEnding(inMinutes minutes: Int, now: Date) -> Experience {
-        let cal = Calendar.current
-        let endDate = now.addingTimeInterval(Double(minutes) * 60)
-        let endHour = cal.component(.hour, from: endDate)
-        let startHour = (endHour + 23) % 24
-        return makeExp(startHour: startHour, endHour: endHour)
+    /// Deterministic wall-clock instant expressed in the same `Calendar.current`
+    /// the model uses, so these boundary tests don't depend on when CI runs.
+    private static func date(hour: Int, minute: Int = 0) -> Date {
+        var c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        c.hour = hour
+        c.minute = minute
+        c.second = 0
+        return Calendar.current.date(from: c)!
     }
 
     // MARK: - Threshold
 
     func testNotOpenYieldsNilMinutes() {
-        // 3–4am window — almost never open during a CI run.
+        // 3–4am window, evaluated at noon — never open.
         let exp = Self.makeExp(startHour: 3, endHour: 4)
-        let now = Date()
-        guard !exp.isBestNow(at: now) else { return } // skip if run at 3–4am
-        let state = BestNowChipState.resolve(for: exp, at: now)
+        let state = BestNowChipState.resolve(for: exp, at: Self.date(hour: 12))
         XCTAssertNil(state.minutesLeft, "Window not active → no minutes")
         XCTAssertFalse(state.isClosingSoon, "Not open → never closing soon")
     }
 
     func testWellWithinWindowIsNotClosingSoon() {
-        let now = Date()
-        // ~3h59m left rounds comfortably above the 45-min threshold regardless of
-        // the current minute-of-hour.
-        let exp = Self.expEnding(inMinutes: 240, now: now)
-        let state = BestNowChipState.resolve(for: exp, at: now)
+        // Window 9–17, evaluated at 10:00 → 7h (420 min) left, comfortably
+        // above the 45-min threshold.
+        let exp = Self.makeExp(startHour: 9, endHour: 17)
+        let state = BestNowChipState.resolve(for: exp, at: Self.date(hour: 10))
         // Window is open …
         XCTAssertNotNil(state.minutesLeft)
-        XCTAssertFalse(state.isClosingSoon, "≈4h left should not be closing soon")
+        XCTAssertFalse(state.isClosingSoon, "7h left should not be closing soon")
     }
 
     func testInsideThresholdIsClosingSoon() {
-        let now = Date()
-        let exp = Self.expEnding(inMinutes: 20, now: now)
-        let state = BestNowChipState.resolve(for: exp, at: now)
+        // Window 9–10, evaluated at 09:40 → 20 min left.
+        let exp = Self.makeExp(startHour: 9, endHour: 10)
+        let state = BestNowChipState.resolve(for: exp, at: Self.date(hour: 9, minute: 40))
         guard let mins = state.minutesLeft else {
             return XCTFail("Expected an active window with minutes left")
         }
@@ -137,11 +133,18 @@ final class BestNowChipStateTests: XCTestCase {
 
     func testClosingSoonKeysResolveInBothLocales() throws {
         for lang in ["en", "zh-Hans"] {
-            let bundleURL = try XCTUnwrap(
-                Bundle(for: Self.self).url(forResource: lang, withExtension: "lproj"),
-                "missing \(lang).lproj in test bundle"
+            // The `.lproj` tables ship in the app bundle (the unit-test host),
+            // not the test bundle — search both, matching StringsParityTests /
+            // EmptyStateAnnouncementTest. `Bundle(for:)` alone returns nil here.
+            let bundleURL = [Bundle.main, Bundle(for: Self.self)]
+                .lazy
+                .compactMap { $0.url(forResource: lang, withExtension: "lproj") }
+                .first
+            let resolvedURL = try XCTUnwrap(
+                bundleURL,
+                "missing \(lang).lproj in the app or test bundle"
             )
-            let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+            let bundle = try XCTUnwrap(Bundle(url: resolvedURL))
             for key in ["nearby.chip.closingSoon", "nearby.chip.closingSoon.a11y"] {
                 let value = bundle.localizedString(forKey: key, value: "__MISSING__", table: nil)
                 XCTAssertNotEqual(value, "__MISSING__", "\(key) missing in \(lang)")

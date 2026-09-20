@@ -39,6 +39,7 @@ public enum ChatCard: Identifiable, Equatable {
         }
     }
 
+    /// Identity-based equality: two cards are the same when their ids match.
     public static func == (lhs: ChatCard, rhs: ChatCard) -> Bool {
         lhs.id == rhs.id
     }
@@ -62,6 +63,7 @@ public struct RouteProposal: Equatable {
         self.stopReasons = stopReasons
     }
 
+    /// Compares proposals by route id, stop order, and per-stop reasons.
     public static func == (lhs: RouteProposal, rhs: RouteProposal) -> Bool {
         let sameRoute: Bool = lhs.route.id == rhs.route.id
         let lhsStopIds: [String] = lhs.stops.map(\.id)
@@ -77,6 +79,7 @@ public struct RouteProposal: Equatable {
 /// (analyzing weather / location / places you've been) instead of an opaque
 /// spinner. Kept deliberately small and value-typed so it's trivially testable.
 public struct ReasoningStep: Identifiable, Equatable, Sendable {
+    /// The kind of reasoning activity a step represents in the trace UI.
     public enum Kind: String, Sendable {
         case thinking      // model is deliberating
         case tool          // a tool is running (search, explore, build route…)

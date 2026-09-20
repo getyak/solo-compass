@@ -43,6 +43,7 @@ jobs:
   build-and-test:
     name: Build iOS app (placeholder secrets)
     runs-on: macos-latest
+    timeout-minutes: 30
     needs: [schema-parity]
 
     steps:
@@ -139,6 +140,9 @@ jobs:
             -project SoloCompass.xcodeproj \
             -scheme SoloCompass \
             -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 120 \
+            -maximum-test-execution-time-allowance 180 \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \

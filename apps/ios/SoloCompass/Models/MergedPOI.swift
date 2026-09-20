@@ -6,6 +6,7 @@ import CoreLocation
 /// Source provenance metadata attached to each enrichment signal.
 /// Tracks which data source contributed what fields and its reliability weight.
 public struct SourceEnrichment: Codable, Equatable {
+    /// Identifies which upstream data source a merged field value came from.
     public enum SourceName: String, Codable {
         case osm = "osm"
         case amap = "amap"
@@ -40,6 +41,7 @@ public struct FieldConflict: Codable, Equatable {
     public let field: String
     public let values: [SourcedValue]
 
+    /// One candidate value for a merged field, tagged with its source and weight.
     public struct SourcedValue: Codable, Equatable {
         public let source: SourceEnrichment.SourceName
         public let value: String
@@ -113,6 +115,7 @@ public struct MergedPOI: Equatable {
 
 // CLLocationCoordinate2D doesn't conform to Equatable by default
 extension MergedPOI.BasePOI {
+    /// Value equality across the fields that affect rendering and dedup.
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.osmId == rhs.osmId
             && lhs.name == rhs.name

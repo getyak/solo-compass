@@ -26,6 +26,7 @@ import CoreLocation
 // Constraining this protocol to `@MainActor` would force a structural change
 // to OverpassService just to introduce a name. Implementations remain free
 // to declare main-actor isolation on the conformance site if they wish.
+/// Abstraction over a POI provider so explore paths can swap Overpass/Amap/MapKit.
 public protocol POISource: AnyObject {
     /// Provider-recognisable identifier used in logs / dedup keys.
     /// Defaults to the conforming type's name; override to disambiguate

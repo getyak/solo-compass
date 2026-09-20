@@ -139,7 +139,25 @@ final class PresenceServiceTests: XCTestCase {
     }
 
     func testEnableRequiresCompanionFlag() async {
-        // FF_COMPANION defaults to false in test env — enable() must be a no-op.
+        // DEBUG builds default FF_COMPANION ON (social surfaces are exercisable
+        // in the Simulator), so pin it OFF for this test via both the
+        // UserDefaults key `FeatureFlags.companion` reads first and the env var,
+        // then restore the prior state.
+        let defaultsKey = "FF_COMPANION"
+        let savedDefault = UserDefaults.standard.object(forKey: defaultsKey)
+        let savedEnv = getenv(defaultsKey).flatMap { String(cString: $0) }
+        UserDefaults.standard.set(false, forKey: defaultsKey)
+        setenv(defaultsKey, "0", 1)
+        defer {
+            if let savedDefault {
+                UserDefaults.standard.set(savedDefault, forKey: defaultsKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: defaultsKey)
+            }
+            if let savedEnv { setenv(defaultsKey, savedEnv, 1) } else { unsetenv(defaultsKey) }
+        }
+        XCTAssertFalse(FeatureFlags.companion, "precondition: FF_COMPANION pinned off")
+
         await service.enable()
         XCTAssertFalse(service.isActive, "enable() must not activate when FF_COMPANION is off")
     }

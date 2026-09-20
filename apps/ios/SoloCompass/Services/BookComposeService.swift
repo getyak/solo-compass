@@ -71,6 +71,7 @@ public final class BookComposeService {
     }
 }
 
+/// One weekly chapter of a composed year-in-review book.
 public struct BookChapter: Codable, Hashable, Sendable, Identifiable {
     public let weekOfYear: Int
     public let startDate: Date
@@ -80,6 +81,7 @@ public struct BookChapter: Codable, Hashable, Sendable, Identifiable {
     public var id: Int { weekOfYear }
 }
 
+/// Manifest describing a printable book's year, page count, chapters, and cover.
 public struct BookManifest: Codable, Hashable, Sendable {
     public let year: Int
     public let approxPageCount: Int
