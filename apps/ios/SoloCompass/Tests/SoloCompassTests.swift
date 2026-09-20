@@ -7516,6 +7516,19 @@ final class ChatHistoryStoreTests: XCTestCase {
         XCTAssertEqual(title, "找一家安静的咖啡馆")
     }
 
+    func testContextEnvelopeDoesNotBecomeTitleAndRawMessageSurvives() {
+        let store = makeStore()
+        let raw = "<latest_context>\nhour_local: 15\ntimezone: Asia/Bangkok\n</latest_context>\n找一家安静的咖啡馆"
+        store.saveSession(id: "title-envelope", messages: [userMsg(raw)], scopedExperienceId: nil)
+        XCTAssertEqual(store.recentSessions().first?.title, "找一家安静的咖啡馆")
+        XCTAssertEqual(store.messages(sessionId: "title-envelope").first?.content, raw)
+    }
+
+    func testTitleKeepsOrdinaryBracketsAndSkipsDiagnosticsEnvelope() {
+        let raw = "<solo:diagnostics>\n{\"status\":\"offline\"}\n</solo:diagnostics>\n看看 [这家咖啡馆]"
+        XCTAssertEqual(ChatHistoryStore.deriveTitle(from: [userMsg(raw)]), "看看 [这家咖啡馆]")
+    }
+
     func testToolCallsSurviveRoundTrip() {
         let store = makeStore()
         let id = UUID().uuidString

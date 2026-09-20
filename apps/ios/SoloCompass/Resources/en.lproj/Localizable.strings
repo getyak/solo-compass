@@ -2520,3 +2520,39 @@
 "dev.performance.sheetSettle" = "Bottom sheet settle";
 "dev.performance.p95" = "p95 %1$d / %2$d ms";
 "dev.performance.detail" = "%1$d samples · p50 %2$d ms · %3$d%% in budget";
+
+/* Conversation workspace (map / chat / discover) */
+"workspace.dock.map" = "Map";
+"workspace.dock.ask" = "Ask Solo";
+"workspace.dock.discover" = "Discover";
+"workspace.handle.a11y" = "Conversation panel";
+"workspace.handle.hint" = "Drag up or down to resize the conversation and map";
+"workspace.detent.collapsed" = "Map";
+"workspace.detent.conversation" = "Conversation";
+"workspace.detent.expanded" = "Expanded conversation";
+"workspace.collapseChat" = "Collapse the chat back onto the map";
+"chat.returnToLatest" = "Latest";
+"chat.returnToLatest.a11y" = "New reply. Jump to the latest message.";
+"discover.title" = "Discover";
+"discover.subtitle" = "Curated for %@";
+"discover.retry" = "Retry";
+"discover.offline.title" = "You're offline";
+"discover.offline.subtitle" = "Showing what's already on the map.";
+"discover.empty.title" = "Nothing to discover here yet";
+"discover.empty.subtitle" = "Try another area, or ask Solo what's nearby.";
+"sort.a11y" = "Sort";
+
+/* Chat recommendation card — editorial evidence */
+"chat.card.evidence" = "%1$@ · %2$d sources";
+"chat.card.bestTime" = "Best %1$02d:00–%2$02d:00";
+
+/* Agent chat send restrictions */
+"chat.send.hint.attachmentsUnsupported" = "Attachments aren't supported in this chat yet — send text or remove the file.";
+
+/* Conversation workspace — choose-city affordance */
+"workspace.chooseCity" = "Choose a city";
+
+/* Detail meta — honest walk estimate (straight-line, not a routed ETA) */
+"meta.walkEstimate" = "≈ walk %d min";
+
+"chat.error.turnTimeout" = "That search took too long. Your conversation is saved. Try again or narrow the area.";

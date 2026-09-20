@@ -128,6 +128,9 @@ public final class VoiceAgentSession {
 
     public private(set) var state: State = .idle
     public private(set) var messages: [Message] = []
+    /// Full visible conversation. Model-context compaction must never remove
+    /// messages the traveler is reading or truncate persisted chat history.
+    public private(set) var transcript: [Message] = []
     public private(set) var turnCount: Int = 0
     /// Recursion depth within the current user turn (thinking →
     /// toolExecuting → thinking …). Reset by `beginUserTurn()`.
@@ -162,6 +165,7 @@ public final class VoiceAgentSession {
     /// reactivates it for reuse.
     public func reseedSystem(_ prompt: String) {
         messages.removeAll()
+        transcript.removeAll()
         turnCount = 0
         recursionDepth = 0
         state = .idle
@@ -177,6 +181,7 @@ public final class VoiceAgentSession {
         let nonSystem = restored.filter { $0.role != .system }
         guard !nonSystem.isEmpty else { return }
         messages.append(contentsOf: nonSystem)
+        transcript.append(contentsOf: nonSystem)
         turnCount = nonSystem.filter { $0.role == .user }.count
         recursionDepth = 0
         state = .idle
@@ -202,7 +207,9 @@ public final class VoiceAgentSession {
     public func beginUserTurn(transcript: String) {
         guard endReason == nil else { return }
         guard !transcript.isEmpty else { return }
-        messages.append(Message(role: .user, content: transcript))
+        let message = Message(role: .user, content: transcript)
+        messages.append(message)
+        self.transcript.append(message)
         turnCount += 1
         recursionDepth = 0
         state = .thinking
@@ -218,7 +225,9 @@ public final class VoiceAgentSession {
         toolCalls: [ToolCall]
     ) -> State {
         let capped = Array(toolCalls.prefix(Self.toolCallsMaxPerTurn))
-        messages.append(Message(role: .assistant, content: content, toolCalls: capped))
+        let message = Message(role: .assistant, content: content, toolCalls: capped)
+        messages.append(message)
+        transcript.append(message)
         if capped.isEmpty {
             state = .speaking
         } else {
@@ -235,10 +244,12 @@ public final class VoiceAgentSession {
         name: String,
         resultJSON: String
     ) {
-        messages.append(Message(
+        let message = Message(
             role: .tool, content: resultJSON,
             toolCallId: toolCallId, name: name
-        ))
+        )
+        messages.append(message)
+        transcript.append(message)
     }
 
     /// All tool results for this round are in — go back to `.thinking`
@@ -267,6 +278,17 @@ public final class VoiceAgentSession {
         guard endReason == nil else { return }
         endReason = reason
         state = .idle
+    }
+
+    /// Re-open a failed turn without discarding its context or transcript.
+    /// Quota termination and explicit closure require their own recovery flow.
+    @discardableResult
+    public func resumeAfterInterruption() -> Bool {
+        guard endReason == .timeout || endReason == .error else { return false }
+        endReason = nil
+        recursionDepth = 0
+        state = .idle
+        return true
     }
 
     // MARK: - Predicates
