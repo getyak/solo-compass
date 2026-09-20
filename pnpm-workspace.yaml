@@ -22,6 +22,6 @@ overrides:
   "@esbuild-kit/core-utils@3>esbuild": "0.25.12"
   "form-data@": "4.0.6"
   postcss: "8.5.26"
-  sharp: "0.35.3"
+  sharp: "0.35.4"
   "undici@": "7.29.0"
   "ws@": "8.21.0"
