@@ -5792,9 +5792,14 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         )
 
         // Default Dynamic Type size.
+        // `ExperienceDetailView` requires the shared `BestNowClock` from the
+        // environment; inject an isolated instance (pinned instant) instead of
+        // the process singleton so this layout test is deterministic.
+        let clock = BestNowClock(startDate: Date(timeIntervalSince1970: 1_700_000_000))
         let defaultHost = UIHostingController(
             rootView: ExperienceDetailView(viewModel: vm) {}
                 .environment(LocationService())
+                .environment(clock)
         )
         let defaultWindow = UIWindow(frame: UIScreen.main.bounds)
         defaultWindow.rootViewController = defaultHost
@@ -5807,6 +5812,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         let a3Host = UIHostingController(
             rootView: ExperienceDetailView(viewModel: vm) {}
                 .environment(LocationService())
+                .environment(clock)
                 .environment(\.dynamicTypeSize, .accessibility3)
         )
         let a3Window = UIWindow(frame: UIScreen.main.bounds)
@@ -6062,6 +6068,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
             onAskSolo: { _ in } // non-nil so askSoloSection renders
         )
         .environment(LocationService())
+        .environment(BestNowClock(startDate: Date(timeIntervalSince1970: 1_700_000_000)))
 
         let host = UIHostingController(rootView: detail)
         host.overrideUserInterfaceStyle = .light
@@ -6143,6 +6150,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         )
         .environment(LocationService())
         .environment(SubscriptionService())
+        .environment(BestNowClock(startDate: Date(timeIntervalSince1970: 1_700_000_000)))
 
         let host = UIHostingController(rootView: detail)
         host.overrideUserInterfaceStyle = .light
