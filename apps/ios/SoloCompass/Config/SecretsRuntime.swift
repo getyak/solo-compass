@@ -83,19 +83,12 @@ extension Secrets {
         return deepSeekBaseURL.isEmpty ? AIProvider.deepseek.defaultBaseURL : deepSeekBaseURL
     }
 
-    /// Model ids that predate the V4.1 Flash default. A saved legacy selection
-    /// or an old build-time `deepSeekModel` must not silently keep a built-in
-    /// route on an outdated model.
-    static let legacyDeepSeekModels: Set<String> = [
-        "deepseek-chat", "deepseek-reasoner", "deepseek-v4-pro", "deepseek-v4-flash",
-    ]
-
     /// Map legacy / empty DeepSeek model ids forward to the built-in default.
     /// Deliberately not applied to explicit OpenAI/custom provider models —
     /// callers gate on the selected provider before calling this.
     static func normalizeDeepSeekModel(_ raw: String) -> String {
         let model = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if model.isEmpty || legacyDeepSeekModels.contains(model) {
+        if model.isEmpty || AIProvider.legacyDeepSeekModels.contains(model) {
             return AIProvider.deepseek.defaultModel
         }
         return model

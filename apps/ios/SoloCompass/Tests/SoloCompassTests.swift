@@ -1970,6 +1970,23 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(AIProvider.deepseek.defaultModel, "deepseek-flash")
     }
 
+    func testProviderSwitchReplacesPersistedLegacyDeepSeekDefaults() {
+        for legacy in AIProvider.legacyDeepSeekModels {
+            XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: legacy), "gpt-4o-mini")
+            XCTAssertEqual(AIProvider.deepseek.modelAfterSwitching(from: legacy), "deepseek-flash")
+            XCTAssertEqual(AIProvider.custom.modelAfterSwitching(from: legacy), "")
+        }
+        XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: "deepseek-flash"), "gpt-4o-mini")
+        XCTAssertEqual(AIProvider.deepseek.modelAfterSwitching(from: "gpt-4o-mini"), "deepseek-flash")
+        XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: ""), "gpt-4o-mini")
+    }
+
+    func testProviderSwitchPreservesExplicitCustomModel() {
+        for provider in AIProvider.allCases {
+            XCTAssertEqual(provider.modelAfterSwitching(from: "my-local-llm"), "my-local-llm")
+        }
+    }
+
     func testExplicitNonDeepSeekModelIsPreserved() {
         XCTAssertEqual(Secrets.normalizeDeepSeekModel("gpt-4o-mini"), "gpt-4o-mini")
         XCTAssertEqual(Secrets.normalizeDeepSeekModel("my-local-llm"), "my-local-llm")
