@@ -22,7 +22,7 @@ supabase secrets set CITY_BRIEF_CRON_SECRET=<random-long-string>
 # DEEPSEEK_API_KEY is already set (shared with chat-proxy);
 # optional overrides — defaults shown:
 supabase secrets set DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
-supabase secrets set DEEPSEEK_MODEL=deepseek-chat
+supabase secrets set DEEPSEEK_MODEL=deepseek-flash
 ```
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically by the

@@ -14,7 +14,7 @@ const baseSnapshot = {
   inputTokens: 100,
   outputTokens: 50,
   estimatedUsdCents: 1,
-  model: "deepseek-v4-pro",
+  model: "deepseek-flash",
   route: "test-route",
   durationMs: 42,
 };
@@ -111,5 +111,28 @@ describe("trackCost", () => {
     expect(() => trackCost(baseSnapshot)).not.toThrow();
     expect(warnSpy).toHaveBeenCalledWith("[ai_cost] PostHog capture failed:", expect.any(Error));
     warnSpy.mockRestore();
+  });
+});
+
+describe("withCostTracking — deepseek-flash pricing", () => {
+  afterEach(() => {
+    delete process.env["POSTHOG_API_KEY"];
+  });
+
+  it("estimates peak uncached cost at $0.30/M input + $1.20/M output", async () => {
+    delete process.env["POSTHOG_API_KEY"];
+    const { withCostTracking } = await import("../cost-tracker");
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await withCostTracking("test-route", async () => ({
+      result: null,
+      usage: { prompt_tokens: 1_000_000, completion_tokens: 1_000_000, total_tokens: 2_000_000 },
+      model: "deepseek-flash",
+    }));
+
+    const logged = JSON.parse(logSpy.mock.calls[0]![0] as string) as { usd_cents: number };
+    // 1M input @ $0.30 = 30c; 1M output @ $1.20 = 120c.
+    expect(logged.usd_cents).toBe(150);
+    logSpy.mockRestore();
   });
 });

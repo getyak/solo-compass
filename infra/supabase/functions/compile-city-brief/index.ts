@@ -37,6 +37,13 @@ import {
   type CompileTarget,
   type KitSection,
 } from "../_shared/city-brief-core.ts";
+import {
+  buildDeepSeekChatBody,
+  deepSeekBaseUrl,
+  normalizeDeepSeekModel,
+  parseDeepSeekContent,
+  parseDeepSeekUsage,
+} from "../_shared/deepseek.ts";
 
 // ─── Budget constants ────────────────────────────────────────────────────────
 
@@ -272,36 +279,38 @@ interface DeepSeekUsage {
   completion_tokens: number;
 }
 
+/** Built-in DeepSeek model, mapping legacy `DEEPSEEK_MODEL` ids forward. */
+function resolveModelName(): string {
+  return normalizeDeepSeekModel(Deno.env.get("DEEPSEEK_MODEL"));
+}
+
 async function callDeepSeek(
   deepseekKey: string,
   prompt: string,
 ): Promise<{ content: string; usage: DeepSeekUsage }> {
-  const base = Deno.env.get("DEEPSEEK_BASE_URL") ?? "https://api.deepseek.com/v1";
-  const model = Deno.env.get("DEEPSEEK_MODEL") ?? "deepseek-chat";
+  const base = deepSeekBaseUrl(Deno.env.get("DEEPSEEK_BASE_URL"));
+  const model = resolveModelName();
   const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${deepseekKey}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({
-      model,
-      max_tokens: DEEPSEEK_MAX_TOKENS,
-      response_format: { type: "json_object" },
-      messages: [{ role: "user", content: prompt }],
-    }),
+    body: JSON.stringify(
+      buildDeepSeekChatBody({
+        model,
+        max_tokens: DEEPSEEK_MAX_TOKENS,
+        response_format: { type: "json_object" },
+        messages: [{ role: "user", content: prompt }],
+      }),
+    ),
   });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`deepseek ${res.status}: ${text.slice(0, 200)}`);
   }
-  const jsonRes = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-    usage?: DeepSeekUsage;
-  };
-  const content = jsonRes.choices?.[0]?.message?.content ?? "";
-  const usage = jsonRes.usage ?? { prompt_tokens: 0, completion_tokens: 0 };
-  return { content, usage };
+  const jsonRes: unknown = await res.json();
+  return { content: parseDeepSeekContent(jsonRes), usage: parseDeepSeekUsage(jsonRes) };
 }
 
 /** Call DeepSeek, parse JSON, retry once on unparseable output. */
@@ -391,7 +400,7 @@ async function compileEvents(
     .eq("status", "active");
   const existing = (existingRows ?? []) as Array<{ id: string; name: string; ends_at: string }>;
 
-  const model = Deno.env.get("DEEPSEEK_MODEL") ?? "deepseek-chat";
+  const model = resolveModelName();
   const nowIso = now.toISOString();
   let written = 0;
 
@@ -527,7 +536,7 @@ async function compileKit(
 
   const candidateURLs = candidates.map((c) => c.url);
   const { decisions } = validateKit(parsed["decisions"], candidateURLs);
-  const model = Deno.env.get("DEEPSEEK_MODEL") ?? "deepseek-chat";
+  const model = resolveModelName();
   const nowIso = now.toISOString();
   let written = 0;
 

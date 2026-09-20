@@ -17,19 +17,26 @@
 //   2. Entitlement check (Pro only, matching synthesize-experiences).
 //   3. Rate-limit via sc_function_calls (shared daily quota).
 //   4. Confirm the row belongs to the caller (RLS-safe ownership check).
-//   5. Call Anthropic; validate; merge AI fields into the row payload.
+//   5. Call DeepSeek; validate; merge AI fields into the row payload.
 //
 // Deploy: `supabase functions deploy enrich-user-experience`
 // Required secrets: DEEPSEEK_API_KEY (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
 // are auto-injected by the Edge runtime).
+// Optional: DEEPSEEK_BASE_URL (defaults to https://api.deepseek.com/v1),
+//           DEEPSEEK_MODEL (defaults to deepseek-flash).
 //
 // Uses DeepSeek (OpenAI-compatible chat/completions) to match the rest of the
 // app's AI stack (AIService / synthesize pipeline use DEEPSEEK_*).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildDeepSeekChatBody,
+  deepSeekBaseUrl,
+  normalizeDeepSeekModel,
+  parseDeepSeekContent,
+  parseJsonObjectFromText,
+} from "../_shared/deepseek.ts";
 
-const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
-const MODEL = "deepseek-chat";
 const DAILY_QUOTA_PRO = 30;
 const FUNCTION_NAME = "enrich-user-experience";
 
@@ -112,41 +119,38 @@ Deno.serve(async (req: Request) => {
     return json({ error: "experience not found for this user" }, 404);
   }
 
-  // 5. Call DeepSeek (OpenAI-compatible chat/completions).
+  // 5. Call DeepSeek (OpenAI-compatible chat/completions, thinking disabled).
   const prompt = buildPrompt(body);
-  const aiReq = await fetch(DEEPSEEK_URL, {
+  const model = normalizeDeepSeekModel(Deno.env.get("DEEPSEEK_MODEL"));
+  const deepseekUrl = `${deepSeekBaseUrl(Deno.env.get("DEEPSEEK_BASE_URL"))}/chat/completions`;
+  const aiReq = await fetch(deepseekUrl, {
     method: "POST",
     headers: {
       authorization: `Bearer ${deepseekKey}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1024,
-      messages: [{ role: "user", content: prompt }],
-    }),
+    body: JSON.stringify(
+      buildDeepSeekChatBody({
+        model,
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    ),
   });
   if (!aiReq.ok) {
     const text = await aiReq.text();
     return json({ error: `deepseek error ${aiReq.status}: ${text}` }, 502);
   }
   const aiJson = await aiReq.json();
-  const text: string = aiJson?.choices?.[0]?.message?.content ?? "";
+  const text = parseDeepSeekContent(aiJson);
 
   // Validate the single-object response.
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1) {
-    return json({ error: "anthropic returned no JSON object" }, 502);
-  }
-  let enriched: Record<string, unknown>;
-  try {
-    enriched = JSON.parse(text.substring(start, end + 1));
-  } catch {
-    return json({ error: "anthropic returned invalid JSON" }, 502);
+  const enriched = parseJsonObjectFromText(text);
+  if (!enriched) {
+    return json({ error: "deepseek returned no JSON object" }, 502);
   }
   if (typeof enriched.whyItMatters !== "string" || typeof enriched.soloOverall !== "number") {
-    return json({ error: "anthropic response missing required fields" }, 502);
+    return json({ error: "deepseek response missing required fields" }, 502);
   }
 
   // Persist the AI completion back onto the row. We do NOT promote status here

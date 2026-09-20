@@ -26,7 +26,7 @@ Request body is OpenAI-compatible (the iOS `AIService` already builds it):
 
 ```json
 {
-  "model": "deepseek-chat",
+  "model": "deepseek-flash",
   "messages": [{ "role": "user", "content": "…" }],
   "tools": [
     /* function defs */
@@ -41,6 +41,15 @@ Request body is OpenAI-compatible (the iOS `AIService` already builds it):
 
 `kind` is Solo-Compass-only metadata used to pick the daily quota bucket
 (see `QUOTA` in `index.ts`). It is stripped before forwarding to DeepSeek.
+
+The server owns routing: it **ignores the client `model`** and always
+forwards `model=deepseek-flash`, and always sets a **top-level**
+`thinking: {"type":"disabled"}` field (DeepSeek V4.1 defaults thinking to high;
+the on-device tool loop does not retain `reasoning_content`). An older or
+malicious client sending `model=claude-sonnet-4-6` or `thinking.type=enabled`
+still reaches DeepSeek as Flash with thinking disabled. `extra_body` is never
+used. Explicit OpenAI/custom provider support belongs to configured direct
+client paths, not this service-paid proxy.
 
 ## Auth + Entitlement
 

@@ -8,11 +8,15 @@
 import type OpenAI from "openai";
 import { PostHog } from "posthog-node";
 
-// ─── Pricing constants — deepseek-v4-pro, per million tokens, in cents ────────
-// Approximate; keep in sync with https://platform.deepseek.com pricing.
+// ─── Pricing constants — deepseek-flash, per million tokens, in cents ─────────
+// Conservative PEAK UNCACHED estimate; DeepSeek bills less off-peak and for
+// cache hits, so this over-counts rather than under-counts spend.
+// Official pricing: https://api-docs.deepseek.com/quick_start/pricing/
+//   input  $0.30 / M (peak, uncached)
+//   output $1.20 / M
 const PRICE_PER_M = {
-  input: 27, // $0.27 / M
-  output: 110, // $1.10 / M
+  input: 30, // $0.30 / M
+  output: 120, // $1.20 / M
 } as const;
 
 const WARNING_THRESHOLD_CENTS = 500; // $5 per single call

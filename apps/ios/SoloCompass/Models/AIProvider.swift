@@ -34,7 +34,7 @@ public enum AIProvider: String, CaseIterable, Codable, Identifiable {
 
     var defaultModel: String {
         switch self {
-        case .deepseek: return "deepseek-chat"
+        case .deepseek: return "deepseek-flash"
         case .openai: return "gpt-4o-mini"
         case .custom: return ""
         }

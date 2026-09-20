@@ -2,7 +2,10 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [".env.local", ".env"],
   "globalEnv": [
-    "ANTHROPIC_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "DEEPSEEK_BASE_URL",
+    "DEEPSEEK_MODEL",
+    "OPENAI_API_KEY",
     "MAPBOX_TOKEN",
     "NEXT_PUBLIC_MAPBOX_TOKEN",
     "SUPABASE_URL",

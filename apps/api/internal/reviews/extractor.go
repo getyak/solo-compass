@@ -7,10 +7,41 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 )
 
-const anthropicMessagesURL = "https://api.anthropic.com/v1/messages"
-const anthropicModel = "claude-opus-4-7"
+const defaultDeepSeekBaseURL = "https://api.deepseek.com/v1"
+const defaultDeepSeekModel = "deepseek-flash"
+
+// legacyDeepSeekModels are pre-V4.1 ids that must not keep a built-in route on
+// an outdated model. A saved legacy selection or an old DEEPSEEK_MODEL secret
+// normalizes forward to deepseek-flash.
+var legacyDeepSeekModels = map[string]bool{
+	"deepseek-chat":     true,
+	"deepseek-reasoner": true,
+	"deepseek-v4-pro":   true,
+	"deepseek-v4-flash": true,
+}
+
+// normalizeDeepSeekModel maps legacy / empty ids to the built-in default and
+// passes explicitly configured non-legacy ids through.
+func normalizeDeepSeekModel(raw string) string {
+	model := strings.TrimSpace(raw)
+	if model == "" || legacyDeepSeekModels[model] {
+		return defaultDeepSeekModel
+	}
+	return model
+}
+
+// deepSeekChatURL resolves the OpenAI-compatible /chat/completions endpoint
+// from DEEPSEEK_BASE_URL, defaulting to DeepSeek's public API.
+func deepSeekChatURL() string {
+	base := strings.TrimSpace(os.Getenv("DEEPSEEK_BASE_URL"))
+	if base == "" {
+		base = defaultDeepSeekBaseURL
+	}
+	return strings.TrimRight(base, "/") + "/chat/completions"
+}
 
 // ExtractedScores holds the structured solo-traveler metrics from one review.
 type ExtractedScores struct {
@@ -28,25 +59,34 @@ type HTTPDoer interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-// Extractor calls the Anthropic Claude API to extract solo metrics from text.
+// Extractor calls DeepSeek's OpenAI-compatible chat/completions API to extract
+// solo metrics from text. Thinking mode is explicitly disabled because the
+// response parser only reads message.content (not reasoning_content).
 type Extractor struct {
 	apiKey string
 	client HTTPDoer
 	apiURL string
+	model  string
 }
 
-// NewExtractor creates an Extractor reading ANTHROPIC_API_KEY from env.
+// NewExtractor creates an Extractor reading DEEPSEEK_API_KEY from env.
 func NewExtractor() *Extractor {
 	return &Extractor{
-		apiKey: os.Getenv("ANTHROPIC_API_KEY"),
+		apiKey: os.Getenv("DEEPSEEK_API_KEY"),
 		client: http.DefaultClient,
-		apiURL: anthropicMessagesURL,
+		apiURL: deepSeekChatURL(),
+		model:  normalizeDeepSeekModel(os.Getenv("DEEPSEEK_MODEL")),
 	}
 }
 
 // newExtractorWithClient creates an Extractor with a custom HTTP client (for tests).
 func newExtractorWithClient(apiKey string, client HTTPDoer, apiURL string) *Extractor {
-	return &Extractor{apiKey: apiKey, client: client, apiURL: apiURL}
+	return &Extractor{
+		apiKey: apiKey,
+		client: client,
+		apiURL: apiURL,
+		model:  defaultDeepSeekModel,
+	}
 }
 
 var extractionPrompt = `You are a solo-travel data extractor. Given a review text, output ONLY a JSON object with these fields (all floats 0-10, higher = better for solo travelers):
@@ -63,15 +103,21 @@ var extractionPrompt = `You are a solo-travel data extractor. Given a review tex
 
 If a dimension is not mentioned, output 5.0. Output ONLY the JSON object, no other text.`
 
-// Extract calls Claude to extract structured scores from rawText.
+// Extract calls DeepSeek to extract structured scores from rawText.
 func (e *Extractor) Extract(ctx context.Context, rawText string) (ExtractedScores, error) {
 	if e.apiKey == "" {
-		return ExtractedScores{}, fmt.Errorf("extractor: ANTHROPIC_API_KEY not set")
+		return ExtractedScores{}, fmt.Errorf("extractor: DEEPSEEK_API_KEY not set")
 	}
 
 	body := map[string]any{
-		"model":      anthropicModel,
+		"model":      e.model,
 		"max_tokens": 256,
+		// Guarantee JSON-only output for the content-only parser.
+		"response_format": map[string]string{"type": "json_object"},
+		// DeepSeek V4.1 enables "high" thinking by default; we disable it with a
+		// top-level wire field (never nested under extra_body) so latency and
+		// the content-only parser stay as before.
+		"thinking": map[string]string{"type": "disabled"},
 		"messages": []map[string]string{
 			{"role": "user", "content": extractionPrompt + "\n\nReview:\n" + rawText},
 		},
@@ -86,8 +132,7 @@ func (e *Extractor) Extract(ctx context.Context, rawText string) (ExtractedScore
 		return ExtractedScores{}, fmt.Errorf("extractor: build request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", e.apiKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
+	req.Header.Set("Authorization", "Bearer "+e.apiKey)
 
 	resp, err := e.client.Do(req)
 	if err != nil {
@@ -100,26 +145,21 @@ func (e *Extractor) Extract(ctx context.Context, rawText string) (ExtractedScore
 	}
 
 	var apiResp struct {
-		Content []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"content"`
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return ExtractedScores{}, fmt.Errorf("extractor: decode response: %w", err)
 	}
 
-	var text string
-	for _, c := range apiResp.Content {
-		if c.Type == "text" {
-			text = c.Text
-			break
-		}
-	}
-	if text == "" {
+	if len(apiResp.Choices) == 0 || apiResp.Choices[0].Message.Content == "" {
 		return ExtractedScores{}, fmt.Errorf("extractor: empty content from API")
 	}
 
+	text := apiResp.Choices[0].Message.Content
 	var scores ExtractedScores
 	if err := json.Unmarshal([]byte(text), &scores); err != nil {
 		return ExtractedScores{}, fmt.Errorf("extractor: parse scores JSON %q: %w", text, err)
