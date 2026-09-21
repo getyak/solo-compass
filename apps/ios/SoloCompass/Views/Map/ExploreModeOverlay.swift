@@ -23,6 +23,7 @@ struct ExploreModeOverlay: View {
     /// resolved geocode. Keeps the ViewModel out of the overlay.
     let cityDisplayName: String?
     let onCancel: () -> Void
+    var topInset: CGFloat = 110
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -125,7 +126,7 @@ struct ExploreModeOverlay: View {
         // baseline evidence showed 'Now/...lo' peeking through either side.
         // 110 anchors the pill below both the status bar AND the FilterBar
         // so the two surfaces read as stacked, not overlapping.
-        .padding(.top, 110)
+        .padding(.top, topInset)
         .padding(.horizontal, 20)
         .transition(.move(edge: .top).combined(with: .opacity))
         .accessibilityElement(children: .combine)

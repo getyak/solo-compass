@@ -362,6 +362,12 @@ struct CompassMapContentView: View {
     /// draft, scroll intent and the explicit-ask channel. One instance for the
     /// root's lifetime so surface switches never drop work.
     @State private var workspace = ConversationWorkspaceState()
+    @State private var mapLibraryRowHeight: CGFloat = 44
+
+    private var mapTransientTopInset: CGFloat {
+        MapOverlayMetrics.filterBarTopOffset + MapOverlayMetrics.filterBarHeight
+            + (workspace.surface == .map ? 8 + mapLibraryRowHeight : 0) + 8
+    }
     /// Height of the map's safe-area container, measured once per layout via a
     /// background GeometryReader (never per drag frame) so the panel detents
     /// are honest fractions of the real screen.
@@ -1553,6 +1559,7 @@ struct CompassMapContentView: View {
                     onOpenFavorites: { isShowingFavorites = true },
                     onOpenItineraries: { isShowingItineraries = true }
                 )
+                .onPreferenceChange(MapLibraryRowHeightKey.self) { mapLibraryRowHeight = $0 }
                 .accessibilityHidden(workspace.detent == .expanded)
                 .allowsHitTesting(workspace.detent != .expanded)
 
@@ -1821,8 +1828,7 @@ struct CompassMapContentView: View {
                             }
                         )
                         .padding(.horizontal, 16)
-                        .padding(.top, MapOverlayMetrics.filterBarTopOffset
-                            + MapOverlayMetrics.filterBarHeight + 8)
+                        .padding(.top, mapTransientTopInset)
                         Spacer()
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -1846,8 +1852,7 @@ struct CompassMapContentView: View {
                         clearStalePlaceScopeForGlobalAsk()
                     })
                     .padding(.horizontal, 16)
-                    .padding(.top, MapOverlayMetrics.filterBarTopOffset
-                        + MapOverlayMetrics.filterBarHeight + 8)
+                    .padding(.top, mapTransientTopInset)
                     Spacer()
                 }
                 .opacity(workspace.surface == .map ? 1 : 0)
@@ -1864,7 +1869,8 @@ struct CompassMapContentView: View {
                 ExploreModeOverlay(
                     session: viewModel.exploreSession,
                     cityDisplayName: viewModel.currentDisplayCityName,
-                    onCancel: { viewModel.exploreCancel() }
+                    onCancel: { viewModel.exploreCancel() },
+                    topInset: mapTransientTopInset
                 )
                 .zIndex(20)
                 .transition(.opacity)
@@ -3310,6 +3316,13 @@ extension String {
     }
 }
 
+private struct MapLibraryRowHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 44
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 /// Layout metrics shared between `MapOverlayView` and its tests.
 enum MapOverlayMetrics {
     /// Minimum hit target size per Apple HIG (44×44 pt).
@@ -3508,6 +3521,11 @@ private struct MapOverlayView: View {
             HStack(spacing: 10) {
                 libraryShortcut("ux.favorites", icon: "heart", id: "map.favorites", action: onOpenFavorites)
                 libraryShortcut("ux.itineraries", icon: "calendar", id: "map.itineraries", action: onOpenItineraries)
+            }
+            .background {
+                GeometryReader { proxy in
+                    Color.clear.preference(key: MapLibraryRowHeightKey.self, value: proxy.size.height)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.top, 8)
