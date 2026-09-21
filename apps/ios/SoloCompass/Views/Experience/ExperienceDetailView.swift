@@ -1657,6 +1657,7 @@ public struct ExperienceDetailView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(accessibilityLabel))
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     private var actionBar: some View {
@@ -1704,7 +1705,7 @@ public struct ExperienceDetailView: View {
             dockIconButton(
                 systemName: viewModel.isCompleted ? "checkmark.circle.fill" : "checkmark.circle",
                 isOn: viewModel.isCompleted,
-                accessibilityLabel: NSLocalizedString("action.markDone", comment: "Mark done"),
+                accessibilityLabel: NSLocalizedString(viewModel.isCompleted ? "action.completed" : "action.markDone", comment: "Visit status"),
                 visibleLabel: NSLocalizedString("ux.visited", comment: "Visited")
             ) {
                 let wasCompleted = viewModel.isCompleted

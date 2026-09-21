@@ -12,16 +12,22 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     // MARK: - Default entry
 
-    func testDefaultEntryIsConversationOverMapGlimpse() {
+    func testDefaultEntryLeavesMapVisibleUntilAnExplicitAsk() {
         let state = ConversationWorkspaceState()
-        XCTAssertEqual(state.surface, .ask, "Normal launch lands on the chat surface")
-        XCTAssertEqual(state.detent, .conversation, "…at the ~75% conversation height")
+        XCTAssertEqual(state.surface, .map)
+        XCTAssertEqual(state.detent, .collapsed)
+        XCTAssertFalse(state.showsConversation)
         XCTAssertEqual(
             state.targetPanelHeight(containerHeight: 800),
-            624,
-            accuracy: 0.5,
-            "Conversation covers 78% of the container, leaving a map glimpse on top"
+            ConversationWorkspaceState.Metrics.collapsedHeight,
+            accuracy: 0.5
         )
+        state.autoExpandWhileWorking()
+        XCTAssertEqual(state.surface, .map, "Background activity must not take over launch")
+        state.requestPrompt("Find a quiet cafe")
+        XCTAssertEqual(state.surface, .ask)
+        XCTAssertEqual(state.detent, .conversation)
+        XCTAssertEqual(state.consumePendingPrompt()?.text, "Find a quiet cafe")
     }
 
     // MARK: - Geometry
@@ -131,6 +137,7 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testSurfaceAndDetentStayInSync() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         XCTAssertTrue(state.selectSurface(.map))
         XCTAssertEqual(state.surface, .map)
         XCTAssertEqual(state.detent, .collapsed, "Selecting the map collapses the panel")
@@ -146,12 +153,13 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testNoOpSurfaceSelectionReportsNoChange() {
         let state = ConversationWorkspaceState()
-        XCTAssertFalse(state.selectSurface(.ask), "Selecting the active surface is a no-op")
+        XCTAssertFalse(state.selectSurface(.map), "Selecting the active surface is a no-op")
         XCTAssertEqual(state.manualDetentRevision, 0, "…and does not bump the revision")
     }
 
     func testCollapsingByDetentSelectsMapTab() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         XCTAssertTrue(state.selectDetent(.collapsed))
         XCTAssertEqual(state.surface, .map)
         XCTAssertTrue(state.selectDetent(.expanded))
@@ -163,6 +171,7 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testAutoExpandOnlyForUnpinnedChat() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         state.autoExpandWhileWorking()
         XCTAssertEqual(state.detent, .expanded, "Unpinned chat grows to room the reply")
 
@@ -191,6 +200,7 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testKeyboardExpandsAndRestoresPreviousDetent() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         let snapshot = state.expandForKeyboard()
         XCTAssertEqual(snapshot.detent, .conversation)
         XCTAssertEqual(state.detent, .expanded)
@@ -200,6 +210,7 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testManualChoiceDuringTypingWinsOverKeyboardRestore() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         let snapshot = state.expandForKeyboard()
         // The user pins a different detent while the keyboard is up.
         state.selectDetent(.conversation)
@@ -210,6 +221,7 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testKeyboardRestoreIsNotFooledByAnUnrelatedManualAction() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         let snapshot = state.expandForKeyboard()
         // A manual surface change bumps the revision even without a detent change.
         state.selectSurface(.discover)
@@ -221,6 +233,7 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testDraftAndAttachmentsSurviveSurfaceSwitches() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         state.draftText = "half-written plan"
         state.attachments = [
             LocalAttachment(
@@ -272,6 +285,7 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testHibernationRaisesTokenWithoutChangingSurface() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         state.requestHibernation()
         XCTAssertEqual(state.hibernationToken, 1)
         XCTAssertEqual(state.surface, .ask, "Hibernating a modal does not move the surface")
@@ -356,6 +370,7 @@ final class ConversationWorkspaceStateTests: XCTestCase {
 
     func testCompactConversationOnlyAtConversationDetent() {
         let state = ConversationWorkspaceState()
+        state.selectSurface(.ask)
         XCTAssertTrue(state.isCompactConversation)
         state.selectDetent(.expanded)
         XCTAssertFalse(state.isCompactConversation)
