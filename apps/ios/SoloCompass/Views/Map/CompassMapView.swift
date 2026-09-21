@@ -1549,7 +1549,9 @@ struct CompassMapContentView: View {
                     // Full map chrome (filter rail, map actions, banners) only on
                     // the map surface; the chat/discovery surfaces keep just the
                     // city pill + avatar.
-                    showsMapChrome: workspace.surface == .map
+                    showsMapChrome: workspace.surface == .map,
+                    onOpenFavorites: { isShowingFavorites = true },
+                    onOpenItineraries: { isShowingItineraries = true }
                 )
                 .accessibilityHidden(workspace.detent == .expanded)
                 .allowsHitTesting(workspace.detent != .expanded)
@@ -3393,6 +3395,8 @@ private struct MapOverlayView: View {
     /// avoids crowding the map glimpse and leaving phantom controls behind the
     /// panel.
     var showsMapChrome: Bool = true
+    var onOpenFavorites: () -> Void = {}
+    var onOpenItineraries: () -> Void = {}
 
     @State private var checkInCelebrationTrigger = 0
     @State private var noMatchPop = false
@@ -3413,6 +3417,19 @@ private struct MapOverlayView: View {
             return NSLocalizedString("filter.now", comment: "Now filter label")
         }
         return ""
+    }
+
+    private func libraryShortcut(_ key: String, icon: String, id: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(NSLocalizedString(key, comment: "Map library shortcut"), systemImage: icon)
+                .font(.subheadline.weight(.medium))
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(CT.accent)
+        .background(CT.cardAdaptive, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityIdentifier(id)
     }
 
     var body: some View {
@@ -3485,6 +3502,15 @@ private struct MapOverlayView: View {
             .onChange(of: viewModel.locationErrorBannerText) { _, newValue in
                 if newValue == nil { dismissedLocationError = false }
             }
+
+            // Fixed library entry points live in the map's top chrome, outside
+            // the horizontally scrolling filters and clear of bottom previews.
+            HStack(spacing: 10) {
+                libraryShortcut("ux.favorites", icon: "heart", id: "map.favorites", action: onOpenFavorites)
+                libraryShortcut("ux.itineraries", icon: "calendar", id: "map.itineraries", action: onOpenItineraries)
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
 
             let showEmptyFilterBanner = isFilterActive && viewModel.visibleExperiences.isEmpty
                 && !viewModel.isNowFilter
