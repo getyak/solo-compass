@@ -1,14 +1,13 @@
 import {
   pgTable,
   pgEnum,
-  uuid,
   text,
   integer,
   timestamp,
   doublePrecision,
   jsonb,
-  customType,
 } from "drizzle-orm/pg-core";
+import { geographyPoint } from "./geo.js";
 
 export const experienceStatusEnum = pgEnum("experience_status", [
   "candidate",
@@ -17,21 +16,17 @@ export const experienceStatusEnum = pgEnum("experience_status", [
   "retired",
 ]);
 
-// PostGIS geography(Point,4326) stored as WKB hex; returned as WKB text from the DB.
-const geography = customType<{ data: string }>({
-  dataType() {
-    return "geography(Point,4326)";
-  },
-});
-
 export const experiences = pgTable("experiences", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  // Stable branded domain id, e.g. exp_cmi_suan_dok_sunset. This used to be a
+  // UUID in the disconnected Drizzle schema, which made it incompatible with
+  // packages/core and the live Supabase tables.
+  id: text("id").primaryKey(),
   title: text("title").notNull(),
   oneLiner: text("one_liner").notNull(),
   whyItMatters: text("why_it_matters").notNull(),
   category: text("category").notNull(),
   // geography(Point,4326) — [longitude, latitude] per GeoJSON convention
-  location: geography("location").notNull(),
+  location: geographyPoint("location").notNull(),
   confidenceLevel: integer("confidence_level").notNull().default(0),
   status: experienceStatusEnum("status").notNull().default("candidate"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

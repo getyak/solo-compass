@@ -377,7 +377,7 @@ public final class UserPreferences {
     /// Base URL for the OpenAI-compatible completions endpoint.
     /// Empty string means "use the provider default".
     public var aiBaseURL: String { didSet { persist() } }
-    /// Model identifier (e.g. "deepseek-chat", "gpt-4o-mini").
+    /// Model identifier (e.g. "deepseek-flash", "gpt-4o-mini").
     /// Empty string means "use the provider default".
     public var aiModelName: String { didSet { persist() } }
 

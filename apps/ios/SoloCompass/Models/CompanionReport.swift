@@ -97,6 +97,7 @@ public struct CompanionReport: Identifiable, Codable, Sendable {
         self.resolvedBy = Self.firstString(c, [.resolvedBy, .resolved_by])
     }
 
+    /// Custom encoding that omits nil optional fields from the wire payload.
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)

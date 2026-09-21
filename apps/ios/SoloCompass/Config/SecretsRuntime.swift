@@ -83,14 +83,34 @@ extension Secrets {
         return deepSeekBaseURL.isEmpty ? AIProvider.deepseek.defaultBaseURL : deepSeekBaseURL
     }
 
+    /// Map legacy / empty DeepSeek model ids forward to the built-in default.
+    /// Deliberately not applied to explicit OpenAI/custom provider models —
+    /// callers gate on the selected provider before calling this.
+    static func normalizeDeepSeekModel(_ raw: String) -> String {
+        let model = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if model.isEmpty || AIProvider.legacyDeepSeekModels.contains(model) {
+            return AIProvider.deepseek.defaultModel
+        }
+        return model
+    }
+
     /// Effective model name. Prefers in-app setting, falls back to
     /// build-time `deepSeekModel`, then the DeepSeek default.
+    ///
+    /// Legacy migration: a stored `deepseek-chat` / `deepseek-reasoner` /
+    /// `deepseek-v4-pro` / `deepseek-v4-flash` selection on the built-in
+    /// DeepSeek provider resolves to `deepseek-flash`. If the user explicitly
+    /// selected OpenAI or a custom provider, their model id is preserved
+    /// verbatim.
     static var resolvedDeepSeekModel: String {
         let prefs = UserPreferences()
         if !prefs.aiModelName.isEmpty {
-            return prefs.aiModelName
+            return prefs.aiProvider == .deepseek
+                ? normalizeDeepSeekModel(prefs.aiModelName)
+                : prefs.aiModelName
         }
-        return deepSeekModel.isEmpty ? AIProvider.deepseek.defaultModel : deepSeekModel
+        let fallback = deepSeekModel.isEmpty ? AIProvider.deepseek.defaultModel : deepSeekModel
+        return normalizeDeepSeekModel(fallback)
     }
 
     /// Effective Foursquare API key: UserDefaults override → build-time baked.
@@ -181,6 +201,20 @@ extension Secrets {
             return nil
         }
         return (url, key)
+    }
+
+    /// Root URL for the authenticated Solo Compass web API (for example,
+    /// `https://solo-compass.app`). Resolution chain mirrors Supabase config:
+    /// process env → bundled Secrets.plist → build-time generated value.
+    /// There is intentionally no localhost or public-service fallback.
+    static func resolvedAPIBaseURL() -> URL? {
+        let raw = ProcessInfo.processInfo.environment["SOLO_API_BASE_URL"]
+            ?? secretsPlistString("SOLO_API_BASE_URL")
+            ?? (apiBaseURL.isEmpty ? nil : apiBaseURL)
+        guard let raw else { return nil }
+        let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return nil }
+        return URL(string: cleaned)
     }
 
     /// Single bundled-plist string reader used by `resolvedSupabaseConfig()`.

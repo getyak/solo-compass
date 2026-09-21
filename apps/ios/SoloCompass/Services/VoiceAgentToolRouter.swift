@@ -1,6 +1,351 @@
 import Foundation
 import CoreLocation
 
+// MARK: - Evidence-backed workday route compiler
+
+/// JSON values accepted by the small constraint surface exposed to the agent.
+/// Objects are intentionally excluded: workability constraints are scalar or
+/// list comparisons, which keeps model-produced arguments bounded and auditable.
+enum WorkdayConstraintValue: Codable, Hashable, Sendable {
+    case string(String)
+    case number(Double)
+    case boolean(Bool)
+    case strings([String])
+    case numbers([Double])
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() { self = .null; return }
+        if let value = try? container.decode(Bool.self) { self = .boolean(value); return }
+        if let value = try? container.decode(Double.self) { self = .number(value); return }
+        if let value = try? container.decode(String.self) { self = .string(value); return }
+        if let value = try? container.decode([String].self) { self = .strings(value); return }
+        if let value = try? container.decode([Double].self) { self = .numbers(value); return }
+        throw DecodingError.typeMismatch(
+            WorkdayConstraintValue.self,
+            .init(codingPath: decoder.codingPath, debugDescription: "expected a scalar or homogeneous array")
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let value): try container.encode(value)
+        case .number(let value): try container.encode(value)
+        case .boolean(let value): try container.encode(value)
+        case .strings(let value): try container.encode(value)
+        case .numbers(let value): try container.encode(value)
+        case .null: try container.encodeNil()
+        }
+    }
+}
+
+struct WorkdayFeatureConstraint: Codable, Hashable, Sendable {
+    let featureKey: String
+    let `operator`: String
+    let expected: WorkdayConstraintValue?
+    let hard: Bool?
+    let acceptableStatuses: [String]?
+    let minimumConfidence: Double?
+}
+
+struct WorkdayRouteTaskInput: Codable, Hashable, Sendable {
+    let id: String
+    let kind: String
+    let durationMinutes: Int
+    let earliestStartMinute: Int?
+    let latestEndMinute: Int?
+    let candidateIds: [String]
+    let constraints: [WorkdayFeatureConstraint]?
+    let openingRequirement: String?
+}
+
+struct WorkdayBudgetInput: Codable, Hashable, Sendable {
+    let maxAmount: Double
+    let currency: String
+}
+
+struct WorkdayPlanIntentInput: Codable, Hashable, Sendable {
+    let startMinute: Int
+    let endMinute: Int
+    let tasks: [WorkdayRouteTaskInput]
+    let maxTravelMinutes: Int?
+    let maxWaitMinutes: Int?
+    let budget: WorkdayBudgetInput?
+    let allowUnknownSpend: Bool?
+    let allowUnknownOpeningHours: Bool?
+    let fallbackMaxExtraTravelMinutes: Int?
+}
+
+struct WorkdayRouteCompileInput: Codable, Hashable, Sendable {
+    let origin: [Double]
+    let radiusMeters: Int
+    let localDate: String
+    let mode: String
+    let intent: WorkdayPlanIntentInput
+}
+
+struct WorkdayRouteRejection: Codable, Hashable, Sendable {
+    let code: String
+    let count: Int
+}
+
+enum WorkdayRouteCompilation {
+    case solved(Route)
+    case unsatisfiable(failedTaskId: String, rejections: [WorkdayRouteRejection])
+}
+
+@MainActor
+protocol WorkdayRouteCompiling: AnyObject {
+    func compile(
+        input: WorkdayRouteCompileInput,
+        candidates: [Experience],
+        cityCode: String
+    ) async throws -> WorkdayRouteCompilation
+}
+
+/// Authenticated client for `/api/routes/compile`. The endpoint is the only
+/// authority for stop order, travel time, time windows, and fallbacks; the LLM
+/// is deliberately kept out of those decisions.
+@MainActor
+final class WorkdayRouteCompilerService: WorkdayRouteCompiling {
+    enum CompilerError: Error, LocalizedError {
+        case unconfigured
+        case authentication(String)
+        case rejected(status: Int, message: String)
+        case invalidResponse(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .unconfigured:
+                return "SOLO_API_BASE_URL is not configured"
+            case .authentication(let message):
+                return "route compiler authentication failed: \(message)"
+            case .rejected(let status, let message):
+                return "route compiler HTTP \(status): \(message)"
+            case .invalidResponse(let message):
+                return "route compiler response is invalid: \(message)"
+            }
+        }
+    }
+
+    private struct APIError: Decodable { let error: String }
+
+    private struct APIWarning: Decodable {
+        let code: String
+        let featureKey: String?
+        let message: String
+    }
+
+    private struct APIStop: Decodable {
+        let taskId: String
+        let taskKind: String
+        let candidateId: String
+        let experienceId: String
+        let title: String
+        let arrivalMinute: Int
+        let startMinute: Int
+        let endMinute: Int
+        let travelFromPreviousMinutes: Int
+        let distanceFromPreviousMeters: Int?
+        let waitMinutes: Int
+        let warnings: [APIWarning]
+    }
+
+    private struct APIFallback: Decodable {
+        let taskId: String
+        let primaryCandidateId: String
+        let candidateId: String
+        let experienceId: String
+        let title: String
+        let startMinute: Int
+        let endMinute: Int
+        let extraTravelMinutes: Int
+        let warnings: [APIWarning]
+    }
+
+    private struct APISolution: Decodable {
+        let stops: [APIStop]
+        let fallbacks: [APIFallback]
+        let totalTravelMinutes: Int
+        let totalDistanceMeters: Int?
+        let totalWaitMinutes: Int
+        let startsAtMinute: Int
+        let endsAtMinute: Int
+        let warnings: [APIWarning]
+    }
+
+    private struct APIResult: Decodable {
+        let status: String
+        let solution: APISolution?
+        let failedTaskId: String?
+        let rejections: [WorkdayRouteRejection]?
+    }
+
+    private struct APIResponse: Decodable {
+        let result: APIResult
+        let evidenceCoverage: String
+        let refreshScheduled: Bool
+        let cache: String
+    }
+
+    private let session: URLSession
+    private let baseURL: URL?
+    private let authClient: any SupabaseClientProtocol
+
+    init(
+        session: URLSession = .shared,
+        baseURL: URL? = nil,
+        authClient: (any SupabaseClientProtocol)? = nil
+    ) {
+        self.session = session
+        self.baseURL = baseURL ?? Secrets.resolvedAPIBaseURL()
+        self.authClient = authClient ?? SupabaseClient.shared
+    }
+
+    func compile(
+        input: WorkdayRouteCompileInput,
+        candidates: [Experience],
+        cityCode: String
+    ) async throws -> WorkdayRouteCompilation {
+        guard let baseURL else { throw CompilerError.unconfigured }
+
+        let auth = await authClient.signInAnonymously()
+        let accessToken: String
+        switch auth {
+        case .success(let session):
+            accessToken = session.accessToken
+        case .failure(let error):
+            throw CompilerError.authentication(error.localizedDescription)
+        }
+
+        let endpoint = baseURL
+            .appendingPathComponent("api")
+            .appendingPathComponent("routes")
+            .appendingPathComponent("compile")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 45
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONEncoder().encode(input)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw CompilerError.invalidResponse("missing HTTP response")
+        }
+        guard http.statusCode == 200 || http.statusCode == 422 else {
+            let message = (try? JSONDecoder().decode(APIError.self, from: data).error)
+                ?? HTTPURLResponse.localizedString(forStatusCode: http.statusCode)
+            throw CompilerError.rejected(status: http.statusCode, message: message)
+        }
+
+        let decoded: APIResponse
+        do {
+            decoded = try JSONDecoder().decode(APIResponse.self, from: data)
+        } catch {
+            throw CompilerError.invalidResponse(error.localizedDescription)
+        }
+
+        if decoded.result.status == "unsatisfiable" {
+            guard let failedTaskId = decoded.result.failedTaskId else {
+                throw CompilerError.invalidResponse("unsatisfiable result omitted failedTaskId")
+            }
+            return .unsatisfiable(
+                failedTaskId: failedTaskId,
+                rejections: decoded.result.rejections ?? []
+            )
+        }
+        guard decoded.result.status == "solved", let solution = decoded.result.solution else {
+            throw CompilerError.invalidResponse("unknown result status \(decoded.result.status)")
+        }
+
+        let candidateById = Dictionary(uniqueKeysWithValues: candidates.map { ($0.id, $0) })
+        let orderedExperiences = try solution.stops.map { stop -> Experience in
+            guard let candidate = candidateById[stop.experienceId] else {
+                throw CompilerError.invalidResponse(
+                    "compiled stop \(stop.experienceId) is outside the visible candidate set"
+                )
+            }
+            return candidate
+        }
+        let experienceIdByCandidateId = Dictionary(
+            uniqueKeysWithValues: solution.stops.map { ($0.candidateId, $0.experienceId) }
+        )
+        let warnings: (APIWarning) -> CompiledRouteWarning = {
+            CompiledRouteWarning(code: $0.code, featureKey: $0.featureKey, message: $0.message)
+        }
+        let compiledPlan = CompiledWorkdayPlan(
+            localDate: input.localDate,
+            startsAtMinute: solution.startsAtMinute,
+            endsAtMinute: solution.endsAtMinute,
+            totalTravelMinutes: solution.totalTravelMinutes,
+            totalWaitMinutes: solution.totalWaitMinutes,
+            evidenceCoverage: decoded.evidenceCoverage,
+            refreshScheduled: decoded.refreshScheduled,
+            cacheStatus: decoded.cache,
+            stops: solution.stops.map {
+                CompiledRouteStop(
+                    taskId: $0.taskId,
+                    taskKind: $0.taskKind,
+                    experienceId: $0.experienceId,
+                    title: $0.title,
+                    arrivalMinute: $0.arrivalMinute,
+                    startMinute: $0.startMinute,
+                    endMinute: $0.endMinute,
+                    travelFromPreviousMinutes: $0.travelFromPreviousMinutes,
+                    distanceFromPreviousMeters: $0.distanceFromPreviousMeters,
+                    waitMinutes: $0.waitMinutes,
+                    warnings: $0.warnings.map(warnings)
+                )
+            },
+            fallbacks: solution.fallbacks.map {
+                CompiledRouteFallback(
+                    taskId: $0.taskId,
+                    primaryExperienceId: experienceIdByCandidateId[$0.primaryCandidateId]
+                        ?? $0.primaryCandidateId,
+                    experienceId: $0.experienceId,
+                    title: $0.title,
+                    startMinute: $0.startMinute,
+                    endMinute: $0.endMinute,
+                    extraTravelMinutes: $0.extraTravelMinutes,
+                    warnings: $0.warnings.map(warnings)
+                )
+            },
+            warnings: solution.warnings.map(warnings)
+        )
+
+        let title = NSLocalizedString("route.workday.title", comment: "Compiled workday route title")
+        let summary = String(
+            format: NSLocalizedString("route.workday.summary", comment: "Compiled workday route summary"),
+            orderedExperiences.count,
+            solution.totalTravelMinutes
+        )
+        let reasonNow = decoded.evidenceCoverage == "fresh"
+            ? NSLocalizedString("route.workday.evidence.fresh", comment: "Fresh route evidence")
+            : NSLocalizedString("route.workday.evidence.partial", comment: "Partial route evidence")
+        let route = Route(
+            id: RouteId(rawValue: "compiled-\(UUID().uuidString.prefix(8))"),
+            title: title,
+            summary: summary,
+            experienceIds: orderedExperiences.map(\.id),
+            cityCode: cityCode,
+            region: orderedExperiences.first?.location.addressHint ?? "",
+            estimatedDuration: max(0, solution.endsAtMinute - solution.startsAtMinute),
+            distanceMeters: solution.totalDistanceMeters ?? 0,
+            pace: .standard,
+            tags: ["workday", "evidence-backed"],
+            source: .aiGenerated,
+            bestStartHour: Double(solution.startsAtMinute) / 60,
+            reasonNow: reasonNow,
+            verification: RouteVerification(),
+            compiledPlan: compiledPlan
+        )
+        return .solved(route)
+    }
+}
+
 /// Shared protocol so ExploreNearbyArgs / SearchPlacesArgs can reuse the same
 /// filter-building helper without duplicating field access. (US-019)
 private protocol QualityArgsProvider {
@@ -63,6 +408,9 @@ public final class VoiceAgentToolRouter {
     /// so legacy callers (and tests) that don't build routes compile unchanged;
     /// when absent, `build_route` returns a graceful error instead of crashing.
     private let aiService: AIService?
+    /// Deterministic, authenticated compiler for task/time-window routes.
+    /// Unlike `build_route`, this service never delegates stop order to an LLM.
+    private let workdayCompiler: any WorkdayRouteCompiling
 
     /// Per-turn retry counter — see `ToolRetryLedger`. The orchestrator resets
     /// it at each new user turn. `internal` so tests can assert
@@ -105,7 +453,7 @@ public final class VoiceAgentToolRouter {
     /// instance; injectable so tests can stub the network.
     private let webSearchService: WebSearchService
 
-    public init(
+    public convenience init(
         mapViewModel: MapViewModel,
         preferences: UserPreferences,
         aiService: AIService? = nil,
@@ -113,9 +461,31 @@ public final class VoiceAgentToolRouter {
         complianceService: ComplianceService? = nil,
         webSearchService: WebSearchService? = nil
     ) {
+        self.init(
+            mapViewModel: mapViewModel,
+            preferences: preferences,
+            aiService: aiService,
+            cityBriefService: cityBriefService,
+            complianceService: complianceService,
+            webSearchService: webSearchService,
+            workdayCompiler: WorkdayRouteCompilerService()
+        )
+    }
+
+    /// Internal injection seam for deterministic compiler tests.
+    init(
+        mapViewModel: MapViewModel,
+        preferences: UserPreferences,
+        aiService: AIService? = nil,
+        cityBriefService: CityBriefService? = nil,
+        complianceService: ComplianceService? = nil,
+        webSearchService: WebSearchService? = nil,
+        workdayCompiler: any WorkdayRouteCompiling
+    ) {
         self.mapViewModel = mapViewModel
         self.preferences = preferences
         self.aiService = aiService
+        self.workdayCompiler = workdayCompiler
         self.cityBriefService = cityBriefService
         self.complianceService = complianceService
         self.webSearchService = webSearchService ?? WebSearchService.shared
@@ -290,6 +660,69 @@ public final class VoiceAgentToolRouter {
             }
             """#
         ),
+        .init(
+            name: "compile_workday_route",
+            description: "Compile an evidence-backed work block or workday with exact local time windows, deterministic walking/cycling/driving time, hard workability constraints, and a per-task fallback. Use for requests such as deep work → lunch → video call, or whenever opening hours / Wi-Fi / quietness / outlets must be treated as constraints. The compiler only uses CURRENT VISIBLE EXPERIENCES; call explore_nearby or search_places first when coverage is thin. Never silently relax a hard constraint. Returns an adoptable route card and does not save until the user taps Open.",
+            parametersJSON: #"""
+            {
+              "type": "object",
+              "required": ["start_minute", "end_minute", "tasks"],
+              "properties": {
+                "local_date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "Local calendar date. Omit for today."},
+                "start_minute": {"type": "integer", "minimum": 0, "maximum": 1439, "description": "Minutes after local midnight."},
+                "end_minute": {"type": "integer", "minimum": 1, "maximum": 1440},
+                "radius_meters": {"type": "integer", "minimum": 100, "maximum": 10000, "default": 3000},
+                "mode": {"type": "string", "enum": ["pedestrian", "bicycle", "auto"], "default": "pedestrian"},
+                "max_travel_minutes": {"type": "integer", "minimum": 1, "maximum": 600},
+                "max_wait_minutes": {"type": "integer", "minimum": 0, "maximum": 600},
+                "fallback_max_extra_travel_minutes": {"type": "integer", "minimum": 0, "maximum": 60, "default": 10},
+                "allow_unknown_spend": {"type": "boolean", "default": false},
+                "allow_unknown_opening_hours": {"type": "boolean", "default": false},
+                "budget": {
+                  "type": "object",
+                  "required": ["max_amount", "currency"],
+                  "properties": {
+                    "max_amount": {"type": "number", "minimum": 0},
+                    "currency": {"type": "string", "pattern": "^[A-Za-z]{3}$"}
+                  }
+                },
+                "tasks": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 6,
+                  "items": {
+                    "type": "object",
+                    "required": ["id", "kind", "duration_minutes"],
+                    "properties": {
+                      "id": {"type": "string", "maxLength": 60},
+                      "kind": {"type": "string", "enum": ["deep_work", "video_call", "meal", "explore", "break", "custom"]},
+                      "duration_minutes": {"type": "integer", "minimum": 10, "maximum": 480},
+                      "earliest_start_minute": {"type": "integer", "minimum": 0, "maximum": 1439},
+                      "latest_end_minute": {"type": "integer", "minimum": 1, "maximum": 1440},
+                      "opening_requirement": {"type": "string", "enum": ["known_open", "allow_unknown", "ignore"], "default": "known_open"},
+                      "constraints": {
+                        "type": "array",
+                        "maxItems": 12,
+                        "items": {
+                          "type": "object",
+                          "required": ["feature_key", "operator"],
+                          "properties": {
+                            "feature_key": {"type": "string", "enum": ["work.wifi_reliability", "work.wifi_speed_mbps", "work.noise_level", "work.power_outlets", "work.seat_availability", "work.video_call_fit", "work.long_stay_policy", "work.minimum_spend"]},
+                            "operator": {"type": "string", "enum": ["eq", "gte", "lte", "in", "contains", "truthy"]},
+                            "expected": {"description": "Scalar or homogeneous string/number array used by the operator."},
+                            "hard": {"type": "boolean", "default": true},
+                            "acceptable_statuses": {"type": "array", "items": {"type": "string", "enum": ["resolved", "stale", "conflicted", "unknown"]}},
+                            "minimum_confidence": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.6}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """#
+        ),
 
         // MARK: - P2.1 additions (#210 – #216) + P3.5 (#352)
         // Seven new tools introduced in Phase 2/3. Each is RAG-anchored:
@@ -459,6 +892,8 @@ public final class VoiceAgentToolRouter {
                 return try await executeExploreNearby(args: call.argumentsJSON)
             case "build_route":
                 return try await executeBuildRoute(args: call.argumentsJSON)
+            case "compile_workday_route":
+                return try await executeCompileWorkdayRoute(args: call.argumentsJSON)
             case "filter_by_category":
                 return try executeFilterByCategory(args: call.argumentsJSON)
             case "show_details":
@@ -777,12 +1212,65 @@ public final class VoiceAgentToolRouter {
         let experience_ids: [String]?
     }
 
+    private struct CompileWorkdayConstraintArgs: Decodable {
+        let feature_key: String
+        let `operator`: String
+        let expected: WorkdayConstraintValue?
+        let hard: Bool?
+        let acceptable_statuses: [String]?
+        let minimum_confidence: Double?
+    }
+
+    private struct CompileWorkdayTaskArgs: Decodable {
+        let id: String
+        let kind: String
+        let duration_minutes: Int
+        let earliest_start_minute: Int?
+        let latest_end_minute: Int?
+        let opening_requirement: String?
+        let constraints: [CompileWorkdayConstraintArgs]?
+    }
+
+    private struct CompileWorkdayBudgetArgs: Decodable {
+        let max_amount: Double
+        let currency: String
+    }
+
+    private struct CompileWorkdayArgs: Decodable {
+        let local_date: String?
+        let start_minute: Int
+        let end_minute: Int
+        let radius_meters: Int?
+        let mode: String?
+        let max_travel_minutes: Int?
+        let max_wait_minutes: Int?
+        let fallback_max_extra_travel_minutes: Int?
+        let allow_unknown_spend: Bool?
+        let allow_unknown_opening_hours: Bool?
+        let budget: CompileWorkdayBudgetArgs?
+        let tasks: [CompileWorkdayTaskArgs]
+    }
+
+    private struct CompiledRouteToolPayload: Encodable {
+        let route_title: String
+        let stop_count: Int
+        let estimated_minutes: Int
+        let fallback_count: Int
+        let evidence_coverage: String
+        let cache: String
+        let refresh_scheduled: Bool
+    }
+
+    private struct UnsatisfiableRouteToolPayload: Encodable {
+        let failed_task_id: String
+        let rejections: [WorkdayRouteRejection]
+    }
+
     /// String nearby experiences into one walkable route and surface it as an
-    /// adoptable chat card (NOT saved). The LLM inside `generateRoute` already
-    /// factors current time / best-now windows / solo score; the system prompt
-    /// (orchestrator) injects weather + visited context. When `experience_ids`
-    /// are given, they're prioritised as the candidate pool; otherwise the whole
-    /// visible set is the pool.
+    /// adoptable chat card (NOT saved). `generateRoute` deterministically picks
+    /// and orders grounded candidates; the LLM can only edit route copy. When
+    /// `experience_ids` are given, they're prioritised as the candidate pool;
+    /// otherwise the whole visible set is the pool.
     private func executeBuildRoute(args: String) async throws -> String {
         let parsed: BuildRouteArgs = try Self.decode(args, tool: "build_route")
         let vm = try requireMapVM(tool: "build_route")
@@ -826,6 +1314,216 @@ public final class VoiceAgentToolRouter {
             "stop_count": stops.count,
             "estimated_minutes": route.estimatedDuration,
         ])
+    }
+
+    /// Compile a task-shaped work block against server-side evidence and a real
+    /// travel matrix. All current visible ids are passed as explicit candidate
+    /// pools so the returned route stays RAG-grounded and fully renderable.
+    private func executeCompileWorkdayRoute(args: String) async throws -> String {
+        let parsed: CompileWorkdayArgs = try Self.decode(args, tool: "compile_workday_route")
+        let vm = try requireMapVM(tool: "compile_workday_route")
+
+        guard parsed.start_minute >= 0,
+              parsed.start_minute < parsed.end_minute,
+              parsed.end_minute <= 1440 else {
+            throw RouterError.invalidArguments(
+                tool: "compile_workday_route",
+                reason: "start_minute must be before end_minute within one local day"
+            )
+        }
+        guard (1...6).contains(parsed.tasks.count) else {
+            throw RouterError.invalidArguments(
+                tool: "compile_workday_route",
+                reason: "tasks must contain 1 through 6 items"
+            )
+        }
+        let taskIds = parsed.tasks.map(\.id)
+        guard Set(taskIds).count == taskIds.count, taskIds.allSatisfy({ !$0.isEmpty }) else {
+            throw RouterError.invalidArguments(
+                tool: "compile_workday_route",
+                reason: "task ids must be non-empty and unique"
+            )
+        }
+        let validTaskKinds: Set<String> = [
+            "deep_work", "video_call", "meal", "explore", "break", "custom",
+        ]
+        let validModes: Set<String> = ["pedestrian", "bicycle", "auto"]
+        let selectedMode = parsed.mode ?? "pedestrian"
+        guard validModes.contains(selectedMode) else {
+            throw RouterError.invalidArguments(
+                tool: "compile_workday_route",
+                reason: "mode must be pedestrian, bicycle, or auto"
+            )
+        }
+        guard parsed.tasks.allSatisfy({
+            validTaskKinds.contains($0.kind)
+                && (10...480).contains($0.duration_minutes)
+                && ($0.earliest_start_minute.map { (0...1439).contains($0) } ?? true)
+                && ($0.latest_end_minute.map { (1...1440).contains($0) } ?? true)
+        }) else {
+            throw RouterError.invalidArguments(
+                tool: "compile_workday_route",
+                reason: "each task needs a supported kind, 10–480 minute duration, and valid local-day windows"
+            )
+        }
+        if let budget = parsed.budget {
+            guard budget.max_amount >= 0,
+                  budget.currency.range(of: #"^[A-Za-z]{3}$"#, options: .regularExpression) != nil else {
+                throw RouterError.invalidArguments(
+                    tool: "compile_workday_route",
+                    reason: "budget needs a non-negative max_amount and a three-letter currency"
+                )
+            }
+        }
+
+        let visible = vm.visibleExperiences.filter { $0.coordinate != nil }
+        guard !visible.isEmpty else {
+            throw RouterError.invalidArguments(
+                tool: "compile_workday_route",
+                reason: "no visible places with coordinates; call explore_nearby first"
+            )
+        }
+        let visibleIds = visible.map(\.id)
+        let date = parsed.local_date ?? Self.localDateString(Date())
+        guard Self.isValidLocalDateString(date) else {
+            throw RouterError.invalidArguments(
+                tool: "compile_workday_route",
+                reason: "local_date must be a real YYYY-MM-DD calendar date"
+            )
+        }
+        let anchor = vm.exploreAnchorCoordinate
+        let cityCode = vm.selectedCity ?? visible.first?.location.cityCode ?? "osm"
+        let taskInputs = parsed.tasks.map { task in
+            WorkdayRouteTaskInput(
+                id: task.id,
+                kind: task.kind,
+                durationMinutes: task.duration_minutes,
+                earliestStartMinute: task.earliest_start_minute,
+                latestEndMinute: task.latest_end_minute,
+                candidateIds: visibleIds,
+                constraints: task.constraints?.map {
+                    WorkdayFeatureConstraint(
+                        featureKey: $0.feature_key,
+                        operator: $0.operator,
+                        expected: $0.expected,
+                        hard: $0.hard,
+                        acceptableStatuses: $0.acceptable_statuses,
+                        minimumConfidence: $0.minimum_confidence
+                    )
+                },
+                openingRequirement: task.opening_requirement
+            )
+        }
+        let input = WorkdayRouteCompileInput(
+            origin: [anchor.longitude, anchor.latitude],
+            radiusMeters: max(100, min(10_000, parsed.radius_meters ?? 3_000)),
+            localDate: date,
+            mode: selectedMode,
+            intent: WorkdayPlanIntentInput(
+                startMinute: parsed.start_minute,
+                endMinute: parsed.end_minute,
+                tasks: taskInputs,
+                maxTravelMinutes: parsed.max_travel_minutes,
+                maxWaitMinutes: parsed.max_wait_minutes,
+                budget: parsed.budget.map {
+                    WorkdayBudgetInput(
+                        maxAmount: $0.max_amount,
+                        currency: $0.currency.uppercased()
+                    )
+                },
+                allowUnknownSpend: parsed.allow_unknown_spend,
+                allowUnknownOpeningHours: parsed.allow_unknown_opening_hours,
+                fallbackMaxExtraTravelMinutes: parsed.fallback_max_extra_travel_minutes ?? 10
+            )
+        )
+
+        let result: WorkdayRouteCompilation
+        do {
+            result = try await workdayCompiler.compile(
+                input: input,
+                candidates: visible,
+                cityCode: cityCode
+            )
+        } catch let error as WorkdayRouteCompilerService.CompilerError {
+            switch error {
+            case .unconfigured:
+                throw RouterError.dependencyUnavailable(
+                    tool: "compile_workday_route",
+                    dependency: "route compiler",
+                    hint: "The authenticated route compiler is not configured on this build. Do not invent a timed plan; offer build_route for an unconstrained walk instead."
+                )
+            case .rejected(let status, let message) where status == 400 || status == 202:
+                throw RouterError.invalidArguments(
+                    tool: "compile_workday_route",
+                    reason: message
+                )
+            default:
+                throw RouterError.underlying(
+                    tool: "compile_workday_route",
+                    message: error.localizedDescription
+                )
+            }
+        }
+
+        switch result {
+        case .solved(let route):
+            let byId = Dictionary(uniqueKeysWithValues: visible.map { ($0.id, $0) })
+            let stops = route.experienceIds.compactMap { byId[$0] }
+            guard stops.count == route.experienceIds.count, let plan = route.compiledPlan else {
+                throw RouterError.underlying(
+                    tool: "compile_workday_route",
+                    message: "compiler returned a route that cannot be rendered from visible evidence"
+                )
+            }
+            lastEffect = .route(RouteProposal(route: route, stops: stops))
+            let payload = CompiledRouteToolPayload(
+                route_title: route.title,
+                stop_count: stops.count,
+                estimated_minutes: route.estimatedDuration,
+                fallback_count: plan.fallbacks.count,
+                evidence_coverage: plan.evidenceCoverage,
+                cache: plan.cacheStatus,
+                refresh_scheduled: plan.refreshScheduled
+            )
+            let outcome: ToolOutcome<CompiledRouteToolPayload> = .ok(
+                payload: payload,
+                hint: "The card contains the authoritative schedule and fallbacks. Explain it briefly; do not rewrite its times or claim partial evidence is fresh."
+            )
+            return outcome.encodeForModel()
+
+        case .unsatisfiable(let failedTaskId, let rejections):
+            let payload = UnsatisfiableRouteToolPayload(
+                failed_task_id: failedTaskId,
+                rejections: rejections
+            )
+            let codes = rejections.map(\.code).joined(separator: ", ")
+            let outcome: ToolOutcome<UnsatisfiableRouteToolPayload> = .retryable(
+                reason: .notEnoughContext,
+                hint: "No route satisfies task '\(failedTaskId)' (\(codes)). Keep hard constraints intact. Explore for more candidates once, or ask the user which time window / constraint they want to relax; never relax it silently.",
+                partial: payload
+            )
+            return outcome.encodeForModel()
+        }
+    }
+
+    private static func localDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private static func isValidLocalDateString(_ value: String) -> Bool {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        guard let date = formatter.date(from: value) else { return false }
+        return formatter.string(from: date) == value
     }
 
     private func executeNavigateTo(args: String) throws -> String {

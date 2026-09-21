@@ -27,6 +27,197 @@ final class AgentStubProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
+final class WorkdayCompilerStubProtocol: URLProtocol {
+    nonisolated(unsafe) static var statusCode = 200
+    nonisolated(unsafe) static var responseBody = "{}"
+    nonisolated(unsafe) static var capturedRequest: URLRequest?
+    nonisolated(unsafe) static var capturedBody: Data?
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        capturedRequest = request
+        if let body = request.httpBody { capturedBody = body }
+        return true
+    }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        capturedRequest = request
+        if let body = request.httpBody { capturedBody = body }
+        return request
+    }
+
+    override func startLoading() {
+        Self.capturedRequest = request
+        Self.capturedBody = request.httpBody ?? StubURLProtocol.readBody(from: request.httpBodyStream)
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: Self.statusCode,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(Self.responseBody.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@MainActor
+final class WorkdayRouteCompilerServiceTests: XCTestCase {
+    private func makeInput(candidateIds: [String]) -> WorkdayRouteCompileInput {
+        WorkdayRouteCompileInput(
+            origin: [98.99, 18.79],
+            radiusMeters: 3_000,
+            localDate: "2026-09-01",
+            mode: "pedestrian",
+            intent: WorkdayPlanIntentInput(
+                startMinute: 540,
+                endMinute: 900,
+                tasks: [
+                    WorkdayRouteTaskInput(
+                        id: "focus",
+                        kind: "deep_work",
+                        durationMinutes: 120,
+                        earliestStartMinute: 540,
+                        latestEndMinute: 720,
+                        candidateIds: candidateIds,
+                        constraints: [
+                            WorkdayFeatureConstraint(
+                                featureKey: "work.power_outlets",
+                                operator: "truthy",
+                                expected: nil,
+                                hard: true,
+                                acceptableStatuses: ["resolved"],
+                                minimumConfidence: 0.7
+                            )
+                        ],
+                        openingRequirement: "known_open"
+                    )
+                ],
+                maxTravelMinutes: 60,
+                maxWaitMinutes: 20,
+                budget: nil,
+                allowUnknownSpend: false,
+                allowUnknownOpeningHours: false,
+                fallbackMaxExtraTravelMinutes: 10
+            )
+        )
+    }
+
+    private func makeService() -> WorkdayRouteCompilerService {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [WorkdayCompilerStubProtocol.self]
+        let auth = MockSupabaseClient(sessionToReturn: SupabaseClient.Session(
+            userId: "traveler-1",
+            accessToken: "signed-token",
+            refreshToken: "refresh-token",
+            expiresAt: Date().addingTimeInterval(3600)
+        ))
+        return WorkdayRouteCompilerService(
+            session: URLSession(configuration: config),
+            baseURL: URL(string: "https://solo.example")!,
+            authClient: auth
+        )
+    }
+
+    override func setUp() {
+        super.setUp()
+        WorkdayCompilerStubProtocol.statusCode = 200
+        WorkdayCompilerStubProtocol.responseBody = "{}"
+        WorkdayCompilerStubProtocol.capturedRequest = nil
+        WorkdayCompilerStubProtocol.capturedBody = nil
+    }
+
+    func testSolvedResponseBuildsPersistableScheduleAndSignedRequest() async throws {
+        let candidates = Array(ExperienceService.hardcodedSeed.prefix(2))
+        let primary = try XCTUnwrap(candidates.first)
+        let fallback = try XCTUnwrap(candidates.dropFirst().first)
+        WorkdayCompilerStubProtocol.responseBody = """
+        {
+          "result": {
+            "status": "solved",
+            "solution": {
+              "stops": [{
+                "taskId": "focus", "taskKind": "deep_work",
+                "candidateId": "\(primary.id)", "experienceId": "\(primary.id)",
+                "title": "\(primary.title)", "arrivalMinute": 535,
+                "startMinute": 540, "endMinute": 660,
+                "travelFromPreviousMinutes": 8,
+                "distanceFromPreviousMeters": 620,
+                "waitMinutes": 5, "warnings": []
+              }],
+              "fallbacks": [{
+                "taskId": "focus", "primaryCandidateId": "\(primary.id)",
+                "candidateId": "\(fallback.id)", "experienceId": "\(fallback.id)",
+                "title": "\(fallback.title)", "arrivalMinute": 540,
+                "startMinute": 545, "endMinute": 665,
+                "incomingTravelMinutes": 13, "outgoingTravelMinutes": 0,
+                "extraTravelMinutes": 5, "warnings": []
+              }],
+              "score": 8.7, "totalTravelMinutes": 8,
+              "totalDistanceMeters": 620, "totalWaitMinutes": 5,
+              "budgetEstimateIncomplete": false,
+              "startsAtMinute": 540, "endsAtMinute": 660,
+              "warnings": [],
+              "solver": {"version": "1", "exploredStates": 4, "beamWidth": 20, "matrixMode": "pedestrian"}
+            }
+          },
+          "evidenceCoverage": "partial",
+          "refreshScheduled": true,
+          "cache": "miss"
+        }
+        """
+
+        let result = try await makeService().compile(
+            input: makeInput(candidateIds: candidates.map(\.id)),
+            candidates: candidates,
+            cityCode: primary.location.cityCode
+        )
+        guard case .solved(let route) = result else {
+            return XCTFail("expected solved route")
+        }
+        XCTAssertEqual(route.experienceIds, [primary.id])
+        XCTAssertEqual(route.distanceMeters, 620)
+        XCTAssertEqual(route.compiledPlan?.fallbacks.first?.experienceId, fallback.id)
+        XCTAssertEqual(route.compiledPlan?.evidenceCoverage, "partial")
+        XCTAssertTrue(route.compiledPlan?.refreshScheduled == true)
+
+        let request = try XCTUnwrap(WorkdayCompilerStubProtocol.capturedRequest)
+        XCTAssertEqual(request.url?.path, "/api/routes/compile")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer signed-token")
+        let body = try XCTUnwrap(WorkdayCompilerStubProtocol.capturedBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["origin"] as? [Double], [98.99, 18.79])
+    }
+
+    func testUnsatisfiableResponsePreservesRejectionReason() async throws {
+        let candidates = Array(ExperienceService.hardcodedSeed.prefix(1))
+        WorkdayCompilerStubProtocol.statusCode = 422
+        WorkdayCompilerStubProtocol.responseBody = """
+        {
+          "result": {
+            "status": "unsatisfiable",
+            "failedTaskId": "focus",
+            "rejections": [{"code": "hard_constraint_unmet", "count": 3}],
+            "exploredStates": 7
+          },
+          "evidenceCoverage": "partial",
+          "refreshScheduled": true,
+          "cache": "hit"
+        }
+        """
+        let result = try await makeService().compile(
+            input: makeInput(candidateIds: candidates.map(\.id)),
+            candidates: candidates,
+            cityCode: "cmi"
+        )
+        guard case let .unsatisfiable(taskId, rejections) = result else {
+            return XCTFail("expected unsatisfiable result")
+        }
+        XCTAssertEqual(taskId, "focus")
+        XCTAssertEqual(rejections, [WorkdayRouteRejection(code: "hard_constraint_unmet", count: 3)])
+    }
+}
+
 // MARK: - US-017: ExperienceFilter quality dimension predicate tests
 
 final class ExperienceFilterPredicateTests: XCTestCase {

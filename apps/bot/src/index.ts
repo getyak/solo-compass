@@ -36,8 +36,8 @@ if (!OPENAI_API_KEY) {
   console.error("Missing OPENAI_API_KEY");
   process.exit(1);
 }
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error("Missing ANTHROPIC_API_KEY");
+if (!process.env.DEEPSEEK_API_KEY) {
+  console.error("Missing DEEPSEEK_API_KEY");
   process.exit(1);
 }
 

@@ -151,9 +151,9 @@ public final class AIService {
         "When asked for JSON, return only a single valid JSON value with no markdown fences and no commentary."
 
     /// Model routing. DeepSeek currently exposes one general chat model
-    /// (`deepseek-chat` / `deepseek-v4-pro`) via the OpenAI-compatible
-    /// endpoint, so all three call kinds share the same model name resolved
-    /// from `Secrets.resolvedDeepSeekModel`. The kind is still passed
+    /// (`deepseek-flash`, V4.1) via the OpenAI-compatible endpoint, so all
+    /// three call kinds share the same model name resolved from
+    /// `Secrets.resolvedDeepSeekModel`. The kind is still passed
     /// through so future per-kind tuning (max_tokens, temperature, model
     /// override env var) can land without changing call sites.
     public enum ModelKind: String, Sendable {
@@ -202,7 +202,9 @@ public final class AIService {
     /// Resolve which model to use for a given call kind. All kinds share the
     /// DeepSeek model from `Secrets.resolvedDeepSeekModel`. Per-kind env var
     /// overrides (`DEEPSEEK_MODEL_SYNTHESIS` etc.) take precedence so QA can
-    /// pin a model per call kind without rebuilding.
+    /// pin a model per call kind without rebuilding. Legacy ids in those env
+    /// vars are normalized forward so an old pin cannot silently keep a
+    /// built-in route on an outdated model.
     static func modelName(for kind: ModelKind) -> String {
         let envKey: String
         switch kind {
@@ -211,7 +213,7 @@ public final class AIService {
         case .voice:       envKey = "DEEPSEEK_MODEL_VOICE"
         }
         if let override = ProcessInfo.processInfo.environment[envKey], !override.isEmpty {
-            return override
+            return Secrets.normalizeDeepSeekModel(override)
         }
         return Secrets.resolvedDeepSeekModel
     }
@@ -243,22 +245,22 @@ public final class AIService {
 
     // MARK: - Generate a route (AI "discover / build a walk")
 
-    /// The model's route plan: an ordered subset of the candidate ids plus the
-    /// editorial copy. Decoded from a single JSON object the model returns.
+    /// Editorial copy for a route whose stops have already been chosen by the
+    /// deterministic planner. `orderedIds` remains optional for backwards
+    /// compatibility with cached/older model responses, but is never trusted.
     private struct GeneratedRoutePlan: Codable {
-        let orderedIds: [String]
+        let orderedIds: [String]?
         let title: String
         let summary: String
         let reasonNow: String?
         let tags: [String]?
     }
 
-    /// Generate a single walkable route from nearby experiences. The model
-    /// picks 3–5 stops, orders them into a sensible walk, and writes a title,
-    /// summary, and an optional "why now" line. Falls back — when no key is
-    /// configured or the response can't be parsed — to a local greedy
-    /// nearest-neighbour walk over the top Solo-scored candidates, so the
-    /// feature always produces a route.
+    /// Generate a single walkable route from nearby experiences. Stop choice
+    /// and order are deterministic; the model only writes title/summary copy.
+    /// This prevents a fluent model response from overriding actual candidate
+    /// identity or walking order. When the model is unavailable, the exact same
+    /// planned stops are returned with local copy.
     ///
     /// - Parameters:
     ///   - candidates: nearby experiences to choose stops from.
@@ -273,7 +275,8 @@ public final class AIService {
         now: Date = Date()
     ) async throws -> Route {
         let routeId = RouteId(rawValue: "ai-\(UUID().uuidString.prefix(8))")
-        let validIds = Set(candidates.map(\.id))
+        let ordered = RouteBuilder.rankedWalk(candidates, from: userCoordinate, now: now)
+        guard !ordered.isEmpty else { throw AIError.decodingFailed("no candidates to build a route") }
 
         // An AI-built route is composed for the CURRENT moment (the user asked
         // to "plan tonight" / "string these together now", and reasonNow speaks
@@ -285,17 +288,9 @@ public final class AIService {
         let nowHour = Double(Calendar.current.component(.hour, from: now))
 
         do {
-            let prompt = Self.routeGenerationPrompt(candidates: candidates, cityCode: cityCode)
+            let prompt = Self.routeGenerationPrompt(candidates: ordered, cityCode: cityCode)
             let raw = try await sendMessage(prompt: prompt, kind: .synthesis)
             let plan = try Self.parseRoutePlan(raw)
-            // Keep only ids the model was actually given, in the order it chose,
-            // capped to a walkable 3–6 stops; drop dupes.
-            var seen = Set<String>()
-            let chosen = plan.orderedIds
-                .filter { validIds.contains($0) && seen.insert($0).inserted }
-                .prefix(6)
-            let ordered = chosen.compactMap { id in candidates.first { $0.id == id } }
-            guard ordered.count >= 2 else { throw AIError.decodingFailed("route plan too short") }
             return RouteBuilder.makeRoute(
                 id: routeId,
                 title: plan.title.isEmpty ? Self.fallbackRouteTitle(ordered) : plan.title,
@@ -330,16 +325,8 @@ public final class AIService {
                     ]
                 )
             }
-            // Local fallback: top Solo-scored candidates, walked nearest-first.
-            let top = candidates
-                .sorted { lhs, rhs in
-                    let l = lhs.soloScore.overall + (lhs.isBestNow(at: now) ? 2 : 0)
-                    let r = rhs.soloScore.overall + (rhs.isBestNow(at: now) ? 2 : 0)
-                    return l > r
-                }
-                .prefix(5)
-            let ordered = RouteBuilder.nearestNeighbourOrder(Array(top), from: userCoordinate)
-            guard !ordered.isEmpty else { throw AIError.decodingFailed("no candidates to build a route") }
+            // Local fallback uses the same deterministic plan, only without
+            // model-authored copy.
             return RouteBuilder.makeRoute(
                 id: routeId,
                 title: Self.fallbackRouteTitle(ordered),
@@ -777,6 +764,35 @@ public final class AIService {
 
     // MARK: - Request routing (Pro → Edge / direct DeepSeek)
 
+    /// True when the resolved endpoint is DeepSeek's own API. Gates
+    /// DeepSeek-only wire fields so an explicitly configured OpenAI/custom
+    /// provider never receives them.
+    static func isDeepSeekEndpoint(_ rawBaseURL: String) -> Bool {
+        guard let host = URL(string: rawBaseURL)?.host?.lowercased() else { return false }
+        return host == "deepseek.com" || host.hasSuffix(".deepseek.com")
+    }
+
+    /// DeepSeek V4.1 enables "high" thinking by default. The app's tool loops
+    /// do not retain `reasoning_content` and max_tokens is capped at 256–4096,
+    /// so built-in DeepSeek routes explicitly disable thinking to preserve the
+    /// prior non-thinking latency and tool-call behavior. This must be a
+    /// top-level wire field — DeepSeek ignores an `extra_body` nesting.
+    static let deepSeekThinkingDisabled: [String: String] = ["type": "disabled"]
+
+    /// Inject DeepSeek-only wire options when (and only when) the resolved
+    /// endpoint is DeepSeek. Explicit OpenAI/custom providers are untouched.
+    /// `baseURL` is injectable so tests do not depend on global Secrets state.
+    static func applyingDeepSeekOptions(
+        to body: [String: Any],
+        baseURL: String = Secrets.resolvedDeepSeekBaseURL
+    ) -> [String: Any] {
+        var out = body
+        if isDeepSeekEndpoint(baseURL), out["thinking"] == nil {
+            out["thinking"] = deepSeekThinkingDisabled
+        }
+        return out
+    }
+
     /// Pick between Supabase Edge proxy (Pro tier + flags) and direct
     /// DeepSeek. Returns a fully-built `URLRequest`. The `kind` parameter
     /// is stamped into the body when going via Edge so chat-proxy can
@@ -791,12 +807,14 @@ public final class AIService {
         bodyDict: [String: Any],
         timeout: TimeInterval
     ) async throws -> URLRequest {
+        let wireBody = Self.applyingDeepSeekOptions(to: bodyDict)
+
         // Edge path: Pro user + flags on + Supabase session available.
         if FeatureFlags.routeAIThroughEdge
             && FeatureFlags.backendSync
             && isProTier
         {
-            var edgeBody = bodyDict
+            var edgeBody = wireBody
             edgeBody["kind"] = Self.edgeKindString(for: kind)
             let bodyData = try JSONSerialization.data(withJSONObject: edgeBody)
             let accept = stream ? "text/event-stream" : "application/json"
@@ -822,7 +840,7 @@ public final class AIService {
         // Direct DeepSeek path (legacy).
         guard let key = Self.resolveAPIKey() else { throw AIError.missingAPIKey }
         guard let apiURL else { throw AIError.requestFailed(status: 0, body: "bad URL") }
-        let bodyData = try JSONSerialization.data(withJSONObject: bodyDict)
+        let bodyData = try JSONSerialization.data(withJSONObject: wireBody)
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -894,28 +912,26 @@ public final class AIService {
         """
     }
 
-    /// Prompt for `generateRoute` — asks the model to choose and order 3–5
-    /// stops into a walkable loop and return a single JSON object.
+    /// Prompt for `generateRoute`. The ordered stop list is already fixed; the
+    /// model is an editor here, not a constraint solver.
     private static func routeGenerationPrompt(candidates: [Experience], cityCode: String) -> String {
         let candidateLines = candidates.prefix(40).map { exp in
             let coord = exp.coordinate.map { String(format: "%.4f,%.4f", $0.latitude, $0.longitude) } ?? "?"
             return "- \(exp.id): \(exp.title) [\(exp.category.rawValue), solo=\(String(format: "%.1f", exp.soloScore.overall)), @\(coord)]"
         }.joined(separator: "\n")
         return """
-        You are planning ONE walkable route for a solo traveler in city \(cityCode).
-        Choose 3 to 5 of the candidates below and order them into a sensible walk \
-        (short hops, varied categories, a satisfying arc — e.g. coffee → culture → sunset viewpoint).
+        You are naming and explaining ONE already-planned walkable route for a solo traveler in city \(cityCode).
+        The stop order below is fixed by a deterministic route planner. Do not add, remove, reorder, or invent places.
 
         Return ONLY a JSON object, no prose, with exactly these keys:
         {
-          "orderedIds": ["id1","id2","id3"],   // 3–5 ids FROM the candidates, in walking order
           "title": "短而具体的路线名",            // concise, evocative; the traveler's language is fine
           "summary": "one sentence on the vibe of this walk",
           "reasonNow": "optional: why it's good right now, or empty string",
           "tags": ["culture","coffee"]          // 1–3 category tags
         }
 
-        Candidates:
+        Fixed ordered stops:
         \(candidateLines)
         """
     }
@@ -1042,7 +1058,7 @@ public final class AIService {
         }
 
         // Epic E US-031: route through Supabase Edge Function instead
-        // of direct Anthropic when the flag is on. This is the path
+        // of a direct DeepSeek call when the flag is on. This is the path
         // that lets us avoid bundling DEEPSEEK_API_KEY in the iOS app.
         if FeatureFlags.routeAIThroughEdge && FeatureFlags.backendSync {
             do {
@@ -1944,7 +1960,7 @@ public final class AIService {
                 soloScore: SoloScore(overall: overall, breakdown: breakdown, hint: item.soloHint, basedOnCount: basedOnCount),
                 sources: [
                     // Slice A / rubric fix: honor `poi.tags["source"]=="amap"` on
-                    // the direct-Anthropic path the same way the Edge Function
+                    // the direct-DeepSeek path the same way the Edge Function
                     // path does (see line 1201). Without this, mainland-CN Amap
                     // POIs were mislabeled as `.user` + OSM attribution — the
                     // TrustBadge would draw the AutoNavi chip only when hand-

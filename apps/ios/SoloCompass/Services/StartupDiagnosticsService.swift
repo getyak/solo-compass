@@ -23,6 +23,7 @@ public final class StartupDiagnosticsService {
 
     // MARK: - Types
 
+    /// The startup checks the diagnostics sheet reports on.
     public enum Check: String, Sendable, Codable {
         case anthropicKey
         case amapKey
@@ -33,12 +34,14 @@ public final class StartupDiagnosticsService {
         case seedData
     }
 
+    /// How loudly a diagnostics finding should be surfaced.
     public enum Severity: String, Sendable, Codable {
         case info
         case warn
         case error
     }
 
+    /// One diagnostics result with its severity, localized copy, and resolution hint.
     public struct Finding: Identifiable, Sendable, Codable, Equatable {
         public let id: UUID
         public let check: Check

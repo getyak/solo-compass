@@ -64,6 +64,7 @@ public struct URLSessionWeatherFetcher: WeatherDataFetching {
     public init(session: URLSession = .shared) {
         self.session = session
     }
+    /// Fetches data for `url` through the injected session.
     public func data(from url: URL) async throws -> (Data, URLResponse) {
         try await session.data(from: url)
     }

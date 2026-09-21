@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 /// Versioned SwiftData schema for Solo Compass.
 ///
@@ -7,6 +8,9 @@ import SwiftData
 /// breaking change can be migrated rather than crashing at boot. v1.0 was the
 /// schema we shipped with originally; v1.1 (US-005) adds the optional
 /// `ExperienceRecord.userTagsBlob` column.
+/// File-scoped logger for container setup failures (see `applyFileProtection`).
+private let containerLogger = Logger(subsystem: "com.solocompass", category: "Persistence")
+
 public enum SoloCompassSchemaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { .init(1, 0, 0) }
 
@@ -248,7 +252,19 @@ public enum SoloCompassSchemaV1_10: VersionedSchema {
     }
 }
 
-/// Migration plan stitching v1.0 → v1.1 → … → v1.10. Each change is additive (an
+/// v1.11 — adds the optional `RouteRecord.compiledPlanBlob` column used to
+/// retain deterministic workday schedules and their fallbacks after adoption.
+/// Existing routes migrate with NULL; ordinary routes remain unchanged.
+// swiftlint:disable:next type_name
+public enum SoloCompassSchemaV1_11: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { .init(1, 11, 0) }
+
+    public static var models: [any PersistentModel.Type] {
+        SoloCompassSchemaV1_10.models
+    }
+}
+
+/// Migration plan stitching v1.0 → v1.1 → … → v1.11. Each change is additive (an
 /// optional `Data?` column, new @Model tables) or a NOT NULL relaxation, so every
 /// hop is a lightweight migration.
 public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
@@ -265,6 +281,7 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             SoloCompassSchemaV1_8.self,
             SoloCompassSchemaV1_9.self,
             SoloCompassSchemaV1_10.self,
+            SoloCompassSchemaV1_11.self,
         ]
     }
 
@@ -309,6 +326,10 @@ public enum SoloCompassMigrationPlan: SchemaMigrationPlan {
             .lightweight(
                 fromVersion: SoloCompassSchemaV1_9.self,
                 toVersion: SoloCompassSchemaV1_10.self
+            ),
+            .lightweight(
+                fromVersion: SoloCompassSchemaV1_10.self,
+                toVersion: SoloCompassSchemaV1_11.self
             ),
         ]
     }
@@ -487,7 +508,9 @@ public enum SoloCompassModelContainer {
             } catch {
                 // Logged to Sentry on first miss; subsequent files silently
                 // ignored to avoid spamming. Non-fatal: store is still usable.
-                print("⚠️ FileProtection set failed for \(url.lastPathComponent): \(error)")
+                containerLogger.error(
+                    "FileProtection set failed for \(url.lastPathComponent, privacy: .public): \(String(describing: error), privacy: .private)"
+                )
             }
         }
     }

@@ -10,7 +10,9 @@ Drizzle ORM schema and migrations for the Solo Compass Postgres database.
 pnpm db:up
 ```
 
-This starts `postgres:16` with PostGIS 3.4 via Docker Compose (defined at the repo root). Default connection: `postgres://solo:solo@localhost:5432/solocompass`.
+This builds a PostgreSQL 16 development image with both PostGIS and pgvector,
+then starts it through Docker Compose (defined at the repo root). Default
+connection: `postgres://solo:solo@localhost:5432/solocompass`.
 
 ### Run migrations
 
@@ -19,6 +21,7 @@ pnpm db:migrate
 ```
 
 Applies all pending SQL migrations from `./migrations/` to the database.
+Run this from the repository root; the root script delegates to this package.
 
 ### Generate migrations after schema changes
 

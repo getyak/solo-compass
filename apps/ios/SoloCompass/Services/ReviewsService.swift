@@ -41,13 +41,12 @@ public final class ReviewsService {
             self.baseURL = url
             self.isUnconfigured = false
         } else {
-            let envURL = ProcessInfo.processInfo.environment["SOLO_API_BASE_URL"]
-                .flatMap { URL(string: $0) }
+            let configuredURL = Secrets.resolvedAPIBaseURL()
 #if DEBUG
-            self.baseURL = envURL ?? URL(string: "http://localhost:8080") ?? URL(fileURLWithPath: "/dev/null")
+            self.baseURL = configuredURL ?? URL(string: "http://localhost:8080") ?? URL(fileURLWithPath: "/dev/null")
             self.isUnconfigured = false
 #else
-            if let url = envURL {
+            if let url = configuredURL {
                 self.baseURL = url
                 self.isUnconfigured = false
             } else {

@@ -1,6 +1,6 @@
 # apps/bot · Telegram bot
 
-> Telegraf + Claude. The lowest-cost validation lane.
+> Telegraf + DeepSeek Flash. The lowest-cost validation lane.
 
 ## Why a Telegram bot
 
@@ -47,4 +47,4 @@ Bot:  Three options near you, ranked by fit:
 - `@solo-compass/ai` for recommendations
 - `@solo-compass/data` for experience lookup
 - Whisper API for voice-to-text
-- Claude for intent parsing + ranking + explanation
+- DeepSeek Flash (`deepseek-flash`, `DEEPSEEK_API_KEY`) for intent parsing, ranking, and explanation

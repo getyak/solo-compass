@@ -101,6 +101,7 @@ public final class SupabaseAttachmentService: AttachmentUploading {
 
     // MARK: - Upload
 
+    /// Uploads a local attachment and returns its persisted chat-attachment record.
     public func upload(
         _ local: LocalAttachment,
         conversationId: String,
@@ -147,6 +148,7 @@ public final class SupabaseAttachmentService: AttachmentUploading {
 
     // MARK: - Signed URL
 
+    /// Returns a time-limited URL for downloading an attachment's bytes.
     public func signedURL(for attachment: ChatAttachment) async throws -> URL {
         guard let cfg = loadConfig() else { throw AttachmentError.backendNotReady }
         guard let token = client.currentSession?.accessToken else { throw AttachmentError.notSignedIn }

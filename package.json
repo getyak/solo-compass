@@ -22,8 +22,12 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @solo-compass/db db:migrate",
     "seed:chiang-mai": "tsx scripts/seed-load.ts",
     "seed:city-brief": "tsx scripts/seed-city-brief.ts",
+    "data:worker": "pnpm --filter @solo-compass/worker start -- --once",
     "parity:check": "tsx scripts/check-swift-parity.ts",
     "localization:check": "tsx scripts/check-localization.ts"
   },

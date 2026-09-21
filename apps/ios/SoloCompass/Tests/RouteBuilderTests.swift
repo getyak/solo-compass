@@ -79,6 +79,21 @@ final class RouteBuilderTests: XCTestCase {
         XCTAssertTrue(RouteBuilder.nearestNeighbourOrder([], from: nil).isEmpty)
     }
 
+    func testRankedWalkSelectsDeterministicallyBeforeOrdering() {
+        let lowNearby = exp("low", lon: 102.6000, lat: 17.9600, solo: 2)
+        let highFar = exp("high", lon: 102.6090, lat: 17.9600, solo: 9)
+        let medium = exp("medium", lon: 102.6040, lat: 17.9600, solo: 7)
+        let origin = CLLocationCoordinate2D(latitude: 17.9600, longitude: 102.5990)
+        let ordered = RouteBuilder.rankedWalk(
+            [lowNearby, highFar, medium],
+            from: origin,
+            now: Date(timeIntervalSince1970: 0),
+            limit: 2
+        )
+        XCTAssertEqual(Set(ordered.map(\.id)), Set(["high", "medium"]))
+        XCTAssertEqual(ordered.map(\.id), ["medium", "high"])
+    }
+
     // MARK: - makeRoute
 
     func testMakeRouteDerivesDistanceDurationAndIds() {

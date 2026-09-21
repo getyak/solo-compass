@@ -1,5 +1,9 @@
 import Foundation
 import TipKit
+import os
+
+/// File-scoped logger for non-fatal TipKit bootstrap failures.
+private let tipsLogger = Logger(subsystem: "com.solocompass", category: "Tips")
 
 /// Solo Compass tip definitions, surfaced via SwiftUI's `.popoverTip(_:)`.
 /// TipKit handles the "show once / wait for invalidation" lifecycle in the
@@ -59,7 +63,7 @@ public enum SoloCompassTips {
             TipParameters.coldLaunchCount += 1
         } catch {
             // Logged but non-fatal — TipKit gracefully no-ops if init failed.
-            print("⚠️ TipKit configure failed: \(error)")
+            tipsLogger.error("TipKit configure failed: \(String(describing: error), privacy: .private)")
         }
     }
 }

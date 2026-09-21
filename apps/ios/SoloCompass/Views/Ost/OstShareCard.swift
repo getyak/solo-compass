@@ -20,7 +20,7 @@ public struct OstShareCard: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Today's OST")
+                Text(NSLocalizedString("ost.today.title", comment: "Today's soundtrack title"))
                     .font(.system(size: 22, weight: .bold, design: .serif))
                     .foregroundColor(CT.fgPrimary)
                 Spacer()

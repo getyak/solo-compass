@@ -30,10 +30,12 @@ public struct Conversation: Identifiable, Codable, Sendable, Hashable {
     // Identity-based equality/hashing so `Conversation` can drive a SwiftUI
     // `navigationDestination(item:)` (US-012). Two values for the same thread id
     // are the same destination regardless of mutable fields like `updatedAt`.
+    /// Identity-based equality: two conversations match when their ids match.
     public static func == (lhs: Conversation, rhs: Conversation) -> Bool {
         lhs.id == rhs.id
     }
 
+    /// Hashes only the stable conversation id so it can key navigation destinations.
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }

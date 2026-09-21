@@ -74,6 +74,27 @@ public enum RouteBuilder {
         return ordered
     }
 
+    /// Deterministic candidate selection for generated walks. The model never
+    /// participates in this decision: score, best-now relevance, stable id
+    /// tie-breaking, and then geographic ordering fully determine the result.
+    public static func rankedWalk(
+        _ experiences: [Experience],
+        from origin: CLLocationCoordinate2D? = nil,
+        now: Date = Date(),
+        limit: Int = 5
+    ) -> [Experience] {
+        guard limit > 0 else { return [] }
+        let selected = experiences
+            .sorted { lhs, rhs in
+                let left = lhs.soloScore.overall + (lhs.isBestNow(at: now) ? 2 : 0)
+                let right = rhs.soloScore.overall + (rhs.isBestNow(at: now) ? 2 : 0)
+                if left != right { return left > right }
+                return lhs.id < rhs.id
+            }
+            .prefix(limit)
+        return nearestNeighbourOrder(Array(selected), from: origin)
+    }
+
     /// Build a `Route` from an ordered list of experiences. Distance and
     /// duration are derived; the caller supplies the editorial metadata
     /// (title, summary, pace, source, tags, reasonNow).

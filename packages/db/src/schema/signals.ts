@@ -7,7 +7,7 @@ export const userSignals = pgTable(
   "user_signals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    experienceId: uuid("experience_id")
+    experienceId: text("experience_id")
       .notNull()
       .references(() => experiences.id, { onDelete: "cascade" }),
     anonymousDeviceId: text("anonymous_device_id").notNull(),

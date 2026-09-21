@@ -4,6 +4,38 @@ import AVFoundation
 import Observation
 import os
 
+/// Testable seam over the two system permission prompts `VoiceService` needs.
+///
+/// Production (``live``) asks Speech-framework authorization first and only
+/// then the microphone, returning `false` as soon as either prompt is denied —
+/// the exact shipping order and denial semantics. Unit tests inject
+/// deterministic answers so the real `VoiceService.requestPermission()` flow
+/// runs without the OS permission UI on a clean simulator.
+struct PermissionRequester: Sendable {
+    /// Speech-framework authorization; `true` only for `.authorized`.
+    let requestSpeechAuthorization: @MainActor @Sendable () async -> Bool
+    /// Microphone record permission; mirrors `granted`.
+    let requestMicrophonePermission: @MainActor @Sendable () async -> Bool
+
+    /// Real system prompts, speech-first.
+    static let live = PermissionRequester(
+        requestSpeechAuthorization: {
+            await withCheckedContinuation { continuation in
+                SFSpeechRecognizer.requestAuthorization { status in
+                    continuation.resume(returning: status == .authorized)
+                }
+            }
+        },
+        requestMicrophonePermission: {
+            await withCheckedContinuation { continuation in
+                AVAudioApplication.requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
+        }
+    )
+}
+
 /// Native speech recognition. No third-party deps — uses SFSpeechRecognizer +
 /// AVAudioEngine. Streams partial transcripts via AsyncThrowingStream so the
 /// UI can show live waveform/text as the user speaks.
@@ -48,26 +80,28 @@ public final class VoiceService {
     private let recognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
+    private let permissions: PermissionRequester
 
     public init(locale: Locale = .current) {
         self.recognizer = SFSpeechRecognizer(locale: locale)
+        self.permissions = .live
     }
 
-    /// Asks for both speech and microphone permission. Returns `true` only when
-    /// both are granted.
-    public func requestPermission() async -> Bool {
-        let speechAuthorized: Bool = await withCheckedContinuation { cont in
-            SFSpeechRecognizer.requestAuthorization { status in
-                cont.resume(returning: status == .authorized)
-            }
-        }
-        guard speechAuthorized else { return false }
+    /// Internal/testable injection initializer. Unit tests supply deterministic
+    /// permission answers while still running the real `requestPermission()`
+    /// sequencing; production keeps using `public init(locale:)` (``.live``).
+    init(locale: Locale = .current, permissions: PermissionRequester) {
+        self.recognizer = SFSpeechRecognizer(locale: locale)
+        self.permissions = permissions
+    }
 
-        return await withCheckedContinuation { cont in
-            AVAudioApplication.requestRecordPermission { granted in
-                cont.resume(returning: granted)
-            }
-        }
+    /// Asks for both speech and microphone permission, speech first. Returns
+    /// `true` only when both are granted; a speech denial short-circuits before
+    /// the microphone is ever requested.
+    public func requestPermission() async -> Bool {
+        let speechAuthorized = await permissions.requestSpeechAuthorization()
+        guard speechAuthorized else { return false }
+        return await permissions.requestMicrophonePermission()
     }
 
     /// Returns a stream of transcripts. Each yielded value is the *current*

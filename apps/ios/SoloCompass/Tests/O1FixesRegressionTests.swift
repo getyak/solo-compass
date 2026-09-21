@@ -108,8 +108,8 @@ final class O1FixesRegressionTests: XCTestCase {
         let fallback = CLLocationCoordinate2D(latitude: 22.5411, longitude: 114.0567)
         vm.zoomToFit([], fallback: fallback)
         let region = try XCTUnwrap(vm.cameraPosition.region)
-        // recenter(on:) uses the 0.04 span.
-        XCTAssertEqual(region.span.latitudeDelta, 0.04, accuracy: 0.0001)
+        // Empty cluster falls back to recenter(on:), which pins street-level zoom.
+        XCTAssertEqual(region.span.latitudeDelta, MapViewModel.MapZoom.streetLevel, accuracy: 0.0001)
     }
 
     // MARK: - Fixtures

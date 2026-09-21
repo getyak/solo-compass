@@ -36,6 +36,7 @@ import os
 @MainActor
 @Observable
 public final class AmapPOIService {
+    /// Failures surfaced by Amap (AutoNavi) POI requests.
     public enum AmapError: Error, LocalizedError {
         case missingKey
         case requestFailed(status: Int)

@@ -29,15 +29,35 @@ public struct ChatSheet: View {
     /// recenter the map on the event, and highlight its marker.
     public let onShowEventOnMap: (CityEvent) -> Void
 
-    /// Optional binding to the host sheet's selected detent. When provided, the
-    /// sheet auto-expands to `.large` as soon as the agent starts working so the
-    /// reply has room to render, instead of being squeezed into a half-sheet.
-    /// Defaults to a throwaway constant so previews/tests need not supply one.
-    @Binding private var detent: PresentationDetent
+    /// The shared workspace state. Owns the panel detent, the draft, staged
+    /// attachments and scroll intent, so collapsing to the map or opening
+    /// discovery never drops the user's in-progress work. Injected — never
+    /// defaulted — so the chat keeps one stable identity for the root's
+    /// lifetime instead of being recreated per presentation.
+    @Bindable public var workspace: ConversationWorkspaceState
+
+    /// True when the chat lives inside the root conversation panel rather than
+    /// its own modal sheet. Embedded chats swap the close glyph for a collapse
+    /// chevron and are never asked to tear the orchestrator down.
+    private let embedded: Bool
+
+    /// Embedded mode: tapping the collapse chevron hands control back to the
+    /// root, which drops the panel back onto the map.
+    private let onCollapse: (() -> Void)?
 
     /// Optional history store. When wired, the header shows a clock button that
     /// opens saved conversations the user can reopen.
     private let historyStore: ChatHistoryStore?
+
+    /// Resolves a persisted `scopedExperienceId` back to an `Experience` so a
+    /// restored conversation reopens under the exact scope it was saved with.
+    private let resolveExperience: ((String) -> Experience?)?
+
+    /// True when the traveler has neither a city nor a GPS fix. Renders a modest
+    /// "choose a city" chip in the empty conversation so location-dependent
+    /// asks guide them to pick a city instead of guessing one.
+    private let needsCitySelection: Bool
+    private let onChooseCity: (() -> Void)?
 
     /// Optional first-turn seed. When non-nil, the sheet submits this string as
     /// the user's first message once the orchestrator finishes seeding. Used
@@ -49,10 +69,28 @@ public struct ChatSheet: View {
     /// than once in a session's lifetime.
     @State private var didSeedInitialPrompt: Bool = false
 
-    @State private var draftText: String = ""
     @State private var showHistory: Bool = false
     @State private var liveTranscript: String = ""
     @State private var voiceStreamTask: Task<Void, Never>? = nil
+    /// The in-flight microphone permission request. Cancelled (and its result
+    /// ignored via `voiceGeneration`) if the panel hides, the app backgrounds,
+    /// or the user releases before it resolves — so a late grant can never
+    /// start a hidden recording.
+    @State private var permissionTask: Task<Void, Never>? = nil
+    /// Monotonic token guarding every async voice start against a teardown.
+    @State private var voiceGeneration: Int = 0
+    /// Bounded throttle for streaming scroll-follow. One scheduled trailing
+    /// action per window — never a per-token debounce.
+    @State private var followThrottle = ScrollFollowThrottle()
+    /// Height of the message viewport, used to turn the bottom marker's content
+    /// offset into a real "distance from the bottom".
+    @State private var scrollViewportHeight: CGFloat = 0
+    @State private var scrollAnchor: UUID?
+    /// Latest bottom-marker offset, re-evaluated when the viewport height changes.
+    @State private var lastBottomMaxY: CGFloat = 0
+    /// The keyboard's restore point: which detent to return to and the manual
+    /// revision at the moment focus arrived. Captured once per focus session.
+    @State private var keyboardRestore: ConversationWorkspaceState.KeyboardSnapshot?
     @State private var permissionDenied: Bool = false
     @State private var lastUserTranscript: String = ""
     @State private var didApplyStartMode: Bool = false
@@ -80,6 +118,9 @@ public struct ChatSheet: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Backgrounding the app must stop the mic + speech without discarding the
+    /// conversation; this observes the transition.
+    @Environment(\.scenePhase) private var scenePhase
 
     private static let starterPrompts: [String] = [
         NSLocalizedString("chat.empty.prompt.nearby",  comment: "Starter chip — what's good around me"),
@@ -96,8 +137,13 @@ public struct ChatSheet: View {
         onSelectExperience: @escaping (Experience) -> Void = { _ in },
         onAdoptRoute: @escaping (RouteProposal) -> Void = { _ in },
         onShowEventOnMap: @escaping (CityEvent) -> Void = { _ in },
-        detent: Binding<PresentationDetent> = .constant(.large),
+        workspace: ConversationWorkspaceState,
+        embedded: Bool = false,
+        onCollapse: (() -> Void)? = nil,
         historyStore: ChatHistoryStore? = nil,
+        resolveExperience: ((String) -> Experience?)? = nil,
+        needsCitySelection: Bool = false,
+        onChooseCity: (() -> Void)? = nil,
         initialUserPrompt: String? = nil
     ) {
         self.orchestrator = orchestrator
@@ -107,8 +153,13 @@ public struct ChatSheet: View {
         self.onSelectExperience = onSelectExperience
         self.onAdoptRoute = onAdoptRoute
         self.onShowEventOnMap = onShowEventOnMap
-        self._detent = detent
+        self.workspace = workspace
+        self.embedded = embedded
+        self.onCollapse = onCollapse
         self.historyStore = historyStore
+        self.resolveExperience = resolveExperience
+        self.needsCitySelection = needsCitySelection
+        self.onChooseCity = onChooseCity
         self.initialUserPrompt = initialUserPrompt
     }
 
@@ -117,10 +168,11 @@ public struct ChatSheet: View {
             // The chat is the whole surface — no titled header bar, no divider.
             // The old "Solo Compass" title + hairline read as a settings panel
             // grafted onto a conversation; the user asked for "全部都是聊天主体".
-            // What remains is a chromeless control row: just the history + close
-            // glyphs floating in the top corners over the message stream. On the
-            // half-detent even that is suppressed (the mic is the sole input).
-            if detent != .medium {
+            // What remains is a chromeless control row: just the history +
+            // collapse glyphs floating in the top corners over the message
+            // stream. At the compact doorway height the controls ride anyway —
+            // the composer below provides the sole input.
+            if embedded || !workspace.isCompactConversation {
                 minimalControls
             }
 
@@ -135,20 +187,83 @@ public struct ChatSheet: View {
             mainContent
         }
         .background(Color(.systemBackground))
-        .onAppear { applyStartModeIfNeeded() }
-        .onDisappear { teardownVoiceStream() }
-        .onChange(of: orchestrator.session.messages.count) { _, _ in
+        .accessibilityIdentifier(WorkspaceAccessibility.chat)
+        .onAppear {
+            applyStartModeIfNeeded()
+            deliverPendingPromptIfNeeded()
+            // A voice request raised before this chat mounted must still arm the
+            // mic (the token change happened while the view was absent).
+            if workspace.consumeVoiceStart() {
+                showVoiceSurface = true
+                beginPushToTalk()
+            }
+        }
+        // Disappearing is the authoritative teardown: the surface-change
+        // onChange may not fire before the subtree is removed, so this stops the
+        // mic, the pending permission request, speech and the scroll jobs.
+        .onDisappear { hibernateVoiceAndSpeech() }
+        .onChange(of: orchestrator.session.transcript.count) { _, _ in
             handleMessageCountChange()
         }
         .onChange(of: orchestrator.uiState) { _, newState in
-            expandSheetWhileWorking(newState)
+            handleUIStateChange(newState)
+        }
+        // Explicit asks (diagnostics seed, FilterBar "Ask Solo", place ask)
+        // raised via the workspace token are delivered even when this chat was
+        // already mounted — no duplicate submission, no missed event.
+        .onChange(of: workspace.promptToken) { _, _ in
+            deliverPendingPromptIfNeeded()
+        }
+        // Dock long-press: open the voice surface even though this chat may be
+        // already mounted (startInVoiceMode is only read on first appear).
+        .onChange(of: workspace.voiceStartToken) { _, _ in
+            if workspace.consumeVoiceStart() {
+                showVoiceSurface = true
+                beginPushToTalk()
+            }
+        }
+        // Collapsing onto the map, a real background transition, or a modal
+        // covering the chat must stop the microphone and any speech output
+        // immediately — never keep collecting audio behind a hidden panel. The
+        // conversation and draft stay on the orchestrator/workspace.
+        .onChange(of: workspace.showsConversation) { _, visible in
+            if visible { resumeVoiceIfVisible() } else { hibernateVoiceAndSpeech() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { resumeVoiceIfVisible() } else { hibernateVoiceAndSpeech() }
+        }
+        // Modals (history, settings, detail, routes, profile) raised by the root
+        // ask the chat to hibernate without ending it.
+        .onChange(of: workspace.hibernationToken) { _, _ in
+            hibernateVoiceAndSpeech()
+        }
+        .onChange(of: showHistory) { _, shown in
+            if shown {
+                hibernateVoiceAndSpeech()
+            } else {
+                // Closing history restores eligibility to speak but must not
+                // start any audio on its own.
+                resumeVoiceIfVisible()
+            }
+        }
+        // A truthful keyboard signal: while the software keyboard is on screen
+        // the panel drops the dock so the composer sits just above the keyboard.
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            workspace.setSoftwareKeyboardVisible(true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            workspace.setSoftwareKeyboardVisible(false)
         }
         .sheet(isPresented: $showHistory) {
             if let historyStore {
                 ChatHistoryListView(
                     store: historyStore,
-                    onSelect: { sessionId, messages in
-                        restoreConversation(id: sessionId, messages: messages)
+                    onSelect: { sessionId, messages, scopedExperienceId in
+                        restoreConversation(
+                            id: sessionId,
+                            messages: messages,
+                            scopedExperienceId: scopedExperienceId
+                        )
                     },
                     onDismiss: { showHistory = false }
                 )
@@ -159,24 +274,35 @@ public struct ChatSheet: View {
     /// Reopen a saved conversation in the live orchestrator, then close the
     /// history sheet. Persist the current (possibly in-progress) conversation
     /// first so switching away doesn't lose it. The orchestrator owns the
-    /// re-seed + replay so ordering stays [system, ...restored].
-    private func restoreConversation(id: String, messages: [VoiceAgentSession.Message]) {
+    /// re-seed + replay so ordering stays [system, ...restored], and receives
+    /// the record's own scope so a place chat reopens as a place chat.
+    private func restoreConversation(
+        id: String,
+        messages: [VoiceAgentSession.Message],
+        scopedExperienceId: String?
+    ) {
         orchestrator.persistConversation()
-        orchestrator.restoreConversation(id: id, messages: messages)
+        let scoped = scopedExperienceId.flatMap { resolveExperience?($0) }
+        orchestrator.restoreConversation(
+            id: id,
+            messages: messages,
+            scopedExperience: scoped
+        )
+        // A restored conversation opens at its latest turn and drops any anchor
+        // from the previous conversation.
+        workspace.beginFollowing()
         showHistory = false
         showVoiceSurface = false
     }
 
-    /// While the agent is thinking or streaming a reply, lift the sheet to full
-    /// height so the response renders in a roomy, focused surface — the most
-    /// readable state. The user can still drag it back down afterward; we only
-    /// drive the expansion, never force it closed.
-    private func expandSheetWhileWorking(_ state: ChatUIState) {
+    /// While the agent is thinking or streaming a reply, offer the panel more
+    /// room — but only when the user is already in the chat and has not pinned a
+    /// detent. This must never yank someone back from the map or from a
+    /// deliberately chosen half height, and it must not fight a drag.
+    private func handleUIStateChange(_ state: ChatUIState) {
         switch state {
         case .processing, .responding:
-            if detent != .large {
-                withAnimation(.easeInOut(duration: 0.3)) { detent = .large }
-            }
+            workspace.autoExpandWhileWorking()
         default:
             break
         }
@@ -186,33 +312,24 @@ public struct ChatSheet: View {
     private var mainContent: some View {
         if showVoiceSurface {
             voiceSurface
-        } else if detent == .medium && visibleMessages.isEmpty && orchestrator.streamingContent.isEmpty && orchestrator.scopedExperience == nil {
-            halfExpandedGenericEmptyState
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(emptyStateBackground)
         } else {
             messageList
-            // Half-detent hides the textInputBar entirely — the mic in
-            // `HalfExpandedEmptyState` is the sole voice/message entry, so
-            // stacking a full-width composer under it created two competing
-            // input surfaces. Full & compact detents keep the composer.
-            if detent != .medium {
-                VStack(spacing: 0) {
-                    if orchestrator.uiState == .unconfigured {
-                        unconfiguredBanner
-                    }
-                    if let hint = sendHint {
-                        sendHintBanner(hint)
-                    }
-                    textInputBar
+            VStack(spacing: 0) {
+                if orchestrator.uiState == .unconfigured {
+                    unconfiguredBanner
                 }
+                if let hint = sendHint {
+                    sendHintBanner(hint)
+                }
+                textInputBar
             }
         }
     }
 
     private var textInputBar: some View {
         ChatInputBar(
-            draftText: $draftText,
+            draftText: $workspace.draftText,
+            attachments: $workspace.attachments,
             micState: micState,
             errorMessage: orchestrator.errorMessage,
             // When the chat was opened from a place's "Ask Solo", surface that
@@ -222,6 +339,8 @@ public struct ChatSheet: View {
             // this is the UI making that scope legible (handoff `.ai-ctx-chip`).
             placeContextName: scopedPlaceName,
             placeContextColor: orchestrator.scopedExperience?.category.color,
+            onFocusChange: handleComposerFocusChange,
+            resignFocus: workspace.surface != .ask,
             onSend: handleSend,
             onMicToggle: handleMicToggle,
             onMicPress: handleMicPress,
@@ -235,6 +354,7 @@ public struct ChatSheet: View {
                 }
             }
         )
+        .accessibilityIdentifier(WorkspaceAccessibility.composer)
     }
 
     /// Short display name of the place this chat is anchored to, or `nil` for
@@ -283,7 +403,7 @@ public struct ChatSheet: View {
     /// chat history takes over. Tool-only messages don't count.
     private func handleMessageCountChange() {
         guard showVoiceSurface else { return }
-        let hasConversation = orchestrator.session.messages.contains { msg in
+        let hasConversation = orchestrator.session.transcript.contains { msg in
             let role = msg.role
             return role == .user || role == .assistant
         }
@@ -305,7 +425,7 @@ public struct ChatSheet: View {
             if historyStore != nil {
                 Button { showHistory = true } label: {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(.footnote.weight(.semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .frame(width: 30, height: 30)
                         .background(closeButtonFill, in: Circle())
@@ -318,19 +438,37 @@ public struct ChatSheet: View {
                 .accessibilityLabel(Text(NSLocalizedString("chat.history.open.a11y", comment: "Open chat history")))
             }
             Spacer()
-            Button(action: closeSheet) {
-                Image(systemName: "xmark")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 30, height: 30)
-                    .background(closeButtonFill, in: Circle())
-                    // Keep the visible glyph 30×30 but expand the tappable
-                    // region to the 44pt HIG minimum (a11y-02).
-                    .frame(minWidth: HitTargetMetrics.minimum, minHeight: HitTargetMetrics.minimum)
-                    .contentShape(Rectangle())
+            if embedded, let onCollapse {
+                Button(action: {
+                    teardownVoiceStream()
+                    onCollapse()
+                }) {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 30, height: 30)
+                        .background(closeButtonFill, in: Circle())
+                        .frame(minWidth: HitTargetMetrics.minimum, minHeight: HitTargetMetrics.minimum)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(WorkspaceAccessibility.collapseChat)
+                .accessibilityLabel(Text(NSLocalizedString("workspace.collapseChat", comment: "Collapse the chat back onto the map")))
+            } else {
+                Button(action: closeSheet) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 30, height: 30)
+                        .background(closeButtonFill, in: Circle())
+                        // Keep the visible glyph 30×30 but expand the tappable
+                        // region to the 44pt HIG minimum (a11y-02).
+                        .frame(minWidth: HitTargetMetrics.minimum, minHeight: HitTargetMetrics.minimum)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(NSLocalizedString("common.close", comment: "Close")))
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(NSLocalizedString("common.close", comment: "Close")))
         }
         .padding(.horizontal, 14)
         .padding(.top, 6)
@@ -371,6 +509,10 @@ public struct ChatSheet: View {
     @ViewBuilder
     private var messageList: some View {
         if visibleMessages.isEmpty && orchestrator.streamingContent.isEmpty {
+            // The elegant compact invitation stays through panel-height changes
+            // (focus / expanded). A taller panel just gets more breathing room —
+            // it does not swap in a different, giant empty state. A place-scoped
+            // chat still leads with its place hero.
             ScrollView {
                 emptyState
                     .frame(maxWidth: .infinity)
@@ -380,11 +522,16 @@ public struct ChatSheet: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    // Editorial rhythm: 18pt between turns reads as paragraphs,
-                    // not chat-density. Serif assistant text and bubble-less
-                    // replies need the breathing room (Claude.ai / GPT-5
-                    // standard ~16-20pt).
-                    LazyVStack(alignment: .leading, spacing: 18) {
+                    // The bottom marker sits OUTSIDE the LazyVStack: a lazy
+                    // container may not instantiate it when scrolled far up,
+                    // which would drop the preference and falsely read as
+                    // "at the bottom".
+                    VStack(spacing: 0) {
+                        // Editorial rhythm: 18pt between turns reads as paragraphs,
+                        // not chat-density. Serif assistant text and bubble-less
+                        // replies need the breathing room (Claude.ai / GPT-5
+                        // standard ~16-20pt).
+                        LazyVStack(alignment: .leading, spacing: 18) {
                         ForEach(visibleMessages) { msg in
                             if let findings = Self.extractDiagnosticsFindings(msg.content ?? "") {
                                 // Startup-diagnostics user turn: render as a
@@ -396,7 +543,7 @@ public struct ChatSheet: View {
                             } else {
                                 MessageBubble(
                                     role: msg.role,
-                                    text: Self.sanitizeForDisplay(msg.content ?? ""),
+                                    text: Self.sanitizeForDisplay(msg.content ?? "", stripReferences: msg.role == .assistant),
                                     toolName: msg.name,
                                     isStreaming: false
                                 )
@@ -477,39 +624,191 @@ public struct ChatSheet: View {
                                 .animation(.easeInOut(duration: 0.2), value: isAgentWorking)
                         }
 
-                        Color.clear
-                            .frame(height: 1)
-                            .id(Self.bottomAnchorID)
                     }
+                    .scrollTargetLayout()
                     .padding(.horizontal, 12)
                     .padding(.vertical, 12)
+
+                    // The bottom marker sits OUTSIDE the LazyVStack so a lazy
+                    // container can never drop it (which would make the
+                    // preference default to 0 and falsely read as "at bottom").
+                    Color.clear
+                        .frame(height: 1)
+                        .id(Self.bottomAnchorID)
+                        // Real viewport geometry, not lazy-prefetch visibility:
+                        // the marker's maxY in the scroll's named space minus
+                        // the viewport height is the true distance from the
+                        // bottom. This drives the follow intent.
+                        .background(alignment: .top) {
+                            GeometryReader { geo in
+                                Color.clear.preference(
+                                    key: ChatBottomOffsetKey.self,
+                                    value: geo.frame(in: .named(Self.scrollSpace)).maxY
+                                )
+                            }
+                        }
+                    }
                 }
-                .scrollContentBackground(.hidden)
-                .background(messageListBackground)
-                .scrollDismissesKeyboard(.interactively)
-                .onChange(of: visibleMessages.count) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onChange(of: orchestrator.streamingContent) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onChange(of: liveTranscript) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onChange(of: orchestrator.session.state) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onChange(of: orchestrator.reasoningSummaryByMessageId.count) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onChange(of: orchestrator.reasoningTrace.count) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onChange(of: totalCardCount) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onAppear { scrollToBottom(proxy: proxy, animated: false) }
+                .coordinateSpace(name: Self.scrollSpace)
+                    // Restore/record the reading anchor across surface remounts.
+                    .scrollPosition(id: $scrollAnchor, anchor: .top)
+                    .scrollContentBackground(.hidden)
+                    .background(messageListBackground)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.preference(
+                                key: ChatViewportHeightKey.self,
+                                value: geo.size.height
+                            )
+                        }
+                    )
+                    .scrollDismissesKeyboard(.interactively)
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 6).onChanged { _ in
+                            // Only a reader gesture releases explicit follow;
+                            // a growing reply/card must not look like scrolling up.
+                            workspace.noteScrolledAwayFromBottom()
+                            followThrottle.cancel()
+                        }
+                    )
+                    .overlay(alignment: .bottom) {
+                        returnToLatestButton(proxy: proxy)
+                    }
+                    .onPreferenceChange(ChatViewportHeightKey.self) { height in
+                        scrollViewportHeight = height
+                        if #unavailable(iOS 18) {
+                            noteScrollPosition(bottomMaxY: lastBottomMaxY)
+                        }
+                    }
+                    .onPreferenceChange(ChatBottomOffsetKey.self) { bottomMaxY in
+                        lastBottomMaxY = bottomMaxY
+                        if #unavailable(iOS 18) {
+                            noteScrollPosition(bottomMaxY: bottomMaxY)
+                        }
+                    }
+                    .modifier(ChatScrollPositionObserver { nearBottom in
+                        noteNearBottom(nearBottom)
+                    })
+                    .onChange(of: visibleMessages.count) { _, _ in
+                        handleMessagesChanged(proxy: proxy)
+                    }
+                    // Streaming tokens are throttled: the scroll follows at most a
+                    // few times per second, and only when the reader was already at
+                    // the bottom — never yanking someone reading history.
+                    .onChange(of: orchestrator.streamingContent) { _, _ in
+                        scheduleFollowScroll(proxy: proxy)
+                    }
+                    .onChange(of: liveTranscript) { _, _ in
+                        scheduleFollowScroll(proxy: proxy)
+                    }
+                    .onChange(of: orchestrator.session.state) { _, _ in
+                        scheduleFollowScroll(proxy: proxy)
+                    }
+                    .onChange(of: orchestrator.reasoningSummaryByMessageId.count) { _, _ in
+                        scheduleFollowScroll(proxy: proxy)
+                    }
+                    .onChange(of: orchestrator.reasoningTrace.count) { _, _ in
+                        scheduleFollowScroll(proxy: proxy)
+                    }
+                    .onChange(of: totalCardCount) { _, _ in
+                        scheduleFollowScroll(proxy: proxy)
+                    }
+                    .onChange(of: scrollAnchor) { _, id in
+                        workspace.noteVisibleAnchor(id)
+                    }
+                    .onChange(of: orchestrator.persistedConversationId) { _, id in
+                        // New / restored conversation: drop any stale anchor.
+                        workspace.syncAnchorConversation(id: id)
+                        scrollAnchor = workspace.visibleAnchorId
+                    }
+                    .onAppear {
+                        // Scope the anchor to this conversation, then either
+                        // follow the bottom or restore the row the reader left.
+                        workspace.syncAnchorConversation(id: orchestrator.persistedConversationId)
+                        scrollAnchor = workspace.visibleAnchorId
+                        if workspace.shouldFollowScroll || workspace.visibleAnchorId == nil {
+                            scrollToBottom(proxy: proxy, animated: false)
+                        }
+                    }
             }
+        }
+    }
+
+    /// A new turn landed. A user turn always follows (they just sent it); an
+    /// assistant/tool turn follows only when the reader was at the bottom.
+    private func handleMessagesChanged(proxy: ScrollViewProxy) {
+        if visibleMessages.last?.role == .user {
+            workspace.beginFollowing()
+            scrollToBottom(proxy: proxy)
+            return
+        }
+        scheduleFollowScroll(proxy: proxy)
+    }
+
+    /// Translate the bottom marker's geometry into follow intent. Only writes
+    /// the workspace when the state actually flips, so ordinary scrolling does
+    /// not churn observation.
+    private func noteScrollPosition(bottomMaxY: CGFloat) {
+        guard scrollViewportHeight > 0 else { return }
+        let distanceFromBottom = bottomMaxY - scrollViewportHeight
+        noteNearBottom(distanceFromBottom <= 80)
+    }
+
+    private func noteNearBottom(_ nearBottom: Bool) {
+        if nearBottom {
+            if !workspace.isNearBottom { workspace.noteReachedBottom() }
+        } else if !workspace.followStreaming {
+            if workspace.isNearBottom { workspace.noteScrolledAwayFromBottom() }
+        }
+    }
+
+    /// Bounded throttle for streaming/tool updates: at most one scheduled
+    /// trailing scroll per 120ms window. The intent is re-checked at execution
+    /// time, so a token that lands while the reader scrolls up will not drag
+    /// them back to the bottom.
+    private func scheduleFollowScroll(proxy: ScrollViewProxy) {
+        guard workspace.shouldFollowScroll else {
+            workspace.noteContentArrivedWhileAway()
+            return
+        }
+        followThrottle.request(
+            shouldFollow: { [workspace] in workspace.shouldFollowScroll },
+            action: { [workspace] in
+                guard workspace.shouldFollowScroll else { return }
+                scrollToBottom(proxy: proxy, animated: false)
+            }
+        )
+    }
+
+    /// Accessible return-to-latest pill, shown only when a reply arrived while
+    /// the reader was scrolled up in history.
+    @ViewBuilder
+    private func returnToLatestButton(proxy: ScrollViewProxy) -> some View {
+        if workspace.showsReturnToLatest {
+            Button {
+                #if canImport(UIKit)
+                Haptics.selection()
+                #endif
+                workspace.beginFollowing()
+                scrollToBottom(proxy: proxy)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 11, weight: .bold))
+                    Text(NSLocalizedString("chat.returnToLatest", comment: "Return to the latest message"))
+                        .font(.caption.weight(.semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(CT.accent))
+                .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
+            }
+            .buttonStyle(PressableButtonStyle())
+            .accessibilityIdentifier(WorkspaceAccessibility.returnToLatest)
+            .accessibilityLabel(Text(NSLocalizedString("chat.returnToLatest.a11y", comment: "New reply — jump to the latest message")))
+            .padding(.bottom, 10)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
     }
 
@@ -632,31 +931,55 @@ public struct ChatSheet: View {
     private var emptyState: some View {
         if let place = orchestrator.scopedExperience {
             placeEmptyState(place)
-        } else if detent == .medium {
-            // Half-expanded: a minimal doorway — orb + invitation + pills +
-            // centered push-to-talk mic. Reads as "a companion is waiting"
-            // rather than a settings panel.
-            halfExpandedGenericEmptyState
         } else {
-            genericEmptyState
+            compactEmptyCanvas
         }
     }
 
-    /// The minimal half-detent layout. Wires `starterPrompts` into the
+    /// The minimal compact layout. Wires `starterPrompts` into the
     /// `HalfExpandedEmptyState` pills so taps still produce the same full
-    /// question the large state would have sent, and routes push-to-talk
-    /// through the existing `handleMicPress` so the orchestrator handlers
-    /// stay one path. The fourth pill ("sunset") is half-detent-only —
-    /// there's room for one more punchy tag and it nudges a moment-aware
-    /// question without crowding the large state.
-    private var halfExpandedGenericEmptyState: some View {
-        HalfExpandedEmptyState(
-            nowChipText: Self.nowContextCopy(hour: nowHour),
-            suggestions: Self.halfExpandedSuggestions,
-            onSendPrompt: { handleSend($0) },
-            onMicPress: handleMicPress,
-            isMicListening: voiceService.isListening
-        )
+    /// question the large state would have sent. The standalone mic handle is
+    /// suppressed because the composer below (with its own text field + mic)
+    /// is the single input surface now — stacking both created two competing
+    /// entry points.
+    private var compactEmptyCanvas: some View {
+        VStack(spacing: 14) {
+            HalfExpandedEmptyState(
+                nowChipText: Self.nowContextCopy(hour: nowHour),
+                suggestions: Self.halfExpandedSuggestions,
+                onSendPrompt: { _ = handleSend($0) },
+                onMicPress: handleMicPress,
+                isMicListening: voiceService.isListening,
+                showsMicHandle: false
+            )
+
+            if needsCitySelection, let onChooseCity {
+                Button {
+                    #if canImport(UIKit)
+                    Haptics.selection()
+                    #endif
+                    onChooseCity()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "mappin.and.ellipse")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(NSLocalizedString(
+                            "workspace.chooseCity",
+                            comment: "Choose a city before asking for nearby places"
+                        ))
+                        .font(.system(size: 12.5, weight: .semibold))
+                    }
+                    .foregroundStyle(CT.accent)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(Capsule().fill(CT.accentSoft))
+                }
+                .buttonStyle(PressableButtonStyle(pressedScale: 0.94))
+                .accessibilityIdentifier("workspace.chooseCity")
+            }
+        }
+        .padding(.top, 12)
+        .padding(.bottom, 8)
     }
 
     /// Punchy 2-4 char tags + the full sentence they expand to on tap. The
@@ -961,7 +1284,7 @@ public struct ChatSheet: View {
             ForEach(Array(Self.placeIntents.enumerated()), id: \.offset) { index, intent in
                 Button {
                     Haptics.impact(.light)
-                    handleSend(NSLocalizedString(intent.promptKey, comment: "Place opener"))
+                    _ = handleSend(NSLocalizedString(intent.promptKey, comment: "Place opener"))
                 } label: {
                     starterCardRow(icon: intent.icon, iconColor: CT.accent, label: NSLocalizedString(intent.promptKey, comment: "Place opener"))
                 }
@@ -1002,7 +1325,7 @@ public struct ChatSheet: View {
             ForEach(Array(Self.starterPrompts.enumerated()), id: \.offset) { index, prompt in
                 Button {
                     Haptics.impact(.light)
-                    handleSend(prompt)
+                    _ = handleSend(prompt)
                 } label: {
                     starterCardRow(
                         icon: promptIcon(for: index),
@@ -1248,7 +1571,7 @@ public struct ChatSheet: View {
     /// Messages with the system row hidden. Tool rows are kept so the user
     /// can see "Searched nearby" indicators inline with the conversation.
     private var visibleMessages: [VoiceAgentSession.Message] {
-        orchestrator.session.messages.filter { $0.role != .system }
+        orchestrator.session.transcript.filter { $0.role != .system }
     }
 
     /// Total inline cards across all messages — drives a scroll-to-bottom when a
@@ -1290,57 +1613,65 @@ public struct ChatSheet: View {
 
     // MARK: - Actions
 
-    private func handleSend(_ text: String) {
+    @discardableResult
+    private func handleSend(_ text: String) -> Bool {
+        // The agent pipeline accepts text only. Staged attachments must never be
+        // silently discarded, so keep the draft and say so honestly instead of
+        // pretending the file was sent.
+        guard workspace.attachments.isEmpty else {
+            showSendHint(NSLocalizedString(
+                "chat.send.hint.attachmentsUnsupported",
+                comment: "Hint shown when a staged attachment cannot be sent in the agent chat"
+            ))
+            return false
+        }
         lastUserTranscript = text
         let outcome = orchestrator.handleTextInput(text)
         switch outcome {
         case .accepted:
+            // A deliberate send always follows the reply, even if the reader
+            // had scrolled up in an earlier turn.
+            workspace.beginFollowing()
             clearSendHint()
             Haptics.impact(.light)
+            return true
         case .empty:
             // The input bar already guards on empty; nothing to do.
-            break
+            return false
         case .unconfigured:
-            showSendHint(
-                NSLocalizedString(
-                    "chat.send.hint.unconfigured",
-                    comment: "Hint shown when the user tries to send but no API key is configured"
-                ),
-                restoreDraft: text
-            )
+            showSendHint(NSLocalizedString(
+                "chat.send.hint.unconfigured",
+                comment: "Hint shown when the user tries to send but no API key is configured"
+            ))
+            return false
         case .notReady:
-            // Orchestrator is mid-seed (start() is async). Restore the draft
-            // so the user doesn't lose it, and prompt them to try again.
-            showSendHint(
-                NSLocalizedString(
-                    "chat.send.hint.notReady",
-                    comment: "Hint shown when the user sends before the agent finished waking up"
-                ),
-                restoreDraft: text
-            )
+            // Orchestrator is mid-seed (start() is async). The bar keeps the
+            // draft; prompt the user to try again.
+            showSendHint(NSLocalizedString(
+                "chat.send.hint.notReady",
+                comment: "Hint shown when the user sends before the agent finished waking up"
+            ))
+            return false
         case .sessionEnded:
             // The previous turn ended (timeout/error). Soft-restart and
             // re-submit transparently so the user sees their message land.
             if orchestrator.restartIfNeeded(),
                orchestrator.handleTextInput(text) == .accepted {
+                workspace.beginFollowing()
                 clearSendHint()
                 Haptics.impact(.light)
+                return true
             } else {
-                showSendHint(
-                    NSLocalizedString(
-                        "chat.send.hint.sessionEnded",
-                        comment: "Hint shown when the chat session ended and a new turn couldn't be started"
-                    ),
-                    restoreDraft: text
-                )
+                showSendHint(NSLocalizedString(
+                    "chat.send.hint.sessionEnded",
+                    comment: "Hint shown when the chat session ended and a new turn couldn't be started"
+                ))
+                return false
             }
         }
     }
 
-    private func showSendHint(_ message: String, restoreDraft: String? = nil) {
-        if let restoreDraft, draftText.isEmpty {
-            draftText = restoreDraft
-        }
+    private func showSendHint(_ message: String) {
         sendHint = message
         sendHintTask?.cancel()
         sendHintTask = Task { @MainActor in
@@ -1367,17 +1698,19 @@ public struct ChatSheet: View {
         }
     }
 
-    /// Push-to-talk path. `pressing == true` on touch-down, `false` on
-    /// release. Starts/stops the voice stream immediately for sub-frame
-    /// feedback.
+    /// Push-to-talk path driven by `ChatInputBar`'s unified mic gesture: a real
+    /// hold sends `true` on begin and `false` on release; a tap goes through
+    /// `handleMicToggle` instead.
     private func handleMicPress(_ pressing: Bool) {
         if pressing {
-            // Only treat as PTT-start if not already listening (avoids
-            // double-start with the simultaneous tap gesture).
             if !voiceService.isListening {
                 beginPushToTalk()
             }
         } else {
+            // Release always invalidates a pending permission grant, even if the
+            // stream has not started yet — otherwise a late grant could begin
+            // recording after the finger lifted.
+            cancelPendingVoiceStart()
             if voiceService.isListening {
                 endPushToTalk(send: true)
             }
@@ -1385,12 +1718,16 @@ public struct ChatSheet: View {
     }
 
     private func handleRetry() {
-        guard !lastUserTranscript.isEmpty else { return }
+        // Read the active conversation: view-local text is lost on a map round
+        // trip and can belong to a different conversation after history restore.
+        let raw = orchestrator.session.transcript.last(where: { $0.role == .user })?.content ?? ""
+        let transcript = ChatDisplayText.removingContextEnvelopes(raw)
+        guard !transcript.isEmpty else { return }
         // The previous turn may have ended (timeout/network error). Re-arm
         // the orchestrator first so the retry isn't silently dropped by the
         // `session.isEnded` guard in handleTextInput.
         _ = orchestrator.restartIfNeeded()
-        handleSend(lastUserTranscript)
+        _ = handleSend(transcript)
     }
 
     private func closeSheet() {
@@ -1431,6 +1768,7 @@ public struct ChatSheet: View {
     private func applyStartModeIfNeeded() {
         guard !didApplyStartMode else { return }
         didApplyStartMode = true
+        resumeVoiceIfVisible()
         if startInVoiceMode {
             showVoiceSurface = true
             beginPushToTalk()
@@ -1488,28 +1826,112 @@ public struct ChatSheet: View {
     private func seedInitialPromptIfNeeded() {
         guard !didSeedInitialPrompt, let prompt = initialUserPrompt else { return }
         didSeedInitialPrompt = true
+        submitPrompt(prompt)
+    }
+
+    /// Deliver an explicit ask raised through the workspace channel. Because the
+    /// chat may already be mounted, this is event-driven (promptToken) rather
+    /// than tied to `.onAppear`. Consuming clears the pending value, so a single
+    /// request can never be submitted twice.
+    private func deliverPendingPromptIfNeeded() {
+        guard let request = workspace.consumePendingPrompt() else { return }
+        didSeedInitialPrompt = true
+        if request.startInVoice {
+            showVoiceSurface = true
+            beginPushToTalk()
+        }
+        submitPrompt(request.text)
+    }
+
+    /// Submit a prompt once the orchestrator has finished seeding. Retries for
+    /// ~5s to cover the cold-start `start()` → `buildSystemPrompt` async gap.
+    /// If the prompt still cannot be delivered (unconfigured key, ended
+    /// session), it is kept in the composer instead of being silently dropped.
+    private func submitPrompt(_ prompt: String) {
         Task { @MainActor in
             for _ in 0..<20 {
                 switch orchestrator.handleTextInput(prompt) {
-                case .accepted, .empty, .sessionEnded:
-                    return
-                case .unconfigured:
+                case .accepted:
+                    lastUserTranscript = prompt
+                    workspace.beginFollowing()
                     return
                 case .notReady:
                     try? await Task.sleep(nanoseconds: 250_000_000)
+                case .empty:
+                    return
+                case .unconfigured:
+                    if workspace.draftText.isEmpty { workspace.draftText = prompt }
+                    showSendHint(NSLocalizedString(
+                        "chat.send.hint.unconfigured",
+                        comment: "Hint shown when the user tries to send but no API key is configured"
+                    ))
+                    return
+                case .sessionEnded:
+                    if workspace.draftText.isEmpty { workspace.draftText = prompt }
+                    return
                 }
+            }
+            // Retry budget exhausted: preserve the ask rather than lose it.
+            if workspace.draftText.isEmpty { workspace.draftText = prompt }
+        }
+    }
+
+    /// Keyboard focus expands the panel so the composer is never covered; on
+    /// blur we restore the reader's chosen state, unless they changed it while
+    /// typing. The snapshot is captured once per focus session (a non-nil value
+    /// means we're already tracking it) so repeated focus callbacks can't
+    /// overwrite the restore point with the already-expanded detent.
+    private func handleComposerFocusChange(_ focused: Bool) {
+        if focused {
+            if keyboardRestore == nil {
+                keyboardRestore = workspace.expandForKeyboard()
+            }
+        } else if let restore = keyboardRestore {
+            keyboardRestore = nil
+            withAnimation(reduceMotion ? nil : Motion.settle) {
+                workspace.restoreAfterKeyboard(restore)
             }
         }
     }
 
+    /// Stop capturing audio and stop any speech output without touching the
+    /// conversation. Called when the panel collapses, the surface switches, a
+    /// modal covers the chat, or the app backgrounds. Speech is suppressed so a
+    /// late assistant completion can't speak while hidden.
+    private func hibernateVoiceAndSpeech() {
+        orchestrator.isSpeechSuppressed = true
+        teardownVoiceStream()
+        followThrottle.cancel()
+        // The keyboard is dismissed with the subtree; clear the signal here so a
+        // later map/discovery surface never renders with the dock hidden.
+        workspace.setSoftwareKeyboardVisible(false)
+        orchestrator.stopSpeaking()
+    }
+
+    /// Re-enable speech once the chat is visible and the app is active again.
+    private func resumeVoiceIfVisible() {
+        guard workspace.showsConversation, scenePhase == .active else { return }
+        orchestrator.isSpeechSuppressed = false
+    }
+
     private func beginPushToTalk() {
         guard !voiceService.isListening else { return }
-        Task { @MainActor in
+        voiceGeneration &+= 1
+        let generation = voiceGeneration
+        permissionTask?.cancel()
+        permissionTask = Task { @MainActor [generation] in
             let granted = await voiceService.requestPermission()
+            // A late grant must never start a hidden recording: the generation
+            // changed (teardown/collapse) or the chat is no longer visible.
+            // Denial remains useful feedback even if the system permission
+            // dialog temporarily made the scene inactive. A late grant still
+            // cannot start recording after that lifecycle cancellation.
             guard granted else {
-                withAnimation(.easeInOut(duration: 0.2)) { permissionDenied = true }
+                if workspace.showsConversation { permissionDenied = true }
                 return
             }
+            guard generation == voiceGeneration, !Task.isCancelled else { return }
+            guard workspace.showsConversation, scenePhase == .active else { return }
             withAnimation { permissionDenied = false }
             do {
                 liveTranscript = ""
@@ -1544,6 +1966,8 @@ public struct ChatSheet: View {
     }
 
     private func endPushToTalk(send: Bool) {
+        // A release must also invalidate an in-flight permission request.
+        cancelPendingVoiceStart()
         voiceService.stopListening()
         Task { await LiveActivityService.shared.endRecordingSession() }
         recordingPulse = false
@@ -1553,11 +1977,25 @@ public struct ChatSheet: View {
         liveTranscript = ""
         guard send, !final.isEmpty else { return }
         lastUserTranscript = final
+        workspace.beginFollowing()
         orchestrator.handleTranscript(final)
         Haptics.impact(.light)
     }
 
+    /// Invalidate a pending `requestPermission()` result so a late grant can
+    /// never start a recording after the user released or left.
+    private func cancelPendingVoiceStart() {
+        voiceGeneration &+= 1
+        permissionTask?.cancel()
+        permissionTask = nil
+    }
+
     private func teardownVoiceStream() {
+        // Invalidate any in-flight permission request so its late completion
+        // cannot start the mic after this teardown.
+        voiceGeneration &+= 1
+        permissionTask?.cancel()
+        permissionTask = nil
         voiceStreamTask?.cancel()
         voiceStreamTask = nil
         sendHintTask?.cancel()
@@ -1617,6 +2055,9 @@ public struct ChatSheet: View {
     private static let streamingBubbleID = "chat.streaming"
     private static let liveTranscriptID = "chat.liveTranscript"
     private static let typingIndicatorID = "chat.typing"
+    /// Named coordinate space of the message ScrollView, used to measure the
+    /// true distance from the bottom instead of lazy-prefetch visibility.
+    private static let scrollSpace = "chat.scroll"
 
     /// Removes machine-readable envelope blocks — `<latest_context>` (added
     /// by `VoiceAgentOrchestrator` for hour/timezone/coord refresh) and
@@ -1629,17 +2070,64 @@ public struct ChatSheet: View {
     /// the `[\s\S]*?` trick worked in offline swift tests but failed at
     /// iOS runtime for reasons that resisted diagnosis. `dotMatchesLineSeparators`
     /// is the intent-revealing option and just works.
-    static func sanitizeForDisplay(_ raw: String) -> String {
-        var out = raw
-        for pattern in [
-            "<latest_context>.*?</latest_context>\\s*",
-            "<solo:diagnostics>.*?</solo:diagnostics>\\s*"
-        ] {
-            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else { continue }
+    static func sanitizeForDisplay(_ raw: String, stripReferences: Bool = true) -> String {
+        var out = ChatDisplayText.removingContextEnvelopes(raw)
+        if stripReferences { out = Self.stripInternalReferenceMarkers(out) }
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Remove the model's internal Experience reference markers — `[exp:<id>]`
+    /// and `[exp_<id>]` — **together with the arrow separators that chain
+    /// them**, so an observed reply like
+    /// `**route title** [exp:a] → [exp_b] → [exp_c].` collapses to
+    /// `**route title**.` rather than the dangling `**route title** → → .`.
+    ///
+    /// Only these exact internal shapes are touched: ordinary user bracketed
+    /// text (e.g. `[the quiet one]`) and prose arrows are preserved, and the
+    /// persisted/raw provider output is never modified (display layer only).
+    static func stripInternalReferenceMarkers(_ text: String) -> String {
+        guard text.contains("[exp") else { return text }
+        var out = text
+        let colonMarker = "\\[exp:[A-Za-z0-9._\\-]+\\]"
+        let underscoreMarker = "\\[exp_[A-Za-z0-9._\\-]+\\]"
+        let arrow = "(?:→|->|⇒|—|–)"
+        // Marker joined to a following arrow, and arrow joined to a following
+        // marker — applied a few times to unwind a whole chain.
+        let chainPatterns = [
+            "\\s*" + arrow + "\\s*" + colonMarker,
+            "\\s*" + arrow + "\\s*" + underscoreMarker,
+            colonMarker + "\\s*" + arrow + "\\s*",
+            underscoreMarker + "\\s*" + arrow + "\\s*"
+        ]
+        for _ in 0..<3 {
+            for pattern in chainPatterns {
+                guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+                let range = NSRange(out.startIndex..., in: out)
+                out = regex.stringByReplacingMatches(in: out, range: range, withTemplate: "")
+            }
+        }
+        // Any standalone markers left behind.
+        for pattern in [colonMarker, underscoreMarker] {
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
             let range = NSRange(out.startIndex..., in: out)
             out = regex.stringByReplacingMatches(in: out, range: range, withTemplate: "")
         }
-        return out.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Tidy the residue: no space before sentence punctuation, no runs of
+        // spaces, and no line that is now only arrows/commas.
+        out = out.replacingOccurrences(of: "[ \\t]{2,}", with: " ", options: .regularExpression)
+        out = out.replacingOccurrences(of: "[ \\t]+([.,;:!?。，、；：！？])", with: "$1", options: .regularExpression)
+        let keptLines = out.split(separator: "\n", omittingEmptySubsequences: false).filter { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.contains("→") || trimmed.contains("->") else { return true }
+            let residue = trimmed
+                .replacingOccurrences(of: "→", with: "")
+                .replacingOccurrences(of: "->", with: "")
+                .replacingOccurrences(of: "⇒", with: "")
+                .replacingOccurrences(of: ",", with: "")
+                .trimmingCharacters(in: .whitespaces)
+            return !residue.isEmpty
+        }
+        return keptLines.joined(separator: "\n")
     }
 
     /// Extracts the diagnostics payload from a message body when the user
@@ -1762,7 +2250,8 @@ private struct VoiceMicButton: View {
         orchestrator: orch,
         voiceService: VoiceService(),
         startInVoiceMode: false,
-        onDismiss: {}
+        onDismiss: {},
+        workspace: ConversationWorkspaceState()
     )
 }
 
@@ -1773,7 +2262,8 @@ private struct VoiceMicButton: View {
         orchestrator: orch,
         voiceService: VoiceService(),
         startInVoiceMode: false,
-        onDismiss: {}
+        onDismiss: {},
+        workspace: ConversationWorkspaceState()
     )
 }
 
@@ -1783,7 +2273,8 @@ private struct VoiceMicButton: View {
         orchestrator: orch,
         voiceService: VoiceService(),
         startInVoiceMode: false,
-        onDismiss: {}
+        onDismiss: {},
+        workspace: ConversationWorkspaceState()
     )
 }
 
@@ -1805,4 +2296,43 @@ private func previewOrchestrator(seeded: Bool = false) -> VoiceAgentOrchestrator
         orch.handleTextInput("What's good around me?")
     }
     return orch
+}
+
+// MARK: - Scroll geometry preferences
+
+/// The bottom marker's maxY in the message scroll's named coordinate space.
+/// Combined with the viewport height this is the true distance from the bottom
+/// — unlike lazy-container `onAppear`/`onDisappear`, which fire on prefetch.
+private struct ChatBottomOffsetKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// Height of the message viewport.
+private struct ChatViewportHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// iOS 18+ supplies the actual scroll geometry, including lazy-content estimates.
+/// Older systems retain the named-coordinate-space marker above.
+private struct ChatScrollPositionObserver: ViewModifier {
+    let onChange: (Bool) -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 18, *) {
+            content.onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentSize.height - geometry.visibleRect.maxY <= 80
+            } action: { _, nearBottom in
+                onChange(nearBottom)
+            }
+        } else {
+            content
+        }
+    }
 }

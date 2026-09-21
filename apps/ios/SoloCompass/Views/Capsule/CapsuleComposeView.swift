@@ -34,7 +34,7 @@ public struct CapsuleComposeView: View {
     public var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Leave a note here for future you.")
+                Text(NSLocalizedString("capsule.compose.prompt", comment: "Time capsule compose prompt"))
                     .font(.title3.weight(.semibold))
                     .foregroundColor(CT.fgPrimary)
 
@@ -59,7 +59,7 @@ public struct CapsuleComposeView: View {
                 Spacer()
 
                 Button(action: bury) {
-                    Text("Bury")
+                    Text(NSLocalizedString("capsule.compose.bury", comment: "Bury time capsule button"))
                         .font(.callout.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)

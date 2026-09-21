@@ -98,6 +98,7 @@ public final class AdminService {
 
     // MARK: - Actions
 
+    /// Moderator actions the admin console can dispatch against a user or report.
     public enum ModerationAction {
         case ban(targetUserId: String)
         case unban(targetUserId: String)

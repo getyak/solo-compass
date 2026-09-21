@@ -41,10 +41,10 @@ public struct BlindboxLaunchView: View {
 
             VStack(spacing: 28) {
                 Spacer()
-                Text("Blindbox")
+                Text(NSLocalizedString("blindbox.launch.title", comment: "Blindbox launch title"))
                     .font(.largeTitle.weight(.bold))
                     .foregroundColor(.white)
-                Text("Three anchor stops. We reveal each when you arrive. No rush, no preview.")
+                Text(NSLocalizedString("blindbox.launch.subtitle", comment: "Blindbox launch explanation"))
                     .font(.callout)
                     .foregroundColor(.white.opacity(0.85))
                     .multilineTextAlignment(.center)
@@ -62,7 +62,7 @@ public struct BlindboxLaunchView: View {
                 Spacer()
 
                 Button(action: { onLaunch(selected) }) {
-                    Text("Open")
+                    Text(NSLocalizedString("blindbox.launch.open", comment: "Open blindbox button"))
                         .font(.title3.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)

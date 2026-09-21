@@ -1,8 +1,35 @@
 import XCTest
 import SwiftUI
+import SwiftData
 @testable import SoloCompass
 
 final class EmptyStateCitySuggestionTest: XCTestCase {
+
+    /// Loads the *complete bundled* `seed_experiences.json` into an isolated
+    /// in-memory store with isolated preferences.
+    ///
+    /// These coverage checks must see exactly the shipped seed. Reading through
+    /// `ExperienceService()` hit the shared persisted database, which earlier
+    /// Explore tests had polluted with discovered `osm_*` city codes — that made
+    /// this guard fail on a code the bundle never ships. The in-memory container
+    /// never touches the shared store, so no simulator/database cleanup is needed.
+    @MainActor
+    private func isolatedSeedExperiences() -> [Experience] {
+        let suite = "emptystate.seed.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defer {
+            UserDefaults.standard.removePersistentDomain(forName: suite)
+            UserDefaults.standard.removeSuite(named: suite)
+        }
+        let container = SoloCompassModelContainer.makeInMemory()
+        let repo = ExperienceRepository(
+            context: ModelContext(container),
+            preferences: UserPreferences(defaults: defaults)
+        )
+        _ = repo.importSeedIfNeeded()
+        return repo.allExperiences()
+    }
 
     @MainActor
     func testEmptySheetListViewWithCitySuggestion() throws {
@@ -48,8 +75,7 @@ final class EmptyStateCitySuggestionTest: XCTestCase {
 
     @MainActor
     func testSuggestedCityNameLogic() throws {
-        let service = ExperienceService()
-        let allExps = service.allExperiences
+        let allExps = isolatedSeedExperiences()
         XCTAssertFalse(allExps.isEmpty, "Seed data should have experiences")
 
         let cityCodes = Set(allExps.map { $0.location.cityCode })
@@ -75,8 +101,21 @@ final class EmptyStateCitySuggestionTest: XCTestCase {
 
     @MainActor
     func testCityNameMapCoversAllSeedCodes() {
-        let service = ExperienceService()
-        let seedCodes = Set(service.allExperiences.map { $0.location.cityCode })
+        let allExps = isolatedSeedExperiences()
+        let seedCodes = Set(allExps.map { $0.location.cityCode })
+
+        // Guard against a silent fallback to the 2-city `hardcodedSeed`: assert
+        // the loader actually produced every city shipped in the bundle, so the
+        // `cityNameMap` sweep below isn't vacuously narrow.
+        let bundledCities: Set<String> = [
+            "cmi", "VTE", "cn-深圳市", "nyc", "tyo", "san-francisco", "sgn", "lis"
+        ]
+        XCTAssertTrue(
+            bundledCities.isSubset(of: seedCodes),
+            "expected the full bundled seed; missing "
+                + "\(bundledCities.subtracting(seedCodes).sorted()); got \(seedCodes.sorted())"
+        )
+
         // Assert against the real, now-`static` map — not a hand-copied subset.
         // The previous inline copy only listed 3 cities and silently rotted as
         // seeds gained sgn/nyc/lis/tyo/san-francisco; sourcing from the single

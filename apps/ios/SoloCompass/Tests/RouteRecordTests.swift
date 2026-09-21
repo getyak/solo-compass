@@ -4,6 +4,42 @@ import XCTest
 final class RouteRecordTests: XCTestCase {
 
     func testRouteRecordRoundTripPreservesAllFields() {
+        let compiledPlan = CompiledWorkdayPlan(
+            localDate: "2026-09-01",
+            startsAtMinute: 540,
+            endsAtMinute: 960,
+            totalTravelMinutes: 24,
+            totalWaitMinutes: 5,
+            evidenceCoverage: "partial",
+            refreshScheduled: true,
+            cacheStatus: "miss",
+            stops: [
+                CompiledRouteStop(
+                    taskId: "focus",
+                    taskKind: "deep_work",
+                    experienceId: "exp-a",
+                    title: "Quiet coffee",
+                    arrivalMinute: 530,
+                    startMinute: 540,
+                    endMinute: 660,
+                    travelFromPreviousMinutes: 10,
+                    distanceFromPreviousMeters: 750,
+                    waitMinutes: 0,
+                    warnings: []
+                )
+            ],
+            fallbacks: [
+                CompiledRouteFallback(
+                    taskId: "focus",
+                    primaryExperienceId: "exp-a",
+                    experienceId: "exp-b",
+                    title: "Backup coffee",
+                    startMinute: 545,
+                    endMinute: 665,
+                    extraTravelMinutes: 5
+                )
+            ]
+        )
         let original = Route(
             id: RouteId(rawValue: "route-rt-1"),
             title: "Morning Shibuya Loop",
@@ -24,7 +60,8 @@ final class RouteRecordTests: XCTestCase {
                 walkedByCount: 2,
                 walkedBy: ["user-1", "user-2"]
             ),
-            companion: RouteCompanion()
+            companion: RouteCompanion(),
+            compiledPlan: compiledPlan
         )
 
         let record = RouteRecord.fromValue(original)
@@ -48,6 +85,7 @@ final class RouteRecordTests: XCTestCase {
         XCTAssertEqual(restored.verification.walkedByCount, original.verification.walkedByCount)
         XCTAssertEqual(restored.verification.walkedBy, original.verification.walkedBy)
         XCTAssertNotNil(restored.companion)
+        XCTAssertEqual(restored.compiledPlan, compiledPlan)
     }
 
     func testRouteRecordRoundTripWithDefaultsAndNilCompanion() {
@@ -68,6 +106,7 @@ final class RouteRecordTests: XCTestCase {
         XCTAssertNil(record.companionBlob)
         XCTAssertNil(record.authorId)
         XCTAssertNil(record.bestStartHour)
+        XCTAssertNil(record.compiledPlanBlob)
 
         let restored = record.asValue
         XCTAssertEqual(restored.id.rawValue, "route-rt-2")
@@ -80,6 +119,7 @@ final class RouteRecordTests: XCTestCase {
         XCTAssertNil(restored.companion)
         XCTAssertNil(restored.authorId)
         XCTAssertNil(restored.bestStartHour)
+        XCTAssertNil(restored.compiledPlan)
     }
 
     func testRouteRecordPreservesExperienceIdOrder() {

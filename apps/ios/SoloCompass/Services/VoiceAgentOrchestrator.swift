@@ -122,6 +122,12 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
     private var turnTask: Task<Void, Never>?
     private var isSeeded = false
+    /// Monotonic guard so a slow `buildSystemPrompt` for an older scope can
+    /// never overwrite the session after a newer start / rebind / restore.
+    private var contextGeneration: Int = 0
+    /// Identity of the turn currently allowed to mutate the session. Cancelled /
+    /// superseded turns compare against this and bail at every suspension point.
+    private var currentTurnID: UUID?
 
     // MARK: - Streaming throttle
     //
@@ -202,7 +208,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         guard let historyStore else { return }
         let wrote = historyStore.saveSession(
             id: persistedConversationId,
-            messages: session.messages,
+            messages: session.transcript,
             scopedExperienceId: scopedExperience?.id,
             createdAt: persistedConversationCreatedAt
         )
@@ -234,12 +240,22 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// system prompt, adopt the saved conversation's id (so further turns upsert
     /// the same record), then replay the stored messages into the session.
     /// Safe to call while running; leaves the orchestrator ready for new turns.
-    public func restoreConversation(id: String, messages restored: [VoiceAgentSession.Message]) {
+    public func restoreConversation(
+        id: String,
+        messages restored: [VoiceAgentSession.Message],
+        scopedExperience: Experience?
+    ) {
         turnTask?.cancel()
         turnTask = nil
         synthesizer.stopSpeaking(at: .immediate)
         didRequestImmediateSpeechStop = true
 
+        // Adopt the saved record's scope so the rebuilt system prompt — and the
+        // conversation it resumes — match what was actually stored.
+        self.scopedExperience = scopedExperience
+        // Readiness must flip BEFORE the async reseed: an immediate send must
+        // not be accepted against the old system prompt/history.
+        isSeeded = false
         streamingContent = ""
         thinkingStep = ""
         isExecutingTool = false
@@ -253,8 +269,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
         persistedConversationId = id
         persistedConversationCreatedAt = nil
 
+        contextGeneration &+= 1
+        let generation = contextGeneration
         Task {
             let prompt = await buildSystemPrompt(experience: scopedExperience)
+            guard generation == self.contextGeneration else { return }
             currentSystemPrompt = prompt
             // Fresh system prompt first, then replay the saved history on top so
             // ordering is [system, ...restored].
@@ -264,6 +283,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
             isRunning = true
             uiState = .listening
         }
+    }
+
+    /// Convenience overload that keeps the current scope.
+    public func restoreConversation(id: String, messages restored: [VoiceAgentSession.Message]) {
+        restoreConversation(id: id, messages: restored, scopedExperience: scopedExperience)
     }
 
     // MARK: - Public API
@@ -290,10 +314,15 @@ public final class VoiceAgentOrchestrator: Identifiable {
         errorMessage = nil
         uiState = .listening
         thinkingStep = NSLocalizedString("agent.step.listening", comment: "Listening…")
+        contextGeneration &+= 1
+        let generation = contextGeneration
         Task {
             let prompt = await buildSystemPrompt(experience: scopedExperience)
+            guard generation == self.contextGeneration else { return }
             currentSystemPrompt = prompt
-            session.seedSystem(prompt)
+            let priorTranscript = session.transcript
+            session.reseedSystem(prompt)
+            session.restoreHistory(priorTranscript)
             session.beginListening()
             isSeeded = true
         }
@@ -309,6 +338,12 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// Idempotent and safe to call before `start()`, during `.listening`,
     /// or after a turn has completed.
     public func rebindContext(_ experience: Experience?) {
+        // Preserve the prior scope's conversation in history before switching,
+        // and start a fresh record so the new scope can never overwrite it.
+        persistConversation()
+        persistedConversationId = UUID().uuidString
+        persistedConversationCreatedAt = nil
+
         // Cancel any in-flight turn so its streaming events don't bleed
         // into the new scope's session.
         turnTask?.cancel()
@@ -317,6 +352,9 @@ public final class VoiceAgentOrchestrator: Identifiable {
         didRequestImmediateSpeechStop = true
 
         scopedExperience = experience
+        // Readiness must flip BEFORE the async reseed so an immediate send is
+        // rejected as `.notReady` rather than accepted against the old scope.
+        isSeeded = false
         streamingContent = ""
         thinkingStep = ""
         isExecutingTool = false
@@ -331,8 +369,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
         // Re-seed the system prompt synchronously enough that callers can
         // observe `currentSystemPrompt` after this Task completes.
+        contextGeneration &+= 1
+        let generation = contextGeneration
         Task {
             let prompt = await buildSystemPrompt(experience: scopedExperience)
+            guard generation == self.contextGeneration else { return }
             currentSystemPrompt = prompt
             session.reseedSystem(prompt)
             isSeeded = true
@@ -391,11 +432,15 @@ public final class VoiceAgentOrchestrator: Identifiable {
     @discardableResult
     public func restartIfNeeded() -> Bool {
         if case .unconfigured = uiState { return false }
-        if isRunning && isSeeded && !session.isEnded { return true }
-        stop()
+        if isRunning && isSeeded {
+            if !session.isEnded { return true }
+            guard session.resumeAfterInterruption() else { return false }
+            errorMessage = nil
+            uiState = .listening
+            return true
+        }
         start()
-        if case .unconfigured = uiState { return false }
-        return isRunning
+        return isRunning && isSeeded
     }
 
     /// Terminate the session.
@@ -404,6 +449,10 @@ public final class VoiceAgentOrchestrator: Identifiable {
         didRequestImmediateSpeechStop = true
         turnTask?.cancel()
         turnTask = nil
+        // Invalidate any pending seed / turn completion so a cold start→stop
+        // cannot later resurrect `session.beginListening()` from an old Task.
+        contextGeneration &+= 1
+        currentTurnID = nil
         isRunning = false
         isSeeded = false
         streamingContent = ""
@@ -428,9 +477,22 @@ public final class VoiceAgentOrchestrator: Identifiable {
     /// after `stopSpeaking(at: .immediate)` has been invoked.
     private(set) var didRequestImmediateSpeechStop = false
 
-    /// Speak the agent's final text response via AVSpeechSynthesizer.
+    /// Stop any in-flight speech output immediately without touching the
+    /// conversation. Called when the chat panel collapses, the surface switches
+    /// away, or the app backgrounds — speech must never outlive the visible
+    /// feature lifecycle.
+    public func stopSpeaking() {
+        synthesizer.stopSpeaking(at: .immediate)
+        didRequestImmediateSpeechStop = true
+    }
+
+    /// Suppress speech while the chat is hidden or covered by a modal: a turn that
+    /// completes after the user left must not start talking off-screen.
+    public var isSpeechSuppressed: Bool = false
+
+    /// Speak a nonempty final response only while the visible chat permits speech.
     public func speakResponse(_ text: String) {
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty, !isSpeechSuppressed else { return }
         didRequestImmediateSpeechStop = false
         synthesizer.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
@@ -497,6 +559,27 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
     // MARK: - Turn loop
 
+    /// True while `turnID` is still the active turn for the current context.
+    /// Cancelled/superseded turns fail this and must not mutate the session.
+    private func isTurnCurrent(_ turnID: UUID, generation: Int) -> Bool {
+        !Task.isCancelled && turnID == currentTurnID && generation == contextGeneration
+    }
+
+    /// A timed-out tool chain must end visibly and remain retryable.
+    /// Called between tool rounds; it does not change provider request timeouts.
+    @discardableResult
+    func finishTurnIfTimedOut(elapsed: TimeInterval) -> Bool {
+        guard elapsed > VoiceAgentSession.turnTimeoutSeconds else { return false }
+        session.end(reason: .timeout)
+        thinkingStep = ""
+        streamingContent = ""
+        isExecutingTool = false
+        errorMessage = NSLocalizedString("chat.error.turnTimeout", comment: "Recoverable agent tool-chain timeout")
+        uiState = .error(.network)
+        persistConversation()
+        return true
+    }
+
     private func runTurn(transcript: String) {
         let safe = VoiceAgentOrchestrator.sanitizeUserInput(transcript)
         // Beta-P1-J: refresh the latest spatial-temporal context before each
@@ -531,6 +614,10 @@ public final class VoiceAgentOrchestrator: Identifiable {
         turnTask?.cancel()
         turnTask = nil
 
+        let turnID = UUID()
+        currentTurnID = turnID
+        let generation = contextGeneration
+
         turnTask = Task {
             // ① Planner dispatch — done BEFORE the streaming loop opens so
             // .clarify can short-circuit without a tool round-trip, and
@@ -540,12 +627,14 @@ public final class VoiceAgentOrchestrator: Identifiable {
             // any error it returns `.single` with a rationale telemetry can
             // watch. The turn always survives.
             let plan = await planner.plan(transcript: safe)
+            guard self.isTurnCurrent(turnID, generation: generation) else { return }
             currentTurnPlan = plan
 
             switch plan.intent {
             case .clarify:
                 // Zero-tool short-circuit: surface the clarifying question
                 // as the assistant's final text and close the turn.
+                guard self.isTurnCurrent(turnID, generation: generation) else { return }
                 let question = plan.clarifyQuestion ?? "Could you say a bit more about what you'd like?"
                 session.appendAssistantTurn(content: question, toolCalls: [])
                 uiState = .responding(question)
@@ -589,7 +678,6 @@ public final class VoiceAgentOrchestrator: Identifiable {
                     await sendForceText(prompt: "You are out of tool-call budget. Summarize what you know and give a direct answer in one or two sentences.")
                     return
                 }
-
                 // #84: check the turn timeout BEFORE consuming another
                 // streaming round + commit. Previously the check sat at the
                 // bottom of the loop AFTER persistConversation(), so a turn
@@ -599,23 +687,24 @@ public final class VoiceAgentOrchestrator: Identifiable {
                 // saved but next send fails with .sessionEnded. Moving the
                 // check here aborts before commit; the user sees a clean
                 // retry instead.
-                if Date().timeIntervalSince(turnStart) > VoiceAgentSession.turnTimeoutSeconds {
-                    session.end(reason: .timeout)
-                    thinkingStep = ""
-                    streamingContent = ""
-                    return
-                }
+                if finishTurnIfTimedOut(elapsed: Date().timeIntervalSince(turnStart)) { return }
 
+                guard self.isTurnCurrent(turnID, generation: generation) else { return }
                 guard await sendToAIStreaming() else { return }
+                // A canceled or superseded turn must not commit tool results or
+                // a reply into the new context.
+                guard self.isTurnCurrent(turnID, generation: generation) else { return }
 
                 if case .toolExecuting = session.state {
                     await executePendingTools()
+                    guard self.isTurnCurrent(turnID, generation: generation) else { return }
                     session.resumeThinkingAfterTools()
                     thinkingStep = NSLocalizedString("agent.step.thinking", comment: "Thinking…")
                     streamingContent = ""
                     uiState = .processing
                     shouldContinue = true
                 } else {
+                    guard self.isTurnCurrent(turnID, generation: generation) else { return }
                     // Read the final text from the committed assistant message,
                     // not from `streamingContent` — the latter is now cleared in
                     // sendToAIStreaming() once the text lands in `messages` (so it
@@ -681,6 +770,9 @@ public final class VoiceAgentOrchestrator: Identifiable {
             // full message always lands even if the last tokens were coalesced.
             publishStreaming(accumulatedContent, force: true)
 
+            // A canceled turn must not commit its partial reply into the session.
+            guard !Task.isCancelled else { return false }
+
             let sessionCalls = pendingToolCalls.map {
                 VoiceAgentSession.ToolCall(id: $0.id, name: $0.name, argumentsJSON: $0.args)
             }
@@ -695,6 +787,9 @@ public final class VoiceAgentOrchestrator: Identifiable {
             return true
 
         } catch {
+            // A cancellation is a deliberate stop — never fall back to a fresh
+            // network call for it.
+            if Task.isCancelled || error is CancellationError { return false }
             // Streaming failed — fall back to non-streaming path.
             return await sendToAIFallback()
         }
@@ -707,6 +802,9 @@ public final class VoiceAgentOrchestrator: Identifiable {
                 messages: session.messages,
                 tools: VoiceAgentToolRouter.allTools
             )
+            // The await is a suspension point: a canceled/superseded turn must
+            // not commit the response into the new session.
+            guard !Task.isCancelled else { return false }
             session.appendAssistantTurn(
                 content: response.content,
                 toolCalls: response.toolCalls
@@ -717,6 +815,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
             streamingContent = ""
             return true
         } catch {
+            if Task.isCancelled || error is CancellationError { return false }
             errorMessage = error.localizedDescription
             uiState = .error(.network)
             session.end(reason: .error)
@@ -732,11 +831,22 @@ public final class VoiceAgentOrchestrator: Identifiable {
         isExecutingTool = true
         let assistantId = lastMsg.id
         for call in lastMsg.toolCalls {
+            // Do not run or append tools for a canceled/superseded turn.
+            guard !Task.isCancelled, session.messages.contains(where: { $0.id == assistantId }) else {
+                // The replacement context owns its activity indicator now.
+                return
+            }
             let stepLabel = thinkingStepLabel(for: call.name)
             thinkingStep = stepLabel
             // Record what tool is running so the reasoning panel shows the steps.
             reasoningTrace.append(ReasoningStep(kind: .tool, label: stepLabel))
             let resultJSON = await toolRouter.execute(call)
+            // The tool await is a suspension point: a canceled turn must not
+            // append stale results into the new session.
+            guard !Task.isCancelled, session.messages.contains(where: { $0.id == assistantId }) else {
+                // The replacement context owns its activity indicator now.
+                return
+            }
             // Pull any inline-card effect (places / route) BEFORE the next call
             // resets it, and attach it to the assistant turn that requested it.
             if let effect = toolRouter.lastEffect {
@@ -923,6 +1033,18 @@ public final class VoiceAgentOrchestrator: Identifiable {
     }
     #endif
 
+    #if DEBUG
+    /// Test seam: force readiness without a live model so the scope/history
+    /// lifecycle guards can be exercised offline (no network).
+    func debug_setReadyForTesting(_ ready: Bool) {
+        isRunning = ready
+        isSeeded = ready
+    }
+
+    var debug_isSeeded: Bool { isSeeded }
+    var debug_contextGeneration: Int { contextGeneration }
+    #endif
+
     // MARK: - ④ Self-eval Rubric wiring
 
     /// Score the just-completed assistant turn and drop the report into
@@ -1011,8 +1133,11 @@ public final class VoiceAgentOrchestrator: Identifiable {
 
     /// Force one more non-tool response from the model (budget overflow path).
     private func sendForceText(prompt: String) async {
+        guard !Task.isCancelled else { return }
         session.appendSystemContinuation(prompt)
         _ = await sendToAIFallback()
+        // A canceled/superseded turn must not speak or close the new session.
+        guard !Task.isCancelled else { return }
         // Read the committed reply, not the live buffer (now cleared after commit).
         let finalText = session.lastAssistantText ?? ""
         uiState = .responding(finalText)
@@ -1044,6 +1169,8 @@ public final class VoiceAgentOrchestrator: Identifiable {
             return NSLocalizedString("agent.step.navigate", comment: "🗺 Opening navigation…")
         case "build_route":
             return NSLocalizedString("agent.step.buildRoute", comment: "🧭 Stringing a route together…")
+        case "compile_workday_route":
+            return NSLocalizedString("agent.step.compileWorkdayRoute", comment: "🗓 Compiling a workday route…")
         default:
             return NSLocalizedString("agent.step.executing", comment: "⚙️ Executing…")
         }
@@ -1128,9 +1255,10 @@ public final class VoiceAgentOrchestrator: Identifiable {
         6. search_places(query, latitude, longitude, radius_meters) — Search for a specific type or named place (e.g. "ramen", "7-Eleven", "rooftop bar"). Returns newly discovered experiences as cards. Like explore_nearby, it AUTOMATICALLY widens the radius when the first ring is empty, so don't give up early.
         7. navigate_to(experience_id) — Open the user's preferred map app with walking directions. ONLY when the user explicitly asks to go / get directions.
         8. build_route(experience_ids?) — String nearby places into ONE walkable route, ordered into a sensible walk, with a "why now" line reflecting the time, weather, and which places the user has or hasn't visited. The route appears as a card the user can adopt — it is NOT saved until they tap adopt. Use when the user asks you to plan a walk or string places together.
-        9. get_city_kit(city_code?, kinds?) — Return the 落地包 landing-kit essentials for the current city: connectivity, money, visa/tax, safety. Use for "how do I get online / get cash / visa rules / days left / emergency numbers". Visa day counts come from the user's own stored data — if `visa_setup_needed` is returned, tell them to set their entry date in the 落地包; NEVER invent day counts.
-        10. find_local_events(city_code?, within_days?, solo_score_min?, query?) — Find 在地 local happenings this week with a solo-friendliness score and a "good to go alone?" note. Results appear as tappable cards the user can jump to on the map. Use for "what's on this weekend / anything happening / something to do alone".
-        11. web_search(query, topic?, days?) — Search the LIVE web for current, real-world facts you don't reliably know or that change over time: opening hours, this week's exhibitions/events, recent news, prices, whether a place still exists, travel advisories. Returns real pages that appear to the user as source-link cards. ALWAYS prefer this over guessing from memory when a question is time-sensitive or about a specific real place/event, and CITE what you find ("according to …"). Use topic="news" (with optional days) for recent happenings. This does NOT touch the map — for on-map discovery use explore_nearby / search_places.
+        9. compile_workday_route(start_minute, end_minute, tasks, …) — Compile a timed work block from CURRENT VISIBLE EXPERIENCES using evidence, real travel matrices, opening windows, hard workability constraints, and per-task fallbacks. Use for deep work → meal → video call or any request where Wi-Fi, quietness, outlets, hours, budget, or exact times matter. Call explore_nearby / search_places first if the visible pool is thin. Never silently relax a hard constraint or edit returned times.
+        10. get_city_kit(city_code?, kinds?) — Return the 落地包 landing-kit essentials for the current city: connectivity, money, visa/tax, safety. Use for "how do I get online / get cash / visa rules / days left / emergency numbers". Visa day counts come from the user's own stored data — if `visa_setup_needed` is returned, tell them to set their entry date in the 落地包; NEVER invent day counts.
+        11. find_local_events(city_code?, within_days?, solo_score_min?, query?) — Find 在地 local happenings this week with a solo-friendliness score and a "good to go alone?" note. Results appear as tappable cards the user can jump to on the map. Use for "what's on this weekend / anything happening / something to do alone".
+        12. web_search(query, topic?, days?) — Search the LIVE web for current, real-world facts you don't reliably know or that change over time: opening hours, this week's exhibitions/events, recent news, prices, whether a place still exists, travel advisories. Returns real pages that appear to the user as source-link cards. ALWAYS prefer this over guessing from memory when a question is time-sensitive or about a specific real place/event, and CITE what you find ("according to …"). Use topic="news" (with optional days) for recent happenings. This does NOT touch the map — for on-map discovery use explore_nearby / search_places.
 
         PLAN BLOCKS (① plan-execute-reflect):
         - Some turns will be preceded by a `<plan>...</plan>` system block containing a JSON plan with an ordered `steps` array.
@@ -1154,6 +1282,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         - Keep replies under 2 sentences unless the user asks for detail.
         - NEVER auto-navigate or auto-open a place — presenting is enough. When recommending a place, call show_details on your top pick so the user gets a tappable card; let THEM decide to open it. Only call navigate_to when the user explicitly asks to go there.
         - When the user wants a walk, an itinerary, or to "string these together", call build_route and let them adopt the proposed route.
+        - When the user specifies work tasks, exact times, opening hours, budget, Wi-Fi, noise, outlets, or a video call, use compile_workday_route instead of build_route. Its schedule is authoritative: explain it, do not rewrite it. If it is unsatisfiable, preserve hard constraints and ask before relaxing them.
         - Personalize using the CONTEXT SNAPSHOT (time, weather, location, visited history) — prefer places that fit the current moment and that the user hasn't seen yet, and say why in one short phrase.
         - When the user wants somewhere specific, use filter_by_category or search_places first.
         - NEVER reply "there's nothing nearby" off a single empty search. explore_nearby / search_places already auto-widen the radius for you. Only acknowledge an empty area if the result has `search_exhausted: true` (the ladder reached its 100 km limit and still found nothing); otherwise work with what the search surfaced.

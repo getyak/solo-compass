@@ -551,7 +551,7 @@ struct NearbyExperienceRow: View {
                 .font(.caption2.weight(.medium))
                 .lineLimit(1)
         }
-        .foregroundStyle(CT.fgMuted)
+        .foregroundStyle(colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted)
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
         .background(Capsule().fill(CT.surfaceSunken))
@@ -701,7 +701,7 @@ struct NearbyExperienceRow: View {
         var label = experience.title
         label += ", Solo \(String(format: "%.1f", experience.soloScore.overall))"
         if let meters = distanceMeters {
-            if isFarAway {
+            if isFarAway, let cityDisplayName {
                 label += ", " + String(
                     format: NSLocalizedString("nearby.distance.inCity.a11y", comment: "VoiceOver: located in city"),
                     cityDisplayName
@@ -740,8 +740,9 @@ struct NearbyExperienceRow: View {
         return m >= Self.farAwayThreshold
     }
 
-    private var cityDisplayName: String {
-        Self.cityNames[experience.location.cityCode] ?? experience.location.cityCode
+    private var cityDisplayName: String? {
+        // Provider/grid identifiers are storage keys, not traveler-facing names.
+        Self.cityNames[experience.location.cityCode]
     }
 
     private static let cityNames: [String: String] = [
@@ -751,7 +752,7 @@ struct NearbyExperienceRow: View {
     ]
 
     private func formattedDistance(_ meters: Double) -> String {
-        if meters >= Self.farAwayThreshold {
+        if meters >= Self.farAwayThreshold, let cityDisplayName {
             return String(
                 format: NSLocalizedString("nearby.distance.inCity", comment: "Distance replaced by city name when > 500km"),
                 cityDisplayName

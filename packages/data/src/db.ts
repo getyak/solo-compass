@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Experience, ExperienceId } from "@solo-compass/core";
+import type { JsonValue } from "./evidence";
 
 // ─── Database row shapes ────────────────────────────────────────────────────────
 // These mirror the SQL schema, not the TS domain types.
@@ -64,6 +65,204 @@ export interface TrafficPingRow {
   pinged_at: string;
 }
 
+export type PlaceOperatingStatus =
+  | "unknown"
+  | "active"
+  | "temporarily_closed"
+  | "permanently_closed";
+export type ArtifactRetentionPolicy =
+  | "metadata_only"
+  | "derived_only"
+  | "cacheable_content"
+  | "first_party";
+export type RefreshJobStatus =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "dead_letter"
+  | "cancelled";
+export type WorkSessionOutcome = "completed" | "partially_completed" | "abandoned";
+export type WorkSessionFailureReason =
+  | "place_closed"
+  | "no_seat"
+  | "wifi_unreliable"
+  | "too_noisy"
+  | "no_power"
+  | "video_call_not_allowed"
+  | "long_stay_pressure"
+  | "minimum_spend"
+  | "other";
+export type RouteCompilationStatus = "solved" | "unsatisfiable";
+
+export interface PlaceRow {
+  [key: string]: unknown;
+  id: string;
+  canonical_name: string;
+  basic_category: string | null;
+  location: { type: "Point"; coordinates: [number, number] };
+  operating_status: PlaceOperatingStatus;
+  identity_confidence: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlaceExternalRefRow {
+  [key: string]: unknown;
+  id: string;
+  place_id: string;
+  provider: string;
+  external_id: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  retired_at: string | null;
+  metadata: JsonValue | null;
+}
+
+export interface SourceArtifactRow {
+  [key: string]: unknown;
+  id: string;
+  provider: string;
+  external_ref: string;
+  source_url: string | null;
+  content_hash: string;
+  license_code: string | null;
+  retention_policy: ArtifactRetentionPolicy;
+  raw_storage_key: string | null;
+  retrieved_at: string;
+  source_observed_at: string | null;
+  expires_at: string | null;
+  metadata: JsonValue | null;
+  created_at: string;
+}
+
+export interface PlaceObservationRow {
+  [key: string]: unknown;
+  id: string;
+  place_id: string;
+  artifact_id: string | null;
+  feature_key: string;
+  state: "observed" | "reported_unknown" | "not_applicable";
+  value: JsonValue | null;
+  confidence: number;
+  source_weight: number;
+  independence_key: string;
+  time_scope: JsonValue | null;
+  observed_at: string;
+  expires_at: string | null;
+  extractor_version: string;
+  dedupe_key: string;
+  created_at: string;
+}
+
+export interface ResolvedPlaceFeatureRow {
+  [key: string]: unknown;
+  place_id: string;
+  feature_key: string;
+  value: JsonValue | null;
+  status: "resolved" | "unknown" | "conflicted" | "stale";
+  confidence: number;
+  latest_observed_at: string | null;
+  fresh_until: string | null;
+  supporting_observation_ids: string[];
+  conflicting_observation_ids: string[];
+  conflict_details: JsonValue | null;
+  resolver_version: string;
+  resolution_fingerprint: string;
+  resolved_at: string;
+}
+
+export interface ExperiencePlaceLinkRow {
+  [key: string]: unknown;
+  experience_id: string;
+  place_id: string;
+  confidence: number;
+  method: string;
+  linked_at: string;
+}
+
+export interface RefreshJobRow {
+  [key: string]: unknown;
+  id: string;
+  place_id: string | null;
+  feature_keys: string[];
+  query: JsonValue | null;
+  reason:
+    | "coverage_gap"
+    | "soft_stale"
+    | "hard_constraint"
+    | "user_report"
+    | "source_release"
+    | "manual";
+  urgency: "background" | "interactive";
+  priority: number;
+  provider_hint: string | null;
+  budget_class: string;
+  idempotency_key: string;
+  status: RefreshJobStatus;
+  demand_score: number;
+  decision_impact: number;
+  uncertainty: number;
+  staleness: number;
+  estimated_cost: number;
+  not_before: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
+  lease_expires_at: string | null;
+  attempts: number;
+  max_attempts: number;
+  last_error: string | null;
+  result: JsonValue | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+export interface WorkSessionRow {
+  [key: string]: unknown;
+  id: string;
+  user_id: string;
+  experience_id: string;
+  place_id: string;
+  planned_task_kind: string;
+  started_at: string;
+  ended_at: string;
+  outcome: WorkSessionOutcome;
+  failure_reason: WorkSessionFailureReason | null;
+  place_was_open: boolean | null;
+  wifi_reliability: number | null;
+  noise_level: number | null;
+  power_available: boolean | null;
+  video_call_worked: boolean | null;
+  long_stay_accepted: boolean | null;
+  minimum_spend_amount: number | null;
+  minimum_spend_currency: string | null;
+  idempotency_key: string;
+  created_at: string;
+}
+
+export interface RouteCompilationRow {
+  [key: string]: unknown;
+  id: string;
+  user_id: string;
+  cache_key: string;
+  request_fingerprint: string;
+  input_fingerprint: string;
+  status: RouteCompilationStatus;
+  plan_payload: JsonValue;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RouteCompileQuotaRow {
+  [key: string]: unknown;
+  user_id: string;
+  bucket_start: string;
+  attempts: number;
+  updated_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -97,10 +296,157 @@ export interface Database {
         Update: Partial<TrafficPingRow>;
         Relationships: never[];
       };
+      places: {
+        Row: PlaceRow;
+        Insert: Omit<PlaceRow, "id" | "created_at" | "updated_at" | "location"> & {
+          id?: string;
+          location: string | PlaceRow["location"];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<PlaceRow, "location">> & {
+          location?: string | PlaceRow["location"];
+        };
+        Relationships: never[];
+      };
+      place_external_refs: {
+        Row: PlaceExternalRefRow;
+        Insert: Omit<
+          PlaceExternalRefRow,
+          "id" | "first_seen_at" | "last_seen_at" | "retired_at"
+        > & {
+          id?: string;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          retired_at?: string | null;
+        };
+        Update: Partial<PlaceExternalRefRow>;
+        Relationships: never[];
+      };
+      source_artifacts: {
+        Row: SourceArtifactRow;
+        Insert: Omit<SourceArtifactRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<SourceArtifactRow>;
+        Relationships: never[];
+      };
+      place_observations: {
+        Row: PlaceObservationRow;
+        Insert: Omit<PlaceObservationRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<PlaceObservationRow>;
+        Relationships: never[];
+      };
+      resolved_place_features: {
+        Row: ResolvedPlaceFeatureRow;
+        Insert: ResolvedPlaceFeatureRow;
+        Update: Partial<ResolvedPlaceFeatureRow>;
+        Relationships: never[];
+      };
+      experience_place_links: {
+        Row: ExperiencePlaceLinkRow;
+        Insert: Omit<ExperiencePlaceLinkRow, "linked_at"> & { linked_at?: string };
+        Update: Partial<ExperiencePlaceLinkRow>;
+        Relationships: never[];
+      };
+      refresh_jobs: {
+        Row: RefreshJobRow;
+        Insert: Omit<
+          RefreshJobRow,
+          | "id"
+          | "status"
+          | "claimed_by"
+          | "claimed_at"
+          | "lease_expires_at"
+          | "attempts"
+          | "last_error"
+          | "result"
+          | "created_at"
+          | "updated_at"
+          | "completed_at"
+        > & {
+          id?: string;
+          status?: RefreshJobStatus;
+          claimed_by?: string | null;
+          claimed_at?: string | null;
+          lease_expires_at?: string | null;
+          attempts?: number;
+          last_error?: string | null;
+          result?: JsonValue | null;
+          created_at?: string;
+          updated_at?: string;
+          completed_at?: string | null;
+        };
+        Update: Partial<RefreshJobRow>;
+        Relationships: never[];
+      };
+      work_sessions: {
+        Row: WorkSessionRow;
+        Insert: Omit<WorkSessionRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: never[];
+      };
+      route_compilations: {
+        Row: RouteCompilationRow;
+        Insert: Omit<RouteCompilationRow, "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Pick<RouteCompilationRow, "status" | "plan_payload" | "expires_at" | "updated_at">
+        >;
+        Relationships: never[];
+      };
+      route_compile_quotas: {
+        Row: RouteCompileQuotaRow;
+        Insert: Omit<RouteCompileQuotaRow, "attempts" | "updated_at"> & {
+          attempts?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Pick<RouteCompileQuotaRow, "attempts" | "updated_at">>;
+        Relationships: never[];
+      };
     };
     // Required by @supabase/postgrest-js GenericSchema — keep empty if unused.
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      upsert_place_identity: {
+        Args: {
+          p_provider: string;
+          p_external_id: string;
+          p_canonical_name: string;
+          p_longitude: number;
+          p_latitude: number;
+          p_basic_category?: string | null;
+          p_identity_confidence?: number;
+          p_metadata?: JsonValue | null;
+        };
+        Returns: PlaceRow;
+      };
+      claim_refresh_jobs: {
+        Args: {
+          p_worker: string;
+          p_batch_size?: number;
+          p_lease_seconds?: number;
+        };
+        Returns: RefreshJobRow[];
+      };
+      consume_route_compile_quota: {
+        Args: {
+          p_user_id: string;
+          p_limit?: number;
+        };
+        Returns: boolean;
+      };
+    };
   };
 }
 

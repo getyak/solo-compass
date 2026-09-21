@@ -11,7 +11,7 @@ Copy from `.env.example` at the repo root and fill in real values:
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_ANON_KEY=eyJ...           # public, ships with iOS / web bundles
 SUPABASE_SERVICE_ROLE_KEY=eyJ...   # server-only, NEVER ships to clients
-ANTHROPIC_API_KEY=sk-ant-...       # used only by Edge Functions (Epic E US-030)
+DEEPSEEK_API_KEY=sk-...            # used by Edge Functions + server-side AI routes
 ```
 
 The anon key is what iOS sends as the `apikey` header. The service role
@@ -139,7 +139,7 @@ Live in `infra/supabase/functions/<name>/index.ts`. Deploy with:
 
 ```bash
 supabase functions deploy <name>
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+supabase secrets set DEEPSEEK_API_KEY=sk-...
 ```
 
 Deployed functions:

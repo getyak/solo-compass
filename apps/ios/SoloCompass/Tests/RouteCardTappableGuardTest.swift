@@ -79,8 +79,11 @@ final class RouteCardTappableGuardTest: XCTestCase {
     /// Invariant 2: the Routes section's Button hosting RouteCard must use
     /// `PressableButtonStyle` (press feedback via the system tap recognizer), not
     /// `.plain` — so the tap opens the route detail AND the card still depresses.
+    ///
+    /// `RoutesSection` was split out of `BottomInfoSheet.swift` into its own
+    /// `Views/Map/RoutesSectionView.swift`, so the scan now targets that file.
     func testRoutesSectionButtonUsesPressableButtonStyle() throws {
-        let sheet = try source("Views/Map/BottomInfoSheet.swift")
+        let sheet = try source("Views/Map/RoutesSectionView.swift")
         guard let sectionRange = sheet.range(of: "struct RoutesSection: View {") else {
             XCTFail("Could not locate `struct RoutesSection` to scan")
             return

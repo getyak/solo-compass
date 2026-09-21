@@ -43,7 +43,7 @@ public struct OmenCardView: View {
 
             Divider().padding(.vertical, 4)
 
-            Text("Micro-task")
+            Text(NSLocalizedString("omen.microTask", comment: "City omen micro-task label"))
                 .font(.caption.weight(.medium))
                 .foregroundColor(CT.fgMuted)
             Text(data.microTask)
@@ -69,10 +69,10 @@ public struct OmenCardView: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 32))
                 .foregroundColor(CT.omenGold)
-            Text("Kept.")
+            Text(NSLocalizedString("omen.kept", comment: "Completed city omen confirmation"))
                 .font(.title3.weight(.semibold))
                 .foregroundColor(CT.fgPrimary)
-            Text("Tomorrow's card is being written.")
+            Text(NSLocalizedString("omen.tomorrow", comment: "Next city omen status"))
                 .font(.footnote)
                 .foregroundColor(CT.fgMuted)
         }

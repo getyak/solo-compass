@@ -106,7 +106,12 @@ struct ChatExperienceCard: View {
         .accessibilityLabel(Text(NSLocalizedString("chat.card.expand.a11y", comment: "Show more about this place")))
     }
 
-    /// One line of prose + a Solo-score chip, revealed under the row.
+    /// One line of prose + a Solo-score chip, revealed under the row. A1's
+    /// editorial hierarchy: what you'd do, why it fits, and the real evidence
+    /// behind it (confidence level + source count + best-time window) — all
+    /// from fields the Experience already carries. Place results are never
+    /// numbered, because a numbered list would imply a route order that does
+    /// not exist here; only a real route proposal gets an ordered strip.
     private var expandedDetail: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(experience.oneLiner)
@@ -115,6 +120,16 @@ struct ChatExperienceCard: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if !experience.whyItMatters.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(experience.whyItMatters)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             HStack(spacing: 6) {
                 Image(systemName: "person.fill")
                     .font(.system(size: 9, weight: .semibold))
@@ -125,9 +140,47 @@ struct ChatExperienceCard: View {
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
             .background(Capsule().fill(CT.successSoft))
+
+            HStack(spacing: 8) {
+                evidenceChip
+                if let window = experience.bestTimes.first(where: { $0.dayOfWeek == nil && $0.season == nil }) {
+                    bestTimeChip(window)
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 47) // align under the title (disc 36 + spacing 11)
+    }
+
+    /// Human-readable confidence/health language plus the real source count —
+    /// never an unexplained internal "L3" code.
+    private var evidenceChip: some View {
+        Text(String(
+            format: NSLocalizedString("chat.card.evidence", comment: "Confidence health and source count"),
+            experience.confidence.health.localizedDescription,
+            experience.sources.count
+        ))
+        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+        .foregroundStyle(CT.fgMuted)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(CT.surfaceSunken))
+    }
+
+    /// The first unrestricted best-time window, e.g. "Best 17:00–19:00". Shown
+    /// only when the Experience carries a window with no weekday/season
+    /// restriction, so the chip never implies a verified general opening time.
+    private func bestTimeChip(_ window: TimeWindow) -> some View {
+        Text(String(
+            format: NSLocalizedString("chat.card.bestTime", comment: "Best time window"),
+            window.startHour,
+            window.endHour
+        ))
+        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+        .foregroundStyle(CT.sunGoldDeep)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(CT.sunGoldSoft))
     }
 
     /// Mono meta line: "<category> · Solo 7.5" — grounded only in data this card
@@ -172,6 +225,8 @@ struct ChatRouteProposalCard: View {
         route.verification.status == .verified && route.verification.walkedByCount > 0
     }
 
+    private var isCompiledWorkday: Bool { route.compiledPlan != nil }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             tagRow
@@ -182,6 +237,9 @@ struct ChatRouteProposalCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             if !route.reasonNow.isNilOrEmpty {
                 reasonNowBanner
+            }
+            if let plan = route.compiledPlan {
+                compiledTimeline(plan)
             }
             beadStrip
             actions
@@ -209,7 +267,9 @@ struct ChatRouteProposalCard: View {
             Image(systemName: "flag.fill")
                 .font(.system(size: 9, weight: .bold))
             Text(NSLocalizedString(
-                isVerified ? "chat.route.tag.verified" : "chat.route.tag.draft",
+                isCompiledWorkday
+                    ? "chat.route.tag.compiled"
+                    : (isVerified ? "chat.route.tag.verified" : "chat.route.tag.draft"),
                 comment: "Route card tag"
             ))
             .font(.system(size: 9.5, weight: .bold, design: .rounded))
@@ -244,6 +304,56 @@ struct ChatRouteProposalCard: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).fill(CT.sunGoldSoft))
+    }
+
+    private func compiledTimeline(_ plan: CompiledWorkdayPlan) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock.badge.checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                Text(plan.localDate)
+                    .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+                Spacer(minLength: 4)
+                Text(NSLocalizedString(
+                    plan.evidenceCoverage == "fresh"
+                        ? "chat.route.evidence.fresh"
+                        : "chat.route.evidence.partial",
+                    comment: "Workday evidence coverage"
+                ))
+                .font(.system(size: 9.5, weight: .semibold))
+            }
+            .foregroundStyle(plan.evidenceCoverage == "fresh" ? CT.verifiedGreen : CT.sunGoldDeep)
+
+            ForEach(Array(plan.stops.prefix(3))) { stop in
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text("\(Self.minuteLabel(stop.startMinute))–\(Self.minuteLabel(stop.endMinute))")
+                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                        .foregroundStyle(CT.fgMuted)
+                    Text(stop.title)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+            }
+            if !plan.fallbacks.isEmpty {
+                Label(
+                    String(
+                        format: NSLocalizedString("chat.route.fallbacks", comment: "%d fallbacks"),
+                        plan.fallbacks.count
+                    ),
+                    systemImage: "arrow.triangle.branch"
+                )
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(CT.accent)
+            }
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.sm, style: .continuous)
+                .fill(CT.surfaceSunken)
+        )
     }
 
     /// Color-bead strip: each stop is a small category disc, joined by hairline
@@ -336,6 +446,10 @@ struct ChatRouteProposalCard: View {
 
     private var cardFill: Color {
         colorScheme == .dark ? Color(.secondarySystemBackground) : CT.surfaceWhite
+    }
+
+    private static func minuteLabel(_ minute: Int) -> String {
+        String(format: "%02d:%02d", max(0, minute) / 60, max(0, minute) % 60)
     }
 }
 
