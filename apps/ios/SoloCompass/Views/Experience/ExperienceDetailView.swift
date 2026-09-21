@@ -610,7 +610,7 @@ public struct ExperienceDetailView: View {
             if locationService.currentLocation != nil,
                let coord = viewModel.experience.location.clCoordinate {
                 let meters = locationService.distance(to: coord)
-                if meters < .greatestFiniteMagnitude {
+                if meters.isFinite && meters < 500_000 {
                     // Walk minutes are only meaningful at a walking scale. For a
                     // remote city (opened while the device is in another
                     // country) we show the honest straight-line distance only —
@@ -1640,18 +1640,24 @@ public struct ExperienceDetailView: View {
         systemName: String,
         isOn: Bool = false,
         accessibilityLabel: String,
+        visibleLabel: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 18, weight: .regular))
-                .foregroundStyle(isOn ? CT.accent : CT.fgMuted)
-                .frame(width: 46, height: 46)
-                .background(Circle().fill(isOn ? CT.accentSoft : CT.surfaceWhite))
-                .overlay(Circle().strokeBorder(isOn ? CT.accentBorder : CT.borderSubtle, lineWidth: 0.5))
+            VStack(spacing: 4) {
+                Image(systemName: systemName)
+                    .font(.system(size: 18, weight: .regular))
+                if let visibleLabel {
+                    Text(visibleLabel).font(.caption2).lineLimit(2)
+                }
+            }
+            .foregroundStyle(isOn ? CT.accent : Color.secondary)
+            .frame(minWidth: 48, minHeight: 48)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(accessibilityLabel))
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     private var actionBar: some View {
@@ -1663,7 +1669,8 @@ public struct ExperienceDetailView: View {
                 isOn: viewModel.isFavorited,
                 accessibilityLabel: viewModel.isFavorited
                     ? NSLocalizedString("action.unfavorite", comment: "Remove favorite")
-                    : NSLocalizedString("action.favorite", comment: "Add favorite")
+                    : NSLocalizedString("action.favorite", comment: "Add favorite"),
+                visibleLabel: NSLocalizedString(viewModel.isFavorited ? "ux.saved" : "ux.save", comment: "Save action")
             ) {
                 let willFavorite = !viewModel.isFavorited
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -1678,21 +1685,13 @@ public struct ExperienceDetailView: View {
             }
             .overlay { HeartBurstView(trigger: heartBurstTrigger) }
 
-            // Add to itinerary
-            dockIconButton(
-                systemName: "calendar.badge.plus",
-                accessibilityLabel: NSLocalizedString("action.addToItinerary", comment: "Add to itinerary")
-            ) {
-                Haptics.impact(.light)
-                isShowingAddToItinerary = true
-            }
-
             // Ask Solo — opens the chat scoped to this place (or paywall for free
             // tier). Wired only when the parent supplied `onAskSolo`.
             if onAskSolo != nil {
                 dockIconButton(
                     systemName: "bubble.left.and.text.bubble.right",
-                    accessibilityLabel: NSLocalizedString("experience.askSolo.cta", comment: "Ask Solo")
+                    accessibilityLabel: NSLocalizedString("experience.askSolo.cta", comment: "Ask Solo"),
+                    visibleLabel: NSLocalizedString("workspace.dock.ask", comment: "Ask")
                 ) {
                     Haptics.impact(.light)
                     switch Self.askSoloAction(canAskSolo: viewModel.canAskSolo) {
@@ -1703,8 +1702,12 @@ public struct ExperienceDetailView: View {
                 .accessibilityIdentifier("experience.askSolo.cta")
             }
 
-            // Mark done — primary amber pill, turns green when completed.
-            Button {
+            dockIconButton(
+                systemName: viewModel.isCompleted ? "checkmark.circle.fill" : "checkmark.circle",
+                isOn: viewModel.isCompleted,
+                accessibilityLabel: NSLocalizedString(viewModel.isCompleted ? "action.completed" : "action.markDone", comment: "Visit status"),
+                visibleLabel: NSLocalizedString("ux.visited", comment: "Visited")
+            ) {
                 let wasCompleted = viewModel.isCompleted
                 viewModel.toggleComplete()
                 if !wasCompleted {
@@ -1715,28 +1718,22 @@ public struct ExperienceDetailView: View {
                 } else {
                     Haptics.impact(.light)
                 }
+            }
+
+            Button {
+                Haptics.impact(.light)
+                isShowingAddToItinerary = true
             } label: {
-                HStack(spacing: 7) {
-                    Image(systemName: viewModel.isCompleted ? "checkmark.circle.fill" : "checkmark")
-                        .font(.system(size: 15, weight: .semibold))
-                        .symbolEffect(.bounce, value: viewModel.isCompleted)
-                    Text(viewModel.isCompleted
-                        ? NSLocalizedString("action.completed", comment: "")
-                        : NSLocalizedString("action.markDone", comment: ""))
-                        .ctBody(14.5, .semibold)
-                }
-                .foregroundStyle(viewModel.isCompleted ? CT.successText : .white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
-                .background(
-                    Capsule().fill(viewModel.isCompleted ? CT.successSoft : CT.accent)
-                )
+                Label(NSLocalizedString("action.addToItinerary", comment: "Add to itinerary"), systemImage: "calendar.badge.plus")
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .padding(.horizontal, 8)
+                    .background(CT.accent, in: RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
-            .padding(.leading, 3)
-            .accessibilityLabel(Text(viewModel.isCompleted
-                ? NSLocalizedString("action.completed", comment: "Marked as completed")
-                : NSLocalizedString("action.markDone", comment: "Mark as done")))
+            .accessibilityIdentifier("experience.addToItinerary")
         }
         .padding(.horizontal, 16)
         .padding(.top, 11)
@@ -1745,13 +1742,13 @@ public struct ExperienceDetailView: View {
         // background ZStack below already ignoresSafeArea(.bottom), so the
         // bar's blur extends to the screen edge; this extra inner padding is
         // what gives the row breathing room above the indicator strip.
-        .padding(.bottom, 26)
+        .padding(.bottom, 10)
         .background(
             // Opaque warm bar: reserves its own space via safeAreaInset (no manual
             // bottom padding), so content never scrolls behind it. Warm-white blur
             // + hairline top keeps it in the amber system and legible over content.
             ZStack(alignment: .top) {
-                CT.bgWarm.opacity(0.94)
+                CT.cardAdaptive.opacity(0.97)
                     .background(.regularMaterial)
                     .ignoresSafeArea(edges: .bottom)
                 Rectangle().fill(CT.borderSubtle).frame(height: 0.5)

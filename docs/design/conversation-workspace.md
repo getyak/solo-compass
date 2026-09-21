@@ -2,7 +2,9 @@
 
 Status: implemented in the iOS app (SwiftUI). Approved 2026-09-20; supersedes
 the older map-first / no-tabs guidance in `docs/PRODUCT_BRIEF.md` where they
-disagree. Native validation and remaining limits are recorded below.
+disagree. Native validation and remaining limits are recorded below. On 2026-09-21 the user
+approved map-first launch, retained favorites/itinerary shortcuts, and secondary
+travel features under the profile (A/A/A); continuous workspace behavior stays.
 
 ## What changed
 
@@ -37,7 +39,8 @@ via the avatar.
 
 | State         | Surface     | Detent          | Panel height            |
 | ------------- | ----------- | --------------- | ----------------------- |
-| Default       | `.ask`      | `.conversation` | 78% of the container    |
+| Default / Map | `.map`      | `.collapsed`    | 136pt handle + dock bar |
+| Opened chat   | `.ask`      | `.conversation` | 78% of the container    |
 | Expanded chat | `.ask`      | `.expanded`     | 95%                     |
 | Map           | `.map`      | `.collapsed`    | 136pt handle + dock bar |
 | Discovery     | `.discover` | `.expanded`     | 95%                     |

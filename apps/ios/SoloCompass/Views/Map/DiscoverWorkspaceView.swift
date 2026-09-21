@@ -40,6 +40,9 @@ struct DiscoverWorkspaceView: View {
     /// store, visa math and work-ready counts). Keeping it here preserves the
     /// feature the legacy bottom sheet's peek header used to expose.
     var baseCard: AnyView? = nil
+    var webSearchOutcome: POISearchOutcome? = nil
+    var onOpenFavorites: (() -> Void)? = nil
+    var onOpenItineraries: (() -> Void)? = nil
 
     @State private var sortMode: SortMode = .smart
     @Environment(\.colorScheme) private var colorScheme
@@ -48,6 +51,27 @@ struct DiscoverWorkspaceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 header
+                if onOpenFavorites != nil || onOpenItineraries != nil {
+                    HStack(spacing: 12) {
+                        if let onOpenFavorites {
+                            Button(action: onOpenFavorites) {
+                                Label(NSLocalizedString("ux.favorites", comment: "Saved experiences"), systemImage: "heart")
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                            }.accessibilityIdentifier("discover.favorites")
+                        }
+                        if let onOpenItineraries {
+                            Button(action: onOpenItineraries) {
+                                Label(NSLocalizedString("ux.itineraries", comment: "My trips"), systemImage: "calendar")
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                            }.accessibilityIdentifier("discover.itineraries")
+                        }
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .buttonStyle(.bordered)
+                    .tint(CT.accent)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+                }
 
                 if isOffline {
                     InlineBanner(
@@ -66,12 +90,6 @@ struct DiscoverWorkspaceView: View {
                     )
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
-                }
-
-                if let baseCard {
-                    baseCard
-                        .padding(.horizontal, 16)
-                        .padding(.top, 6)
                 }
 
                 if isLoading && experiences.isEmpty {
@@ -102,9 +120,11 @@ struct DiscoverWorkspaceView: View {
                     referenceCoordinate: referenceCoordinate,
                     sortMode: sortMode,
                     showsSectionDivider: Self.showsRoutes(isNowFilter: isNowFilter),
+                    sectionTitleKey: "ux.discover.experiences",
                     isLoading: isLoading,
                     isNowFilter: isNowFilter,
                     isSearchingWeb: isSearchingWeb,
+                    webSearchOutcome: webSearchOutcome,
                     onExploreElsewhere: onExploreElsewhere,
                     suggestedCityName: suggestedCityName,
                     onSwitchToSuggestedCity: onSwitchToSuggestedCity,
@@ -113,6 +133,12 @@ struct DiscoverWorkspaceView: View {
                     onLongPressExperience: onLongPressExperience,
                     onAskSoloExperience: onAskSoloExperience
                 )
+
+                if let baseCard {
+                    baseCard
+                        .padding(.horizontal, 16)
+                        .padding(.top, 6)
+                }
 
                 Color.clear.frame(height: 12)
             }

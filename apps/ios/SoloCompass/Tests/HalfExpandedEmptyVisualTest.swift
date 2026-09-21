@@ -5,7 +5,7 @@ import SwiftUI
 /// Visual snapshot of the half-detent empty state — confirms the breathing
 /// Solo orb + serif invitation + moment chip + horizontal pills + centered
 /// push-to-talk mic compose into a calm "companion is waiting" doorway, not
-/// a settings panel. Writes PNGs to /tmp for eyeball checks.
+/// a settings panel. Stores images in the scoped test result bundle for visual inspection.
 @MainActor
 final class HalfExpandedEmptyVisualTest: XCTestCase {
 
@@ -13,10 +13,10 @@ final class HalfExpandedEmptyVisualTest: XCTestCase {
         let img = try XCTUnwrap(image, "render produced no image for \(name)")
         XCTAssertGreaterThan(img.size.width, 0)
         XCTAssertGreaterThan(img.size.height, 0)
-        if let data = img.pngData() {
-            let url = URL(fileURLWithPath: "/tmp/\(name).png")
-            try? data.write(to: url)
-        }
+        let attachment = XCTAttachment(image: img)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     private func render<V: View>(_ view: V, scheme: ColorScheme = .light) -> UIImage? {

@@ -362,6 +362,12 @@ struct CompassMapContentView: View {
     /// draft, scroll intent and the explicit-ask channel. One instance for the
     /// root's lifetime so surface switches never drop work.
     @State private var workspace = ConversationWorkspaceState()
+    @State private var mapLibraryRowHeight: CGFloat = 44
+
+    private var mapTransientTopInset: CGFloat {
+        MapOverlayMetrics.filterBarTopOffset + MapOverlayMetrics.filterBarHeight
+            + (workspace.surface == .map ? 8 + mapLibraryRowHeight : 0) + 8
+    }
     /// Height of the map's safe-area container, measured once per layout via a
     /// background GeometryReader (never per drag frame) so the panel detents
     /// are honest fractions of the real screen.
@@ -1370,7 +1376,19 @@ struct CompassMapContentView: View {
                     onDismiss: { verifyTarget = nil }
                 )
             }
-            .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
+            .sheet(isPresented: $isShowingFavorites, onDismiss: {
+                guard let selection = pendingFavoriteSelection else { return }
+                pendingFavoriteSelection = nil
+                if selection.preview {
+                    workspace.selectSurface(.map)
+                    viewModel.selectExperience(selection.experience)
+                } else {
+                    viewModel.openExperienceDetail(selection.experience)
+                }
+            }) { favoritesSheetContent }
+            .sheet(isPresented: $isShowingItineraries) {
+                ItineraryListView(sourceCityCode: viewModel.selectedCity, onClose: { isShowingItineraries = false })
+            }
             // Bind the chat sheet to the orchestrator itself instead of a
             // separate Bool. With `.sheet(isPresented:)` the content closure
             // could be evaluated in the same render pass that flips the flag —
@@ -1537,8 +1555,11 @@ struct CompassMapContentView: View {
                     // Full map chrome (filter rail, map actions, banners) only on
                     // the map surface; the chat/discovery surfaces keep just the
                     // city pill + avatar.
-                    showsMapChrome: workspace.surface == .map
+                    showsMapChrome: workspace.surface == .map,
+                    onOpenFavorites: { isShowingFavorites = true },
+                    onOpenItineraries: { isShowingItineraries = true }
                 )
+                .onPreferenceChange(MapLibraryRowHeightKey.self) { mapLibraryRowHeight = $0 }
                 .accessibilityHidden(workspace.detent == .expanded)
                 .allowsHitTesting(workspace.detent != .expanded)
 
@@ -1807,8 +1828,7 @@ struct CompassMapContentView: View {
                             }
                         )
                         .padding(.horizontal, 16)
-                        .padding(.top, MapOverlayMetrics.filterBarTopOffset
-                            + MapOverlayMetrics.filterBarHeight + 8)
+                        .padding(.top, mapTransientTopInset)
                         Spacer()
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -1832,8 +1852,7 @@ struct CompassMapContentView: View {
                         clearStalePlaceScopeForGlobalAsk()
                     })
                     .padding(.horizontal, 16)
-                    .padding(.top, MapOverlayMetrics.filterBarTopOffset
-                        + MapOverlayMetrics.filterBarHeight + 8)
+                    .padding(.top, mapTransientTopInset)
                     Spacer()
                 }
                 .opacity(workspace.surface == .map ? 1 : 0)
@@ -1850,7 +1869,8 @@ struct CompassMapContentView: View {
                 ExploreModeOverlay(
                     session: viewModel.exploreSession,
                     cityDisplayName: viewModel.currentDisplayCityName,
-                    onCancel: { viewModel.exploreCancel() }
+                    onCancel: { viewModel.exploreCancel() },
+                    topInset: mapTransientTopInset
                 )
                 .zIndex(20)
                 .transition(.opacity)
@@ -2272,22 +2292,18 @@ struct CompassMapContentView: View {
         }
     }
 
+    @State private var pendingFavoriteSelection: (experience: Experience, preview: Bool)?
+
     @ViewBuilder
     private var favoritesSheetContent: some View {
         FavoritesListView(
             onSelectExperience: { exp in
+                pendingFavoriteSelection = (exp, false)
                 isShowingFavorites = false
-                // Tap → open the detail sheet directly (long-press peeks instead).
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    viewModel.openExperienceDetail(exp)
-                }
             },
             onLongPressExperience: { exp in
+                pendingFavoriteSelection = (exp, true)
                 isShowingFavorites = false
-                // Long-press → float the quick preview card (former tap behavior).
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    viewModel.selectExperience(exp)
-                }
             },
             onExplore: { isShowingFavorites = false },
             onClose: { isShowingFavorites = false }
@@ -2745,6 +2761,13 @@ struct CompassMapContentView: View {
 
     /// Discovery reads the same real data the map sheet used. No mock rows:
     /// routes come from `RouteStore`, places from `MapViewModel.visibleExperiences`.
+    private var discoveryReferenceCoordinate: CLLocationCoordinate2D {
+        if viewModel.selectedCity != nil { return viewModel.defaultCenterForSelectedCity }
+        return locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
+    }
+
+    @State private var isShowingItineraries = false
+
     private var discoverSurface: some View {
         DiscoverWorkspaceView(
             cityDisplayName: viewModel.currentDisplayCityName
@@ -2752,8 +2775,7 @@ struct CompassMapContentView: View {
             routes: nearbyRoutes,
             experiences: viewModel.visibleExperiences,
             smartPickIds: viewModel.aiSmartPickIds,
-            referenceCoordinate: locationService.currentLocation?.coordinate
-                ?? viewModel.defaultCenterForSelectedCity,
+            referenceCoordinate: locationService.currentLocation?.coordinate,
             isLoading: viewModel.isFetchingPOIs,
             isSearchingWeb: viewModel.isSearchingWeb,
             isNowFilter: viewModel.isNowFilter,
@@ -2800,8 +2822,7 @@ struct CompassMapContentView: View {
                 { viewModel.selectCity(code) }
             },
             onWebSearch: { query in
-                let center = locationService.currentLocation?.coordinate
-                    ?? viewModel.defaultCenterForSelectedCity
+                let center = discoveryReferenceCoordinate
                 Task { await viewModel.webSearchPOIs(query: query, near: center) }
             },
             onRefresh: {
@@ -2827,7 +2848,10 @@ struct CompassMapContentView: View {
                     recallPending: recallPending.count,
                     onOpen: { isShowingBaseSheet = true }
                 )
-            ) : nil
+            ) : nil,
+            webSearchOutcome: viewModel.lastWebSearchResult,
+            onOpenFavorites: { isShowingFavorites = true },
+            onOpenItineraries: { isShowingItineraries = true }
         )
     }
 
@@ -3292,6 +3316,13 @@ extension String {
     }
 }
 
+private struct MapLibraryRowHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 44
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 /// Layout metrics shared between `MapOverlayView` and its tests.
 enum MapOverlayMetrics {
     /// Minimum hit target size per Apple HIG (44×44 pt).
@@ -3377,6 +3408,8 @@ private struct MapOverlayView: View {
     /// avoids crowding the map glimpse and leaving phantom controls behind the
     /// panel.
     var showsMapChrome: Bool = true
+    var onOpenFavorites: () -> Void = {}
+    var onOpenItineraries: () -> Void = {}
 
     @State private var checkInCelebrationTrigger = 0
     @State private var noMatchPop = false
@@ -3397,6 +3430,19 @@ private struct MapOverlayView: View {
             return NSLocalizedString("filter.now", comment: "Now filter label")
         }
         return ""
+    }
+
+    private func libraryShortcut(_ key: String, icon: String, id: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(NSLocalizedString(key, comment: "Map library shortcut"), systemImage: icon)
+                .font(.subheadline.weight(.medium))
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(CT.accent)
+        .background(CT.cardAdaptive, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityIdentifier(id)
     }
 
     var body: some View {
@@ -3469,6 +3515,20 @@ private struct MapOverlayView: View {
             .onChange(of: viewModel.locationErrorBannerText) { _, newValue in
                 if newValue == nil { dismissedLocationError = false }
             }
+
+            // Fixed library entry points live in the map's top chrome, outside
+            // the horizontally scrolling filters and clear of bottom previews.
+            HStack(spacing: 10) {
+                libraryShortcut("ux.favorites", icon: "heart", id: "map.favorites", action: onOpenFavorites)
+                libraryShortcut("ux.itineraries", icon: "calendar", id: "map.itineraries", action: onOpenItineraries)
+            }
+            .background {
+                GeometryReader { proxy in
+                    Color.clear.preference(key: MapLibraryRowHeightKey.self, value: proxy.size.height)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
 
             let showEmptyFilterBanner = isFilterActive && viewModel.visibleExperiences.isEmpty
                 && !viewModel.isNowFilter
@@ -4466,6 +4526,8 @@ private struct FilteredEmptyOverlay: View {
             return category.localizedTitle
         } else if let tag = viewModel.selectedCustomTag {
             return tag
+        } else if viewModel.isFavoriteFilter {
+            return NSLocalizedString("ux.favorites", comment: "Favorites filter")
         } else if viewModel.isNowFilter {
             return NSLocalizedString("filter.now", comment: "Now filter label")
         }

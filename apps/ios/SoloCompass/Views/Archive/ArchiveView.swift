@@ -108,22 +108,17 @@ public struct ArchiveView: View {
                 columns: [GridItem(.adaptive(minimum: 108), spacing: 10)],
                 spacing: 10
             ) {
-                ritualTile("Today's Omen", "sparkles",       accent: CT.omenGold,      tap: .omen)
-                ritualTile("Blindbox",     "shippingbox.fill", accent: CT.blindboxAmber, tap: .blindbox)
-                ritualTile("City Codex",   "square.grid.3x3.fill", accent: CT.omenGold, tap: .cityCodex)
-                ritualTile("Solo Brag",    "square.and.arrow.up.on.square.fill",
+                ritualTile(NSLocalizedString("ux.ritual.omen", comment: "Travel ritual"), "sparkles",       accent: CT.omenGold,      tap: .omen)
+                ritualTile(NSLocalizedString("ux.ritual.blindbox", comment: "Travel ritual"),     "shippingbox.fill", accent: CT.blindboxAmber, tap: .blindbox)
+                ritualTile(NSLocalizedString("ux.ritual.codex", comment: "Travel ritual"),   "square.grid.3x3.fill", accent: CT.omenGold, tap: .cityCodex)
+                ritualTile(NSLocalizedString("ux.ritual.brag", comment: "Travel ritual"),    "square.and.arrow.up.on.square.fill",
                            accent: CT.sunGoldDeep, tap: .brag)
-                ritualTile("Today's OST",  "music.note",     accent: CT.accent,        tap: .ost)
-                ritualTile("Monthly Insight", "chart.bar.doc.horizontal.fill",
+                ritualTile(NSLocalizedString("ux.ritual.ost", comment: "Travel ritual"),  "music.note",     accent: CT.accent,        tap: .ost)
+                ritualTile(NSLocalizedString("ux.ritual.insight", comment: "Travel ritual"), "chart.bar.doc.horizontal.fill",
                            accent: CT.sunGold, tap: .insight)
-                ritualTile("Open a Capsule", "envelope.open.fill",
+                ritualTile(NSLocalizedString("ux.ritual.capsule", comment: "Travel ritual"), "envelope.open.fill",
                            accent: CT.capsuleGlow, tap: .capsuleOpen)
-                ritualTile("Live Activity",  "bell.badge.fill",
-                           accent: CT.sunGoldDeep, tap: .liveActivity)
-                ritualTile("Voice Tools",    "waveform.circle.fill",
-                           accent: CT.accent, tap: .toolContract)
-                ritualTile("Travel Book",    "book.pages.fill",
-                           accent: CT.capsuleGlow, tap: .bookManifest)
+
             }
         }
         .accessibilityIdentifier("archive.ritualsHub")

@@ -92,7 +92,8 @@ public final class MapViewModel {
     /// Result of the last web search, surfaced to the user: the query and how
     /// many new pins it dropped. `nil` until a search runs. Lets the empty-state
     /// button turn into "Found N places" feedback instead of silently reloading.
-    public var lastWebSearchResult: (query: String, added: Int)?
+    public var lastWebSearchResult: POISearchOutcome?
+    @ObservationIgnored var searchPOIsOverride: ((String, CLLocationCoordinate2D) async throws -> [OverpassService.POI])?
     /// Cities already hydrated from the backend this session, so a repeated
     /// `selectCity` (e.g. GPS re-follow) fires at most one network read per city.
     @ObservationIgnored
@@ -418,18 +419,29 @@ public final class MapViewModel {
         guard !trimmed.isEmpty, !isSearchingWeb else { return 0 }
 
         isSearchingWeb = true
+        lastWebSearchResult = nil
+        let searchCity = selectedCity
         defer { isSearchingWeb = false }
 
         let pois: [OverpassService.POI]
         do {
-            pois = try await searchMapKitService.search(query: trimmed, near: coordinate)
+            if let searchPOIsOverride {
+                pois = try await searchPOIsOverride(trimmed, coordinate)
+            } else {
+                pois = try await searchMapKitService.search(query: trimmed, near: coordinate)
+            }
+            try Task.checkCancellation()
+        } catch is CancellationError {
+            return 0
         } catch {
-            lastWebSearchResult = (trimmed, 0)
+            guard selectedCity == searchCity else { return 0 }
+            lastWebSearchResult = POISearchOutcome(query: trimmed, status: .failed)
             return 0
         }
 
+        guard selectedCity == searchCity else { return 0 }
         guard !pois.isEmpty else {
-            lastWebSearchResult = (trimmed, 0)
+            lastWebSearchResult = POISearchOutcome(query: trimmed, status: .empty)
             return 0
         }
 
@@ -439,7 +451,7 @@ public final class MapViewModel {
         let cityCode = selectedCity ?? ""
         let skeletons = pois.map { AIService.skeletonExperience(from: $0, cityCode: cityCode) }
         let added = experienceService.appendGenerated(skeletons)
-        lastWebSearchResult = (trimmed, added)
+        lastWebSearchResult = POISearchOutcome(query: trimmed, status: .found(pois.count))
         if added > 0 {
             Haptics.notify(.success)
         }
@@ -739,6 +751,7 @@ public final class MapViewModel {
     public var selectedCity: String? {
         didSet {
             guard selectedCity != oldValue else { return }
+            lastWebSearchResult = nil
             invalidateCityCache()
             // #86: candidateExperiences live under the previous city's
             // coordinates; carrying them to a new city leaves invisible pins

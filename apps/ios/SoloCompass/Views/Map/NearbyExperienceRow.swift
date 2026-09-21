@@ -138,8 +138,7 @@ struct NearbyExperienceRow: View {
                     titleStack
                     chipRow
                 }
-                Spacer(minLength: 4)
-                distanceColumn
+
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12 * BottomSheetDetentScale.factor())
@@ -153,18 +152,7 @@ struct NearbyExperienceRow: View {
                         lineWidth: 0.5
                     )
             )
-            .overlay(alignment: .leading) {
-                // Left color-bar: golden for smart picks, else the category tint.
-                UnevenRoundedRectangle(
-                    topLeadingRadius: Radius.md, bottomLeadingRadius: Radius.md,
-                    bottomTrailingRadius: 0, topTrailingRadius: 0,
-                    style: .continuous
-                )
-                .fill(isSmartPick ? CT.sunGold : experience.category.color)
-                .frame(width: 3)
-            }
             .clipShape(Radius.shape(Radius.md))
-            .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
         }
         .buttonStyle(.plain)
         .scaleEffect(pressed ? 0.97 : 1.0)
@@ -309,12 +297,12 @@ struct NearbyExperienceRow: View {
     private var titleStack: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(experience.title)
-                .font(.subheadline.weight(.semibold))
+                .font(.body.weight(.semibold))
                 .foregroundStyle(textPrimary)
                 // Long names like "Savor Japanese small plates al…" were cut to
                 // one line; allow two and shrink slightly before truncating.
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
+                .lineLimit(3)
+
 
             let sub = subtitleText
             if !sub.isEmpty {
@@ -339,6 +327,9 @@ struct NearbyExperienceRow: View {
                 if let meters = distanceMeters, meters < 1500 {
                     walkTimeChip(meters: meters)
                 }
+                if let meters = distanceMeters, meters >= 1500, meters < Self.farAwayThreshold {
+                    Text(formattedDistance(meters)).font(.caption).foregroundStyle(.secondary)
+                }
                 soloScoreChip
                 if isOpenNow {
                     bestNowChip
@@ -360,184 +351,9 @@ struct NearbyExperienceRow: View {
             }
             .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: isOpenNow)
 
-            // Verb-based solo-fit chips on their own line so they never squeeze
-            // the primary metric chips into vertical-character crash-wrap. Round
-            // 5 judges lost 4-6 pts per story on solo_fit_signals because trust
-            // vocabulary (counter seat / cash only / AC / grab-easy / well-lit /
-            // solo booth / benches / 24h) was invisible on the card face.
-            if !soloFitChipLabels.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(Array(soloFitChipLabels.prefix(2)), id: \.self) { label in
-                        soloFitChip(label: label)
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
         }
     }
 
-    /// Amber chip: verb-based solo-fit signal (e.g. "counter seat", "cash only",
-    /// "AC", "well-lit"). Colored to sit visually between the neutral walk-time
-    /// chip and the green Solo score chip — a supporting trust signal, not a
-    /// competing metric.
-    private func soloFitChip(label: String) -> some View {
-        Text(label)
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(CT.sunGoldDeep)
-            .lineLimit(1)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(Capsule().fill(CT.sunGoldDeep.opacity(0.12)))
-            .fixedSize(horizontal: true, vertical: false)
-    }
-
-    /// Extracts short verb-phrases from `oneLiner` so the card face surfaces the
-    /// same trust vocabulary the judges look for. Order-preserving so a
-    /// higher-priority signal (e.g. "solo booth") wins the first slot over a
-    /// generic one (e.g. "AC") in the same sentence.
-    private var soloFitChipLabels: [String] {
-        // Combine oneLiner + whyItMatters so richer trust signals (AC / benches
-        // / english-signage / flat-walk / no-conversation-needed) survive when
-        // the oneLiner alone is a poem. Case-preserving raw so " AC " isn't
-        // confused with "back" or "action".
-        let combined = experience.oneLiner + " " + (experience.whyItMatters)
-        let raw = " " + combined + " "
-        let lower = raw.lowercased()
-        // Priority ordering: accessibility (senior mobility) > safety > solo furniture > logistics > comfort > sensory.
-        //
-        // Price-first slot: if the oneLiner names a concrete price (€9, €10,
-        // ¥40, ₫60k, ₫150k, ₫300k, ...), synthesise a price chip so the
-        // budget signal is glanceable in the first 3 seconds. Round-16 fix
-        // for s08 Lisbon (Sofia's hard-cap budget) and s07/s10 lunch/night
-        // stories where price sits inside prose.
-        var out: [String] = []
-        if let priceMatch = extractPriceChip(from: experience.oneLiner + " " + experience.whyItMatters) {
-            out.append(priceMatch)
-        }
-        let rules: [(String, Bool, String)] = [
-            // Accessibility (senior + first-solo abroad — s09 灵魂 chip)
-            ("flat-walk", false, "flat walk"),
-            ("flat walk", false, "flat walk"),
-            ("benches every", false, "benches"),
-            ("benches", false, "benches"),
-            ("english signage", false, "English signage"),
-            // Safety (women-solo / night walkers — s10 灵魂 chip)
-            ("well-lit", false, "well-lit"),
-            ("well lit", false, "well-lit"),
-            ("solo women", false, "solo women"),
-            ("women-solo", false, "solo women"),
-            ("women often solo", false, "women-solo-frequent"),
-            ("solo women regulars", false, "women-solo-frequent"),
-            ("grab arrives", false, "grab-easy"),
-            // Solo-specific furniture (s03/s04/s09 灵魂 chip)
-            ("solo booth", false, "solo booth"),
-            ("counter", false, "counter seat"),
-            ("no-conversation", false, "no chat"),
-            ("no conversation", false, "no chat"),
-            ("window seat", false, "window seat"),
-            ("no-pressure", false, "no-pressure"),
-            ("english menu", false, "English menu"),
-            // Local-frequent (student-budget / gap-month personas — rubric asks
-            // for "not tourist trap" verb-signal).
-            ("locals fill", false, "local-frequent"),
-            ("locals cycle", false, "local-frequent"),
-            ("mostly locals", false, "local-frequent"),
-            ("regulars", false, "local-frequent"),
-            ("no tourists", false, "local-frequent"),
-            // Comfort (hot-weather AC — s07 灵魂 chip)
-            ("air-conditioned", false, "AC"),
-            ("air conditioned", false, "AC"),
-            (" AC ", true, "AC"),
-            // Budget / logistics
-            ("no cover", false, "no cover"),
-            ("no minimum", false, "no minimum"),
-            ("cash only", false, "cash only"),
-            ("grab", false, "grab-easy"),
-            ("24-hour", false, "24h"),
-            ("24 hour", false, "24h"),
-            ("24h", false, "24h"),
-            // Photography-persona (sunset / west-facing / tripod)
-            ("west face", false, "west-facing"),
-            ("west-facing", false, "west-facing"),
-            ("faces west", false, "west-facing"),
-            ("tripod", false, "tripod-friendly"),
-            ("sunset ~", false, "sunset"),
-            // Night-safety (women-solo, gap-month)
-            ("women often solo", false, "women-solo-frequent"),
-            ("solo women regulars", false, "women-solo-frequent"),
-            ("grab arrives", false, "grab-easy"),
-            ("well lit", false, "well-lit"),
-            // Sensory / atmosphere
-            ("quiet", false, "quiet"),
-            ("warm light", false, "warm light"),
-            // Chinese SZX oneLiners — matches 深圳夜生活 rubric stories s01/s07.
-            // High priority within Chinese set:
-            //   sense-warmth (暖光) > closing-time > safety (无搭讪) > comfort (空调) > seating (单人吧台)
-            // Closing-time chip: rubric round-17 addition targets s01 陈曼青's
-            // deepest fear — "will I be asked to leave before I'm ready".
-            ("营业到 02:00", false, "到 02:00"),
-            ("到 02:00", false, "到 02:00"),
-            ("营业到 01", false, "到 01:00"),
-            ("到 01:00", false, "到 01:00"),
-            ("营业至 02:00", false, "到 02:00"),
-            ("营业至 01:00", false, "到 01:00"),
-            ("暖琥珀", false, "暖光"),
-            ("暖光", false, "暖光"),
-            ("纸灯", false, "暖光"),
-            ("灯降", false, "暖光"),
-            ("空调", false, "空调"),
-            ("冷气", false, "空调"),
-            ("不搭讪", false, "无搭讪"),
-            ("吧台", false, "单人吧台"),
-            ("单人", false, "单人座"),
-            ("24 小时", false, "24 小时"),
-            ("凌晨", false, "凌晨营业"),
-            ("现打", false, "现做"),
-            ("手冲", false, "手冲")
-        ]
-        for (needle, caseSensitive, label) in rules {
-            let found = caseSensitive
-                ? raw.range(of: needle) != nil
-                : lower.range(of: needle) != nil
-            guard found else { continue }
-            if !out.contains(label) { out.append(label) }
-            if out.count == 2 { break }
-        }
-        return out
-    }
-
-    /// Extract a compact price chip from the free-text description. Matches
-    /// concrete currency+amount tokens (€9 / ¥40 / ₫60k / $12) so the price
-    /// signal survives skim-reading. Round-16 addition targets s08 Sofia's
-    /// hard-cap budget (rubric explicitly wants price glanceable in 3s) plus
-    /// s02/s07/s10 tasca/lunch/night stalls that name price in prose.
-    private func extractPriceChip(from text: String) -> String? {
-        // Scan for a currency character followed by digits (optional 'k'
-        // suffix for ₫ in VN). Return the first match verbatim so `€9` and
-        // `₫60k` render as-is on the chip.
-        let currencies: [Character] = ["€", "¥", "£", "$", "₫", "₩"]
-        let scalars = Array(text)
-        for i in 0..<scalars.count {
-            guard currencies.contains(scalars[i]) else { continue }
-            var j = i + 1
-            // Skip a single optional space between currency and digit.
-            if j < scalars.count && scalars[j] == " " { j += 1 }
-            guard j < scalars.count, scalars[j].isNumber else { continue }
-            var end = j
-            while end < scalars.count, scalars[end].isNumber { end += 1 }
-            // Accept a trailing 'k' (₫60k) or a dash-range (€8-12).
-            if end < scalars.count, scalars[end] == "k" { end += 1 }
-            else if end < scalars.count, scalars[end] == "-" {
-                var k = end + 1
-                while k < scalars.count, scalars[k].isNumber { k += 1 }
-                if k > end + 1 { end = k }
-            }
-            return String(scalars[i..<end])
-        }
-        return nil
-    }
-
-    /// Neutral chip: estimated walk minutes (≈ 80 m/min) for nearby experiences.
     private func walkTimeChip(meters: Double) -> some View {
         let minutes = max(1, Int((meters / 80).rounded()))
         let label = String(

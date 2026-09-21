@@ -107,8 +107,9 @@ public final class ConversationWorkspaceState {
 
     // MARK: - Stored state
 
-    public private(set) var surface: Surface = .ask
-    public private(set) var detent: PanelDetent = .conversation
+    /// Map-first entry approved on 2026-09-21; explicit asks open the retained chat.
+    public private(set) var surface: Surface = .map
+    public private(set) var detent: PanelDetent = .collapsed
 
     /// Increments on every deliberate surface/detent choice. The keyboard
     /// restore path compares it so a manual choice made while typing wins.

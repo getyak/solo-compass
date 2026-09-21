@@ -29,11 +29,11 @@ Nothing in the market combines: live map, honest curation, solo-aware framing, A
 
 ## Three design pillars (non-negotiable)
 
-| Pillar                 | Meaning                                                                                                                                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Conversation + map** | The map and conversation share the home scene. The default entry is a 78% conversation panel with a live map glimpse above it; a three-item dock (map / Ask Solo / discover) switches surfaces without losing the conversation. |
-| **Experience-as-Unit** | Not "places" — concrete, time-bound, story-rich things to do.                                                                                                                                                                   |
-| **AI doesn't decide**  | AI filters from many to few and explains. Never "the answer." Always "options."                                                                                                                                                 |
+| Pillar                 | Meaning                                                                                                                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Conversation + map** | The map and conversation share the home scene. The default entry is the map with a collapsed panel; explicit asks open the retained conversation; a three-item dock (map / Ask Solo / discover) switches surfaces without losing the conversation. |
+| **Experience-as-Unit** | Not "places" — concrete, time-bound, story-rich things to do.                                                                                                                                                                                      |
+| **AI doesn't decide**  | AI filters from many to few and explains. Never "the answer." Always "options."                                                                                                                                                                    |
 
 > AI doesn't travel for you. AI helps you travel better.
 
@@ -143,11 +143,11 @@ map-first / no-tabs guidance above where the two disagree.
 
 Approved behavior:
 
-- **Default entry** is the existing 问问 conversational surface at ~72–78% of
-  the available height, with the top map / city pill / avatar visible and safe.
-  It keeps the original minimal serif invitation, time cue, warm chips and Solo
-  look, and fits a text composer so typing is immediately available (voice
-  stays). No oversized AI orb, no new welcome screen.
+- **Default entry (A/A/A decision, 2026-09-21)** is the map with the workspace
+  panel collapsed. Ask Solo opens on explicit intent and retains its conversation,
+  draft, attachments and voice controls. Discovery keeps fixed favorites and
+  itinerary shortcuts. Travel rituals, friends and companions remain secondary
+  destinations under the personal profile, rather than new primary tabs.
 - **Navigation** is a three-item floating dock — map / Ask Solo / discover —
   with the personal profile still reached from the existing avatar. The centre
   问问 item reuses `SoloMascotView` / `PlusActionButton`; no generic sparkle.

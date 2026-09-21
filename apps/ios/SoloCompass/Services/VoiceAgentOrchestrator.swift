@@ -1281,7 +1281,7 @@ public final class VoiceAgentOrchestrator: Identifiable {
         - Be warm, concise, and conversational. You are a companion, not a database.
         - Keep replies under 2 sentences unless the user asks for detail.
         - NEVER auto-navigate or auto-open a place — presenting is enough. When recommending a place, call show_details on your top pick so the user gets a tappable card; let THEM decide to open it. Only call navigate_to when the user explicitly asks to go there.
-        - When the user wants a walk, an itinerary, or to "string these together", call build_route and let them adopt the proposed route.
+        - When the user wants a walk, an itinerary, or to "string these together", call build_route. Its returned stops are authoritative: do not name an absent stop or claim an unverified activity (such as sunset viewing) is included. Explicitly acknowledge any missing requested activity. The user can open the route card to review and save it.
         - When the user specifies work tasks, exact times, opening hours, budget, Wi-Fi, noise, outlets, or a video call, use compile_workday_route instead of build_route. Its schedule is authoritative: explain it, do not rewrite it. If it is unsatisfiable, preserve hard constraints and ask before relaxing them.
         - Personalize using the CONTEXT SNAPSHOT (time, weather, location, visited history) — prefer places that fit the current moment and that the user hasn't seen yet, and say why in one short phrase.
         - When the user wants somewhere specific, use filter_by_category or search_places first.

@@ -6,6 +6,8 @@ public struct ItineraryListView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let store: ItineraryStore
+    private var onClose: (() -> Void)? = nil
+    private var sourceCityCode: String? = nil
 
     @State private var itineraries: [Itinerary] = []
     @State private var showingCreateForm = false
@@ -15,8 +17,10 @@ public struct ItineraryListView: View {
     @State private var undoDragOffset: CGFloat = 0
 
     /// Production init using the shared on-disk container.
-    public init() {
+    public init(sourceCityCode: String? = nil, onClose: (() -> Void)? = nil) {
         self.store = ItineraryStore()
+        self.sourceCityCode = sourceCityCode
+        self.onClose = onClose
     }
 
     /// Testable/preview init accepting an injected store.
@@ -57,6 +61,11 @@ public struct ItineraryListView: View {
             .navigationTitle(NSLocalizedString("itinerary.list.title", comment: "My Itineraries nav title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                if let onClose {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(NSLocalizedString("common.done", comment: "Done"), action: onClose)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingCreateForm = true
@@ -67,7 +76,7 @@ public struct ItineraryListView: View {
                 }
             }
             .sheet(isPresented: $showingCreateForm, onDismiss: loadItineraries) {
-                ItineraryFormView(store: store)
+                ItineraryFormView(store: store, sourceCityCode: sourceCityCode)
             }
         }
         .onAppear(perform: loadItineraries)

@@ -120,6 +120,7 @@ public struct FavoritesListView: View {
         guard let userLocation = LocationService.shared.currentLocation,
               let coord = experience.coordinate else { return nil }
         let meters = userLocation.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude))
+        guard meters.isFinite, meters < 500_000 else { return nil }
         if meters < Self.walkThresholdMeters {
             let minutes = Int((meters / Self.walkMetersPerMin).rounded(.up))
             let label: String
@@ -161,7 +162,7 @@ public struct FavoritesListView: View {
 
     private var nearestFavorite: Experience? {
         sortedFavorites
-            .filter { distanceMeters(for: $0) != nil }
+            .filter { (distanceMeters(for: $0) ?? .infinity) < 50_000 }
             .min(by: { (distanceMeters(for: $0) ?? .greatestFiniteMagnitude) < (distanceMeters(for: $1) ?? .greatestFiniteMagnitude) })
     }
 
@@ -487,7 +488,8 @@ public struct FavoritesListView: View {
                 prompt: Text(NSLocalizedString("favorites.search.prompt", comment: "Search favorites"))
             )
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
+        .presentationBackground(CT.cardAdaptive)
         .presentationDragIndicator(.visible)
         .overlay(alignment: .center) {
             CompletionCelebrationView(trigger: celebrationTrigger)

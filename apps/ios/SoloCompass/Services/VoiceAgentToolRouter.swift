@@ -1285,9 +1285,13 @@ public final class VoiceAgentToolRouter {
         if let preferred = parsed.experience_ids, !preferred.isEmpty {
             let preferredSet = Set(preferred)
             let picked = visible.filter { preferredSet.contains($0.id) }
-            // Fall back to the full set if none of the preferred ids were visible
-            // (model hallucinated ids) so we still produce a route.
-            candidates = picked.count >= 2 ? picked : visible
+            guard picked.count >= 2, picked.count == preferredSet.count else {
+                throw RouterError.invalidArguments(
+                    tool: "build_route",
+                    reason: "Requested stops are unavailable. Search for the missing places before building; do not silently substitute other stops."
+                )
+            }
+            candidates = picked
         } else {
             candidates = visible
         }
@@ -1313,6 +1317,9 @@ public final class VoiceAgentToolRouter {
             "route_title": route.title,
             "stop_count": stops.count,
             "estimated_minutes": route.estimatedDuration,
+            "stops": stops.map { ["id": $0.id, "name": $0.shortName, "category": $0.category.rawValue] },
+            "saved": false,
+            "instructions": "Describe only the returned stops in this order. Do not claim sunset, opening hours, or other constraints were verified by this tool. Tell the user to open the route card to review and save it; acknowledge any requested activity missing from the returned stops.",
         ])
     }
 
