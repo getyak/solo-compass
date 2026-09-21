@@ -35,7 +35,7 @@ struct WorkspaceDock: View {
         .overlay(
             Capsule().strokeBorder(dockBorder, lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.12), radius: 12, y: 5)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.20 : 0.06), radius: 6, y: 2)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(WorkspaceAccessibility.dock)
     }
@@ -62,7 +62,7 @@ struct WorkspaceDock: View {
                     .foregroundStyle(selected ? CT.accent : (colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted))
                     .frame(width: 44, height: 26)
                 Text(NSLocalizedString(labelKey, comment: "Workspace dock item label"))
-                    .font(.system(size: 10, weight: selected ? .semibold : .medium))
+                    .font(.caption2.weight(selected ? .semibold : .medium))
                     .foregroundStyle(selected ? CT.accent : (colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted))
             }
             .padding(.horizontal, 10)
@@ -103,7 +103,7 @@ struct WorkspaceDock: View {
             // an actionable `workspace.dock.ask` element.
             .accessibilityIdentifier(WorkspaceAccessibility.dockItem(.ask))
             Text(NSLocalizedString("workspace.dock.ask", comment: "Ask Solo dock label"))
-                .font(.system(size: 10, weight: selected ? .semibold : .medium))
+                .font(.caption2.weight(selected ? .semibold : .medium))
                 .foregroundStyle(selected ? CT.accent : (colorScheme == .dark ? CT.fgMutedDark : CT.fgMuted))
         }
         .padding(.horizontal, 8)

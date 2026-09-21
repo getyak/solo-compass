@@ -1310,6 +1310,7 @@
 
 /* Itinerary — Add to Itinerary sheet error alert */
 "itinerary.addTo.error.title" = "Couldn't add to itinerary";
+"itinerary.addTo.error.message" = "Couldn't add this experience. Please try again.";
 
 /* Itinerary — Add to Itinerary sheet (US-006) */
 "action.addToItinerary" = "Add to Itinerary";
@@ -1346,6 +1347,9 @@
 "itinerary.form.action.save" = "Save";
 "itinerary.form.action.cancel" = "Cancel";
 "itinerary.form.city.picker.title" = "Choose City";
+"itinerary.form.suggestedTitle" = "New Trip · %@";
+"itinerary.form.save.error.title" = "Couldn't save itinerary";
+"itinerary.form.save.error.message" = "Your changes weren't saved. Please try again.";
 
 /* My Profile edit screen (US-008) */
 "profile.edit.title" = "My Profile";
@@ -2556,3 +2560,21 @@
 "meta.walkEstimate" = "≈ walk %d min";
 
 "chat.error.turnTimeout" = "That search took too long. Your conversation is saved. Try again or narrow the area.";
+
+/* Travel journey refinement */
+"ux.save" = "Save";
+"ux.saved" = "Saved";
+"ux.visited" = "Visited";
+"ux.favorites" = "Saved places";
+"ux.itineraries" = "My trips";
+"ux.search.found" = "Found %d places in this area. Clear your search or filters to browse the map results.";
+"ux.search.empty" = "No places found in this area. Try another name or a different city.";
+"ux.search.failed" = "Search could not connect. Check your connection and try again.";
+"ux.ritual.omen" = "Today’s inspiration";
+"ux.ritual.blindbox" = "Travel surprise";
+"ux.ritual.codex" = "City collection";
+"ux.ritual.brag" = "Share a memory";
+"ux.ritual.ost" = "Travel soundtrack";
+"ux.ritual.insight" = "Monthly reflections";
+"ux.ritual.capsule" = "Open a time capsule";
+"ux.discover.experiences" = "Experiences to try";

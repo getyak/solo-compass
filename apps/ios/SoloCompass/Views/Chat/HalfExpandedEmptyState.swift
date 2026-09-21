@@ -102,14 +102,12 @@ struct HalfExpandedEmptyState: View {
         // size + gentle downscale rather than a hard truncation ellipsis —
         // truncated all-caps letterforms read like an error, not a design.
         Text(nowChipText.uppercased())
-            .ctMono(9.5, .semibold, relativeTo: .caption2)
-            .tracking(1.8)
+            .font(.caption.weight(.medium))
+            .tracking(0.3)
             .foregroundStyle(CT.sunGoldDeep.opacity(0.85))
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
+            .fixedSize(horizontal: false, vertical: true)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 28)
-            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 
     // MARK: - Suggestion row (horizontal pills)
@@ -119,36 +117,37 @@ struct HalfExpandedEmptyState: View {
     // never used. Removing it also makes the row visible to `ImageRenderer`
     // (which silently drops ScrollView content in snapshot tests).
     private var suggestionRow: some View {
-        // Wrapping layout instead of a fixed HStack: at accessibility text
-        // sizes four pills cannot fit on one 375pt row (the old HStack clipped
-        // or shrank them into illegibility). FlowLayout reflows to multiple
-        // rows, and each label scales with Dynamic Type.
-        FlowLayout(spacing: 10) {
-            ForEach(suggestions) { s in
+        VStack(spacing: 8) {
+            ForEach(suggestions.prefix(3)) { suggestion in
                 Button {
                     Haptics.impact(.light)
-                    onSendPrompt(s.fullPrompt)
+                    onSendPrompt(suggestion.fullPrompt)
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: s.icon)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(s.tint)
-                        Text(s.label)
-                            .ctBody(12.5, .semibold, relativeTo: .caption)
-                            .foregroundStyle(pillTextColor)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                    HStack(spacing: 12) {
+                        Image(systemName: suggestion.icon)
+                            .font(.body)
+                            .foregroundStyle(CT.accent)
+                            .frame(width: 24)
+                        Text(suggestion.fullPrompt)
+                            .font(.subheadline)
+                            .foregroundStyle(titleColor)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 8)
-                    .background(pillFill, in: Capsule())
-                    .overlay(Capsule().strokeBorder(pillBorder, lineWidth: 0.5))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .frame(minHeight: 48)
+                    .background(pillFill, in: RoundedRectangle(cornerRadius: 14))
                 }
-                .buttonStyle(PressableButtonStyle(pressedScale: 0.92))
-                .accessibilityLabel(s.fullPrompt)
+                .buttonStyle(.plain)
+                .accessibilityLabel(suggestion.fullPrompt)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity)
     }
 

@@ -3,40 +3,62 @@ import SwiftData
 
 /// Create or edit an Itinerary.
 ///
-/// Pass an existing `Itinerary` to edit it; omit to create a new one.
-/// The store is injected so previews can supply an in-memory container.
+/// Pass an existing `Itinerary` to edit it; omit to create a new one. New
+/// itineraries are prefilled with a localized suggested title, the source
+/// experience's city, and the current date. Editing never overwrites saved
+/// values. The store is injected so previews can supply an in-memory container.
+///
+/// `onSaved` receives the exact itinerary that was persisted. It runs only
+/// after the write succeeds, letting `AddToItinerarySheet` pin the source
+/// experience without guessing or timing hacks. When `onSaved` is nil the form
+/// dismisses itself on success.
 public struct ItineraryFormView: View {
     let store: ItineraryStore
     let editing: Itinerary?
+    let sourceCityCode: String?
+    let pinnedExperienceIds: [String]
+    let embedInNavigationStack: Bool
+    let onSaved: ((Itinerary) -> Void)?
+    let onCancel: (() -> Void)?
+    @State private var showingCityPicker = false
 
     @Environment(ExperienceService.self) private var experienceService
     @Environment(\.dismiss) private var dismiss
 
-    // MARK: - Form state
-
-    @State private var title: String
-    @State private var selectedCityCode: String
-    @State private var startDate: Date
-    @State private var endDate: Date
-    @State private var note: String
-    @State private var openToCompanions: Bool
-
-    @State private var showingCityPicker = false
-    @State private var showingValidationError = false
+    @State private var model: ItineraryCreationFormModel
 
     // MARK: - Init
 
-    public init(store: ItineraryStore, editing: Itinerary? = nil) {
+    public init(
+        store: ItineraryStore,
+        editing: Itinerary? = nil,
+        sourceCityCode: String? = nil,
+        pinnedExperienceIds: [String] = [],
+        embedInNavigationStack: Bool = true,
+        now: Date = Date(),
+        onSaved: ((Itinerary) -> Void)? = nil,
+        onCancel: (() -> Void)? = nil
+    ) {
         self.store = store
         self.editing = editing
-        let start = iso8601DateOrToday(editing?.startDate)
-        let end = iso8601DateOrToday(editing?.endDate) ?? start
-        _title = State(initialValue: editing?.title ?? "")
-        _selectedCityCode = State(initialValue: editing?.cityCode ?? "")
-        _startDate = State(initialValue: start ?? Date())
-        _endDate = State(initialValue: end ?? Date())
-        _note = State(initialValue: editing?.note ?? "")
-        _openToCompanions = State(initialValue: editing?.openToCompanions ?? false)
+        self.sourceCityCode = sourceCityCode
+        self.pinnedExperienceIds = pinnedExperienceIds
+        self.embedInNavigationStack = embedInNavigationStack
+        self.onSaved = onSaved
+        self.onCancel = onCancel
+
+        let draft = ItineraryCreationRules.initialDraft(
+            editing: editing,
+            sourceCityCode: sourceCityCode,
+            now: now,
+            suggestedTitle: Self.suggestedTitle(now: now)
+        )
+        _model = State(initialValue: ItineraryCreationFormModel(
+            flow: ItineraryCreationFlow(store: store),
+            editing: editing,
+            pinnedExperienceIds: pinnedExperienceIds,
+            draft: draft
+        ))
     }
 
     // MARK: - Derived
@@ -48,196 +70,225 @@ public struct ItineraryFormView: View {
         return experienceService.allExperiences.compactMap { exp -> (code: String, name: String)? in
             let code = exp.location.cityCode
             guard seen.insert(code).inserted else { return nil }
-            return (code, code)
+            let canonical = MapViewModel.cityCodeAliases[code.lowercased()] ?? code
+            return (code, MapViewModel.cityNameMap[canonical] ?? MapViewModel.cityNameMap[code] ?? code)
         }.sorted { $0.name < $1.name }
     }
 
-    private var selectedCityName: String {
-        availableCities.first(where: { $0.code == selectedCityCode })?.name ?? selectedCityCode
-    }
-
-    private var isValid: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !selectedCityCode.isEmpty &&
-        endDate >= startDate
-    }
-
-    private var endBeforeStart: Bool { endDate < startDate }
-
-    /// True once the user has entered anything not yet saved. Drives
-    /// `interactiveDismissDisabled` so an accidental swipe-down can't silently
-    /// discard a half-filled form — HIG requires unsaved edits to be protected
-    /// (Mail/Contacts prompt "Discard Changes?"; here we simply block the swipe
-    /// so the explicit Cancel is the only way out). New form: dirty if any field
-    /// diverges from its empty default. Editing: dirty if any field diverges
-    /// from the record being edited.
-    private var isDirty: Bool {
-        if let editing {
-            return title != (editing.title)
-                || selectedCityCode != (editing.cityCode)
-                || note != (editing.note)
-                || openToCompanions != editing.openToCompanions
-                || startDate != (iso8601DateOrToday(editing.startDate) ?? startDate)
-                || endDate != (iso8601DateOrToday(editing.endDate) ?? endDate)
+    private func cityDisplayName(for code: String) -> String {
+        guard !code.isEmpty else {
+            return NSLocalizedString("itinerary.form.city.picker.title", comment: "Choose City placeholder")
         }
-        return !title.trimmingCharacters(in: .whitespaces).isEmpty
-            || !selectedCityCode.isEmpty
-            || !note.trimmingCharacters(in: .whitespaces).isEmpty
-            || openToCompanions
+        return availableCities.first(where: { $0.code == code })?.name ?? code
+    }
+
+    /// Localized, date-stamped suggestion for a brand-new itinerary.
+    private static func suggestedTitle(now: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        let dateText = formatter.string(from: now)
+        return String(
+            format: NSLocalizedString(
+                "itinerary.form.suggestedTitle",
+                comment: "Editable suggested title for a new itinerary, with the current date"
+            ),
+            dateText
+        )
     }
 
     // MARK: - Body
 
     public var body: some View {
-        NavigationStack {
-            Form {
-                Section(NSLocalizedString("itinerary.form.section.basics", comment: "Trip details section header")) {
-                    HStack {
-                        Text(NSLocalizedString("itinerary.form.field.title", comment: "Title field label"))
-                        TextField(
-                            NSLocalizedString("itinerary.form.field.title.placeholder", comment: "Title placeholder"),
-                            text: $title
-                        )
-                        .multilineTextAlignment(.trailing)
-                    }
-
-                    Button {
-                        showingCityPicker = true
-                    } label: {
-                        HStack {
-                            Text(NSLocalizedString("itinerary.form.field.city", comment: "City field label"))
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            Text(selectedCityCode.isEmpty
-                                 ? NSLocalizedString("itinerary.form.city.picker.title", comment: "Choose City placeholder")
-                                 : selectedCityName
-                            )
-                            .foregroundStyle(selectedCityCode.isEmpty ? .secondary : .primary)
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .buttonStyle(.plain)
+        @Bindable var model = model
+        Group {
+            if embedInNavigationStack {
+                NavigationStack {
+                    formContent(model: $model)
                 }
-
-                Section(NSLocalizedString("itinerary.form.section.dates", comment: "Dates section header")) {
-                    DatePicker(
-                        NSLocalizedString("itinerary.form.field.startDate", comment: "Start date picker label"),
-                        selection: $startDate,
-                        displayedComponents: .date
-                    )
-                    .onChange(of: startDate) { _, newStart in
-                        if endDate < newStart {
-                            endDate = newStart
-                        }
-                    }
-
-                    DatePicker(
-                        NSLocalizedString("itinerary.form.field.endDate", comment: "End date picker label"),
-                        selection: $endDate,
-                        in: startDate...,
-                        displayedComponents: .date
-                    )
-                }
-
-                Section(NSLocalizedString("itinerary.form.section.companion", comment: "Companion mode section header")) {
-                    Toggle(
-                        NSLocalizedString("itinerary.form.field.openToCompanions", comment: "Open to companions toggle"),
-                        isOn: $openToCompanions
-                    )
-                }
-
-                Section {
-                    TextField(
-                        NSLocalizedString("itinerary.form.field.note.placeholder", comment: "Notes placeholder"),
-                        text: $note,
-                        axis: .vertical
-                    )
-                    .lineLimit(3...6)
-                } header: {
-                    Text(NSLocalizedString("itinerary.form.field.note", comment: "Notes section header"))
-                }
-
-                if endBeforeStart {
-                    Section {
-                        Text(NSLocalizedString(
-                            "itinerary.form.validation.endBeforeStart",
-                            comment: "End before start validation error"
-                        ))
-                        .foregroundStyle(CT.savedRed)
-                        .font(.caption)
-                    }
-                }
-            }
-            .navigationTitle(NSLocalizedString(
-                isEditing ? "itinerary.form.edit.title" : "itinerary.form.create.title",
-                comment: "Form nav title"
-            ))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                // `.cancellationAction` / `.confirmationAction` let the system
-                // place Cancel (leading) and Save (trailing) per-platform
-                // convention, instead of hard-coding topBarLeading/Trailing.
-                // This is the app-wide standard the sheet audit calls for.
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(NSLocalizedString("itinerary.form.action.cancel", comment: "Cancel")) {
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(NSLocalizedString("itinerary.form.action.save", comment: "Save")) {
-                        save()
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(!isValid)
-                }
-            }
-            .sheet(isPresented: $showingCityPicker) {
-                ItineraryCityPickerSheet(
-                    cities: availableCities,
-                    selectedCode: $selectedCityCode
-                )
+            } else {
+                formContent(model: $model)
             }
         }
+    }
+
+    // MARK: - Form
+
+    @ViewBuilder
+    private func formContent(model: Bindable<ItineraryCreationFormModel>) -> some View {
+        Form {
+            basicsSection(model: model)
+            datesSection(model: model)
+            companionSection(model: model)
+            noteSection(model: model)
+
+            if model.wrappedValue.endBeforeStart {
+                Section {
+                    Text(NSLocalizedString(
+                        "itinerary.form.validation.endBeforeStart",
+                        comment: "End before start validation error"
+                    ))
+                    .foregroundStyle(CT.savedRed)
+                    .font(.caption)
+                }
+            }
+        }
+        .navigationTitle(NSLocalizedString(
+            isEditing ? "itinerary.form.edit.title" : "itinerary.form.create.title",
+            comment: "Form nav title"
+        ))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // `.cancellationAction` / `.confirmationAction` let the system
+            // place Cancel (leading) and Save (trailing) per-platform
+            // convention, instead of hard-coding topBarLeading/Trailing.
+            ToolbarItem(placement: .cancellationAction) {
+                Button(NSLocalizedString("itinerary.form.action.cancel", comment: "Cancel")) {
+                    model.wrappedValue.cancel()
+                    if let onCancel { onCancel() } else { dismiss() }
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button(NSLocalizedString("itinerary.form.action.save", comment: "Save")) {
+                    save()
+                }
+                .fontWeight(.semibold)
+                .disabled(!model.wrappedValue.isValid)
+            }
+        }
+        .navigationDestination(isPresented: $showingCityPicker) {
+            ItineraryCityPickerView(
+                cities: availableCities,
+                selectedCode: model.draft.cityCode,
+                onSelect: { showingCityPicker = false }
+            )
+        }
         // Block accidental swipe-to-dismiss while there are unsaved edits; the
-        // explicit Cancel stays the deliberate exit.
-        .interactiveDismissDisabled(isDirty)
+        // explicit Cancel stays the deliberate exit. This matters when the form
+        // is itself presented as a sheet (ItineraryListView); when it is pushed
+        // inside another stack the modifier is a harmless no-op.
+        .interactiveDismissDisabled(model.wrappedValue.isDirty)
+        .alert(
+            NSLocalizedString("itinerary.form.save.error.title", comment: "Save failure alert title"),
+            isPresented: Binding(
+                get: { model.wrappedValue.saveErrorMessage != nil },
+                set: { if !$0 { model.wrappedValue.clearSaveError() } }
+            )
+        ) {
+            Button(NSLocalizedString("common.ok", comment: "OK")) {
+                model.wrappedValue.clearSaveError()
+            }
+        } message: {
+            if let message = model.wrappedValue.saveErrorMessage {
+                Text(message)
+            }
+        }
+    }
+
+    // MARK: - Sections
+
+    @ViewBuilder
+    private func basicsSection(model: Bindable<ItineraryCreationFormModel>) -> some View {
+        Section(NSLocalizedString("itinerary.form.section.basics", comment: "Trip details section header")) {
+            HStack {
+                Text(NSLocalizedString("itinerary.form.field.title", comment: "Title field label"))
+                TextField(
+                    NSLocalizedString("itinerary.form.field.title.placeholder", comment: "Title placeholder"),
+                    text: model.draft.title
+                )
+                .multilineTextAlignment(.trailing)
+            }
+
+            Button { showingCityPicker = true } label: {
+                HStack {
+                    Text(NSLocalizedString("itinerary.form.field.city", comment: "City field label"))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text(cityDisplayName(for: model.wrappedValue.draft.cityCode))
+                        .foregroundStyle(model.wrappedValue.draft.cityCode.isEmpty ? .secondary : .primary)
+                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func datesSection(model: Bindable<ItineraryCreationFormModel>) -> some View {
+        Section(NSLocalizedString("itinerary.form.section.dates", comment: "Dates section header")) {
+            DatePicker(
+                NSLocalizedString("itinerary.form.field.startDate", comment: "Start date picker label"),
+                selection: model.draft.startDate,
+                displayedComponents: .date
+            )
+            .onChange(of: model.wrappedValue.draft.startDate) { _, newStart in
+                if model.wrappedValue.draft.endDate < newStart {
+                    model.wrappedValue.draft.endDate = newStart
+                }
+            }
+
+            DatePicker(
+                NSLocalizedString("itinerary.form.field.endDate", comment: "End date picker label"),
+                selection: model.draft.endDate,
+                in: model.wrappedValue.draft.startDate...,
+                displayedComponents: .date
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func companionSection(model: Bindable<ItineraryCreationFormModel>) -> some View {
+        Section(NSLocalizedString("itinerary.form.section.companion", comment: "Companion mode section header")) {
+            Toggle(
+                NSLocalizedString("itinerary.form.field.openToCompanions", comment: "Open to companions toggle"),
+                isOn: model.draft.openToCompanions
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func noteSection(model: Bindable<ItineraryCreationFormModel>) -> some View {
+        Section {
+            TextField(
+                NSLocalizedString("itinerary.form.field.note.placeholder", comment: "Notes placeholder"),
+                text: model.draft.note,
+                axis: .vertical
+            )
+            .lineLimit(3...6)
+        } header: {
+            Text(NSLocalizedString("itinerary.form.field.note", comment: "Notes section header"))
+        }
     }
 
     // MARK: - Save
 
     private func save() {
-        guard isValid else { return }
-        let now = ISO8601DateFormatter().string(from: Date())
-        let itin = Itinerary(
-            id: editing?.id ?? ItineraryId(rawValue: UUID().uuidString),
-            ownerId: editing?.ownerId ?? "local",
-            title: title.trimmingCharacters(in: .whitespaces),
-            cityCode: selectedCityCode,
-            startDate: dateToISO8601(startDate),
-            endDate: dateToISO8601(endDate),
-            experienceIds: editing?.experienceIds ?? [],
-            note: note.trimmingCharacters(in: .whitespaces).isEmpty ? nil : note.trimmingCharacters(in: .whitespaces),
-            openToCompanions: openToCompanions,
-            createdAt: editing?.createdAt ?? now,
-            updatedAt: now
-        )
-        if isEditing {
-            try? store.update(itin)
-        } else {
-            try? store.save(itin)
+        // `saveAndNotify` only invokes the callback after the store write
+        // succeeded, so a failure leaves the form open with recoverable
+        // feedback instead of silently pinning anything.
+        let saved = model.saveAndNotify { itinerary in
+            onSaved?(itinerary)
         }
+        guard saved != nil else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        dismiss()
+        // A caller-provided `onSaved` owns the next step (e.g. dismissing the
+        // whole add-to-itinerary sheet); otherwise the form dismisses itself.
+        if onSaved == nil {
+            dismiss()
+        }
     }
 }
 
-// MARK: - City picker sheet
+// MARK: - City picker
 
-private struct ItineraryCityPickerSheet: View {
+/// Searchable city list, pushed inside the form's navigation stack so city
+/// selection never nests a modal on top of the create/edit form.
+private struct ItineraryCityPickerView: View {
     let cities: [(code: String, name: String)]
     @Binding var selectedCode: String
+    let onSelect: () -> Void
     @State private var searchText = ""
     @Environment(\.dismiss) private var dismiss
 
@@ -251,61 +302,35 @@ private struct ItineraryCityPickerSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List(filtered, id: \.code) { city in
-                Button {
-                    selectedCode = city.code
-                    dismiss()
-                } label: {
-                    HStack {
-                        Text(city.name)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        if selectedCode == city.code {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(CT.accent)
-                                .font(.body.weight(.semibold))
-                        }
+        List(filtered, id: \.code) { city in
+            Button {
+                selectedCode = city.code
+                onSelect()
+            } label: {
+                HStack {
+                    Text(city.name)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if selectedCode == city.code {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(CT.accent)
+                            .font(.body.weight(.semibold))
                     }
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
             }
-            .listStyle(.plain)
-            .searchable(
-                text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: Text(NSLocalizedString("locationPicker.cities.searchPrompt", comment: "Search cities"))
-            )
-            .navigationTitle(NSLocalizedString("itinerary.form.city.picker.title", comment: "Choose City sheet title"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(NSLocalizedString("common.cancel", comment: "Cancel")) {
-                        dismiss()
-                    }
-                }
-            }
+            .buttonStyle(.plain)
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .listStyle(.plain)
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: Text(NSLocalizedString("locationPicker.cities.searchPrompt", comment: "Search cities"))
+        )
+        .navigationTitle(NSLocalizedString("itinerary.form.city.picker.title", comment: "Choose City sheet title"))
+        .navigationBarTitleDisplayMode(.inline)
     }
-}
-
-// MARK: - Helpers
-
-private func iso8601DateOrToday(_ string: String?) -> Date? {
-    guard let string else { return nil }
-    let f = DateFormatter()
-    f.dateFormat = "yyyy-MM-dd"
-    f.timeZone = TimeZone(identifier: "UTC")
-    return f.date(from: string)
-}
-
-private func dateToISO8601(_ date: Date) -> String {
-    let f = DateFormatter()
-    f.dateFormat = "yyyy-MM-dd"
-    f.timeZone = TimeZone(identifier: "UTC")
-    return f.string(from: date)
 }
 
 // MARK: - Preview

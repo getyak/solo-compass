@@ -3,21 +3,22 @@ import SwiftData
 
 /// Sheet that lets the user pin an experience to one of their saved itineraries,
 /// or create a new itinerary and pin it in one step.
+///
+/// The create form is pushed inside this sheet's single `NavigationStack` — no
+/// nested sheet presentation — and reports the exact itinerary it persisted.
+/// Cancelling the form never pins the experience, and `onSuccess` only runs
+/// after persistence succeeded.
 public struct AddToItinerarySheet: View {
     let experienceId: String
     let experienceTitle: String
-    /// Called after a successful add, with the itinerary that was updated.
-    /// The sheet dismisses itself before invoking this.
+    /// Called after a successful add, with the exact itinerary that was updated.
     var onSuccess: ((Itinerary) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ExperienceService.self) private var experienceService
 
     private let store: ItineraryStore
-    @State private var itineraries: [Itinerary] = []
-    @State private var showingCreateForm = false
-    @State private var addedToId: ItineraryId?
-    @State private var errorMessage: String?
+    @State private var model: AddToItineraryModel
 
     public init(
         experienceId: String,
@@ -29,25 +30,32 @@ public struct AddToItinerarySheet: View {
         self.experienceTitle = experienceTitle
         self.store = store
         self.onSuccess = onSuccess
+        _model = State(initialValue: AddToItineraryModel(store: store))
     }
 
+    // MARK: - Derived
+
+    /// City of the source experience, or nil when it is not loaded.
+    private var sourceCityCode: String? {
+        ItineraryCreationRules.sourceCityCode(experienceId: experienceId, in: experienceService.allExperiences)
+    }
+
+    private var isCreating: Binding<Bool> {
+        Binding(
+            get: { model.step == .creating },
+            set: { $0 ? model.beginCreation() : model.cancelCreation() }
+        )
+    }
+
+    // MARK: - Body
+
     public var body: some View {
-        NavigationStack {
+        NavigationStack() {
             Group {
-                if itineraries.isEmpty {
+                if model.itineraries.isEmpty {
                     emptyState
                 } else {
-                    List {
-                        Section {
-                            ForEach(itineraries) { itin in
-                                itineraryRow(itin)
-                            }
-                        }
-                        Section {
-                            createNewRow
-                        }
-                    }
-                    .listStyle(.insetGrouped)
+                    itineraryList
                 }
             }
             .navigationTitle(NSLocalizedString("itinerary.addTo.title", comment: "Add to Itinerary sheet title"))
@@ -57,39 +65,60 @@ public struct AddToItinerarySheet: View {
                     Button(NSLocalizedString("common.cancel", comment: "Cancel")) { dismiss() }
                 }
             }
-            .sheet(isPresented: $showingCreateForm, onDismiss: {
-                reload()
-                // If a new itinerary was created, try to pin the experience into it.
-                if let newest = store.loadAll().first {
-                    addExperience(to: newest)
-                }
-            }) {
-                ItineraryFormView(store: store)
-                    .environment(experienceService)
+            .navigationDestination(isPresented: isCreating) {
+                ItineraryFormView(
+                    store: store,
+                    sourceCityCode: sourceCityCode,
+                    pinnedExperienceIds: [experienceId],
+                    embedInNavigationStack: false,
+                    onSaved: { created in handleCreated(created) },
+                    onCancel: { model.cancelCreation() }
+                )
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
+        .presentationBackground(CT.cardAdaptive)
         .presentationDragIndicator(.visible)
-        .onAppear(perform: reload)
+        // While the form is on screen, leave via its explicit Cancel/back so a
+        // stray drag can't silently discard an in-progress itinerary.
+        .interactiveDismissDisabled(model.step == .creating)
+        .onAppear { model.reload() }
         .alert(
             NSLocalizedString("itinerary.addTo.error.title", comment: "Error alert title when pinning fails"),
-            isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+            isPresented: Binding(
+                get: { model.errorMessage != nil },
+                set: { if !$0 { model.clearError() } }
+            )
         ) {
-            Button(NSLocalizedString("common.ok", comment: "OK")) { errorMessage = nil }
+            Button(NSLocalizedString("common.ok", comment: "OK")) { model.clearError() }
         } message: {
-            if let msg = errorMessage { Text(msg) }
+            if let msg = model.errorMessage { Text(msg) }
         }
     }
 
-    // MARK: - Rows
+    // MARK: - List
+
+    private var itineraryList: some View {
+        List {
+            Section {
+                ForEach(model.itineraries) { itin in
+                    itineraryRow(itin)
+                }
+            }
+            Section {
+                createNewRow
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
 
     private func itineraryRow(_ itin: Itinerary) -> some View {
         let alreadyAdded = itin.experienceIds.contains(experienceId)
-        let wasJustAdded = addedToId == itin.id
+        let wasJustAdded = model.addedToId == itin.id
 
         return Button {
             guard !alreadyAdded else { return }
-            addExperience(to: itin)
+            addExisting(itin)
         } label: {
             HStack(spacing: 12) {
                 ZStack {
@@ -126,7 +155,7 @@ public struct AddToItinerarySheet: View {
 
     private var createNewRow: some View {
         Button {
-            showingCreateForm = true
+            model.beginCreation()
         } label: {
             HStack(spacing: 12) {
                 ZStack {
@@ -157,7 +186,7 @@ public struct AddToItinerarySheet: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button {
-                showingCreateForm = true
+                model.beginCreation()
             } label: {
                 Text(NSLocalizedString("itinerary.addTo.createFirst", comment: "Create first itinerary CTA"))
                     .font(.subheadline.weight(.semibold))
@@ -168,41 +197,26 @@ public struct AddToItinerarySheet: View {
             }
         }
         .padding(32)
-        .sheet(isPresented: $showingCreateForm, onDismiss: {
-            reload()
-            if let newest = store.loadAll().first {
-                addExperience(to: newest)
-            }
-        }) {
-            ItineraryFormView(store: store)
-                .environment(experienceService)
-        }
     }
 
-    // MARK: - Helpers
+    // MARK: - Actions
 
-    private func reload() {
-        itineraries = store.loadAll()
+    /// Invoked by the form only after it persisted the itinerary. The callback
+    /// receives that exact itinerary — no `loadAll().first` resolution.
+    private func handleCreated(_ created: Itinerary) {
+        let surfaced = model.creationSucceeded(created)
+        Haptics.notify(.success)
+        onSuccess?(surfaced)
+        dismiss()
     }
 
-    private func addExperience(to itin: Itinerary) {
-        do {
-            try store.addExperience(experienceId, to: itin.id)
-            Haptics.notify(.success)
-            withAnimation { addedToId = itin.id }
-            reload()
-            // Capture the updated itinerary for the success callback.
-            let updated = store.load(id: itin.id) ?? itin
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                dismiss()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    onSuccess?(updated)
-                }
-            }
-        } catch {
-            Haptics.notify(.error)
-            errorMessage = error.localizedDescription
+    private func addExisting(_ itinerary: Itinerary) {
+        guard let updated = model.addExisting(experienceId: experienceId, to: itinerary.id) else {
+            return
         }
+        Haptics.notify(.success)
+        onSuccess?(updated)
+        dismiss()
     }
 }
 

@@ -4026,6 +4026,12 @@ final class SoloCompassTests: XCTestCase {
         }
         XCTAssertGreaterThanOrEqual(proposal.stops.count, 2,
                                     "a walk needs at least two stops")
+        let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(result.utf8)) as? [String: Any])
+        let returnedStops = try XCTUnwrap(payload["stops"] as? [[String: String]])
+        XCTAssertEqual(returnedStops.compactMap { $0["id"] }, proposal.stops.map(\.id))
+        XCTAssertEqual(returnedStops.compactMap { $0["name"] }, proposal.stops.map(\.shortName))
+        XCTAssertEqual(payload["saved"] as? Bool, false)
+
         XCTAssertEqual(proposal.route.experienceIds, proposal.stops.map(\.id),
                        "resolved stops must match the route's ordered ids")
         // #5 regression: an AI-built route is composed for the current moment,
@@ -4040,6 +4046,16 @@ final class SoloCompassTests: XCTestCase {
 
     /// build_route must NOT save the route — adoption is the user's explicit
     /// tap. The proposal is surfaced but nothing is persisted by the tool.
+    func testToolRouterBuildRouteRejectsUnknownRequestedStops() async throws {
+        let rig = makeRouteBuildingRig()
+        let result = await rig.router.execute(.init(
+            id: "missing", name: "build_route",
+            argumentsJSON: #"{"experience_ids":["missing-one","missing-two"]}"#
+        ))
+        XCTAssertFalse(result.contains(#""ok":true"#))
+        XCTAssertNil(rig.router.lastEffect)
+    }
+
     func testToolRouterBuildRouteDoesNotAutoSave() async throws {
         let rig = makeRouteBuildingRig()
         guard rig.vm.visibleExperiences.count >= 2 else {

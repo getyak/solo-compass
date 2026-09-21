@@ -1370,7 +1370,19 @@ struct CompassMapContentView: View {
                     onDismiss: { verifyTarget = nil }
                 )
             }
-            .sheet(isPresented: $isShowingFavorites) { favoritesSheetContent }
+            .sheet(isPresented: $isShowingFavorites, onDismiss: {
+                guard let selection = pendingFavoriteSelection else { return }
+                pendingFavoriteSelection = nil
+                if selection.preview {
+                    workspace.selectSurface(.map)
+                    viewModel.selectExperience(selection.experience)
+                } else {
+                    viewModel.openExperienceDetail(selection.experience)
+                }
+            }) { favoritesSheetContent }
+            .sheet(isPresented: $isShowingItineraries) {
+                ItineraryListView(sourceCityCode: viewModel.selectedCity, onClose: { isShowingItineraries = false })
+            }
             // Bind the chat sheet to the orchestrator itself instead of a
             // separate Bool. With `.sheet(isPresented:)` the content closure
             // could be evaluated in the same render pass that flips the flag —
@@ -2272,22 +2284,18 @@ struct CompassMapContentView: View {
         }
     }
 
+    @State private var pendingFavoriteSelection: (experience: Experience, preview: Bool)?
+
     @ViewBuilder
     private var favoritesSheetContent: some View {
         FavoritesListView(
             onSelectExperience: { exp in
+                pendingFavoriteSelection = (exp, false)
                 isShowingFavorites = false
-                // Tap → open the detail sheet directly (long-press peeks instead).
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    viewModel.openExperienceDetail(exp)
-                }
             },
             onLongPressExperience: { exp in
+                pendingFavoriteSelection = (exp, true)
                 isShowingFavorites = false
-                // Long-press → float the quick preview card (former tap behavior).
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    viewModel.selectExperience(exp)
-                }
             },
             onExplore: { isShowingFavorites = false },
             onClose: { isShowingFavorites = false }
@@ -2745,6 +2753,13 @@ struct CompassMapContentView: View {
 
     /// Discovery reads the same real data the map sheet used. No mock rows:
     /// routes come from `RouteStore`, places from `MapViewModel.visibleExperiences`.
+    private var discoveryReferenceCoordinate: CLLocationCoordinate2D {
+        if viewModel.selectedCity != nil { return viewModel.defaultCenterForSelectedCity }
+        return locationService.currentLocation?.coordinate ?? viewModel.defaultCenterForSelectedCity
+    }
+
+    @State private var isShowingItineraries = false
+
     private var discoverSurface: some View {
         DiscoverWorkspaceView(
             cityDisplayName: viewModel.currentDisplayCityName
@@ -2752,8 +2767,7 @@ struct CompassMapContentView: View {
             routes: nearbyRoutes,
             experiences: viewModel.visibleExperiences,
             smartPickIds: viewModel.aiSmartPickIds,
-            referenceCoordinate: locationService.currentLocation?.coordinate
-                ?? viewModel.defaultCenterForSelectedCity,
+            referenceCoordinate: locationService.currentLocation?.coordinate,
             isLoading: viewModel.isFetchingPOIs,
             isSearchingWeb: viewModel.isSearchingWeb,
             isNowFilter: viewModel.isNowFilter,
@@ -2800,8 +2814,7 @@ struct CompassMapContentView: View {
                 { viewModel.selectCity(code) }
             },
             onWebSearch: { query in
-                let center = locationService.currentLocation?.coordinate
-                    ?? viewModel.defaultCenterForSelectedCity
+                let center = discoveryReferenceCoordinate
                 Task { await viewModel.webSearchPOIs(query: query, near: center) }
             },
             onRefresh: {
@@ -2827,7 +2840,10 @@ struct CompassMapContentView: View {
                     recallPending: recallPending.count,
                     onOpen: { isShowingBaseSheet = true }
                 )
-            ) : nil
+            ) : nil,
+            webSearchOutcome: viewModel.lastWebSearchResult,
+            onOpenFavorites: { isShowingFavorites = true },
+            onOpenItineraries: { isShowingItineraries = true }
         )
     }
 
@@ -4466,6 +4482,8 @@ private struct FilteredEmptyOverlay: View {
             return category.localizedTitle
         } else if let tag = viewModel.selectedCustomTag {
             return tag
+        } else if viewModel.isFavoriteFilter {
+            return NSLocalizedString("ux.favorites", comment: "Favorites filter")
         } else if viewModel.isNowFilter {
             return NSLocalizedString("filter.now", comment: "Now filter label")
         }

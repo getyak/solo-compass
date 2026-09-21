@@ -36,11 +36,13 @@ struct NearbySection: View {
     /// True while a `onWebSearch` call is in flight — swaps the button for a
     /// spinner so a slow network search still reads as "working".
     let isSearchingWeb: Bool
+    let webSearchOutcome: POISearchOutcome?
 
     @Environment(BestNowClock.self) private var clock
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var searchText: String = ""
 
+    let sectionTitleKey: String
     let isLoading: Bool
 
     init(
@@ -49,9 +51,11 @@ struct NearbySection: View {
         referenceCoordinate: CLLocationCoordinate2D?,
         sortMode: SortMode = .smart,
         showsSectionDivider: Bool = false,
+        sectionTitleKey: String = "sheet.section.nearby",
         isLoading: Bool = false,
         isNowFilter: Bool = false,
         isSearchingWeb: Bool = false,
+        webSearchOutcome: POISearchOutcome? = nil,
         onExploreElsewhere: (() -> Void)? = nil,
         suggestedCityName: String? = nil,
         onSwitchToSuggestedCity: (() -> Void)? = nil,
@@ -65,9 +69,11 @@ struct NearbySection: View {
         self.referenceCoordinate = referenceCoordinate
         self.sortMode = sortMode
         self.showsSectionDivider = showsSectionDivider
+        self.sectionTitleKey = sectionTitleKey
         self.isLoading = isLoading
         self.isNowFilter = isNowFilter
         self.isSearchingWeb = isSearchingWeb
+        self.webSearchOutcome = webSearchOutcome
         self.onExploreElsewhere = onExploreElsewhere
         self.suggestedCityName = suggestedCityName
         self.onSwitchToSuggestedCity = onSwitchToSuggestedCity
@@ -86,15 +92,32 @@ struct NearbySection: View {
         VStack(alignment: .leading, spacing: 0) {
             // US-036: inset divider + localized "Nearby" header separates this
             // section from Routes above (showsDivider gated by composition).
-            SheetSectionSeparator(titleKey: "sheet.section.nearby", showsDivider: showsSectionDivider)
+            SheetSectionSeparator(titleKey: sectionTitleKey, showsDivider: showsSectionDivider)
 
-            if experiences.count >= 5 {
+            if !experiences.isEmpty || onWebSearch != nil {
                 ExperienceSearchBar(text: $searchText)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 4)
             }
 
-            if isLoading && experiences.isEmpty {
+            if let outcome = webSearchOutcome, outcome.matches(searchText), !isSearchingWeb {
+                Text(outcome.message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .accessibilityIdentifier("discover.search.outcome")
+            }
+
+            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && filteredExperiences.isEmpty {
+                SearchEmptyView(
+                    query: searchText,
+                    isSearchingWeb: isSearchingWeb,
+                    onWebSearch: onWebSearch.map { handler in { handler(searchText) } }
+                )
+                .padding(.horizontal, 16)
+            } else if isLoading && experiences.isEmpty {
                 NearbyRowSkeletonList()
             } else if experiences.isEmpty {
                 // US-050: empty Nearby list. Announce on appear so VoiceOver
@@ -157,6 +180,7 @@ struct NearbySection: View {
             || exp.title.lowercased().contains(query)
             || exp.oneLiner.lowercased().contains(query)
             || exp.category.rawValue.lowercased().contains(query)
+            || exp.category.localizedTitle.lowercased().contains(query)
         }
     }
 
