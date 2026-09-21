@@ -174,11 +174,7 @@ export interface ChatMessage {
 }
 
 export type CompanionReportReason =
-  | "spam"
-  | "harassment"
-  | "inappropriate_content"
-  | "fake_profile"
-  | "other";
+  "spam" | "harassment" | "inappropriate_content" | "fake_profile" | "other";
 
 export interface CompanionReport {
   readonly id: CompanionReportId;

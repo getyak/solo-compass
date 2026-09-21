@@ -126,8 +126,7 @@ Deno.serve(async (req: Request) => {
   let handle = "";
   const { data: targetUser } = await svc.auth.admin.getUserById(targetId);
   const meta = targetUser?.user?.user_metadata as
-    | { display_handle?: unknown; displayHandle?: unknown }
-    | undefined;
+    { display_handle?: unknown; displayHandle?: unknown } | undefined;
   if (typeof meta?.display_handle === "string") handle = meta.display_handle;
   else if (typeof meta?.displayHandle === "string") handle = meta.displayHandle;
   if (!handle) handle = avatarEmoji; // last-resort label — never empty.

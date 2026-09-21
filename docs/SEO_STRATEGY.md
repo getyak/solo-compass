@@ -204,9 +204,7 @@ Google Rich Result 的入场券。三类页面三种 schema：
   "name": "Chiang Mai for Solo Travelers",
   "description": "50 hand-picked experiences...",
   "geo": { "@type": "GeoCoordinates", "latitude": 18.7883, "longitude": 98.9853 },
-  "includesAttraction": [
-    /* 每个体验的 TouristAttraction 引用 */
-  ]
+  "includesAttraction": [/* 每个体验的 TouristAttraction 引用 */]
 }
 ```
 

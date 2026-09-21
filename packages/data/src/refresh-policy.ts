@@ -1,12 +1,7 @@
 import type { FeatureKey, ResolvedPlaceFeature } from "./evidence";
 
 export type RefreshReason =
-  | "coverage_gap"
-  | "soft_stale"
-  | "hard_constraint"
-  | "user_report"
-  | "source_release"
-  | "manual";
+  "coverage_gap" | "soft_stale" | "hard_constraint" | "user_report" | "source_release" | "manual";
 export type RefreshUrgency = "background" | "interactive";
 export type RefreshAction = "none" | "enqueue" | "blocking" | "exclude";
 

@@ -28,9 +28,7 @@ Request body is OpenAI-compatible (the iOS `AIService` already builds it):
 {
   "model": "deepseek-flash",
   "messages": [{ "role": "user", "content": "…" }],
-  "tools": [
-    /* function defs */
-  ],
+  "tools": [/* function defs */],
   "tool_choice": "auto",
   "stream": true,
   "max_tokens": 512,

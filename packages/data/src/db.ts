@@ -66,22 +66,11 @@ export interface TrafficPingRow {
 }
 
 export type PlaceOperatingStatus =
-  | "unknown"
-  | "active"
-  | "temporarily_closed"
-  | "permanently_closed";
+  "unknown" | "active" | "temporarily_closed" | "permanently_closed";
 export type ArtifactRetentionPolicy =
-  | "metadata_only"
-  | "derived_only"
-  | "cacheable_content"
-  | "first_party";
+  "metadata_only" | "derived_only" | "cacheable_content" | "first_party";
 export type RefreshJobStatus =
-  | "queued"
-  | "running"
-  | "succeeded"
-  | "failed"
-  | "dead_letter"
-  | "cancelled";
+  "queued" | "running" | "succeeded" | "failed" | "dead_letter" | "cancelled";
 export type WorkSessionOutcome = "completed" | "partially_completed" | "abandoned";
 export type WorkSessionFailureReason =
   | "place_closed"
@@ -188,12 +177,7 @@ export interface RefreshJobRow {
   feature_keys: string[];
   query: JsonValue | null;
   reason:
-    | "coverage_gap"
-    | "soft_stale"
-    | "hard_constraint"
-    | "user_report"
-    | "source_release"
-    | "manual";
+    "coverage_gap" | "soft_stale" | "hard_constraint" | "user_report" | "source_release" | "manual";
   urgency: "background" | "interactive";
   priority: number;
   provider_hint: string | null;
