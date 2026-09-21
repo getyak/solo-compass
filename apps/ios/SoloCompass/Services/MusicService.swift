@@ -27,6 +27,7 @@ public final class MusicService {
 
     public static let shared = MusicService()
 
+    /// State of the music-service authorization prompt.
     public enum PermissionState: Equatable {
         case unknown
         case granted
@@ -34,6 +35,7 @@ public final class MusicService {
         case unavailable   // simulator / signed out
     }
 
+    /// Whether the device has an active music subscription.
     public enum SubscriptionState: Equatable {
         case unknown
         case active

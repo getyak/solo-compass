@@ -21,7 +21,7 @@
 // Request body (OpenAI-compatible — the iOS AIService already builds
 // this shape):
 //   {
-//     model:    string,              // optional; server picks if absent
+//     model:    string,              // ignored; server forces deepseek-flash
 //     messages: ChatMessage[],
 //     tools?:   ToolSpec[],
 //     tool_choice?: "auto" | "none" | { ... },
@@ -34,9 +34,7 @@
 //   }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const DEFAULT_DEEPSEEK_BASE = "https://api.deepseek.com/v1";
-const DEFAULT_MODEL = "deepseek-chat";
+import { DEFAULT_DEEPSEEK_MODEL, deepSeekBaseUrl } from "../_shared/deepseek.ts";
 
 // Daily caps mirror AIService.dailySynthesisQuota / dailyExplanationQuota
 // so the server-side limit lines up with the on-device estimate.
@@ -59,8 +57,7 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const deepseekKey = Deno.env.get("DEEPSEEK_API_KEY");
-  const deepseekBase =
-    Deno.env.get("DEEPSEEK_BASE_URL")?.replace(/\/$/, "") ?? DEFAULT_DEEPSEEK_BASE;
+  const deepseekBase = deepSeekBaseUrl(Deno.env.get("DEEPSEEK_BASE_URL"));
   if (!deepseekKey) return json({ error: "server misconfigured" }, 500);
 
   const admin = createClient(supabaseUrl, serviceKey, {
@@ -110,13 +107,18 @@ Deno.serve(async (req: Request) => {
     return json({ error: "daily quota exceeded", quota: dailyCap, kind }, 429);
   }
 
-  // 4. Forward to DeepSeek. We pass through everything OpenAI-compatible
-  //    except `kind`, which is Solo-Compass-specific accounting metadata.
-  const forwardBody: Record<string, unknown> = { ...body };
+  // 4. Forward to DeepSeek. This proxy is service-paid and DeepSeek-only, so
+  //    the server OWNS model + thinking: we drop the client's `kind`
+  //    accounting field and force `model=deepseek-flash` with top-level
+  //    `thinking:{"type":"disabled"}` regardless of what an older (or
+  //    malicious) client sent. Explicit OpenAI/custom provider support lives
+  //    on configured direct client paths, not here.
+  const forwardBody: Record<string, unknown> = {
+    ...body,
+    model: DEFAULT_DEEPSEEK_MODEL,
+    thinking: { type: "disabled" },
+  };
   delete forwardBody.kind;
-  if (typeof forwardBody.model !== "string" || !forwardBody.model) {
-    forwardBody.model = DEFAULT_MODEL;
-  }
 
   const upstreamResp = await fetch(`${deepseekBase}/chat/completions`, {
     method: "POST",

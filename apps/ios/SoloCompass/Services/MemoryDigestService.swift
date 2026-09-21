@@ -65,6 +65,7 @@ public final class MemoryDigestService {
         self.modelContainer = container
     }
 
+    /// Enables or disables the optional LLM-backed digest path.
     public func setUseLLM(_ flag: Bool) {
         self.useLLM = flag
     }

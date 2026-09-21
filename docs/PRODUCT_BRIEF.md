@@ -2,16 +2,16 @@
 
 > Solo Compass · 独行罗盘
 >
-> One sentence: **打开 App 就是地图,地图上自动显示周边值得做的事——为独自旅行者设计的"活地图"。**
-> One sentence (EN): **Open the app and you see a map; the map shows things worth doing nearby — a living map for people traveling alone.**
+> One sentence: **从一句旅行需求开始，在同一个对话和地图空间里探索附近、挑选体验、规划路线，为独自旅行者提供有依据的选择。**
+> One sentence (EN): **Start with a travel question, explore nearby experiences, and plan a route in one continuous conversation and map.**
 
 ---
 
 ## What this is, in three sentences
 
-1. Not another travel app. Not a Google Maps clone. Not a small-red-book replacement.
-2. A **map-first**, **experience-as-unit**, **AI-curated** companion for people traveling alone.
-3. Every dot on the map is a _thing worth doing_, not just _a place that exists_.
+1. A personal travel assistant for finding food, discovering things to do, and planning a route.
+2. Conversation leads, the map stays close, and **Experience** remains the core domain unit.
+3. Recommendations offer choices with reasons and source evidence; the traveler decides.
 
 ## Why does this need to exist
 
@@ -29,11 +29,11 @@ Nothing in the market combines: live map, honest curation, solo-aware framing, A
 
 ## Three design pillars (non-negotiable)
 
-| Pillar                 | Meaning                                                                                       |
-| ---------------------- | --------------------------------------------------------------------------------------------- |
-| **Map-First**          | The map is the home screen. No tabs, no drawer, no onboarding. Everything happens on the map. |
-| **Experience-as-Unit** | Not "places" — concrete, time-bound, story-rich things to do.                                 |
-| **AI doesn't decide**  | AI filters from many to few and explains. Never "the answer." Always "options."               |
+| Pillar                 | Meaning                                                                                                                                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Conversation + map** | The map and conversation share the home scene. The default entry is a 78% conversation panel with a live map glimpse above it; a three-item dock (map / Ask Solo / discover) switches surfaces without losing the conversation. |
+| **Experience-as-Unit** | Not "places" — concrete, time-bound, story-rich things to do.                                                                                                                                                                   |
+| **AI doesn't decide**  | AI filters from many to few and explains. Never "the answer." Always "options."                                                                                                                                                 |
 
 > AI doesn't travel for you. AI helps you travel better.
 
@@ -132,3 +132,38 @@ DAU and MAU are not the success metric. _Retention from people who needed the ap
 - Multi-city expansion sequence after Chiang Mai
 - Privacy/data retention specifics
 - Native Android timing
+
+---
+
+## Conversation workspace (approved 2026-09-20, supersedes map-first/no-tabs)
+
+The user chose the **A1 "city journal"** organization: one continuous map/chat
+scene rather than a map with a modal chat. This supersedes the older
+map-first / no-tabs guidance above where the two disagree.
+
+Approved behavior:
+
+- **Default entry** is the existing 问问 conversational surface at ~72–78% of
+  the available height, with the top map / city pill / avatar visible and safe.
+  It keeps the original minimal serif invitation, time cue, warm chips and Solo
+  look, and fits a text composer so typing is immediately available (voice
+  stays). No oversized AI orb, no new welcome screen.
+- **Navigation** is a three-item floating dock — map / Ask Solo / discover —
+  with the personal profile still reached from the existing avatar. The centre
+  问问 item reuses `SoloMascotView` / `PlusActionButton`; no generic sparkle.
+- **Continuous workspace.** Draft text, attachments, the conversation, the
+  scoped experience, scroll intent and the selected map location survive
+  switching or dragging between surfaces. The agent is never discarded because
+  the user is looking at the map.
+- **Discovery** is a working surface over the real `RoutesSection` /
+  `NearbySection` data and actions (open, route adoption, place-scoped Ask Solo),
+  including loading, empty, offline and retry states. The old bottom sheet and
+  the duplicate "+" FAB are suppressed because they competed with it.
+- **Content honesty is unchanged.** Recommendations render only real Experience
+  fields (category, Solo score, confidence level, source count, best-time
+  window, existing prose). No invented travel times, source counts, photos, best
+  times or AI justifications. Place results are never numbered — numbering would
+  imply a route order; only a real route proposal shows an ordered strip.
+
+Full implementation notes, states, gesture ownership and acceptance limits:
+[`docs/design/conversation-workspace.md`](design/conversation-workspace.md).

@@ -14,6 +14,7 @@
  */
 
 import { structureExperience } from "../packages/ai/src/prompts/structure-experience";
+import { DEFAULT_DEEPSEEK_MODEL } from "../packages/ai/src/client";
 import type { Experience } from "../packages/core/src";
 
 // ─── Test fixtures ─────────────────────────────────────────────────────────────
@@ -230,10 +231,10 @@ async function runCase(tc: TestCase): Promise<Result> {
 
 async function main() {
   console.log("═══ Experience prompt evaluation harness ═══\n");
-  console.log(`Running ${CASES.length} test cases against claude-opus-4-7\n`);
+  console.log(`Running ${CASES.length} test cases against ${DEFAULT_DEEPSEEK_MODEL}\n`);
 
-  if (!process.env["ANTHROPIC_API_KEY"]) {
-    console.error("Error: ANTHROPIC_API_KEY env var not set");
+  if (!process.env["DEEPSEEK_API_KEY"]) {
+    console.error("Error: DEEPSEEK_API_KEY env var not set");
     process.exit(1);
   }
 

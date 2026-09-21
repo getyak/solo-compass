@@ -106,7 +106,12 @@ struct ChatExperienceCard: View {
         .accessibilityLabel(Text(NSLocalizedString("chat.card.expand.a11y", comment: "Show more about this place")))
     }
 
-    /// One line of prose + a Solo-score chip, revealed under the row.
+    /// One line of prose + a Solo-score chip, revealed under the row. A1's
+    /// editorial hierarchy: what you'd do, why it fits, and the real evidence
+    /// behind it (confidence level + source count + best-time window) — all
+    /// from fields the Experience already carries. Place results are never
+    /// numbered, because a numbered list would imply a route order that does
+    /// not exist here; only a real route proposal gets an ordered strip.
     private var expandedDetail: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(experience.oneLiner)
@@ -115,6 +120,16 @@ struct ChatExperienceCard: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if !experience.whyItMatters.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(experience.whyItMatters)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             HStack(spacing: 6) {
                 Image(systemName: "person.fill")
                     .font(.system(size: 9, weight: .semibold))
@@ -125,9 +140,47 @@ struct ChatExperienceCard: View {
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
             .background(Capsule().fill(CT.successSoft))
+
+            HStack(spacing: 8) {
+                evidenceChip
+                if let window = experience.bestTimes.first(where: { $0.dayOfWeek == nil && $0.season == nil }) {
+                    bestTimeChip(window)
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 47) // align under the title (disc 36 + spacing 11)
+    }
+
+    /// Human-readable confidence/health language plus the real source count —
+    /// never an unexplained internal "L3" code.
+    private var evidenceChip: some View {
+        Text(String(
+            format: NSLocalizedString("chat.card.evidence", comment: "Confidence health and source count"),
+            experience.confidence.health.localizedDescription,
+            experience.sources.count
+        ))
+        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+        .foregroundStyle(CT.fgMuted)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(CT.surfaceSunken))
+    }
+
+    /// The first unrestricted best-time window, e.g. "Best 17:00–19:00". Shown
+    /// only when the Experience carries a window with no weekday/season
+    /// restriction, so the chip never implies a verified general opening time.
+    private func bestTimeChip(_ window: TimeWindow) -> some View {
+        Text(String(
+            format: NSLocalizedString("chat.card.bestTime", comment: "Best time window"),
+            window.startHour,
+            window.endHour
+        ))
+        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+        .foregroundStyle(CT.sunGoldDeep)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(CT.sunGoldSoft))
     }
 
     /// Mono meta line: "<category> · Solo 7.5" — grounded only in data this card

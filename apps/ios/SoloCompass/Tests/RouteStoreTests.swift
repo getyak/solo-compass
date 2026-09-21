@@ -271,8 +271,8 @@ final class RouteStoreTests: XCTestCase {
         XCTAssertEqual(store.all().first?.id.rawValue, "mekong-sunset")
     }
 
-    /// US-015: After seed load, RouteStore.all() yields 4 routes with the 4
-    /// expected distinct companion-fixture shapes.
+    /// US-015: After seed load, RouteStore.all() yields 5 routes with the
+    /// expected distinct companion-fixture shapes (4 Vientiane + 1 Chiang Mai).
     func testImportSeedIfNeededYieldsDistinctCompanionFixtures() {
         let bundle = Self.seedBundle()
         store.importSeedIfNeeded(
@@ -281,7 +281,7 @@ final class RouteStoreTests: XCTestCase {
         )
 
         let routes = store.all()
-        XCTAssertEqual(routes.count, 4)
+        XCTAssertEqual(routes.count, 5)
         let byId = Dictionary(uniqueKeysWithValues: routes.map { ($0.id.rawValue, $0) })
 
         // mekong-sunset: open, 2 confirmed, 2 pending requests
@@ -305,6 +305,13 @@ final class RouteStoreTests: XCTestCase {
         XCTAssertNotNil(monuments?.companion)
         XCTAssertEqual(monuments?.companion?.status, .completed)
         XCTAssertEqual(monuments?.companion?.confirmedMembers.count, 4)
+
+        // nimman-slow-morning: solo Chiang Mai walk, no companion cohort
+        let nimman = byId["nimman-slow-morning"]
+        XCTAssertNotNil(nimman)
+        XCTAssertNil(nimman?.companion, "nimman-slow-morning is an editorial solo route with no companion")
+        XCTAssertEqual(nimman?.experienceIds.count, 2)
+        XCTAssertEqual(nimman?.cityCode, "cmi")
     }
 
     // MARK: - Beta-P0-A: active route progress (#78)

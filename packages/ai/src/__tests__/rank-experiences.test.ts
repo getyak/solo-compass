@@ -73,7 +73,7 @@ function makeMockClient(
         create: vi.fn().mockResolvedValue({
           choices: [{ message: { content } }],
           usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
-          model: "deepseek-v4-pro",
+          model: "deepseek-flash",
         }),
       },
     },
@@ -194,7 +194,7 @@ describe("rankExperiences — anti-hallucination", () => {
           create: vi.fn().mockResolvedValue({
             choices: [{ message: { content } }],
             usage: { prompt_tokens: 50, completion_tokens: 25, total_tokens: 75 },
-            model: "deepseek-v4-pro",
+            model: "deepseek-flash",
           }),
         },
       },
@@ -217,7 +217,7 @@ describe("rankExperiences — anti-hallucination", () => {
           create: vi.fn().mockResolvedValue({
             choices: [{ message: { content: "not json at all" } }],
             usage: { prompt_tokens: 50, completion_tokens: 10, total_tokens: 60 },
-            model: "deepseek-v4-pro",
+            model: "deepseek-flash",
           }),
         },
       },
@@ -229,5 +229,22 @@ describe("rankExperiences — anti-hallucination", () => {
     );
 
     expect(result.ranked).toHaveLength(0);
+  });
+
+  it("disables DeepSeek thinking at the top level of the wire body", async () => {
+    const exp = makeExperience("exp_cmi_think", "Think Test");
+    const create = vi.fn().mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify({ ranked: [] }) } }],
+      usage: { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13 },
+      model: "deepseek-flash",
+    });
+    const mockClient = { chat: { completions: { create } } } as unknown as OpenAI;
+
+    await rankExperiences({ ...BASE_INPUT, availableExperiences: [exp] }, mockClient);
+
+    const params = create.mock.calls[0]![0] as Record<string, unknown>;
+    expect(params["model"]).toBe("deepseek-flash");
+    expect(params["thinking"]).toEqual({ type: "disabled" });
+    expect(params["extra_body"]).toBeUndefined();
   });
 });

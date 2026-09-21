@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 /// Versioned SwiftData schema for Solo Compass.
 ///
@@ -7,6 +8,9 @@ import SwiftData
 /// breaking change can be migrated rather than crashing at boot. v1.0 was the
 /// schema we shipped with originally; v1.1 (US-005) adds the optional
 /// `ExperienceRecord.userTagsBlob` column.
+/// File-scoped logger for container setup failures (see `applyFileProtection`).
+private let containerLogger = Logger(subsystem: "com.solocompass", category: "Persistence")
+
 public enum SoloCompassSchemaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { .init(1, 0, 0) }
 
@@ -504,7 +508,9 @@ public enum SoloCompassModelContainer {
             } catch {
                 // Logged to Sentry on first miss; subsequent files silently
                 // ignored to avoid spamming. Non-fatal: store is still usable.
-                print("⚠️ FileProtection set failed for \(url.lastPathComponent): \(error)")
+                containerLogger.error(
+                    "FileProtection set failed for \(url.lastPathComponent, privacy: .public): \(String(describing: error), privacy: .private)"
+                )
             }
         }
     }

@@ -40,7 +40,7 @@ solo-compass/
 │   └── bot/              # Telegram bot for low-cost validation
 ├── packages/
 │   ├── core/             # Shared domain types: Experience, Place, User, etc.
-│   ├── ai/               # Prompts, recommendation engine, Claude wrappers
+│   ├── ai/               # Prompts, recommendation engine, DeepSeek Flash client
 │   ├── data/             # OSM/Wikivoyage ingestion, schema, seeders
 │   └── ui/               # Shared design tokens (web only — iOS uses native)
 ├── docs/                 # Product brief, architecture, decisions
@@ -66,7 +66,7 @@ pnpm install
 
 # Copy env templates
 cp .env.example .env.local
-# Then fill in: ANTHROPIC_API_KEY, MAPBOX_TOKEN, SUPABASE_URL, SUPABASE_KEY
+# Then fill in: DEEPSEEK_API_KEY, MAPBOX_TOKEN, SUPABASE_URL, SUPABASE_KEY
 
 # Run the web app (Phase 2)
 pnpm --filter @solo-compass/web dev
@@ -106,7 +106,7 @@ The data layer (`packages/data`, `packages/core`) and AI layer (`packages/ai`) a
 - **iOS**: SwiftUI + MapKit (Phase 3)
 - **Bot**: Telegraf
 - **DB**: Supabase (Postgres + PostGIS for geospatial)
-- **AI**: Anthropic Claude API
+- **AI**: DeepSeek Flash (`deepseek-flash`); Telegram audio transcription uses OpenAI Whisper
 - **Data sources**: OpenStreetMap (Overpass), Wikivoyage, Wikipedia, Reddit, YouTube transcripts
 
 ---

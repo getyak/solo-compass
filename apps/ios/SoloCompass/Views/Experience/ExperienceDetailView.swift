@@ -611,13 +611,19 @@ public struct ExperienceDetailView: View {
                let coord = viewModel.experience.location.clCoordinate {
                 let meters = locationService.distance(to: coord)
                 if meters < .greatestFiniteMagnitude {
-                    metaItem {
-                        Image(systemName: "figure.walk").font(.system(size: 11, weight: .semibold))
-                        Text(Self.formatWalkTime(meters))
+                    // Walk minutes are only meaningful at a walking scale. For a
+                    // remote city (opened while the device is in another
+                    // country) we show the honest straight-line distance only —
+                    // never "walk 154983 min".
+                    if meters <= Self.walkingScaleMeters {
+                        metaItem {
+                            Image(systemName: "figure.walk").font(.system(size: 11, weight: .semibold))
+                            Text(Self.formatWalkEstimate(meters))
+                        }
+                        metaSeparator
                     }
-                    metaSeparator
                     metaItem {
-                        if let bearing = relativeBearing(to: coord) {
+                        if meters <= Self.walkingScaleMeters, let bearing = relativeBearing(to: coord) {
                             Image(systemName: "location.north.fill")
                                 .font(.system(size: 10))
                                 .rotationEffect(.degrees(bearing))
@@ -666,10 +672,15 @@ public struct ExperienceDetailView: View {
             .padding(.horizontal, 11)
     }
 
-    /// Walk time estimate from distance (≈80 m/min), e.g. "步行 7'".
-    private static func formatWalkTime(_ meters: Double) -> String {
+    /// Beyond this distance a walking estimate is meaningless (and would read as
+    /// an absurd "walk 154983 min"). Only straight-line distance is shown.
+    static let walkingScaleMeters: Double = 2500
+
+    /// Approximate walk time from straight-line distance (≈80 m/min). Labelled
+    /// with "≈" because it is an estimate, not a routed ETA.
+    private static func formatWalkEstimate(_ meters: Double) -> String {
         let minutes = max(1, Int((meters / 80).rounded()))
-        return String(format: NSLocalizedString("meta.walkMinutes", comment: "Walk N minutes"), minutes)
+        return String(format: NSLocalizedString("meta.walkEstimate", comment: "≈ walk N min (estimate, not routed)"), minutes)
     }
 
     private func relativeBearing(to coord: CLLocationCoordinate2D) -> Double? {
@@ -703,7 +714,7 @@ public struct ExperienceDetailView: View {
                     format: NSLocalizedString("detail.distance.away", comment: "Distance away pill"),
                     distStr
                 )
-                let relBearing = relativeBearing(to: coord)
+                let relBearing = meters <= Self.walkingScaleMeters ? relativeBearing(to: coord) : nil
                 HStack(spacing: 3) {
                     if let relBearing {
                         Image(systemName: "location.north.fill")
@@ -750,7 +761,8 @@ public struct ExperienceDetailView: View {
     @ViewBuilder
     private var compassDirectionView: some View {
         if locationService.currentLocation != nil,
-           let coord = viewModel.experience.location.clCoordinate {
+           let coord = viewModel.experience.location.clCoordinate,
+           locationService.distance(to: coord) <= Self.walkingScaleMeters {
             let relBearing = relativeBearing(to: coord) ?? 0
             let distStr = Self.formatDistance(locationService.distance(to: coord))
             let cardinalDir = Self.compassDirection(for: relBearing)

@@ -42,13 +42,24 @@ public struct ChatInputBar: View {
     /// Tapping the context pill's `×`. Nil hides the dismiss affordance.
     public let onClearContext: (() -> Void)?
 
+    /// Fires when the text field gains or loses focus. The host uses this to
+    /// expand the conversation panel for the keyboard and restore the reader's
+    /// detent on dismissal (so the composer is never covered).
+    public let onFocusChange: ((Bool) -> Void)?
+
+    /// When true the text field resigns focus. The host raises this when the
+    /// chat is hidden (map / discovery / modal) so the keyboard never stays up
+    /// behind a covered panel.
+    public let resignFocus: Bool
+
     /// Fires when the user taps the send button (or hits return) with a
-    /// non-empty draft. The trimmed text is passed in; the input bar
-    /// clears `draftText` after the closure runs.
+    /// non-empty draft. The trimmed text is passed in. Returns `true` when the
+    /// message was accepted; on `false` the bar keeps the draft and staged
+    /// attachments so a rejected send never loses the user's input.
     ///
     /// Attachments are delivered via the `attachments` binding: callers read
-    /// the staged drafts inside `onSend`; the bar clears them afterwards.
-    public let onSend: (String) -> Void
+    /// the staged drafts inside `onSend`; the bar clears them only on `true`.
+    public let onSend: (String) -> Bool
 
     /// Tap-to-toggle voice mode (accessibility path). `true` requests start,
     /// `false` requests stop.
@@ -76,6 +87,14 @@ public struct ChatInputBar: View {
     /// field so it lifts when the user is composing.
     @FocusState private var fieldFocused: Bool
 
+    /// Mic hold-to-talk bookkeeping. A quick tap toggles voice; a ≥320ms hold
+    /// starts push-to-talk. Kept local so a cancelled press can never leave the
+    /// mic latched on.
+    @GestureState private var micTouchActive = false
+    @State private var micPressed: Bool = false
+    @State private var isHoldingToTalk: Bool = false
+    @State private var micHoldTask: Task<Void, Never>?
+
     // Attachment-picker presentation state.
     @State private var showAttachmentDialog = false
     @State private var photoSelections: [PhotosPickerItem] = []
@@ -91,7 +110,9 @@ public struct ChatInputBar: View {
         errorMessage: String?,
         placeContextName: String? = nil,
         placeContextColor: Color? = nil,
-        onSend: @escaping (String) -> Void,
+        onFocusChange: ((Bool) -> Void)? = nil,
+        resignFocus: Bool = false,
+        onSend: @escaping (String) -> Bool,
         onMicToggle: @escaping (Bool) -> Void,
         onMicPress: @escaping (Bool) -> Void,
         onRetry: @escaping () -> Void,
@@ -103,6 +124,8 @@ public struct ChatInputBar: View {
         self.errorMessage = errorMessage
         self.placeContextName = placeContextName
         self.placeContextColor = placeContextColor
+        self.onFocusChange = onFocusChange
+        self.resignFocus = resignFocus
         self.onSend = onSend
         self.onMicToggle = onMicToggle
         self.onMicPress = onMicPress
@@ -118,7 +141,9 @@ public struct ChatInputBar: View {
         errorMessage: String?,
         placeContextName: String? = nil,
         placeContextColor: Color? = nil,
-        onSend: @escaping (String) -> Void,
+        onFocusChange: ((Bool) -> Void)? = nil,
+        resignFocus: Bool = false,
+        onSend: @escaping (String) -> Bool,
         onMicToggle: @escaping (Bool) -> Void,
         onMicPress: @escaping (Bool) -> Void,
         onRetry: @escaping () -> Void,
@@ -131,6 +156,8 @@ public struct ChatInputBar: View {
             errorMessage: errorMessage,
             placeContextName: placeContextName,
             placeContextColor: placeContextColor,
+            onFocusChange: onFocusChange,
+            resignFocus: resignFocus,
             onSend: onSend,
             onMicToggle: onMicToggle,
             onMicPress: onMicPress,
@@ -369,9 +396,9 @@ public struct ChatInputBar: View {
             showAttachmentDialog = true
         } label: {
             Image(systemName: "plus")
-                .font(.body.weight(.semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(CT.accent)
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color(.tertiarySystemBackground))
@@ -424,6 +451,14 @@ public struct ChatInputBar: View {
         .animation(.easeOut(duration: 0.25), value: micState)
         .submitLabel(.send)
         .onSubmit(submitDraft)
+        .onChange(of: fieldFocused) { _, focused in
+            onFocusChange?(focused)
+        }
+        // The host raises this when the chat is hidden (map / discovery / modal)
+        // so the keyboard never lingers behind a covered panel.
+        .onChange(of: resignFocus) { _, shouldResign in
+            if shouldResign { fieldFocused = false }
+        }
         .accessibilityLabel(Text(fieldPlaceholder))
     }
 
@@ -456,9 +491,9 @@ public struct ChatInputBar: View {
             ZStack {
                 Circle()
                     .fill(CT.accent)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 44, height: 44)
                 Image(systemName: "arrow.up")
-                    .font(.body.weight(.bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
             }
         }
@@ -479,10 +514,6 @@ public struct ChatInputBar: View {
     }
 
     private var micButton: some View {
-        // `onPressingChanged` fires immediately on touch-down, giving us the
-        // sub-frame feedback the redesign demands. `perform` is required by
-        // the API but we don't use the long-press fire here — the tap
-        // gesture below handles toggle mode.
         let micColor: Color = {
             switch micState {
             case .listening: return CT.sunGoldDeep
@@ -497,7 +528,7 @@ public struct ChatInputBar: View {
         return ZStack {
             shape
                 .fill(isListening ? CT.sunGoldSoft : Color(.tertiarySystemBackground))
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
                 .overlay(
                     shape.strokeBorder(
                         isListening ? CT.sunGold : CT.borderSubtle,
@@ -505,31 +536,62 @@ public struct ChatInputBar: View {
                     )
                 )
             Image(systemName: isListening ? "waveform" : "mic.fill")
-                .font(.body.weight(.semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(micColor)
                 .symbolEffect(
                     .variableColor.iterative,
-                    isActive: micState == .listening || micState == .thinking
+                    isActive: !reduceMotion && (micState == .listening || micState == .thinking)
                 )
         }
-        .scaleEffect(isListening ? 1.08 : 1.0)
-        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: micState)
+        .scaleEffect(isListening ? 1.08 : (micPressed ? 0.94 : 1.0))
+        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.7), value: micState)
+        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.7), value: micPressed)
         .contentShape(shape)
-        .onLongPressGesture(
-            minimumDuration: 0.0,
-            maximumDistance: .infinity,
-            perform: { /* no-op: tap is handled by the simultaneous gesture */ },
-            onPressingChanged: { pressing in
-                onMicPress(pressing)
-            }
+        // One gesture owns the mic. A quick tap toggles voice; a genuine hold
+        // (≥320ms) starts push-to-talk. The previous simultaneous tap + a
+        // zero-duration long-press could start, stop and immediately restart
+        // the mic on a single tap — that double path is gone.
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .updating($micTouchActive) { _, active, _ in active = true }
+                .onChanged { _ in
+                    guard !micPressed else { return }
+                    micPressed = true
+                    micHoldTask?.cancel()
+                    micHoldTask = Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(320))
+                        guard !Task.isCancelled else { return }
+                        isHoldingToTalk = true
+                        onMicPress(true)
+                    }
+                }
+                .onEnded { _ in
+                    micHoldTask?.cancel()
+                    micHoldTask = nil
+                    micPressed = false
+                    if isHoldingToTalk {
+                        isHoldingToTalk = false
+                        onMicPress(false)
+                    } else {
+                        Haptics.selection()
+                        onMicToggle(micState != .listening)
+                    }
+                }
         )
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                Haptics.selection()
-                let isStarting = micState != .listening
-                onMicToggle(isStarting)
+        .onChange(of: micTouchActive) { _, active in
+            guard !active, micPressed else { return }
+            // Cancellation has no onEnded callback. Cancel the delayed start
+            // and release a held recording without treating it as a tap.
+            micHoldTask?.cancel()
+            micHoldTask = nil
+            micPressed = false
+            if isHoldingToTalk {
+                isHoldingToTalk = false
+                onMicPress(false)
             }
-        )
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onMicToggle(micState != .listening) }
         .accessibilityLabel(Text(NSLocalizedString("chat.input.mic.a11y", comment: "Voice")))
         .accessibilityHint(Text(NSLocalizedString("chat.input.mic.hint", comment: "Tap to start or stop voice, hold to push-to-talk")))
         .accessibilityAddTraits(.startsMediaSession)
@@ -539,9 +601,9 @@ public struct ChatInputBar: View {
         let trimmed = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
         // Allow sending an attachment-only message (no text).
         guard !trimmed.isEmpty || !attachments.isEmpty else { return }
-        Haptics.impact(.light)
-        // Caller reads `attachments` (still bound) inside onSend, then we clear.
-        onSend(trimmed)
+        // Caller reads `attachments` (still bound) inside onSend. Only a `true`
+        // result clears the draft, so a rejected send keeps the user's work.
+        guard onSend(trimmed) else { return }
         draftText = ""
         attachments = []
     }
@@ -794,7 +856,7 @@ private struct StatefulPreviewWrapper: View {
                 micState: micState,
                 errorMessage: error,
                 placeContextName: placeContextName,
-                onSend: { _ in },
+                onSend: { _ in true },
                 onMicToggle: { _ in },
                 onMicPress: { _ in },
                 onRetry: {},

@@ -16,6 +16,7 @@ import Foundation
 @MainActor
 public struct RubricScorer {
 
+    /// The per-turn signals fed into rubric scoring.
     public struct TurnInput {
         public let turnIndex: Int
         public let userText: String
@@ -46,6 +47,7 @@ public struct RubricScorer {
 
     public init() {}
 
+    /// Scores one conversation turn and returns the rubric report.
     public func score(_ input: TurnInput) -> RubricReport {
         let assistant = input.assistantText
         let assistantLower = assistant.lowercased()

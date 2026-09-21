@@ -25,6 +25,7 @@ public struct SunsetSignal: NowSignal {
 
     public init() {}
 
+    /// Scores viewpoint experiences by proximity to sunset at `date`.
     public func score(for experience: Experience, at date: Date) async -> NowSignalContribution {
         // Only viewpoint-shaped venues care about sunset timing.
         guard Self.isEligible(experience) else {

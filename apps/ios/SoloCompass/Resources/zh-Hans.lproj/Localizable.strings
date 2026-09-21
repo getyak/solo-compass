@@ -2530,3 +2530,39 @@
 "dev.performance.sheetSettle" = "底部信息卡归位";
 "dev.performance.p95" = "p95 %1$d / %2$d 毫秒";
 "dev.performance.detail" = "%1$d 个样本 · p50 %2$d 毫秒 · %3$d%% 达标";
+
+/* Conversation workspace (map / chat / discover) */
+"workspace.dock.map" = "地图";
+"workspace.dock.ask" = "问问";
+"workspace.dock.discover" = "发现";
+"workspace.handle.a11y" = "对话面板";
+"workspace.handle.hint" = "上下拖动，调整对话与地图的比例";
+"workspace.detent.collapsed" = "地图";
+"workspace.detent.conversation" = "对话";
+"workspace.detent.expanded" = "展开对话";
+"workspace.collapseChat" = "收起对话，回到地图";
+"chat.returnToLatest" = "最新";
+"chat.returnToLatest.a11y" = "有新回复，跳到最新消息";
+"discover.title" = "发现";
+"discover.subtitle" = "为 %@ 精选";
+"discover.retry" = "重试";
+"discover.offline.title" = "当前无网络";
+"discover.offline.subtitle" = "先显示地图上已有的内容。";
+"discover.empty.title" = "这里暂时没有可发现的内容";
+"discover.empty.subtitle" = "换个区域看看，或直接问 Solo 附近有什么。";
+"sort.a11y" = "排序";
+
+/* Chat recommendation card — editorial evidence */
+"chat.card.evidence" = "%1$@ · %2$d 处依据";
+"chat.card.bestTime" = "最佳 %1$02d:00–%2$02d:00";
+
+/* Agent chat send restrictions */
+"chat.send.hint.attachmentsUnsupported" = "这个对话暂不支持附件，请直接发文字或移除文件。";
+
+/* Conversation workspace — choose-city affordance */
+"workspace.chooseCity" = "先选一个城市";
+
+/* Detail meta — honest walk estimate (straight-line, not a routed ETA) */
+"meta.walkEstimate" = "约步行 %d 分钟";
+
+"chat.error.turnTimeout" = "这次搜索耗时较长，对话已保留。可以重试，或缩小搜索范围。";

@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import CoreLocation
 import SwiftData
 import os
 
@@ -357,11 +358,14 @@ struct CompassMapContentView: View {
     /// show at `.peek`. Threaded via `onDetentChange`.
     @State private var sheetDetent: BottomSheetDetent = .peek
     @State private var voiceOrchestrator: VoiceAgentOrchestrator? = nil
-    /// Selected detent for the chat sheet. Bound into `presentationDetents` so
-    /// the sheet can auto-expand to `.large` while the agent is working (see
-    /// `ChatSheet`), giving the reply room to breathe instead of being read in a
-    /// cramped half-sheet.
-    @State private var chatDetent: PresentationDetent = .medium
+    /// Owns the single map ⇄ conversation ⇄ discovery scene: panel detent,
+    /// draft, scroll intent and the explicit-ask channel. One instance for the
+    /// root's lifetime so surface switches never drop work.
+    @State private var workspace = ConversationWorkspaceState()
+    /// Height of the map's safe-area container, measured once per layout via a
+    /// background GeometryReader (never per drag frame) so the panel detents
+    /// are honest fractions of the real screen.
+    @State private var workspaceContainerHeight: CGFloat = 0
     @State private var mapStyleChoice: MapStyleChoice = .standard
 
     // US-017: Companion map layer (default off)
@@ -455,6 +459,25 @@ struct CompassMapContentView: View {
         (viewModel.selectedCategory != nil) || (viewModel.selectedCustomTag != nil) || viewModel.isNowFilter || viewModel.isFavoriteFilter
     }
 
+    /// True while any modal surface covers the workspace. When one presents, the
+    /// chat hibernates (stops the mic and speech) so audio never keeps running
+    /// behind a covered panel.
+    private var anyWorkspaceModalPresented: Bool {
+        viewModel.isShowingDetail
+            || viewModel.isShowingSettings
+            || isShowingMe
+            || routeSheet != nil
+            || isShowingCityPicker
+            || isShowingFavorites
+            || isShowingKitSheet
+            || isShowingLiveSheet
+            || isShowingBaseSheet
+            || verifyTarget != nil
+            || surveyExperience != nil
+            || viewModel.isShowingPaywall
+            || viewModel.isShowingRecompileFeed
+    }
+
     private var activeFilterName: String {
         if let category = viewModel.selectedCategory {
             return category.localizedTitle
@@ -523,7 +546,9 @@ struct CompassMapContentView: View {
     /// as "card floating above sheet" rather than "card jammed against it".
     private var cardBottomInset: CGFloat {
         let cardSheetGap: CGFloat = 12
-        return sheetPeekClearance + cardSheetGap
+        // The workspace's collapsed bar is the bottom chrome now, so the card
+        // clears that instead of the (suppressed) legacy sheet peek.
+        return ConversationWorkspaceState.Metrics.collapsedHeight + cardSheetGap
     }
 
     /// Bottom inset for the map's floating control bar (filter, explore, and the
@@ -533,10 +558,9 @@ struct CompassMapContentView: View {
     /// controls hug the sheet without crowding it.
     private var controlBarBottomInset: CGFloat {
         let controlSheetGap: CGFloat = 8
-        // The Base card no longer floats over the map (it now lives inside the
-        // sheet peek header), so the control bar only needs to clear the peek
-        // sheet itself — no extra lift for a bottom slot.
-        return sheetPeekClearance + controlSheetGap
+        // Clear the workspace's collapsed bar (the legacy peek sheet is no
+        // longer rendered), so settings/explore float just above it.
+        return ConversationWorkspaceState.Metrics.collapsedHeight + controlSheetGap
     }
 
     // MARK: - City OS v2 helpers
@@ -841,7 +865,7 @@ struct CompassMapContentView: View {
     // tests reference as `CompassMapView.debug…`). See that type below.
 
     @ViewBuilder
-    private var mapContent: some View {
+    private var mapLifecycleContent: some View {
         mapZStack
             .background(themeService.currentTheme.background)
             .onAppear {
@@ -893,8 +917,8 @@ struct CompassMapContentView: View {
                 // "Ask me where to go" doorway.
                 if ProcessInfo.processInfo.arguments.contains("-openChatMedium") {
                     chatStartMode = .text
-                    chatDetent = .medium
                     ensureOrchestrator(viewModel: viewModel)
+                    workspace.selectSurface(.ask)
                 }
                 if ProcessInfo.processInfo.arguments.contains("-openCityPicker") {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
@@ -941,8 +965,9 @@ struct CompassMapContentView: View {
                     svc.injectFindingsForTesting(all)
                     pendingDiagnosticsPrompt = svc.chatSeedPrompt(for: all)
                     chatStartMode = .text
-                    chatDetent = .large
                     ensureOrchestrator(viewModel: viewModel)
+                    clearStalePlaceScopeForGlobalAsk()
+                    workspace.selectDetent(.expanded)
                 }
                 if ProcessInfo.processInfo.arguments.contains("-forceDiagnosticsChat") {
                     let stub = StartupDiagnosticsService.Finding(
@@ -972,8 +997,9 @@ struct CompassMapContentView: View {
                     svc.injectFindingsForTesting([stub])
                     pendingDiagnosticsPrompt = svc.chatSeedPrompt(for: [stub])
                     chatStartMode = .text
-                    chatDetent = .large
                     ensureOrchestrator(viewModel: viewModel)
+                    clearStalePlaceScopeForGlobalAsk()
+                    workspace.selectDetent(.expanded)
                 }
                 #endif
                 // P0 #1: only ask for location once the consent + onboarding
@@ -982,7 +1008,7 @@ struct CompassMapContentView: View {
                 // screen. The `onChange(of: preferences.hasCompletedOnboarding)`
                 // below re-fires this the moment onboarding finishes.
                 if !firstLaunchGateActive {
-                    locationService.requestPermission()
+                    beginLocationForChatFirstEntry()
                 }
                 // US-021: `viewModel` is built eagerly in `init`, so there is no
                 // lazy-creation block here anymore. We only run the one-shot
@@ -1005,14 +1031,11 @@ struct CompassMapContentView: View {
                     // final step usually resolves a starting city anyway; if it
                     // doesn't, `maybePromptCityPicker()` re-evaluates once the
                     // gate clears.
-                    let skipPicker = ProcessInfo.processInfo.arguments.contains("-skipLocationPicker")
-                    if !skipPicker
-                        && !firstLaunchGateActive
-                        && viewModel.selectedCity == nil
-                        && preferences.lastSelectedCity == nil
-                        && locationService.currentLocation == nil {
-                        isShowingCityPicker = true
-                    }
+                    // Chat-first default: do NOT auto-open the city picker on
+                    // a cold start with no city/location. The city pill in the
+                    // top bar (and the conversation's "choose a city" chip) is
+                    // the user-initiated affordance; auto-presenting a modal over
+                    // the new chat surface interrupted first run.
                     // DEBUG: screenshot harness can pass -startNow to switch the
                     // filter to Now mode on cold start, so the RoutesSection's
                     // empty-state placeholder can be captured deterministically.
@@ -1142,6 +1165,11 @@ struct CompassMapContentView: View {
                     #endif
                 }
                 viewModel.checkForPendingCheckIns()
+                // The workspace is the default entry. Bring the agent up in the
+                // background so the ~75% conversation surface is ready on first
+                // paint. `start()` seeds the system prompt only — it sends no
+                // model request and never starts the microphone.
+                ensureOrchestrator(viewModel: viewModel)
                 // P1.1 #112: seed the visited-id set so .footprinted halos
                 // light up on first render — without waiting for the next
                 // VisitRecord write to trigger the onChange below.
@@ -1157,7 +1185,7 @@ struct CompassMapContentView: View {
             // once decided, and `maybePromptCityPicker()` self-guards.
             .onChange(of: preferences.hasCompletedOnboarding) { _, completed in
                 guard completed, TermsConsentSheet.hasAccepted else { return }
-                locationService.requestPermission()
+                beginLocationForChatFirstEntry()
                 maybePromptCityPicker()
             }
             .onChange(of: locationService.currentLocation) { _, _ in
@@ -1174,6 +1202,10 @@ struct CompassMapContentView: View {
                 // promotes it to Live. A finished stay stays Recall (stage gate).
                 inferAndPersistCityMode(for: viewModel.selectedCity)
             }
+    }
+
+    private var mapEventContent: some View {
+        mapLifecycleContent
             // "Entering the app" isn't only a cold launch: when the process
             // survives a trip to another city, returning to the foreground
             // must re-align the map + city pill to where the traveler now is.
@@ -1237,6 +1269,15 @@ struct CompassMapContentView: View {
                     HapticService.shared.impact(style: .medium)
                 }
             }
+            // Any modal covering the workspace asks the chat to hibernate (mic +
+            // speech) without ending the conversation.
+            .onChange(of: anyWorkspaceModalPresented) { _, presented in
+                if presented {
+                    workspace.requestHibernation()
+                } else if workspace.showsConversation {
+                    voiceOrchestrator?.isSpeechSuppressed = false
+                }
+            }
             // US-023: a tapped friend-request push deep-links to the inbox. The
             // friend-request inbox lives inside the personal hub (MeSheet), so
             // surface it and consume the link so a re-render won't re-open it.
@@ -1293,6 +1334,10 @@ struct CompassMapContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: RouteStore.didChange)) { _ in
                 refreshNearbyRoutes(cityCode: viewModel.selectedCity)
             }
+    }
+
+    private var mapContent: some View {
+        mapEventContent
             .sheet(item: $surveyExperience) { exp in surveySheetContent(exp: exp) }
             .alert(
                 NSLocalizedString("addExperience.confirm.title", comment: "Add an experience here?"),
@@ -1336,9 +1381,11 @@ struct CompassMapContentView: View {
             // race. The custom binding tears the orchestrator down on dismiss
             // (swipe or "X") so a future global "+" chat never inherits a
             // per-card <experience_context> block (US-004).
-            .sheet(item: chatOrchestratorBinding) { orch in
-                chatSheetContent(orch)
-            }
+            // The conversation is no longer a modal sheet: the workspace panel
+            // (see `workspaceOverlay` inside `mapZStack`) owns presentation, so
+            // the chat keeps one identity while the user moves between map, chat
+            // and discovery. The orchestrator is retained for the root's
+            // lifetime instead of being discarded on every close.
             .sheet(isPresented: paywallSheetBinding, onDismiss: { viewModel.onPaywallUnlocked = nil }) { paywallSheetContent }
             // US-025 regression: the Routes-section commit (6655422) accidentally
             // dropped this line, leaving the bottom-left settings FAB inert — its
@@ -1439,6 +1486,13 @@ struct CompassMapContentView: View {
             // collides with the status bar.
             mapLayer(viewModel: viewModel)
                 .ignoresSafeArea()
+                // Tell MapKit the workspace bar owns the bottom edge, so its
+                // legal attribution and controls lay out above the panel instead
+                // of being covered by it.
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear.frame(height: ConversationWorkspaceState.Metrics.collapsedHeight)
+                }
+                .accessibilityHidden(workspace.surface != .map)
 
                 // City OS v2: in Plan mode the whole map cools to a considered,
                 // "you're not here yet" register — a soft blue-white wash that
@@ -1476,9 +1530,17 @@ struct CompassMapContentView: View {
                             comment: "Seed prompt sent when tapping the Ask Solo pill"
                         )
                         chatStartMode = .text
+                        workspace.selectSurface(.ask)
                         ensureOrchestrator(viewModel: viewModel)
-                    }
+                        clearStalePlaceScopeForGlobalAsk()
+                    },
+                    // Full map chrome (filter rail, map actions, banners) only on
+                    // the map surface; the chat/discovery surfaces keep just the
+                    // city pill + avatar.
+                    showsMapChrome: workspace.surface == .map
                 )
+                .accessibilityHidden(workspace.detent == .expanded)
+                .allowsHitTesting(workspace.detent != .expanded)
 
                 VStack {
                     Spacer()
@@ -1510,16 +1572,21 @@ struct CompassMapContentView: View {
                         preferences: preferences,
                         voiceOrchestrator: $voiceOrchestrator,
                         onOpenChat: { mode in
-                            // Set the mode *before* creating the orchestrator:
-                            // assigning `voiceOrchestrator` is what presents the
-                            // `.sheet(item:)`, so `chatStartMode` must already be
-                            // correct when the sheet content is first evaluated.
-                            chatStartMode = mode
-                            ensureOrchestrator(viewModel: viewModel)
+                            // The workspace owns presentation now; this sets the
+                            // start mode, brings the agent up, and opens the
+                            // conversation surface (arming the mic for .voice via
+                            // the explicit channel).
+                            openChat(mode: mode)
                         },
-                        bottomInset: controlBarBottomInset
+                        bottomInset: controlBarBottomInset,
+                        // The workspace dock's centre 问问 item is the single Ask
+                        // entry now; the legacy FAB would be a duplicate.
+                        showsAskButton: false
                     )
                 }
+                .opacity(workspace.surface == .map ? 1 : 0)
+                .allowsHitTesting(workspace.surface == .map)
+                .accessibilityHidden(workspace.surface != .map)
                 .onChange(of: isCompanionLayerOn) { _, on in
                     if on {
                         Task { await fetchNearbyCells(viewModel: viewModel) }
@@ -1620,197 +1687,14 @@ struct CompassMapContentView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                ZStack(alignment: .bottom) {
-                    BottomInfoSheet(
-                        aiHint: viewModel.isNowFilter
-                            ? NSLocalizedString("sheet.now.headline", comment: "Bottom sheet now-mode headline")
-                            : NSLocalizedString("ai.now.hint", comment: "AI now hint"),
-                        count: viewModel.isNowFilter
-                            ? viewModel.nowCount
-                            : viewModel.visibleExperiences.count,
-                        isNowMode: viewModel.isNowFilter,
-                        peekExperience: peekExperience,
-                        isSmartPick: peekExperienceIsSmartPick,
-                        referenceCoordinate: locationService.currentLocation?.coordinate
-                            ?? viewModel.defaultCenterForSelectedCity,
-                        referenceIsUserLocation: locationService.currentLocation != nil,
-                        // D 双卡片冲突: while the floating preview card is up for
-                        // a user-selected experience, the peek summary card
-                        // yields so only one "best pick" card is on screen.
-                        isPreviewActive: viewModel.selectedExperience != nil
-                            && !viewModel.isShowingDetail,
-                        onShuffle: {
-                            guard let current = peekExperience else { return }
-                            let shuffled = peekShuffledIds + [current.id]
-                            let visibleIds = Set(viewModel.visibleExperiences.map(\.id))
-                            // Cycled through everything visible → restart the
-                            // rotation so "换一个" never comes back empty-handed.
-                            peekShuffledIds = visibleIds.subtracting(shuffled).isEmpty
-                                ? []
-                                : shuffled
-                        },
-                        onRefresh: {
-                            viewModel.loadNearbyExperiences()
-                        },
-                        onDetentChange: { detent in
-                            if sheetDetent != detent { sheetDetent = detent }
-                        },
-                        // City OS: the 游民基地 Base card rides inside the sheet's
-                        // peek header instead of floating over the map, so its
-                        // full-width banner no longer occludes the right-side
-                        // control column (AI / explore / config). Only provided
-                        // when cityOS is on; nil otherwise keeps the sheet
-                        // behaviour identical for non-City-OS users.
-                        peekHeader: FeatureFlags.cityOS ? {
-                            AnyView(
-                                BaseCard(
-                                    face: currentBaseFace,
-                                    cityName: currentCityDisplayName,
-                                    daysStayed: complianceService.state()?.daysStayed,
-                                    visaDaysRemaining: complianceService.state()?.visaDaysRemaining,
-                                    visaPolicyDays: cityBriefService.kit
-                                        .first(where: { $0.kind == .visa })?.action?.visaDays,
-                                    workReadyCount: viewModel.workReadySpots(limit: 99).count,
-                                    eventCount: cityBriefService.activeEvents().count,
-                                    kitDone: viewModel.selectedCity.map {
-                                        cityOSStore.kitTodoDoneCount(cityCode: $0, kit: cityBriefService.kit)
-                                    } ?? 0,
-                                    kitTotal: cityBriefService.kit.count,
-                                    recallVisited: recallVisited.count,
-                                    recallPending: recallPending.count,
-                                    onOpen: { isShowingBaseSheet = true }
-                                )
-                            )
-                        } : nil
-                    ) { detent, sortMode in
-                        if detent != .peek {
-                            VStack(spacing: 0) {
-                                // 路线图仅在 Now / 当下栏目出现 — routes are a
-                                // time-sensitive "what should I walk right now"
-                                // artifact, meaningless outside the Now context.
-                                // In every other sort mode the Routes section and
-                                // the create-route entry are hidden entirely, so the
-                                // sheet shows only 附近 there. Inside this branch
-                                // `isNowFilter` is always true. Gating goes through
-                                // the testable `shouldShowRoutesSection` helper.
-                                if Self.shouldShowRoutesSection(isNowFilter: viewModel.isNowFilter) {
-                                    // US-025: Routes section above Nearby (non-scrollable header rows)
-                                    RoutesSection(
-                                        routes: nearbyRoutes,
-                                        isNowFilter: true,
-                                        onSelectRoute: { route in
-                                            routeSheet = .detail(route)
-                                        },
-                                        // Direction 3 — cold start in Now mode: when
-                                        // RoutesSection finds zero displayed items it
-                                        // renders NowEmptyRoutePlaceholder; its CTA must
-                                        // hit the same flow as CreateRouteEntryCard
-                                        // below so we keep a single create-route code
-                                        // path (no new orchestration).
-                                        onProposeRoute: {
-                                            // The placeholder's copy promises "Solo
-                                            // picks 3 stops" — honour it by starting
-                                            // the AI generation on open.
-                                            routeSheet = .create(autoGenerate: true)
-                                        }
-                                    )
-
-                                    // Create-your-own-route entry, between Routes and Nearby.
-                                    CreateRouteEntryCard {
-                                        routeSheet = .create(autoGenerate: false)
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 8)
-                                }
-
-                                NearbySection(
-                                    experiences: viewModel.visibleExperiences,
-                                    smartPickIds: viewModel.aiSmartPickIds,
-                                    referenceCoordinate: locationService.currentLocation?.coordinate
-                                        ?? viewModel.defaultCenterForSelectedCity,
-                                    sortMode: sortMode.wrappedValue,
-                                    // US-036: divider above the Nearby header separates it from
-                                    // Routes — but only when Routes is actually shown (Now mode).
-                                    // Outside Now the Routes section is hidden, so the divider would
-                                    // dangle above the very first section; suppress it there.
-                                    showsSectionDivider: viewModel.isNowFilter,
-                                    isLoading: viewModel.isFetchingPOIs,
-                                    isNowFilter: viewModel.isNowFilter,
-                                    isSearchingWeb: viewModel.isSearchingWeb,
-                                    onExploreElsewhere: {
-                                        // Zoom the map out one step by doubling the visible span,
-                                        // capped at ±90° lat / ±180° lon, so out-of-range
-                                        // experiences scroll into view.
-                                        if let region = viewModel.cameraPosition.region {
-                                            let newSpan = MKCoordinateSpan(
-                                                latitudeDelta: min(region.span.latitudeDelta * 2, 90),
-                                                longitudeDelta: min(region.span.longitudeDelta * 2, 180)
-                                            )
-                                            viewModel.cameraPosition = .region(
-                                                MKCoordinateRegion(center: region.center, span: newSpan)
-                                            )
-                                        }
-                                    },
-                                    suggestedCityName: viewModel.suggestedCityName,
-                                    onSwitchToSuggestedCity: viewModel.suggestedCityCode.map { code in
-                                        { viewModel.selectCity(code) }
-                                    },
-                                    onWebSearch: { query in
-                                        // Escalate a local-filter miss to a live MapKit
-                                        // POI search around the same reference point the
-                                        // list uses. Free, no Pro gate — new pins land
-                                        // and become deep-cross-compile candidates.
-                                        let center = locationService.currentLocation?.coordinate
-                                            ?? viewModel.defaultCenterForSelectedCity
-                                        Task { await viewModel.webSearchPOIs(query: query, near: center) }
-                                    },
-                                    onSelectExperience: { exp in
-                                        // Tap → jump straight to the detail sheet.
-                                        // (Long-press floats the preview card via
-                                        // onLongPressExperience below.) The list
-                                        // row and a map-pin tap stay consistent:
-                                        // both open detail on tap, both peek on
-                                        // long-press. withAnimation drives the
-                                        // detail content transition.
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                            viewModel.openExperienceDetail(exp)
-                                        }
-                                    },
-                                    onLongPressExperience: { exp in
-                                        // Context-menu "show on map" → float the
-                                        // quick preview card (the former tap
-                                        // behavior). Backing out of detail still
-                                        // lands on this card.
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                            viewModel.selectExperience(exp)
-                                        }
-                                    },
-                                    onAskSoloExperience: { exp in
-                                        // Context-menu "问 Solo" → open a chat
-                                        // scoped to this place (same path as the
-                                        // detail sheet's Ask-Solo button): ensure
-                                        // the orchestrator, then inject the
-                                        // <experience_context> block before the
-                                        // sheet content evaluates.
-                                        chatStartMode = .text
-                                        ensureOrchestrator(viewModel: viewModel)
-                                        voiceOrchestrator?.rebindContext(exp)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                .ignoresSafeArea(edges: .bottom)
                 // NOTE: the `routeSheet` presenter is intentionally NOT attached
-                // here. When `.sheet(item: $routeSheet)` was hosted on this inner
-                // nested ZStack while the outer `mapContent` chain already carried
-                // ~8 `.sheet`/`.fullScreenCover` modifiers, SwiftUI's presentation
-                // arbitration silently dropped this deeply-nested presenter — so
-                // tapping a RouteCard flipped `routeSheet = .detail(route)` but no
-                // sheet ever appeared (the route cards "點不進去"). It now lives on
-                // the outer chain next to the other sheets — see `routeSheetContent`.
-                // Kin to [[project_stacked_sheets_only_last_wins]].
+                // here — it lives on the outer `mapContent` chain next to the
+                // other sheets. Hosting it on a deeply-nested overlay while the
+                // outer chain already carries many `.sheet`/`.fullScreenCover`
+                // modifiers made SwiftUI silently drop it, so tapping a RouteCard
+                // flipped `routeSheet` but nothing appeared. Kin to
+                // [[project_stacked_sheets_only_last_wins]]. The workspace's
+                // discovery surface owns route browsing now.
 
                 // Selected-experience card floats ABOVE the BottomInfoSheet
                 // (declared after it → higher z-order) and rests on a Dynamic-
@@ -1945,13 +1829,16 @@ struct CompassMapContentView: View {
                         agentBubbleQueue.dismiss(id: bubble.id)
                         chatStartMode = .text
                         ensureOrchestrator(viewModel: viewModel)
+                        clearStalePlaceScopeForGlobalAsk()
                     })
                     .padding(.horizontal, 16)
                     .padding(.top, MapOverlayMetrics.filterBarTopOffset
                         + MapOverlayMetrics.filterBarHeight + 8)
                     Spacer()
                 }
-                .allowsHitTesting(agentBubbleQueue.items.isEmpty ? false : true)
+                .opacity(workspace.surface == .map ? 1 : 0)
+                .allowsHitTesting(workspace.surface == .map && !agentBubbleQueue.items.isEmpty)
+                .accessibilityHidden(workspace.surface != .map)
                 .zIndex(12)
 
             // Slice C: Explore-Mode overlay. Renders top pill + Cancel FAB
@@ -1978,7 +1865,9 @@ struct CompassMapContentView: View {
                     onAskSolo: {
                         viewModel.exploreClearHandoff()
                         chatStartMode = .text
+                        workspace.selectSurface(.ask)
                         ensureOrchestrator(viewModel: viewModel)
+                        clearStalePlaceScopeForGlobalAsk()
                     },
                     onSaveWalk: {
                         // Freeze the batch into a route candidate set.
@@ -2000,6 +1889,25 @@ struct CompassMapContentView: View {
                     }
                 )
                 .zIndex(25)
+            }
+
+            // The conversation workspace: one continuous map/chat scene. The
+            // panel floats over the map and is the only thing that resizes on
+            // a handle drag — MapKit itself is never re-laid out.
+            workspaceOverlay
+                .zIndex(30)
+        }
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: WorkspaceContainerHeightKey.self,
+                    value: proxy.size.height
+                )
+            }
+        )
+        .onPreferenceChange(WorkspaceContainerHeightKey.self) { height in
+            if abs(height - workspaceContainerHeight) > 0.5 {
+                workspaceContainerHeight = height
             }
         }
         // City OS v2: crossfade the Plan wash + the mode-dependent floating slot
@@ -2168,6 +2076,7 @@ struct CompassMapContentView: View {
                         // lands before the sheet content is evaluated).
                         chatStartMode = .text
                         ensureOrchestrator(viewModel: viewModel)
+                        workspace.selectSurface(.ask)
                         voiceOrchestrator?.rebindContext(experience)
                     },
                     onSelectExperience: { experience in
@@ -2329,8 +2238,9 @@ struct CompassMapContentView: View {
             // the composer via `initialUserPrompt`, the traveler still sends.
             pendingDiagnosticsPrompt = prompt
             chatStartMode = .text
-            chatDetent = .large
             ensureOrchestrator(viewModel: viewModel)
+            clearStalePlaceScopeForGlobalAsk()
+            workspace.selectDetent(.expanded)
         }
     }
 
@@ -2614,19 +2524,30 @@ struct CompassMapContentView: View {
     /// DEBUG `-forceDiagnosticsBubble` launch arg: injects a synthetic finding
     /// so screenshot / e2e harnesses can always exercise the bubble without
     /// depending on the current sim's authorization / key state.
-    /// P0 #1 helper: open the city picker only when there's genuinely no city
-    /// to land on. Called both from the first-appear block and from the
-    /// onboarding-complete bridge so a fresh install that finished onboarding
-    /// without resolving a city still gets prompted — just *after* the consent
-    /// cover is gone, never stacked underneath it.
+    /// P0 #1 helper: never auto-open the city picker. The city pill and the
+    /// conversation's choose-city chip are the user-initiated affordances, so a
+    /// fresh launch lands on the chat surface instead of a modal. Kept as a
+    /// named no-op so the onboarding-complete bridge still reads by intent.
     private func maybePromptCityPicker() {
-        let skipPicker = ProcessInfo.processInfo.arguments.contains("-skipLocationPicker")
-        guard !skipPicker,
-              !firstLaunchGateActive,
-              viewModel.selectedCity == nil,
-              preferences.lastSelectedCity == nil,
-              locationService.currentLocation == nil else { return }
-        isShowingCityPicker = true
+        // Intentionally empty: chat-first entry. See `compactEmptyCanvas`.
+    }
+
+    /// Chat-first entry starts location without ever escalating the permission
+    /// prompt: only ask when the user has never decided; otherwise begin updates
+    /// with the access already granted ("While Using" is enough to enter the
+    /// chat). Requesting Always on entry produced an unexpected
+    /// "Change to Always Allow" alert after the user chose Keep Only While
+    /// Using.
+    private func beginLocationForChatFirstEntry() {
+        guard !firstLaunchGateActive else { return }
+        switch locationService.authorizationStatus {
+        case .notDetermined:
+            locationService.requestPermission()
+        case .authorizedWhenInUse, .authorizedAlways:
+            locationService.startUpdating()
+        default:
+            break
+        }
     }
 
     private func kickoffStartupDiagnostics() {
@@ -2741,60 +2662,236 @@ struct CompassMapContentView: View {
         )
     }
 
-    /// Lazily instantiates `voiceOrchestrator` on first chat-sheet open.
-    /// Keeping the orchestrator around between dismissals would mean the
-    /// next session sees stale messages — we discard it when the sheet
-    /// closes (see `chatSheetContent.onDismiss`).
+    /// Bring the agent up on first use and keep it alive for the root's
+    /// lifetime. Viewing the map or discovery must never discard a live
+    /// conversation, so this no longer tears the orchestrator down on close.
     private func ensureOrchestrator(viewModel vm: MapViewModel) {
-        guard voiceOrchestrator == nil else { return }
-        let orch = VoiceAgentOrchestrator(
-            aiService: aiService,
-            voiceService: voiceService,
-            mapViewModel: vm,
-            preferences: preferences,
-            historyStore: chatHistoryStore,
-            // P2.0 #201/#202: hand the shared MemoryDigestService so the
-            // agent injects the AgentMemorySnapshot into its system prompt
-            // and refreshes the digest after each completed turn.
-            memoryDigest: MemoryDigestService.shared,
-            // City OS v2: wire the content plane + visa math so the get_city_kit
-            // / find_local_events tools resolve real facts (gated by the flag).
-            cityBriefService: FeatureFlags.cityOS ? cityBriefService : nil,
-            complianceService: FeatureFlags.cityOS ? complianceService : nil
-        )
-        orch.start()
-        voiceOrchestrator = orch
+        if voiceOrchestrator == nil {
+            let orch = VoiceAgentOrchestrator(
+                aiService: aiService,
+                voiceService: voiceService,
+                mapViewModel: vm,
+                preferences: preferences,
+                historyStore: chatHistoryStore,
+                // P2.0 #201/#202: hand the shared MemoryDigestService so the
+                // agent injects the AgentMemorySnapshot into its system prompt
+                // and refreshes the digest after each completed turn.
+                memoryDigest: MemoryDigestService.shared,
+                // City OS v2: wire the content plane + visa math so the get_city_kit
+                // / find_local_events tools resolve real facts (gated by the flag).
+                cityBriefService: FeatureFlags.cityOS ? cityBriefService : nil,
+                complianceService: FeatureFlags.cityOS ? complianceService : nil
+            )
+            orch.start()
+            voiceOrchestrator = orch
+        }
+        // A seed captured before the chat mounted (diagnostics bubble, FilterBar
+        // pill) is delivered through the workspace token so the already-mounted
+        // chat receives it exactly once.
+        if let prompt = pendingDiagnosticsPrompt {
+            pendingDiagnosticsPrompt = nil
+            workspace.requestPrompt(prompt)
+        }
     }
 
-    /// Drives the chat `.sheet(item:)`. Reading returns the live orchestrator;
-    /// setting it to `nil` (swipe-to-dismiss or the in-view "X") first unscopes
-    /// + stops the instance so it never leaks an `<experience_context>` block
-    /// into a later global chat (US-004).
-    private var chatOrchestratorBinding: Binding<VoiceAgentOrchestrator?> {
-        Binding(
-            get: { voiceOrchestrator },
-            set: { newValue in
-                if newValue == nil, let current = voiceOrchestrator {
-                    current.rebindContext(nil)
-                    current.stop()
-                }
-                voiceOrchestrator = newValue
+    // MARK: - Conversation workspace
+
+    /// The panel + dock, layered over the map. The panel alone resizes on a
+    /// drag; MapKit is untouched.
+    private var workspaceOverlay: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            ConversationPanel(
+                workspace: workspace,
+                containerHeight: max(workspaceContainerHeight, 1)
+            ) {
+                workspaceSurfaceContent
+            } dock: {
+                WorkspaceDock(
+                    workspace: workspace,
+                    onSelect: handleDockSelect,
+                    onVoiceAsk: { openChat(mode: .voice) }
+                )
             }
+        }
+        // Content respects the home indicator AND keyboard. Only the panel's
+        // background extends below the safe area; navigation/composer never do.
+        .accessibilityIdentifier(WorkspaceAccessibility.overlay)
+    }
+
+    /// Only the active surface is mounted. A hidden chat is *unmounted* rather
+    /// than kept at zero opacity: native R0 showed its intrinsic layout pushing
+    /// the dock off-screen and its interactive controls still exposed to
+    /// VoiceOver. Draft, conversation, scope and scroll intent all live outside
+    /// the view, so unmounting loses none of them.
+    @ViewBuilder
+    private var workspaceSurfaceContent: some View {
+        switch workspace.surface {
+        case .ask:
+            chatSurface
+        case .discover:
+            discoverSurface
+        case .map:
+            Color.clear
+        }
+    }
+
+    @ViewBuilder
+    private var chatSurface: some View {
+        if let orch = voiceOrchestrator {
+            chatSheetContent(orch)
+        }
+    }
+
+    /// Discovery reads the same real data the map sheet used. No mock rows:
+    /// routes come from `RouteStore`, places from `MapViewModel.visibleExperiences`.
+    private var discoverSurface: some View {
+        DiscoverWorkspaceView(
+            cityDisplayName: viewModel.currentDisplayCityName
+                ?? NSLocalizedString("city.nearby", comment: "Discovery context before a city is selected"),
+            routes: nearbyRoutes,
+            experiences: viewModel.visibleExperiences,
+            smartPickIds: viewModel.aiSmartPickIds,
+            referenceCoordinate: locationService.currentLocation?.coordinate
+                ?? viewModel.defaultCenterForSelectedCity,
+            isLoading: viewModel.isFetchingPOIs,
+            isSearchingWeb: viewModel.isSearchingWeb,
+            isNowFilter: viewModel.isNowFilter,
+            isOffline: !networkMonitor.isConnected,
+            suggestedCityName: viewModel.suggestedCityName,
+            onSelectExperience: { exp in
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    viewModel.openExperienceDetail(exp)
+                }
+            },
+            onLongPressExperience: { exp in
+                // The preview card floats above the map, so surface it by
+                // collapsing the panel first — otherwise it would be hidden
+                // behind discovery.
+                workspace.selectSurface(.map)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    viewModel.selectExperience(exp)
+                }
+            },
+            onAskSoloExperience: { exp in
+                openChatScoped(to: exp)
+            },
+            onSelectRoute: { route in
+                routeSheet = .detail(route)
+            },
+            onProposeRoute: {
+                routeSheet = .create(autoGenerate: true)
+            },
+            onCreateRoute: {
+                routeSheet = .create(autoGenerate: false)
+            },
+            onExploreElsewhere: {
+                if let region = viewModel.cameraPosition.region {
+                    let newSpan = MKCoordinateSpan(
+                        latitudeDelta: min(region.span.latitudeDelta * 2, 90),
+                        longitudeDelta: min(region.span.longitudeDelta * 2, 180)
+                    )
+                    viewModel.cameraPosition = .region(
+                        MKCoordinateRegion(center: region.center, span: newSpan)
+                    )
+                }
+            },
+            onSwitchToSuggestedCity: viewModel.suggestedCityCode.map { code in
+                { viewModel.selectCity(code) }
+            },
+            onWebSearch: { query in
+                let center = locationService.currentLocation?.coordinate
+                    ?? viewModel.defaultCenterForSelectedCity
+                Task { await viewModel.webSearchPOIs(query: query, near: center) }
+            },
+            onRefresh: {
+                viewModel.loadNearbyExperiences()
+            },
+            // Preserve the City-OS 游民基地 entry the legacy peek header used to
+            // expose (work-ready count, visa countdown, recalls).
+            baseCard: FeatureFlags.cityOS ? AnyView(
+                BaseCard(
+                    face: currentBaseFace,
+                    cityName: currentCityDisplayName,
+                    daysStayed: complianceService.state()?.daysStayed,
+                    visaDaysRemaining: complianceService.state()?.visaDaysRemaining,
+                    visaPolicyDays: cityBriefService.kit
+                        .first(where: { $0.kind == .visa })?.action?.visaDays,
+                    workReadyCount: viewModel.workReadySpots(limit: 99).count,
+                    eventCount: cityBriefService.activeEvents().count,
+                    kitDone: viewModel.selectedCity.map {
+                        cityOSStore.kitTodoDoneCount(cityCode: $0, kit: cityBriefService.kit)
+                    } ?? 0,
+                    kitTotal: cityBriefService.kit.count,
+                    recallVisited: recallVisited.count,
+                    recallPending: recallPending.count,
+                    onOpen: { isShowingBaseSheet = true }
+                )
+            ) : nil
         )
     }
 
+    private func handleDockSelect(_ surface: ConversationWorkspaceState.Surface) {
+        switch surface {
+        case .map:
+            workspace.selectSurface(.map)
+        case .ask:
+            ensureOrchestrator(viewModel: viewModel)
+            workspace.selectSurface(.ask)
+        case .discover:
+            refreshNearbyRoutes(cityCode: viewModel.selectedCity)
+            workspace.selectSurface(.discover)
+        }
+    }
+
+    /// Open the conversation surface, optionally arming push-to-talk through the
+    /// explicit channel (so a long-press works even when the chat is already
+    /// mounted and `startInVoiceMode` would not be re-read).
+    private func openChat(mode: ChatStartMode) {
+        chatStartMode = mode
+        ensureOrchestrator(viewModel: viewModel)
+        workspace.selectSurface(.ask)
+        if mode == .voice {
+            workspace.requestVoiceStart()
+        }
+    }
+
+    /// Open a chat scoped to a place — the same path as the detail sheet's
+    /// "Ask Solo" button.
+    private func openChatScoped(to experience: Experience) {
+        chatStartMode = .text
+        ensureOrchestrator(viewModel: viewModel)
+        workspace.selectSurface(.ask)
+        voiceOrchestrator?.rebindContext(experience)
+    }
+
+    /// A global ask (diagnostics seed, FilterBar pill, explore handoff, base
+    /// follow-up) must not silently inherit a stale place anchor. Rebinding to
+    /// global also persists the prior conversation and starts a new record. The
+    /// dock's normal return to 问问 does NOT call this, so it keeps the current
+    /// scope.
+    private func clearStalePlaceScopeForGlobalAsk() {
+        guard voiceOrchestrator?.scopedExperience != nil else { return }
+        voiceOrchestrator?.rebindContext(nil)
+    }
+
+    /// The embedded conversation surface. No modal sheet: the panel owns
+    /// presentation, so the chat keeps one identity while the user moves between
+    /// map, chat and discovery.
     private func chatSheetContent(_ orch: VoiceAgentOrchestrator) -> some View {
         ChatSheet(
             orchestrator: orch,
             voiceService: voiceService,
-            startInVoiceMode: chatStartMode == .voice,
-            // The in-view "X" routes through the same binding setter so its
-            // teardown matches swipe-to-dismiss exactly.
+            // Voice is armed through the explicit `voiceStartToken` channel so a
+            // map→chat remount never restarts the mic; the embedded workspace
+            // always passes false here.
+            startInVoiceMode: false,
             onDismiss: {
-                // Persist the conversation before tearing the orchestrator down
-                // so it lands in history even if the user only closed the sheet.
+                // Persist, then drop the panel back onto the map. The
+                // orchestrator is retained — the conversation is never discarded
+                // just because the user is looking at the map.
                 orch.persistConversation()
-                chatOrchestratorBinding.wrappedValue = nil
+                workspace.selectSurface(.map)
             },
             // Tapping a chat place card reveals it on the map (the agent never
             // jumps there on its own — this is the user's explicit action).
@@ -2810,23 +2907,25 @@ struct CompassMapContentView: View {
                 routeSheet = .detail(proposal.route)
             },
             // City OS v2: tapping "在地图上看" on a chat event card recenters the
-            // map on the event and highlights its marker (chat already dismissed).
+            // map on the event and highlights its marker (chat already collapsed).
             onShowEventOnMap: { event in
                 focusEventOnMap(event)
             },
-            // Bound detent lets the sheet auto-expand to full height while the
-            // agent is thinking, then the user can still drag it back down.
-            detent: $chatDetent,
+            workspace: workspace,
+            embedded: true,
+            onCollapse: {
+                workspace.selectSurface(.map)
+            },
             historyStore: chatHistoryStore,
-            // Startup-diagnostics seed. Non-nil only when the traveler tapped
-            // the self-diagnostics bubble's CTA. Cleared inside .onAppear so
-            // a subsequent "+ button" chat opens clean.
-            initialUserPrompt: pendingDiagnosticsPrompt
+            // Restore a saved conversation under the exact scope it was saved
+            // with (a place chat must not reopen as a global chat).
+            resolveExperience: { id in experienceService.getExperience(id: id) },
+            // Chat-first entry: when there is no city and no GPS fix, offer a
+            // modest choose-city chip instead of auto-opening a picker modal.
+            needsCitySelection: viewModel.selectedCity == nil
+                && locationService.currentLocation == nil,
+            onChooseCity: { isShowingCityPicker = true }
         )
-        .onAppear { pendingDiagnosticsPrompt = nil }
-        .presentationDetents([.medium, .large], selection: $chatDetent)
-        .presentationDragIndicator(.visible)
-        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
     @ViewBuilder
@@ -3239,6 +3338,16 @@ enum MapOverlayMetrics {
     }
 }
 
+/// Measures the map container once per layout so the workspace panel's detents
+/// are honest fractions of the real height. A background `GeometryReader`
+/// publishes the value; nothing here observes drag frames.
+private struct WorkspaceContainerHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 private struct MapOverlayView: View {
     var viewModel: MapViewModel
     var isAIProcessing: Bool
@@ -3262,6 +3371,12 @@ private struct MapOverlayView: View {
     /// so the parent hands the real open-chat action down as a closure —
     /// same pattern as `onTapAvatar`.
     var onAskSolo: () -> Void = {}
+    /// When false (the chat/discovery surfaces are showing) only the city pill
+    /// and avatar render. The full filter rail, map-style/recenter actions and
+    /// map banners belong to the map surface; keeping them off the chat surface
+    /// avoids crowding the map glimpse and leaving phantom controls behind the
+    /// panel.
+    var showsMapChrome: Bool = true
 
     @State private var checkInCelebrationTrigger = 0
     @State private var noMatchPop = false
@@ -3304,19 +3419,22 @@ private struct MapOverlayView: View {
                 // personal hub (MeSheet). Placed before the recenter button so
                 // it stays fully on-screen in this safe-area-respecting overlay
                 // row (top-right), clear of the status bar.
-                mapStyleButton
-                    .padding(.trailing, 4)
+                if showsMapChrome {
+                    mapStyleButton.padding(.trailing, 4)
+                }
                 MapAvatarBubble(
                     hasPendingRequests: pendingRequestCount > 0,
                     action: onTapAvatar
                 )
                 .padding(.trailing, 8)
-                recenterButton
-                    .padding(.trailing, 12)
+                if showsMapChrome {
+                    recenterButton.padding(.trailing, 12)
+                }
             }
             .frame(height: MapOverlayMetrics.cityPillRowHeight)
             .padding(.top, MapOverlayMetrics.cityPillTopPadding)
 
+            if showsMapChrome {
             // Mandatory empty gap separating the city-pill band from the
             // filter bar — this is the dead zone that guarantees no overlap.
             Spacer()
@@ -3527,7 +3645,9 @@ private struct MapOverlayView: View {
                 .padding(.bottom, 4)
                 .animation(.spring(response: 0.4), value: viewModel.pendingCheckIn != nil)
             }
+            } // showsMapChrome
         }
+        .frame(maxHeight: .infinity, alignment: .top)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFilterActive)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.visibleExperiences.count)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.visibleExperiences.isEmpty && isFilterActive)
@@ -4016,6 +4136,10 @@ private struct MapControlBar: View {
     /// Dynamic-Type-aware (peek height + gap), replacing a fixed 80pt that let
     /// the sheet occlude the lower half of these buttons.
     let bottomInset: CGFloat
+    /// Whether to render the legacy "+" Ask FAB. The workspace dock's centre
+    /// 问问 item supersedes it, so the root passes `false` to avoid a duplicate
+    /// entry point; the component stays available for other hosts.
+    var showsAskButton: Bool = true
 
     var body: some View {
         HStack(alignment: .bottom) {
@@ -4062,21 +4186,23 @@ private struct MapControlBar: View {
             Spacer()
 
             VStack(spacing: 4) {
-                PlusActionButton(
-                    onShortTap: {
-                        // No haptic here: `PlusActionButton` already fired a
-                        // soft impact on touch-down (the "I've got it" cue that
-                        // pairs with the ring). A second `.medium` on release
-                        // made one tap buzz twice — and opening the chat is a
-                        // navigation, which HIG says shouldn't warrant a heavy
-                        // impact anyway.
-                        onOpenChat(.text)
-                    },
-                    onLongPress: { onOpenChat(.voice) }
-                )
-                Text(NSLocalizedString("plus.button.label", comment: "FAB label"))
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                if showsAskButton {
+                    PlusActionButton(
+                        onShortTap: {
+                            // No haptic here: `PlusActionButton` already fired a
+                            // soft impact on touch-down (the "I've got it" cue that
+                            // pairs with the ring). A second `.medium` on release
+                            // made one tap buzz twice — and opening the chat is a
+                            // navigation, which HIG says shouldn't warrant a heavy
+                            // impact anyway.
+                            onOpenChat(.text)
+                        },
+                        onLongPress: { onOpenChat(.voice) }
+                    )
+                    Text(NSLocalizedString("plus.button.label", comment: "FAB label"))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(.trailing, 20)
             .padding(.bottom, bottomInset)
@@ -4103,81 +4229,94 @@ private struct FABButtonStyle: ButtonStyle {
 /// `onPressingChanged` fires immediately on touch-down so the ring + scale
 /// animate within one frame — fixes the "looks frozen" bug where the user
 /// had to wait for the full long-press window before seeing any feedback.
-private struct PlusActionButton: View {
+struct PlusActionButton: View {
     let onShortTap: () -> Void
     let onLongPress: () -> Void
+    /// Diameter of the amber disc. Defaults to the map FAB's 56pt; the workspace
+    /// dock passes a smaller value so the brand mark stays modest next to its
+    /// 问问 label instead of floating as a giant orb.
+    var diameter: CGFloat = 56
+    /// The expanding press ring is a full-size-FAB treatment. Dock-sized callers
+    /// suppress it — the mascot + label already carry the affordance.
+    var showsPressRing: Bool = true
 
-    @State private var isPressed: Bool = false
-    @State private var ringPulse: Bool = false
-    @State private var longPressFired: Bool = false
+    @State private var longPressFired = false
 
     var body: some View {
-        ZStack {
-            // Ring that grows during the hold to telegraph "almost there".
-            Circle()
-                .stroke(CT.accent.opacity(isPressed ? 0.5 : 0.0), lineWidth: 3)
-                .frame(width: 64, height: 64)
-                .scaleEffect(ringPulse ? 1.18 : 1.0)
-                .opacity(ringPulse ? 0.0 : 1.0)
-                .animation(
-                    isPressed
-                        ? .easeOut(duration: 0.9).repeatForever(autoreverses: false)
-                        : .default,
-                    value: ringPulse
-                )
-
-            Circle()
-                // Amber-fill the Ask Solo FAB so it reads as the brand's own
-                // primary action (matched to consent / onboarding CTAs) rather
-                // than a generic "system action" black puck. The previous
-                // .black.opacity(0.85) made the right side of the map look like
-                // an Apple-default control sat next to red pin markers.
-                .fill(CT.accent)
-                .frame(width: 56, height: 56)
-                .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
-                .scaleEffect(isPressed ? 1.08 : 1.0)
-                .animation(.spring(response: 0.18, dampingFraction: 0.7), value: isPressed)
-
-            // FAB glyph: the Solo mascot — the cartoon girl who IS Solo. She
-            // greets the traveler and is the entry-point to Solo Chat, giving
-            // the FAB brand identity + warmth that a bare "+" lacks. Scaled
-            // down slightly + a touch of transparency so she reads as a
-            // friendly companion without out-shouting the event bloom markers
-            // + peek card the way the full-weight mascot once did. The amber
-            // circle + shadow + press-ring above stay byte-identical, so
-            // hit-target and FAB layout are unchanged. `isPressed` drives her
-            // cheek sparkle.
-            SoloMascotView(isPressed: isPressed)
-                .scaleEffect(0.88)
-                .opacity(0.95)
-        }
-        .contentShape(Circle())
-        .onLongPressGesture(
-            minimumDuration: 0.6,
-            maximumDistance: .infinity,
-            perform: {
-                longPressFired = true
-                onLongPress()
-            },
-            onPressingChanged: { pressing in
-                if pressing {
-                    // Immediate touch-down feedback: scale + ring + soft haptic.
-                    isPressed = true
-                    ringPulse = true
-                    Haptics.impact(.soft)
-                } else {
-                    isPressed = false
-                    ringPulse = false
-                    // If the press ended without the long-press firing, treat it as a tap.
-                    if !longPressFired {
-                        onShortTap()
-                    }
-                    longPressFired = false
-                }
+        // A real `Button` so the center 问问 item has a genuine, actionable
+        // accessibility element (native R0 found only the label text exposed).
+        // The long press is a simultaneous gesture that suppresses the tap.
+        Button {
+            if longPressFired {
+                longPressFired = false
+            } else {
+                onShortTap()
             }
+        } label: {
+            disc
+        }
+        .buttonStyle(PlusActionButtonStyle(
+            diameter: diameter,
+            showsRing: showsPressRing,
+            mascotScale: 0.88 * (diameter / 56)
+        ))
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.6, maximumDistance: 40)
+                .onEnded { recognized in
+                    guard recognized else { return }
+                    longPressFired = true
+                    Haptics.impact(.soft)
+                    onLongPress()
+                }
         )
         .accessibilityLabel(Text(NSLocalizedString("plus.button.a11y", comment: "Chat with Solo")))
         .accessibilityHint(Text(NSLocalizedString("plus.button.hint", comment: "Tap to open chat, hold to talk")))
+        .accessibilityAddTraits(.isButton)
+    }
+
+    private var disc: some View {
+        ZStack {
+            // Amber-fill the Ask Solo mark so it reads as the brand's own
+            // primary action (matched to consent / onboarding CTAs) rather than
+            // a generic "system action" black puck.
+            Circle()
+                .fill(CT.accent)
+                .frame(width: diameter, height: diameter)
+                .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
+
+            // The Solo mascot — the cartoon girl who IS Solo. She greets the
+            // traveler and is the entry-point to Solo Chat. Her glyph scales
+            // with the disc so the dock-sized variant keeps the same silhouette.
+            SoloMascotView()
+                .scaleEffect(0.88 * (diameter / 56))
+                .opacity(0.95)
+        }
+        .contentShape(Circle())
+    }
+}
+
+/// Press treatment for `PlusActionButton`: a real `Button` (so AX sees an
+/// actionable element) with the brand's amber press ring + soft impact.
+private struct PlusActionButtonStyle: ButtonStyle {
+    let diameter: CGFloat
+    let showsRing: Bool
+    let mascotScale: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        ZStack {
+            if showsRing {
+                Circle()
+                    .stroke(CT.accent.opacity(configuration.isPressed ? 0.5 : 0.0), lineWidth: 3)
+                    .frame(width: diameter + 8, height: diameter + 8)
+            }
+            configuration.label
+                .scaleEffect(configuration.isPressed ? 1.06 : 1.0)
+                .animation(reduceMotion ? nil : .spring(response: 0.18, dampingFraction: 0.7), value: configuration.isPressed)
+                .onChange(of: configuration.isPressed) { _, pressed in
+                    if pressed { Haptics.impact(.soft) }
+                }
+        }
     }
 }
 

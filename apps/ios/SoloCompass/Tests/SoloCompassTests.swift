@@ -646,12 +646,31 @@ final class SoloCompassTests: XCTestCase {
     /// re-fire — `canAutoExplore` reports false until the window elapses.
     @MainActor
     func testAutoExploreCategoryCooldownGatesSecondTap() async throws {
+        // `-startCity` on UserDefaults.standard is read by MapViewModel.init on
+        // DEBUG builds; save/restore it so this test neither inherits nor leaks
+        // a forced city.
+        let savedStartCity = UserDefaults.standard.string(forKey: "startCity")
+        UserDefaults.standard.removeObject(forKey: "startCity")
+        defer {
+            if let savedStartCity { UserDefaults.standard.set(savedStartCity, forKey: "startCity") }
+        }
         let locationService = LocationService()
-        let prefs = UserPreferences()
+        // Isolated defaults + seed: the shared on-disk store accumulates `.hidden`
+        // experiences from earlier Explore tests (Overpass maps unknown amenities
+        // to `.hidden`), which would make the `.hidden` filter non-empty and skip
+        // the auto-Explore branch this test needs to exercise.
+        let suite = "autoexplore.cooldown.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        defer {
+            UserDefaults.standard.removePersistentDomain(forName: suite)
+            UserDefaults.standard.removeSuite(named: suite)
+        }
+        let prefs = UserPreferences(defaults: defaults)
         prefs.hasAcceptedExploreConsent = false
         let viewModel = MapViewModel(
             locationService: locationService,
-            experienceService: ExperienceService(),
+            experienceService: ExperienceService(seed: ExperienceService.hardcodedSeed),
             aiService: AIService(),
             preferences: prefs
         )
@@ -1074,6 +1093,31 @@ final class SoloCompassTests: XCTestCase {
         XCTAssertEqual(restored.confidence.level, original.confidence.level)
     }
 
+    /// Compatibility ratchet for the blob codec: rows written by older builds
+    /// used a plain `JSONEncoder` (`.deferredToDate` → numeric seconds), while
+    /// the current writer uses `JSONEncoder.iso8601Encoder`. `decodeOrLog` must
+    /// accept BOTH so date-bearing `sources` / `confidence` blobs don't silently
+    /// degrade to neutral fallbacks (the regression that broke the round trip).
+    @MainActor
+    func testExperienceRecordDecodesLegacyNumericDateBlobs() throws {
+        let original = try XCTUnwrap(ExperienceService.hardcodedSeed.first)
+        let record = ExperienceRecord(from: original)
+
+        // Overwrite the date-bearing blobs with legacy deferredToDate bytes.
+        let legacyEncoder = JSONEncoder()
+        record.sourcesBlob = try legacyEncoder.encode(original.sources)
+        record.confidenceBlob = try legacyEncoder.encode(original.confidence)
+
+        let restored = record.asValue
+
+        XCTAssertEqual(restored.sources.count, original.sources.count)
+        XCTAssertEqual(restored.sources.first?.type, original.sources.first?.type)
+        XCTAssertEqual(restored.sources.first?.verifiedAt, original.sources.first?.verifiedAt)
+        XCTAssertEqual(restored.confidence.level, original.confidence.level)
+        XCTAssertEqual(restored.confidence.lastVerifiedAt, original.confidence.lastVerifiedAt)
+        XCTAssertEqual(restored.confidence.reason, original.confidence.reason)
+    }
+
     @MainActor
     func testExperienceRecordPersistsAndFetchesViaSwiftData() throws {
         let container = SoloCompassModelContainer.makeInMemory()
@@ -1373,14 +1417,20 @@ final class SoloCompassTests: XCTestCase {
 
         // First call: empty store → inserts seed (bundle JSON or hardcoded fallback)
         let added = repo.importSeedIfNeeded()
-        XCTAssertEqual(added, 10, "seed has exactly 10 experiences (5 cmi + 5 vte)")
-        XCTAssertEqual(repo.allExperiences().count, 10)
+        // Bundled seed = 10 legacy (5 cmi + 5 VTE) + 24 user-story rubric
+        // fixtures. Exact per-city rubric coverage is pinned in
+        // SeedImportRubricProbeTest; here we keep the legacy 5+5 guarantee.
+        XCTAssertEqual(added, 34, "bundle has 10 legacy (5 cmi + 5 VTE) + 24 rubric fixtures")
+        let imported = repo.allExperiences()
+        XCTAssertEqual(imported.count, 34)
+        XCTAssertEqual(imported.filter { $0.location.cityCode == "cmi" }.count, 5)
+        XCTAssertEqual(imported.filter { $0.location.cityCode == "VTE" }.count, 5)
         XCTAssertTrue(prefs.seedImported, "flag must be set after first import")
 
         // Second call: no-op because seedImported is true
         let addedAgain = repo.importSeedIfNeeded()
         XCTAssertEqual(addedAgain, 0, "second call must be a no-op")
-        XCTAssertEqual(repo.allExperiences().count, 10, "count unchanged after no-op")
+        XCTAssertEqual(repo.allExperiences().count, 34, "count unchanged after no-op")
     }
 
     // MARK: - US-009 UserPreferences → SwiftData mirroring
@@ -1950,11 +2000,97 @@ final class SoloCompassTests: XCTestCase {
         unsetenv("DEEPSEEK_MODEL_SYNTHESIS")
         unsetenv("DEEPSEEK_MODEL_EXPLANATION")
         unsetenv("DEEPSEEK_MODEL_VOICE")
-        // All kinds resolve to Secrets.resolvedDeepSeekModel which defaults
-        // to "deepseek-chat" when the build-time .env is empty / absent.
+        // All kinds resolve to Secrets.resolvedDeepSeekModel, which migrates
+        // any legacy build-time/stored id forward to "deepseek-flash".
         XCTAssertFalse(AIService.modelName(for: .synthesis).isEmpty)
         XCTAssertFalse(AIService.modelName(for: .voice).isEmpty)
         XCTAssertFalse(AIService.modelName(for: .explanation).isEmpty)
+        XCTAssertNotEqual(AIService.modelName(for: .synthesis), "deepseek-chat")
+    }
+
+    func testLegacyDeepSeekModelIdsNormalizeToFlash() {
+        for legacy in ["deepseek-chat", "deepseek-reasoner", "deepseek-v4-pro", "deepseek-v4-flash"] {
+            XCTAssertEqual(
+                Secrets.normalizeDeepSeekModel(legacy),
+                "deepseek-flash",
+                "\(legacy) must not silently keep a built-in route on an old model"
+            )
+        }
+        XCTAssertEqual(Secrets.normalizeDeepSeekModel("   "), "deepseek-flash")
+        XCTAssertEqual(AIProvider.deepseek.defaultModel, "deepseek-flash")
+    }
+
+    func testProviderSwitchReplacesPersistedLegacyDeepSeekDefaults() {
+        for legacy in AIProvider.legacyDeepSeekModels {
+            XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: legacy), "gpt-4o-mini")
+            XCTAssertEqual(AIProvider.deepseek.modelAfterSwitching(from: legacy), "deepseek-flash")
+            XCTAssertEqual(AIProvider.custom.modelAfterSwitching(from: legacy), "")
+        }
+        XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: "deepseek-flash"), "gpt-4o-mini")
+        XCTAssertEqual(AIProvider.deepseek.modelAfterSwitching(from: "gpt-4o-mini"), "deepseek-flash")
+        XCTAssertEqual(AIProvider.openai.modelAfterSwitching(from: ""), "gpt-4o-mini")
+    }
+
+    func testProviderSwitchPreservesExplicitCustomModel() {
+        for provider in AIProvider.allCases {
+            XCTAssertEqual(provider.modelAfterSwitching(from: "my-local-llm"), "my-local-llm")
+        }
+    }
+
+    func testExplicitNonDeepSeekModelIsPreserved() {
+        XCTAssertEqual(Secrets.normalizeDeepSeekModel("gpt-4o-mini"), "gpt-4o-mini")
+        XCTAssertEqual(Secrets.normalizeDeepSeekModel("my-local-llm"), "my-local-llm")
+    }
+
+    func testModelRoutingLegacyEnvOverrideNormalizes() {
+        setenv("DEEPSEEK_MODEL_SYNTHESIS", "deepseek-v4-pro", 1)
+        defer { unsetenv("DEEPSEEK_MODEL_SYNTHESIS") }
+        XCTAssertEqual(AIService.modelName(for: .synthesis), "deepseek-flash")
+    }
+
+    func testAIModelRouterPerTaskOverrideNormalizesLegacy() {
+        setenv("DEEPSEEK_MODEL_CLASSIFICATION", "deepseek-chat", 1)
+        setenv("DEEPSEEK_MODEL_SYNTHESIS", "deepseek-v4-pro", 1)
+        setenv("DEEPSEEK_MODEL_VOICE", "deepseek-reasoner", 1)
+        setenv("DEEPSEEK_MODEL_EXTRACT", "custom-finetune", 1)
+        defer {
+            unsetenv("DEEPSEEK_MODEL_CLASSIFICATION")
+            unsetenv("DEEPSEEK_MODEL_SYNTHESIS")
+            unsetenv("DEEPSEEK_MODEL_VOICE")
+            unsetenv("DEEPSEEK_MODEL_EXTRACT")
+        }
+        XCTAssertEqual(AIModelRouter.config(for: .classification).modelOverride, "deepseek-flash")
+        XCTAssertEqual(AIModelRouter.config(for: .narrativeSynth).modelOverride, "deepseek-flash")
+        XCTAssertEqual(AIModelRouter.config(for: .conversational).modelOverride, "deepseek-flash")
+        XCTAssertEqual(AIModelRouter.config(for: .structuredExtract).modelOverride, "custom-finetune")
+        XCTAssertNil(AIModelRouter.config(for: .ranking).modelOverride)
+    }
+
+    func testDeepSeekEndpointDetection() {
+        XCTAssertTrue(AIService.isDeepSeekEndpoint("https://api.deepseek.com/v1"))
+        XCTAssertFalse(AIService.isDeepSeekEndpoint("https://api.openai.com/v1"))
+        XCTAssertFalse(AIService.isDeepSeekEndpoint("not a url"))
+    }
+
+    func testDeepSeekOptionsOnlyInjectedForDeepSeekEndpoint() {
+        let deepSeekBody = AIService.applyingDeepSeekOptions(
+            to: ["model": "deepseek-flash"],
+            baseURL: "https://api.deepseek.com/v1"
+        )
+        XCTAssertEqual(deepSeekBody["thinking"] as? [String: String], ["type": "disabled"])
+        XCTAssertNil(deepSeekBody["extra_body"])
+
+        let openAIBody = AIService.applyingDeepSeekOptions(
+            to: ["model": "gpt-4o-mini"],
+            baseURL: "https://api.openai.com/v1"
+        )
+        XCTAssertNil(openAIBody["thinking"], "DeepSeek-only fields must not reach OpenAI/custom direct paths")
+
+        let explicit = AIService.applyingDeepSeekOptions(
+            to: ["model": "deepseek-flash", "thinking": ["type": "enabled"]],
+            baseURL: "https://api.deepseek.com/v1"
+        )
+        XCTAssertEqual(explicit["thinking"] as? [String: String], ["type": "enabled"])
     }
 
     func testModelRoutingPerKindEnvOverride() {
@@ -1964,7 +2100,7 @@ final class SoloCompassTests: XCTestCase {
     }
 
     @MainActor
-    func testSynthesisRequestBodyContainsSonnetModel() async throws {
+    func testSynthesisRequestBodyUsesFlashModelAndDisablesThinking() async throws {
         var capturedBody: [String: Any]?
         StubURLProtocol.handler = { request in
             // URLSession buffers small bodies as a stream — read both forms.
@@ -1982,6 +2118,21 @@ final class SoloCompassTests: XCTestCase {
         }
         StubURLProtocol.requestCount = 0
 
+        // Pin the resolved endpoint to DeepSeek so the thinking assertion is
+        // deterministic regardless of a developer's local .env / UserDefaults.
+        let prefs = UserPreferences()
+        let savedProvider = prefs.aiProviderRaw
+        let savedBaseURL = prefs.aiBaseURL
+        let savedModelName = prefs.aiModelName
+        prefs.aiProvider = .deepseek
+        prefs.aiBaseURL = AIProvider.deepseek.defaultBaseURL
+        prefs.aiModelName = ""
+        defer {
+            prefs.aiProviderRaw = savedProvider
+            prefs.aiBaseURL = savedBaseURL
+            prefs.aiModelName = savedModelName
+        }
+
         unsetenv("DEEPSEEK_MODEL_SYNTHESIS")
         setenv("DEEPSEEK_API_KEY", "sk-test-fake", 1)
         defer { unsetenv("DEEPSEEK_API_KEY") }
@@ -1998,7 +2149,9 @@ final class SoloCompassTests: XCTestCase {
         _ = try await ai.synthesizeExperiences(from: pois, cityCode: "vn-hanoi")
 
         let model = capturedBody?["model"] as? String
-        XCTAssertEqual(model, "deepseek-chat", "synthesis request must use the resolved DeepSeek model")
+        XCTAssertEqual(model, "deepseek-flash", "synthesis request must use the resolved DeepSeek model")
+        XCTAssertEqual(capturedBody?["thinking"] as? [String: String], ["type": "disabled"])
+        XCTAssertNil(capturedBody?["extra_body"], "thinking must be top-level, not nested under extra_body")
     }
 
     @MainActor
@@ -2150,6 +2303,21 @@ final class SoloCompassTests: XCTestCase {
 
         setenv("DEEPSEEK_API_KEY", "sk-test-fake", 1)
         defer { unsetenv("DEEPSEEK_API_KEY") }
+
+        // Isolate from the persisted quota-exceeded banner: an earlier quota
+        // test in this process writes `quotaExceededAt` to UserDefaults, and
+        // `AIService.init` restores it for the same UTC day — which would make
+        // the `quotaExceededAt must be nil` assertion below fail spuriously.
+        let quotaBannerKey = "SoloCompass.AIService.quotaExceededAt"
+        let savedQuotaBanner = UserDefaults.standard.object(forKey: quotaBannerKey)
+        UserDefaults.standard.removeObject(forKey: quotaBannerKey)
+        defer {
+            if let savedQuotaBanner {
+                UserDefaults.standard.set(savedQuotaBanner, forKey: quotaBannerKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: quotaBannerKey)
+            }
+        }
 
         let container = SoloCompassModelContainer.makeInMemory()
         let context = ModelContext(container)
@@ -3721,7 +3889,10 @@ final class SoloCompassTests: XCTestCase {
             argumentsJSON: #"{"experience_id":"definitely-not-here"}"#
         ))
         XCTAssertTrue(result.contains(#""ok":false"#))
-        XCTAssertTrue(result.contains("not found"))
+        // US-VA structured tool outcomes replaced the legacy free-text error:
+        // an unknown experience id is a retryable `not_found`.
+        XCTAssertTrue(result.contains(#""reason":"not_found"#), "got: \(result)")
+        XCTAssertTrue(result.contains(#""outcome":"retryable"#), "got: \(result)")
     }
 
     func testToolRouterSaveToFavoritesTogglesPersistence() async throws {
@@ -3771,7 +3942,9 @@ final class SoloCompassTests: XCTestCase {
             argumentsJSON: "{}"
         ))
         XCTAssertTrue(result.contains(#""ok":false"#))
-        XCTAssertTrue(result.contains("Unknown tool"))
+        // Structured outcomes: an unknown tool name is a fatal `unknown_tool`.
+        XCTAssertTrue(result.contains(#""reason":"unknown_tool"#), "got: \(result)")
+        XCTAssertTrue(result.contains(#""outcome":"fatal"#), "got: \(result)")
     }
 
     func testToolRouterRejectsInvalidArgumentsJSON() async {
@@ -5024,21 +5197,36 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
 
         // Clear any UserDefaults override too — belt + suspenders; the resolver
-        // already wins, but this keeps the recorded environment clean.
+        // already wins, but this keeps the recorded environment clean. Both the
+        // legacy `runtimeDeepSeekKey` and the newer in-app `runtimeAIApiKey`
+        // (which `resolvedDeepSeekApiKey` consults FIRST) must be blanked.
         let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        let savedAIOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.aiApiKey)
         UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.aiApiKey)
         defer {
             if let saved = savedOverride {
                 UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.deepSeekApiKey)
             } else {
                 UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
             }
+            if let saved = savedAIOverride {
+                UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.aiApiKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.aiApiKey)
+            }
         }
 
         // Also clear the env-level key so any direct ProcessInfo reads are empty.
         let hadEnvKey = getenv("DEEPSEEK_API_KEY") != nil
+        let savedEnvKey = getenv("DEEPSEEK_API_KEY").flatMap { String(cString: $0) }
         unsetenv("DEEPSEEK_API_KEY")
-        defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", "", 1) } }
+        defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", savedEnvKey ?? "", 1) } }
+
+        XCTAssertTrue(
+            Secrets.resolvedDeepSeekApiKey.isEmpty,
+            "precondition: no local AI key may resolve, or start() would seed a live session"
+        )
 
         // Force the non-Edge path: isProTier = false so the local-key guard
         // is the only thing standing between start() and .unconfigured.
@@ -5075,19 +5263,35 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
     /// isProTier are all on.
     func testProUserSkipsLocalKeyGuardWhenRoutingThroughEdge() {
         // Force-empty the local key so the only way start() can succeed is
-        // via the Edge-routing bypass.
+        // via the Edge-routing bypass. `resolvedDeepSeekApiKey` consults the
+        // in-app `runtimeAIApiKey` FIRST, so blank + restore both overrides and
+        // inject the empty-key resolver.
+        Secrets.apiKeyResolver = EmptyAPIKeyResolver()
+        defer { Secrets.apiKeyResolver = DefaultAPIKeyResolver() }
         let savedOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        let savedAIOverride = UserDefaults.standard.string(forKey: Secrets.RuntimeKeys.aiApiKey)
         UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.deepSeekApiKey)
+        UserDefaults.standard.set("", forKey: Secrets.RuntimeKeys.aiApiKey)
         defer {
             if let saved = savedOverride {
                 UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.deepSeekApiKey)
             } else {
                 UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.deepSeekApiKey)
             }
+            if let saved = savedAIOverride {
+                UserDefaults.standard.set(saved, forKey: Secrets.RuntimeKeys.aiApiKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Secrets.RuntimeKeys.aiApiKey)
+            }
         }
         let hadEnvKey = getenv("DEEPSEEK_API_KEY") != nil
+        let savedEnvKey = getenv("DEEPSEEK_API_KEY").flatMap { String(cString: $0) }
         unsetenv("DEEPSEEK_API_KEY")
-        defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", "", 1) } }
+        defer { if hadEnvKey { setenv("DEEPSEEK_API_KEY", savedEnvKey ?? "", 1) } }
+        XCTAssertTrue(
+            Secrets.resolvedDeepSeekApiKey.isEmpty,
+            "precondition: the Edge bypass is the only reason start() can proceed"
+        )
 
         // Inject Edge-routing flags via env vars (FeatureFlags.readBool reads
         // env first, then plist). Save+restore so we don't leak into other tests.
@@ -5588,9 +5792,14 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         )
 
         // Default Dynamic Type size.
+        // `ExperienceDetailView` requires the shared `BestNowClock` from the
+        // environment; inject an isolated instance (pinned instant) instead of
+        // the process singleton so this layout test is deterministic.
+        let clock = BestNowClock(startDate: Date(timeIntervalSince1970: 1_700_000_000))
         let defaultHost = UIHostingController(
             rootView: ExperienceDetailView(viewModel: vm) {}
                 .environment(LocationService())
+                .environment(clock)
         )
         let defaultWindow = UIWindow(frame: UIScreen.main.bounds)
         defaultWindow.rootViewController = defaultHost
@@ -5603,6 +5812,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         let a3Host = UIHostingController(
             rootView: ExperienceDetailView(viewModel: vm) {}
                 .environment(LocationService())
+                .environment(clock)
                 .environment(\.dynamicTypeSize, .accessibility3)
         )
         let a3Window = UIWindow(frame: UIScreen.main.bounds)
@@ -5858,6 +6068,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
             onAskSolo: { _ in } // non-nil so askSoloSection renders
         )
         .environment(LocationService())
+        .environment(BestNowClock(startDate: Date(timeIntervalSince1970: 1_700_000_000)))
 
         let host = UIHostingController(rootView: detail)
         host.overrideUserInterfaceStyle = .light
@@ -5939,6 +6150,7 @@ final class VoiceAgentOrchestratorUnconfiguredTests: XCTestCase {
         )
         .environment(LocationService())
         .environment(SubscriptionService())
+        .environment(BestNowClock(startDate: Date(timeIntervalSince1970: 1_700_000_000)))
 
         let host = UIHostingController(rootView: detail)
         host.overrideUserInterfaceStyle = .light
@@ -7138,15 +7350,29 @@ final class MinutesLeftInBestWindowTests: XCTestCase {
         XCTAssertEqual(result, 180)
     }
 
-    /// Returns at least 1 even when the window ends in less than 60 seconds.
+    /// Boundary at the “< 1 minute remaining” edge (#73). A full minute left
+    /// still returns 1, but sub-minute remainders clamp to 0 so the UI can say
+    /// “closing now” instead of misreporting “1m left”.
+    ///
+    /// Kept the historical `testReturnsAtLeastOne` name so existing
+    /// failure-tracking/filters keep resolving it, while pinning both sides of
+    /// the documented (#73) clamp contract.
     func testReturnsAtLeastOne() {
-        // window 9–10; test at 09:59:45 → ~15s remaining → clamps to 1
+        // window 9–10; test at 09:59:00 → exactly 1 full minute remaining → 1
         let exp = makeExperience(bestTimes: [TimeWindow(startHour: 9, endHour: 10)])
-        var c = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        c.hour = 9; c.minute = 59; c.second = 45
-        let at = Calendar.current.date(from: c)!
+        var fullMinute = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        fullMinute.hour = 9; fullMinute.minute = 59; fullMinute.second = 0
+        XCTAssertEqual(
+            exp.minutesLeftInBestWindow(at: Calendar.current.date(from: fullMinute)!),
+            1
+        )
+
+        // test at 09:59:45 → ~15s remaining → clamps to 0 (#73)
+        var subMinute = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        subMinute.hour = 9; subMinute.minute = 59; subMinute.second = 45
+        let at = Calendar.current.date(from: subMinute)!
         let result = exp.minutesLeftInBestWindow(at: at)
-        XCTAssertEqual(result, 1)
+        XCTAssertEqual(result, 0, "Sub-minute remainder must clamp to 0, never negative (#73)")
     }
 
     // MARK: - Weekday / season scoping
@@ -7288,6 +7514,19 @@ final class ChatHistoryStoreTests: XCTestCase {
             VoiceAgentSession.Message(role: .user, content: "找一家安静的咖啡馆"),
         ])
         XCTAssertEqual(title, "找一家安静的咖啡馆")
+    }
+
+    func testContextEnvelopeDoesNotBecomeTitleAndRawMessageSurvives() {
+        let store = makeStore()
+        let raw = "<latest_context>\nhour_local: 15\ntimezone: Asia/Bangkok\n</latest_context>\n找一家安静的咖啡馆"
+        store.saveSession(id: "title-envelope", messages: [userMsg(raw)], scopedExperienceId: nil)
+        XCTAssertEqual(store.recentSessions().first?.title, "找一家安静的咖啡馆")
+        XCTAssertEqual(store.messages(sessionId: "title-envelope").first?.content, raw)
+    }
+
+    func testTitleKeepsOrdinaryBracketsAndSkipsDiagnosticsEnvelope() {
+        let raw = "<solo:diagnostics>\n{\"status\":\"offline\"}\n</solo:diagnostics>\n看看 [这家咖啡馆]"
+        XCTAssertEqual(ChatHistoryStore.deriveTitle(from: [userMsg(raw)]), "看看 [这家咖啡馆]")
     }
 
     func testToolCallsSurviveRoundTrip() {

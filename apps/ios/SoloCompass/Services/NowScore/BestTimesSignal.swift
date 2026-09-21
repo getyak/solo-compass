@@ -20,6 +20,7 @@ public struct BestTimesSignal: NowSignal {
 
     public init() {}
 
+    /// Scores how well the experience's best-time window matches `date`.
     public func score(for experience: Experience, at date: Date) async -> NowSignalContribution {
         evaluate(for: experience, at: date)
     }

@@ -82,6 +82,7 @@ public final class NotificationService {
         }
     }
 
+    /// Routes a remote-notification payload to the matching deep link.
     public func handleRemotePayload(_ userInfo: [AnyHashable: Any]) {
         guard let type = userInfo["type"] as? String else { return }
         switch type {

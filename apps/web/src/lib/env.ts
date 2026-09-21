@@ -44,7 +44,7 @@ const serverSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_KEY: z.string().min(20),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
-  ANTHROPIC_API_KEY: z.string().min(20).optional(),
+  DEEPSEEK_API_KEY: z.string().min(20).optional(),
   VALHALLA_URL: z.string().url().optional(),
 });
 
@@ -58,7 +58,7 @@ export function getServerEnv(): ServerEnv {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_KEY: process.env.SUPABASE_KEY ?? process.env.SUPABASE_ANON_KEY,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
     VALHALLA_URL: process.env.VALHALLA_URL,
   });
   if (!parsed.success) {

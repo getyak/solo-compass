@@ -55,6 +55,7 @@ public final class InteractionTracker {
         let signpostID: OSSignpostID
     }
 
+    /// The kinds of interaction the tracker records for latency and engagement.
     public enum EventType: String, Codable {
         case pinTap = "pin_tap"
         case detailOpen = "detail_open"
@@ -68,6 +69,7 @@ public final class InteractionTracker {
         case exploreNearby = "explore_nearby"
     }
 
+    /// One tracked interaction with its optional context and timestamp.
     public struct InteractionEvent: Codable {
         public let type: EventType
         public let experienceId: String?
@@ -107,6 +109,7 @@ public final class InteractionTracker {
 
     private init() {}
 
+    /// Records an interaction event for the current session and emits a log line.
     public func track(_ type: EventType, experienceId: String? = nil, category: String? = nil, metadata: [String: String] = [:]) {
         let event = InteractionEvent(type: type, experienceId: experienceId, category: category, metadata: metadata)
         sessionEvents.append(event)

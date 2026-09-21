@@ -6,17 +6,19 @@ import SwiftUI
 @MainActor
 public struct ChatHistoryListView: View {
     let store: ChatHistoryStore
-    /// Called with a chosen session's id + restored messages so the host can
-    /// rebind the live orchestrator to that conversation.
-    let onSelect: (_ sessionId: String, _ messages: [VoiceAgentSession.Message]) -> Void
+    /// Called with a chosen session's id, restored messages, and the stored
+    /// `scopedExperienceId` so the host can restore the conversation under the
+    /// exact scope it was saved with (a place chat must not reopen as global).
+    let onSelect: (_ sessionId: String, _ messages: [VoiceAgentSession.Message], _ scopedExperienceId: String?) -> Void
     let onDismiss: () -> Void
 
     @State private var sessions: [ChatSessionRecord] = []
+    @State private var displayTitles: [String: String] = [:]
     @Environment(\.colorScheme) private var colorScheme
 
     public init(
         store: ChatHistoryStore,
-        onSelect: @escaping (_ sessionId: String, _ messages: [VoiceAgentSession.Message]) -> Void,
+        onSelect: @escaping (_ sessionId: String, _ messages: [VoiceAgentSession.Message], _ scopedExperienceId: String?) -> Void,
         onDismiss: @escaping () -> Void
     ) {
         self.store = store
@@ -50,7 +52,7 @@ public struct ChatHistoryListView: View {
             ForEach(sessions, id: \.id) { session in
                 Button {
                     let restored = store.messages(sessionId: session.id)
-                    onSelect(session.id, restored)
+                    onSelect(session.id, restored, session.scopedExperienceId)
                 } label: {
                     row(for: session)
                 }
@@ -64,7 +66,7 @@ public struct ChatHistoryListView: View {
 
     private func row(for session: ChatSessionRecord) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(session.title ?? NSLocalizedString("chat.history.untitled", comment: "Untitled chat"))
+            Text(displayTitles[session.id] ?? NSLocalizedString("chat.history.untitled", comment: "Untitled chat"))
                 .font(.body.weight(.medium))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
@@ -95,6 +97,18 @@ public struct ChatHistoryListView: View {
 
     private func reload() {
         sessions = store.recentSessions()
+        // Legacy titles may have been truncated inside a context envelope.
+        // Recover from the full first message without mutating stored history.
+        displayTitles = Dictionary(uniqueKeysWithValues: sessions.map { session in
+            let title = session.title ?? ""
+            let recovered: String?
+            if title.hasPrefix("<latest_context>") || title.hasPrefix("<solo:diagnostics>") {
+                recovered = ChatHistoryStore.deriveTitle(from: store.messages(sessionId: session.id))
+            } else {
+                recovered = session.title
+            }
+            return (session.id, recovered ?? NSLocalizedString("chat.history.untitled", comment: "Untitled chat"))
+        })
     }
 
     private func deleteRows(_ offsets: IndexSet) {

@@ -64,55 +64,68 @@ public struct InlineBanner: View {
     }
 
     public var body: some View {
-        HStack(spacing: 0) {
+        // The tone rail is an OVERLAY behind the content, not a sibling in the
+        // HStack. As an HStack sibling a fixed-width `Rectangle` with no height
+        // greedily filled whatever height the parent proposed — so a banner
+        // dropped into a flexible VStack stretched into a huge empty box. As a
+        // background it is sized by the content, so the banner is always
+        // exactly as tall as its title/subtitle/CTA.
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon ?? tone.icon)
+                .font(.callout)
+                .foregroundStyle(tone.railColor)
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 4)
+
+            if let ctaLabel, let onCTA {
+                Button(action: onCTA) {
+                    Text(ctaLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(CT.accent)
+                        // HIG 44pt target without changing the compact copy.
+                        .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            if let onDismiss {
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+                        .background(surfaceFill, in: Circle())
+                        // Expand the tappable region to the 44pt minimum while
+                        // the visible glyph stays 24pt.
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(NSLocalizedString("common.dismiss", comment: "Dismiss")))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(alignment: .leading) {
             Rectangle()
                 .fill(tone.railColor)
                 .frame(width: 3)
-
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: icon ?? tone.icon)
-                    .font(.callout)
-                    .foregroundStyle(tone.railColor)
-                    .padding(.top, 1)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let subtitle, !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                Spacer(minLength: 4)
-
-                if let ctaLabel, let onCTA {
-                    Button(action: onCTA) {
-                        Text(ctaLabel)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(CT.accent)
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                if let onDismiss {
-                    Button(action: onDismiss) {
-                        Image(systemName: "xmark")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 24, height: 24)
-                            .background(surfaceFill, in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(NSLocalizedString("common.dismiss", comment: "Dismiss")))
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
         }
         .background(surfaceFill)
         .overlay(
@@ -121,6 +134,7 @@ public struct InlineBanner: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
         .transition(.move(edge: .top).combined(with: .opacity))
     }

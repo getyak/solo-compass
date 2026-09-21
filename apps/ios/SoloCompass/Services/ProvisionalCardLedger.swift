@@ -42,6 +42,7 @@ public final class ProvisionalCardLedger {
         case undone
     }
 
+    /// Tracks one provisional chat card from appearance through commit or dismissal.
     public struct Entry: Identifiable, Equatable {
         public let id: UUID
         public let messageId: UUID

@@ -33,10 +33,17 @@ struct HalfExpandedEmptyState: View {
     /// Whether the mic is currently held — drives the orb-style pulse on the
     /// mic button so the user can see they're recording without looking away.
     let isMicListening: Bool
+    /// Whether to render the centred push-to-talk handle. The compact workspace
+    /// doorway sets this `false` because the always-present composer owns the
+    /// sole mic/text entry; standalone callers keep the original handle.
+    var showsMicHandle: Bool = true
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = true
+    /// Serif invitation size, scaled with Dynamic Type instead of fixed so the
+    /// compact doorway stays readable at accessibility sizes.
+    @ScaledMetric(relativeTo: .title) private var inviteSize: CGFloat = 26
 
     var body: some View {
         // Editorial half-sheet — "B. Minimal Voice":
@@ -58,18 +65,22 @@ struct HalfExpandedEmptyState: View {
                 "chat.empty.half.invite",
                 comment: "Half-detent serif invitation — Ask me where to go"
             ))
-                .font(.system(size: 26, weight: .semibold, design: .serif))
+                .font(.system(size: inviteSize, weight: .semibold, design: .serif))
                 .tracking(-0.3)
                 .foregroundStyle(titleColor)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .padding(.horizontal, 36)
                 .padding(.bottom, 22)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
 
             suggestionRow
-                .padding(.bottom, 28)
+                .padding(.bottom, showsMicHandle ? 28 : 8)
 
-            micHandle
+            if showsMicHandle {
+                micHandle
+            }
 
             Spacer(minLength: 12)
         }
@@ -91,13 +102,14 @@ struct HalfExpandedEmptyState: View {
         // size + gentle downscale rather than a hard truncation ellipsis —
         // truncated all-caps letterforms read like an error, not a design.
         Text(nowChipText.uppercased())
-            .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+            .ctMono(9.5, .semibold, relativeTo: .caption2)
             .tracking(1.8)
             .foregroundStyle(CT.sunGoldDeep.opacity(0.85))
             .lineLimit(1)
             .minimumScaleFactor(0.75)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 28)
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 
     // MARK: - Suggestion row (horizontal pills)
@@ -107,13 +119,11 @@ struct HalfExpandedEmptyState: View {
     // never used. Removing it also makes the row visible to `ImageRenderer`
     // (which silently drops ScrollView content in snapshot tests).
     private var suggestionRow: some View {
-        // Four tags on a 375pt-wide screen with English localizations
-        // ("Nearby / Coffee / Sunset / Tonight") overflow the horizontal
-        // budget and wrap inside each capsule ("Nearb y"). Icon-only pills
-        // instead: label reads out via .accessibilityLabel for VO, and the
-        // punchy tag is preserved for the moment chip narrative but not
-        // rendered in the row itself.
-        HStack(spacing: 10) {
+        // Wrapping layout instead of a fixed HStack: at accessibility text
+        // sizes four pills cannot fit on one 375pt row (the old HStack clipped
+        // or shrank them into illegibility). FlowLayout reflows to multiple
+        // rows, and each label scales with Dynamic Type.
+        FlowLayout(spacing: 10) {
             ForEach(suggestions) { s in
                 Button {
                     Haptics.impact(.light)
@@ -124,11 +134,10 @@ struct HalfExpandedEmptyState: View {
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(s.tint)
                         Text(s.label)
-                            .font(.system(size: 12.5, weight: .semibold))
+                            .ctBody(12.5, .semibold, relativeTo: .caption)
                             .foregroundStyle(pillTextColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
-                            .fixedSize(horizontal: true, vertical: false)
                     }
                     .padding(.horizontal, 11)
                     .padding(.vertical, 8)
@@ -140,6 +149,7 @@ struct HalfExpandedEmptyState: View {
             }
         }
         .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Push-to-talk mic

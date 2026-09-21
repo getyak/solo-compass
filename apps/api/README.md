@@ -6,7 +6,8 @@ Go service that provides the RAG (retrieval-augmented generation) pipeline for S
 
 - Persist and query per-experience reviews from a PostgreSQL database.
 - Compute aggregate Solo Scores from real review data.
-- Serve as the home for future AI enrichment pipelines (embedding search, re-ranking).
+- Extract structured solo metrics from review text via DeepSeek's
+  OpenAI-compatible chat/completions API (`internal/reviews/extractor.go`).
 
 ## Endpoints
 
@@ -17,10 +18,13 @@ Go service that provides the RAG (retrieval-augmented generation) pipeline for S
 
 ## Environment variables
 
-| Variable       | Default  | Description                                                                               |
-| -------------- | -------- | ----------------------------------------------------------------------------------------- |
-| `DATABASE_URL` | _(none)_ | PostgreSQL DSN (`postgres://user:pass@host/db`). When absent, `/v1` endpoints return 503. |
-| `PORT`         | `8080`   | TCP port the server listens on.                                                           |
+| Variable            | Default                       | Description                                                                                                            |
+| ------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`      | _(none)_                      | PostgreSQL DSN (`postgres://user:pass@host/db`). When absent, `/v1` endpoints return 503.                              |
+| `PORT`              | `8080`                        | TCP port the server listens on.                                                                                        |
+| `DEEPSEEK_API_KEY`  | _(none)_                      | DeepSeek key for review extraction. Without it, `Extract` returns an error and callers degrade gracefully.             |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com/v1` | OpenAI-compatible base URL; the extractor appends `/chat/completions`.                                                 |
+| `DEEPSEEK_MODEL`    | `deepseek-flash`              | Model id. Legacy ids (`deepseek-chat`, `deepseek-reasoner`, `deepseek-v4-pro`, `deepseek-v4-flash`) normalize forward. |
 
 ## Running locally
 

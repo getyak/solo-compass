@@ -16,6 +16,7 @@ public protocol CurrentWeatherProviding {
 /// optional shape `WeatherSignal` wants. Every `WeatherError` (offline, no key,
 /// decode) maps to `nil` so the signal never crashes the composite.
 extension WeatherService: CurrentWeatherProviding {
+    /// Adapts `WeatherService.current(at:)` to the `CurrentWeatherProviding` seam.
     public func snapshot(at coord: CLLocationCoordinate2D) async -> WeatherSnapshot? {
         try? await current(at: coord)
     }
@@ -59,6 +60,7 @@ public struct WeatherSignal: NowSignal {
         self.weather = weather
     }
 
+    /// Downgrades outdoor experiences when the current weather is poor.
     public func score(for experience: Experience, at date: Date) async -> NowSignalContribution {
         // Indoor venues ignore weather entirely — full strength, no reason.
         guard Self.isOutdoor(experience) else {

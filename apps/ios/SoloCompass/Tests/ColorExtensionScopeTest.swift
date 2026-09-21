@@ -2,21 +2,14 @@ import XCTest
 
 /// US-045: Audit `Color` extensions for unintended public scope.
 ///
-/// Two distinct `Color(hex:)` helpers exist in the app, and they must NOT
-/// collide or leak across files:
-///
-/// 1. The **canonical** string parser lives in `Views/Shared/Color+Hex.swift`:
-///    `init?(hex: String)` — failable, accepts `"#E8826A"` / `"E8826A"`.
-///    This is the shared, app-wide helper (used by e.g. `UserDirectory`).
-///
-/// 2. A **file-scoped** literal helper lives in `Views/Settings/SettingsView.swift`:
-///    `private extension Color { init(hex: UInt32) }` — non-failable, accepts a
-///    numeric literal like `0xD4A843`. It is used ONLY inside `SettingsView`.
-///
-/// Because the two differ by parameter type (`String?` vs `UInt32`) Swift treats
-/// them as separate overloads, so even if both were global they would not be
-/// ambiguous — but the `UInt32` variant is intentionally `private` so it stays
-/// confined to `SettingsView` and cannot collide with a future global hex helper.
+/// The app has exactly ONE hex initializer: the canonical string parser in
+/// `Views/Shared/Color+Hex.swift` (`init?(hex: String)`, failable, accepts
+/// `"#E8826A"` / `"E8826A"`). A former file-scoped literal helper
+/// (`private extension Color { init(hex: UInt32) }` in
+/// `Views/Settings/SettingsView.swift`) was removed when Settings moved onto
+/// the shared design tokens, so the audit below now enforces that no second
+/// hex overload creeps back in — a duplicate parser would drift from the
+/// canonical one and reintroduce the ambiguity this story guarded against.
 ///
 /// iOS unit-test bundles run in the Simulator sandbox where the source tree may
 /// not be reachable, so — consistent with `IOS18AvailabilityGuardTest` and
@@ -56,30 +49,19 @@ final class ColorExtensionScopeTest: XCTestCase {
 
     // MARK: - Tests
 
-    /// The `Color(hex: UInt32)` literal initializer in `SettingsView.swift` must
-    /// stay behind a `private extension Color` declaration so it is file-scoped
-    /// and cannot be accessed from outside `SettingsView`.
+    /// The former `Color(hex: UInt32)` literal initializer in `SettingsView.swift`
+    /// was removed in favor of the canonical string helper. This ratchet keeps
+    /// `SettingsView` from reintroducing a second, local hex parser: any hex
+    /// initializer must be declared `private` (file-scoped) if it comes back,
+    /// and today it must simply not exist there.
     func testSettingsViewHexInitIsPrivateFileScope() throws {
         let text = try source(at: "Views/Settings/SettingsView.swift")
-        let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-
-        // The opening line is `private extension Color {`; the initializer is on a
-        // later line. Locate the `init(hex: UInt32)` then walk back to its
-        // enclosing `extension Color` declaration and assert it is `private`.
-        let initIdx = try XCTUnwrap(
-            lines.firstIndex(where: { $0.contains("init(hex: UInt32)") }),
-            "Expected a `Color(hex: UInt32)` initializer in SettingsView.swift; "
-                + "if it was removed or renamed, update this audit."
-        )
-        let openIdx = try XCTUnwrap(
-            (0...initIdx).reversed().first(where: { lines[$0].contains("extension Color") }),
-            "Found `init(hex: UInt32)` but no enclosing `extension Color` in SettingsView.swift."
-        )
-        XCTAssertTrue(
-            lines[openIdx].contains("private extension Color"),
-            "The `Color(hex: UInt32)` helper in SettingsView.swift must be declared "
-                + "`private extension Color` so it stays file-scoped. Found: "
-                + lines[openIdx].trimmingCharacters(in: .whitespaces)
+        XCTAssertFalse(
+            text.contains("init(hex:"),
+            "SettingsView.swift must not declare a local Color(hex:) initializer — "
+                + "extend the canonical Views/Shared/Color+Hex.swift parser instead. "
+                + "If a file-scoped helper is ever reintroduced, its enclosing declaration "
+                + "must stay `private extension Color`."
         )
     }
 
@@ -129,16 +111,33 @@ final class ColorExtensionScopeTest: XCTestCase {
         )
     }
 
-    /// Sanity check on the scanner: the known `Color(hex: 0x…)` call sites inside
-    /// SettingsView are still present — so `testUInt32HexInitNotUsedOutsideSettingsView`
-    /// is exercising a real, in-use overload rather than passing vacuously because
-    /// the helper was deleted.
+    /// Sanity check on the scanner: the removed `Color(hex: UInt32)` literal
+    /// overload must NOT be reintroduced anywhere in production source. This
+    /// replaces the old “call sites still present in SettingsView” check (the
+    /// helper was deleted in a refactor) with a ratchet that keeps the canonical
+    /// `init?(hex: String)` parser the single hex entry point.
     func testKnownUInt32HexCallSitesPresentInSettingsView() throws {
-        let text = try source(at: "Views/Settings/SettingsView.swift")
-        XCTAssertTrue(
-            text.contains("Color(hex: 0x"),
-            "Expected at least one `Color(hex: 0x…)` call in SettingsView.swift; "
-                + "if the UInt32 helper was removed, drop this audit too."
+        let root = appRoot()
+        guard FileManager.default.fileExists(atPath: root.path) else {
+            throw XCTSkip("SoloCompass source not reachable from test host — sandboxed run")
+        }
+
+        var offenders: [String] = []
+        for fileURL in swiftFiles(under: root) {
+            guard let text = try? String(contentsOf: fileURL, encoding: .utf8) else { continue }
+            let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+            for (idx, line) in lines.enumerated()
+            where line.contains("init(hex: UInt32)")
+                || line.contains("Color(hex: 0x")
+                || line.contains("Color(hex: 0X") {
+                offenders.append("\(fileURL.lastPathComponent):\(idx + 1): \(line.trimmingCharacters(in: .whitespaces))")
+            }
+        }
+        XCTAssertEqual(
+            offenders.count, 0,
+            "The `Color(hex: UInt32)` literal overload was removed; do not reintroduce "
+                + "it (extend the canonical `init?(hex: String)` in Views/Shared/Color+Hex.swift "
+                + "instead). Offenders:\n" + offenders.joined(separator: "\n")
         )
     }
 }
