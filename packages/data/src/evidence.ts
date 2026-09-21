@@ -1,9 +1,7 @@
 /** JSON values accepted by Postgres JSONB and provider-independent tools. */
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue =
-  | JsonPrimitive
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue };
+  JsonPrimitive | readonly JsonValue[] | { readonly [key: string]: JsonValue };
 
 export const FEATURE_KEYS = {
   canonicalName: "identity.canonical_name",

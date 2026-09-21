@@ -123,8 +123,7 @@ Deno.serve(async (req: Request) => {
   let requesterHandle = "";
   const { data: requesterUser } = await svc.auth.admin.getUserById(callerId);
   const meta = requesterUser?.user?.user_metadata as
-    | { display_handle?: unknown; displayHandle?: unknown }
-    | undefined;
+    { display_handle?: unknown; displayHandle?: unknown } | undefined;
   if (typeof meta?.display_handle === "string") requesterHandle = meta.display_handle;
   else if (typeof meta?.displayHandle === "string") requesterHandle = meta.displayHandle;
   if (!requesterHandle) requesterHandle = requesterEmoji; // never empty.

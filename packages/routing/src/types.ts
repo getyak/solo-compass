@@ -17,8 +17,7 @@ export interface LocalTimeWindow {
 }
 
 export type OpeningHoursEvidence =
-  | { status: "known"; windows: LocalTimeWindow[] }
-  | { status: "unknown" };
+  { status: "known"; windows: LocalTimeWindow[] } | { status: "unknown" };
 
 export interface RouteFeatureFact {
   value: JsonValue;

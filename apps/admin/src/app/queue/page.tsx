@@ -116,8 +116,7 @@ export default async function QueuePage({ searchParams }: PageProps) {
         ? [r.editor_queue]
         : [];
     const queueRow = queueRows[0] as
-      | { claimed_by: string | null; claimed_at: string | null }
-      | undefined;
+      { claimed_by: string | null; claimed_at: string | null } | undefined;
     const claimedAt = queueRow?.claimed_at ? new Date(queueRow.claimed_at).getTime() : null;
     const isActive = claimedAt !== null && now - claimedAt < CLAIM_TTL_MS;
 

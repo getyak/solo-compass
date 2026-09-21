@@ -210,13 +210,11 @@ Extract one concrete experience from the text above, or refuse if the material i
         placeNameLocal: raw.placeNameLocal ?? undefined,
         placeNameRomanized: raw.placeNameRomanized ?? undefined,
       },
-      bestTimes: raw.bestTimes.map(
-        (t): TimeWindow => ({
-          startHour: t.startHour,
-          endHour: t.endHour,
-          note: t.note ?? undefined,
-        }),
-      ),
+      bestTimes: raw.bestTimes.map((t): TimeWindow => ({
+        startHour: t.startHour,
+        endHour: t.endHour,
+        note: t.note ?? undefined,
+      })),
       durationMinutes: { min: raw.durationMin, max: raw.durationMax },
       howTo: raw.howTo.map((s): HowToStep => ({ order: s.order, text: s.text })),
       realInconveniences: raw.realInconveniences,

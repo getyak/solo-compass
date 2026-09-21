@@ -125,20 +125,18 @@ function dependencies(
           created_at: NOW,
         };
       }),
-      materializeFeature: vi.fn(
-        async (_placeId, featureKey): Promise<ResolvedPlaceFeature> => ({
-          placeId: PLACE_ID,
-          featureKey,
-          value: true,
-          status: "resolved",
-          confidence: 0.8,
-          supportingObservationIds: ["obs"],
-          conflictingObservationIds: [],
-          resolverVersion: "test",
-          resolutionFingerprint: "test",
-          resolvedAt: NOW,
-        }),
-      ),
+      materializeFeature: vi.fn(async (_placeId, featureKey): Promise<ResolvedPlaceFeature> => ({
+        placeId: PLACE_ID,
+        featureKey,
+        value: true,
+        status: "resolved",
+        confidence: 0.8,
+        supportingObservationIds: ["obs"],
+        conflictingObservationIds: [],
+        resolverVersion: "test",
+        resolutionFingerprint: "test",
+        resolvedAt: NOW,
+      })),
       linkExperience: vi.fn(async (input): Promise<ExperiencePlaceLinkRow> => {
         links.push(input);
         return { ...input, linked_at: NOW };

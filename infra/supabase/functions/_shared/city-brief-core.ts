@@ -16,13 +16,7 @@
 
 export type KitSection = "net" | "money" | "visa" | "safety";
 export type EventCategory =
-  | "culture"
-  | "wellness"
-  | "market"
-  | "music"
-  | "sports"
-  | "food"
-  | "notice";
+  "culture" | "wellness" | "market" | "music" | "sports" | "food" | "notice";
 export type Health = "green" | "yellow" | "red" | "gray";
 export type CompileTarget = "kit" | "events";
 

@@ -148,14 +148,7 @@ export interface CategoryHighlight {
  */
 export interface InformationSource {
   readonly type:
-    | "wikivoyage"
-    | "wikipedia"
-    | "reddit"
-    | "blog"
-    | "youtube"
-    | "user"
-    | "field_visit"
-    | "amap"; // AutoNavi/高德 — mainland-China POI provenance marker. Per
+    "wikivoyage" | "wikipedia" | "reddit" | "blog" | "youtube" | "user" | "field_visit" | "amap"; // AutoNavi/高德 — mainland-China POI provenance marker. Per
   // ADR-amap-china-poi §3.2 only the attribution flag is persisted,
   // never the raw structured fields.
   readonly url?: string;
