@@ -1,6 +1,8 @@
 import Foundation
 
+/// Terminal feedback for one online place query; failures are distinct from no matches.
 public struct POISearchOutcome: Equatable {
+    /// The outcome shown only while the visible query still matches the request.
     public enum Status: Equatable {
         case found(Int)
         case empty
