@@ -79,7 +79,9 @@ public struct ItineraryFormView: View {
         guard !code.isEmpty else {
             return NSLocalizedString("itinerary.form.city.picker.title", comment: "Choose City placeholder")
         }
-        return availableCities.first(where: { $0.code == code })?.name ?? code
+        let canonical = MapViewModel.cityCodeAliases[code.lowercased()] ?? code.lowercased()
+        return availableCities.first(where: { MapViewModel.cityCodeMatches($0.code, selected: code) })?.name
+            ?? MapViewModel.cityNameMap[canonical] ?? code
     }
 
     /// Localized, date-stamped suggestion for a brand-new itinerary.
@@ -311,7 +313,7 @@ private struct ItineraryCityPickerView: View {
                     Text(city.name)
                         .foregroundStyle(.primary)
                     Spacer()
-                    if selectedCode == city.code {
+                    if MapViewModel.cityCodeMatches(city.code, selected: selectedCode) {
                         Image(systemName: "checkmark")
                             .foregroundStyle(CT.accent)
                             .font(.body.weight(.semibold))
