@@ -116,8 +116,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.2(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       zod:
-        specifier: ^3.23.8
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@playwright/test':
         specifier: ^1.63.0
@@ -3407,6 +3407,9 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+
   zustand@4.5.7:
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
     engines: {node: '>=12.7.0'}
@@ -6179,7 +6182,10 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@3.25.76: {}
+  zod@3.25.76:
+    optional: true
+
+  zod@4.6.5: {}
 
   zustand@4.5.7(@types/react@19.2.18)(react@19.2.8):
     dependencies:
