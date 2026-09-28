@@ -18,7 +18,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
-    "@sentry/nextjs": "^10.71.0",
+    "@sentry/nextjs": "^11.0.0",
     "@solo-compass/ai": "workspace:*",
     "@solo-compass/core": "workspace:*",
     "@solo-compass/data": "workspace:*",
